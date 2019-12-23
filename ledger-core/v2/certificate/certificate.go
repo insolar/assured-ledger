@@ -26,10 +26,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/pkg/errors"
 )
 
 // BootstrapNode holds info about bootstrap nodes

@@ -31,7 +31,7 @@ check API ports after launchnet's start:
 lock message type `TypeSetOutgoingRequest` on Virtual nodes:
 
     http POST http://127.0.0.1:55502/setMessagesFilter Name=TypeSetOutgoingRequest Enable:=true
-    
+
 check is type `TypeSetOutgoingRequest` locked and how much is filtered out:
 
     http POST http://127.0.0.1:55502/getMessagesFilters

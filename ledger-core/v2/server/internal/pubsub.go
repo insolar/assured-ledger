@@ -20,9 +20,11 @@ package internal
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/component-manager"
 	"golang.org/x/net/context"
+
+	"github.com/insolar/component-manager"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 )
 
 // PublisherWrapper stub for message.Publisher introspection wrapper for binaries without introspection API.
