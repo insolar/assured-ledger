@@ -1,0 +1,7 @@
+.artifacts
+data
+testdata
+bin
+Dockerfile
+vendor
+.*

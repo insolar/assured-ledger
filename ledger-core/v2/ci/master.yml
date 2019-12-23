@@ -1,0 +1,102 @@
+groups:
+- name: master
+  jobs:
+    - insolard
+    - builder
+
+resource_types:
+- name: kubernetes
+  type: docker-image
+  source:
+    repository: zlabjp/kubernetes-resource
+    tag: "1.11"
+
+resources:
+- name: master
+  type: git
+  source:
+    uri: https://github.com/insolar/assured-ledger/ledger-core/v2.git
+    branch: master
+
+- name: insolard
+  type: docker-image
+  source:
+    repository: registry.insolar.io/insolard
+    username: ((meta.registry.username))
+    password: ((meta.registry.password))
+
+- name: builder
+  type: docker-image
+  source:
+    repository: registry.insolar.io/builder
+    username: ((meta.registry.username))
+    password: ((meta.registry.password))
+
+- name: adm
+  type: git
+  source:
+    uri: git@github.com:insolar/adm.git
+    branch: master
+    private_key: ((meta.github.adm_key))
+
+- name: deploy
+  type: kubernetes
+  source:
+    server: https://kube.insolar.io:6443
+    token: ((meta.kubernetes.dev-token))
+    certificate_authority: ((meta.kubernetes.ca))
+
+jobs:
+- name: insolard
+  public: true
+  plan:
+  - get: master
+    trigger: true
+  - get: adm
+    trigger: false
+  - get: builder
+    params: 
+      save: true
+  - put: insolard
+    params:
+      build: master
+      target: insolard
+      load_base: builder
+      tag_file: master/.git/short_ref
+      tag_as_latest: true
+  - task: set-tag
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: alpine}
+      inputs:
+        - name: master
+        - name: adm
+      outputs:
+        - name: deploy
+      run:
+        path: sh
+        args:
+          - -exc
+          - |
+            cp master/.git/short_ref deploy/tag
+            cp adm/manifests/dev/bootstrap-temporary.yaml deploy/bootstrap.yaml
+            ls -alh
+            sed -i "s/registry.insolar.io\/insolard/registry.insolar.io\/insolard:$(cat deploy/tag)/g" deploy/bootstrap.yaml
+            cat deploy/bootstrap.yaml
+  - put: deploy
+    params:
+      namespace: dev
+      wait_until_ready: 120
+      kubectl: apply -f deploy/bootstrap.yaml
+
+- name: builder
+  public: true
+  plan:
+  - get: master
+    trigger: false
+  - put: builder
+    params:
+      build: master
+      dockerfile: master/docker/Dockerfile.builder

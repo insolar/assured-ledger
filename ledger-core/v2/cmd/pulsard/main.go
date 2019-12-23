@@ -1,0 +1,193 @@
+//
+// Copyright 2019 Insolar Technologies GmbH
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/spf13/cobra"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/version"
+	"github.com/insolar/component-manager"
+)
+
+type inputParams struct {
+	configPath string
+}
+
+func parseInputParams() inputParams {
+	var rootCmd = &cobra.Command{Use: "insolard"}
+	var result inputParams
+	rootCmd.Flags().StringVarP(&result.configPath, "config", "c", "", "path to config file")
+	rootCmd.AddCommand(version.GetCommand("pulsard"))
+	err := rootCmd.Execute()
+	if err != nil {
+		fmt.Println("Wrong input params:", err.Error())
+	}
+
+	return result
+}
+
+// Need to fix problem with start pulsar
+func main() {
+	params := parseInputParams()
+
+	jww.SetStdoutThreshold(jww.LevelDebug)
+	var err error
+
+	vp := viper.New()
+	pCfg := configuration.NewPulsarConfiguration()
+	if len(params.configPath) != 0 {
+		vp.SetConfigFile(params.configPath)
+	}
+	err = vp.ReadInConfig()
+	if err != nil {
+		log.Warn("failed to load configuration from file: ", err.Error())
+	}
+	err = vp.Unmarshal(&pCfg)
+	if err != nil {
+		log.Warn("failed to load configuration from file: ", err.Error())
+	}
+
+	ctx := context.Background()
+	ctx, inslog := inslogger.InitNodeLogger(ctx, pCfg.Log, "", "pulsar")
+
+	jaegerflush := func() {}
+	if pCfg.Tracer.Jaeger.AgentEndpoint != "" {
+		jconf := pCfg.Tracer.Jaeger
+		log.Infof("Tracing enabled. Agent endpoint: '%s', collector endpoint: '%s'", jconf.AgentEndpoint, jconf.CollectorEndpoint)
+		jaegerflush = instracer.ShouldRegisterJaeger(
+			ctx,
+			"pulsar",
+			"pulsar",
+			jconf.AgentEndpoint,
+			jconf.CollectorEndpoint,
+			jconf.ProbabilityRate)
+	}
+	defer jaegerflush()
+
+	m := metrics.NewMetrics(pCfg.Metrics, metrics.GetInsolarRegistry("pulsar"), "pulsar")
+	err = m.Init(ctx)
+	if err != nil {
+		log.Fatal("Couldn't init metrics:", err)
+		os.Exit(1)
+	}
+	err = m.Start(ctx)
+	if err != nil {
+		log.Fatal("Couldn't start metrics:", err)
+		os.Exit(1)
+	}
+
+	cm, server := initPulsar(ctx, pCfg)
+	pulseTicker := runPulsar(ctx, server, pCfg.Pulsar)
+
+	defer func() {
+		pulseTicker.Stop()
+		err = cm.Stop(ctx)
+		if err != nil {
+			inslog.Error(err)
+		}
+	}()
+
+	var gracefulStop = make(chan os.Signal, 1)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+
+	<-gracefulStop
+}
+
+func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) (*component.Manager, *pulsar.Pulsar) {
+	fmt.Println("Version: ", version.GetFullVersion())
+	fmt.Println("Starts with configuration:\n", configuration.ToString(cfg))
+
+	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
+	if err != nil {
+		panic(err)
+	}
+	cryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+	cryptographyService := cryptography.NewCryptographyService()
+	keyProcessor := platformpolicy.NewKeyProcessor()
+
+	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor)
+	if err != nil {
+		panic(err)
+	}
+
+	cm := component.NewManager(nil)
+	cm.Register(cryptographyScheme, keyStore, keyProcessor, transport.NewFactory(cfg.Pulsar.DistributionTransport))
+	cm.Inject(cryptographyService, pulseDistributor)
+
+	if err = cm.Init(ctx); err != nil {
+		panic(err)
+	}
+
+	if err = cm.Start(ctx); err != nil {
+		panic(err)
+	}
+
+	server := pulsar.NewPulsar(
+		cfg.Pulsar,
+		cryptographyService,
+		cryptographyScheme,
+		keyProcessor,
+		pulseDistributor,
+		&entropygenerator.StandardEntropyGenerator{},
+	)
+
+	return cm, server
+}
+
+func runPulsar(ctx context.Context, server *pulsar.Pulsar, cfg configuration.Pulsar) *time.Ticker {
+	nextPulseNumber := pulse.OfNow()
+	err := server.Send(ctx, nextPulseNumber)
+	if err != nil {
+		panic(err)
+	}
+
+	pulseTicker := time.NewTicker(time.Duration(cfg.PulseTime) * time.Millisecond)
+	go func() {
+		for range pulseTicker.C {
+			err := server.Send(ctx, server.LastPN()+insolar.PulseNumber(cfg.NumberDelta))
+			if err != nil {
+				panic(err)
+			}
+		}
+	}()
+
+	return pulseTicker
+}

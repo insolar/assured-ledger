@@ -1,0 +1,59 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Go template
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+### MacOS stuff
+.DS_Store
+
+### IntelliJ project files
+.idea
+*.iml
+out
+.gen
+
+### VSCode configuration
+.vscode
+
+# wasm tests
+vm/wasm/test/data/!simple!.wasm
+vm/wasm/test/data/*.wat
+
+/testdata
+data
+
+# generated/compiled files
+/bin
+/.artifacts
+coverage.txt
+
+# GoReleaser dist dir
+/dist
+
+# deploy stuff
+/ci/local-dev/logs
+/ci/local-dev/manifests/ks/lib
+
+# network tests artifacts
+network/servicenetwork/network_cache
+network_cache
+
+# Local doc build directory
+/docs/build
+
+# contracts generated files
+application/contract
+application/proxy
+go.mod
+go.sum
+vendor

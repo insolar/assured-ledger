@@ -1,0 +1,41 @@
+run:
+  tests: false
+  skip-dirs:
+    - application/contract/
+    - application/proxy/
+    - logicrunner/goplugin/ginsider/healthcheck
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - gosec
+    - structcheck
+    - varcheck
+    - ineffassign
+    - deadcode
+    - typecheck
+    - golint
+    - interfacer
+    - unconvert
+    - goconst
+    - unparam
+    - nakedret
+    - scopelint
+    - gocritic
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/insolar/assured-ledger/ledger-core/v2
+
+issues:
+  exclude-rules:
+    - text: "S1021:"
+      linters:
+        - gosimple
+    - text: "G107:"
+      linters:
+        - gosec

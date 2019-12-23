@@ -1,0 +1,4 @@
+metrics:
+  zpagesenabled: false
+ledger:
+  lightchainlimit: 15

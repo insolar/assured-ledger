@@ -1,0 +1,179 @@
+//
+// Copyright 2019 Insolar Technologies GmbH
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+package proc
+
+import (
+	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/executor"
+)
+
+type FetchJet struct {
+	target  insolar.ID
+	pulse   insolar.PulseNumber
+	message payload.Meta
+	pass    bool
+
+	Result struct {
+		Jet insolar.JetID
+	}
+
+	dep struct {
+		jetAccessor jet.Accessor
+		jetFetcher  executor.JetFetcher
+		coordinator jet.Coordinator
+		sender      bus.Sender
+	}
+}
+
+func NewFetchJet(target insolar.ID, pn insolar.PulseNumber, msg payload.Meta, pass bool) *FetchJet {
+	return &FetchJet{
+		target:  target,
+		pulse:   pn,
+		message: msg,
+		pass:    pass,
+	}
+}
+
+func (p *FetchJet) Dep(
+	jets jet.Accessor,
+	fetcher executor.JetFetcher,
+	c jet.Coordinator,
+	s bus.Sender,
+) {
+	p.dep.jetAccessor = jets
+	p.dep.jetFetcher = fetcher
+	p.dep.coordinator = c
+	p.dep.sender = s
+}
+
+func (p *FetchJet) Proceed(ctx context.Context) error {
+	jetID, err := p.dep.jetFetcher.Fetch(ctx, p.target, p.pulse)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch jet")
+	}
+
+	worker, err := p.dep.coordinator.LightExecutorForJet(ctx, *jetID, p.pulse)
+	if err != nil {
+		return errors.Wrap(err, "failed to calculate executor for jet")
+	}
+	if *worker != p.dep.coordinator.Me() {
+		inslogger.FromContext(ctx).Warn("virtual node missed jet")
+		if !p.pass {
+			return ErrNotExecutor
+		}
+
+		buf, err := p.message.Marshal()
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal origin meta message")
+		}
+		msg, err := payload.NewMessage(&payload.Pass{
+			Origin: buf,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to create reply")
+		}
+		_, done := p.dep.sender.SendTarget(ctx, msg, *worker)
+		done()
+
+		// Send calculated jet to virtual node.
+		msg, err = payload.NewMessage(&payload.UpdateJet{
+			Pulse: p.pulse,
+			JetID: insolar.JetID(*jetID),
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to create jet message")
+		}
+		_, done = p.dep.sender.SendTarget(ctx, msg, p.message.Sender)
+		done()
+		return ErrNotExecutor
+	}
+
+	p.Result.Jet = insolar.JetID(*jetID)
+	return nil
+}
+
+type WaitHot struct {
+	jetID   insolar.JetID
+	pulse   insolar.PulseNumber
+	message payload.Meta
+
+	dep struct {
+		waiter executor.JetWaiter
+		sender bus.Sender
+	}
+}
+
+func NewWaitHot(j insolar.JetID, pn insolar.PulseNumber, msg payload.Meta) *WaitHot {
+	return &WaitHot{
+		jetID:   j,
+		pulse:   pn,
+		message: msg,
+	}
+}
+
+func (p *WaitHot) Dep(
+	w executor.JetWaiter,
+) {
+	p.dep.waiter = w
+}
+
+func (p *WaitHot) Proceed(ctx context.Context) error {
+	return p.dep.waiter.Wait(ctx, p.jetID, p.pulse)
+}
+
+type CalculateID struct {
+	payload []byte
+	pulse   insolar.PulseNumber
+
+	Result struct {
+		ID insolar.ID
+	}
+
+	dep struct {
+		pcs insolar.PlatformCryptographyScheme
+	}
+}
+
+func NewCalculateID(payload []byte, pulse insolar.PulseNumber) *CalculateID {
+	return &CalculateID{
+		payload: payload,
+		pulse:   pulse,
+	}
+}
+
+func (p *CalculateID) Dep(pcs insolar.PlatformCryptographyScheme) {
+	p.dep.pcs = pcs
+}
+
+func (p *CalculateID) Proceed(ctx context.Context) error {
+	h := p.dep.pcs.ReferenceHasher()
+	_, err := h.Write(p.payload)
+	if err != nil {
+		return errors.Wrap(err, "failed to calculate id")
+	}
+
+	p.Result.ID = *insolar.NewID(p.pulse, h.Sum(nil))
+	return nil
+}

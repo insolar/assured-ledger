@@ -1,0 +1,148 @@
+//
+// Copyright 2019 Insolar Technologies GmbH
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+package proc
+
+import (
+	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/executor"
+	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
+)
+
+type GetCode struct {
+	message payload.Meta
+	codeID  insolar.ID
+	pass    bool
+
+	dep struct {
+		records     object.RecordAccessor
+		coordinator jet.Coordinator
+		jetFetcher  executor.JetFetcher
+		sender      bus.Sender
+	}
+}
+
+func NewGetCode(msg payload.Meta, codeID insolar.ID, pass bool) *GetCode {
+	return &GetCode{
+		message: msg,
+		codeID:  codeID,
+		pass:    pass,
+	}
+}
+
+func (p *GetCode) Dep(
+	r object.RecordAccessor,
+	c jet.Coordinator,
+	f executor.JetFetcher,
+	s bus.Sender,
+) {
+	p.dep.records = r
+	p.dep.coordinator = c
+	p.dep.jetFetcher = f
+	p.dep.sender = s
+}
+
+func (p *GetCode) Proceed(ctx context.Context) error {
+	logger := inslogger.FromContext(ctx)
+	sendCode := func(rec record.Material) error {
+		buf, err := rec.Marshal()
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal record")
+		}
+		msg, err := payload.NewMessage(&payload.Code{
+			Record: buf,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to create message")
+		}
+
+		p.dep.sender.Reply(ctx, p.message, msg)
+
+		return nil
+	}
+
+	sendPassCode := func() error {
+		originMeta, err := p.message.Marshal()
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal origin meta message")
+		}
+		msg, err := payload.NewMessage(&payload.Pass{
+			Origin: originMeta,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to create reply")
+		}
+
+		onHeavy, err := p.dep.coordinator.IsBeyondLimit(ctx, p.codeID.Pulse())
+		if err != nil {
+			return errors.Wrap(err, "failed to calculate pulse")
+		}
+		var node insolar.Reference
+		if onHeavy {
+			h, err := p.dep.coordinator.Heavy(ctx)
+			if err != nil {
+				return errors.Wrap(err, "failed to calculate heavy")
+			}
+			node = *h
+		} else {
+			jetID, err := p.dep.jetFetcher.Fetch(ctx, p.codeID, p.codeID.Pulse())
+			if err != nil {
+				return errors.Wrap(err, "failed to fetch jet")
+			}
+			logger.Debug("calculated jet for pass: %s", jetID.DebugString())
+			l, err := p.dep.coordinator.LightExecutorForJet(ctx, *jetID, p.codeID.Pulse())
+			if err != nil {
+				return errors.Wrap(err, "failed to calculate role")
+			}
+			node = *l
+		}
+
+		go func() {
+			_, done := p.dep.sender.SendTarget(ctx, msg, node)
+			done()
+			logger.Debug("passed GetCode")
+		}()
+		return nil
+	}
+
+	rec, err := p.dep.records.ForID(ctx, p.codeID)
+	switch err {
+	case nil:
+		logger.Debug("sending code")
+		return sendCode(rec)
+	case object.ErrNotFound:
+		if p.pass {
+			logger.Info("code not found (sending pass)")
+			return sendPassCode()
+		}
+		return &payload.CodedError{
+			Text: "code not found",
+			Code: payload.CodeNotFound,
+		}
+
+	default:
+		return errors.Wrap(err, "failed to fetch record")
+	}
+}
