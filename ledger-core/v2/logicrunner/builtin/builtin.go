@@ -74,21 +74,15 @@ func NewBuiltIn(am artifacts.Client, stub LogicRunnerRPCStub) *BuiltIn {
 }
 
 func (b *BuiltIn) CallConstructor(
-	ctx context.Context,
-	callCtx *insolar.LogicCallContext,
-	codeRef insolar.Reference,
-	name string,
-	args insolar.Arguments,
-) (
-	[]byte, insolar.Arguments, error,
-) {
+	ctx context.Context, callCtx *insolar.LogicCallContext, codeRef insolar.Reference,
+	name string, args insolar.Arguments,
+) ([]byte, insolar.Arguments, error) {
 	executeStart := time.Now()
 	ctx = insmetrics.InsertTag(ctx, metrics.TagContractPrototype, b.PrototypeRefRegistry[codeRef])
 	ctx = insmetrics.InsertTag(ctx, metrics.TagContractMethodName, "Constructor")
-
 	defer func(ctx context.Context) {
-		executionTime := time.Since(executeStart).Nanoseconds()
-		stats.Record(ctx, metrics.ContractExecutionTime.M(float64(executionTime)/1e6))
+
+		stats.Record(ctx, metrics.ContractExecutionTime.M(float64(time.Since(executeStart).Nanoseconds())/1e6))
 	}(ctx)
 
 	ctx, span := instracer.StartSpan(ctx, "builtin.CallConstructor")
@@ -112,23 +106,13 @@ func (b *BuiltIn) CallConstructor(
 	return constructorFunc(*objRef, args)
 }
 
-func (b *BuiltIn) CallMethod(
-	ctx context.Context,
-	callCtx *insolar.LogicCallContext,
-	codeRef insolar.Reference,
-	data []byte,
-	method string,
-	args insolar.Arguments,
-) (
-	[]byte, insolar.Arguments, error,
-) {
+func (b *BuiltIn) CallMethod(ctx context.Context, callCtx *insolar.LogicCallContext, codeRef insolar.Reference,
+	data []byte, method string, args insolar.Arguments) ([]byte, insolar.Arguments, error) {
 	executeStart := time.Now()
 	ctx = insmetrics.InsertTag(ctx, metrics.TagContractPrototype, b.PrototypeRefRegistry[codeRef])
 	ctx = insmetrics.InsertTag(ctx, metrics.TagContractMethodName, method)
-
 	defer func(ctx context.Context) {
-		executionTime := time.Since(executeStart).Nanoseconds()
-		stats.Record(ctx, metrics.ContractExecutionTime.M(float64(executionTime)/1e6))
+		stats.Record(ctx, metrics.ContractExecutionTime.M(float64(time.Since(executeStart).Nanoseconds())/1e6))
 	}(ctx)
 
 	ctx, span := instracer.StartSpan(ctx, "builtin.CallMethod")

@@ -67,7 +67,7 @@ func (c *One) Dec() (int, error) {
 	protoRef := uploadContractOnce(t, "testPressure", contractCode)
 
 	t.Run("one object, sequential calls", func(t *testing.T) {
-		syncT := &testutils.SyncT{T: t}
+		syncT := &testutils.SyncT{TB: t}
 
 		objectRef := callConstructor(syncT, protoRef, "New")
 
@@ -80,7 +80,7 @@ func (c *One) Dec() (int, error) {
 	})
 
 	t.Run("one object, parallel calls", func(t *testing.T) {
-		syncT := &testutils.SyncT{T: t}
+		syncT := &testutils.SyncT{TB: t}
 
 		objectRef := callConstructor(syncT, protoRef, "New")
 
@@ -99,7 +99,7 @@ func (c *One) Dec() (int, error) {
 	})
 
 	t.Run("ten objects, sequential calls", func(t *testing.T) {
-		syncT := &testutils.SyncT{T: t}
+		syncT := &testutils.SyncT{TB: t}
 
 		wg := sync.WaitGroup{}
 		wg.Add(10)
@@ -119,7 +119,7 @@ func (c *One) Dec() (int, error) {
 	})
 
 	t.Run("ten objects, parallel calls", func(t *testing.T) {
-		syncT := &testutils.SyncT{T: t}
+		syncT := &testutils.SyncT{TB: t}
 
 		wg := sync.WaitGroup{}
 		wg.Add(100)
@@ -195,7 +195,7 @@ func (c *One) Rollback(amount int) error {
 	protoRef := uploadContractOnce(t, "testCoinPassing", contractCode)
 
 	t.Run("pass one coin in parallel between two wallets", func(t *testing.T) {
-		syncT := &testutils.SyncT{T: t}
+		syncT := &testutils.SyncT{TB: t}
 
 		w1Ref := callConstructor(syncT, protoRef, "New", 1)
 		w2Ref := callConstructor(syncT, protoRef, "New", 0)

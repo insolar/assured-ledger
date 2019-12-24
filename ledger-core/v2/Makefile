@@ -12,11 +12,15 @@ COVERPROFILE ?= coverage.txt
 
 BUILD_NUMBER := $(TRAVIS_BUILD_NUMBER)
 # skip git parsing commands if no git
-ifneq ("$(wildcard ./.git)", "")
+ifneq ("$(wildcard ../../.git)", "")
 	BUILD_DATE ?= $(shell ./scripts/dev/git-date-time.sh -d)
 	BUILD_TIME ?= $(shell ./scripts/dev/git-date-time.sh -t)
 	BUILD_HASH ?= $(shell git rev-parse --short HEAD)
-	BUILD_VERSION ?= $(shell git describe --tags)
+	BUILD_VERSION ?= $(shell git describe --tags 2>/dev/null)
+endif
+
+ifeq ($(BUILD_VERSION),)
+	BUILD_VERSION = $(BUILD_HASH)
 endif
 DOCKER_BASE_IMAGE_TAG ?= $(BUILD_VERSION)
 

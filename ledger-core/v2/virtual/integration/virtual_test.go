@@ -21,37 +21,26 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
-	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/api"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/machinesmanager"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
 func TestVirtual_BasicOperations(t *testing.T) {
 	t.Parallel()
 
-	ctx := inslogger.TestContext(t)
 	cfg := DefaultVMConfig()
 
 	t.Run("happy path", func(t *testing.T) {
-		objRef := gen.Reference()
-		reqRef := gen.RecordReference()
-		objID := objRef.GetLocal()
-
-		var requestID insolar.ID
+		ctx := inslogger.TestContext(t)
 
 		expectedRes := struct {
 			blip string
@@ -59,168 +48,204 @@ func TestVirtual_BasicOperations(t *testing.T) {
 			blip: "blop",
 		}
 
-		hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
-
-		cfg.LogicRunner = configuration.NewLogicRunner()
-		cfg.LogicRunner.RPCListen = ":0"
-
-		s, err := NewServer(t, ctx, cfg, func(meta payload.Meta, pl payload.Payload) []payload.Payload {
-			lifeTime := &record.Lifeline{
-				LatestState: objID,
-			}
-			indexData, err := lifeTime.Marshal()
-			require.NoError(t, err)
-
-			codeRecord := &record.Material{
-				Virtual: record.Wrap(&record.Code{
-					Request: reqRef,
-					Code:    []byte("no code"),
-				}),
-			}
-			codeData, err := codeRecord.Marshal()
-			require.NoError(t, err)
-
-			call := 0
-
-			switch data := pl.(type) {
-			case *payload.GetPendings:
-				if call > 0 {
-					return []payload.Payload{
-						&payload.Error{
-							Code: payload.CodeNoPendings,
-							Text: "No pendings",
-						},
-					}
-				}
-				call++
-				return []payload.Payload{
-					&payload.IDs{IDs: []insolar.ID{requestID}},
-				}
-			case *payload.GetRequest:
-				req := &record.IncomingRequest{
-					Object:       &objRef,
-					Method:       "good.CallMethod",
-					Arguments:    nil,
-					APIRequestID: utils.TraceID(ctx),
-					APINode:      virtual.ref,
-					Reason:       api.MakeReason(insolar.GenesisPulse.PulseNumber, nil),
-					Immutable:    true,
-				}
-
-				virtReqRecord := record.Wrap(req)
-
-				return []payload.Payload{
-					&payload.Request{
-						RequestID: data.RequestID,
-						Request:   virtReqRecord,
-					},
-				}
-			// getters
-			case *payload.SetIncomingRequest:
-				buf, err := data.Request.Marshal()
-				if err != nil {
-					panic(errors.Wrap(err, "failed to marshal request"))
-				}
-				requestID = *insolar.NewID(gen.PulseNumber(), hasher.Hash(buf))
-				return []payload.Payload{&payload.RequestInfo{
-					ObjectID:  *objID,
-					RequestID: requestID,
-				}}
-			case *payload.SetOutgoingRequest:
-				return []payload.Payload{&payload.RequestInfo{
-					ObjectID:  *objID,
-					RequestID: requestID,
-				}}
-			// setters
-			case *payload.SetResult:
-				return []payload.Payload{&payload.ResultInfo{
-					ResultID: *insolar.NewID(gen.PulseNumber(), hasher.Hash(data.Result)),
-				}}
-			case *payload.Activate:
-				return []payload.Payload{&payload.ResultInfo{}}
-			case *payload.HasPendings:
-				return []payload.Payload{&payload.PendingsInfo{HasPendings: false}}
-			case *payload.GetObject:
-				resRecord := &record.Activate{
-					Request: *insolar.NewReference(requestID),
-					Image:   walletRef,
-				}
-
-				if data.ObjectID == *walletRef.GetLocal() {
-					resRecord.IsPrototype = true
-				}
-
-				virtResRecord := record.Wrap(resRecord)
-				recMaterial := &record.Material{
-					Virtual:  virtResRecord,
-					ID:       gen.ID(),
-					ObjectID: gen.ID(),
-				}
-				recordData, err := recMaterial.Marshal()
-				require.NoError(t, err)
-
-				return []payload.Payload{
-					&payload.Index{
-						Index: indexData,
-					},
-					&payload.State{Record: recordData},
-				}
-			case *payload.GetCode:
-				return []payload.Payload{
-					&payload.Code{
-						Record: codeData,
-					},
-				}
-			case *payload.Update:
-				return []payload.Payload{
-					&payload.ResultInfo{
-						ResultID: *insolar.NewID(gen.PulseNumber(), hasher.Hash(data.Result)),
-					},
-				}
-			case *payload.GetPulse:
-				return []payload.Payload{
-					&payload.Pulse{
-						Pulse: pulse.PulseProto{
-							PulseNumber: 42,
-						},
-					},
-				}
-			default:
-				panic(fmt.Sprintf("unexpected message to light %T", pl))
-			}
-		}, machinesmanager.NewMachinesManagerMock(t).GetExecutorMock.Set(func(_ insolar.MachineType) (m1 insolar.MachineLogicExecutor, err error) {
-			return testutils.NewMachineLogicExecutorMock(t).CallMethodMock.Set(func(ctx context.Context, callContext *insolar.LogicCallContext, code insolar.Reference, data []byte, method string, args insolar.Arguments) (newObjectState []byte, methodResults insolar.Arguments, err error) {
+		mle := testutils.NewMachineLogicExecutorMock(t).CallMethodMock.Set(
+			func(_ context.Context, _ *insolar.LogicCallContext, _ insolar.Reference, _ []byte, _ string, _ insolar.Arguments) ([]byte, insolar.Arguments, error) {
 				return insolar.MustSerialize(expectedRes), insolar.MustSerialize(expectedRes), nil
-			}), nil
-		}).RegisterExecutorMock.Set(func(t insolar.MachineType, e insolar.MachineLogicExecutor) (err error) {
-			return nil
-		}))
+			},
+		)
 
+		mm := machinesmanager.NewMachinesManagerMock(t).GetExecutorMock.Set(
+			func(_ insolar.MachineType) (insolar.MachineLogicExecutor, error) {
+				return mle, nil
+			},
+		).RegisterExecutorMock.Set(
+			func(_ insolar.MachineType, _ insolar.MachineLogicExecutor) error {
+				return nil
+			},
+		)
+
+		s, err := NewVirtualServer(t, ctx, cfg).SetMachinesManager(mm).PrepareAndStart()
 		require.NoError(t, err)
 		defer s.Stop(ctx)
 
-		// First pulse goes in storage then interrupts.
-		s.SetPulse(ctx)
+		// Prepare environment (mimic) for first call
+		var objectID *insolar.ID
+		{
+			codeID, err := s.mimic.AddCode(ctx, []byte{})
+			require.NoError(t, err)
+
+			prototypeID, err := s.mimic.AddObject(ctx, *codeID, true, []byte{})
+			require.NoError(t, err)
+
+			objectID, err = s.mimic.AddObject(ctx, *prototypeID, false, []byte{})
+			require.NoError(t, err)
+		}
+		t.Logf("iniitialization done")
+
+		objectRef := insolar.NewReference(*objectID)
 
 		res, requestRef, err := CallContract(
-			s, &objRef, "good.CallMethod", nil, s.pulse.PulseNumber,
+			s, objectRef, "good.CallMethod", nil, s.pulseGenerator.GetLastPulse().PulseNumber,
 		)
-
 		require.NoError(t, err)
-		require.NotEmpty(t, requestRef)
-		require.Equal(t, &reply.CallMethod{
-			Object: &objRef,
+
+		assert.NotEmpty(t, requestRef)
+		assert.Equal(t, &reply.CallMethod{
+			Object: objectRef,
 			Result: insolar.MustSerialize(expectedRes),
 		}, res)
 	})
-}
 
-var walletRef = shouldLoadRef("insolar:0AAAAyANCLM5-bWKjwAzmla4KxnaQenrEahCeKXgwjOE.record")
+	t.Run("create user test", func(t *testing.T) {
+		ctx := inslogger.TestContext(t)
 
-func shouldLoadRef(strRef string) insolar.Reference {
-	ref, err := insolar.NewReferenceFromString(strRef)
-	if err != nil {
-		panic(errors.Wrap(err, "Unexpected error, bailing out"))
-	}
-	return *ref
+		s, err := NewVirtualServer(t, ctx, cfg).WithGenesis().PrepareAndStart()
+		require.NoError(t, err)
+		defer s.Stop(ctx)
+
+		user, err := NewUserWithKeys()
+		if err != nil {
+			panic("failed to create new user: " + err.Error())
+		}
+
+		callMethodReply, _, err := s.BasicAPICall(ctx, "member.create", nil, genesisrefs.ContractRootMember, user)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		var result map[string]interface{}
+		if err := insolar.Deserialize(callMethodReply.(*reply.CallMethod).Result, &result); err != nil {
+			panic(err.Error())
+		}
+
+		assert.Nil(t, result["Error"])
+		assert.NotNil(t, result["Returns"].([]interface{})[0].(map[string]interface{})["reference"])
+	})
+
+	t.Run("create and transfer test", func(t *testing.T) {
+		ctx := inslogger.TestContext(t)
+
+		s, err := NewVirtualServer(t, ctx, cfg).WithGenesis().PrepareAndStart()
+		require.NoError(t, err)
+		defer s.Stop(ctx)
+
+		user1, err := NewUserWithKeys()
+		if err != nil {
+			panic("failed to create new user: " + err.Error())
+		}
+		user2, err := NewUserWithKeys()
+		if err != nil {
+			panic("failed to create new user: " + err.Error())
+		}
+
+		var walletReference1 insolar.Reference
+		{
+			callMethodReply, _, err := s.BasicAPICall(ctx, "member.create", nil, genesisrefs.ContractRootMember, user1)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			var result map[string]interface{}
+			if err := insolar.Deserialize(callMethodReply.(*reply.CallMethod).Result, &result); err != nil {
+				panic(err.Error())
+			}
+
+			assert.Nil(t, result["Error"])
+
+			walletReferenceString := result["Returns"].([]interface{})[0].(map[string]interface{})["reference"]
+			assert.NotNil(t, walletReferenceString)
+			assert.IsType(t, "", walletReferenceString)
+
+			walletReference, err := insolar.NewReferenceFromString(walletReferenceString.(string))
+			assert.NoError(t, err)
+
+			walletReference1 = *walletReference
+		}
+
+		var walletReference2 insolar.Reference
+		{
+			callMethodReply, _, err := s.BasicAPICall(ctx, "member.create", nil, genesisrefs.ContractRootMember, user2)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			var result map[string]interface{}
+			if err := insolar.Deserialize(callMethodReply.(*reply.CallMethod).Result, &result); err != nil {
+				panic(err.Error())
+			}
+
+			assert.Nil(t, result["Error"])
+			assert.NotNil(t, result["Returns"].([]interface{})[0].(map[string]interface{})["reference"])
+
+			walletReferenceString := result["Returns"].([]interface{})[0].(map[string]interface{})["reference"]
+			assert.NotNil(t, walletReferenceString)
+			assert.IsType(t, "", walletReferenceString)
+
+			walletReference, err := insolar.NewReferenceFromString(walletReferenceString.(string))
+			assert.NoError(t, err)
+
+			walletReference2 = *walletReference
+		}
+
+		var feeWalletBalance string
+		{
+			callParams := map[string]interface{}{"reference": FeeWalletUser.Reference.String()}
+			callMethodReply, _, err := s.BasicAPICall(ctx, "member.getBalance", callParams, FeeWalletUser.Reference, FeeWalletUser)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			var result map[string]interface{}
+			if err := insolar.Deserialize(callMethodReply.(*reply.CallMethod).Result, &result); err != nil {
+				panic(err.Error())
+			}
+			require.Nil(t, result["Error"])
+
+			fmt.Printf("%#v\n", result)
+			feeWalletBalance = result["Returns"].([]interface{})[0].(map[string]interface{})["balance"].(string)
+		}
+
+		{
+			callParams := map[string]interface{}{"amount": "10000", "toMemberReference": walletReference2.String()}
+			callMethodReply, _, err := s.BasicAPICall(ctx, "member.transfer", callParams, walletReference1, user1)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			var result map[string]interface{}
+			if err := insolar.Deserialize(callMethodReply.(*reply.CallMethod).Result, &result); err != nil {
+				panic(err.Error())
+			}
+
+			assert.Nil(t, result["Error"])
+		}
+
+		{
+			for i := 1; i < 30; i++ {
+				callParams := map[string]interface{}{"reference": FeeWalletUser.Reference.String()}
+				callMethodReply, _, err := s.BasicAPICall(ctx, "member.getBalance", callParams, FeeWalletUser.Reference, FeeWalletUser)
+				if err != nil {
+					panic(err.Error())
+				}
+
+				var result map[string]interface{}
+				if err := insolar.Deserialize(callMethodReply.(*reply.CallMethod).Result, &result); err != nil {
+					panic(err.Error())
+				}
+				require.Nil(t, result["Error"])
+
+				fmt.Printf("%#v\n", result)
+				newBalance := result["Returns"].([]interface{})[0].(map[string]interface{})["balance"].(string)
+
+				if newBalance != feeWalletBalance {
+					break
+				}
+
+				time.Sleep(100 * time.Millisecond)
+				if i == 29 {
+					assert.FailNow(t, "failed to wait money in feeWallet")
+				}
+			}
+		}
+	})
 }

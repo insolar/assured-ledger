@@ -17,10 +17,9 @@
 package sm_execute_request
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	common2 "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_contract_runner"
@@ -28,7 +27,9 @@ import (
 )
 
 type ExecuteIncomingRequest struct {
-	ExecuteIncomingCommon
+	smachine.StateMachineDeclTemplate
+
+	*ExecuteIncomingCommon
 }
 
 /* -------- Declaration ------------- */
@@ -39,18 +40,6 @@ func (s *ExecuteIncomingRequest) GetInitStateFor(smachine.StateMachine) smachine
 
 func (s *ExecuteIncomingRequest) InjectDependencies(sm smachine.StateMachine, slotLink smachine.SlotLink, injector *injector.DependencyInjector) {
 	s.ExecuteIncomingCommon.InjectDependencies(sm, slotLink, injector)
-}
-
-func (s *ExecuteIncomingRequest) GetShadowMigrateFor(smachine.StateMachine) smachine.ShadowMigrateFunc {
-	return nil
-}
-
-func (s ExecuteIncomingRequest) GetStepLogger(context.Context, smachine.StateMachine) (smachine.StepLoggerFunc, bool) {
-	return nil, false
-}
-
-func (s *ExecuteIncomingRequest) IsConsecutive(cur, next smachine.StateFunc) bool {
-	return false
 }
 
 /* -------- Instance ------------- */
@@ -64,22 +53,28 @@ func (s *ExecuteIncomingRequest) Init(ctx smachine.InitializationContext) smachi
 }
 
 func (s *ExecuteIncomingRequest) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.DeduplicatedResult == nil {
+	var (
+		goCtx  = ctx.GetContext()
+		logger = inslogger.FromContext(goCtx)
+	)
+
+	if s.RequestInfo.Result == nil {
 		var (
 			readyToWork          bool
 			semaphoreReadyToWork smachine.SyncLink
 		)
 
-		goCtx := ctx.GetContext()
 		stateUpdate := s.useSharedObjectInfo(ctx, func(state *sm_object.SharedObjectState) {
-			inslogger.FromContext(goCtx).Error("useSharedObjectInfo after")
+			logger.Error("useSharedObjectInfo after")
+
 			readyToWork = state.IsReadyToWork
-			semaphoreReadyToWork = state.SemaphoreReadyToWork
+			semaphoreReadyToWork = state.ReadyToWork
 
 			s.objectInfo = state.ObjectInfo // it may need to be re-fetched
 		})
 
 		if !stateUpdate.IsZero() {
+			ctx.Log().Warn("state update")
 			return stateUpdate
 		}
 
@@ -87,31 +82,48 @@ func (s *ExecuteIncomingRequest) stepWaitObjectReady(ctx smachine.ExecutionConte
 			return ctx.Sleep().ThenRepeat()
 		}
 	} else {
-		inslogger.FromContext(ctx.GetContext()).Error("s deduplicated result is not nil: %#v", s.DeduplicatedResult)
+		logger.Error("s deduplicated result is not nil: %#v", s.RequestInfo.Result)
 	}
 
 	return ctx.Jump(s.stepClassifyCall)
 }
 
 func (s *ExecuteIncomingRequest) stepClassifyCall(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	incomingRequest := s.Request
-	var callType s_contract_runner.ContractCallType
+	var (
+		goCtx    = ctx.GetContext()
+		traceID  = inslogger.TraceID(goCtx)
+		incoming = s.RequestInfo.Request.(*record.IncomingRequest)
+
+		callType s_contract_runner.ContractCallType
+	)
 
 	// this can be sync call, since it's fast (separate logic)
 	s.ContractRunner.PrepareSync(ctx, func(svc s_contract_runner.ContractRunnerService) {
-		callType = svc.ClassifyCall(incomingRequest)
+		callType = svc.ClassifyCall(incoming)
 	}).Call()
 
-	s.contractTranscript = common2.NewTranscript(ctx.GetContext(), s.RequestReference, *s.Request)
+	s.contractTranscript = common2.NewTranscript(goCtx, s.RequestInfo.RequestReference, *incoming)
 	s.contractTranscript.ObjectDescriptor = s.objectInfo.ObjectLatestDescriptor
 
 	common := s.ExecuteIncomingCommon
 
 	switch callType {
 	case s_contract_runner.ContractCallMutable:
-		return ctx.ReplaceWith(&ExecuteIncomingMutableRequest{ExecuteIncomingCommon: common})
+		return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
+
+			return &SMPreExecuteMutable{ExecuteIncomingCommon: common}
+		})
+
 	case s_contract_runner.ContractCallImmutable:
-		return ctx.ReplaceWith(&ExecuteIncomingImmutableRequest{ExecuteIncomingCommon: common})
+		return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
+
+			return &SMPreExecuteImmutable{ExecuteIncomingCommon: common}
+		})
+
 	default:
 		panic("unreachable")
 	}

@@ -18,8 +18,11 @@ package common
 
 import (
 	"sync"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 )
 
 type ConveyorWorker struct {
@@ -40,6 +43,7 @@ func (w *ConveyorWorker) AttachTo(conveyor *conveyor.PulseConveyor) {
 		panic("illegal state")
 	}
 	w.conveyor = conveyor
+	w.stopped.Add(1)
 	conveyor.StartWorker(nil, func() {
 		w.stopped.Done()
 	})
@@ -47,4 +51,18 @@ func (w *ConveyorWorker) AttachTo(conveyor *conveyor.PulseConveyor) {
 
 func NewConveyorWorker() ConveyorWorker {
 	return ConveyorWorker{}
+}
+
+type AsyncTimeMessage struct {
+	*logadapter.Msg `txt:"async time"`
+
+	AsyncComponent     string `opt:""`
+	AsyncExecutionTime int64
+}
+
+func LogAsyncTime(log smachine.Logger, timeBefore time.Time, component string) {
+	log.Trace(AsyncTimeMessage{
+		AsyncComponent:     component,
+		AsyncExecutionTime: time.Now().Sub(timeBefore).Nanoseconds(),
+	})
 }

@@ -17,7 +17,7 @@
 package sm_execute_request
 
 import (
-	"github.com/pkg/errors"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
@@ -34,7 +35,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_object"
 )
 
+type SharedRequestState struct {
+	Nonce       uint64
+	RequestInfo *common.ParsedRequestInfo
+}
+
 type ExecuteIncomingCommon struct {
+	SharedRequestState
+
 	objectCatalog  *sm_object.LocalObjectCatalog
 	pulseSlot      *conveyor.PulseSlot
 	ArtifactClient *s_artifact.ArtifactClientServiceAdapter
@@ -45,17 +53,10 @@ type ExecuteIncomingCommon struct {
 
 	sharedStateLink sm_object.SharedObjectStateAccessor
 
-	internalError error
+	externalError error
 
 	// input
 	MessageMeta *payload.Meta
-	Request     *record.IncomingRequest
-
-	// values to pass between steps
-	RequestReference       insolar.Reference
-	RequestObjectReference insolar.Reference
-	RequestDeduplicated    bool
-	DeduplicatedResult     *record.Result
 
 	contractTranscript  *common.Transcript
 	executionResult     artifacts.RequestResult
@@ -75,11 +76,13 @@ func (s *ExecuteIncomingCommon) useSharedObjectInfo(ctx smachine.ExecutionContex
 	goCtx := ctx.GetContext()
 
 	if s.sharedStateLink.IsZero() {
-		objectPair := sm_object.ObjectPair{
-			Pulse:           s.pulseSlot.PulseData().PulseNumber,
-			ObjectReference: s.RequestObjectReference,
+		if s.RequestInfo.Request.IsCreationRequest() {
+			ctx.Log().Warn("creation request")
+			s.sharedStateLink = s.objectCatalog.Create(ctx, s.RequestInfo.RequestObjectReference)
+		} else {
+			ctx.Log().Warn("another request")
+			s.sharedStateLink = s.objectCatalog.GetOrCreate(ctx, s.RequestInfo.RequestObjectReference)
 		}
-		s.sharedStateLink = s.objectCatalog.GetOrCreate(ctx, objectPair)
 	}
 
 	switch s.sharedStateLink.Prepare(cb).TryUse(ctx).GetDecision() {
@@ -98,75 +101,86 @@ func (s *ExecuteIncomingCommon) useSharedObjectInfo(ctx smachine.ExecutionContex
 	return smachine.StateUpdate{}
 }
 
-func (s *ExecuteIncomingCommon) internalStepSaveResult(ctx smachine.ExecutionContext, fetchNew bool) smachine.ConditionalBuilder {
-	goCtx := ctx.GetContext()
+func (s *ExecuteIncomingCommon) internalStepRegisterResult(ctx smachine.ExecutionContext, fetchNew bool) smachine.ConditionalBuilder {
+	var (
+		goCtx       = ctx.GetContext()
+		asyncLogger = ctx.LogAsync()
 
-	objectReference := s.RequestObjectReference
-	requestReference := s.RequestReference
-	executionResult := s.executionResult
+		objectReference  = s.RequestInfo.RequestObjectReference
+		requestReference = s.RequestInfo.RequestReference
+		executionResult  = s.executionResult
+	)
 
 	return s.ArtifactClient.PrepareAsync(ctx, func(svc s_artifact.ArtifactClientService) smachine.AsyncResultFunc {
+		defer common.LogAsyncTime(asyncLogger, time.Now(), "RegisterIncomingResult")
+
 		var objectDescriptor artifacts.ObjectDescriptor
 
 		err := svc.RegisterResult(goCtx, requestReference, executionResult)
 		if err == nil && fetchNew {
 			objectDescriptor, err = svc.GetObject(goCtx, objectReference, nil)
+			inslogger.FromContext(goCtx).Debugf("NewObject fetched %s", objectReference.String())
 		}
 
 		return func(ctx smachine.AsyncResultContext) {
-			s.internalError = err
+			s.externalError = err
 			if objectDescriptor != nil {
 				s.newObjectDescriptor = objectDescriptor
 			}
 		}
-	}).WithFlags(smachine.AutoWakeUp).DelayedStart().Sleep()
+	}).DelayedStart().Sleep()
 }
 
 // it'll panic or execute
 func (s *ExecuteIncomingCommon) internalSendResult(ctx smachine.ExecutionContext) {
-	goCtx := ctx.GetContext()
+	var (
+		goCtx = ctx.GetContext()
 
-	var executionBytes []byte
-	var executionError string
+		executionBytes []byte
+		executionError string
+	)
 
 	switch {
-	case s.internalError != nil: // execution error
-		executionError = s.internalError.Error()
-	case s.DeduplicatedResult != nil: // result of deduplication
+	case s.externalError != nil: // execution error
+		executionError = s.externalError.Error()
+		ctx.Log().Trace("return: external error")
+	case s.RequestInfo.Result != nil: // result of deduplication
 		if s.executionResult != nil {
 			panic("we got deduplicated result and execution result, unreachable")
 		}
-		material := record.Material{}
-		if err := material.Unmarshal(s.DeduplicatedResult.Payload); err != nil {
-			executionError = errors.Wrap(err, "failed to unmarshal deduplicated result").Error()
-			break
-		}
 
-		virtual := record.Unwrap(&material.Virtual)
-		result, ok := virtual.(*record.Result)
-		if !ok {
-			executionError = errors.Errorf("unexpected record %T", virtual).Error()
-			break
-		}
-
-		executionBytes = result.Payload
+		executionBytes = s.RequestInfo.GetResultBytes()
+		ctx.Log().Trace("return: duplicated results")
 	case s.executionResult != nil: // result of execution
-		executionBytes = s.executionResult.Result()
+		executionBytes = reply.ToBytes(&reply.CallMethod{
+			Object: &s.objectInfo.ObjectReference,
+			Result: s.executionResult.Result(),
+		})
+		ctx.Log().Trace("return: execution results")
 	default:
 		// we have no result and no error (??)
 		panic("unreachable")
 	}
 
 	pl := &payload.ReturnResults{
-		RequestRef: s.RequestReference,
+		RequestRef: s.RequestInfo.RequestReference,
 		Reply:      executionBytes,
 		Error:      executionError,
 	}
 
-	APIRequest := s.Request.APINode.IsEmpty()
+	var (
+		incoming   = s.RequestInfo.Request.(*record.IncomingRequest)
+		APIRequest = s.RequestInfo.Request.IsAPIRequest()
+
+		target insolar.Reference
+	)
 	if !APIRequest {
-		pl.Target = s.Request.Caller
-		pl.Reason = s.Request.Reason
+		target = incoming.Caller
+
+		pl.Target = incoming.Caller
+		pl.Reason = incoming.Reason
+	} else {
+		target = incoming.APINode
 	}
 
 	msg, err := payload.NewResultMessage(pl)
@@ -174,28 +188,28 @@ func (s *ExecuteIncomingCommon) internalSendResult(ctx smachine.ExecutionContext
 		panic("couldn't serialize message: " + err.Error())
 	}
 
-	request := s.Request
 	s.Sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
 		// TODO[bigbes]: there should be retry sender
 		// retrySender := bus.NewWaitOKWithRetrySender(svc, svc, 1)
 
 		var done func()
 		if APIRequest {
-			_, done = svc.SendTarget(goCtx, msg, request.APINode)
+			_, done = svc.SendTarget(goCtx, msg, target)
 		} else {
-			_, done = svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, request.Caller)
+			_, done = svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, target)
 		}
 		done()
-	})
+	}).Send()
 }
 
 func (s *ExecuteIncomingCommon) stepStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.internalError != nil {
+	if s.externalError != nil {
 		return ctx.Jump(s.stepError)
 	}
 	return ctx.Stop()
 }
 
 func (s *ExecuteIncomingCommon) stepError(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Error(s.internalError)
+	s.internalSendResult(ctx)
+	return ctx.Error(s.externalError)
 }

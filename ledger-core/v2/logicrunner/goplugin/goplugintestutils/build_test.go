@@ -56,6 +56,7 @@ func (r *One) Recursive() (error) {
 `
 
 func TestContractsBuilder_Build(t *testing.T) {
+
 	insgocc, err := BuildPreprocessor()
 	assert.NoError(t, err)
 
@@ -89,8 +90,7 @@ func TestContractsBuilder_Build(t *testing.T) {
 	contractMap := make(map[string]string)
 	contractMap["recursive_call_one"] = contractOneCode
 
-	buildOptions := BuildOptions{PanicIsLogicalError: false}
-	err = cb.Build(context.Background(), contractMap, buildOptions)
+	err = cb.Build(context.Background(), contractMap)
 	assert.NoError(t, err)
 
 	reference := cb.Prototypes["recursive_call_one"]

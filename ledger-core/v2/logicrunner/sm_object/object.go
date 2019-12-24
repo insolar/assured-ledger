@@ -43,51 +43,64 @@ type ObjectInfo struct {
 
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
+	ReadyToWork      smachine.SyncLink
 
 	PreviousExecutorState payload.PreviousExecutorState
 }
 
 type SharedObjectState struct {
-	SemaphoreReadyToWork              smachine.SyncLink
+	SemaphorePreviousResultSaved smachine.SyncLink
+
 	SemaphorePreviousExecutorFinished smachine.SyncLink
-	SemaphorePreviousResultSaved      smachine.SyncLink
+	PreviousExecutorFinished          smachine.BoolConditionalLink
+
 	ObjectInfo
 }
 
-func NewObjectSM(objectReference insolar.Reference) *ObjectSM {
-	return &ObjectSM{
-		StateMachineDeclTemplate: smachine.StateMachineDeclTemplate{},
+func NewStateMachineObject(objectReference insolar.Reference, exists bool) *SMObject {
+	return &SMObject{
 		SharedObjectState: SharedObjectState{
 			ObjectInfo: ObjectInfo{ObjectReference: objectReference},
 		},
-		readyToWorkCtl: smachine.BoolConditionalLink{},
+		oldObject: exists,
 	}
 }
 
-type ObjectSM struct {
+type SMObject struct {
 	smachine.StateMachineDeclTemplate
 
 	SharedObjectState
-	readyToWorkCtl           smachine.BoolConditionalLink
-	previousExecutorFinished smachine.BoolConditionalLink
-	previousResultSaved      smachine.BoolConditionalLink
+
+	readyToWorkCtl      smachine.BoolConditionalLink
+	previousResultSaved smachine.BoolConditionalLink
+
+	oldObject bool
 }
 
-func (sm *ObjectSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (s *SharedObjectState) SetObjectDescriptor(l smachine.Logger, newObjectDescriptor artifacts.ObjectDescriptor) {
+	l.Trace("setting new object descriptor")
+	s.ObjectLatestDescriptor = newObjectDescriptor
+}
+
+/* -------- Declaration ------------- */
+
+func (sm *SMObject) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	injector.MustInject(&sm.artifactClient)
 	injector.MustInject(&sm.sender)
 	injector.MustInject(&sm.pulseSlot)
 }
 
-func (sm *ObjectSM) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
+func (sm *SMObject) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 	return sm.Init
 }
 
-func (sm *ObjectSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+/* -------- Instance ------------- */
+
+func (sm *SMObject) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return sm
 }
 
-func (sm *ObjectSM) sendPayloadToVirtual(ctx smachine.ExecutionContext, pl payload.Payload) {
+func (sm *SMObject) sendPayloadToVirtual(ctx smachine.ExecutionContext, pl payload.Payload) {
 	goCtx := ctx.GetContext()
 
 	resultsMessage, err := payload.NewMessage(pl)
@@ -104,34 +117,29 @@ func (sm *ObjectSM) sendPayloadToVirtual(ctx smachine.ExecutionContext, pl paylo
 	}
 }
 
-func (sm *ObjectSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(sm.migrateSendStateBeforeExecution)
 
 	sm.readyToWorkCtl = smachine.NewConditionalBool(false, "readyToWork")
-	sm.SemaphoreReadyToWork = sm.readyToWorkCtl.SyncLink()
+	sm.ReadyToWork = sm.readyToWorkCtl.SyncLink()
 
-	sm.previousExecutorFinished = smachine.NewConditionalBool(false, "previousExecutorFinished")
+	sm.PreviousExecutorFinished = smachine.NewConditionalBool(false, "PreviousExecutorFinished")
 	sm.SemaphorePreviousExecutorFinished = sm.readyToWorkCtl.SyncLink()
 
 	sm.previousResultSaved = smachine.NewConditionalBool(false, "previousResultSaved")
 	sm.SemaphorePreviousResultSaved = sm.previousResultSaved.SyncLink()
 
-	sm.ImmutableExecute = smachine.NewFixedSemaphore(5, "immutable calls")
-	sm.MutableExecute = smachine.NewFixedSemaphore(1, "mutable calls") // TODO here we need an ORDERED queue
-
-	pair := ObjectPair{
-		Pulse:           sm.pulseSlot.PulseData().PulseNumber,
-		ObjectReference: sm.ObjectReference,
-	}
+	sm.ImmutableExecute = smachine.NewSemaphore(30, "immutable calls").SyncLink()
+	sm.MutableExecute = smachine.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
 	sdl := ctx.Share(&sm.SharedObjectState, 0)
-	if !ctx.Publish(pair, sdl) {
+	if !ctx.Publish(sm.ObjectReference, sdl) {
 		return ctx.Stop()
 	}
 	return ctx.Jump(sm.stepCheckPreviousExecutor)
 }
 
-func (sm *ObjectSM) stepCheckPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stepCheckPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch sm.PreviousExecutorState {
 	case payload.PreviousExecutorUnknown:
 		return ctx.Jump(sm.stepGetPendingsInformation)
@@ -144,6 +152,7 @@ func (sm *ObjectSM) stepCheckPreviousExecutor(ctx smachine.ExecutionContext) sma
 		// we shouldn't be here
 		// if we came to that place - means MutableRequestsAreReady, but PreviousExecutor still executes)
 		panic("unreachable")
+
 	case payload.PreviousExecutorFinished:
 		return ctx.Jump(sm.stepGetLatestValidatedState)
 	default:
@@ -151,7 +160,7 @@ func (sm *ObjectSM) stepCheckPreviousExecutor(ctx smachine.ExecutionContext) sma
 	}
 }
 
-func (sm *ObjectSM) stepGetPendingsInformation(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stepGetPendingsInformation(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	goCtx := ctx.GetContext()
 
 	objectReference := sm.ObjectReference
@@ -180,14 +189,21 @@ func (sm *ObjectSM) stepGetPendingsInformation(ctx smachine.ExecutionContext) sm
 				logger.Info("state already changed, ignoring check")
 			}
 		}
-	}).WithFlags(smachine.AutoWakeUp).DelayedStart().Sleep().ThenJump(sm.stepCheckPreviousExecutor)
+	}).DelayedStart().Sleep().ThenJump(sm.stepCheckPreviousExecutor)
 }
 
-func (sm *ObjectSM) stepGetLatestValidatedState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+// we should check here only if not creation request here
+func (sm *SMObject) stepGetLatestValidatedState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(sm.migrateStop)
 
 	goCtx := ctx.GetContext()
 	objectReference := sm.ObjectReference
+
+	if !sm.oldObject {
+		sm.oldObject = true
+		sm.IsReadyToWork = true
+		return ctx.Jump(sm.stateGotLatestValidatedStatePrototypeAndCode)
+	}
 
 	return sm.artifactClient.PrepareAsync(ctx, func(svc s_artifact.ArtifactClientService) smachine.AsyncResultFunc {
 		var err error
@@ -197,6 +213,7 @@ func (sm *ObjectSM) stepGetLatestValidatedState(ctx smachine.ExecutionContext) s
 			sm.externalError = err
 		}
 
+		inslogger.FromContext(goCtx).Debugf("NewObject fetched %s", objectReference.String())
 		objectDescriptor, err := svc.GetObject(goCtx, objectReference, nil)
 		if err != nil {
 			err = errors.Wrap(err, "Failed to obtain object descriptor")
@@ -204,13 +221,13 @@ func (sm *ObjectSM) stepGetLatestValidatedState(ctx smachine.ExecutionContext) s
 		}
 
 		return func(ctx smachine.AsyncResultContext) {
-			sm.ObjectLatestDescriptor = objectDescriptor
+			sm.SetObjectDescriptor(ctx.Log(), objectDescriptor)
 			sm.IsReadyToWork = true
 		}
-	}).WithFlags(smachine.AutoWakeUp).DelayedStart().Sleep().ThenJump(sm.stateGotLatestValidatedStatePrototypeAndCode)
+	}).DelayedStart().Sleep().ThenJump(sm.stateGotLatestValidatedStatePrototypeAndCode)
 }
 
-func (sm *ObjectSM) stateGotLatestValidatedStatePrototypeAndCode(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stateGotLatestValidatedStatePrototypeAndCode(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.externalError != nil {
 		ctx.Error(sm.externalError)
 	} else if sm.IsReadyToWork != true {
@@ -225,19 +242,19 @@ func (sm *ObjectSM) stateGotLatestValidatedStatePrototypeAndCode(ctx smachine.Ex
 	})
 }
 
-func (sm *ObjectSM) waitForMigration(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) waitForMigration(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
 }
 
 // //////////////////////////////////////
 
-func (sm *ObjectSM) migrateSendStateBeforeExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) migrateSendStateBeforeExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
 
 	return ctx.Jump(sm.stateSendStateBeforeExecution)
 }
 
-func (sm *ObjectSM) stateSendStateBeforeExecution(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stateSendStateBeforeExecution(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	_, immutableLeft := sm.ImmutableExecute.GetCounts()
 	_, mutableLeft := sm.MutableExecute.GetCounts()
 
@@ -269,13 +286,13 @@ func (sm *ObjectSM) stateSendStateBeforeExecution(ctx smachine.ExecutionContext)
 
 // //////////////////////////////////////
 
-func (sm *ObjectSM) migrateSendStateAfterExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) migrateSendStateAfterExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
 
 	return ctx.Jump(sm.stateSendStateAfterExecution)
 }
 
-func (sm *ObjectSM) stateSendStateAfterExecution(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stateSendStateAfterExecution(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	immutableInProgress, immutableLeft := sm.ImmutableExecute.GetCounts()
 	mutableInProgress, mutableLeft := sm.MutableExecute.GetCounts()
 
@@ -306,7 +323,7 @@ func (sm *ObjectSM) stateSendStateAfterExecution(ctx smachine.ExecutionContext) 
 	return ctx.Jump(sm.stateWaitFinishExecutionAfterMigration)
 }
 
-func (sm *ObjectSM) stateWaitFinishExecutionAfterMigration(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stateWaitFinishExecutionAfterMigration(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	mc, _ := sm.MutableExecute.GetCounts()
 	ic, _ := sm.ImmutableExecute.GetCounts()
 	if mc > 0 || ic > 0 {
@@ -320,6 +337,6 @@ func (sm *ObjectSM) stateWaitFinishExecutionAfterMigration(ctx smachine.Executio
 	return ctx.Stop()
 }
 
-func (sm *ObjectSM) migrateStop(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) migrateStop(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }

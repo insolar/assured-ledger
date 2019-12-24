@@ -45,13 +45,13 @@ type Client interface {
 	// HasPendings returns true if object has unclosed requests.
 	HasPendings(ctx context.Context, object insolar.Reference) (bool, error)
 
+	// GetPulse returns pulse data for pulse number from request.
+	GetPulse(ctx context.Context, pn insolar.PulseNumber) (insolar.Pulse, error)
+
 	// GetCode returns code from code record by provided reference according to provided machine preference.
 	//
 	// This method is used by VM to fetch code for execution.
 	GetCode(ctx context.Context, ref insolar.Reference) (CodeDescriptor, error)
-
-	// GetPulse returns pulse data for pulse number from request.
-	GetPulse(ctx context.Context, pn insolar.PulseNumber) (insolar.Pulse, error)
 
 	// GetObject returns object descriptor for the latest state.
 	GetObject(ctx context.Context, head insolar.Reference, request *insolar.Reference) (ObjectDescriptor, error)

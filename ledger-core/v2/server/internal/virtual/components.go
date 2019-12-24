@@ -135,7 +135,7 @@ func initComponents(
 	artifactsClient := artifacts.NewClient(b)
 	cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
 
-	logicRunner, err := logicrunner.NewLogicRunner(&cfg.LogicRunner, publisher, b)
+	logicRunner, err := logicrunner.NewLogicRunner(&cfg.LogicRunner, b)
 	checkError(ctx, err, "failed to start LogicRunner")
 
 	contractRequester, err := contractrequester.New(

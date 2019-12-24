@@ -17,10 +17,11 @@
 package sm_request
 
 import (
-	"context"
+	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -28,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_artifact"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_sender"
@@ -44,43 +46,31 @@ type StateMachineCallMethod struct {
 	catalogObj     *sm_object.LocalObjectCatalog
 	artifactClient *s_artifact.ArtifactClientServiceAdapter
 	sender         *s_sender.SenderServiceAdapter
+	pulseSlot      *conveyor.PulseSlot
 
 	externalError error // error that is returned from ledger
 
-	RequestReference       insolar.Reference
-	RequestObjectReference insolar.Reference
-	RequestDeduplicated    bool
-	Request                *record.IncomingRequest
-	Result                 *record.Result
+	requestInfo *common.ParsedRequestInfo
 }
 
 /* -------- Declaration ------------- */
 
-var declCallMethod smachine.StateMachineDeclaration = declarationCallMethod{}
+var declCallMethod smachine.StateMachineDeclaration = &declarationCallMethod{}
 
-type declarationCallMethod struct{}
-
-func (declarationCallMethod) GetStepLogger(context.Context, smachine.StateMachine) (smachine.StepLoggerFunc, bool) {
-	return nil, false
+type declarationCallMethod struct {
+	smachine.StateMachineDeclTemplate
 }
 
-func (declarationCallMethod) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*declarationCallMethod) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	s := sm.(*StateMachineCallMethod)
 
 	injector.MustInject(&s.catalogObj)
 	injector.MustInject(&s.artifactClient)
 	injector.MustInject(&s.sender)
+	injector.MustInject(&s.pulseSlot)
 }
 
-func (declarationCallMethod) IsConsecutive(cur, next smachine.StateFunc) bool {
-	return false
-}
-
-func (declarationCallMethod) GetShadowMigrateFor(smachine.StateMachine) smachine.ShadowMigrateFunc {
-	return nil
-}
-
-func (declarationCallMethod) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+func (*declarationCallMethod) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
 	s := sm.(*StateMachineCallMethod)
 	return s.Init
 }
@@ -92,78 +82,42 @@ func (s *StateMachineCallMethod) GetStateMachineDeclaration() smachine.StateMach
 }
 
 func (s *StateMachineCallMethod) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(s.migrationPulseChanged)
-
-	s.Request = s.Payload.Request
-
 	return ctx.Jump(s.stepRegisterIncoming)
 }
 
-func (s *StateMachineCallMethod) parseRequestInfo(info *payload.RequestInfo, err error) {
-	if err != nil {
-		s.externalError = errors.Wrap(err, "failed to register incoming request")
-		return
-	}
-
-	s.RequestReference = *insolar.NewReference(info.RequestID)
-
-	if info.Request != nil {
-		s.RequestDeduplicated = true
-
-		rec := record.Material{}
-		if err := rec.Unmarshal(info.Request); err != nil {
-			s.externalError = errors.Wrap(err, "failed to unmarshal request record")
-			return
-		}
-
-		virtual := record.Unwrap(&rec.Virtual)
-		incoming, ok := virtual.(*record.IncomingRequest)
-		if !ok {
-			s.externalError = errors.Errorf("unexpected type '%T' when unpacking incoming", virtual)
-			return
-		}
-
-		s.Request = incoming
-	}
-
-	if info.Result != nil {
-		rec := record.Material{}
-		if err := rec.Unmarshal(info.Request); err != nil {
-			s.externalError = errors.Wrap(err, "failed to unmarshal request record")
-			return
-		}
-
-		virtual := record.Unwrap(&rec.Virtual)
-		result, ok := virtual.(*record.Result)
-		if !ok {
-			s.externalError = errors.Errorf("unexpected type '%T' when unpacking incoming", virtual)
-			return
-		}
-
-		s.Result = result
-	}
-
-	if s.Request.Object != nil {
-		s.RequestObjectReference = *s.Request.Object
-	} else {
-		s.RequestObjectReference = s.RequestReference
-	}
-}
-
 func (s *StateMachineCallMethod) stepRegisterIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	incoming := s.Payload.Request
+	var (
+		goCtx       = ctx.GetContext()
+		asyncLogger = ctx.LogAsync()
 
-	goCtx := ctx.GetContext()
+		incoming = s.Payload.Request
+	)
+
+	var externalError error
+
 	return s.artifactClient.PrepareAsync(ctx, func(svc s_artifact.ArtifactClientService) smachine.AsyncResultFunc {
+		defer common.LogAsyncTime(asyncLogger, time.Now(), "RegisterIncoming")
+
 		info, err := svc.RegisterIncomingRequest(goCtx, incoming)
 
 		return func(ctx smachine.AsyncResultContext) {
-			s.parseRequestInfo(info, err)
-			return
+			if err != nil {
+				externalError = err
+				return
+			}
+
+			s.requestInfo, externalError = common.NewParsedRequestInfo(incoming, info)
+			if externalError != nil {
+				//
+			} else if _, ok := s.requestInfo.Request.(*record.IncomingRequest); !ok {
+				externalError = errors.Errorf("unexpected request type: %T", s.requestInfo.Request)
+			}
 		}
-	}).WithFlags(smachine.AutoWakeUp).DelayedStart().Sleep().ThenJumpExt(smachine.SlotStep{
-		Transition: s.stepSendRequestID,
-		Migration:  s.migrationSendRegisteredCall,
+	}).DelayedStart().Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		if externalError != nil {
+			return ctx.Error(externalError)
+		}
+		return ctx.Jump(s.stepSendRequestID)
 	})
 }
 
@@ -172,16 +126,21 @@ func (s *StateMachineCallMethod) stepSendRequestID(ctx smachine.ExecutionContext
 		return ctx.Jump(s.stepError)
 	}
 
-	messageMeta := s.Meta
-	response := &reply.RegisterRequest{Request: s.RequestReference}
-	goCtx := ctx.GetContext()
+	var (
+		messageMeta = s.Meta
+		response    = &reply.RegisterRequest{Request: s.requestInfo.RequestReference}
+		goCtx       = ctx.GetContext()
+	)
 
 	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
-
 		msg := bus.ReplyAsMessage(goCtx, response)
 		svc.Reply(goCtx, *messageMeta, msg)
-	}).DelayedSend()
+	}).Send()
 
+	if s.pulseSlot.State() == conveyor.Antique {
+		// pulse has changed, send message
+		return ctx.Jump(s.stepSendRegisteredCall)
+	}
 	return ctx.Jump(s.stepExecute)
 }
 
@@ -189,28 +148,25 @@ func (s *StateMachineCallMethod) stepExecute(ctx smachine.ExecutionContext) smac
 	ctx.SetDefaultMigration(nil)
 
 	var (
-		meta                   = s.Meta
-		request                = s.Request
-		requestReference       = s.RequestReference
-		requestDeduplicated    = s.RequestDeduplicated
-		result                 = s.Result
-		requestObjectReference = s.RequestObjectReference
+		requestInfo = s.requestInfo
+		meta        = s.Meta
+		incoming    = requestInfo.Request.(*record.IncomingRequest)
+		traceID     = inslogger.TraceID(ctx.GetContext())
 	)
 
-	_ = ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		ctx.SetTracerId(traceID)
+
 		return &sm_execute_request.ExecuteIncomingRequest{
-			ExecuteIncomingCommon: sm_execute_request.ExecuteIncomingCommon{
-				RequestReference:       requestReference,
-				RequestObjectReference: requestObjectReference,
-				RequestDeduplicated:    requestDeduplicated,
-				Request:                request,
-				DeduplicatedResult:     result,
-				MessageMeta:            meta,
+			ExecuteIncomingCommon: &sm_execute_request.ExecuteIncomingCommon{
+				SharedRequestState: sm_execute_request.SharedRequestState{
+					RequestInfo: requestInfo,
+					Nonce:       incoming.Nonce,
+				},
+				MessageMeta: meta,
 			},
 		}
 	})
-
-	return ctx.Jump(s.stepDone)
 }
 
 func (s *StateMachineCallMethod) stepDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -220,11 +176,11 @@ func (s *StateMachineCallMethod) stepDone(ctx smachine.ExecutionContext) smachin
 func (s *StateMachineCallMethod) stepError(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	err := s.externalError
 	messageMeta := s.Meta
-
 	goCtx := ctx.GetContext()
+
 	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
 		bus.ReplyError(goCtx, svc, *messageMeta, err)
-	}).DelayedSend()
+	}).Send()
 
 	return ctx.Error(s.externalError)
 }
@@ -245,7 +201,7 @@ func (s *StateMachineCallMethod) stepPulseChanged(ctx smachine.ExecutionContext)
 	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
 		msg := bus.ReplyAsMessage(goCtx, response)
 		svc.Reply(goCtx, *messageMeta, msg)
-	}).DelayedSend()
+	}).Send()
 
 	return ctx.Jump(s.stepDone)
 }
@@ -257,11 +213,19 @@ func (s *StateMachineCallMethod) migrationSendRegisteredCall(ctx smachine.Migrat
 }
 
 func (s *StateMachineCallMethod) stepSendRegisteredCall(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		request                = s.requestInfo.Request.(*record.IncomingRequest)
+		requestReference       = s.requestInfo.RequestReference
+		requestObjectReference = s.requestInfo.RequestObjectReference
+	)
+
 	pl := &payload.AdditionalCallFromPreviousExecutor{
-		ObjectReference: s.RequestObjectReference,
-		RequestRef:      s.RequestReference,
-		Request:         s.Request,
-		ServiceData:     common.ServiceDataFromContext(ctx.GetContext()),
+		ObjectReference: requestObjectReference,
+		RequestRef:      requestReference,
+		Request:         request,
+
+		// TODO[bigbes]: what should be here (??)
+		ServiceData: common.ServiceDataFromContext(ctx.GetContext()),
 	}
 
 	msg, err := payload.NewMessage(pl)
@@ -270,10 +234,8 @@ func (s *StateMachineCallMethod) stepSendRegisteredCall(ctx smachine.ExecutionCo
 	}
 
 	goCtx := ctx.GetContext()
-	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
-		_, done := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, s.RequestObjectReference)
+	return s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
+		_, done := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, requestObjectReference)
 		done()
-	}).DelayedSend()
-
-	return ctx.Jump(s.stepDone)
+	}).DelayedSend().ThenJump(s.stepDone)
 }

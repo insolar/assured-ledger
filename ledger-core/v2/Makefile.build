@@ -27,57 +27,57 @@ $(BIN_DIR):
 
 .PHONY: $(INSOLARD)
 $(INSOLARD):
-	$(GOBUILD) -o $(BIN_DIR)/$(INSOLARD) ${BUILD_TAGS} -ldflags "${LDFLAGS}" cmd/insolard/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(INSOLARD) ${BUILD_TAGS} -ldflags "${LDFLAGS}" ./cmd/insolard
 
 .PHONY: $(INSOLAR)
 $(INSOLAR):
-	$(GOBUILD) -o $(BIN_DIR)/$(INSOLAR) ${BUILD_TAGS} -ldflags "${LDFLAGS}" application/cmd/insolar/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(INSOLAR) ${BUILD_TAGS} -ldflags "${LDFLAGS}" ./application/cmd/insolar
 
 .PHONY: $(INSGOCC)
-$(INSGOCC): application/cmd/insgocc/insgocc.go logicrunner/preprocessor
-	$(GOBUILD) -o $(BININSGOCC) -ldflags "${LDFLAGS}" application/cmd/insgocc/*.go
+$(INSGOCC):
+	$(GOBUILD) -o $(BIN_DIR)/$(INSGOCC) -ldflags "${LDFLAGS}" ./application/cmd/insgocc
 
 .PHONY: $(PULSARD)
 $(PULSARD):
-	$(GOBUILD) -o $(BIN_DIR)/$(PULSARD) -ldflags "${LDFLAGS}" cmd/pulsard/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(PULSARD) -ldflags "${LDFLAGS}" ./cmd/pulsard
 
 .PHONY: $(TESTPULSARD)
 $(TESTPULSARD):
-	$(GOBUILD) -o $(BIN_DIR)/$(TESTPULSARD) -ldflags "${LDFLAGS}" cmd/testpulsard/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(TESTPULSARD) -ldflags "${LDFLAGS}" ./cmd/testpulsard
 
 .PHONY: $(INSGORUND)
 $(INSGORUND):
-	CGO_ENABLED=1 $(GOBUILD) -o $(BIN_DIR)/$(INSGORUND) -ldflags "${LDFLAGS}" cmd/insgorund/*.go
+	CGO_ENABLED=1 $(GOBUILD) -o $(BIN_DIR)/$(INSGORUND) -ldflags "${LDFLAGS}" ./cmd/insgorund
 
 .PHONY: $(BENCHMARK)
 $(BENCHMARK):
-	$(GOBUILD) -o $(BIN_DIR)/$(BENCHMARK) -ldflags "${LDFLAGS}" application/cmd/benchmark/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(BENCHMARK) -ldflags "${LDFLAGS}" ./application/cmd/benchmark
 
 .PHONY: $(PULSEWATCHER)
 $(PULSEWATCHER):
-	$(GOBUILD) -o $(BIN_DIR)/$(PULSEWATCHER) -ldflags "${LDFLAGS}" cmd/pulsewatcher/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(PULSEWATCHER) -ldflags "${LDFLAGS}" ./cmd/pulsewatcher
 
 .PHONY: $(BACKUPMANAGER)
 $(BACKUPMANAGER):
-	$(GOBUILD) -o $(BIN_DIR)/$(BACKUPMANAGER) -ldflags "${LDFLAGS}" cmd/backupmanager/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(BACKUPMANAGER) -ldflags "${LDFLAGS}" ./cmd/backupmanager
 
 .PHONY: $(APIREQUESTER)
 $(APIREQUESTER):
-	$(GOBUILD) -o $(BIN_DIR)/$(APIREQUESTER) -ldflags "${LDFLAGS}" cmd/apirequester/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(APIREQUESTER) -ldflags "${LDFLAGS}" ./cmd/apirequester
 
 .PHONY: $(HEALTHCHECK)
 $(HEALTHCHECK):
-	$(GOBUILD) -o $(BIN_DIR)/$(HEALTHCHECK) -ldflags "${LDFLAGS}" cmd/healthcheck/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(HEALTHCHECK) -ldflags "${LDFLAGS}" ./cmd/healthcheck
 
 .PHONY: $(KEEPERD)
 $(KEEPERD):
-	$(GOBUILD) -o $(BIN_DIR)/$(KEEPERD) -ldflags "${LDFLAGS}" cmd/keeperd/*.go
+	$(GOBUILD) -o $(BIN_DIR)/$(KEEPERD) -ldflags "${LDFLAGS}" ./cmd/keeperd
 
 .PHONY: $(HEAVY_BADGER_TOOL)
 $(HEAVY_BADGER_TOOL):
-	$(GOBUILD) -o $(BIN_DIR)/$(HEAVY_BADGER_TOOL) ./cmd/heavy-badger/
+	$(GOBUILD) -o $(BIN_DIR)/$(HEAVY_BADGER_TOOL) ./cmd/heavy-badger
 
 .PHONY: build-track
 build-track: ## build logs event tracker tool
-	$(GOBUILD) -o $(BIN_DIR)/track ./scripts/cmd/track/track.go
+	$(GOBUILD) -o $(BIN_DIR)/track ./scripts/cmd/track
 

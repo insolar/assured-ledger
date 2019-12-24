@@ -104,12 +104,8 @@ func (cb *ContractsBuilder) Clean() {
 	}
 }
 
-type BuildOptions struct {
-	PanicIsLogicalError bool
-}
-
 // Build ...
-func (cb *ContractsBuilder) Build(ctx context.Context, contracts map[string]string, options BuildOptions) error {
+func (cb *ContractsBuilder) Build(ctx context.Context, contracts map[string]string) error {
 	logger := inslogger.FromContext(ctx)
 
 	for name := range contracts {
@@ -142,11 +138,11 @@ func (cb *ContractsBuilder) Build(ctx context.Context, contracts map[string]stri
 		if err != nil {
 			return errors.Wrap(err, "[ buildPrototypes ] Can't WriteFile")
 		}
-		err = cb.proxy(name, options)
+		err = cb.proxy(name)
 		if err != nil {
 			return errors.Wrap(err, "[ Build ] Can't call proxy")
 		}
-		err = cb.wrapper(name, options)
+		err = cb.wrapper(name)
 		if err != nil {
 			return errors.Wrap(err, "[ Build ] Can't call wrapper")
 		}
@@ -230,7 +226,7 @@ func (cb *ContractsBuilder) registerRequest(ctx context.Context, request *record
 	return nil, errors.Wrap(err, "flow cancelled, retries exceeded")
 }
 
-func (cb *ContractsBuilder) proxy(name string, _ BuildOptions) error {
+func (cb *ContractsBuilder) proxy(name string) error {
 	root := insolar.RootModuleDir()
 	dstDir := filepath.Join(root, "application/proxy", name)
 
@@ -253,15 +249,11 @@ func (cb *ContractsBuilder) proxy(name string, _ BuildOptions) error {
 	return nil
 }
 
-func (cb *ContractsBuilder) wrapper(name string, options BuildOptions) error {
+func (cb *ContractsBuilder) wrapper(name string) error {
 	contractPath := filepath.Join(cb.root, "src/contract", name, "main.go")
 	wrapperPath := filepath.Join(cb.root, "src/contract", name, "main_wrapper.go")
 
-	args := []string{"wrapper", "-o", wrapperPath, contractPath}
-	if options.PanicIsLogicalError {
-		args = append(args, "--panic-logical")
-	}
-	out, err := exec.Command(cb.IccPath, args...).CombinedOutput()
+	out, err := exec.Command(cb.IccPath, "wrapper", "-o", wrapperPath, contractPath).CombinedOutput()
 	if err != nil {
 		return errors.Wrap(err, "can't generate wrapper for contract '"+name+"': "+string(out))
 	}

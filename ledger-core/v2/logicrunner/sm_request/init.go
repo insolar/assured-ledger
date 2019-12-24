@@ -24,12 +24,20 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 )
+
+type logProcessing struct {
+	*logadapter.Msg `txt:"processing message"`
+
+	message_type string
+}
 
 func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 	payloadMeta := message.PayloadMeta
 	messageMeta := message.MessageMeta
+	traceID := messageMeta.Get(meta.TraceID)
 
 	payloadBytes := payloadMeta.Payload
 	payloadType, err := payload.UnmarshalType(payloadBytes)
@@ -37,13 +45,10 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		panic(fmt.Sprintf("failed to unmarshal payload type: %s", err.Error()))
 	}
 
-	inslogger.FromContext(context.Background()).Error("processing message %s", payloadType.String())
+	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
+	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
-	goCtx := context.Background()
-	inslogger.WithTraceField(goCtx, messageMeta.Get(meta.TraceID))
-	goCtx, _ = inslogger.WithFields(context.Background(), map[string]interface{}{
-		"component": "sm-logicrunner",
-	})
+	logger.Error(logProcessing{message_type: payloadType.String()})
 
 	switch payloadType {
 	case payload.TypeCallMethod:
@@ -53,6 +58,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachineCallMethod{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -63,6 +69,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachineSagaAccept{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -73,6 +80,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachineUpdateJet{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -83,6 +91,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachinePendingFinished{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -93,6 +102,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachineExecutorResults{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -103,6 +113,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachineStillExecuting{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -113,7 +124,19 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
 			return &StateMachineAdditionalCall{Meta: payloadMeta, Payload: &pl}
+		}
+
+	case payload.TypeAbandonedRequestsNotification:
+		pl := payload.AbandonedRequestsNotification{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(fmt.Sprintf("failed to unmarshal payload.AbandonedRequestsNotification: %s", err.Error()))
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
+			return &StateMachineAbandonedRequests{Meta: payloadMeta, Payload: &pl}
 		}
 
 	default:

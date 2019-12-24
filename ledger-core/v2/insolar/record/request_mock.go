@@ -26,6 +26,30 @@ type RequestMock struct {
 	beforeGetCallTypeCounter uint64
 	GetCallTypeMock          mRequestMockGetCallType
 
+	funcGetImmutable          func() (b1 bool)
+	inspectFuncGetImmutable   func()
+	afterGetImmutableCounter  uint64
+	beforeGetImmutableCounter uint64
+	GetImmutableMock          mRequestMockGetImmutable
+
+	funcGetMethod          func() (s1 string)
+	inspectFuncGetMethod   func()
+	afterGetMethodCounter  uint64
+	beforeGetMethodCounter uint64
+	GetMethodMock          mRequestMockGetMethod
+
+	funcGetObject          func() (rp1 *insolar.Reference)
+	inspectFuncGetObject   func()
+	afterGetObjectCounter  uint64
+	beforeGetObjectCounter uint64
+	GetObjectMock          mRequestMockGetObject
+
+	funcGetReturnMode          func() (r1 ReturnMode)
+	inspectFuncGetReturnMode   func()
+	afterGetReturnModeCounter  uint64
+	beforeGetReturnModeCounter uint64
+	GetReturnModeMock          mRequestMockGetReturnMode
+
 	funcIsAPIRequest          func() (b1 bool)
 	inspectFuncIsAPIRequest   func()
 	afterIsAPIRequestCounter  uint64
@@ -37,6 +61,12 @@ type RequestMock struct {
 	afterIsCreationRequestCounter  uint64
 	beforeIsCreationRequestCounter uint64
 	IsCreationRequestMock          mRequestMockIsCreationRequest
+
+	funcIsDetachedCall          func() (b1 bool)
+	inspectFuncIsDetachedCall   func()
+	afterIsDetachedCallCounter  uint64
+	beforeIsDetachedCallCounter uint64
+	IsDetachedCallMock          mRequestMockIsDetachedCall
 
 	funcIsTemporaryUploadCode          func() (b1 bool)
 	inspectFuncIsTemporaryUploadCode   func()
@@ -80,9 +110,19 @@ func NewRequestMock(t minimock.Tester) *RequestMock {
 
 	m.GetCallTypeMock = mRequestMockGetCallType{mock: m}
 
+	m.GetImmutableMock = mRequestMockGetImmutable{mock: m}
+
+	m.GetMethodMock = mRequestMockGetMethod{mock: m}
+
+	m.GetObjectMock = mRequestMockGetObject{mock: m}
+
+	m.GetReturnModeMock = mRequestMockGetReturnMode{mock: m}
+
 	m.IsAPIRequestMock = mRequestMockIsAPIRequest{mock: m}
 
 	m.IsCreationRequestMock = mRequestMockIsCreationRequest{mock: m}
+
+	m.IsDetachedCallMock = mRequestMockIsDetachedCall{mock: m}
 
 	m.IsTemporaryUploadCodeMock = mRequestMockIsTemporaryUploadCode{mock: m}
 
@@ -383,6 +423,578 @@ func (m *RequestMock) MinimockGetCallTypeInspect() {
 	}
 }
 
+type mRequestMockGetImmutable struct {
+	mock               *RequestMock
+	defaultExpectation *RequestMockGetImmutableExpectation
+	expectations       []*RequestMockGetImmutableExpectation
+}
+
+// RequestMockGetImmutableExpectation specifies expectation struct of the Request.GetImmutable
+type RequestMockGetImmutableExpectation struct {
+	mock *RequestMock
+
+	results *RequestMockGetImmutableResults
+	Counter uint64
+}
+
+// RequestMockGetImmutableResults contains results of the Request.GetImmutable
+type RequestMockGetImmutableResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for Request.GetImmutable
+func (mmGetImmutable *mRequestMockGetImmutable) Expect() *mRequestMockGetImmutable {
+	if mmGetImmutable.mock.funcGetImmutable != nil {
+		mmGetImmutable.mock.t.Fatalf("RequestMock.GetImmutable mock is already set by Set")
+	}
+
+	if mmGetImmutable.defaultExpectation == nil {
+		mmGetImmutable.defaultExpectation = &RequestMockGetImmutableExpectation{}
+	}
+
+	return mmGetImmutable
+}
+
+// Inspect accepts an inspector function that has same arguments as the Request.GetImmutable
+func (mmGetImmutable *mRequestMockGetImmutable) Inspect(f func()) *mRequestMockGetImmutable {
+	if mmGetImmutable.mock.inspectFuncGetImmutable != nil {
+		mmGetImmutable.mock.t.Fatalf("Inspect function is already set for RequestMock.GetImmutable")
+	}
+
+	mmGetImmutable.mock.inspectFuncGetImmutable = f
+
+	return mmGetImmutable
+}
+
+// Return sets up results that will be returned by Request.GetImmutable
+func (mmGetImmutable *mRequestMockGetImmutable) Return(b1 bool) *RequestMock {
+	if mmGetImmutable.mock.funcGetImmutable != nil {
+		mmGetImmutable.mock.t.Fatalf("RequestMock.GetImmutable mock is already set by Set")
+	}
+
+	if mmGetImmutable.defaultExpectation == nil {
+		mmGetImmutable.defaultExpectation = &RequestMockGetImmutableExpectation{mock: mmGetImmutable.mock}
+	}
+	mmGetImmutable.defaultExpectation.results = &RequestMockGetImmutableResults{b1}
+	return mmGetImmutable.mock
+}
+
+//Set uses given function f to mock the Request.GetImmutable method
+func (mmGetImmutable *mRequestMockGetImmutable) Set(f func() (b1 bool)) *RequestMock {
+	if mmGetImmutable.defaultExpectation != nil {
+		mmGetImmutable.mock.t.Fatalf("Default expectation is already set for the Request.GetImmutable method")
+	}
+
+	if len(mmGetImmutable.expectations) > 0 {
+		mmGetImmutable.mock.t.Fatalf("Some expectations are already set for the Request.GetImmutable method")
+	}
+
+	mmGetImmutable.mock.funcGetImmutable = f
+	return mmGetImmutable.mock
+}
+
+// GetImmutable implements Request
+func (mmGetImmutable *RequestMock) GetImmutable() (b1 bool) {
+	mm_atomic.AddUint64(&mmGetImmutable.beforeGetImmutableCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetImmutable.afterGetImmutableCounter, 1)
+
+	if mmGetImmutable.inspectFuncGetImmutable != nil {
+		mmGetImmutable.inspectFuncGetImmutable()
+	}
+
+	if mmGetImmutable.GetImmutableMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetImmutable.GetImmutableMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetImmutable.GetImmutableMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetImmutable.t.Fatal("No results are set for the RequestMock.GetImmutable")
+		}
+		return (*mm_results).b1
+	}
+	if mmGetImmutable.funcGetImmutable != nil {
+		return mmGetImmutable.funcGetImmutable()
+	}
+	mmGetImmutable.t.Fatalf("Unexpected call to RequestMock.GetImmutable.")
+	return
+}
+
+// GetImmutableAfterCounter returns a count of finished RequestMock.GetImmutable invocations
+func (mmGetImmutable *RequestMock) GetImmutableAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetImmutable.afterGetImmutableCounter)
+}
+
+// GetImmutableBeforeCounter returns a count of RequestMock.GetImmutable invocations
+func (mmGetImmutable *RequestMock) GetImmutableBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetImmutable.beforeGetImmutableCounter)
+}
+
+// MinimockGetImmutableDone returns true if the count of the GetImmutable invocations corresponds
+// the number of defined expectations
+func (m *RequestMock) MinimockGetImmutableDone() bool {
+	for _, e := range m.GetImmutableMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetImmutableMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetImmutableCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetImmutable != nil && mm_atomic.LoadUint64(&m.afterGetImmutableCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetImmutableInspect logs each unmet expectation
+func (m *RequestMock) MinimockGetImmutableInspect() {
+	for _, e := range m.GetImmutableMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to RequestMock.GetImmutable")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetImmutableMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetImmutableCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetImmutable")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetImmutable != nil && mm_atomic.LoadUint64(&m.afterGetImmutableCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetImmutable")
+	}
+}
+
+type mRequestMockGetMethod struct {
+	mock               *RequestMock
+	defaultExpectation *RequestMockGetMethodExpectation
+	expectations       []*RequestMockGetMethodExpectation
+}
+
+// RequestMockGetMethodExpectation specifies expectation struct of the Request.GetMethod
+type RequestMockGetMethodExpectation struct {
+	mock *RequestMock
+
+	results *RequestMockGetMethodResults
+	Counter uint64
+}
+
+// RequestMockGetMethodResults contains results of the Request.GetMethod
+type RequestMockGetMethodResults struct {
+	s1 string
+}
+
+// Expect sets up expected params for Request.GetMethod
+func (mmGetMethod *mRequestMockGetMethod) Expect() *mRequestMockGetMethod {
+	if mmGetMethod.mock.funcGetMethod != nil {
+		mmGetMethod.mock.t.Fatalf("RequestMock.GetMethod mock is already set by Set")
+	}
+
+	if mmGetMethod.defaultExpectation == nil {
+		mmGetMethod.defaultExpectation = &RequestMockGetMethodExpectation{}
+	}
+
+	return mmGetMethod
+}
+
+// Inspect accepts an inspector function that has same arguments as the Request.GetMethod
+func (mmGetMethod *mRequestMockGetMethod) Inspect(f func()) *mRequestMockGetMethod {
+	if mmGetMethod.mock.inspectFuncGetMethod != nil {
+		mmGetMethod.mock.t.Fatalf("Inspect function is already set for RequestMock.GetMethod")
+	}
+
+	mmGetMethod.mock.inspectFuncGetMethod = f
+
+	return mmGetMethod
+}
+
+// Return sets up results that will be returned by Request.GetMethod
+func (mmGetMethod *mRequestMockGetMethod) Return(s1 string) *RequestMock {
+	if mmGetMethod.mock.funcGetMethod != nil {
+		mmGetMethod.mock.t.Fatalf("RequestMock.GetMethod mock is already set by Set")
+	}
+
+	if mmGetMethod.defaultExpectation == nil {
+		mmGetMethod.defaultExpectation = &RequestMockGetMethodExpectation{mock: mmGetMethod.mock}
+	}
+	mmGetMethod.defaultExpectation.results = &RequestMockGetMethodResults{s1}
+	return mmGetMethod.mock
+}
+
+//Set uses given function f to mock the Request.GetMethod method
+func (mmGetMethod *mRequestMockGetMethod) Set(f func() (s1 string)) *RequestMock {
+	if mmGetMethod.defaultExpectation != nil {
+		mmGetMethod.mock.t.Fatalf("Default expectation is already set for the Request.GetMethod method")
+	}
+
+	if len(mmGetMethod.expectations) > 0 {
+		mmGetMethod.mock.t.Fatalf("Some expectations are already set for the Request.GetMethod method")
+	}
+
+	mmGetMethod.mock.funcGetMethod = f
+	return mmGetMethod.mock
+}
+
+// GetMethod implements Request
+func (mmGetMethod *RequestMock) GetMethod() (s1 string) {
+	mm_atomic.AddUint64(&mmGetMethod.beforeGetMethodCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetMethod.afterGetMethodCounter, 1)
+
+	if mmGetMethod.inspectFuncGetMethod != nil {
+		mmGetMethod.inspectFuncGetMethod()
+	}
+
+	if mmGetMethod.GetMethodMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetMethod.GetMethodMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetMethod.GetMethodMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetMethod.t.Fatal("No results are set for the RequestMock.GetMethod")
+		}
+		return (*mm_results).s1
+	}
+	if mmGetMethod.funcGetMethod != nil {
+		return mmGetMethod.funcGetMethod()
+	}
+	mmGetMethod.t.Fatalf("Unexpected call to RequestMock.GetMethod.")
+	return
+}
+
+// GetMethodAfterCounter returns a count of finished RequestMock.GetMethod invocations
+func (mmGetMethod *RequestMock) GetMethodAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetMethod.afterGetMethodCounter)
+}
+
+// GetMethodBeforeCounter returns a count of RequestMock.GetMethod invocations
+func (mmGetMethod *RequestMock) GetMethodBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetMethod.beforeGetMethodCounter)
+}
+
+// MinimockGetMethodDone returns true if the count of the GetMethod invocations corresponds
+// the number of defined expectations
+func (m *RequestMock) MinimockGetMethodDone() bool {
+	for _, e := range m.GetMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetMethodCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetMethod != nil && mm_atomic.LoadUint64(&m.afterGetMethodCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetMethodInspect logs each unmet expectation
+func (m *RequestMock) MinimockGetMethodInspect() {
+	for _, e := range m.GetMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to RequestMock.GetMethod")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetMethodCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetMethod")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetMethod != nil && mm_atomic.LoadUint64(&m.afterGetMethodCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetMethod")
+	}
+}
+
+type mRequestMockGetObject struct {
+	mock               *RequestMock
+	defaultExpectation *RequestMockGetObjectExpectation
+	expectations       []*RequestMockGetObjectExpectation
+}
+
+// RequestMockGetObjectExpectation specifies expectation struct of the Request.GetObject
+type RequestMockGetObjectExpectation struct {
+	mock *RequestMock
+
+	results *RequestMockGetObjectResults
+	Counter uint64
+}
+
+// RequestMockGetObjectResults contains results of the Request.GetObject
+type RequestMockGetObjectResults struct {
+	rp1 *insolar.Reference
+}
+
+// Expect sets up expected params for Request.GetObject
+func (mmGetObject *mRequestMockGetObject) Expect() *mRequestMockGetObject {
+	if mmGetObject.mock.funcGetObject != nil {
+		mmGetObject.mock.t.Fatalf("RequestMock.GetObject mock is already set by Set")
+	}
+
+	if mmGetObject.defaultExpectation == nil {
+		mmGetObject.defaultExpectation = &RequestMockGetObjectExpectation{}
+	}
+
+	return mmGetObject
+}
+
+// Inspect accepts an inspector function that has same arguments as the Request.GetObject
+func (mmGetObject *mRequestMockGetObject) Inspect(f func()) *mRequestMockGetObject {
+	if mmGetObject.mock.inspectFuncGetObject != nil {
+		mmGetObject.mock.t.Fatalf("Inspect function is already set for RequestMock.GetObject")
+	}
+
+	mmGetObject.mock.inspectFuncGetObject = f
+
+	return mmGetObject
+}
+
+// Return sets up results that will be returned by Request.GetObject
+func (mmGetObject *mRequestMockGetObject) Return(rp1 *insolar.Reference) *RequestMock {
+	if mmGetObject.mock.funcGetObject != nil {
+		mmGetObject.mock.t.Fatalf("RequestMock.GetObject mock is already set by Set")
+	}
+
+	if mmGetObject.defaultExpectation == nil {
+		mmGetObject.defaultExpectation = &RequestMockGetObjectExpectation{mock: mmGetObject.mock}
+	}
+	mmGetObject.defaultExpectation.results = &RequestMockGetObjectResults{rp1}
+	return mmGetObject.mock
+}
+
+//Set uses given function f to mock the Request.GetObject method
+func (mmGetObject *mRequestMockGetObject) Set(f func() (rp1 *insolar.Reference)) *RequestMock {
+	if mmGetObject.defaultExpectation != nil {
+		mmGetObject.mock.t.Fatalf("Default expectation is already set for the Request.GetObject method")
+	}
+
+	if len(mmGetObject.expectations) > 0 {
+		mmGetObject.mock.t.Fatalf("Some expectations are already set for the Request.GetObject method")
+	}
+
+	mmGetObject.mock.funcGetObject = f
+	return mmGetObject.mock
+}
+
+// GetObject implements Request
+func (mmGetObject *RequestMock) GetObject() (rp1 *insolar.Reference) {
+	mm_atomic.AddUint64(&mmGetObject.beforeGetObjectCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetObject.afterGetObjectCounter, 1)
+
+	if mmGetObject.inspectFuncGetObject != nil {
+		mmGetObject.inspectFuncGetObject()
+	}
+
+	if mmGetObject.GetObjectMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetObject.GetObjectMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetObject.GetObjectMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetObject.t.Fatal("No results are set for the RequestMock.GetObject")
+		}
+		return (*mm_results).rp1
+	}
+	if mmGetObject.funcGetObject != nil {
+		return mmGetObject.funcGetObject()
+	}
+	mmGetObject.t.Fatalf("Unexpected call to RequestMock.GetObject.")
+	return
+}
+
+// GetObjectAfterCounter returns a count of finished RequestMock.GetObject invocations
+func (mmGetObject *RequestMock) GetObjectAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetObject.afterGetObjectCounter)
+}
+
+// GetObjectBeforeCounter returns a count of RequestMock.GetObject invocations
+func (mmGetObject *RequestMock) GetObjectBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetObject.beforeGetObjectCounter)
+}
+
+// MinimockGetObjectDone returns true if the count of the GetObject invocations corresponds
+// the number of defined expectations
+func (m *RequestMock) MinimockGetObjectDone() bool {
+	for _, e := range m.GetObjectMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetObjectMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetObjectCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetObject != nil && mm_atomic.LoadUint64(&m.afterGetObjectCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetObjectInspect logs each unmet expectation
+func (m *RequestMock) MinimockGetObjectInspect() {
+	for _, e := range m.GetObjectMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to RequestMock.GetObject")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetObjectMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetObjectCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetObject")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetObject != nil && mm_atomic.LoadUint64(&m.afterGetObjectCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetObject")
+	}
+}
+
+type mRequestMockGetReturnMode struct {
+	mock               *RequestMock
+	defaultExpectation *RequestMockGetReturnModeExpectation
+	expectations       []*RequestMockGetReturnModeExpectation
+}
+
+// RequestMockGetReturnModeExpectation specifies expectation struct of the Request.GetReturnMode
+type RequestMockGetReturnModeExpectation struct {
+	mock *RequestMock
+
+	results *RequestMockGetReturnModeResults
+	Counter uint64
+}
+
+// RequestMockGetReturnModeResults contains results of the Request.GetReturnMode
+type RequestMockGetReturnModeResults struct {
+	r1 ReturnMode
+}
+
+// Expect sets up expected params for Request.GetReturnMode
+func (mmGetReturnMode *mRequestMockGetReturnMode) Expect() *mRequestMockGetReturnMode {
+	if mmGetReturnMode.mock.funcGetReturnMode != nil {
+		mmGetReturnMode.mock.t.Fatalf("RequestMock.GetReturnMode mock is already set by Set")
+	}
+
+	if mmGetReturnMode.defaultExpectation == nil {
+		mmGetReturnMode.defaultExpectation = &RequestMockGetReturnModeExpectation{}
+	}
+
+	return mmGetReturnMode
+}
+
+// Inspect accepts an inspector function that has same arguments as the Request.GetReturnMode
+func (mmGetReturnMode *mRequestMockGetReturnMode) Inspect(f func()) *mRequestMockGetReturnMode {
+	if mmGetReturnMode.mock.inspectFuncGetReturnMode != nil {
+		mmGetReturnMode.mock.t.Fatalf("Inspect function is already set for RequestMock.GetReturnMode")
+	}
+
+	mmGetReturnMode.mock.inspectFuncGetReturnMode = f
+
+	return mmGetReturnMode
+}
+
+// Return sets up results that will be returned by Request.GetReturnMode
+func (mmGetReturnMode *mRequestMockGetReturnMode) Return(r1 ReturnMode) *RequestMock {
+	if mmGetReturnMode.mock.funcGetReturnMode != nil {
+		mmGetReturnMode.mock.t.Fatalf("RequestMock.GetReturnMode mock is already set by Set")
+	}
+
+	if mmGetReturnMode.defaultExpectation == nil {
+		mmGetReturnMode.defaultExpectation = &RequestMockGetReturnModeExpectation{mock: mmGetReturnMode.mock}
+	}
+	mmGetReturnMode.defaultExpectation.results = &RequestMockGetReturnModeResults{r1}
+	return mmGetReturnMode.mock
+}
+
+//Set uses given function f to mock the Request.GetReturnMode method
+func (mmGetReturnMode *mRequestMockGetReturnMode) Set(f func() (r1 ReturnMode)) *RequestMock {
+	if mmGetReturnMode.defaultExpectation != nil {
+		mmGetReturnMode.mock.t.Fatalf("Default expectation is already set for the Request.GetReturnMode method")
+	}
+
+	if len(mmGetReturnMode.expectations) > 0 {
+		mmGetReturnMode.mock.t.Fatalf("Some expectations are already set for the Request.GetReturnMode method")
+	}
+
+	mmGetReturnMode.mock.funcGetReturnMode = f
+	return mmGetReturnMode.mock
+}
+
+// GetReturnMode implements Request
+func (mmGetReturnMode *RequestMock) GetReturnMode() (r1 ReturnMode) {
+	mm_atomic.AddUint64(&mmGetReturnMode.beforeGetReturnModeCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetReturnMode.afterGetReturnModeCounter, 1)
+
+	if mmGetReturnMode.inspectFuncGetReturnMode != nil {
+		mmGetReturnMode.inspectFuncGetReturnMode()
+	}
+
+	if mmGetReturnMode.GetReturnModeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetReturnMode.GetReturnModeMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetReturnMode.GetReturnModeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetReturnMode.t.Fatal("No results are set for the RequestMock.GetReturnMode")
+		}
+		return (*mm_results).r1
+	}
+	if mmGetReturnMode.funcGetReturnMode != nil {
+		return mmGetReturnMode.funcGetReturnMode()
+	}
+	mmGetReturnMode.t.Fatalf("Unexpected call to RequestMock.GetReturnMode.")
+	return
+}
+
+// GetReturnModeAfterCounter returns a count of finished RequestMock.GetReturnMode invocations
+func (mmGetReturnMode *RequestMock) GetReturnModeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetReturnMode.afterGetReturnModeCounter)
+}
+
+// GetReturnModeBeforeCounter returns a count of RequestMock.GetReturnMode invocations
+func (mmGetReturnMode *RequestMock) GetReturnModeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetReturnMode.beforeGetReturnModeCounter)
+}
+
+// MinimockGetReturnModeDone returns true if the count of the GetReturnMode invocations corresponds
+// the number of defined expectations
+func (m *RequestMock) MinimockGetReturnModeDone() bool {
+	for _, e := range m.GetReturnModeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetReturnModeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetReturnModeCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetReturnMode != nil && mm_atomic.LoadUint64(&m.afterGetReturnModeCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetReturnModeInspect logs each unmet expectation
+func (m *RequestMock) MinimockGetReturnModeInspect() {
+	for _, e := range m.GetReturnModeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to RequestMock.GetReturnMode")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetReturnModeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetReturnModeCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetReturnMode")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetReturnMode != nil && mm_atomic.LoadUint64(&m.afterGetReturnModeCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.GetReturnMode")
+	}
+}
+
 type mRequestMockIsAPIRequest struct {
 	mock               *RequestMock
 	defaultExpectation *RequestMockIsAPIRequestExpectation
@@ -666,6 +1278,149 @@ func (m *RequestMock) MinimockIsCreationRequestInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcIsCreationRequest != nil && mm_atomic.LoadUint64(&m.afterIsCreationRequestCounter) < 1 {
 		m.t.Error("Expected call to RequestMock.IsCreationRequest")
+	}
+}
+
+type mRequestMockIsDetachedCall struct {
+	mock               *RequestMock
+	defaultExpectation *RequestMockIsDetachedCallExpectation
+	expectations       []*RequestMockIsDetachedCallExpectation
+}
+
+// RequestMockIsDetachedCallExpectation specifies expectation struct of the Request.IsDetachedCall
+type RequestMockIsDetachedCallExpectation struct {
+	mock *RequestMock
+
+	results *RequestMockIsDetachedCallResults
+	Counter uint64
+}
+
+// RequestMockIsDetachedCallResults contains results of the Request.IsDetachedCall
+type RequestMockIsDetachedCallResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for Request.IsDetachedCall
+func (mmIsDetachedCall *mRequestMockIsDetachedCall) Expect() *mRequestMockIsDetachedCall {
+	if mmIsDetachedCall.mock.funcIsDetachedCall != nil {
+		mmIsDetachedCall.mock.t.Fatalf("RequestMock.IsDetachedCall mock is already set by Set")
+	}
+
+	if mmIsDetachedCall.defaultExpectation == nil {
+		mmIsDetachedCall.defaultExpectation = &RequestMockIsDetachedCallExpectation{}
+	}
+
+	return mmIsDetachedCall
+}
+
+// Inspect accepts an inspector function that has same arguments as the Request.IsDetachedCall
+func (mmIsDetachedCall *mRequestMockIsDetachedCall) Inspect(f func()) *mRequestMockIsDetachedCall {
+	if mmIsDetachedCall.mock.inspectFuncIsDetachedCall != nil {
+		mmIsDetachedCall.mock.t.Fatalf("Inspect function is already set for RequestMock.IsDetachedCall")
+	}
+
+	mmIsDetachedCall.mock.inspectFuncIsDetachedCall = f
+
+	return mmIsDetachedCall
+}
+
+// Return sets up results that will be returned by Request.IsDetachedCall
+func (mmIsDetachedCall *mRequestMockIsDetachedCall) Return(b1 bool) *RequestMock {
+	if mmIsDetachedCall.mock.funcIsDetachedCall != nil {
+		mmIsDetachedCall.mock.t.Fatalf("RequestMock.IsDetachedCall mock is already set by Set")
+	}
+
+	if mmIsDetachedCall.defaultExpectation == nil {
+		mmIsDetachedCall.defaultExpectation = &RequestMockIsDetachedCallExpectation{mock: mmIsDetachedCall.mock}
+	}
+	mmIsDetachedCall.defaultExpectation.results = &RequestMockIsDetachedCallResults{b1}
+	return mmIsDetachedCall.mock
+}
+
+//Set uses given function f to mock the Request.IsDetachedCall method
+func (mmIsDetachedCall *mRequestMockIsDetachedCall) Set(f func() (b1 bool)) *RequestMock {
+	if mmIsDetachedCall.defaultExpectation != nil {
+		mmIsDetachedCall.mock.t.Fatalf("Default expectation is already set for the Request.IsDetachedCall method")
+	}
+
+	if len(mmIsDetachedCall.expectations) > 0 {
+		mmIsDetachedCall.mock.t.Fatalf("Some expectations are already set for the Request.IsDetachedCall method")
+	}
+
+	mmIsDetachedCall.mock.funcIsDetachedCall = f
+	return mmIsDetachedCall.mock
+}
+
+// IsDetachedCall implements Request
+func (mmIsDetachedCall *RequestMock) IsDetachedCall() (b1 bool) {
+	mm_atomic.AddUint64(&mmIsDetachedCall.beforeIsDetachedCallCounter, 1)
+	defer mm_atomic.AddUint64(&mmIsDetachedCall.afterIsDetachedCallCounter, 1)
+
+	if mmIsDetachedCall.inspectFuncIsDetachedCall != nil {
+		mmIsDetachedCall.inspectFuncIsDetachedCall()
+	}
+
+	if mmIsDetachedCall.IsDetachedCallMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmIsDetachedCall.IsDetachedCallMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmIsDetachedCall.IsDetachedCallMock.defaultExpectation.results
+		if mm_results == nil {
+			mmIsDetachedCall.t.Fatal("No results are set for the RequestMock.IsDetachedCall")
+		}
+		return (*mm_results).b1
+	}
+	if mmIsDetachedCall.funcIsDetachedCall != nil {
+		return mmIsDetachedCall.funcIsDetachedCall()
+	}
+	mmIsDetachedCall.t.Fatalf("Unexpected call to RequestMock.IsDetachedCall.")
+	return
+}
+
+// IsDetachedCallAfterCounter returns a count of finished RequestMock.IsDetachedCall invocations
+func (mmIsDetachedCall *RequestMock) IsDetachedCallAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsDetachedCall.afterIsDetachedCallCounter)
+}
+
+// IsDetachedCallBeforeCounter returns a count of RequestMock.IsDetachedCall invocations
+func (mmIsDetachedCall *RequestMock) IsDetachedCallBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsDetachedCall.beforeIsDetachedCallCounter)
+}
+
+// MinimockIsDetachedCallDone returns true if the count of the IsDetachedCall invocations corresponds
+// the number of defined expectations
+func (m *RequestMock) MinimockIsDetachedCallDone() bool {
+	for _, e := range m.IsDetachedCallMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.IsDetachedCallMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsDetachedCallCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcIsDetachedCall != nil && mm_atomic.LoadUint64(&m.afterIsDetachedCallCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockIsDetachedCallInspect logs each unmet expectation
+func (m *RequestMock) MinimockIsDetachedCallInspect() {
+	for _, e := range m.IsDetachedCallMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to RequestMock.IsDetachedCall")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.IsDetachedCallMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsDetachedCallCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.IsDetachedCall")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcIsDetachedCall != nil && mm_atomic.LoadUint64(&m.afterIsDetachedCallCounter) < 1 {
+		m.t.Error("Expected call to RequestMock.IsDetachedCall")
 	}
 }
 
@@ -1392,9 +2147,19 @@ func (m *RequestMock) MinimockFinish() {
 
 		m.MinimockGetCallTypeInspect()
 
+		m.MinimockGetImmutableInspect()
+
+		m.MinimockGetMethodInspect()
+
+		m.MinimockGetObjectInspect()
+
+		m.MinimockGetReturnModeInspect()
+
 		m.MinimockIsAPIRequestInspect()
 
 		m.MinimockIsCreationRequestInspect()
+
+		m.MinimockIsDetachedCallInspect()
 
 		m.MinimockIsTemporaryUploadCodeInspect()
 
@@ -1430,8 +2195,13 @@ func (m *RequestMock) minimockDone() bool {
 	return done &&
 		m.MinimockAffinityRefDone() &&
 		m.MinimockGetCallTypeDone() &&
+		m.MinimockGetImmutableDone() &&
+		m.MinimockGetMethodDone() &&
+		m.MinimockGetObjectDone() &&
+		m.MinimockGetReturnModeDone() &&
 		m.MinimockIsAPIRequestDone() &&
 		m.MinimockIsCreationRequestDone() &&
+		m.MinimockIsDetachedCallDone() &&
 		m.MinimockIsTemporaryUploadCodeDone() &&
 		m.MinimockMarshalDone() &&
 		m.MinimockReasonAffinityRefDone() &&

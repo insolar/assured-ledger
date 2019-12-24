@@ -28,7 +28,7 @@ import (
 
 func TestFlag(t *testing.T) {
 	ctx := inslogger.TestContext(t)
-	syncT := testutils.SyncT{T: t}
+	syncT := testutils.SyncT{TB: t}
 
 	flag := NewFlag()
 

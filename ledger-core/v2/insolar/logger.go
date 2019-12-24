@@ -40,8 +40,6 @@ func ParseLevel(levelStr string) (LogLevel, error) {
 	return logcommon.ParseLevel(levelStr)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.Logger -o ./ -s _mock.go -g
-
 type Logger = logcommon.Logger
 
 type LogFormat = logcommon.LogFormat

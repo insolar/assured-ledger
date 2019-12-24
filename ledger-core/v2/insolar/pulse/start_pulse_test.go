@@ -34,7 +34,7 @@ func ReadPulses(t testing.TB, pulser StartPulse) func() {
 func TestStartPulseRace(t *testing.T) {
 	ctx := inslogger.TestContext(t)
 	startPulse := NewStartPulse()
-	syncTest := &testutils.SyncT{T: t}
+	syncTest := &testutils.SyncT{TB: t}
 	for i := 0; i < 10; i++ {
 		go ReadPulses(syncTest, startPulse)()
 	}

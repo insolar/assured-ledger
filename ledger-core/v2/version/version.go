@@ -25,18 +25,12 @@ import (
 )
 
 var (
-	// Version is release semantic version.
-	Version = "unset"
-	// BuildNumber is CI build number.
-	BuildNumber = "unset"
-	// BuildDate is build date.
-	BuildDate = "unset"
-	// BuildTime is build date.
-	BuildTime = "unset"
-	// CITool is a continuous integration tool(Travis, DockerCloud, etc.).
-	CITool = "unset"
-	// GitHash is short git commit hash.
-	GitHash = "unset"
+	Version     = "unset" // Version is release semantic version.
+	BuildNumber = "unset" // BuildNumber is CI build number.
+	BuildDate   = "unset" // BuildDate is build date.
+	BuildTime   = "unset" // BuildTime is build date.
+	CITool      = "unset" // CITool is a continuous integration tool(Travis, DockerCloud, etc.).
+	GitHash     = "unset" // GitHash is short git commit hash.
 )
 
 // GetFullVersion returns multi line full version information

@@ -121,9 +121,3 @@ func SendMessage(
 	checkError(ctx, err, "unmarshal payload")
 	return pl
 }
-
-func panicIfErr(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
