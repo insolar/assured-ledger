@@ -32,6 +32,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 func exitWithError(err error) {
@@ -75,7 +76,7 @@ func closeRawDB(bdb *badger.DB, originalError error) {
 }
 
 type BadgerLogger struct {
-	insolar.Logger
+	logcommon.Logger
 }
 
 func (b BadgerLogger) Warningf(fmt string, args ...interface{}) {

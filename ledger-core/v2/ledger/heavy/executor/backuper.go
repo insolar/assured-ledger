@@ -29,6 +29,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+
 	"github.com/pkg/errors"
 )
 
@@ -189,7 +191,7 @@ func waitForFile(ctx context.Context, filePath string, numIterations uint) error
 }
 
 type logWrapper struct {
-	logger insolar.Logger
+	logger logcommon.Logger
 	isInfo bool
 }
 

@@ -119,9 +119,7 @@ func freshContextFromContext(ctx context.Context, reqID string) context.Context 
 	res := context.Background()
 
 	logLevel := inslogger.GetLoggerLevel(ctx)
-	if logLevel != insolar.NoLevel {
-		res = inslogger.WithLoggerLevel(res, logLevel)
-	}
+	res = inslogger.WithLoggerLevel(res, logLevel)
 
 	// we know that trace id is equal to APIRequestID, in a few cases we
 	// call this function and don't have correct context and trace id around

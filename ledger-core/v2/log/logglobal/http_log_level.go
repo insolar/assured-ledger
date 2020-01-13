@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 // ServeHTTP is an HTTP handler that changes the global minimum log level
@@ -39,7 +39,7 @@ func (h *loglevelChangeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	if values["level"] != nil {
 		levelStr = values["level"][0]
 	}
-	level, err := insolar.ParseLevel(levelStr)
+	level, err := logcommon.ParseLevel(levelStr)
 	if err != nil {
 		w.WriteHeader(500)
 		_, _ = fmt.Fprintf(w, "Invalid level '%v': %v\n", levelStr, err)

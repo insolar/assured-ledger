@@ -53,23 +53,23 @@ package adapters
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 )
 
 func ConsensusContext(ctx context.Context) context.Context {
-	return inslogger.UpdateLogger(ctx, func(logger insolar.Logger) (insolar.Logger, error) {
+	return inslogger.UpdateLogger(ctx, func(logger logcommon.Logger) (logcommon.Logger, error) {
 		return logger.Copy().WithFields(map[string]interface{}{
 			"component":  "consensus",
 			"LowLatency": true,
-		}).WithMetrics(insolar.LogMetricsWriteDelayField).BuildLowLatency()
+		}).WithMetrics(logcommon.LogMetricsWriteDelayField).BuildLowLatency()
 	})
 }
 
-func PacketEarlyLogger(ctx context.Context, senderAddr string) (context.Context, insolar.Logger) {
+func PacketEarlyLogger(ctx context.Context, senderAddr string) (context.Context, logcommon.Logger) {
 	ctx = ConsensusContext(ctx)
 
 	ctx, logger := inslogger.WithFields(ctx, map[string]interface{}{
@@ -79,7 +79,7 @@ func PacketEarlyLogger(ctx context.Context, senderAddr string) (context.Context,
 	return ctx, logger
 }
 
-func PacketLateLogger(ctx context.Context, parser transport.PacketParser) (context.Context, insolar.Logger) {
+func PacketLateLogger(ctx context.Context, parser transport.PacketParser) (context.Context, logcommon.Logger) {
 	ctx, logger := inslogger.WithFields(ctx, map[string]interface{}{
 		"sender_id":    parser.GetSourceID(),
 		"packet_type":  parser.GetPacketType().String(),

@@ -54,6 +54,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -469,7 +470,7 @@ func (p *inspectedVector) doVerifyVectorHashes(ctx context.Context) nodeset.Node
 	validTrusted := p.trustedPart.IsNeeded() && gahTrusted.Equals(p.otherData.Trusted.AnnouncementHash)
 	validDoubted := p.doubtedPart.IsNeeded() && gahDoubted.Equals(p.otherData.Doubted.AnnouncementHash)
 
-	if log.Is(insolar.DebugLevel) {
+	if log.Is(logcommon.DebugLevel) {
 		if validTrusted != p.trustedPart.IsNeeded() || validDoubted != p.doubtedPart.IsNeeded() {
 			log.Errorf("mismatched AnnouncementHash:\n Here: %v %v\nThere: %v %v",
 				gahTrusted, gahDoubted, p.otherData.Trusted.AnnouncementHash, p.otherData.Doubted.AnnouncementHash)
@@ -503,7 +504,7 @@ func (p *inspectedVector) doVerifyVectorHashes(ctx context.Context) nodeset.Node
 					validDoubted = gshDoubted.ExpectedRank == p.otherData.Doubted.ExpectedRank
 				}
 
-				if log.Is(insolar.DebugLevel) {
+				if log.Is(logcommon.DebugLevel) {
 					if recalcTrusted && !validTrusted || recalcDoubted && !validDoubted {
 						log.Errorf("mismatched ExpectedRank:\n Here: %v %v\nThere: %v %v",
 							gshTrusted.ExpectedRank, gshDoubted.ExpectedRank,
@@ -518,7 +519,7 @@ func (p *inspectedVector) doVerifyVectorHashes(ctx context.Context) nodeset.Node
 			validTrusted = validTrusted && p.verifySignature(gshTrusted.StateHash, p.otherData.Trusted.StateSignature)
 			validDoubted = validDoubted && p.verifySignature(gshDoubted.StateHash, p.otherData.Doubted.StateSignature)
 
-			if log.Is(insolar.DebugLevel) {
+			if log.Is(logcommon.DebugLevel) {
 				if validTrusted != prevValidTrusted || validDoubted != prevValidDoubted {
 					log.Errorf("mismatched signature of StateHash:\n Here: %v %v\nThere: %v %v",
 						gshTrusted.StateHash, gshDoubted.StateHash,

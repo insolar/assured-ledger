@@ -23,6 +23,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +31,7 @@ import (
 func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 	pCfg := insolar.ParsedLogConfig{
 		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   insolar.InfoLevel,
+		LogLevel:   logcommon.InfoLevel,
 		Output: logadapter.OutputConfig{
 			Format: insolar.DefaultLogFormat,
 		},
@@ -42,20 +43,20 @@ func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 	require.NotNil(t, log)
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).WithCaller(insolar.CallerFieldWithFuncName).Build()
+	log, err = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:48")
+	require.Contains(t, s, "zerolog_adapter_test.go:49")
 	require.Contains(t, s, "TestZeroLogAdapter_CallerInfoWithFunc")
 }
 
 func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 	pCfg := insolar.ParsedLogConfig{
 		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   insolar.InfoLevel,
+		LogLevel:   logcommon.InfoLevel,
 		Output: logadapter.OutputConfig{
 			Format: insolar.DefaultLogFormat,
 		},
@@ -68,19 +69,19 @@ func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 	require.NotNil(t, log)
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).WithCaller(insolar.CallerField).Build()
+	log, err = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
 
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:74")
+	require.Contains(t, s, "zerolog_adapter_test.go:75")
 }
 
 func TestZeroLogAdapter_InheritFields(t *testing.T) {
 	pCfg := insolar.ParsedLogConfig{
 		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   insolar.InfoLevel,
+		LogLevel:   logcommon.InfoLevel,
 		Output: logadapter.OutputConfig{
 			Format: insolar.DefaultLogFormat,
 		},
@@ -93,7 +94,7 @@ func TestZeroLogAdapter_InheritFields(t *testing.T) {
 	require.NotNil(t, log)
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).WithCaller(insolar.CallerField).WithField("field1", "value1").Build()
+	log, err = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerField).WithField("field1", "value1").Build()
 	require.NoError(t, err)
 
 	log = log.WithField("field2", "value2")
@@ -112,7 +113,7 @@ func TestZeroLogAdapter_InheritFields(t *testing.T) {
 func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
 	pCfg := insolar.ParsedLogConfig{
 		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   insolar.InfoLevel,
+		LogLevel:   logcommon.InfoLevel,
 		Output: logadapter.OutputConfig{
 			Format: insolar.DefaultLogFormat,
 		},
@@ -123,23 +124,23 @@ func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
-	require.True(t, log.Is(insolar.InfoLevel))
+	require.True(t, log.Is(logcommon.InfoLevel))
 
 	prevLog := log
-	log, err = log.Copy().WithLevel(insolar.InfoLevel).Build()
+	log, err = log.Copy().WithLevel(logcommon.InfoLevel).Build()
 	require.NoError(t, err)
 	require.Equal(t, prevLog, log)
-	require.True(t, log.Is(insolar.InfoLevel))
+	require.True(t, log.Is(logcommon.InfoLevel))
 
-	log, err = log.Copy().WithLevel(insolar.DebugLevel).Build()
+	log, err = log.Copy().WithLevel(logcommon.DebugLevel).Build()
 	require.NoError(t, err)
-	require.True(t, log.Is(insolar.DebugLevel))
+	require.True(t, log.Is(logcommon.DebugLevel))
 }
 
 func TestZeroLogAdapter_BuildFields(t *testing.T) {
 	pCfg := insolar.ParsedLogConfig{
 		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   insolar.InfoLevel,
+		LogLevel:   logcommon.InfoLevel,
 		Output: logadapter.OutputConfig{
 			Format: insolar.DefaultLogFormat,
 		},
@@ -150,7 +151,7 @@ func TestZeroLogAdapter_BuildFields(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
-	require.True(t, log.Is(insolar.InfoLevel))
+	require.True(t, log.Is(logcommon.InfoLevel))
 
 	log, err = log.Copy().WithField("test0", "value0").Build()
 	require.NoError(t, err)
@@ -182,7 +183,7 @@ func TestZeroLogAdapter_BuildFields(t *testing.T) {
 func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
 	pCfg := insolar.ParsedLogConfig{
 		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   insolar.InfoLevel,
+		LogLevel:   logcommon.InfoLevel,
 		Output: logadapter.OutputConfig{
 			Format: insolar.DefaultLogFormat,
 		},
@@ -193,7 +194,7 @@ func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
-	require.True(t, log.Is(insolar.InfoLevel))
+	require.True(t, log.Is(logcommon.InfoLevel))
 
 	log, err = log.Copy().
 		WithDynamicField("test0", func() interface{} { return "value0" }).
@@ -269,7 +270,7 @@ func TestZeroLogAdapter_Fatal(t *testing.T) {
 	zc.MsgFormat = logadapter.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
-	zb := logadapter.NewBuilder(zerologFactory{}, zc, insolar.InfoLevel)
+	zb := logadapter.NewBuilder(zerologFactory{}, zc, logcommon.InfoLevel)
 	log, err := zb.Build()
 
 	require.NoError(t, err)
@@ -301,7 +302,7 @@ func TestZeroLogAdapter_Panic(t *testing.T) {
 	zc.MsgFormat = logadapter.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
-	zb := logadapter.NewBuilder(zerologFactory{}, zc, insolar.InfoLevel)
+	zb := logadapter.NewBuilder(zerologFactory{}, zc, logcommon.InfoLevel)
 	log, err := zb.Build()
 
 	require.NoError(t, err)

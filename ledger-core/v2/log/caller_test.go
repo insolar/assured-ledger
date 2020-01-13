@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 // Beware, test results there depends on test file name (caller_test.go)!
@@ -53,7 +53,7 @@ func TestLog_ZerologCaller(t *testing.T) {
 	require.NoError(t, err, "log creation")
 
 	var b bytes.Buffer
-	l, err = l.Copy().WithOutput(&b).WithCaller(insolar.CallerField).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -75,7 +75,7 @@ func TestLog_ZerologCallerWithFunc(t *testing.T) {
 	require.NoError(t, err, "log creation")
 
 	var b bytes.Buffer
-	l, err = l.Copy().WithOutput(&b).WithCaller(insolar.CallerFieldWithFuncName).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -91,7 +91,7 @@ func TestLog_GlobalCaller(t *testing.T) {
 	defer SaveGlobalLogger()()
 
 	var b bytes.Buffer
-	gl2, err := GlobalLogger().Copy().WithOutput(&b).WithCaller(insolar.CallerField).Build()
+	gl2, err := GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
 	SetGlobalLogger(gl2)
 
@@ -113,7 +113,7 @@ func TestLog_GlobalCallerWithFunc(t *testing.T) {
 	defer SaveGlobalLogger()()
 
 	var b bytes.Buffer
-	gl2, err := GlobalLogger().Copy().WithOutput(&b).WithCaller(insolar.CallerFieldWithFuncName).Build()
+	gl2, err := GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 	SetGlobalLogger(gl2)
 

@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,7 +60,7 @@ func TestExt_Global(t *testing.T) {
 	l := inslogger.FromContext(context.Background())
 
 	var b bytes.Buffer
-	l, err := l.Copy().WithOutput(&b).WithCaller(insolar.CallerField).WithLevel(insolar.InfoLevel).Build()
+	l, err := l.Copy().WithOutput(&b).WithCaller(logcommon.CallerField).WithLevel(logcommon.InfoLevel).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -75,7 +75,7 @@ func TestExt_Global_WithFunc(t *testing.T) {
 	l := inslogger.FromContext(context.Background())
 	var b bytes.Buffer
 
-	l, err := l.Copy().WithOutput(&b).WithCaller(insolar.CallerFieldWithFuncName).WithLevel(insolar.InfoLevel).Build()
+	l, err := l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).WithLevel(logcommon.InfoLevel).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -98,7 +98,7 @@ func TestExt_Log(t *testing.T) {
 	l := inslogger.FromContext(ctx)
 	var b bytes.Buffer
 
-	l, err = l.Copy().WithOutput(&b).WithCaller(insolar.CallerField).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -121,7 +121,7 @@ func TestExt_Log_WithFunc(t *testing.T) {
 	l := inslogger.FromContext(ctx)
 	var b bytes.Buffer
 
-	l, err = l.Copy().WithOutput(&b).WithCaller(insolar.CallerFieldWithFuncName).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -140,7 +140,7 @@ func TestExt_Log_SubCall(t *testing.T) {
 		Formatter: "json",
 	})
 	require.NoError(t, err, "log creation")
-	logPut, err = logPut.Copy().WithCaller(insolar.CallerFieldWithFuncName).Build()
+	logPut, err = logPut.Copy().WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 
 	ctx := inslogger.SetLogger(context.TODO(), logPut)
@@ -155,7 +155,7 @@ func logCaller(ctx context.Context, t *testing.T) (loggerField, string) {
 	var b bytes.Buffer
 
 	var err error
-	l, err = l.Copy().WithOutput(&b).WithCaller(insolar.CallerFieldWithFuncName).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -174,7 +174,7 @@ func logCallerGlobal(ctx context.Context, t *testing.T) (loggerField, string) {
 
 	var b bytes.Buffer
 	var err error
-	l, err = l.Copy().WithOutput(&b).WithCaller(insolar.CallerFieldWithFuncName).WithLevel(insolar.InfoLevel).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).WithLevel(logcommon.InfoLevel).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -183,22 +183,22 @@ func logCallerGlobal(ctx context.Context, t *testing.T) (loggerField, string) {
 }
 
 func TestExt_Check_LoggerProxy_DoesntLoop(t *testing.T) {
-	l, err := log.GlobalLogger().Copy().WithFormat(insolar.JSONFormat).WithLevel(insolar.DebugLevel).Build()
+	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}
-	log.SetGlobalLogger(l.Level(insolar.InfoLevel)) // enforce different instance
+	log.SetGlobalLogger(l.Level(logcommon.InfoLevel)) // enforce different instance
 
 	l.Info("test") // here will be a stack overflow if logger proxy doesn't handle self-setting
 }
 
 func TestMain(m *testing.M) {
-	l, err := log.GlobalLogger().Copy().WithFormat(insolar.JSONFormat).WithLevel(insolar.DebugLevel).Build()
+	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}
 	log.SetGlobalLogger(l)
-	_ = log.SetGlobalLevelFilter(insolar.DebugLevel)
+	_ = log.SetGlobalLevelFilter(logcommon.DebugLevel)
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }

@@ -257,7 +257,7 @@ func getGlobalLevelFilter() (bool, logcommon.LogLevel) {
 	if globalLogger.adapter != nil {
 		return true, globalLogger.adapter.GetGlobalLoggerFilter()
 	}
-	return false, logcommon.NoLevel
+	return false, logcommon.MinLevel
 }
 
 /*

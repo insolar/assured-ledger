@@ -57,6 +57,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
@@ -497,7 +498,7 @@ outer:
 				}
 
 				nodeStats, vr := d.GetInspectionResults()
-				if logger.Is(insolar.DebugLevel) {
+				if logger.Is(logcommon.DebugLevel) {
 					popLimit, popSealed := pop.GetSealedCapacity()
 					remains := popLimit - originalStatTbl.RowCount() - 1
 
@@ -578,7 +579,7 @@ outer:
 		}
 	}
 
-	if logger.Is(insolar.DebugLevel) {
+	if logger.Is(logcommon.DebugLevel) {
 
 		limit, sealed := pop.GetSealedCapacity()
 		limitStr := ""
@@ -609,7 +610,7 @@ outer:
 		finishType = "different"
 		// TODO update population and/or start Phase 4
 	}
-	if logger.Is(insolar.DebugLevel) {
+	if logger.Is(logcommon.DebugLevel) {
 		logger.Debugf("Consensus is finished as %s: %v", finishType, selectionSet)
 	} else {
 		logger.Infof("Consensus is finished as %s", finishType)

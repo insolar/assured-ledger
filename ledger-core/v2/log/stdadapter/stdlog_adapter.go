@@ -14,7 +14,7 @@
 //    limitations under the License.
 //
 
-package linsadapter
+package stdadapter
 
 import (
 	"fmt"
@@ -33,12 +33,13 @@ type logInsAdapter struct {
 	config  *logadapter.Config
 	encoder logcommon.EncoderManager
 	writer  logcommon.LogLevelWriter
-	levelFn func(logcommon.LogLevel) bool
 
 	parentStatic  *[]byte
 	staticFields  []byte
 	dynamicHooks  map[string]logcommon.LogObjectMarshallerFunc
 	dynamicFields logcommon.DynFieldMap
+
+	level logcommon.LogLevel
 }
 
 // TODO event's adhoc fields

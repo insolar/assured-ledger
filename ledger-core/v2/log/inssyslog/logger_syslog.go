@@ -104,6 +104,8 @@ func (sw *syslogWriter) LogLevelWrite(level logcommon.LogLevel, p []byte) (n int
 		err = sw.w.Crit(string(p))
 	case logcommon.NoLevel:
 		err = sw.w.Info(string(p))
+	case logcommon.Disabled:
+		// ignore
 	default:
 		panic("invalid level")
 	}

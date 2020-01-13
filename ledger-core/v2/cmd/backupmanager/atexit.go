@@ -20,13 +20,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 type ExitContextCallback func() error
 
 type ExitContext struct {
-	logger    insolar.Logger
+	logger    logcommon.Logger
 	callbacks map[string]ExitContextCallback
 	once      sync.Once
 }
@@ -36,7 +36,7 @@ var (
 	exitContextOnce sync.Once
 )
 
-func InitExitContext(logger insolar.Logger) {
+func InitExitContext(logger logcommon.Logger) {
 	initExitContext := func() {
 		exitContext.callbacks = make(map[string]ExitContextCallback)
 		exitContext.logger = logger

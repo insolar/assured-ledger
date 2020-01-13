@@ -67,7 +67,7 @@ func (p *MetricsHelper) OnWriteDuration(d time.Duration) {
 	}
 	stats.Record(context.Background(), statLogWriteDelays.M(int64(d)))
 	if p.recorder != nil {
-		p.recorder.RecordLogDelay(logcommon.NoLevel, d)
+		p.recorder.RecordLogDelay(logcommon.Disabled, d)
 	}
 }
 

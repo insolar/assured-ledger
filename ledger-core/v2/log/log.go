@@ -24,22 +24,23 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/zlogadapter"
 )
 
 // NewLog creates logger instance with particular configuration
-func NewLog(cfg configuration.Log) (insolar.Logger, error) {
+func NewLog(cfg configuration.Log) (logcommon.Logger, error) {
 	return NewLogExt(cfg, 0)
 }
 
 // NewLog creates logger instance with particular configuration
-func NewLogExt(cfg configuration.Log, skipFrameBaselineAdjustment int8) (insolar.Logger, error) {
+func NewLogExt(cfg configuration.Log, skipFrameBaselineAdjustment int8) (logcommon.Logger, error) {
 
 	defaults := insolar.DefaultLoggerSettings()
 	pCfg, err := insolar.ParseLogConfigWithDefaults(cfg, defaults)
 
 	if err == nil {
-		var logger insolar.Logger
+		var logger logcommon.Logger
 
 		pCfg.SkipFrameBaselineAdjustment = skipFrameBaselineAdjustment
 

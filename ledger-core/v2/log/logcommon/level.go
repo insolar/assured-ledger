@@ -25,16 +25,18 @@ type LogLevel uint8
 
 // NoLevel means it should be ignored
 const (
-	NoLevel LogLevel = iota
+	Disabled LogLevel = iota
 	DebugLevel
 	InfoLevel
 	WarnLevel
 	ErrorLevel
 	FatalLevel
 	PanicLevel
+	NoLevel
 
 	LogLevelCount = int(iota)
 )
+const MinLevel = DebugLevel
 
 func (l LogLevel) Equal(other LogLevel) bool {
 	return l == other
@@ -56,14 +58,16 @@ func (l LogLevel) String() string {
 		return "fatal"
 	case PanicLevel:
 		return "panic"
+	case Disabled:
+		//
 	}
-	return ""
+	return "ignore"
 }
 
 func ParseLevel(levelStr string) (LogLevel, error) {
 	switch strings.ToLower(levelStr) {
-	case NoLevel.String():
-		return NoLevel, nil
+	case Disabled.String():
+		return Disabled, nil
 	case DebugLevel.String():
 		return DebugLevel, nil
 	case InfoLevel.String():
@@ -77,5 +81,5 @@ func ParseLevel(levelStr string) (LogLevel, error) {
 	case PanicLevel.String():
 		return PanicLevel, nil
 	}
-	return NoLevel, fmt.Errorf("unknown Level String: '%s', defaulting to NoLevel", levelStr)
+	return Disabled, fmt.Errorf("unknown Level String: '%s', defaulting to NoLevel", levelStr)
 }

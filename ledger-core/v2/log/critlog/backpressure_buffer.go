@@ -225,8 +225,12 @@ func (p *internalBackpressureBuffer) LowLatencyWrite(level logcommon.LogLevel, b
 		return p.output.LogLevelWrite(level, b)
 	}
 
-	if level == logcommon.FatalLevel {
+	switch level {
+	case logcommon.FatalLevel:
 		return p.writeFatal(level, b)
+
+	case logcommon.Disabled:
+		return len(b), nil
 	}
 
 	be := p.newQueueEntry(level, b, time.Now().UnixNano())
@@ -267,6 +271,9 @@ func (p *internalBackpressureBuffer) LogLevelWrite(level logcommon.LogLevel, b [
 		n, err = p.flushTillMark(level, b, 0)
 		_ = p.output.Flush()
 		return n, err
+
+	case logcommon.Disabled:
+		return len(b), nil
 	}
 
 	startNano := time.Now().UnixNano()
@@ -674,7 +681,7 @@ func (p *internalBackpressureBuffer) writeMissedCount(missedCount int) {
 		return
 	}
 	lvl, missMsg := p.missFn(missedCount)
-	if lvl == logcommon.NoLevel || len(missMsg) == 0 {
+	if lvl == logcommon.Disabled || len(missMsg) == 0 {
 		return
 	}
 	_, _ = p.output.DirectLevelWrite(lvl, missMsg)

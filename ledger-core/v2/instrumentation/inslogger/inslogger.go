@@ -22,14 +22,14 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	logger "github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 type loggerKey struct{}
 
-func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) (context.Context, insolar.Logger) {
+func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) (context.Context, logcommon.Logger) {
 	inslog, err := logger.NewGlobalLogger(cfg)
 	if err != nil {
 		panic(err)
@@ -55,16 +55,16 @@ func TraceID(ctx context.Context) string {
 }
 
 // FromContext returns logger from context.
-func FromContext(ctx context.Context) insolar.Logger {
+func FromContext(ctx context.Context) logcommon.Logger {
 	return getLogger(ctx)
 }
 
 // SetLogger returns context with provided insolar.Logger,
-func SetLogger(ctx context.Context, l insolar.Logger) context.Context {
+func SetLogger(ctx context.Context, l logcommon.Logger) context.Context {
 	return context.WithValue(ctx, loggerKey{}, l)
 }
 
-func UpdateLogger(ctx context.Context, fn func(insolar.Logger) (insolar.Logger, error)) context.Context {
+func UpdateLogger(ctx context.Context, fn func(logcommon.Logger) (logcommon.Logger, error)) context.Context {
 	lOrig := FromContext(ctx)
 	lNew, err := fn(lOrig)
 	if err != nil {
@@ -77,8 +77,8 @@ func UpdateLogger(ctx context.Context, fn func(insolar.Logger) (insolar.Logger, 
 }
 
 // SetLoggerLevel returns context with provided insolar.LogLevel and set logLevel on logger,
-func WithLoggerLevel(ctx context.Context, logLevel insolar.LogLevel) context.Context {
-	if logLevel == insolar.NoLevel {
+func WithLoggerLevel(ctx context.Context, logLevel logcommon.LogLevel) context.Context {
+	if logLevel == logcommon.NoLevel {
 		return ctx
 	}
 	oldLogger := FromContext(ctx)
@@ -95,19 +95,19 @@ func WithLoggerLevel(ctx context.Context, logLevel insolar.LogLevel) context.Con
 }
 
 // WithField returns context with logger initialized with provided field's key value and logger itself.
-func WithField(ctx context.Context, key string, value string) (context.Context, insolar.Logger) {
+func WithField(ctx context.Context, key string, value string) (context.Context, logcommon.Logger) {
 	l := getLogger(ctx).WithField(key, value)
 	return SetLogger(ctx, l), l
 }
 
 // WithFields returns context with logger initialized with provided fields map.
-func WithFields(ctx context.Context, fields map[string]interface{}) (context.Context, insolar.Logger) {
+func WithFields(ctx context.Context, fields map[string]interface{}) (context.Context, logcommon.Logger) {
 	l := getLogger(ctx).WithFields(fields)
 	return SetLogger(ctx, l), l
 }
 
 // WithTraceField returns context with logger initialized with provided traceid value and logger itself.
-func WithTraceField(ctx context.Context, traceid string) (context.Context, insolar.Logger) {
+func WithTraceField(ctx context.Context, traceid string) (context.Context, logcommon.Logger) {
 	ctx, err := utils.SetInsTraceID(ctx, traceid)
 	if err != nil {
 		getLogger(ctx).WithField("backtrace", string(debug.Stack())).Error(err)
@@ -121,12 +121,12 @@ func ContextWithTrace(ctx context.Context, traceid string) context.Context {
 	return ctx
 }
 
-func getLogger(ctx context.Context) insolar.Logger {
+func getLogger(ctx context.Context) logcommon.Logger {
 	val := ctx.Value(loggerKey{})
 	if val == nil {
 		return logger.CopyGlobalLoggerForContext()
 	}
-	return val.(insolar.Logger)
+	return val.(logcommon.Logger)
 }
 
 // TestContext returns context with initalized log field "testname" equal t.Name() value.
@@ -135,6 +135,6 @@ func TestContext(t *testing.T) context.Context {
 	return ctx
 }
 
-func GetLoggerLevel(ctx context.Context) insolar.LogLevel {
+func GetLoggerLevel(ctx context.Context) logcommon.LogLevel {
 	return getLogger(ctx).Copy().GetLogLevel()
 }

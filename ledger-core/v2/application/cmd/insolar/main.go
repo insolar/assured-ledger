@@ -31,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -256,7 +257,7 @@ type mixedConfig struct {
 func createMember(sendURL string, userName string, serverLogLevel string) {
 	ks := platformpolicy.NewKeyProcessor()
 
-	logLevelInsolar, err := insolar.ParseLevel(serverLogLevel)
+	logLevelInsolar, err := logcommon.ParseLevel(serverLogLevel)
 	check("Failed to parse logging level", err)
 
 	privKey, err := ks.GeneratePrivateKey()

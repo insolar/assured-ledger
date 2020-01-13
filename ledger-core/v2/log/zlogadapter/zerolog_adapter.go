@@ -23,12 +23,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmetrics"
 )
@@ -60,16 +60,17 @@ func (v zerologMapping) IsEmpty() bool {
 }
 
 var zerologLevelMapping = []zerologMapping{
-	insolar.NoLevel:    {zl: zerolog.NoLevel, fn: (*zerolog.Logger).Log},
-	insolar.DebugLevel: {zl: zerolog.DebugLevel, fn: (*zerolog.Logger).Debug},
-	insolar.InfoLevel:  {zl: zerolog.InfoLevel, fn: (*zerolog.Logger).Info},
-	insolar.WarnLevel:  {zl: zerolog.WarnLevel, fn: (*zerolog.Logger).Warn},
-	insolar.ErrorLevel: {zl: zerolog.ErrorLevel, fn: (*zerolog.Logger).Error},
-	insolar.FatalLevel: {zl: zerolog.FatalLevel, fn: (*zerolog.Logger).Fatal},
-	insolar.PanicLevel: {zl: zerolog.PanicLevel, fn: (*zerolog.Logger).Panic},
+	logcommon.DebugLevel: {zl: zerolog.DebugLevel, fn: (*zerolog.Logger).Debug},
+	logcommon.InfoLevel:  {zl: zerolog.InfoLevel, fn: (*zerolog.Logger).Info},
+	logcommon.WarnLevel:  {zl: zerolog.WarnLevel, fn: (*zerolog.Logger).Warn},
+	logcommon.ErrorLevel: {zl: zerolog.ErrorLevel, fn: (*zerolog.Logger).Error},
+	logcommon.FatalLevel: {zl: zerolog.FatalLevel, fn: (*zerolog.Logger).Fatal},
+	logcommon.PanicLevel: {zl: zerolog.PanicLevel, fn: (*zerolog.Logger).Panic},
+	logcommon.NoLevel:    {zl: zerolog.NoLevel, fn: (*zerolog.Logger).Log},
+	logcommon.Disabled:   {zl: zerolog.Disabled, fn: func(*zerolog.Logger) *zerolog.Event { return nil }},
 }
 
-var zerologReverseMapping []insolar.LogLevel
+var zerologReverseMapping []logcommon.LogLevel
 
 func initLevelMappings() {
 	var zLevelMax zerolog.Level
@@ -80,50 +81,50 @@ func initLevelMappings() {
 		if zLevelMax < zerologLevelMapping[i].zl {
 			zLevelMax = zerologLevelMapping[i].zl
 		}
-		zerologLevelMapping[i].metrics = logmetrics.GetLogLevelContext(insolar.LogLevel(i))
+		zerologLevelMapping[i].metrics = logmetrics.GetLogLevelContext(logcommon.LogLevel(i))
 	}
 
-	zerologReverseMapping = make([]insolar.LogLevel, zLevelMax+1)
+	zerologReverseMapping = make([]logcommon.LogLevel, zLevelMax+1)
 	for i := range zerologReverseMapping {
-		zerologReverseMapping[i] = insolar.NoLevel
+		zerologReverseMapping[i] = logcommon.Disabled
 	}
 
 	for i := range zerologLevelMapping {
 		if zerologLevelMapping[i].IsEmpty() {
-			zerologLevelMapping[i] = zerologLevelMapping[insolar.NoLevel]
+			zerologLevelMapping[i] = zerologLevelMapping[logcommon.Disabled]
 		} else {
 			zl := zerologLevelMapping[i].zl
-			if zerologReverseMapping[zl] != insolar.NoLevel {
+			if zerologReverseMapping[zl] != logcommon.Disabled {
 				panic("duplicate level mapping")
 			}
-			zerologReverseMapping[zl] = insolar.LogLevel(i)
+			zerologReverseMapping[zl] = logcommon.LogLevel(i)
 		}
 	}
 }
 
-func getLevelMapping(insLevel insolar.LogLevel) zerologMapping {
+func getLevelMapping(insLevel logcommon.LogLevel) zerologMapping {
 	if int(insLevel) > len(zerologLevelMapping) {
-		return zerologLevelMapping[insolar.NoLevel]
+		return zerologLevelMapping[logcommon.Disabled]
 	}
 	return zerologLevelMapping[insLevel]
 }
 
-func ToZerologLevel(insLevel insolar.LogLevel) zerolog.Level {
+func ToZerologLevel(insLevel logcommon.LogLevel) zerolog.Level {
 	return getLevelMapping(insLevel).zl
 }
 
-func FromZerologLevel(zLevel zerolog.Level) insolar.LogLevel {
+func FromZerologLevel(zLevel zerolog.Level) logcommon.LogLevel {
 	if int(zLevel) > len(zerologReverseMapping) {
-		return zerologReverseMapping[zerolog.NoLevel]
+		return zerologReverseMapping[zerolog.Disabled]
 	}
 	return zerologReverseMapping[zLevel]
 }
 
-func selectFormatter(format insolar.LogFormat, output io.Writer) (io.Writer, error) {
+func selectFormatter(format logcommon.LogFormat, output io.Writer) (io.Writer, error) {
 	switch format {
-	case insolar.TextFormat:
+	case logcommon.TextFormat:
 		return newDefaultTextOutput(output), nil
-	case insolar.JSONFormat:
+	case logcommon.JSONFormat:
 		return output, nil
 	default:
 		return nil, errors.New("unknown formatter " + format.String())
@@ -132,7 +133,7 @@ func selectFormatter(format insolar.LogFormat, output io.Writer) (io.Writer, err
 
 const zerologSkipFrameCount = 4
 
-func NewZerologAdapter(pCfg insolar.ParsedLogConfig, msgFmt logadapter.MsgFormatConfig) (insolar.Logger, error) {
+func NewZerologAdapter(pCfg insolar.ParsedLogConfig, msgFmt logadapter.MsgFormatConfig) (logcommon.Logger, error) {
 
 	zc := logadapter.Config{}
 
@@ -154,7 +155,7 @@ func NewZerologAdapter(pCfg insolar.ParsedLogConfig, msgFmt logadapter.MsgFormat
 	zc.Instruments = pCfg.Instruments
 	zc.MsgFormat = msgFmt
 	zc.Instruments.SkipFrameCountBaseline = uint8(sfb)
-	//zc.TraceLevel = insolar.InfoLevel
+	//zc.TraceLevel = logcommon.InfoLevel
 
 	zb := logadapter.NewBuilder(zerologFactory{}, zc, pCfg.LogLevel)
 
@@ -238,7 +239,7 @@ type zerologAdapter struct {
 	config    *logadapter.Config
 }
 
-func (z *zerologAdapter) WithFields(fields map[string]interface{}) insolar.Logger {
+func (z *zerologAdapter) WithFields(fields map[string]interface{}) logcommon.Logger {
 	zCtx := z.logger.With()
 	for key, value := range fields {
 		zCtx = zCtx.Interface(key, value)

@@ -17,7 +17,9 @@
 package insolar
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
@@ -27,8 +29,11 @@ import (
 
 const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
+const DefaultLogFormat = logcommon.TextFormat
+const DefaultLogOutput = logadapter.StdErrOutput
+
 type ParsedLogConfig struct {
-	OutputType LogOutput
+	OutputType logadapter.LogOutput
 	LogLevel   logcommon.LogLevel
 	//GlobalLevel logcommon.LogLevel
 
@@ -67,7 +72,7 @@ func ParseLogConfigWithDefaults(cfg configuration.Log, defaults ParsedLogConfig)
 		return
 	}
 
-	plc.LogLevel, err = ParseLevel(cfg.Level)
+	plc.LogLevel, err = logcommon.ParseLevel(cfg.Level)
 	if err != nil {
 		return
 	}
@@ -102,4 +107,28 @@ func ParseLogConfigWithDefaults(cfg configuration.Log, defaults ParsedLogConfig)
 	plc.Output.EnableRegularBuffer = cfg.BufferSize > 0
 
 	return plc, nil
+}
+
+func ParseFormat(formatStr string, defValue logcommon.LogFormat) (logcommon.LogFormat, error) {
+	switch strings.ToLower(formatStr) {
+	case "", "default":
+		return defValue, nil
+	case logcommon.TextFormat.String():
+		return logcommon.TextFormat, nil
+	case logcommon.JSONFormat.String():
+		return logcommon.JSONFormat, nil
+	}
+	return defValue, fmt.Errorf("unknown Format: '%s', replaced with '%s'", formatStr, defValue)
+}
+
+func ParseOutput(outputStr string, defValue logadapter.LogOutput) (logadapter.LogOutput, error) {
+	switch strings.ToLower(outputStr) {
+	case "", "default":
+		return defValue, nil
+	case logadapter.StdErrOutput.String():
+		return logadapter.StdErrOutput, nil
+	case logadapter.SysLogOutput.String():
+		return logadapter.SysLogOutput, nil
+	}
+	return defValue, fmt.Errorf("unknown Output: '%s', replaced with '%s'", outputStr, defValue)
 }

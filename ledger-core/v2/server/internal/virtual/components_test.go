@@ -24,12 +24,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 func TestComponents(t *testing.T) {
-	ctx := inslogger.UpdateLogger(context.Background(), func(logger insolar.Logger) (insolar.Logger, error) {
+	ctx := inslogger.UpdateLogger(context.Background(), func(logger logcommon.Logger) (logcommon.Logger, error) {
 		return logger.Copy().WithBuffer(100, false).Build()
 	})
 	cfg := configuration.NewConfiguration()

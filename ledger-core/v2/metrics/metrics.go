@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logglobal"
 
 	"github.com/pkg/errors"
@@ -31,7 +32,6 @@ import (
 	"go.opencensus.io/zpages"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/pprof"
@@ -152,7 +152,7 @@ func (m *Metrics) Stop(ctx context.Context) error {
 
 // errorLogger wrapper for error logs.
 type errorLogger struct {
-	insolar.Logger
+	logcommon.Logger
 }
 
 // Println is wrapper method for Error method.

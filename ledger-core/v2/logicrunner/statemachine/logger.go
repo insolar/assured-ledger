@@ -9,16 +9,16 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	logger "github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 type ConveyorLogger struct {
 	smachine.StepLoggerStub
 
-	logger insolar.Logger
+	logger logcommon.Logger
 }
 
 func (c ConveyorLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
@@ -68,8 +68,8 @@ func prepareStepName(sd *smachine.StepDeclaration) {
 	sd.Name = getStepName(sd.Transition)
 }
 
-func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}) {
-	c.logger.Error(msg)
+func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logcommon.LogFieldMarshaller) {
+	c.logger.Errorm(msg, fields...)
 }
 
 func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLoggerUpdateData smachine.StepLoggerUpdateData) {

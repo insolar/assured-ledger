@@ -57,14 +57,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 )
 
 const (
-	defaultLogLevel       = insolar.DebugLevel
+	defaultLogLevel       = logcommon.DebugLevel
 	defaultPulseDelta     = 2
 	defaultTestDuration   = defaultPulseDelta * time.Second * 10
 	defaultStartCaseAfter = 1 * time.Second

@@ -8,6 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
@@ -15,7 +16,7 @@ import (
 type LoggerMock struct {
 	t minimock.Tester
 
-	funcCopy          func() (l1 LoggerBuilder)
+	funcCopy          func() (l1 logcommon.LoggerBuilder)
 	inspectFuncCopy   func()
 	afterCopyCounter  uint64
 	beforeCopyCounter uint64
@@ -51,14 +52,14 @@ type LoggerMock struct {
 	beforeErrorfCounter uint64
 	ErrorfMock          mLoggerMockErrorf
 
-	funcEvent          func(level LogLevel, args ...interface{})
-	inspectFuncEvent   func(level LogLevel, args ...interface{})
+	funcEvent          func(level logcommon.LogLevel, args ...interface{})
+	inspectFuncEvent   func(level logcommon.LogLevel, args ...interface{})
 	afterEventCounter  uint64
 	beforeEventCounter uint64
 	EventMock          mLoggerMockEvent
 
-	funcEventf          func(level LogLevel, fmt string, args ...interface{})
-	inspectFuncEventf   func(level LogLevel, fmt string, args ...interface{})
+	funcEventf          func(level logcommon.LogLevel, fmt string, args ...interface{})
+	inspectFuncEventf   func(level logcommon.LogLevel, fmt string, args ...interface{})
 	afterEventfCounter  uint64
 	beforeEventfCounter uint64
 	EventfMock          mLoggerMockEventf
@@ -87,14 +88,14 @@ type LoggerMock struct {
 	beforeInfofCounter uint64
 	InfofMock          mLoggerMockInfof
 
-	funcIs          func(level LogLevel) (b1 bool)
-	inspectFuncIs   func(level LogLevel)
+	funcIs          func(level logcommon.LogLevel) (b1 bool)
+	inspectFuncIs   func(level logcommon.LogLevel)
 	afterIsCounter  uint64
 	beforeIsCounter uint64
 	IsMock          mLoggerMockIs
 
-	funcLevel          func(lvl LogLevel) (l1 Logger)
-	inspectFuncLevel   func(lvl LogLevel)
+	funcLevel          func(lvl logcommon.LogLevel) (l1 logcommon.Logger)
+	inspectFuncLevel   func(lvl logcommon.LogLevel)
 	afterLevelCounter  uint64
 	beforeLevelCounter uint64
 	LevelMock          mLoggerMockLevel
@@ -123,13 +124,13 @@ type LoggerMock struct {
 	beforeWarnfCounter uint64
 	WarnfMock          mLoggerMockWarnf
 
-	funcWithField          func(s1 string, p1 interface{}) (l1 Logger)
+	funcWithField          func(s1 string, p1 interface{}) (l1 logcommon.Logger)
 	inspectFuncWithField   func(s1 string, p1 interface{})
 	afterWithFieldCounter  uint64
 	beforeWithFieldCounter uint64
 	WithFieldMock          mLoggerMockWithField
 
-	funcWithFields          func(m1 map[string]interface{}) (l1 Logger)
+	funcWithFields          func(m1 map[string]interface{}) (l1 logcommon.Logger)
 	inspectFuncWithFields   func(m1 map[string]interface{})
 	afterWithFieldsCounter  uint64
 	beforeWithFieldsCounter uint64
@@ -220,7 +221,7 @@ type LoggerMockCopyExpectation struct {
 
 // LoggerMockCopyResults contains results of the Logger.Copy
 type LoggerMockCopyResults struct {
-	l1 LoggerBuilder
+	l1 logcommon.LoggerBuilder
 }
 
 // Expect sets up expected params for Logger.Copy
@@ -248,7 +249,7 @@ func (mmCopy *mLoggerMockCopy) Inspect(f func()) *mLoggerMockCopy {
 }
 
 // Return sets up results that will be returned by Logger.Copy
-func (mmCopy *mLoggerMockCopy) Return(l1 LoggerBuilder) *LoggerMock {
+func (mmCopy *mLoggerMockCopy) Return(l1 logcommon.LoggerBuilder) *LoggerMock {
 	if mmCopy.mock.funcCopy != nil {
 		mmCopy.mock.t.Fatalf("LoggerMock.Copy mock is already set by Set")
 	}
@@ -261,7 +262,7 @@ func (mmCopy *mLoggerMockCopy) Return(l1 LoggerBuilder) *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.Copy method
-func (mmCopy *mLoggerMockCopy) Set(f func() (l1 LoggerBuilder)) *LoggerMock {
+func (mmCopy *mLoggerMockCopy) Set(f func() (l1 logcommon.LoggerBuilder)) *LoggerMock {
 	if mmCopy.defaultExpectation != nil {
 		mmCopy.mock.t.Fatalf("Default expectation is already set for the Logger.Copy method")
 	}
@@ -275,7 +276,7 @@ func (mmCopy *mLoggerMockCopy) Set(f func() (l1 LoggerBuilder)) *LoggerMock {
 }
 
 // Copy implements Logger
-func (mmCopy *LoggerMock) Copy() (l1 LoggerBuilder) {
+func (mmCopy *LoggerMock) Copy() (l1 logcommon.LoggerBuilder) {
 	mm_atomic.AddUint64(&mmCopy.beforeCopyCounter, 1)
 	defer mm_atomic.AddUint64(&mmCopy.afterCopyCounter, 1)
 
@@ -1259,12 +1260,12 @@ type LoggerMockEventExpectation struct {
 
 // LoggerMockEventParams contains parameters of the Logger.Event
 type LoggerMockEventParams struct {
-	level LogLevel
+	level logcommon.LogLevel
 	args  []interface{}
 }
 
 // Expect sets up expected params for Logger.Event
-func (mmEvent *mLoggerMockEvent) Expect(level LogLevel, args ...interface{}) *mLoggerMockEvent {
+func (mmEvent *mLoggerMockEvent) Expect(level logcommon.LogLevel, args ...interface{}) *mLoggerMockEvent {
 	if mmEvent.mock.funcEvent != nil {
 		mmEvent.mock.t.Fatalf("LoggerMock.Event mock is already set by Set")
 	}
@@ -1284,7 +1285,7 @@ func (mmEvent *mLoggerMockEvent) Expect(level LogLevel, args ...interface{}) *mL
 }
 
 // Inspect accepts an inspector function that has same arguments as the Logger.Event
-func (mmEvent *mLoggerMockEvent) Inspect(f func(level LogLevel, args ...interface{})) *mLoggerMockEvent {
+func (mmEvent *mLoggerMockEvent) Inspect(f func(level logcommon.LogLevel, args ...interface{})) *mLoggerMockEvent {
 	if mmEvent.mock.inspectFuncEvent != nil {
 		mmEvent.mock.t.Fatalf("Inspect function is already set for LoggerMock.Event")
 	}
@@ -1308,7 +1309,7 @@ func (mmEvent *mLoggerMockEvent) Return() *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.Event method
-func (mmEvent *mLoggerMockEvent) Set(f func(level LogLevel, args ...interface{})) *LoggerMock {
+func (mmEvent *mLoggerMockEvent) Set(f func(level logcommon.LogLevel, args ...interface{})) *LoggerMock {
 	if mmEvent.defaultExpectation != nil {
 		mmEvent.mock.t.Fatalf("Default expectation is already set for the Logger.Event method")
 	}
@@ -1322,7 +1323,7 @@ func (mmEvent *mLoggerMockEvent) Set(f func(level LogLevel, args ...interface{})
 }
 
 // Event implements Logger
-func (mmEvent *LoggerMock) Event(level LogLevel, args ...interface{}) {
+func (mmEvent *LoggerMock) Event(level logcommon.LogLevel, args ...interface{}) {
 	mm_atomic.AddUint64(&mmEvent.beforeEventCounter, 1)
 	defer mm_atomic.AddUint64(&mmEvent.afterEventCounter, 1)
 
@@ -1447,13 +1448,13 @@ type LoggerMockEventfExpectation struct {
 
 // LoggerMockEventfParams contains parameters of the Logger.Eventf
 type LoggerMockEventfParams struct {
-	level LogLevel
+	level logcommon.LogLevel
 	fmt   string
 	args  []interface{}
 }
 
 // Expect sets up expected params for Logger.Eventf
-func (mmEventf *mLoggerMockEventf) Expect(level LogLevel, fmt string, args ...interface{}) *mLoggerMockEventf {
+func (mmEventf *mLoggerMockEventf) Expect(level logcommon.LogLevel, fmt string, args ...interface{}) *mLoggerMockEventf {
 	if mmEventf.mock.funcEventf != nil {
 		mmEventf.mock.t.Fatalf("LoggerMock.Eventf mock is already set by Set")
 	}
@@ -1473,7 +1474,7 @@ func (mmEventf *mLoggerMockEventf) Expect(level LogLevel, fmt string, args ...in
 }
 
 // Inspect accepts an inspector function that has same arguments as the Logger.Eventf
-func (mmEventf *mLoggerMockEventf) Inspect(f func(level LogLevel, fmt string, args ...interface{})) *mLoggerMockEventf {
+func (mmEventf *mLoggerMockEventf) Inspect(f func(level logcommon.LogLevel, fmt string, args ...interface{})) *mLoggerMockEventf {
 	if mmEventf.mock.inspectFuncEventf != nil {
 		mmEventf.mock.t.Fatalf("Inspect function is already set for LoggerMock.Eventf")
 	}
@@ -1497,7 +1498,7 @@ func (mmEventf *mLoggerMockEventf) Return() *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.Eventf method
-func (mmEventf *mLoggerMockEventf) Set(f func(level LogLevel, fmt string, args ...interface{})) *LoggerMock {
+func (mmEventf *mLoggerMockEventf) Set(f func(level logcommon.LogLevel, fmt string, args ...interface{})) *LoggerMock {
 	if mmEventf.defaultExpectation != nil {
 		mmEventf.mock.t.Fatalf("Default expectation is already set for the Logger.Eventf method")
 	}
@@ -1511,7 +1512,7 @@ func (mmEventf *mLoggerMockEventf) Set(f func(level LogLevel, fmt string, args .
 }
 
 // Eventf implements Logger
-func (mmEventf *LoggerMock) Eventf(level LogLevel, fmt string, args ...interface{}) {
+func (mmEventf *LoggerMock) Eventf(level logcommon.LogLevel, fmt string, args ...interface{}) {
 	mm_atomic.AddUint64(&mmEventf.beforeEventfCounter, 1)
 	defer mm_atomic.AddUint64(&mmEventf.afterEventfCounter, 1)
 
@@ -2386,7 +2387,7 @@ type LoggerMockIsExpectation struct {
 
 // LoggerMockIsParams contains parameters of the Logger.Is
 type LoggerMockIsParams struct {
-	level LogLevel
+	level logcommon.LogLevel
 }
 
 // LoggerMockIsResults contains results of the Logger.Is
@@ -2395,7 +2396,7 @@ type LoggerMockIsResults struct {
 }
 
 // Expect sets up expected params for Logger.Is
-func (mmIs *mLoggerMockIs) Expect(level LogLevel) *mLoggerMockIs {
+func (mmIs *mLoggerMockIs) Expect(level logcommon.LogLevel) *mLoggerMockIs {
 	if mmIs.mock.funcIs != nil {
 		mmIs.mock.t.Fatalf("LoggerMock.Is mock is already set by Set")
 	}
@@ -2415,7 +2416,7 @@ func (mmIs *mLoggerMockIs) Expect(level LogLevel) *mLoggerMockIs {
 }
 
 // Inspect accepts an inspector function that has same arguments as the Logger.Is
-func (mmIs *mLoggerMockIs) Inspect(f func(level LogLevel)) *mLoggerMockIs {
+func (mmIs *mLoggerMockIs) Inspect(f func(level logcommon.LogLevel)) *mLoggerMockIs {
 	if mmIs.mock.inspectFuncIs != nil {
 		mmIs.mock.t.Fatalf("Inspect function is already set for LoggerMock.Is")
 	}
@@ -2439,7 +2440,7 @@ func (mmIs *mLoggerMockIs) Return(b1 bool) *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.Is method
-func (mmIs *mLoggerMockIs) Set(f func(level LogLevel) (b1 bool)) *LoggerMock {
+func (mmIs *mLoggerMockIs) Set(f func(level logcommon.LogLevel) (b1 bool)) *LoggerMock {
 	if mmIs.defaultExpectation != nil {
 		mmIs.mock.t.Fatalf("Default expectation is already set for the Logger.Is method")
 	}
@@ -2454,7 +2455,7 @@ func (mmIs *mLoggerMockIs) Set(f func(level LogLevel) (b1 bool)) *LoggerMock {
 
 // When sets expectation for the Logger.Is which will trigger the result defined by the following
 // Then helper
-func (mmIs *mLoggerMockIs) When(level LogLevel) *LoggerMockIsExpectation {
+func (mmIs *mLoggerMockIs) When(level logcommon.LogLevel) *LoggerMockIsExpectation {
 	if mmIs.mock.funcIs != nil {
 		mmIs.mock.t.Fatalf("LoggerMock.Is mock is already set by Set")
 	}
@@ -2474,7 +2475,7 @@ func (e *LoggerMockIsExpectation) Then(b1 bool) *LoggerMock {
 }
 
 // Is implements Logger
-func (mmIs *LoggerMock) Is(level LogLevel) (b1 bool) {
+func (mmIs *LoggerMock) Is(level logcommon.LogLevel) (b1 bool) {
 	mm_atomic.AddUint64(&mmIs.beforeIsCounter, 1)
 	defer mm_atomic.AddUint64(&mmIs.afterIsCounter, 1)
 
@@ -2601,16 +2602,16 @@ type LoggerMockLevelExpectation struct {
 
 // LoggerMockLevelParams contains parameters of the Logger.Level
 type LoggerMockLevelParams struct {
-	lvl LogLevel
+	lvl logcommon.LogLevel
 }
 
 // LoggerMockLevelResults contains results of the Logger.Level
 type LoggerMockLevelResults struct {
-	l1 Logger
+	l1 logcommon.Logger
 }
 
 // Expect sets up expected params for Logger.Level
-func (mmLevel *mLoggerMockLevel) Expect(lvl LogLevel) *mLoggerMockLevel {
+func (mmLevel *mLoggerMockLevel) Expect(lvl logcommon.LogLevel) *mLoggerMockLevel {
 	if mmLevel.mock.funcLevel != nil {
 		mmLevel.mock.t.Fatalf("LoggerMock.Level mock is already set by Set")
 	}
@@ -2630,7 +2631,7 @@ func (mmLevel *mLoggerMockLevel) Expect(lvl LogLevel) *mLoggerMockLevel {
 }
 
 // Inspect accepts an inspector function that has same arguments as the Logger.Level
-func (mmLevel *mLoggerMockLevel) Inspect(f func(lvl LogLevel)) *mLoggerMockLevel {
+func (mmLevel *mLoggerMockLevel) Inspect(f func(lvl logcommon.LogLevel)) *mLoggerMockLevel {
 	if mmLevel.mock.inspectFuncLevel != nil {
 		mmLevel.mock.t.Fatalf("Inspect function is already set for LoggerMock.Level")
 	}
@@ -2641,7 +2642,7 @@ func (mmLevel *mLoggerMockLevel) Inspect(f func(lvl LogLevel)) *mLoggerMockLevel
 }
 
 // Return sets up results that will be returned by Logger.Level
-func (mmLevel *mLoggerMockLevel) Return(l1 Logger) *LoggerMock {
+func (mmLevel *mLoggerMockLevel) Return(l1 logcommon.Logger) *LoggerMock {
 	if mmLevel.mock.funcLevel != nil {
 		mmLevel.mock.t.Fatalf("LoggerMock.Level mock is already set by Set")
 	}
@@ -2654,7 +2655,7 @@ func (mmLevel *mLoggerMockLevel) Return(l1 Logger) *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.Level method
-func (mmLevel *mLoggerMockLevel) Set(f func(lvl LogLevel) (l1 Logger)) *LoggerMock {
+func (mmLevel *mLoggerMockLevel) Set(f func(lvl logcommon.LogLevel) (l1 logcommon.Logger)) *LoggerMock {
 	if mmLevel.defaultExpectation != nil {
 		mmLevel.mock.t.Fatalf("Default expectation is already set for the Logger.Level method")
 	}
@@ -2669,7 +2670,7 @@ func (mmLevel *mLoggerMockLevel) Set(f func(lvl LogLevel) (l1 Logger)) *LoggerMo
 
 // When sets expectation for the Logger.Level which will trigger the result defined by the following
 // Then helper
-func (mmLevel *mLoggerMockLevel) When(lvl LogLevel) *LoggerMockLevelExpectation {
+func (mmLevel *mLoggerMockLevel) When(lvl logcommon.LogLevel) *LoggerMockLevelExpectation {
 	if mmLevel.mock.funcLevel != nil {
 		mmLevel.mock.t.Fatalf("LoggerMock.Level mock is already set by Set")
 	}
@@ -2683,13 +2684,13 @@ func (mmLevel *mLoggerMockLevel) When(lvl LogLevel) *LoggerMockLevelExpectation 
 }
 
 // Then sets up Logger.Level return parameters for the expectation previously defined by the When method
-func (e *LoggerMockLevelExpectation) Then(l1 Logger) *LoggerMock {
+func (e *LoggerMockLevelExpectation) Then(l1 logcommon.Logger) *LoggerMock {
 	e.results = &LoggerMockLevelResults{l1}
 	return e.mock
 }
 
 // Level implements Logger
-func (mmLevel *LoggerMock) Level(lvl LogLevel) (l1 Logger) {
+func (mmLevel *LoggerMock) Level(lvl logcommon.LogLevel) (l1 logcommon.Logger) {
 	mm_atomic.AddUint64(&mmLevel.beforeLevelCounter, 1)
 	defer mm_atomic.AddUint64(&mmLevel.afterLevelCounter, 1)
 
@@ -3572,7 +3573,7 @@ type LoggerMockWithFieldParams struct {
 
 // LoggerMockWithFieldResults contains results of the Logger.WithField
 type LoggerMockWithFieldResults struct {
-	l1 Logger
+	l1 logcommon.Logger
 }
 
 // Expect sets up expected params for Logger.WithField
@@ -3607,7 +3608,7 @@ func (mmWithField *mLoggerMockWithField) Inspect(f func(s1 string, p1 interface{
 }
 
 // Return sets up results that will be returned by Logger.WithField
-func (mmWithField *mLoggerMockWithField) Return(l1 Logger) *LoggerMock {
+func (mmWithField *mLoggerMockWithField) Return(l1 logcommon.Logger) *LoggerMock {
 	if mmWithField.mock.funcWithField != nil {
 		mmWithField.mock.t.Fatalf("LoggerMock.WithField mock is already set by Set")
 	}
@@ -3620,7 +3621,7 @@ func (mmWithField *mLoggerMockWithField) Return(l1 Logger) *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.WithField method
-func (mmWithField *mLoggerMockWithField) Set(f func(s1 string, p1 interface{}) (l1 Logger)) *LoggerMock {
+func (mmWithField *mLoggerMockWithField) Set(f func(s1 string, p1 interface{}) (l1 logcommon.Logger)) *LoggerMock {
 	if mmWithField.defaultExpectation != nil {
 		mmWithField.mock.t.Fatalf("Default expectation is already set for the Logger.WithField method")
 	}
@@ -3649,13 +3650,13 @@ func (mmWithField *mLoggerMockWithField) When(s1 string, p1 interface{}) *Logger
 }
 
 // Then sets up Logger.WithField return parameters for the expectation previously defined by the When method
-func (e *LoggerMockWithFieldExpectation) Then(l1 Logger) *LoggerMock {
+func (e *LoggerMockWithFieldExpectation) Then(l1 logcommon.Logger) *LoggerMock {
 	e.results = &LoggerMockWithFieldResults{l1}
 	return e.mock
 }
 
 // WithField implements Logger
-func (mmWithField *LoggerMock) WithField(s1 string, p1 interface{}) (l1 Logger) {
+func (mmWithField *LoggerMock) WithField(s1 string, p1 interface{}) (l1 logcommon.Logger) {
 	mm_atomic.AddUint64(&mmWithField.beforeWithFieldCounter, 1)
 	defer mm_atomic.AddUint64(&mmWithField.afterWithFieldCounter, 1)
 
@@ -3787,7 +3788,7 @@ type LoggerMockWithFieldsParams struct {
 
 // LoggerMockWithFieldsResults contains results of the Logger.WithFields
 type LoggerMockWithFieldsResults struct {
-	l1 Logger
+	l1 logcommon.Logger
 }
 
 // Expect sets up expected params for Logger.WithFields
@@ -3822,7 +3823,7 @@ func (mmWithFields *mLoggerMockWithFields) Inspect(f func(m1 map[string]interfac
 }
 
 // Return sets up results that will be returned by Logger.WithFields
-func (mmWithFields *mLoggerMockWithFields) Return(l1 Logger) *LoggerMock {
+func (mmWithFields *mLoggerMockWithFields) Return(l1 logcommon.Logger) *LoggerMock {
 	if mmWithFields.mock.funcWithFields != nil {
 		mmWithFields.mock.t.Fatalf("LoggerMock.WithFields mock is already set by Set")
 	}
@@ -3835,7 +3836,7 @@ func (mmWithFields *mLoggerMockWithFields) Return(l1 Logger) *LoggerMock {
 }
 
 //Set uses given function f to mock the Logger.WithFields method
-func (mmWithFields *mLoggerMockWithFields) Set(f func(m1 map[string]interface{}) (l1 Logger)) *LoggerMock {
+func (mmWithFields *mLoggerMockWithFields) Set(f func(m1 map[string]interface{}) (l1 logcommon.Logger)) *LoggerMock {
 	if mmWithFields.defaultExpectation != nil {
 		mmWithFields.mock.t.Fatalf("Default expectation is already set for the Logger.WithFields method")
 	}
@@ -3864,13 +3865,13 @@ func (mmWithFields *mLoggerMockWithFields) When(m1 map[string]interface{}) *Logg
 }
 
 // Then sets up Logger.WithFields return parameters for the expectation previously defined by the When method
-func (e *LoggerMockWithFieldsExpectation) Then(l1 Logger) *LoggerMock {
+func (e *LoggerMockWithFieldsExpectation) Then(l1 logcommon.Logger) *LoggerMock {
 	e.results = &LoggerMockWithFieldsResults{l1}
 	return e.mock
 }
 
 // WithFields implements Logger
-func (mmWithFields *LoggerMock) WithFields(m1 map[string]interface{}) (l1 Logger) {
+func (mmWithFields *LoggerMock) WithFields(m1 map[string]interface{}) (l1 logcommon.Logger) {
 	mm_atomic.AddUint64(&mmWithFields.beforeWithFieldsCounter, 1)
 	defer mm_atomic.AddUint64(&mmWithFields.afterWithFieldsCounter, 1)
 

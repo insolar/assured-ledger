@@ -33,8 +33,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/bootstrap"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
@@ -197,7 +197,7 @@ func (sdk *SDK) GetAndActivateMigrationDaemonMembers() ([]Member, error) {
 }
 
 func (sdk *SDK) SetLogLevel(logLevel string) error {
-	_, err := insolar.ParseLevel(logLevel)
+	_, err := logcommon.ParseLevel(logLevel)
 	if err != nil {
 		return errors.Wrap(err, "invalid log level provided")
 	}

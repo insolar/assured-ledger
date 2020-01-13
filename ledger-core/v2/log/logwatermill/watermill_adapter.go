@@ -20,21 +20,19 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
-func NewWatermillLogAdapter(log insolar.Logger) *WatermillLogAdapter {
+func NewWatermillLogAdapter(log logcommon.Logger) *WatermillLogAdapter {
 	return &WatermillLogAdapter{
 		log: log.WithField("service", "watermill"),
 	}
 }
 
 type WatermillLogAdapter struct {
-	log insolar.Logger
+	log logcommon.Logger
 }
 
-func (w *WatermillLogAdapter) event(fields watermill.LogFields, level insolar.LogLevel, msg string) {
+func (w *WatermillLogAdapter) event(fields watermill.LogFields, level logcommon.LogLevel, msg string) {
 	// don't use w.Debug() etc, value of the "file=..." field would be incorrect
 	if fn := w.log.Embeddable().NewEventStruct(level); fn != nil {
 		fn(logcommon.LogObjectFields{Msg: msg, Fields: fields}, nil)
@@ -47,17 +45,17 @@ func (w *WatermillLogAdapter) With(fields watermill.LogFields) watermill.LoggerA
 }
 
 func (w *WatermillLogAdapter) Error(msg string, err error, fields watermill.LogFields) {
-	w.event(fields, insolar.ErrorLevel, msg+" | Error: "+err.Error())
+	w.event(fields, logcommon.ErrorLevel, msg+" | Error: "+err.Error())
 }
 
 func (w *WatermillLogAdapter) Info(msg string, fields watermill.LogFields) {
-	w.event(fields, insolar.InfoLevel, msg)
+	w.event(fields, logcommon.InfoLevel, msg)
 }
 
 func (w *WatermillLogAdapter) Debug(msg string, fields watermill.LogFields) {
-	w.event(fields, insolar.DebugLevel, msg)
+	w.event(fields, logcommon.DebugLevel, msg)
 }
 
 func (w *WatermillLogAdapter) Trace(msg string, fields watermill.LogFields) {
-	w.event(fields, insolar.DebugLevel, msg)
+	w.event(fields, logcommon.DebugLevel, msg)
 }

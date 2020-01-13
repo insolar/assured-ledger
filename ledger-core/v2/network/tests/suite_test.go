@@ -66,15 +66,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
+
+	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
@@ -86,7 +90,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	"github.com/insolar/component-manager"
 )
 
 var (
@@ -94,7 +97,7 @@ var (
 )
 
 var (
-	suiteLogger = inslogger.FromContext(initLogger(context.Background(), insolar.ErrorLevel))
+	suiteLogger = inslogger.FromContext(initLogger(context.Background(), logcommon.ErrorLevel))
 )
 
 const (
@@ -109,11 +112,11 @@ const (
 
 const cacheDir = "network_cache/"
 
-func initLogger(ctx context.Context, level insolar.LogLevel) context.Context {
+func initLogger(ctx context.Context, level logcommon.LogLevel) context.Context {
 	cfg := configuration.NewLog()
 	cfg.LLBufferSize = 0
 	cfg.Level = level.String()
-	cfg.Formatter = insolar.TextFormat.String()
+	cfg.Formatter = logcommon.TextFormat.String()
 
 	ctx, _ = inslogger.InitNodeLogger(ctx, cfg, "", "")
 	return ctx
@@ -139,7 +142,7 @@ func newTestSuite(t *testing.T, bootstrapCount, nodesCount int) testSuite {
 		bootstrapCount: bootstrapCount,
 		nodesCount:     nodesCount,
 		t:              t,
-		ctx:            initLogger(inslogger.TestContext(t), insolar.DebugLevel),
+		ctx:            initLogger(inslogger.TestContext(t), logcommon.DebugLevel),
 		bootstrapNodes: make([]*networkNode, 0),
 		//networkNodes:   make([]*networkNode, 0),
 	}
@@ -240,7 +243,7 @@ func (s *consensusSuite) Setup() {
 	//	require.Equal(s.t, s.getNodesCount(), len(activeNodes2))
 	//}
 	suiteLogger.Info("Start test pulsar")
-	err = s.pulsar.Start(initLogger(s.ctx, insolar.ErrorLevel), pulseReceivers)
+	err = s.pulsar.Start(initLogger(s.ctx, logcommon.ErrorLevel), pulseReceivers)
 	require.NoError(s.t, err)
 }
 

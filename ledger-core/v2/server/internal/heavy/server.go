@@ -27,10 +27,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -77,7 +77,7 @@ func (s *Server) Serve() {
 	var (
 		ctx         = context.Background()
 		mainTraceID = utils.RandTraceID() + "_main"
-		logger      insolar.Logger
+		logger      logcommon.Logger
 	)
 	{
 		var (
