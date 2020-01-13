@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 type conveyorSlotMachineLogger struct {
@@ -141,7 +142,7 @@ func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType
 	}
 }
 
-func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}) {
+func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logcommon.LogFieldMarshaller) {
 	special := ""
 
 	v.prepareStepName(&data.CurrentStep)
@@ -172,7 +173,7 @@ func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent i
 	}
 }
 
-func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterId smachine.AdapterId, callId uint64) {
+func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterId smachine.AdapterId, callId uint64, fields []logcommon.LogFieldMarshaller) {
 	//case smachine.StepLoggerAdapterCall:
 	s := "?"
 	switch data.Flags & smachine.StepLoggerAdapterMask {

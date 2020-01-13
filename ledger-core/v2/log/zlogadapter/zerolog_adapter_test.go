@@ -48,7 +48,7 @@ func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:47")
+	require.Contains(t, s, "zerolog_adapter_test.go:48")
 	require.Contains(t, s, "TestZeroLogAdapter_CallerInfoWithFunc")
 }
 
@@ -74,7 +74,7 @@ func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:73")
+	require.Contains(t, s, "zerolog_adapter_test.go:74")
 }
 
 func TestZeroLogAdapter_InheritFields(t *testing.T) {

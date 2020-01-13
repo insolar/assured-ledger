@@ -108,18 +108,28 @@ func addDynField(w logcommon.LogObjectWriter, key string, valFn logcommon.DynFie
 	w.AddIntfField(key, val, logcommon.LogFieldFormat{})
 }
 
-func (v logInsAdapter) NewEventStruct(level logcommon.LogLevel) func(interface{}) {
+func (v logInsAdapter) NewEventStruct(level logcommon.LogLevel) func(interface{}, []logcommon.LogFieldMarshaller) {
 	if !v.Is(level) {
 		return nil
 	}
-	return func(arg interface{}) {
-		obj, msgStr := v.config.MsgFormat.FmtLogStruct(arg)
-		if obj == nil {
-			v.sendEvent(level, nil, msgStr)
-			return
+	return func(arg interface{}, fields []logcommon.LogFieldMarshaller) {
+		var event logcommon.LogObjectWriter
+
+		if len(fields) > 0 {
+			event = v.encoder.CreatePartEncoder(nil)
+			for _, f := range fields {
+				f.MarshalLogFields(event)
+			}
 		}
 
-		event := v.encoder.CreatePartEncoder(nil)
+		obj, msgStr := v.config.MsgFormat.FmtLogStruct(arg)
+		switch {
+		case obj == nil:
+			v.sendEvent(level, event, msgStr)
+			return
+		case event == nil:
+			event = v.encoder.CreatePartEncoder(nil)
+		}
 		collector := v.config.Metrics.GetMetricsCollector()
 		msgStr = obj.MarshalLogObject(event, collector)
 		v.sendEvent(level, event, msgStr)

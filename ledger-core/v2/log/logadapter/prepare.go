@@ -64,23 +64,6 @@ func findPrepareValueFn(t reflect.Type) valuePrepareFn {
 	}
 }
 
-func prepareFieldValue(iv interface{}) (string, bool) {
-	switch vv := iv.(type) {
-	case nil:
-		return "", false
-	case string:
-		return vv, true
-	case *string:
-		if vv == nil {
-			return "", false
-		}
-		return *vv, true
-	default:
-		s, _, b := prepareValue(iv)
-		return s, b
-	}
-}
-
 // WARNING! Sequence of types must match in both findValuePrepareFn() and prepareValue()
 func prepareValue(iv interface{}) (string, reflect.Kind, bool) {
 	switch vv := iv.(type) {

@@ -266,7 +266,7 @@ func (z *zerologAdapter) newEvent(level logcommon.LogLevel) *zerolog.Event {
 	return event
 }
 
-func (z *zerologAdapter) NewEventStruct(level logcommon.LogLevel) func(interface{}) {
+func (z *zerologAdapter) NewEventStruct(level logcommon.LogLevel) func(interface{}, []logcommon.LogFieldMarshaller) {
 	switch event := z.newEvent(level); {
 	case event == nil:
 		//collector := z.config.Metrics.GetMetricsCollector()
@@ -277,7 +277,11 @@ func (z *zerologAdapter) NewEventStruct(level logcommon.LogLevel) func(interface
 		//}
 		return nil
 	default:
-		return func(arg interface{}) {
+		return func(arg interface{}, fields []logcommon.LogFieldMarshaller) {
+			m := zerologMarshaller{event}
+			for _, f := range fields {
+				f.MarshalLogFields(m)
+			}
 			obj, msgStr := z.config.MsgFormat.FmtLogStruct(arg)
 			if obj != nil {
 				collector := z.config.Metrics.GetMetricsCollector()

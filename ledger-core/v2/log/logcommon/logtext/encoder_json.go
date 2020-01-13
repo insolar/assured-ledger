@@ -25,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
-var _ logcommon.EncoderManager = JsonEncoderManager{}
+//var _ logcommon.EncoderManager = JsonEncoderManager{}
 
 type JsonEncoderManager struct{}
 

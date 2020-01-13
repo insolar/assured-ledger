@@ -23,7 +23,7 @@ import (
 type SynchronizationContext interface {
 	// Provides current state of a sync object.
 	// When the sync was previously acquired, then this function returns SM's status of a sync object.
-	// When the sync was not previously acquired, then this function returns status of
+	// When the sync was not previously acquired, then this function returns a general status of a sync object
 	// Panics on zero or incorrectly initialized value.
 	Check(SyncLink) BoolDecision
 

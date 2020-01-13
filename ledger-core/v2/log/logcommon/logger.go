@@ -95,6 +95,12 @@ func (z LoggerStruct) Eventf(level LogLevel, fmt string, args ...interface{}) {
 	}
 }
 
+func (z LoggerStruct) Events(level LogLevel, msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(level); fn != nil {
+		fn(msg, fields)
+	}
+}
+
 func (z LoggerStruct) Debug(args ...interface{}) {
 	if fn := z.helper.NewEvent(DebugLevel); fn != nil {
 		fn(args)
@@ -104,6 +110,12 @@ func (z LoggerStruct) Debug(args ...interface{}) {
 func (z LoggerStruct) Debugf(fmt string, args ...interface{}) {
 	if fn := z.helper.NewEventFmt(DebugLevel); fn != nil {
 		fn(fmt, args)
+	}
+}
+
+func (z LoggerStruct) Debugm(msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(DebugLevel); fn != nil {
+		fn(msg, fields)
 	}
 }
 
@@ -119,6 +131,12 @@ func (z LoggerStruct) Infof(fmt string, args ...interface{}) {
 	}
 }
 
+func (z LoggerStruct) Infom(msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(InfoLevel); fn != nil {
+		fn(msg, fields)
+	}
+}
+
 func (z LoggerStruct) Warn(args ...interface{}) {
 	if fn := z.helper.NewEvent(WarnLevel); fn != nil {
 		fn(args)
@@ -128,6 +146,12 @@ func (z LoggerStruct) Warn(args ...interface{}) {
 func (z LoggerStruct) Warnf(fmt string, args ...interface{}) {
 	if fn := z.helper.NewEventFmt(WarnLevel); fn != nil {
 		fn(fmt, args)
+	}
+}
+
+func (z LoggerStruct) Warnm(msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(WarnLevel); fn != nil {
+		fn(msg, fields)
 	}
 }
 
@@ -143,6 +167,12 @@ func (z LoggerStruct) Errorf(fmt string, args ...interface{}) {
 	}
 }
 
+func (z LoggerStruct) Errorm(msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(ErrorLevel); fn != nil {
+		fn(msg, fields)
+	}
+}
+
 func (z LoggerStruct) Fatal(args ...interface{}) {
 	if fn := z.helper.NewEvent(FatalLevel); fn != nil {
 		fn(args)
@@ -152,6 +182,12 @@ func (z LoggerStruct) Fatal(args ...interface{}) {
 func (z LoggerStruct) Fatalf(fmt string, args ...interface{}) {
 	if fn := z.helper.NewEventFmt(FatalLevel); fn != nil {
 		fn(fmt, args)
+	}
+}
+
+func (z LoggerStruct) Fatalm(msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(FatalLevel); fn != nil {
+		fn(msg, fields)
 	}
 }
 
@@ -167,12 +203,18 @@ func (z LoggerStruct) Panicf(fmt string, args ...interface{}) {
 	}
 }
 
+func (z LoggerStruct) Panicm(msg interface{}, fields ...LogFieldMarshaller) {
+	if fn := z.helper.NewEventStruct(PanicLevel); fn != nil {
+		fn(msg, fields)
+	}
+}
+
 /*
 	This interface provides methods with -1 call levels.
 	DO NOT USE directly, otherwise WithCaller() functionality will be broken.
 */
 type EmbeddedLogger interface {
-	NewEventStruct(level LogLevel) func(interface{})
+	NewEventStruct(level LogLevel) func(interface{}, []LogFieldMarshaller)
 	NewEvent(level LogLevel) func(args []interface{})
 	NewEventFmt(level LogLevel) func(fmt string, args []interface{})
 	//NewEventMarshaller(level LogLevel) func()
@@ -197,7 +239,7 @@ type EmbeddedHelper struct {
 	embedded EmbeddedLogger
 }
 
-func (z EmbeddedHelper) NewEventStruct(level LogLevel) func(interface{}) {
+func (z EmbeddedHelper) NewEventStruct(level LogLevel) func(interface{}, []LogFieldMarshaller) {
 	return z.embedded.NewEventStruct(level)
 	//if em := z.embedded.NewEventMarshaller(level); em == nil {
 	//	return nil
