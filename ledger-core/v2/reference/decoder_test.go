@@ -41,7 +41,7 @@ func TestDecoder_Decode_legacy(t *testing.T) {
 		dec := NewDefaultDecoder(0)
 		_, err := dec.Decode(legacyReference_ok)
 		if assert.Error(t, err) {
-			assert.Contains(t, err.Error(), "invalid reference, legacy domain name")
+			assert.Contains(t, err.Error(), "legacy domain name")
 		}
 	}
 
@@ -50,7 +50,7 @@ func TestDecoder_Decode_legacy(t *testing.T) {
 		dec := NewDefaultDecoder(AllowLegacy)
 		_, err := dec.Decode(legacyReference_bad)
 		if assert.Error(t, err) {
-			assert.Contains(t, err.Error(), "invalid reference, illegal base64 data")
+			assert.Contains(t, err.Error(), "illegal base64 data")
 		}
 	}
 
@@ -92,7 +92,7 @@ func TestDecoder_Decode_new(t *testing.T) {
 		dec := NewDefaultDecoder(0)
 		_, err := dec.Decode(newReference_fixed)
 		if assert.Error(t, err) {
-			assert.Contains(t, err.Error(), "invalid reference, record reference is not allowed")
+			assert.Contains(t, err.Error(), "record reference is not allowed")
 		}
 	}
 
@@ -194,17 +194,17 @@ func TestDecoder_Decode_new(t *testing.T) {
 
 		_, err = dec.Decode(newReference_empty_first)
 		if assert.Error(t, err) {
-			assert.Contains(t, err.Error(), "invalid reference, empty reference body")
+			assert.Contains(t, err.Error(), "empty reference body")
 		}
 
 		_, err = dec.Decode(newReference_empty_second)
 		if assert.Error(t, err) {
-			assert.Contains(t, err.Error(), "invalid reference, empty domain name")
+			assert.Contains(t, err.Error(), "empty domain name")
 		}
 
 		_, err = dec.Decode(newReference_legacy_domain)
 		if assert.Error(t, err) {
-			assert.Contains(t, err.Error(), "invalid reference, legacy domain name")
+			assert.Contains(t, err.Error(), "legacy domain name")
 		}
 	}
 
