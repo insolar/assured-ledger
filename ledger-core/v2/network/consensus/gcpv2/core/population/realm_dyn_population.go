@@ -57,9 +57,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/power"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"

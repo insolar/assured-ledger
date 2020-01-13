@@ -19,7 +19,7 @@ package unsafekit
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type MemoryMapModel uint8

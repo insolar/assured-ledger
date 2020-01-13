@@ -23,10 +23,10 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/unsafekit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/unsafekit"
 )
 
 const MinKeyBucketBatchSize = 8 // min batch size for multi-batch buckets (except the last batch)

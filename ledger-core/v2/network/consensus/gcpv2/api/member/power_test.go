@@ -53,7 +53,7 @@ package member
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/capacity"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
 
 	"github.com/stretchr/testify/require"
 )

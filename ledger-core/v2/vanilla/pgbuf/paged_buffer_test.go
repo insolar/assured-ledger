@@ -34,7 +34,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
 func Test_LongBuffer_Deviations(t *testing.T) {

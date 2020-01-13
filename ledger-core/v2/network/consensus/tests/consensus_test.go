@@ -57,7 +57,6 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/capacity"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -70,6 +69,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
 )
 
 func NewConsensusHost(hostAddr endpoints.Name) *EmuHostConsensusAdapter {

@@ -14,7 +14,7 @@
 //    limitations under the License.
 ///
 
-package tools
+package synckit
 
 func ClosedChannel() <-chan struct{} {
 	return closedChan

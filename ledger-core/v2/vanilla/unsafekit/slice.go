@@ -22,7 +22,7 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func UnwrapAsSlice(s longbits.ByteString, mt MMapSliceType) interface{} {

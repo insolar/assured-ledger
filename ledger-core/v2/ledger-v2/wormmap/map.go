@@ -17,7 +17,7 @@
 package wormmap
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/keyset"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/keyset"
 )
 
 func NewLazyEntryMap(prefixLen uint8, expectedKeyCount int, hashSeed uint32, loaderFn EntryMapLoaderFunc) LazyEntryMap {

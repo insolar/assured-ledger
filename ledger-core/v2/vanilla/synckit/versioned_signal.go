@@ -14,7 +14,7 @@
 //    limitations under the License.
 ///
 
-package tools
+package synckit
 
 import (
 	"sync"

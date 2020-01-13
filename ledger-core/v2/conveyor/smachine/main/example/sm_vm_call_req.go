@@ -18,7 +18,7 @@ package example
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type StateMachineCallRequest struct {

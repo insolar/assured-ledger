@@ -14,12 +14,10 @@
 //    limitations under the License.
 ///
 
-package tools
+package synckit
 
 import (
 	"sync"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/rwlock"
 )
 
 func NewSyncQueue(locker sync.Locker) SyncQueue {
@@ -44,7 +42,7 @@ func NewSignalFuncQueue(locker sync.Locker, signalFn func()) SyncQueue {
 }
 
 func NewNoSyncQueue() SyncQueue {
-	return SyncQueue{locker: rwlock.DummyLocker()}
+	return SyncQueue{locker: DummyLocker()}
 }
 
 type SyncFunc func(interface{})

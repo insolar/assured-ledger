@@ -19,7 +19,7 @@ package smachine
 import (
 	"errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/syncrun"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type AdapterCall struct {
@@ -36,7 +36,7 @@ type AdapterCallDelegateFunc func(
 	// Returns false when nested call is impossible (outer call is cancelled or finished)
 	nestedCallFn NestedCallFunc,
 	// Nil when cancellation is not traced / not configured on SlotMachine adapter / and for notifications
-	chainCancel *syncrun.ChainedCancel) (AsyncResultFunc, error)
+	chainCancel *synckit.ChainedCancel) (AsyncResultFunc, error)
 
 func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, delegate AdapterCallDelegateFunc) error {
 	switch {
@@ -94,7 +94,7 @@ func (c AdapterCall) delegateNotify(delegate AdapterCallDelegateFunc) error {
 
 func (c AdapterCall) RunAndSendResult(arg interface{}) error {
 	return c.DelegateAndSendResult(nil,
-		func(callFn AdapterCallFunc, _ NestedCallFunc, _ *syncrun.ChainedCancel) (AsyncResultFunc, error) {
+		func(callFn AdapterCallFunc, _ NestedCallFunc, _ *synckit.ChainedCancel) (AsyncResultFunc, error) {
 			return callFn(arg), nil
 		})
 }

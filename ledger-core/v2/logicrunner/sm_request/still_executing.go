@@ -17,11 +17,11 @@
 package sm_request
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
 type ObjectAccessor struct {

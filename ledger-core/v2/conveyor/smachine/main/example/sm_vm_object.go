@@ -17,9 +17,9 @@
 package example
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func NewVMObjectSM(objKey longbits.ByteString) *vmObjectSM {

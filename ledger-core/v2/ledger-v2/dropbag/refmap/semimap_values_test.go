@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestKeys(t *testing.T) {

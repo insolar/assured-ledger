@@ -19,7 +19,7 @@ package smachine
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/syncrun"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 const (
@@ -37,7 +37,7 @@ type adapterCallRequest struct {
 
 	flags     AsyncCallFlags
 	nestedFn  CreateFactoryFunc
-	cancel    *syncrun.ChainedCancel
+	cancel    *synckit.ChainedCancel
 	isLogging bool
 }
 
@@ -69,7 +69,7 @@ func (c *adapterCallRequest) WithCancel(fn *context.CancelFunc) AsyncCallRequest
 	}
 
 	r := *c
-	r.cancel = syncrun.NewChainedCancel()
+	r.cancel = synckit.NewChainedCancel()
 	*fn = r.cancel.Cancel
 	return &r
 }

@@ -20,11 +20,11 @@ import (
 	"math/bits"
 	"runtime"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/fastrand"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/fastrand"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/unsafekit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/unsafekit"
 )
 
 const MinBucketPageSize = 16

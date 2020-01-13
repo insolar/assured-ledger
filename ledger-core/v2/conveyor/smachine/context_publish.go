@@ -19,8 +19,8 @@ package smachine
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type globalAliasKey struct {

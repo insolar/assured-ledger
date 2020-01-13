@@ -19,12 +19,12 @@ package sm_request
 import (
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_jet_storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_sender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
 type StateMachineUpdateJet struct {

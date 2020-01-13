@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/unsafekit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/unsafekit"
 )
 
 func GoMapHash(v longbits.ByteString) uint32 {

@@ -57,19 +57,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/consensuskit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/inspectors"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/consensuskit"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/chaser"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph2ctl"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/chaser"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"

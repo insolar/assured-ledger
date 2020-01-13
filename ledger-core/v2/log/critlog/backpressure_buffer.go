@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
 type BackpressureBufferFlags uint8

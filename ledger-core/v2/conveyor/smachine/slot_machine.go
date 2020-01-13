@@ -24,8 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type MigrationFunc func(migrationCount uint32)
@@ -211,7 +211,7 @@ func (m *SlotMachine) GetPublishedGlobalAlias(key interface{}) SlotLink {
 
 /* -------------- Methods to run state machines --------------- */
 
-func (m *SlotMachine) RunToStop(worker AttachableSlotWorker, signal *tools.SignalVersion) {
+func (m *SlotMachine) RunToStop(worker AttachableSlotWorker, signal *synckit.SignalVersion) {
 	m.Stop()
 	worker.AttachTo(m, signal, uint32(m.config.ScanCountLimit), func(worker AttachedSlotWorker) {
 		for !m.syncQueue.IsInactive() && !worker.HasSignal() {

@@ -24,13 +24,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/main/example"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 func main() {
 	const scanCountLimit = 1e6
 
-	signal := tools.NewVersionedSignal()
+	signal := synckit.NewVersionedSignal()
 	sm := smachine.NewSlotMachine(smachine.SlotMachineConfig{
 		SlotPageSize:         1000,
 		PollingPeriod:        10 * time.Millisecond,
@@ -58,7 +58,7 @@ func main() {
 	iterBase := example.IterationCount
 	iterStart := time.Now().UnixNano()
 
-	neverSignal := tools.NewNeverSignal()
+	neverSignal := synckit.NewNeverSignal()
 
 	prev := 0
 	for i := 0; ; i++ {

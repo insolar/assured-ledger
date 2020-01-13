@@ -22,8 +22,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func generateBits224(zeroBytes int) longbits.Bits224 {

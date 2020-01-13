@@ -53,9 +53,10 @@ package power
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/capacity"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
 )
 
 func TestNewRequestByLevel(t *testing.T) {

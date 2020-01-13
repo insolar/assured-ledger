@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/reflectkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )

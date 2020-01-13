@@ -53,9 +53,9 @@ package profiles
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
 func EqualStaticProfiles(p StaticProfile, o StaticProfile, extIsRequired bool) bool {

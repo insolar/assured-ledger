@@ -56,10 +56,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/capacity"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
 )
 
 type candidateController interface {

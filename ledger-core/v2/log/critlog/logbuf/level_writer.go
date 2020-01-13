@@ -23,8 +23,8 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/pgbuf"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/pgbuf"
 )
 
 func NewJoiningLevelBuffer(buffer pgbuf.PlainBuffer, filler []byte) LevelBuffer {

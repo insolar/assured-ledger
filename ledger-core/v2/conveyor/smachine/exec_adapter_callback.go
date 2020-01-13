@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/syncrun"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type AdapterCallbackFunc func(AsyncResultFunc, error) bool
@@ -35,7 +35,7 @@ type AdapterCallback struct {
 	adapterId  AdapterId
 	caller     StepLink
 	callbackFn AdapterCallbackFunc
-	cancel     *syncrun.ChainedCancel
+	cancel     *synckit.ChainedCancel
 	nestedFn   CreateFactoryFunc
 	state      uint32 // atomic
 	flags      AsyncCallFlags
@@ -52,7 +52,7 @@ func (c *AdapterCallback) Prepare(needCancel bool) context.CancelFunc {
 		return nil
 	}
 
-	c.cancel = syncrun.NewChainedCancel()
+	c.cancel = synckit.NewChainedCancel()
 	return c.cancel.Cancel
 }
 
@@ -66,7 +66,7 @@ func (c *AdapterCallback) IsCancelled() bool {
 	return c.cancel.IsCancelled() || !c.canCall()
 }
 
-func (c *AdapterCallback) ChainedCancel() *syncrun.ChainedCancel {
+func (c *AdapterCallback) ChainedCancel() *synckit.ChainedCancel {
 	return c.cancel
 }
 

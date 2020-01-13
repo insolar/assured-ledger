@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 // Very simple implementation of a slot worker. No support for detachments.
@@ -56,7 +56,7 @@ func (v *AttachableSimpleSlotWorker) AttachAsNested(m *smachine.SlotMachine, out
 	return false
 }
 
-func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *tools.SignalVersion,
+func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *synckit.SignalVersion,
 	loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool) {
 
 	if !atomic.CompareAndSwapUint32(&v.exclusive, 0, 1) {
@@ -74,7 +74,7 @@ func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *t
 var _ smachine.FixedSlotWorker = &SimpleSlotWorker{}
 
 type SimpleSlotWorker struct {
-	outerSignal *tools.SignalVersion
+	outerSignal *synckit.SignalVersion
 	loopLimitFn smachine.LoopLimiterFunc // NB! MUST correlate with outerSignal
 	loopLimit   int
 
@@ -97,7 +97,7 @@ func (*SimpleSlotWorker) IsDetached() bool {
 	return false
 }
 
-func (p *SimpleSlotWorker) GetSignalMark() *tools.SignalVersion {
+func (p *SimpleSlotWorker) GetSignalMark() *synckit.SignalVersion {
 	return p.outerSignal
 }
 

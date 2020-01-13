@@ -18,13 +18,13 @@ package sworker
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 //var _ smachine.AttachableSlotWorker = &AttachableWorker{}
 
 type AttachableWorker struct {
-	signalSource *tools.VersionedSignal
+	signalSource *synckit.VersionedSignal
 }
 
 func (p *AttachableWorker) AttachTo(_ *smachine.SlotMachine, loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool) {
@@ -37,7 +37,7 @@ func (p *AttachableWorker) AttachTo(_ *smachine.SlotMachine, loopLimit uint32, f
 
 type SlotWorker struct {
 	parent      *AttachableWorker
-	outerSignal *tools.SignalVersion
+	outerSignal *synckit.SignalVersion
 	loopLimit   uint32
 }
 
@@ -49,7 +49,7 @@ func (*SlotWorker) IsDetached() bool {
 	return false
 }
 
-func (p *SlotWorker) GetSignalMark() *tools.SignalVersion {
+func (p *SlotWorker) GetSignalMark() *synckit.SignalVersion {
 	return p.outerSignal
 }
 

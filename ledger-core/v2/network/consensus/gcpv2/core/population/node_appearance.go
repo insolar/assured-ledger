@@ -58,8 +58,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
@@ -70,6 +68,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/coreapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func NewNodeAppearanceAsSelf(np profiles.LocalNode, powerRequest power.Request, hook *Hook) NodeAppearance {

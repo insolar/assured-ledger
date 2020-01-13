@@ -20,14 +20,14 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 func newSlotMachineSync(eventCallback, signalCallback func()) SlotMachineSync {
 	return SlotMachineSync{
-		signalQueue:    tools.NewSignalFuncQueue(&sync.Mutex{}, signalCallback),
-		updateQueue:    tools.NewSignalFuncQueue(&sync.Mutex{}, eventCallback),
-		callbackQueue:  tools.NewSignalFuncQueue(&sync.Mutex{}, eventCallback),
+		signalQueue:    synckit.NewSignalFuncQueue(&sync.Mutex{}, signalCallback),
+		updateQueue:    synckit.NewSignalFuncQueue(&sync.Mutex{}, eventCallback),
+		callbackQueue:  synckit.NewSignalFuncQueue(&sync.Mutex{}, eventCallback),
 		machineStatus:  uint32(SlotMachineActive),
 		stoppingSignal: make(chan struct{}),
 	}
@@ -47,12 +47,12 @@ type SlotMachineSync struct {
 	machineStatus  uint32 // atomic
 	stoppingSignal chan struct{}
 
-	signalQueue   tools.SyncQueue // func(w FixedSlotWorker) // for detached/async ops, queued functions MUST BE panic-safe
-	updateQueue   tools.SyncQueue // func(w FixedSlotWorker) // for detached/async ops, queued functions MUST BE panic-safe
-	callbackQueue tools.SyncQueue // func(w DetachableSlotWorker) // for detached/async ops, queued functions MUST BE panic-safe
+	signalQueue   synckit.SyncQueue // func(w FixedSlotWorker) // for detached/async ops, queued functions MUST BE panic-safe
+	updateQueue   synckit.SyncQueue // func(w FixedSlotWorker) // for detached/async ops, queued functions MUST BE panic-safe
+	callbackQueue synckit.SyncQueue // func(w DetachableSlotWorker) // for detached/async ops, queued functions MUST BE panic-safe
 
 	detachLock   sync.RWMutex
-	detachQueues map[SlotLink]*tools.SyncQueue
+	detachQueues map[SlotLink]*synckit.SyncQueue
 }
 
 func (m *SlotMachineSync) IsZero() bool {
@@ -187,7 +187,7 @@ func (m *SlotMachineSync) AddAsyncCallback(link SlotLink, fn AsyncCallbackFunc) 
 	return true
 }
 
-func (m *SlotMachineSync) _addAsyncCallback(q *tools.SyncQueue, link SlotLink, fn AsyncCallbackFunc, repeatCount int) {
+func (m *SlotMachineSync) _addAsyncCallback(q *synckit.SyncQueue, link SlotLink, fn AsyncCallbackFunc, repeatCount int) {
 	q.Add(func(w interface{}) {
 		switch {
 		case w == nil:
@@ -251,7 +251,7 @@ func (m *SlotMachineSync) ProcessSlotCallbacksByDetachable(link SlotLink, worker
 	return true, hasSignal
 }
 
-func (m *SlotMachineSync) cancelCallbacks(tasks tools.SyncFuncList, worker SlotWorker) (hasSignal bool) {
+func (m *SlotMachineSync) cancelCallbacks(tasks synckit.SyncFuncList, worker SlotWorker) (hasSignal bool) {
 	if worker == nil {
 		panic("illegal value")
 	}
@@ -265,7 +265,7 @@ func (m *SlotMachineSync) cancelCallbacks(tasks tools.SyncFuncList, worker SlotW
 	return false
 }
 
-func (m *SlotMachineSync) processCallbacks(tasks tools.SyncFuncList, worker DetachableSlotWorker) (hasSignal bool) {
+func (m *SlotMachineSync) processCallbacks(tasks synckit.SyncFuncList, worker DetachableSlotWorker) (hasSignal bool) {
 	if worker == nil {
 		panic("illegal value")
 	}
@@ -285,14 +285,14 @@ func (m *SlotMachineSync) _addDetachedCallback(link SlotLink, fn AsyncCallbackFu
 	m.detachLock.RUnlock()
 
 	if dq == nil {
-		dqv := tools.NewSignalFuncQueue(&sync.Mutex{}, nil)
+		dqv := synckit.NewSignalFuncQueue(&sync.Mutex{}, nil)
 
 		m.detachLock.Lock()
 		dq = m.detachQueues[link]
 		if dq == nil {
 			dq = &dqv
 			if m.detachQueues == nil {
-				m.detachQueues = make(map[SlotLink]*tools.SyncQueue)
+				m.detachQueues = make(map[SlotLink]*synckit.SyncQueue)
 			}
 			m.detachQueues[link] = dq
 		}
@@ -302,7 +302,7 @@ func (m *SlotMachineSync) _addDetachedCallback(link SlotLink, fn AsyncCallbackFu
 	m._addAsyncCallback(dq, link, fn, repeatCount)
 }
 
-func (m *SlotMachineSync) _flushDetachQueue(link SlotLink) tools.SyncFuncList {
+func (m *SlotMachineSync) _flushDetachQueue(link SlotLink) synckit.SyncFuncList {
 	m.detachLock.RLock()
 	dq := m.detachQueues[link]
 	m.detachLock.RUnlock()

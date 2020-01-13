@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )

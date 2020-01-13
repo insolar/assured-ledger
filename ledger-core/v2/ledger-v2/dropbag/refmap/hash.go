@@ -19,8 +19,8 @@ package refmap
 import (
 	"hash/fnv"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/unsafekit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/unsafekit"
 )
 
 func hash32(v longbits.ByteString, seed uint32) uint32 {

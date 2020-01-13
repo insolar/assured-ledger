@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
 type StateMachine interface {

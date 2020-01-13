@@ -55,7 +55,6 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
@@ -64,6 +63,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type EmuPacketWrapper struct {

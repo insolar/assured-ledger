@@ -56,7 +56,6 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -68,6 +67,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func NewEmuChronicles(intros []profiles.StaticProfile, localNodeIndex int, asJoiner bool,

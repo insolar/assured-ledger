@@ -16,7 +16,7 @@
 
 package drafts
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 
 type DropEntry struct { // byteSize=324
 	RegistrantSign longbits.Bits512 // byteSize=64,  sign of DropEntryRegistration

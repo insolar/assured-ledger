@@ -16,7 +16,7 @@
 
 package wormmap
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/keyset"
+import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/keyset"
 
 type MapHolder interface {
 	Len() int

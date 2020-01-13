@@ -1,8 +1,8 @@
 package sm_execute_request
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
 type SMPreExecuteImmutable struct {

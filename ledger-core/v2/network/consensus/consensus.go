@@ -56,7 +56,6 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
@@ -70,6 +69,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/coreapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type packetProcessorSetter interface {

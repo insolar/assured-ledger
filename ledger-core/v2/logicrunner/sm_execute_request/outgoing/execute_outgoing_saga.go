@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -34,6 +33,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_contract_requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_contract_runner/outgoing"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_sender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
 type ExecuteOutgoingSagaRequest struct {

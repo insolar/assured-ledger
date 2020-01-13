@@ -22,7 +22,7 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func KeepAliveWhile(p unsafe.Pointer, fn func(unsafe.Pointer) uintptr) uintptr {

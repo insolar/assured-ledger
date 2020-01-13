@@ -32,7 +32,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmetrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
 const internalTempFieldName = "_TWD_"

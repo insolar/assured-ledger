@@ -27,8 +27,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 var byteOrder = binary.BigEndian

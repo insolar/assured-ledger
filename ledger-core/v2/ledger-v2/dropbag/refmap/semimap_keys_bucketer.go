@@ -19,8 +19,8 @@ package refmap
 import (
 	"math/bits"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
 type BucketSortFunc func(i, j *reference.Local) bool

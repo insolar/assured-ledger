@@ -59,13 +59,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestEmbeddedPulsarData_SerializeTo(t *testing.T) {

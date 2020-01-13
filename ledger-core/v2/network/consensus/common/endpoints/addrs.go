@@ -54,9 +54,9 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type Name string

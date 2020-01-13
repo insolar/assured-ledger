@@ -56,8 +56,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestIsSymmetric(t *testing.T) {

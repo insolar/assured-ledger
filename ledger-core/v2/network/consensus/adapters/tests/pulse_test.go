@@ -58,13 +58,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 const (

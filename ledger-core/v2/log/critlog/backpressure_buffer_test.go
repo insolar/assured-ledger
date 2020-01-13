@@ -32,7 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
 func TestBackpressureBuffer_stop(t *testing.T) {

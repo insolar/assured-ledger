@@ -19,11 +19,11 @@ package conveyor
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type PulseSlotConfig struct {
@@ -182,7 +182,7 @@ func (p *PulseSlotMachine) errorHandler(ctx smachine.FailureContext) {
 }
 
 func (p *PulseSlotMachine) onTerminate(context.Context, smachine.TerminationData) {
-	p.innerMachine.RunToStop(p.innerWorker, tools.NewNeverSignal())
+	p.innerMachine.RunToStop(p.innerWorker, synckit.NewNeverSignal())
 	if p.finalizeFn != nil {
 		p.finalizeFn()
 	}

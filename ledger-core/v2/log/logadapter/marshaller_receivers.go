@@ -3,8 +3,8 @@ package logadapter
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/reflectkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 )
 
 var _ reflectkit.TypedReceiver = fieldFmtReceiver{}

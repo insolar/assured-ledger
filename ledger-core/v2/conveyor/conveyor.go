@@ -22,11 +22,11 @@ import (
 	"math"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type InputEvent = interface{}
@@ -92,8 +92,8 @@ type PulseConveyor struct {
 	workerCtx      context.Context
 
 	// immutable, set at construction
-	externalSignal tools.VersionedSignal
-	internalSignal tools.VersionedSignal
+	externalSignal synckit.VersionedSignal
+	internalSignal synckit.VersionedSignal
 
 	slotMachine   *smachine.SlotMachine
 	machineWorker smachine.AttachableSlotWorker
@@ -491,6 +491,6 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 		}
 	}
 
-	p.slotMachine.RunToStop(p.machineWorker, tools.NewNeverSignal())
+	p.slotMachine.RunToStop(p.machineWorker, synckit.NewNeverSignal())
 	p.presentMachine = nil
 }

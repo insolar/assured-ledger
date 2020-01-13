@@ -24,7 +24,7 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag/dbcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 )
 
 type StorageFileV1Writer struct {

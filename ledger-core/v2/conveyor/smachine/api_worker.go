@@ -16,7 +16,9 @@
 
 package smachine
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/tools"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+)
 
 type AttachedFunc func(AttachedSlotWorker)
 type DetachableFunc func(DetachableSlotWorker)
@@ -25,7 +27,7 @@ type NonDetachableFunc func(FixedSlotWorker)
 type SlotWorker interface {
 	HasSignal() bool
 	IsDetached() bool
-	GetSignalMark() *tools.SignalVersion
+	GetSignalMark() *synckit.SignalVersion
 	CanLoopOrHasSignal(loopCount int) (canLoop, hasSignal bool)
 }
 
@@ -53,6 +55,6 @@ type AttachedSlotWorker interface {
 }
 
 type AttachableSlotWorker interface {
-	AttachTo(m *SlotMachine, signal *tools.SignalVersion, loopLimit uint32, fn AttachedFunc) (wasDetached bool)
+	AttachTo(m *SlotMachine, signal *synckit.SignalVersion, loopLimit uint32, fn AttachedFunc) (wasDetached bool)
 	AttachAsNested(m *SlotMachine, w DetachableSlotWorker, loopLimit uint32, fn AttachedFunc) (wasDetached bool)
 }

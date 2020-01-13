@@ -8,7 +8,7 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 const (

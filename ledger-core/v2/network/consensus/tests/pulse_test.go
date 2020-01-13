@@ -54,8 +54,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func randBits256() longbits.Bits256 {
