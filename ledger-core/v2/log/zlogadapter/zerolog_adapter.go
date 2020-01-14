@@ -21,8 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
@@ -32,18 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmetrics"
 )
 
-var insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/v2/"
-
-func trimInsolarPrefix(file string, line int) string {
-	var skip = 0
-	if idx := strings.Index(file, insolarPrefix); idx != -1 {
-		skip = idx + len(insolarPrefix)
-	}
-	return file[skip:] + ":" + strconv.Itoa(line)
-}
-
 func init() {
-	zerolog.CallerMarshalFunc = trimInsolarPrefix
 	initLevelMappings()
 }
 
