@@ -18,15 +18,14 @@ package zlogadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
@@ -44,7 +43,6 @@ func trimInsolarPrefix(file string, line int) string {
 }
 
 func init() {
-	zerolog.TimeFieldFormat = insolar.TimestampFormat
 	zerolog.CallerMarshalFunc = trimInsolarPrefix
 	initLevelMappings()
 }
@@ -131,35 +129,10 @@ func selectFormatter(format logcommon.LogFormat, output io.Writer) (io.Writer, e
 	}
 }
 
-const zerologSkipFrameCount = 4
+const ZerologSkipFrameCount = 4
 
-func NewZerologAdapter(pCfg insolar.ParsedLogConfig, msgFmt logadapter.MsgFormatConfig) (logcommon.Logger, error) {
-
-	zc := logadapter.Config{}
-
-	var err error
-	zc.BareOutput, err = logadapter.OpenLogBareOutput(pCfg.OutputType, pCfg.OutputParam)
-	if err != nil {
-		return nil, err
-	}
-	if zc.BareOutput.Writer == nil {
-		return nil, errors.New("output is nil")
-	}
-
-	sfb := zerologSkipFrameCount + pCfg.SkipFrameBaselineAdjustment
-	if sfb < 0 {
-		sfb = 0
-	}
-
-	zc.Output = pCfg.Output
-	zc.Instruments = pCfg.Instruments
-	zc.MsgFormat = msgFmt
-	zc.Instruments.SkipFrameCountBaseline = uint8(sfb)
-	//zc.TraceLevel = logcommon.InfoLevel
-
-	zb := logadapter.NewBuilder(zerologFactory{}, zc, pCfg.LogLevel)
-
-	return zb.Build()
+func NewBuilder(cfg logadapter.Config, level logcommon.LogLevel) logcommon.LoggerBuilder {
+	return logadapter.NewBuilder(zerologFactory{}, cfg, level)
 }
 
 /* ============================ */

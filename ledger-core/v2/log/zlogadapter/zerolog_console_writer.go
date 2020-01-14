@@ -24,8 +24,6 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 var fieldsOrder = []string{
@@ -59,7 +57,7 @@ func newDefaultTextOutput(out io.Writer) io.WriteCloser {
 	return &closableConsoleWriter{zerolog.ConsoleWriter{
 		Out:          out,
 		NoColor:      true,
-		TimeFormat:   insolar.TimestampFormat,
+		TimeFormat:   zerolog.TimeFieldFormat,
 		PartsOrder:   fieldsOrder,
 		FormatCaller: formatCaller(),
 	}}

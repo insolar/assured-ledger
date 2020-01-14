@@ -21,24 +21,36 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
-	pCfg := insolar.ParsedLogConfig{
-		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   logcommon.InfoLevel,
-		Output: logadapter.OutputConfig{
-			Format: insolar.DefaultLogFormat,
-		},
-	}
-	msgFmt := logadapter.GetDefaultLogMsgFormatter()
+func NewZerologAdapter(level logcommon.LogLevel) (logcommon.Logger, error) {
+	zc := logadapter.Config{}
 
-	log, err := NewZerologAdapter(pCfg, msgFmt)
+	var err error
+	zc.BareOutput, err = logadapter.OpenLogBareOutput(logadapter.StdErrOutput, "")
+	if err != nil {
+		return nil, err
+	}
+	if zc.BareOutput.Writer == nil {
+		panic("output is nil")
+	}
+
+	zc.Output = logadapter.OutputConfig{
+		Format: logcommon.TextFormat,
+	}
+	zc.MsgFormat = logadapter.GetDefaultLogMsgFormatter()
+	zc.Instruments.SkipFrameCountBaseline = ZerologSkipFrameCount
+
+	zb := NewBuilder(zc, level)
+	return zb.Build()
+}
+
+func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
+	log, err := NewZerologAdapter(logcommon.InfoLevel)
 	require.NoError(t, err)
 	require.NotNil(t, log)
 
@@ -49,21 +61,12 @@ func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:49")
+	require.Contains(t, s, "zerolog_adapter_test.go:62")
 	require.Contains(t, s, "TestZeroLogAdapter_CallerInfoWithFunc")
 }
 
 func TestZeroLogAdapter_CallerInfo(t *testing.T) {
-	pCfg := insolar.ParsedLogConfig{
-		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   logcommon.InfoLevel,
-		Output: logadapter.OutputConfig{
-			Format: insolar.DefaultLogFormat,
-		},
-	}
-	msgFmt := logadapter.GetDefaultLogMsgFormatter()
-
-	log, err := NewZerologAdapter(pCfg, msgFmt)
+	log, err := NewZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -75,20 +78,11 @@ func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:75")
+	require.Contains(t, s, "zerolog_adapter_test.go:79")
 }
 
 func TestZeroLogAdapter_InheritFields(t *testing.T) {
-	pCfg := insolar.ParsedLogConfig{
-		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   logcommon.InfoLevel,
-		Output: logadapter.OutputConfig{
-			Format: insolar.DefaultLogFormat,
-		},
-	}
-	msgFmt := logadapter.GetDefaultLogMsgFormatter()
-
-	log, err := NewZerologAdapter(pCfg, msgFmt)
+	log, err := NewZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -111,16 +105,7 @@ func TestZeroLogAdapter_InheritFields(t *testing.T) {
 }
 
 func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
-	pCfg := insolar.ParsedLogConfig{
-		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   logcommon.InfoLevel,
-		Output: logadapter.OutputConfig{
-			Format: insolar.DefaultLogFormat,
-		},
-	}
-	msgFmt := logadapter.GetDefaultLogMsgFormatter()
-
-	log, err := NewZerologAdapter(pCfg, msgFmt)
+	log, err := NewZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -138,16 +123,7 @@ func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
 }
 
 func TestZeroLogAdapter_BuildFields(t *testing.T) {
-	pCfg := insolar.ParsedLogConfig{
-		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   logcommon.InfoLevel,
-		Output: logadapter.OutputConfig{
-			Format: insolar.DefaultLogFormat,
-		},
-	}
-	msgFmt := logadapter.GetDefaultLogMsgFormatter()
-
-	log, err := NewZerologAdapter(pCfg, msgFmt)
+	log, err := NewZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -181,16 +157,7 @@ func TestZeroLogAdapter_BuildFields(t *testing.T) {
 }
 
 func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
-	pCfg := insolar.ParsedLogConfig{
-		OutputType: insolar.DefaultLogOutput,
-		LogLevel:   logcommon.InfoLevel,
-		Output: logadapter.OutputConfig{
-			Format: insolar.DefaultLogFormat,
-		},
-	}
-	msgFmt := logadapter.GetDefaultLogMsgFormatter()
-
-	log, err := NewZerologAdapter(pCfg, msgFmt)
+	log, err := NewZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -266,7 +233,7 @@ func TestZeroLogAdapter_Fatal(t *testing.T) {
 			select {} // hang up to stop zerolog's call to os.Exit
 		},
 	}
-	zc.Output = logadapter.OutputConfig{Format: insolar.DefaultLogFormat}
+	zc.Output = logadapter.OutputConfig{Format: logcommon.TextFormat}
 	zc.MsgFormat = logadapter.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
@@ -298,7 +265,7 @@ func TestZeroLogAdapter_Panic(t *testing.T) {
 			return nil
 		},
 	}
-	zc.Output = logadapter.OutputConfig{Format: insolar.DefaultLogFormat}
+	zc.Output = logadapter.OutputConfig{Format: logcommon.TextFormat}
 	zc.MsgFormat = logadapter.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 

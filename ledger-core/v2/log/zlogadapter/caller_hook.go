@@ -17,9 +17,10 @@
 package zlogadapter
 
 import (
-	"github.com/rs/zerolog"
 	"runtime"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 // FuncFieldName is the field name used for func field.
