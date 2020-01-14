@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewZerologAdapter(level logcommon.LogLevel) (logcommon.Logger, error) {
+func newZerologAdapter(level logcommon.LogLevel) (logcommon.Logger, error) {
 	zc := logadapter.Config{}
 
 	var err error
@@ -50,7 +50,7 @@ func NewZerologAdapter(level logcommon.LogLevel) (logcommon.Logger, error) {
 }
 
 func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
-	log, err := NewZerologAdapter(logcommon.InfoLevel)
+	log, err := newZerologAdapter(logcommon.InfoLevel)
 	require.NoError(t, err)
 	require.NotNil(t, log)
 
@@ -66,7 +66,7 @@ func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 }
 
 func TestZeroLogAdapter_CallerInfo(t *testing.T) {
-	log, err := NewZerologAdapter(logcommon.InfoLevel)
+	log, err := newZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -82,7 +82,7 @@ func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 }
 
 func TestZeroLogAdapter_InheritFields(t *testing.T) {
-	log, err := NewZerologAdapter(logcommon.InfoLevel)
+	log, err := newZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -105,7 +105,7 @@ func TestZeroLogAdapter_InheritFields(t *testing.T) {
 }
 
 func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
-	log, err := NewZerologAdapter(logcommon.InfoLevel)
+	log, err := newZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -123,7 +123,7 @@ func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
 }
 
 func TestZeroLogAdapter_BuildFields(t *testing.T) {
-	log, err := NewZerologAdapter(logcommon.InfoLevel)
+	log, err := newZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
@@ -157,7 +157,7 @@ func TestZeroLogAdapter_BuildFields(t *testing.T) {
 }
 
 func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
-	log, err := NewZerologAdapter(logcommon.InfoLevel)
+	log, err := newZerologAdapter(logcommon.InfoLevel)
 
 	require.NoError(t, err)
 	require.NotNil(t, log)
