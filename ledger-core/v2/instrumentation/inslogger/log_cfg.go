@@ -14,7 +14,7 @@
 //    limitations under the License.
 //
 
-package insolar
+package inslogger
 
 import (
 	"fmt"
@@ -27,10 +27,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 )
 
-const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
-
-const DefaultLogFormat = logcommon.TextFormat
-const DefaultLogOutput = logadapter.StdErrOutput
+const defaultLogFormat = logcommon.TextFormat
+const defaultLogOutput = logadapter.StdErrOutput
 
 type ParsedLogConfig struct {
 	OutputType logadapter.LogOutput
@@ -61,13 +59,13 @@ func ParseLogConfig(cfg configuration.Log) (plc ParsedLogConfig, err error) {
 func ParseLogConfigWithDefaults(cfg configuration.Log, defaults ParsedLogConfig) (plc ParsedLogConfig, err error) {
 	plc = defaults
 
-	plc.OutputType, err = ParseOutput(cfg.OutputType, DefaultLogOutput)
+	plc.OutputType, err = ParseOutput(cfg.OutputType, defaultLogOutput)
 	if err != nil {
 		return
 	}
 	plc.OutputParam = cfg.OutputParams
 
-	plc.Output.Format, err = ParseFormat(cfg.Formatter, DefaultLogFormat)
+	plc.Output.Format, err = ParseFormat(cfg.Formatter, defaultLogFormat)
 	if err != nil {
 		return
 	}

@@ -14,13 +14,15 @@
 //    limitations under the License.
 ///
 
-package zlogadapter
+package inslogger
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/zlogadapter"
 )
 
 func stripPackageName(packageName string) string {
@@ -34,12 +36,11 @@ func stripPackageName(packageName string) string {
 
 // beware to adding lines in this test (test output depend on test code offset!)
 func TestLog_getCallInfo(t *testing.T) {
-	expectedLine := 38 // should be equal of line number where getCallInfo is called
-	info := getCallInfo(1)
+	fileName, funcName, line := zlogadapter.GetCallInfo(1)
 
-	assert.Contains(t, info.fileName, "log/zlogadapter/sourceinfo_test.go:")
-	assert.Equal(t, "TestLog_getCallInfo", info.funcName)
-	assert.Equal(t, expectedLine, info.line)
+	assert.Contains(t, fileName, "instrumentation/inslogger/sourceinfo_test.go:")
+	assert.Equal(t, "TestLog_getCallInfo", funcName)
+	assert.Equal(t, 39, line) // equal of line number where getCallInfo is called
 }
 
 func TestLog_stripPackageName(t *testing.T) {

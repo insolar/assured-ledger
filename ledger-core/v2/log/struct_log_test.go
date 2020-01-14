@@ -139,7 +139,7 @@ func TestLogLevels(t *testing.T) {
 	require.NotNil(t, buf.Bytes(), "previous logger saves it's level")
 
 	if false {
-		SetGlobalLevelFilter(logcommon.PanicLevel)
+		_ = SetGlobalLevelFilter(logcommon.PanicLevel)
 		lg.Warn(logstring)
 		require.Nil(t, buf.String(), "do not log warns at global panic level")
 	}

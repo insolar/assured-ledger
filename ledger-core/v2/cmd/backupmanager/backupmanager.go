@@ -202,11 +202,7 @@ func parseInputParams() {
 }
 
 func initLogger() context.Context {
-	err := log.SetLevel("Debug")
-	if err != nil {
-		err = errors.Wrap(err, "failed to set log level")
-		exitWithError(err)
-	}
+	log.SetLogLevel(logcommon.DebugLevel)
 
 	cfg := configuration.NewLog()
 	cfg.Level = "Debug"

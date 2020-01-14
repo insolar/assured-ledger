@@ -14,15 +14,15 @@
 // limitations under the License.
 //
 
-package log_test
+package inslogger_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"runtime"
 	"strconv"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/assert"
@@ -32,22 +32,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
+const pkgRegexPrefix = "^instrumentation/inslogger/"
+
 // Beware, test results there depends on test file name (caller_test.go)!
 
-type loggerField struct {
-	Caller string
-	Func   string
-}
-
-func logFields(t *testing.T, b []byte) loggerField {
-	var lf loggerField
-	err := json.Unmarshal(b, &lf)
-	require.NoErrorf(t, err, "failed decode: '%v'", string(b))
-	return lf
-}
-
 func TestExtLog_ZerologCaller(t *testing.T) {
-	l, err := log.NewLog(configuration.Log{
+	l, err := inslogger.NewLog(configuration.Log{
 		Level:     "info",
 		Adapter:   "zerolog",
 		Formatter: "json",
@@ -62,14 +52,14 @@ func TestExtLog_ZerologCaller(t *testing.T) {
 	l.Info("test")
 
 	lf := logFields(t, b.Bytes())
-	assert.Regexp(t, "^log/caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
 	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 }
 
 // this test result depends on test name!
 func TestExtLog_ZerologCallerWithFunc(t *testing.T) {
-	l, err := log.NewLog(configuration.Log{
+	l, err := inslogger.NewLog(configuration.Log{
 		Level:     "info",
 		Adapter:   "zerolog",
 		Formatter: "json",
@@ -84,7 +74,7 @@ func TestExtLog_ZerologCallerWithFunc(t *testing.T) {
 	l.Info("test")
 
 	lf := logFields(t, b.Bytes())
-	assert.Regexp(t, "^log/caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
 	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "TestExtLog_ZerologCallerWithFunc", lf.Func, "log contains func name")
 }
@@ -97,8 +87,7 @@ func TestExtLog_GlobalCaller(t *testing.T) {
 	require.NoError(t, err)
 	log.SetGlobalLogger(gl2)
 
-	err = log.SetLevel("info")
-	require.NoError(t, err)
+	log.SetLogLevel(logcommon.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
 	log.Info("test")
@@ -106,7 +95,7 @@ func TestExtLog_GlobalCaller(t *testing.T) {
 
 	s := b.String()
 	lf := logFields(t, []byte(s))
-	assert.Regexp(t, "^log/caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 	assert.NotContains(t, s, "test2shouldNotBeThere")
 }
@@ -118,9 +107,7 @@ func TestExtLog_GlobalCallerWithFunc(t *testing.T) {
 	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
 	log.SetGlobalLogger(gl2)
-
-	err = log.SetLevel("info")
-	require.NoError(t, err)
+	log.SetLogLevel(logcommon.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
 	log.Info("test")
@@ -128,7 +115,7 @@ func TestExtLog_GlobalCallerWithFunc(t *testing.T) {
 
 	s := b.String()
 	lf := logFields(t, []byte(s))
-	assert.Regexp(t, "^log/caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
 	assert.Equal(t, "TestExtLog_GlobalCallerWithFunc", lf.Func, "log contains func name")
 	assert.NotContains(t, s, "test2shouldNotBeThere")
 }

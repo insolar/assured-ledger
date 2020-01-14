@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package log
+package inslogger
 
 import (
 	"bytes"
@@ -27,10 +27,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 // Beware, test results there depends on test file name (caller_test.go)!
+
+const pkgRegexPrefix = "^instrumentation/inslogger/"
 
 type loggerField struct {
 	Caller string
@@ -60,7 +63,7 @@ func TestLog_ZerologCaller(t *testing.T) {
 	l.Info("test")
 
 	lf := logFields(t, b.Bytes())
-	assert.Regexp(t, "^log/caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
 	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 }
@@ -82,51 +85,47 @@ func TestLog_ZerologCallerWithFunc(t *testing.T) {
 	l.Info("test")
 
 	lf := logFields(t, b.Bytes())
-	assert.Regexp(t, "^log/caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
 	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "TestLog_ZerologCallerWithFunc", lf.Func, "log contains func name")
 }
 
 func TestLog_GlobalCaller(t *testing.T) {
-	defer SaveGlobalLogger()()
+	defer log.SaveGlobalLogger()()
 
 	var b bytes.Buffer
-	gl2, err := GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
+	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
-	SetGlobalLogger(gl2)
-
-	err = SetLevel("info")
-	require.NoError(t, err)
+	log.SetGlobalLogger(gl2)
+	log.SetLogLevel(logcommon.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
-	Info("test")
-	Debug("test2shouldNotBeThere")
+	log.Info("test")
+	log.Debug("test2shouldNotBeThere")
 
 	s := b.String()
 	lf := logFields(t, []byte(s))
-	assert.Regexp(t, "^log/caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 	assert.NotContains(t, s, "test2shouldNotBeThere")
 }
 
 func TestLog_GlobalCallerWithFunc(t *testing.T) {
-	defer SaveGlobalLogger()()
+	defer log.SaveGlobalLogger()()
 
 	var b bytes.Buffer
-	gl2, err := GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
+	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
-	SetGlobalLogger(gl2)
-
-	err = SetLevel("info")
-	require.NoError(t, err)
+	log.SetGlobalLogger(gl2)
+	log.SetLogLevel(logcommon.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
-	Info("test")
-	Debug("test2shouldNotBeThere")
+	log.Info("test")
+	log.Debug("test2shouldNotBeThere")
 
 	s := b.String()
 	lf := logFields(t, []byte(s))
-	assert.Regexp(t, "^log/caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
+	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper call place")
 	assert.Equal(t, "TestLog_GlobalCallerWithFunc", lf.Func, "log contains func name")
 	assert.NotContains(t, s, "test2shouldNotBeThere")
 }

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"os"
 	"runtime"
 	"strconv"
 	"testing"
@@ -37,7 +36,7 @@ import (
 
 // Beware, test results there depends on test file and package names!
 
-var (
+const (
 	pkgRelName   = "instrumentation/inslogger/"
 	testFileName = "inslogger_ext_test.go"
 	callerRe     = "^" + pkgRelName + testFileName + ":"
@@ -87,7 +86,7 @@ func TestExt_Global_WithFunc(t *testing.T) {
 }
 
 func TestExt_Log(t *testing.T) {
-	logPut, err := log.NewLog(configuration.Log{
+	logPut, err := inslogger.NewLog(configuration.Log{
 		Level:     "info",
 		Adapter:   "zerolog",
 		Formatter: "json",
@@ -110,7 +109,7 @@ func TestExt_Log(t *testing.T) {
 }
 
 func TestExt_Log_WithFunc(t *testing.T) {
-	logPut, err := log.NewLog(configuration.Log{
+	logPut, err := inslogger.NewLog(configuration.Log{
 		Level:     "info",
 		Adapter:   "zerolog",
 		Formatter: "json",
@@ -134,7 +133,7 @@ func TestExt_Log_WithFunc(t *testing.T) {
 }
 
 func TestExt_Log_SubCall(t *testing.T) {
-	logPut, err := log.NewLog(configuration.Log{
+	logPut, err := inslogger.NewLog(configuration.Log{
 		Level:     "info",
 		Adapter:   "zerolog",
 		Formatter: "json",
@@ -192,13 +191,13 @@ func TestExt_Check_LoggerProxy_DoesntLoop(t *testing.T) {
 	l.Info("test") // here will be a stack overflow if logger proxy doesn't handle self-setting
 }
 
-func TestMain(m *testing.M) {
-	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
-	if err != nil {
-		panic(err)
-	}
-	log.SetGlobalLogger(l)
-	_ = log.SetGlobalLevelFilter(logcommon.DebugLevel)
-	exitCode := m.Run()
-	os.Exit(exitCode)
-}
+//func TestMain(m *testing.M) {
+//	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
+//	if err != nil {
+//		panic(err)
+//	}
+//	log.SetGlobalLogger(l)
+//	_ = log.SetGlobalLevelFilter(logcommon.DebugLevel)
+//	exitCode := m.Run()
+//	os.Exit(exitCode)
+//}

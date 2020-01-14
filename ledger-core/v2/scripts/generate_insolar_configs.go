@@ -28,13 +28,13 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/bootstrap"
 	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/v2/cmd/pulsewatcher/config"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
 func baseDir() string {
@@ -354,6 +354,6 @@ func check(msg string, err error) {
 
 	logCfg := configuration.NewLog()
 	logCfg.Formatter = "text"
-	inslog, _ := log.NewGlobalLogger(logCfg)
+	inslog, _ := inslogger.NewLog(logCfg)
 	inslog.WithField("error", err.Error()).Fatal(msg)
 }

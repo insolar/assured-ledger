@@ -18,19 +18,89 @@ package inslogger
 
 import (
 	"context"
+	"errors"
 	"runtime/debug"
+	"strings"
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
-	logger "github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
-type loggerKey struct{}
+const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
+
+const insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/v2/"
+const skipFrameBaselineAdjustment = 0
+
+func init() {
+	initZlog()
+
+	// NB! initialize adapters' globals before the next call
+	log.TrySetGlobalLoggerInitializer(func() (logcommon.LoggerBuilder, error) {
+		holder := configuration.NewHolder().MustInit(false)
+		logCfg := holder.Configuration.Log
+
+		// enforce buffer-less for a non-configured logger
+		logCfg.BufferSize = 0
+		logCfg.LLBufferSize = -1
+
+		return newLogger(logCfg)
+	})
+}
+
+func newLogger(cfg configuration.Log) (logcommon.LoggerBuilder, error) {
+	defaults := DefaultLoggerSettings()
+	pCfg, err := ParseLogConfigWithDefaults(cfg, defaults)
+	if err != nil {
+		return nil, err
+	}
+
+	var logBuilder logcommon.LoggerBuilder
+
+	pCfg.SkipFrameBaselineAdjustment = skipFrameBaselineAdjustment
+	msgFmt := logadapter.GetDefaultLogMsgFormatter()
+
+	switch strings.ToLower(cfg.Adapter) {
+	case "zerolog":
+		logBuilder, err = newZerologAdapter(pCfg, msgFmt)
+	default:
+		return nil, errors.New("invalid logger config, unknown adapter")
+	}
+
+	switch {
+	case err != nil:
+		return nil, err
+	case logBuilder == nil:
+		return nil, errors.New("logger was not initialized")
+	default:
+		return logBuilder, nil
+	}
+}
+
+// newLog creates a new logger with the given configuration
+func NewLog(cfg configuration.Log) (logcommon.Logger, error) {
+	switch b, err := newLogger(cfg); {
+	case err != nil:
+		return nil, err
+	default:
+		switch logger, err := b.Build(); {
+		case err != nil:
+			return nil, err
+		case logger == nil:
+			return nil, errors.New("logger builder has returned nil")
+		default:
+			return logger, nil
+		}
+	}
+}
+
+var loggerKey = struct{}{}
 
 func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) (context.Context, logcommon.Logger) {
-	inslog, err := logger.NewGlobalLogger(cfg)
+	inslog, err := NewLog(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +115,7 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 	inslog = inslog.WithFields(fields)
 
 	ctx = SetLogger(ctx, inslog)
-	logger.SetGlobalLogger(inslog)
+	log.SetGlobalLogger(inslog)
 
 	return ctx, inslog
 }
@@ -61,7 +131,7 @@ func FromContext(ctx context.Context) logcommon.Logger {
 
 // SetLogger returns context with provided insolar.Logger,
 func SetLogger(ctx context.Context, l logcommon.Logger) context.Context {
-	return context.WithValue(ctx, loggerKey{}, l)
+	return context.WithValue(ctx, loggerKey, l)
 }
 
 func UpdateLogger(ctx context.Context, fn func(logcommon.Logger) (logcommon.Logger, error)) context.Context {
@@ -122,9 +192,9 @@ func ContextWithTrace(ctx context.Context, traceid string) context.Context {
 }
 
 func getLogger(ctx context.Context) logcommon.Logger {
-	val := ctx.Value(loggerKey{})
+	val := ctx.Value(loggerKey)
 	if val == nil {
-		return logger.CopyGlobalLoggerForContext()
+		return log.CopyGlobalLoggerForContext()
 	}
 	return val.(logcommon.Logger)
 }

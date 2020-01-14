@@ -21,43 +21,67 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/zlogadapter"
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/critlog"
 )
-
-// Creates and sets global logger. It has a different effect than SetGlobalLogger(NewLog(...)) as it sets a global filter also.
-func NewGlobalLogger(cfg configuration.Log) (logcommon.Logger, error) {
-	logger, err := NewLog(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	b := logger.Copy()
-	a := getGlobalLogAdapter(b)
-	if a == nil {
-		return nil, errors.New("Log adapter has no global filter")
-	}
-
-	globalLogger.mutex.Lock()
-	defer globalLogger.mutex.Unlock()
-	err = setGlobalLogger(logger, false, true)
-	if err != nil {
-		return nil, err
-	}
-
-	return globalLogger.logger, nil
-}
 
 var globalLogger = struct {
 	mutex   sync.RWMutex
 	output  critlog.ProxyLoggerOutput
 	logger  logcommon.Logger
 	adapter logcommon.GlobalLogAdapter
-}{}
+	defInit func() (logcommon.LoggerBuilder, error)
+}{
+	defInit: _initDefaultWithZlog,
+}
+
+func _initDefaultWithZlog() (logcommon.LoggerBuilder, error) {
+	zc := logadapter.Config{}
+
+	var err error
+	zc.BareOutput, err = logadapter.OpenLogBareOutput(logadapter.StdErrOutput, "")
+	if err != nil {
+		return nil, err
+	}
+	if zc.BareOutput.Writer == nil {
+		panic("output is nil")
+	}
+
+	zc.Output = logadapter.OutputConfig{
+		Format: logcommon.TextFormat,
+	}
+	zc.MsgFormat = logadapter.GetDefaultLogMsgFormatter()
+	zc.Instruments.SkipFrameCountBaseline = zlogadapter.ZerologSkipFrameCount
+	zc.Instruments.CallerMode = logcommon.CallerField
+	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField
+
+	b := zlogadapter.NewBuilder(zc, logcommon.InfoLevel)
+	b = b.WithField("loginstance", "global_default")
+	return b, nil
+}
+
+func initDefaultGlobalLogger() {
+	switch b, err := globalLogger.defInit(); {
+	case err != nil:
+		panic(errors.Wrap(err, "default global logger initializer has failed"))
+	case b == nil:
+		panic("default global logger initializer has returned nil")
+	default:
+		switch logger, err := b.Build(); {
+		case err != nil:
+			panic(errors.Wrap(err, "default global logger builder has failed"))
+		case logger == nil:
+			panic("default global logger builder has returned nil")
+		default:
+			globalLogger.logger = logger
+		}
+	}
+}
 
 func GlobalLogger() logcommon.Logger {
 	globalLogger.mutex.RLock()
@@ -71,7 +95,7 @@ func GlobalLogger() logcommon.Logger {
 	globalLogger.mutex.Lock()
 	defer globalLogger.mutex.Unlock()
 	if globalLogger.logger == nil {
-		createNoConfigGlobalLogger()
+		initDefaultGlobalLogger()
 	}
 
 	return globalLogger.logger
@@ -126,27 +150,6 @@ func InitTicker() {
 	})
 }
 
-// GlobalLogger creates global logger with correct skipCallNumber
-func createNoConfigGlobalLogger() {
-	holder := configuration.NewHolder().MustInit(false)
-	logCfg := holder.Configuration.Log
-
-	// enforce buffer-less for a non-configured logger
-	logCfg.BufferSize = 0
-	logCfg.LLBufferSize = -1
-
-	logger, err := NewLog(logCfg)
-
-	if err == nil {
-		err = setGlobalLogger(logger, true, true)
-	}
-
-	if err != nil || logger == nil {
-		stdlog.Println("warning: ", err)
-		panic("unable to initialize global logger with default config")
-	}
-}
-
 func getGlobalLogAdapter(b logcommon.LoggerBuilder) logcommon.GlobalLogAdapter {
 	if f, ok := b.(logcommon.GlobalLogAdapterFactory); ok {
 		return f.CreateGlobalLogAdapter()
@@ -154,35 +157,42 @@ func getGlobalLogAdapter(b logcommon.LoggerBuilder) logcommon.GlobalLogAdapter {
 	return nil
 }
 
-func setGlobalLogger(logger logcommon.Logger, isDefault, isNewGlobal bool) error {
-	b := logger.Copy()
+func TrySetGlobalLoggerInitializer(initFn func() (logcommon.LoggerBuilder, error)) bool {
+	if initFn == nil {
+		panic("illegal value")
+	}
+	globalLogger.mutex.Lock()
+	defer globalLogger.mutex.Unlock()
+
+	globalLogger.defInit = initFn
+	return globalLogger.logger == nil
+}
+
+func setGlobalLogger(b logcommon.LoggerBuilder) error {
+	adapter := getGlobalLogAdapter(b)
+
+	switch {
+	case adapter == nil:
+		return errors.New("log adapter doesn't support global filter")
+	case globalLogger.adapter == adapter:
+		//
+	case globalLogger.adapter != nil:
+		adapter.SetGlobalLoggerFilter(globalLogger.adapter.GetGlobalLoggerFilter())
+	default:
+		lvl := b.GetLogLevel()
+		adapter.SetGlobalLoggerFilter(lvl)
+		b = b.WithLevel(logcommon.MinLevel)
+	}
 
 	output := b.(logcommon.LoggerOutputGetter).GetLoggerOutput()
 	b = b.WithOutput(&globalLogger.output)
 
-	if isDefault {
-		// TODO move to logger construction configuration?
-		b = b.WithCaller(logcommon.CallerField)
-		b = b.WithField("loginstance", "global_default")
-	} else {
-		b = b.WithField("loginstance", "global")
-	}
-
-	adapter := getGlobalLogAdapter(b)
-	lvl := b.GetLogLevel()
-
-	var err error
-	logger, err = b.Build()
+	logger, err := b.Build()
 	switch {
 	case err != nil:
 		return err
-	case adapter == nil:
-		break
-	case isNewGlobal:
-		adapter.SetGlobalLoggerFilter(lvl)
-		logger = logger.Level(logcommon.DebugLevel)
-	case globalLogger.adapter != adapter && globalLogger.adapter != nil:
-		adapter.SetGlobalLoggerFilter(globalLogger.adapter.GetGlobalLoggerFilter())
+	case logger == nil:
+		return errors.New("log adapter builder has returned nil")
 	}
 
 	globalLogger.adapter = adapter
@@ -193,17 +203,18 @@ func setGlobalLogger(logger logcommon.Logger, isDefault, isNewGlobal bool) error
 }
 
 func SetGlobalLogger(logger logcommon.Logger) {
+	if logger == nil {
+		panic("illegal value")
+	}
+
 	globalLogger.mutex.Lock()
 	defer globalLogger.mutex.Unlock()
 
 	if globalLogger.logger == logger {
 		return
 	}
-
-	err := setGlobalLogger(logger, false, false)
-
-	if err != nil || logger == nil {
-		stdlog.Println("warning: ", err)
+	if err := setGlobalLogger(logger.Copy()); err != nil {
+		stdlog.Println("warning: unable to update global logger, ", err)
 		panic("unable to update global logger")
 	}
 }
@@ -224,7 +235,7 @@ func SetLogLevel(level logcommon.LogLevel) {
 	defer globalLogger.mutex.Unlock()
 
 	if globalLogger.logger == nil {
-		createNoConfigGlobalLogger()
+		initDefaultGlobalLogger()
 	}
 
 	globalLogger.logger = globalLogger.logger.Level(level)

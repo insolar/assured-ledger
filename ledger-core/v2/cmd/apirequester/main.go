@@ -24,6 +24,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 const defaultAdminURL = "http://localhost:19001/admin-api/rpc"
@@ -52,8 +53,7 @@ func check(msg string, err error) {
 func main() {
 	parseInputParams()
 
-	err := log.SetLevel("error")
-	check("can't set 'error' level on logger: ", err)
+	log.SetLogLevel(logcommon.ErrorLevel)
 
 	insSDK, err := sdk.NewSDK([]string{apiAdminURL}, []string{apiPublicURL}, memberKeys, sdk.DefaultOptions)
 	check("can't create SDK: ", err)
