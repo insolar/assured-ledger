@@ -1,4 +1,4 @@
-///
+//
 //    Copyright 2019 Insolar Technologies
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,26 +12,22 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-///
+//
 
-package logcommon
+package bilogadapter
 
-type EncoderManager interface {
-	CreatePartEncoder([]byte) LogObjectWriter
-	FlushPartEncoder(LogObjectWriter) []byte
-	WriteParts(level LogLevel, parts [][]byte, writer LogLevelWriter) error
+import (
+	"sync/atomic"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+)
+
+var gLevel uint32
+
+func getGlobalFilter() logcommon.LogLevel {
+	return logcommon.LogLevel(atomic.LoadUint32(&gLevel))
 }
 
-type TextBinder struct {
-	prefix []byte
-
-	parentCtx []byte
-
-	context []byte
-
-	dynCtx []byte
-
-	msgFields []byte
-
-	msgText []byte
+func setGlobalFilter(level logcommon.LogLevel) {
+	atomic.StoreUint32(&gLevel, uint32(level))
 }

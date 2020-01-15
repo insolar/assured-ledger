@@ -14,7 +14,7 @@
 //    limitations under the License.
 ///
 
-package logtext
+package bilogadapter
 
 import (
 	"encoding/json"

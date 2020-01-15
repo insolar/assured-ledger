@@ -34,7 +34,6 @@ var globalLogger = struct {
 	mutex   sync.RWMutex
 	output  critlog.ProxyLoggerOutput
 	logger  logcommon.Logger
-	adapter logcommon.GlobalLogAdapter
 	defInit func() (logcommon.LoggerBuilder, error)
 }{
 	defInit: _initDefaultWithZlog,
@@ -115,7 +114,12 @@ func SaveGlobalLoggerAndFilter(includeFilter bool) func() {
 
 	loggerCopy := globalLogger.logger
 	outputCopy := globalLogger.output.GetTarget()
-	hasLoggerFilter, loggerFilter := getGlobalLevelFilter()
+	globalAdapterCopy := getGlobalLogAdapter()
+
+	globalFilterCopy := logcommon.MinLevel
+	if includeFilter && globalAdapterCopy != nil {
+		globalFilterCopy = globalAdapterCopy.GetGlobalLoggerFilter()
+	}
 
 	return func() {
 		globalLogger.mutex.Lock()
@@ -124,8 +128,9 @@ func SaveGlobalLoggerAndFilter(includeFilter bool) func() {
 		globalLogger.logger = loggerCopy
 		globalLogger.output.SetTarget(outputCopy)
 
-		if includeFilter && hasLoggerFilter {
-			_ = setGlobalLevelFilter(loggerFilter)
+		setGlobalLogAdapter(globalAdapterCopy)
+		if includeFilter && globalAdapterCopy != nil {
+			globalAdapterCopy.SetGlobalLoggerFilter(globalFilterCopy)
 		}
 	}
 }
@@ -150,13 +155,6 @@ func InitTicker() {
 	})
 }
 
-func getGlobalLogAdapter(b logcommon.LoggerBuilder) logcommon.GlobalLogAdapter {
-	if f, ok := b.(logcommon.GlobalLogAdapterFactory); ok {
-		return f.CreateGlobalLogAdapter()
-	}
-	return nil
-}
-
 func TrySetGlobalLoggerInitializer(initFn func() (logcommon.LoggerBuilder, error)) bool {
 	if initFn == nil {
 		panic("illegal value")
@@ -169,15 +167,18 @@ func TrySetGlobalLoggerInitializer(initFn func() (logcommon.LoggerBuilder, error
 }
 
 func setGlobalLogger(b logcommon.LoggerBuilder) error {
-	adapter := getGlobalLogAdapter(b)
-
-	switch {
-	case adapter == nil:
+	var adapter logcommon.GlobalLogAdapter
+	if f, ok := b.(logcommon.GlobalLogAdapterFactory); ok {
+		adapter = f.GetGlobalLogAdapter()
+	} else {
 		return errors.New("log adapter doesn't support global filter")
-	case globalLogger.adapter == adapter:
+	}
+
+	switch lastAdapter := getGlobalLogAdapter(); {
+	case lastAdapter == adapter:
 		//
-	case globalLogger.adapter != nil:
-		adapter.SetGlobalLoggerFilter(globalLogger.adapter.GetGlobalLoggerFilter())
+	case lastAdapter != nil:
+		adapter.SetGlobalLoggerFilter(lastAdapter.GetGlobalLoggerFilter())
 	default:
 		lvl := b.GetLogLevel()
 		adapter.SetGlobalLoggerFilter(lvl)
@@ -195,7 +196,7 @@ func setGlobalLogger(b logcommon.LoggerBuilder) error {
 		return errors.New("log adapter builder has returned nil")
 	}
 
-	globalLogger.adapter = adapter
+	setGlobalLogAdapter(adapter)
 	globalLogger.logger = logger
 
 	globalLogger.output.SetTarget(output)
@@ -242,33 +243,18 @@ func SetLogLevel(level logcommon.LogLevel) {
 }
 
 func SetGlobalLevelFilter(level logcommon.LogLevel) error {
-	globalLogger.mutex.RLock()
-	defer globalLogger.mutex.RUnlock()
-
-	return setGlobalLevelFilter(level)
-}
-
-func setGlobalLevelFilter(level logcommon.LogLevel) error {
-	if globalLogger.adapter != nil {
-		globalLogger.adapter.SetGlobalLoggerFilter(level)
+	if ga := getGlobalLogAdapter(); ga != nil {
+		ga.SetGlobalLoggerFilter(level)
 		return nil
 	}
 	return errors.New("not supported")
 }
 
 func GetGlobalLevelFilter() logcommon.LogLevel {
-	globalLogger.mutex.RLock()
-	defer globalLogger.mutex.RUnlock()
-
-	_, l := getGlobalLevelFilter()
-	return l
-}
-
-func getGlobalLevelFilter() (bool, logcommon.LogLevel) {
-	if globalLogger.adapter != nil {
-		return true, globalLogger.adapter.GetGlobalLoggerFilter()
+	if ga := getGlobalLogAdapter(); ga != nil {
+		return ga.GetGlobalLoggerFilter()
 	}
-	return false, logcommon.MinLevel
+	return logcommon.MinLevel
 }
 
 /*

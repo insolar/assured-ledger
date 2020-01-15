@@ -19,7 +19,7 @@ package logcommon
 const DefaultOutputParallelLimit = 5
 
 type GlobalLogAdapterFactory interface {
-	CreateGlobalLogAdapter() GlobalLogAdapter
+	GetGlobalLogAdapter() GlobalLogAdapter
 }
 
 type GlobalLogAdapter interface {

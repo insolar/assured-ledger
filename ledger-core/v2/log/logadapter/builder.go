@@ -160,9 +160,9 @@ type LoggerBuilder struct {
 	Config
 }
 
-func (z LoggerBuilder) CreateGlobalLogAdapter() logcommon.GlobalLogAdapter {
+func (z LoggerBuilder) GetGlobalLogAdapter() logcommon.GlobalLogAdapter {
 	if f, ok := z.factory.(logcommon.GlobalLogAdapterFactory); ok {
-		return f.CreateGlobalLogAdapter()
+		return f.GetGlobalLogAdapter()
 	}
 	return nil
 }

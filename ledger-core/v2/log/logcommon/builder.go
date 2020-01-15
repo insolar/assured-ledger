@@ -18,11 +18,16 @@ package logcommon
 
 import (
 	"io"
+	"sort"
 	"time"
 )
 
 type DynFieldFunc func() interface{}
 type DynFieldMap map[string]DynFieldFunc
+type DynFieldEntry struct {
+	Name   string
+	Getter DynFieldFunc
+}
 
 type LoggerBuilder interface {
 	// Returns the current output
@@ -103,19 +108,43 @@ const (
 	LogMetricsResetMode
 )
 
-type LogFormat uint8
+type LogFormat string
 
 const (
-	TextFormat LogFormat = iota
-	JSONFormat
+	TextFormat LogFormat = "text"
+	JSONFormat LogFormat = "json"
 )
 
 func (l LogFormat) String() string {
-	switch l {
-	case TextFormat:
-		return "text"
-	case JSONFormat:
-		return "json"
-	}
 	return string(l)
+}
+
+type DynFieldList []DynFieldEntry
+
+func (v *DynFieldList) Sort() {
+	sort.Sort(dynFieldList{v})
+}
+
+func (v *DynFieldList) Find(name string) (int, bool) {
+	n := len(*v)
+	index := sort.Search(n, func(i int) bool {
+		return (*v)[i].Name >= name
+	})
+	return index, index >= 0 && index < n && (*v)[index].Name == name
+}
+
+type dynFieldList struct {
+	list *DynFieldList
+}
+
+func (v dynFieldList) Len() int {
+	return len(*v.list)
+}
+
+func (v dynFieldList) Less(i, j int) bool {
+	return (*v.list)[i].Name < (*v.list)[j].Name
+}
+
+func (v dynFieldList) Swap(i, j int) {
+	(*v.list)[i], (*v.list)[j] = (*v.list)[j], (*v.list)[i]
 }

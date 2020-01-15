@@ -306,14 +306,14 @@ func (z *zerologAdapter) GetLoggerOutput() logcommon.LoggerOutput {
 
 /* =========================== */
 
-var _ logadapter.Factory = &zerologFactory{}
-var _ logcommon.GlobalLogAdapterFactory = &zerologFactory{}
+var _ logadapter.Factory = zerologFactory{}
+var _ logcommon.GlobalLogAdapterFactory = zerologFactory{}
 
 type zerologFactory struct {
 	writeDelayPreferTrim bool
 }
 
-func (zf zerologFactory) CreateGlobalLogAdapter() logcommon.GlobalLogAdapter {
+func (zf zerologFactory) GetGlobalLogAdapter() logcommon.GlobalLogAdapter {
 	return zerologGlobalAdapter
 }
 
@@ -499,10 +499,9 @@ func (zf zerologFactory) CanReuseMsgBuffer() bool {
 
 /* =========================== */
 
-var zerologGlobalAdapter logcommon.GlobalLogAdapter = &zerologGlobal{}
+var zerologGlobalAdapter logcommon.GlobalLogAdapter = zerologGlobal{}
 
-type zerologGlobal struct {
-}
+type zerologGlobal struct{}
 
 func (zerologGlobal) SetGlobalLoggerFilter(level logcommon.LogLevel) {
 	zerolog.SetGlobalLevel(ToZerologLevel(level))
