@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/inssyslog"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/outputsyslog"
 )
 
 type LogOutput uint8
@@ -53,7 +53,7 @@ func OpenLogBareOutput(output LogOutput, param string) (BareOutput, error) {
 		}, nil
 	case SysLogOutput:
 		executableName := filepath.Base(os.Args[0])
-		w, err := inssyslog.ConnectSyslogByParam(param, executableName)
+		w, err := outputsyslog.ConnectSyslogByParam(param, executableName)
 		if err != nil {
 			return BareOutput{}, err
 		}

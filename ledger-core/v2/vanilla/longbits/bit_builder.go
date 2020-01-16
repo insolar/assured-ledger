@@ -32,11 +32,8 @@ const (
 	initMSB = 0x80
 )
 
-func NewBitBuilder(direction BitBuilderOrder, expectedLen int) BitBuilder {
-	if expectedLen > 0 {
-		return AppendBitBuilder(make([]byte, 0, expectedLen), direction)
-	}
-	return AppendBitBuilder(nil, direction)
+func NewBitBuilder(direction BitBuilderOrder, expectedByteLen int) BitBuilder {
+	return AppendBitBuilder(make([]byte, 0, expectedByteLen), direction)
 }
 
 func AppendBitBuilder(appendTo []byte, direction BitBuilderOrder) BitBuilder {
@@ -380,6 +377,11 @@ func (p *BitBuilder) Done() ([]byte, int) {
 }
 
 func (p *BitBuilder) DoneToBytes() []byte {
+	b, _ := p.Done()
+	return b
+}
+
+func (p *BitBuilder) DoneToBits() BitSlice {
 	b, _ := p.Done()
 	return b
 }

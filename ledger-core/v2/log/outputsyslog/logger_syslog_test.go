@@ -14,11 +14,12 @@
 //    limitations under the License.
 ///
 
-package inssyslog
+package outputsyslog
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseParam(t *testing.T) {

@@ -34,9 +34,13 @@ const (
 	PanicLevel
 	NoLevel
 
-	LogLevelCount = int(iota)
+	LogLevelCount = iota
 )
 const MinLevel = DebugLevel
+
+func (l LogLevel) IsValid() bool {
+	return l > Disabled && l < NoLevel
+}
 
 func (l LogLevel) Equal(other LogLevel) bool {
 	return l == other

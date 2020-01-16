@@ -2,6 +2,7 @@ package logadapter
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
@@ -135,40 +136,61 @@ func (f fieldFmtReceiver) ReceiveElse(t reflect.Kind, v interface{}, isZero bool
 
 type stringCapturer struct {
 	v string
+	*MsgFormatConfig
 }
 
-func (p *stringCapturer) AddComplexField(key string, v complex128, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+func (p *stringCapturer) set(v interface{}, fmt logcommon.LogFieldFormat) {
+	if fmt.HasFmt {
+		p.v = p.Sformatf(fmt.Fmt, v)
+	} else {
+		p.v = p.Sformat(v)
+	}
+}
+
+func (p *stringCapturer) AddComplexField(_ string, v complex128, fmt logcommon.LogFieldFormat) {
+	p.set(v, fmt)
 }
 
 func (p *stringCapturer) AddRawJSONField(_ string, v interface{}, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+	p.set(v, fmt)
 }
 
 func (p *stringCapturer) AddIntField(_ string, v int64, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+	p.set(v, fmt)
 }
 
 func (p *stringCapturer) AddUintField(_ string, v uint64, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+	if fmt.Kind == reflect.Uintptr {
+		p.set(uintptr(v), fmt)
+	} else {
+		p.set(v, fmt)
+	}
 }
 
 func (p *stringCapturer) AddBoolField(_ string, v bool, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+	p.set(v, fmt)
 }
 
 func (p *stringCapturer) AddFloatField(_ string, v float64, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+	p.set(v, fmt)
 }
 
 func (p *stringCapturer) AddStrField(_ string, v string, fmt logcommon.LogFieldFormat) {
 	if fmt.HasFmt {
-		p.v = fmt.ToString(v, "%v")
+		p.set(v, fmt)
 	} else {
 		p.v = v
 	}
 }
 
 func (p *stringCapturer) AddIntfField(_ string, v interface{}, fmt logcommon.LogFieldFormat) {
-	p.v = fmt.ToString(v, "%v")
+	p.set(v, fmt)
+}
+
+func (p *stringCapturer) AddTimeField(key string, v time.Time, fFmt logcommon.LogFieldFormat) {
+	if fFmt.HasFmt {
+		p.v = v.Format(fFmt.Fmt)
+	} else {
+		p.v = v.Format(p.TimeFmt)
+	}
 }

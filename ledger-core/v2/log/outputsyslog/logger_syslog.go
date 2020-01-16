@@ -14,7 +14,7 @@
 //    limitations under the License.
 //
 
-package inssyslog
+package outputsyslog
 
 import (
 	"io"
@@ -22,11 +22,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
-
-/*
-	This code replicates zerolog/syslog.go to implement io.Closer
-	Here we can't use zerolog/syslog.go as it is based on syslog package that breaks OS compatibility.
-*/
 
 type LogLevelWriteCloser interface {
 	logcommon.LogLevelWriter

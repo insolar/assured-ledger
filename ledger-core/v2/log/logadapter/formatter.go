@@ -19,6 +19,7 @@ package logadapter
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
@@ -30,6 +31,8 @@ type MsgFormatConfig struct {
 	Sformat  FormatFunc
 	Sformatf FormatfFunc
 	MFactory MarshallerFactory
+
+	TimeFmt string
 }
 
 func GetDefaultLogMsgFormatter() MsgFormatConfig {
@@ -37,6 +40,7 @@ func GetDefaultLogMsgFormatter() MsgFormatConfig {
 		Sformat:  fmt.Sprint,
 		Sformatf: fmt.Sprintf,
 		MFactory: GetDefaultLogMsgMarshallerFactory(),
+		TimeFmt:  time.RFC3339,
 	}
 }
 

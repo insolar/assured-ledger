@@ -75,11 +75,9 @@ type InstrumentationConfig struct {
 	SkipFrameCount         int8
 }
 
-const writeDelayFieldFlags = logcommon.LogMetricsWriteDelayReport | logcommon.LogMetricsWriteDelayField
-
 func (v InstrumentationConfig) CanReuseOutputFor(config InstrumentationConfig) bool {
-	vTWD := v.MetricsMode&writeDelayFieldFlags != 0
-	cTWD := config.MetricsMode&writeDelayFieldFlags != 0
+	vTWD := v.MetricsMode&logcommon.LogMetricsWriteDelayFlags != 0
+	cTWD := config.MetricsMode&logcommon.LogMetricsWriteDelayFlags != 0
 
 	if v.Recorder != config.Recorder {
 		return !cTWD && !vTWD

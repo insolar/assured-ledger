@@ -17,6 +17,8 @@
 package bilogadapter
 
 import (
+	"time"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
@@ -25,8 +27,12 @@ type EncoderFactory interface {
 	CreateEncoder(config logadapter.MsgFormatConfig) Encoder
 }
 
+type PrepareFlags uint8
+
 type Encoder interface {
-	InitBuffer(level logcommon.LogLevel, reuse []byte, parts [][]byte) []byte
+	PrepareBuffer(dst *[]byte)
+	FinalizeBuffer(dst *[]byte)
+
 	AppendIntField(b *[]byte, key string, v int64, fmt logcommon.LogFieldFormat)
 	AppendUintField(b *[]byte, key string, v uint64, fmt logcommon.LogFieldFormat)
 	AppendBoolField(b *[]byte, key string, v bool, fmt logcommon.LogFieldFormat)
@@ -35,6 +41,7 @@ type Encoder interface {
 	AppendStrField(b *[]byte, key string, v string, fmt logcommon.LogFieldFormat)
 	AppendIntfField(b *[]byte, key string, v interface{}, fmt logcommon.LogFieldFormat)
 	AppendRawJSONField(b *[]byte, key string, v interface{}, fmt logcommon.LogFieldFormat)
+	AppendTimeField(b *[]byte, key string, v time.Time, fmt logcommon.LogFieldFormat)
 }
 
 var _ logcommon.LogObjectWriter = &objectEncoder{}
@@ -74,4 +81,8 @@ func (p *objectEncoder) AddIntfField(key string, v interface{}, fmt logcommon.Lo
 
 func (p *objectEncoder) AddRawJSONField(key string, v interface{}, fmt logcommon.LogFieldFormat) {
 	p.fieldEncoder.AppendRawJSONField(&p.content, key, v, fmt)
+}
+
+func (p *objectEncoder) AddTimeField(key string, v time.Time, fmt logcommon.LogFieldFormat) {
+	p.fieldEncoder.AppendTimeField(&p.content, key, v, fmt)
 }

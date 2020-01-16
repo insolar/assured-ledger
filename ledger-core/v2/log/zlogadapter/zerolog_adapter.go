@@ -19,8 +19,8 @@ package zlogadapter
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
@@ -126,11 +126,12 @@ func NewBuilder(cfg logadapter.Config, level logcommon.LogLevel) logcommon.Logge
 
 type zerologMarshaller struct {
 	event *zerolog.Event
+	*logadapter.MsgFormatConfig
 }
 
 func (m zerologMarshaller) AddIntField(key string, v int64, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
 		m.event.Int64(key, v)
 	}
@@ -138,7 +139,7 @@ func (m zerologMarshaller) AddIntField(key string, v int64, fFmt logcommon.LogFi
 
 func (m zerologMarshaller) AddUintField(key string, v uint64, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
 		m.event.Uint64(key, v)
 	}
@@ -146,7 +147,7 @@ func (m zerologMarshaller) AddUintField(key string, v uint64, fFmt logcommon.Log
 
 func (m zerologMarshaller) AddBoolField(key string, v bool, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
 		m.event.Bool(key, v)
 	}
@@ -154,7 +155,7 @@ func (m zerologMarshaller) AddBoolField(key string, v bool, fFmt logcommon.LogFi
 
 func (m zerologMarshaller) AddFloatField(key string, v float64, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
 		m.event.Float64(key, v)
 	}
@@ -162,15 +163,15 @@ func (m zerologMarshaller) AddFloatField(key string, v float64, fFmt logcommon.L
 
 func (m zerologMarshaller) AddComplexField(key string, v complex128, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
-		m.event.Str(key, fmt.Sprint(v))
+		m.event.Str(key, m.Sformat(v))
 	}
 }
 
 func (m zerologMarshaller) AddStrField(key string, v string, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
 		m.event.Str(key, v)
 	}
@@ -178,14 +179,23 @@ func (m zerologMarshaller) AddStrField(key string, v string, fFmt logcommon.LogF
 
 func (m zerologMarshaller) AddIntfField(key string, v interface{}, fFmt logcommon.LogFieldFormat) {
 	if fFmt.HasFmt {
-		m.event.Str(key, fmt.Sprintf(fFmt.Fmt, v))
+		m.event.Str(key, m.Sformatf(fFmt.Fmt, v))
 	} else {
 		m.event.Interface(key, v)
 	}
 }
 
+func (m zerologMarshaller) AddTimeField(key string, v time.Time, fFmt logcommon.LogFieldFormat) {
+	if fFmt.HasFmt {
+		m.event.Str(key, v.Format(fFmt.Fmt))
+	} else {
+		// NB! here we ignore MsgFormatConfig.TimeFmt as it should be set to zerolog.TimeFieldFormat
+		m.event.Time(key, v)
+	}
+}
+
 func (m zerologMarshaller) AddRawJSONField(key string, v interface{}, fFmt logcommon.LogFieldFormat) {
-	m.event.RawJSON(key, []byte(fmt.Sprintf(fFmt.Fmt, v)))
+	m.event.RawJSON(key, []byte(m.Sformatf(fFmt.Fmt, v)))
 }
 
 /* ============================ */
@@ -239,14 +249,14 @@ func (z *zerologAdapter) NewEventStruct(level logcommon.LogLevel) func(interface
 		return nil
 	default:
 		return func(arg interface{}, fields []logcommon.LogFieldMarshaller) {
-			m := zerologMarshaller{event}
+			m := zerologMarshaller{event, &z.config.MsgFormat}
 			for _, f := range fields {
 				f.MarshalLogFields(m)
 			}
 			obj, msgStr := z.config.MsgFormat.FmtLogStruct(arg)
 			if obj != nil {
 				collector := z.config.Metrics.GetMetricsCollector()
-				msgStr = obj.MarshalLogObject(zerologMarshaller{event}, collector)
+				msgStr = obj.MarshalLogObject(zerologMarshaller{event, &z.config.MsgFormat}, collector)
 			}
 			event.Msg(msgStr)
 		}
@@ -268,7 +278,7 @@ func (z *zerologAdapter) NewEvent(level logcommon.LogLevel) func(args []interfac
 			obj, msgStr := z.config.MsgFormat.FmtLogStructOrObject(args[0])
 			if obj != nil {
 				collector := z.config.Metrics.GetMetricsCollector()
-				msgStr = obj.MarshalLogObject(zerologMarshaller{event}, collector)
+				msgStr = obj.MarshalLogObject(zerologMarshaller{event, &z.config.MsgFormat}, collector)
 			}
 			event.Msg(msgStr)
 		}
@@ -347,9 +357,6 @@ func (zf zerologFactory) createNewLogger(output zerolog.LevelWriter, params loga
 	callerMode := instruments.CallerMode
 
 	cfg := params.Config
-	if instruments.MetricsMode == logcommon.NoLogMetrics {
-		cfg.Metrics = nil
-	}
 
 	la := zerologAdapter{
 		// NB! We have to create a new logger and pass the context separately
@@ -384,7 +391,7 @@ func (zf zerologFactory) createNewLogger(output zerolog.LevelWriter, params loga
 	}
 
 	if callerMode == logcommon.CallerFieldWithFuncName {
-		la.logger = la.logger.Hook(newCallerHook(2 + skipFrames))
+		la.logger = la.logger.Hook(newCallerHook(skipFrames))
 	}
 	lc := la.logger.With()
 

@@ -14,28 +14,31 @@
 //    limitations under the License.
 //
 
-// +build !windows,!nacl,!plan9
-
-package inssyslog
+package logadapter
 
 import (
-	"log/syslog"
+	"runtime"
+	"strings"
 )
 
-const defaultSyslogPriority = syslog.LOG_LOCAL0 | syslog.LOG_DEBUG
+const (
+	MessageFieldName   = "message"
+	TimestampFieldName = "time"
+	LevelFieldName     = "level"
+	CallerFieldName    = "caller"
+	FuncFieldName      = "func"
+)
 
-func ConnectDefaultSyslog(tag string) (LogLevelWriteCloser, error) {
-	w, err := syslog.New(defaultSyslogPriority, tag)
-	if err != nil {
-		return nil, err
-	}
-	return NewSyslogLevelWriter(w), nil
-}
+func GetCallInfo(skipCallNumber int) (fileName string, funcName string, line int) {
+	pc, fileName, line, _ := runtime.Caller(skipCallNumber)
 
-func ConnectRemoteSyslog(network, raddr string, tag string) (LogLevelWriteCloser, error) {
-	w, err := syslog.Dial(network, raddr, defaultSyslogPriority, tag)
-	if err != nil {
-		return nil, err
+	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
+	pl := len(parts)
+	funcName = parts[pl-1]
+
+	if pl > 1 && strings.HasPrefix(parts[pl-2], "(") {
+		funcName = parts[pl-2] + "." + funcName
 	}
-	return NewSyslogLevelWriter(w), nil
+
+	return fileName, funcName, line
 }

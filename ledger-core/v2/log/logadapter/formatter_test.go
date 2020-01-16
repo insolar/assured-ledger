@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
@@ -346,4 +347,12 @@ func (p *output) AddIntfField(k string, v interface{}, fmtStr logcommon.LogField
 
 func (p *output) AddRawJSONField(k string, v interface{}, fFmt logcommon.LogFieldFormat) {
 	p.buf.WriteString(fmt.Sprintf("%s:%s,", k, fmt.Sprintf(fFmt.Fmt, v)))
+}
+
+func (p *output) AddTimeField(key string, v time.Time, fFmt logcommon.LogFieldFormat) {
+	if fFmt.HasFmt {
+		p.buf.WriteString(fmt.Sprintf("%s:time", v.Format(fFmt.Fmt)))
+	} else {
+		p.buf.WriteString(fmt.Sprintf("%s:time", v.String()))
+	}
 }

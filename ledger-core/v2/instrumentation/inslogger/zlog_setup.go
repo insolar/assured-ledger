@@ -18,8 +18,6 @@ package inslogger
 
 import (
 	"errors"
-	"strconv"
-	"strings"
 
 	"github.com/rs/zerolog"
 
@@ -29,16 +27,12 @@ import (
 )
 
 func initZlog() {
-	zerolog.CallerMarshalFunc = fileLine
+	zerolog.CallerMarshalFunc = fileLineMarshaller
 	zerolog.TimeFieldFormat = TimestampFormat
-}
-
-func fileLine(file string, line int) string {
-	var skip = 0
-	if idx := strings.Index(file, insolarPrefix); idx != -1 {
-		skip = idx + len(insolarPrefix)
-	}
-	return file[skip:] + ":" + strconv.Itoa(line)
+	zerolog.CallerFieldName = logadapter.CallerFieldName
+	zerolog.LevelFieldName = logadapter.LevelFieldName
+	zerolog.TimestampFieldName = logadapter.TimestampFieldName
+	zerolog.MessageFieldName = logadapter.MessageFieldName
 }
 
 func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logadapter.MsgFormatConfig) (logcommon.LoggerBuilder, error) {

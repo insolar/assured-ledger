@@ -45,7 +45,7 @@ func getWriteDelayConfig(metrics *logmetrics.MetricsHelper,
 	config logadapter.BuildConfig) (needsHook bool, fieldName string, reportFn logmetrics.DurationReportFunc) {
 
 	metricsMode := config.Instruments.MetricsMode
-	if metricsMode&(logcommon.LogMetricsWriteDelayField|logcommon.LogMetricsWriteDelayReport) == 0 {
+	if metricsMode&logcommon.LogMetricsWriteDelayFlags == 0 {
 		return
 	}
 

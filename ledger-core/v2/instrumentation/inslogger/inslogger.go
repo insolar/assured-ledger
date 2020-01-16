@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -51,6 +52,14 @@ func init() {
 	})
 }
 
+func fileLineMarshaller(file string, line int) string {
+	var skip = 0
+	if idx := strings.Index(file, insolarPrefix); idx != -1 {
+		skip = idx + len(insolarPrefix)
+	}
+	return file[skip:] + ":" + strconv.Itoa(line)
+}
+
 func newLogger(cfg configuration.Log) (logcommon.LoggerBuilder, error) {
 	defaults := DefaultLoggerSettings()
 	pCfg, err := ParseLogConfigWithDefaults(cfg, defaults)
@@ -61,7 +70,9 @@ func newLogger(cfg configuration.Log) (logcommon.LoggerBuilder, error) {
 	var logBuilder logcommon.LoggerBuilder
 
 	pCfg.SkipFrameBaselineAdjustment = skipFrameBaselineAdjustment
+
 	msgFmt := logadapter.GetDefaultLogMsgFormatter()
+	msgFmt.TimeFmt = TimestampFormat
 
 	switch strings.ToLower(cfg.Adapter) {
 	case "zerolog":

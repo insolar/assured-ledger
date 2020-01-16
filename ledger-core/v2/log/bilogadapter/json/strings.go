@@ -14,7 +14,7 @@
 //    limitations under the License.
 //
 
-package bilogadapter
+package json
 
 import (
 	"math"
@@ -24,13 +24,12 @@ import (
 
 const hex = "0123456789abcdef"
 
-var noEscapeTable = [256]bool{}
-
-func init() {
+var noEscapeTable = func() (t [256]bool) {
 	for i := 0; i <= 0x7e; i++ {
-		noEscapeTable[i] = i >= 0x20 && i != '\\' && i != '"'
+		t[i] = i >= 0x20 && i != '\\' && i != '"'
 	}
-}
+	return
+}()
 
 // AppendStrings encodes the input strings to json and
 // appends the encoded string list to the input byte slice.
@@ -70,6 +69,15 @@ func AppendFloat(dst []byte, val float64, bitSize int) []byte {
 		return append(dst, `"-Inf"`...)
 	}
 	return strconv.AppendFloat(dst, val, 'f', -1, bitSize)
+}
+
+func AppendKey(dst []byte, key string) []byte {
+	// AppendKey adds comma for an empty slice to allow concatenation of slices
+	if n := len(dst); n == 0 || dst[n-1] != '{' {
+		dst = append(dst, ',')
+	}
+	dst = AppendString(dst, key)
+	return append(dst, ':')
 }
 
 // AppendString encodes the input string to json and appends

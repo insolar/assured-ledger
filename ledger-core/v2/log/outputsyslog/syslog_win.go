@@ -16,7 +16,7 @@
 
 // +build windows
 
-package inssyslog
+package outputsyslog
 
 import (
 	"errors"

@@ -1,4 +1,4 @@
-///
+//
 //    Copyright 2019 Insolar Technologies
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,47 +12,33 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-///
+//
 
 package zlogadapter
 
 import (
-	"runtime"
-	"strings"
-
 	"github.com/rs/zerolog"
-)
 
-// FuncFieldName is the field name used for func field.
-var FuncFieldName = "func"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+)
 
 type callerHook struct {
 	callerSkipFrameCount int
 }
 
-func newCallerHook(skipFrameCount int) *callerHook {
-	return &callerHook{callerSkipFrameCount: skipFrameCount}
+func newCallerHook(skipFrameCount int) callerHook {
+	return callerHook{callerSkipFrameCount: skipFrameCount + 2 /* for Run(), GetCallInfo() */}
 }
 
-func (ch *callerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
-	if level == zerolog.NoLevel {
+func (ch callerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+	switch level {
+	case zerolog.NoLevel, zerolog.Disabled:
 		return
+	default:
+		fileName, funcName, line := logadapter.GetCallInfo(ch.callerSkipFrameCount)
+		fileName = zerolog.CallerMarshalFunc(fileName, line)
+
+		e.Str(zerolog.CallerFieldName, fileName)
+		e.Str(logadapter.FuncFieldName, funcName)
 	}
-	fileName, funcName, _ := GetCallInfo(ch.callerSkipFrameCount)
-	e.Str(zerolog.CallerFieldName, fileName)
-	e.Str(FuncFieldName, funcName)
-}
-
-func GetCallInfo(skipCallNumber int) (fileName string, funcName string, line int) {
-	pc, file, line, _ := runtime.Caller(skipCallNumber)
-
-	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
-	pl := len(parts)
-	funcName = parts[pl-1]
-
-	if pl > 1 && strings.HasPrefix(parts[pl-2], "(") {
-		funcName = parts[pl-2] + "." + funcName
-	}
-
-	return zerolog.CallerMarshalFunc(file, line), funcName, line
 }
