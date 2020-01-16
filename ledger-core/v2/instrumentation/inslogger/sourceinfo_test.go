@@ -36,7 +36,7 @@ func stripPackageName(packageName string) string {
 
 // beware to adding lines in this test (test output depend on test code offset!)
 func TestLog_getCallInfo(t *testing.T) {
-	fileName, funcName, line := logadapter.GetCallInfo(1)
+	fileName, funcName, line := logadapter.GetCallInfo(0)
 	fileName = fileLineMarshaller(fileName, line)
 
 	assert.Contains(t, fileName, "instrumentation/inslogger/sourceinfo_test.go:")

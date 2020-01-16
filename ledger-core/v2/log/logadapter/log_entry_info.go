@@ -30,7 +30,7 @@ const (
 )
 
 func GetCallInfo(skipCallNumber int) (fileName string, funcName string, line int) {
-	pc, fileName, line, _ := runtime.Caller(skipCallNumber)
+	pc, fileName, line, _ := runtime.Caller(skipCallNumber + 1)
 
 	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
 	pl := len(parts)

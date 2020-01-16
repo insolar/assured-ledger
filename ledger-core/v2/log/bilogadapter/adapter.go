@@ -17,12 +17,15 @@
 package bilogadapter
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/bilogadapter/bilogencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
@@ -38,19 +41,25 @@ var _ logcommon.EmbeddedLoggerAssistant = &binLogAdapter{}
 
 type binLogAdapter struct {
 	config  *logadapter.Config
-	encoder Encoder
+	encoder bilogencoder.Encoder
 	writer  logcommon.LogLevelWriter
 
 	parentStatic []byte
 	staticFields []byte
-	dynFields    DynFieldList // sorted
+	dynFields    dynFieldList // sorted
 
 	expectedEventLen int
 
 	levelFilter logcommon.LogLevel
 }
 
+const loggerSkipFrameCount = 3
+
 func (v binLogAdapter) prepareEncoder(level logcommon.LogLevel, preallocate int) objectEncoder {
+	if preallocate < minEventBuffer {
+		preallocate += maxEventBufferIncrement
+	}
+
 	encoder := objectEncoder{v.encoder, make([]byte, 0, preallocate)}
 	v.encoder.PrepareBuffer(&encoder.content)
 
@@ -69,7 +78,7 @@ func (v binLogAdapter) prepareEncoder(level logcommon.LogLevel, preallocate int)
 	case logcommon.CallerField:
 		skipFrameCount := int(v.config.Instruments.SkipFrameCountBaseline) + int(v.config.Instruments.SkipFrameCount)
 
-		fileName, funcName, line := logadapter.GetCallInfo(skipFrameCount)
+		fileName, funcName, line := logadapter.GetCallInfo(skipFrameCount + loggerSkipFrameCount)
 		fileName = CallerMarshalFunc(fileName, line)
 
 		encoder.AddStrField(logadapter.CallerFieldName, fileName, logcommon.LogFieldFormat{})
@@ -102,12 +111,42 @@ func (v binLogAdapter) sendEvent(level logcommon.LogLevel, encoder objectEncoder
 	}
 }
 
+func (v binLogAdapter) postEvent(level logcommon.LogLevel, msgStr string) {
+	switch level {
+	case logcommon.FatalLevel:
+		os.Exit(1)
+	case logcommon.PanicLevel:
+		panic(msgStr)
+	}
+}
+
+func (v binLogAdapter) doneEvent(recovered interface{}) {
+	var err error
+	if e, ok := recovered.(error); ok {
+		err = e
+	} else {
+		err = errors.New(fmt.Sprintf("internal error (%v) stack:\n%s", recovered, debug.Stack()))
+	}
+
+	switch {
+	case v.config.ErrorFn != nil:
+		v.config.ErrorFn(err)
+	default:
+		_, _ = fmt.Fprintf(os.Stderr, "bilog: could not handle event: %v\n", err)
+	}
+}
+
 func (v binLogAdapter) NewEventStruct(level logcommon.LogLevel) func(interface{}, []logcommon.LogFieldMarshaller) {
 	if !v.Is(level) {
 		return nil
 	}
 	return func(arg interface{}, fields []logcommon.LogFieldMarshaller) {
-		// TODO handle panic
+		completed := false
+		defer func() {
+			if !completed {
+				v.doneEvent(recover())
+			}
+		}()
 
 		event := v.prepareEncoder(level, v.expectedEventLen)
 
@@ -121,6 +160,8 @@ func (v binLogAdapter) NewEventStruct(level logcommon.LogLevel) func(interface{}
 			msgStr = obj.MarshalLogObject(&event, collector)
 		}
 		v.sendEvent(level, event, msgStr)
+		completed = true
+		v.postEvent(level, msgStr)
 	}
 }
 
@@ -129,12 +170,19 @@ func (v binLogAdapter) NewEvent(level logcommon.LogLevel) func(args []interface{
 		return nil
 	}
 	return func(args []interface{}) {
-		// TODO handle panic
+		completed := false
+		defer func() {
+			if !completed {
+				v.doneEvent(recover())
+			}
+		}()
 
 		if len(args) != 1 {
 			msgStr := v.config.MsgFormat.FmtLogObject(args...)
 			event := v.prepareEncoder(level, v.expectedEventLen)
 			v.sendEvent(level, event, msgStr)
+			completed = true
+			v.postEvent(level, msgStr)
 			return
 		}
 
@@ -146,6 +194,8 @@ func (v binLogAdapter) NewEvent(level logcommon.LogLevel) func(args []interface{
 			msgStr = obj.MarshalLogObject(&event, collector)
 		}
 		v.sendEvent(level, event, msgStr)
+		completed = true
+		v.postEvent(level, msgStr)
 	}
 }
 
@@ -154,22 +204,39 @@ func (v binLogAdapter) NewEventFmt(level logcommon.LogLevel) func(fmt string, ar
 		return nil
 	}
 	return func(fmt string, args []interface{}) {
-		// TODO handle panic
+		completed := false
+		defer func() {
+			if !completed {
+				v.doneEvent(recover())
+			}
+		}()
 
 		msgStr := v.config.MsgFormat.Sformatf(fmt, args...)
-		event := v.prepareEncoder(level, anticipatedFieldBuffer+len(msgStr))
+		event := v.prepareEncoder(level, len(msgStr))
 		v.sendEvent(level, event, msgStr)
+		completed = true
+		v.postEvent(level, msgStr)
 	}
 }
 
 const flushEventLevel = logcommon.WarnLevel
 
 func (v binLogAdapter) EmbeddedFlush(msgStr string) {
+	completed := false
+	defer func() {
+		if !completed {
+			v.doneEvent(recover())
+		}
+	}()
+
+	const level = flushEventLevel
 	if len(msgStr) > 0 {
-		event := v.prepareEncoder(flushEventLevel, anticipatedFieldBuffer+len(msgStr))
-		v.sendEvent(flushEventLevel, event, msgStr)
+		event := v.prepareEncoder(level, len(msgStr))
+		v.sendEvent(level, event, msgStr)
+		completed = true
 	}
 	_ = v.config.LoggerOutput.Flush()
+	//	v.postEvent(level, msgStr)
 }
 
 func (v binLogAdapter) Is(level logcommon.LogLevel) bool {
@@ -184,16 +251,43 @@ func (v binLogAdapter) GetLoggerOutput() logcommon.LoggerOutput {
 	return v.config.LoggerOutput
 }
 
+func (v binLogAdapter) _prepareAppendFields(nExpected int) objectEncoder {
+	var buf []byte
+	switch required, available := estimateBufferSizeByFields(nExpected), cap(v.staticFields)-len(v.staticFields); {
+	case required <= available:
+		buf = make([]byte, 0, cap(v.staticFields))
+	default:
+		buf = make([]byte, 0, len(v.staticFields)+required)
+	}
+	buf = append(buf, v.staticFields...)
+	return objectEncoder{v.encoder, buf}
+}
+
 func (v binLogAdapter) WithFields(fields map[string]interface{}) logcommon.Logger {
-	panic("implement me") // TODO WithFields
+	switch len(fields) {
+	case 0:
+		return logcommon.WrapEmbeddedLogger(v)
+	case 1:
+		// avoids sorting inside addIntfFields()
+		for k, val := range fields {
+			return v.WithField(k, val)
+		}
+	}
+	objEncoder := v._prepareAppendFields(len(fields))
+	objEncoder.addIntfFields(fields)
+	v.staticFields = objEncoder.content
+	return logcommon.WrapEmbeddedLogger(v)
 }
 
 func (v binLogAdapter) WithField(name string, value interface{}) logcommon.Logger {
-	panic("implement me") // TODO WithField
+	objEncoder := v._prepareAppendFields(1)
+	objEncoder.AddIntfField(name, value, logcommon.LogFieldFormat{})
+	v.staticFields = objEncoder.content
+	return logcommon.WrapEmbeddedLogger(v)
 }
 
 // Can ONLY be used by the builder
-func (v *binLogAdapter) _addFields(fields map[string]interface{}) {
+func (v *binLogAdapter) _addFieldsByBuilder(fields map[string]interface{}) {
 	if len(fields) == 0 {
 		return
 	}
@@ -210,16 +304,13 @@ func (v *binLogAdapter) _addFields(fields map[string]interface{}) {
 		newFields = &v.staticFields
 	}
 
-	// la.encoder.PrepareSubBuffer() ?
 	objEncoder := objectEncoder{v.encoder, *newFields}
-	// TODO sort fields
-	for k, v := range fields {
-		objEncoder.AddIntfField(k, v, logcommon.LogFieldFormat{})
-	}
+	objEncoder.addIntfFields(fields)
 	*newFields = objEncoder.content
 }
 
-func (v *binLogAdapter) _addDynFields(newFields logcommon.DynFieldMap) {
+// Can ONLY be used by the builder
+func (v *binLogAdapter) _addDynFieldsByBuilder(newFields logcommon.DynFieldMap) {
 	switch {
 	case len(newFields) == 0:
 		return
@@ -234,46 +325,34 @@ func (v *binLogAdapter) _addDynFields(newFields logcommon.DynFieldMap) {
 		newFields = fields
 	}
 
-	v.dynFields = make(DynFieldList, 0, len(newFields))
+	v.dynFields = make(dynFieldList, 0, len(newFields))
 	for k, val := range newFields {
-		v.dynFields = append(v.dynFields, DynFieldEntry{k, val})
+		v.dynFields = append(v.dynFields, dynFieldEntry{k, val})
 	}
 	v.dynFields.Sort()
 }
 
 /* =========================== */
 
-type DynFieldEntry struct {
+type dynFieldEntry struct {
 	Name   string
 	Getter logcommon.DynFieldFunc
 }
 
-type DynFieldList []DynFieldEntry
+type dynFieldList []dynFieldEntry
 
-func (v *DynFieldList) Sort() {
-	sort.Sort(dynFieldList{v})
-}
-
-func (v *DynFieldList) Find(name string) (int, bool) {
-	n := len(*v)
-	index := sort.Search(n, func(i int) bool {
-		return (*v)[i].Name >= name
-	})
-	return index, index >= 0 && index < n && (*v)[index].Name == name
-}
-
-type dynFieldList struct {
-	list *DynFieldList
+func (v dynFieldList) Sort() {
+	sort.Sort(v)
 }
 
 func (v dynFieldList) Len() int {
-	return len(*v.list)
+	return len(v)
 }
 
 func (v dynFieldList) Less(i, j int) bool {
-	return (*v.list)[i].Name < (*v.list)[j].Name
+	return v[i].Name < v[j].Name
 }
 
 func (v dynFieldList) Swap(i, j int) {
-	(*v.list)[i], (*v.list)[j] = (*v.list)[j], (*v.list)[i]
+	v[i], v[j] = v[j], v[i]
 }

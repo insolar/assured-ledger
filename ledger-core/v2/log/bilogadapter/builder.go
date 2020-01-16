@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/bilogadapter/bilogencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/bilogadapter/json"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
@@ -28,11 +29,15 @@ import (
 
 /* =========================== */
 
+func NewBuilder(cfg logadapter.Config, level logcommon.LogLevel) logcommon.LoggerBuilder {
+	return logadapter.NewBuilder(binLogFactory{}, cfg, level)
+}
+
 var _ logadapter.Factory = binLogFactory{}
 var _ logcommon.GlobalLogAdapterFactory = binLogFactory{}
 
 type binLogFactory struct {
-	writeDelayPreferTrim bool
+	//	writeDelayPreferTrim bool
 }
 
 func (binLogFactory) GetGlobalLogAdapter() logcommon.GlobalLogAdapter {
@@ -71,12 +76,13 @@ func (b binLogFactory) createLogger(params logadapter.NewLoggerParams, template 
 	//	return nil, errors.New("WriteDelay metric is not supported")
 	//}
 
-	var encoderFactory EncoderFactory
+	var encoderFactory bilogencoder.EncoderFactory
 	switch outFormat := params.Config.Output.Format; outFormat {
 	case logcommon.JSONFormat:
 		encoderFactory = json.EncoderManager()
 	case logcommon.TextFormat:
-		panic("not implemented") // TODO logcommon.TextFormat
+		encoderFactory = json.EncoderManager()
+		//		panic("not implemented") // TODO logcommon.TextFormat
 	default:
 		return nil, errors.New("unknown output format: " + outFormat.String())
 	}
@@ -107,7 +113,7 @@ func (b binLogFactory) createLogger(params logadapter.NewLoggerParams, template 
 			la.staticFields = template.staticFields
 		}
 
-		la._addFields(params.Fields)
+		la._addFieldsByBuilder(params.Fields)
 
 		la.expectedEventLen += len(la.parentStatic)
 		la.expectedEventLen += len(la.staticFields)
@@ -118,7 +124,7 @@ func (b binLogFactory) createLogger(params logadapter.NewLoggerParams, template 
 			la.dynFields = template.dynFields
 		}
 
-		la._addDynFields(params.DynFields)
+		la._addDynFieldsByBuilder(params.DynFields)
 
 		la.expectedEventLen += estimateBufferSizeByFields(len(la.dynFields))
 	}
@@ -174,7 +180,7 @@ func (b binLogTemplate) CopyTemplateLogger(params logadapter.CopyLoggerParams) l
 		}
 
 		if len(params.AppendFields) > 0 {
-			la._addFields(params.AppendFields)
+			la._addFieldsByBuilder(params.AppendFields)
 			hasUpdates = true
 		}
 
@@ -189,7 +195,7 @@ func (b binLogTemplate) CopyTemplateLogger(params logadapter.CopyLoggerParams) l
 		}
 
 		if len(params.AppendDynFields) > 0 {
-			la._addDynFields(params.AppendDynFields)
+			la._addDynFieldsByBuilder(params.AppendDynFields)
 			hasUpdates = true
 		}
 

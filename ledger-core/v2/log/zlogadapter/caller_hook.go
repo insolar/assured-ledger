@@ -27,7 +27,7 @@ type callerHook struct {
 }
 
 func newCallerHook(skipFrameCount int) callerHook {
-	return callerHook{callerSkipFrameCount: skipFrameCount + 2 /* for Run(), GetCallInfo() */}
+	return callerHook{callerSkipFrameCount: skipFrameCount + 1}
 }
 
 func (ch callerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {

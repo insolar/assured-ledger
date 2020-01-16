@@ -201,21 +201,6 @@ func (z LoggerBuilder) WithLevel(level logcommon.LogLevel) logcommon.LoggerBuild
 	return z
 }
 
-//func (z LoggerBuilder) WithTracingLevel(level logcommon.LogLevel) logcommon.LoggerBuilder {
-//	switch level {
-//	case logcommon.NoLevel, logcommon.WarnLevel, logcommon.InfoLevel:
-//		z.Config.TraceLevel = level
-//	default:
-//		panic("illegal value")
-//	}
-//	return z
-//}
-//
-//func (z LoggerBuilder) WithTracing(remapTrace bool) logcommon.LoggerBuilder {
-//	z.traceRemap = remapTrace
-//	return z
-//}
-
 func (z LoggerBuilder) WithFormat(format logcommon.LogFormat) logcommon.LoggerBuilder {
 	z.Output.Format = format
 	return z
@@ -308,7 +293,6 @@ func (z LoggerBuilder) build(needsLowLatency bool) (logcommon.Logger, error) {
 }
 
 func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLogger, error) {
-
 	var metrics *logmetrics.MetricsHelper
 
 	if z.Config.Instruments.MetricsMode != logcommon.NoLogMetrics {
