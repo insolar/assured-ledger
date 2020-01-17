@@ -26,7 +26,7 @@ type Foldable interface {
 	FoldToUint64() uint64
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/longbits.FixedReader -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FixedReader -o . -s _mock.go -g
 type FixedReader interface {
 	io.WriterTo
 	//io.ReaderAt
@@ -37,7 +37,7 @@ type FixedReader interface {
 	FixedByteSize() int
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/longbits.FoldableReader -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FoldableReader -o . -s _mock.go -g
 type FoldableReader interface {
 	FixedReader
 	Foldable

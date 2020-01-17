@@ -426,7 +426,7 @@ func startNet() error {
 		_ = os.Chdir(cwd)
 	}()
 
-	for cwd[len(cwd)-15:] != "insolar/insolar" {
+	for cwd[len(cwd)-15:] != "insolar/assured-ledger/ledger-core/v2/" {
 		err = os.Chdir("../")
 		if err != nil {
 			return errors.Wrap(err, "[ startNet  ] Can't change dir")
