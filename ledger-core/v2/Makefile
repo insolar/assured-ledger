@@ -35,7 +35,7 @@ LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.GitHash=$
 all: clean submodule pre-build build ## cleanup, install deps, (re)generate all code and build all binaries
 
 include Makefile.build
-include Makefile.test
+include Makefile.testing
 
 .PHONY: submodule
 submodule: ## init git submodule
