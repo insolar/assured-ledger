@@ -233,7 +233,7 @@ func initPulsar(ctx context.Context, delta uint16, ns InitializedNodes) {
 	}()
 }
 
-func initLogger(level log.LogLevel) context.Context {
+func initLogger(level log.Level) context.Context {
 	ctx := context.Background()
 
 	cfg := configuration.NewLog()

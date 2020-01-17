@@ -33,8 +33,7 @@ const defaultLogOutput = logoutput.StdErrOutput
 
 type ParsedLogConfig struct {
 	OutputType logoutput.LogOutput
-	LogLevel   log.LogLevel
-	//GlobalLevel logcommon.LogLevel
+	LogLevel   log.Level
 
 	OutputParam string
 

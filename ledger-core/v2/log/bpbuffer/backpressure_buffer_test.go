@@ -14,7 +14,7 @@
 //    limitations under the License.
 ///
 
-package logbuffer
+package bpbuffer
 
 import (
 	"context"

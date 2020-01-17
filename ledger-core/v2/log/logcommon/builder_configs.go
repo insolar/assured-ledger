@@ -19,7 +19,7 @@ package logcommon
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 type Config struct {
@@ -29,7 +29,7 @@ type Config struct {
 	LoggerOutput LoggerOutput
 
 	Metrics   *MetricsHelper
-	MsgFormat logmsgfmt.MsgFormatConfig
+	MsgFormat logfmt.MsgFormatConfig
 
 	ErrorFn func(error)
 }

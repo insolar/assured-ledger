@@ -20,7 +20,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 func NewWatermillLogAdapter(log log.Logger) *WatermillLogAdapter {
@@ -33,10 +33,10 @@ type WatermillLogAdapter struct {
 	log log.Logger
 }
 
-func (w *WatermillLogAdapter) event(fields watermill.LogFields, level log.LogLevel, msg string) {
+func (w *WatermillLogAdapter) event(fields watermill.LogFields, level log.Level, msg string) {
 	// don't use w.Debug() etc, value of the "file=..." field would be incorrect
 	if fn := w.log.Embeddable().NewEventStruct(level); fn != nil {
-		fn(logmsgfmt.LogObjectFields{Msg: msg, Fields: fields}, nil)
+		fn(logfmt.LogObjectFields{Msg: msg, Fields: fields}, nil)
 	}
 }
 

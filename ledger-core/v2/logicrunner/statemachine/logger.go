@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 type ConveyorLogger struct {
@@ -68,7 +68,7 @@ func prepareStepName(sd *smachine.StepDeclaration) {
 	sd.Name = getStepName(sd.Transition)
 }
 
-func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logmsgfmt.LogFieldMarshaller) {
+func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logfmt.LogFieldMarshaller) {
 	c.logger.Errorm(msg, fields...)
 }
 

@@ -25,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/bilogencoder"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 func EncoderManager() bilogencoder.EncoderFactory {
@@ -36,19 +36,19 @@ var encoderMgr = encoderManager{}
 
 type encoderManager struct{}
 
-func (encoderManager) CreateEncoder(config logmsgfmt.MsgFormatConfig) bilogencoder.Encoder {
+func (encoderManager) CreateEncoder(config logfmt.MsgFormatConfig) bilogencoder.Encoder {
 	return jsonEncoder{config.Sformatf, config.TimeFmt}
 }
 
 var _ bilogencoder.Encoder = jsonEncoder{}
 
 type jsonEncoder struct {
-	sformatf logmsgfmt.FormatfFunc
+	sformatf logfmt.FormatfFunc
 	timeFmt  string
 	//	metricMode logcommon.LogMetricsMode
 }
 
-func (p jsonEncoder) PrepareBuffer(dst *[]byte, key string, level log.LogLevel) {
+func (p jsonEncoder) PrepareBuffer(dst *[]byte, key string, level log.Level) {
 	buf := append(*dst, `{`...)
 	buf = AppendKey(buf, key)
 
@@ -71,7 +71,7 @@ func (p jsonEncoder) appendStrf(dst *[]byte, f string, a ...interface{}) {
 	*dst = AppendString(*dst, p.sformatf(f, a...))
 }
 
-func (p jsonEncoder) AppendIntField(dst *[]byte, key string, v int64, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendIntField(dst *[]byte, key string, v int64, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		p.appendStrf(dst, fFmt.Fmt, v)
@@ -80,7 +80,7 @@ func (p jsonEncoder) AppendIntField(dst *[]byte, key string, v int64, fFmt logms
 	}
 }
 
-func (p jsonEncoder) AppendUintField(dst *[]byte, key string, v uint64, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendUintField(dst *[]byte, key string, v uint64, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	switch {
 	case fFmt.Kind == reflect.Uintptr:
@@ -95,7 +95,7 @@ func (p jsonEncoder) AppendUintField(dst *[]byte, key string, v uint64, fFmt log
 	}
 }
 
-func (p jsonEncoder) AppendBoolField(dst *[]byte, key string, v bool, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendBoolField(dst *[]byte, key string, v bool, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		p.appendStrf(dst, fFmt.Fmt, v)
@@ -104,7 +104,7 @@ func (p jsonEncoder) AppendBoolField(dst *[]byte, key string, v bool, fFmt logms
 	}
 }
 
-func (p jsonEncoder) AppendFloatField(dst *[]byte, key string, v float64, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendFloatField(dst *[]byte, key string, v float64, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		if fFmt.Kind == reflect.Float32 {
@@ -121,7 +121,7 @@ func (p jsonEncoder) AppendFloatField(dst *[]byte, key string, v float64, fFmt l
 	}
 }
 
-func (p jsonEncoder) AppendComplexField(dst *[]byte, key string, v complex128, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendComplexField(dst *[]byte, key string, v complex128, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		p.appendStrf(dst, fFmt.Fmt, v)
@@ -138,7 +138,7 @@ func (p jsonEncoder) AppendComplexField(dst *[]byte, key string, v complex128, f
 	}
 }
 
-func (p jsonEncoder) AppendStrField(dst *[]byte, key string, v string, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendStrField(dst *[]byte, key string, v string, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		p.appendStrf(dst, fFmt.Fmt, v)
@@ -147,7 +147,7 @@ func (p jsonEncoder) AppendStrField(dst *[]byte, key string, v string, fFmt logm
 	}
 }
 
-func (p jsonEncoder) AppendIntfField(dst *[]byte, key string, v interface{}, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendIntfField(dst *[]byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		p.appendStrf(dst, fFmt.Fmt, v)
@@ -161,7 +161,7 @@ func (p jsonEncoder) AppendIntfField(dst *[]byte, key string, v interface{}, fFm
 	}
 }
 
-func (p jsonEncoder) AppendRawJSONField(dst *[]byte, key string, v interface{}, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendRawJSONField(dst *[]byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		*dst = append(*dst, p.sformatf(fFmt.Fmt, v)...)
@@ -182,7 +182,7 @@ func (p jsonEncoder) AppendRawJSONField(dst *[]byte, key string, v interface{}, 
 	}
 }
 
-func (p jsonEncoder) AppendTimeField(dst *[]byte, key string, v time.Time, fFmt logmsgfmt.LogFieldFormat) {
+func (p jsonEncoder) AppendTimeField(dst *[]byte, key string, v time.Time, fFmt logfmt.LogFieldFormat) {
 	p.appendKey(dst, key)
 	if fFmt.HasFmt {
 		*dst = append(*dst, v.Format(fFmt.Fmt)...)

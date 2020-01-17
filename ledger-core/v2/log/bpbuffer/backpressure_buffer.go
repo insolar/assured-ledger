@@ -1,4 +1,4 @@
-package logbuffer
+package bpbuffer
 
 import (
 	"context"

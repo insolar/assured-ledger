@@ -24,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/zlog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
 
@@ -55,7 +55,7 @@ func _initDefaultWithZlog() (log.LoggerBuilder, error) {
 	zc.Output = logcommon.OutputConfig{
 		Format: logcommon.TextFormat,
 	}
-	zc.MsgFormat = logmsgfmt.GetDefaultLogMsgFormatter()
+	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = zlog.ZerologSkipFrameCount
 	zc.Instruments.CallerMode = logcommon.CallerField
 	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField
@@ -234,7 +234,7 @@ func SetTextLevel(level string) error {
 	return nil
 }
 
-func SetLevel(level log.LogLevel) {
+func SetLevel(level log.Level) {
 	globalLogger.mutex.Lock()
 	defer globalLogger.mutex.Unlock()
 
@@ -245,7 +245,7 @@ func SetLevel(level log.LogLevel) {
 	globalLogger.logger = globalLogger.logger.Level(level)
 }
 
-func SetFilter(level log.LogLevel) error {
+func SetFilter(level log.Level) error {
 	if ga := getGlobalLogAdapter(); ga != nil {
 		ga.SetGlobalLoggerFilter(level)
 		return nil
@@ -253,7 +253,7 @@ func SetFilter(level log.LogLevel) error {
 	return errors.New("not supported")
 }
 
-func GetFilter() log.LogLevel {
+func GetFilter() log.Level {
 	if ga := getGlobalLogAdapter(); ga != nil {
 		return ga.GetGlobalLoggerFilter()
 	}
@@ -268,13 +268,13 @@ func g() logcommon.EmbeddedLogger {
 	return Logger().Embeddable()
 }
 
-func Event(level log.LogLevel, args ...interface{}) {
+func Event(level log.Level, args ...interface{}) {
 	if fn := g().NewEvent(level); fn != nil {
 		fn(args)
 	}
 }
 
-func Eventf(level log.LogLevel, fmt string, args ...interface{}) {
+func Eventf(level log.Level, fmt string, args ...interface{}) {
 	if fn := g().NewEventFmt(level); fn != nil {
 		fn(fmt, args)
 	}

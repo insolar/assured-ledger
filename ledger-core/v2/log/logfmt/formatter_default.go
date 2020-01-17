@@ -14,37 +14,18 @@
 // limitations under the License.
 //
 
-package logbuffer
+package logfmt
 
 import (
-	"errors"
-	"strings"
+	"fmt"
+	"time"
 )
 
-type TestWriterStub struct {
-	strings.Builder
-	CloseCount int
-	FlushCount int
-	NoFlush    bool
-}
-
-var errClosed = errors.New("closed")
-
-func (w *TestWriterStub) Close() error {
-	w.CloseCount++
-	if w.CloseCount > 1 {
-		return errClosed
+func GetDefaultLogMsgFormatter() MsgFormatConfig {
+	return MsgFormatConfig{
+		Sformat:  fmt.Sprint,
+		Sformatf: fmt.Sprintf,
+		MFactory: GetDefaultLogMsgMarshallerFactory(),
+		TimeFmt:  time.RFC3339,
 	}
-	return nil
-}
-
-func (w *TestWriterStub) Flush() error {
-	w.FlushCount++
-	if w.CloseCount >= 1 {
-		return errClosed
-	}
-	if w.NoFlush {
-		return errors.New("unsupported")
-	}
-	return nil
 }

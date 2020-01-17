@@ -22,26 +22,26 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 type EncoderFactoryDispatcherFunc func(string) EncoderFactory
 
 type EncoderFactory interface {
-	CreateEncoder(config logmsgfmt.MsgFormatConfig) Encoder
+	CreateEncoder(config logfmt.MsgFormatConfig) Encoder
 }
 
 type Encoder interface {
-	PrepareBuffer(dst *[]byte, key string, level log.LogLevel)
+	PrepareBuffer(dst *[]byte, key string, level log.Level)
 	FinalizeBuffer(dst *[]byte, reportedAt time.Time)
 
-	AppendIntField(b *[]byte, key string, v int64, fmt logmsgfmt.LogFieldFormat)
-	AppendUintField(b *[]byte, key string, v uint64, fmt logmsgfmt.LogFieldFormat)
-	AppendBoolField(b *[]byte, key string, v bool, fmt logmsgfmt.LogFieldFormat)
-	AppendFloatField(b *[]byte, key string, v float64, fmt logmsgfmt.LogFieldFormat)
-	AppendComplexField(b *[]byte, key string, v complex128, fmt logmsgfmt.LogFieldFormat)
-	AppendStrField(b *[]byte, key string, v string, fmt logmsgfmt.LogFieldFormat)
-	AppendIntfField(b *[]byte, key string, v interface{}, fmt logmsgfmt.LogFieldFormat)
-	AppendRawJSONField(b *[]byte, key string, v interface{}, fmt logmsgfmt.LogFieldFormat)
-	AppendTimeField(b *[]byte, key string, v time.Time, fmt logmsgfmt.LogFieldFormat)
+	AppendIntField(b *[]byte, key string, v int64, fmt logfmt.LogFieldFormat)
+	AppendUintField(b *[]byte, key string, v uint64, fmt logfmt.LogFieldFormat)
+	AppendBoolField(b *[]byte, key string, v bool, fmt logfmt.LogFieldFormat)
+	AppendFloatField(b *[]byte, key string, v float64, fmt logfmt.LogFieldFormat)
+	AppendComplexField(b *[]byte, key string, v complex128, fmt logfmt.LogFieldFormat)
+	AppendStrField(b *[]byte, key string, v string, fmt logfmt.LogFieldFormat)
+	AppendIntfField(b *[]byte, key string, v interface{}, fmt logfmt.LogFieldFormat)
+	AppendRawJSONField(b *[]byte, key string, v interface{}, fmt logfmt.LogFieldFormat)
+	AppendTimeField(b *[]byte, key string, v time.Time, fmt logfmt.LogFieldFormat)
 }

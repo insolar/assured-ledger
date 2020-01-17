@@ -28,7 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
@@ -71,7 +71,7 @@ func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
 
 	pCfg.SkipFrameBaselineAdjustment = skipFrameBaselineAdjustment
 
-	msgFmt := logmsgfmt.GetDefaultLogMsgFormatter()
+	msgFmt := logfmt.GetDefaultLogMsgFormatter()
 	msgFmt.TimeFmt = TimestampFormat
 
 	switch strings.ToLower(cfg.Adapter) {
@@ -157,8 +157,8 @@ func UpdateLogger(ctx context.Context, fn func(log.Logger) (log.Logger, error)) 
 	return SetLogger(ctx, lNew)
 }
 
-// SetLoggerLevel returns context with provided insolar.LogLevel and set logLevel on logger,
-func WithLoggerLevel(ctx context.Context, logLevel log.LogLevel) context.Context {
+// SetLoggerLevel and set logLevel on logger and returns context with the new logger
+func WithLoggerLevel(ctx context.Context, logLevel log.Level) context.Context {
 	if logLevel == log.NoLevel {
 		return ctx
 	}
@@ -216,6 +216,6 @@ func TestContext(t *testing.T) context.Context {
 	return ctx
 }
 
-func GetLoggerLevel(ctx context.Context) log.LogLevel {
+func GetLoggerLevel(ctx context.Context) log.Level {
 	return getLogger(ctx).Copy().GetLogLevel()
 }

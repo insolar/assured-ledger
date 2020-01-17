@@ -22,7 +22,7 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 func NewMetricsHelper(recorder LogMetricsRecorder) *MetricsHelper {
@@ -85,7 +85,7 @@ func (p *MetricsHelper) OnWriteSkip(skippedCount int) {
 	stats.Record(context.Background(), statLogSkips.M(int64(skippedCount)))
 }
 
-func (p *MetricsHelper) GetMetricsCollector() logmsgfmt.LogObjectMetricCollector {
+func (p *MetricsHelper) GetMetricsCollector() logfmt.LogObjectMetricCollector {
 	//if p == nil {
 	//	return nil
 	//}

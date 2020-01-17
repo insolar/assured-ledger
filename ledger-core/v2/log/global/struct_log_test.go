@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ type logRecord struct {
 	s string
 }
 
-func (x logRecord) GetLogObjectMarshaller() logmsgfmt.LogObjectMarshaller {
+func (x logRecord) GetLogObjectMarshaller() logfmt.LogObjectMarshaller {
 	return &mar{x: &x}
 }
 
@@ -45,7 +45,7 @@ type mar struct {
 	x *logRecord
 }
 
-func (m mar) MarshalLogObject(lw logmsgfmt.LogObjectWriter, lmc logmsgfmt.LogObjectMetricCollector) string {
+func (m mar) MarshalLogObject(lw logfmt.LogObjectWriter, lmc logfmt.LogObjectMetricCollector) string {
 	return m.x.s
 }
 

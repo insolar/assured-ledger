@@ -24,10 +24,10 @@ import (
 
 var gLevel uint32
 
-func getGlobalFilter() log.LogLevel {
-	return log.LogLevel(atomic.LoadUint32(&gLevel))
+func getGlobalFilter() log.Level {
+	return log.Level(atomic.LoadUint32(&gLevel))
 }
 
-func setGlobalFilter(level log.LogLevel) {
+func setGlobalFilter(level log.Level) {
 	atomic.StoreUint32(&gLevel, uint32(level))
 }

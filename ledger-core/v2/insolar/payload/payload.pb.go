@@ -1675,7 +1675,7 @@ func (m *Request) GetRequest() record.Virtual {
 type ServiceData struct {
 	Polymorph     uint32       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
 	LogTraceID    string       `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
-	LogLevel      log.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/logcommon.LogLevel" json:"LogLevel"`
+	LogLevel      log.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/log.Level" json:"LogLevel"`
 	TraceSpanData []byte       `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
 }
 
@@ -13698,7 +13698,7 @@ func (m *ServiceData) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.LogLevel |= log.LogLevel(b&0x7F) << shift
+				m.LogLevel |= log.Level(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

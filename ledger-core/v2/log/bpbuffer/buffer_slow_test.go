@@ -16,7 +16,7 @@
 
 // +build slowtest
 
-package logbuffer
+package bpbuffer
 
 import (
 	"context"

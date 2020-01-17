@@ -113,7 +113,7 @@ const (
 
 const cacheDir = "network_cache/"
 
-func initLogger(ctx context.Context, level log.LogLevel) context.Context {
+func initLogger(ctx context.Context, level log.Level) context.Context {
 	cfg := configuration.NewLog()
 	cfg.LLBufferSize = 0
 	cfg.Level = level.String()

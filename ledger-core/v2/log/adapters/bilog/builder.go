@@ -29,7 +29,7 @@ import (
 
 /* =========================== */
 
-func NewBuilder(cfg logcommon.Config, level log.LogLevel, encoders bilogencoder.EncoderFactoryDispatcherFunc) log.LoggerBuilder {
+func NewBuilder(cfg logcommon.Config, level log.Level, encoders bilogencoder.EncoderFactoryDispatcherFunc) log.LoggerBuilder {
 	return log.NewBuilder(binLogFactory{encoders}, cfg, level)
 }
 
@@ -229,10 +229,10 @@ var binLogGlobalAdapter logcommon.GlobalLogAdapter = binLogGlobal{}
 
 type binLogGlobal struct{}
 
-func (binLogGlobal) SetGlobalLoggerFilter(level log.LogLevel) {
+func (binLogGlobal) SetGlobalLoggerFilter(level log.Level) {
 	setGlobalFilter(level)
 }
 
-func (binLogGlobal) GetGlobalLoggerFilter() log.LogLevel {
+func (binLogGlobal) GetGlobalLoggerFilter() log.Level {
 	return getGlobalFilter()
 }

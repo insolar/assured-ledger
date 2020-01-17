@@ -17,14 +17,14 @@
 package logcommon
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 /*
 	This interface provides methods with -1 call levels.
 	DO NOT USE directly, otherwise WithCaller() functionality will be broken.
 */type EmbeddedLogger interface {
-	NewEventStruct(level Level) func(interface{}, []logmsgfmt.LogFieldMarshaller)
+	NewEventStruct(level Level) func(interface{}, []logfmt.LogFieldMarshaller)
 	NewEvent(level Level) func(args []interface{})
 	NewEventFmt(level Level) func(fmt string, args []interface{})
 

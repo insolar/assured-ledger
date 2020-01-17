@@ -24,13 +24,12 @@ import (
 	"math"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logbuffer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/bpbuffer"
 )
 
-func NewBuilderWithTemplate(template logcommon.Template, level LogLevel) LoggerBuilder {
+func NewBuilderWithTemplate(template logcommon.Template, level Level) LoggerBuilder {
 	config := template.GetTemplateConfig()
 	return LoggerBuilder{
 		factory:     template,
@@ -40,7 +39,7 @@ func NewBuilderWithTemplate(template logcommon.Template, level LogLevel) LoggerB
 	}
 }
 
-func NewBuilder(factory logcommon.Factory, config logcommon.Config, level LogLevel) LoggerBuilder {
+func NewBuilder(factory logcommon.Factory, config logcommon.Config, level Level) LoggerBuilder {
 	return LoggerBuilder{
 		factory: factory,
 		level:   level,
@@ -52,7 +51,7 @@ type LoggerBuilder struct {
 	factory     logcommon.Factory
 	hasTemplate bool
 
-	level LogLevel
+	level Level
 
 	noFields    bool
 	noDynFields bool
@@ -71,7 +70,7 @@ func (z LoggerBuilder) GetOutput() io.Writer {
 	return z.BareOutput.Writer
 }
 
-func (z LoggerBuilder) GetLogLevel() LogLevel {
+func (z LoggerBuilder) GetLogLevel() Level {
 	return z.level
 }
 
@@ -94,7 +93,7 @@ func (z LoggerBuilder) WithBuffer(bufferSize int, bufferForAll bool) LoggerBuild
 	return z
 }
 
-func (z LoggerBuilder) WithLevel(level LogLevel) LoggerBuilder {
+func (z LoggerBuilder) WithLevel(level Level) LoggerBuilder {
 	z.level = level
 	return z
 }
@@ -291,31 +290,31 @@ func (z LoggerBuilder) prepareOutput(metrics *logcommon.MetricsHelper, needsLowL
 			return nil, errors.New("write parallelism limiter requires BufferSize >= ParallelWriters*2 ")
 		}
 
-		flags := logbuffer.BufferWriteDelayFairness | logbuffer.BufferTrackWriteDuration
+		flags := bpbuffer.BufferWriteDelayFairness | bpbuffer.BufferTrackWriteDuration
 
 		if z.Config.Output.BufferSize > 1000 {
-			flags |= logbuffer.BufferDropOnFatal
+			flags |= bpbuffer.BufferDropOnFatal
 		}
 
 		if z.factory.CanReuseMsgBuffer() {
-			flags |= logbuffer.BufferReuse
+			flags |= bpbuffer.BufferReuse
 		}
 
 		missedFn := z.loggerMissedEvent(WarnLevel, metrics)
 
-		var bpb *logbuffer.BackpressureBuffer
+		var bpb *bpbuffer.BackpressureBuffer
 		switch {
 		case z.Config.Output.EnableRegularBuffer:
 			pw := uint8(DefaultOutputParallelLimit)
 			if z.Config.Output.ParallelWriters != 0 {
 				pw = uint8(z.Config.Output.ParallelWriters)
 			}
-			bpb = logbuffer.NewBackpressureBuffer(outputAdapter, z.Config.Output.BufferSize, pw, flags, missedFn)
+			bpb = bpbuffer.NewBackpressureBuffer(outputAdapter, z.Config.Output.BufferSize, pw, flags, missedFn)
 		case z.Config.Output.ParallelWriters == 0 || z.Config.Output.ParallelWriters == math.MaxUint8:
-			bpb = logbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.Config.Output.BufferSize,
+			bpb = bpbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.Config.Output.BufferSize,
 				0 /* no limit */, flags, missedFn)
 		default:
-			bpb = logbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.Config.Output.BufferSize,
+			bpb = bpbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.Config.Output.BufferSize,
 				uint8(z.Config.Output.ParallelWriters), flags, missedFn)
 		}
 
@@ -331,18 +330,10 @@ func (z LoggerBuilder) prepareOutput(metrics *logcommon.MetricsHelper, needsLowL
 	return fdw, nil
 }
 
-func (z LoggerBuilder) loggerMissedEvent(level LogLevel, metrics *logcommon.MetricsHelper) logbuffer.MissedEventFunc {
-	return func(missed int) (LogLevel, []byte) {
+func (z LoggerBuilder) loggerMissedEvent(level Level, metrics *logcommon.MetricsHelper) bpbuffer.MissedEventFunc {
+	return func(missed int) (Level, []byte) {
 		metrics.OnWriteSkip(missed)
 		return level, ([]byte)(
 			fmt.Sprintf(`{"level":"%v","message":"logger dropped %d messages"}`, level.String(), missed))
 	}
-}
-
-var _ logmsgfmt.LogObject = &Msg{}
-
-type Msg struct{}
-
-func (*Msg) GetLogObjectMarshaller() logmsgfmt.LogObjectMarshaller {
-	return nil
 }

@@ -28,7 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/bilogencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 )
 
@@ -52,13 +52,13 @@ type binLogAdapter struct {
 
 	expectedEventLen int
 
-	levelFilter log.LogLevel
+	levelFilter log.Level
 	lowLatency  bool
 }
 
 const loggerSkipFrameCount = 3
 
-func (v binLogAdapter) prepareEncoder(level log.LogLevel, preallocate int) objectEncoder {
+func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEncoder {
 	if preallocate < minEventBuffer {
 		preallocate += maxEventBufferIncrement
 	}
@@ -66,7 +66,7 @@ func (v binLogAdapter) prepareEncoder(level log.LogLevel, preallocate int) objec
 	encoder := objectEncoder{v.encoder, make([]byte, 0, preallocate), time.Now()}
 
 	v.encoder.PrepareBuffer(&encoder.content, logoutput.LevelFieldName, level)
-	encoder.AddTimeField(logoutput.TimestampFieldName, encoder.reportedAt, logmsgfmt.LogFieldFormat{})
+	encoder.AddTimeField(logoutput.TimestampFieldName, encoder.reportedAt, logfmt.LogFieldFormat{})
 
 	switch withFuncName := false; v.config.Instruments.CallerMode {
 	case logcommon.CallerFieldWithFuncName:
@@ -78,9 +78,9 @@ func (v binLogAdapter) prepareEncoder(level log.LogLevel, preallocate int) objec
 		fileName, funcName, line := logoutput.GetCallerInfo(skipFrameCount + loggerSkipFrameCount)
 		fileName = CallerMarshalFunc(fileName, line)
 
-		encoder.AddStrField(logoutput.CallerFieldName, fileName, logmsgfmt.LogFieldFormat{})
+		encoder.AddStrField(logoutput.CallerFieldName, fileName, logfmt.LogFieldFormat{})
 		if withFuncName {
-			encoder.AddStrField(logoutput.FuncFieldName, funcName, logmsgfmt.LogFieldFormat{})
+			encoder.AddStrField(logoutput.FuncFieldName, funcName, logfmt.LogFieldFormat{})
 		}
 	}
 
@@ -89,14 +89,14 @@ func (v binLogAdapter) prepareEncoder(level log.LogLevel, preallocate int) objec
 
 	for _, field := range v.dynFields {
 		val := field.Getter()
-		encoder.AddIntfField(field.Name, val, logmsgfmt.LogFieldFormat{})
+		encoder.AddIntfField(field.Name, val, logfmt.LogFieldFormat{})
 	}
 
 	return encoder
 }
 
-func (v binLogAdapter) sendEvent(level log.LogLevel, encoder objectEncoder, msg string) {
-	encoder.AddStrField(logoutput.MessageFieldName, msg, logmsgfmt.LogFieldFormat{})
+func (v binLogAdapter) sendEvent(level log.Level, encoder objectEncoder, msg string) {
+	encoder.AddStrField(logoutput.MessageFieldName, msg, logfmt.LogFieldFormat{})
 	v.encoder.FinalizeBuffer(&encoder.content, encoder.reportedAt)
 
 	var err error
@@ -116,7 +116,7 @@ func (v binLogAdapter) sendEvent(level log.LogLevel, encoder objectEncoder, msg 
 	}
 }
 
-func (v binLogAdapter) postEvent(level log.LogLevel, msgStr string) {
+func (v binLogAdapter) postEvent(level log.Level, msgStr string) {
 	switch level {
 	case log.FatalLevel:
 		os.Exit(1)
@@ -141,11 +141,11 @@ func (v binLogAdapter) doneEvent(recovered interface{}) {
 	}
 }
 
-func (v binLogAdapter) NewEventStruct(level log.LogLevel) func(interface{}, []logmsgfmt.LogFieldMarshaller) {
+func (v binLogAdapter) NewEventStruct(level log.Level) func(interface{}, []logfmt.LogFieldMarshaller) {
 	if !v.Is(level) {
 		return nil
 	}
-	return func(arg interface{}, fields []logmsgfmt.LogFieldMarshaller) {
+	return func(arg interface{}, fields []logfmt.LogFieldMarshaller) {
 		completed := false
 		defer func() {
 			if !completed {
@@ -170,7 +170,7 @@ func (v binLogAdapter) NewEventStruct(level log.LogLevel) func(interface{}, []lo
 	}
 }
 
-func (v binLogAdapter) NewEvent(level log.LogLevel) func(args []interface{}) {
+func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 	if !v.Is(level) {
 		return nil
 	}
@@ -204,7 +204,7 @@ func (v binLogAdapter) NewEvent(level log.LogLevel) func(args []interface{}) {
 	}
 }
 
-func (v binLogAdapter) NewEventFmt(level log.LogLevel) func(fmt string, args []interface{}) {
+func (v binLogAdapter) NewEventFmt(level log.Level) func(fmt string, args []interface{}) {
 	if !v.Is(level) {
 		return nil
 	}
@@ -244,7 +244,7 @@ func (v binLogAdapter) EmbeddedFlush(msgStr string) {
 	//	v.postEvent(level, msgStr)
 }
 
-func (v binLogAdapter) Is(level log.LogLevel) bool {
+func (v binLogAdapter) Is(level log.Level) bool {
 	return level >= v.levelFilter && level >= getGlobalFilter()
 }
 
@@ -286,7 +286,7 @@ func (v binLogAdapter) WithFields(fields map[string]interface{}) logcommon.Embed
 
 func (v binLogAdapter) WithField(name string, value interface{}) logcommon.EmbeddedLogger {
 	objEncoder := v._prepareAppendFields(1)
-	objEncoder.AddIntfField(name, value, logmsgfmt.LogFieldFormat{})
+	objEncoder.AddIntfField(name, value, logfmt.LogFieldFormat{})
 	v.staticFields = objEncoder.content
 	return v
 }

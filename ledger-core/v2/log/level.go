@@ -18,9 +18,10 @@ package log
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
-type LogLevel = logcommon.Level
+type Level = logcommon.Level
 
 // NoLevel means it should be ignored
 const (
@@ -37,6 +38,10 @@ const (
 )
 const MinLevel = logcommon.MinLevel
 
-func ParseLevel(levelStr string) (LogLevel, error) {
+func ParseLevel(levelStr string) (Level, error) {
 	return logcommon.ParseLevel(levelStr)
 }
+
+var _ logfmt.LogObject = &Msg{}
+
+type Msg = logfmt.MsgTemplate

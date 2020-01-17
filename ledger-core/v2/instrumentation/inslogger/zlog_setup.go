@@ -24,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/zlog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 )
 
@@ -37,7 +37,7 @@ func initZlog() {
 	zerolog.MessageFieldName = logoutput.MessageFieldName
 }
 
-func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logmsgfmt.MsgFormatConfig) (log.LoggerBuilder, error) {
+func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logfmt.MsgFormatConfig) (log.LoggerBuilder, error) {
 	zc := logcommon.Config{}
 
 	var err error

@@ -23,7 +23,7 @@ import (
 
 	logm "github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 
 	"github.com/stretchr/testify/require"
@@ -44,7 +44,7 @@ func newAdapter(level logcommon.Level) (logm.Logger, error) {
 	zc.Output = logcommon.OutputConfig{
 		Format: logcommon.TextFormat,
 	}
-	zc.MsgFormat = logmsgfmt.GetDefaultLogMsgFormatter()
+	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 
 	zb := NewBuilder(zc, level, nil)
 	return zb.Build()
@@ -235,7 +235,7 @@ func TestLogAdapter_Fatal(t *testing.T) {
 		},
 	}
 	zc.Output = logcommon.OutputConfig{Format: logcommon.TextFormat}
-	zc.MsgFormat = logmsgfmt.GetDefaultLogMsgFormatter()
+	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
 	zb := logm.NewBuilder(binLogFactory{}, zc, logcommon.InfoLevel)
@@ -267,7 +267,7 @@ func TestLogAdapter_Panic(t *testing.T) {
 		},
 	}
 	zc.Output = logcommon.OutputConfig{Format: logcommon.TextFormat}
-	zc.MsgFormat = logmsgfmt.GetDefaultLogMsgFormatter()
+	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
 	zb := logm.NewBuilder(binLogFactory{}, zc, logcommon.InfoLevel)
