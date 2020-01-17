@@ -1673,10 +1673,10 @@ func (m *Request) GetRequest() record.Virtual {
 }
 
 type ServiceData struct {
-	Polymorph     uint32       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	LogTraceID    string       `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
-	LogLevel      log.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/log.Level" json:"LogLevel"`
-	TraceSpanData []byte       `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
+	Polymorph     uint32    `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	LogTraceID    string    `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
+	LogLevel      log.Level `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/log.Level" json:"LogLevel"`
+	TraceSpanData []byte    `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
 }
 
 func (m *ServiceData) Reset()      { *m = ServiceData{} }

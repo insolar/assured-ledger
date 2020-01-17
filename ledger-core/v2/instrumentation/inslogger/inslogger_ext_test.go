@@ -187,7 +187,7 @@ func TestExt_Check_LoggerProxy_DoesntLoop(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	global.SetLogger(l.Level(log.InfoLevel)) // enforce different instance
+	global.SetLogger(l.Copy().WithLevel(log.InfoLevel).MustBuild()) // enforce different instance
 
 	l.Info("test") // here will be a stack overflow if logger proxy doesn't handle self-setting
 }

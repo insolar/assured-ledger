@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/bilogencoder"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
@@ -43,7 +43,7 @@ var _ logcommon.EmbeddedLoggerAssistant = &binLogAdapter{}
 
 type binLogAdapter struct {
 	config  *logcommon.Config
-	encoder bilogencoder.Encoder
+	encoder msgencoder.Encoder
 	writer  logcommon.LoggerOutput
 
 	parentStatic []byte
@@ -248,8 +248,9 @@ func (v binLogAdapter) Is(level log.Level) bool {
 	return level >= v.levelFilter && level >= getGlobalFilter()
 }
 
-func (v binLogAdapter) Copy() logcommon.EmbeddedLoggerBuilder {
-	return binLogTemplate{template: &v}
+// NB! Reference receiver allows the builder to return the existing instance when nothing was changed, otherwise it will make a copy
+func (v *binLogAdapter) Copy() logcommon.EmbeddedLoggerBuilder {
+	return binLogTemplate{template: v}
 }
 
 func (v binLogAdapter) GetLoggerOutput() logcommon.LoggerOutput {
@@ -268,7 +269,8 @@ func (v binLogAdapter) _prepareAppendFields(nExpected int) objectEncoder {
 	return objectEncoder{v.encoder, buf, time.Time{}}
 }
 
-func (v binLogAdapter) WithFields(fields map[string]interface{}) logcommon.EmbeddedLogger {
+// NB! Reference receiver allows return of the existing instance when nothing was changed, otherwise it will make a copy
+func (v *binLogAdapter) WithFields(fields map[string]interface{}) logcommon.EmbeddedLogger {
 	switch len(fields) {
 	case 0:
 		return v
@@ -278,17 +280,21 @@ func (v binLogAdapter) WithFields(fields map[string]interface{}) logcommon.Embed
 			return v.WithField(k, val)
 		}
 	}
+	return v.withFields(fields)
+}
+
+func (v binLogAdapter) withFields(fields map[string]interface{}) logcommon.EmbeddedLogger {
 	objEncoder := v._prepareAppendFields(len(fields))
 	objEncoder.addIntfFields(fields)
 	v.staticFields = objEncoder.content
-	return v
+	return &v
 }
 
 func (v binLogAdapter) WithField(name string, value interface{}) logcommon.EmbeddedLogger {
 	objEncoder := v._prepareAppendFields(1)
 	objEncoder.AddIntfField(name, value, logfmt.LogFieldFormat{})
 	v.staticFields = objEncoder.content
-	return v
+	return &v
 }
 
 // Can ONLY be used by the builder

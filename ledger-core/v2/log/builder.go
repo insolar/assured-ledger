@@ -173,6 +173,14 @@ func (z LoggerBuilder) WithDynamicField(k string, fn logcommon.DynFieldFunc) Log
 	return z
 }
 
+func (z LoggerBuilder) MustBuild() Logger {
+	if l, err := z.build(false); err != nil {
+		panic(err)
+	} else {
+		return l
+	}
+}
+
 func (z LoggerBuilder) Build() (Logger, error) {
 	return z.build(false)
 }
@@ -183,7 +191,7 @@ func (z LoggerBuilder) BuildLowLatency() (Logger, error) {
 
 func (z LoggerBuilder) build(needsLowLatency bool) (Logger, error) {
 	if el, err := z.buildEmbedded(needsLowLatency); err != nil {
-		return nil, err
+		return Logger{}, err
 	} else {
 		return WrapEmbeddedLogger(el), nil
 	}

@@ -92,20 +92,16 @@ func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
 }
 
 // newLog creates a new logger with the given configuration
-func NewLog(cfg configuration.Log) (log.Logger, error) {
-	switch b, err := newLogger(cfg); {
-	case err != nil:
-		return nil, err
-	default:
-		switch logger, err := b.Build(); {
-		case err != nil:
-			return nil, err
-		case logger == nil:
-			return nil, errors.New("logger builder has returned nil")
-		default:
+func NewLog(cfg configuration.Log) (logger log.Logger, err error) {
+	var b log.LoggerBuilder
+	b, err = newLogger(cfg)
+	if err == nil {
+		logger, err = b.Build()
+		if err == nil {
 			return logger, nil
 		}
 	}
+	return log.Logger{}, err
 }
 
 var loggerKey = struct{}{}

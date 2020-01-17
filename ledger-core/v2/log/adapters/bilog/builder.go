@@ -21,22 +21,22 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/bilogencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/json"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/text"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 /* =========================== */
 
-func NewBuilder(cfg logcommon.Config, level log.Level, encoders bilogencoder.EncoderFactoryDispatcherFunc) log.LoggerBuilder {
+func NewBuilder(cfg logcommon.Config, level log.Level, encoders msgencoder.EncoderFactoryDispatcherFunc) log.LoggerBuilder {
 	return log.NewBuilder(binLogFactory{encoders}, cfg, level)
 }
 
 var _ logcommon.Factory = binLogFactory{}
 
 type binLogFactory struct {
-	encoders bilogencoder.EncoderFactoryDispatcherFunc
+	encoders msgencoder.EncoderFactoryDispatcherFunc
 	//	writeDelayPreferTrim bool
 }
 
@@ -76,7 +76,7 @@ func (b binLogFactory) createLogger(params logcommon.NewLoggerParams, template *
 	//	return nil, errors.New("WriteDelay metric is not supported")
 	//}
 
-	var encoderFactory bilogencoder.EncoderFactory
+	var encoderFactory msgencoder.EncoderFactory
 
 	outFormat := params.Config.Output.Format
 	switch outFormat {

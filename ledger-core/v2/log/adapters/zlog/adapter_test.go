@@ -35,7 +35,7 @@ func newZerologAdapter(level logcommon.Level) (logm.Logger, error) {
 	var err error
 	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
 	if err != nil {
-		return nil, err
+		return logm.Logger{}, err
 	}
 	if zc.BareOutput.Writer == nil {
 		panic("output is nil")
@@ -63,7 +63,7 @@ func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:63")
+	require.Contains(t, s, "adapter_test.go:63")
 	require.Contains(t, s, "TestZeroLogAdapter_CallerInfoWithFunc")
 }
 
@@ -80,7 +80,7 @@ func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 	log.Error("test")
 
 	s := buf.String()
-	require.Contains(t, s, "zerolog_adapter_test.go:80")
+	require.Contains(t, s, "adapter_test.go:80")
 }
 
 func TestZeroLogAdapter_InheritFields(t *testing.T) {

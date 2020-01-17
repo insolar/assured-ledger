@@ -25,11 +25,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/json"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/bilogencoder"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
-func EncoderManager() bilogencoder.EncoderFactory {
+func EncoderManager() msgencoder.EncoderFactory {
 	return encoderMgr
 }
 
@@ -37,11 +37,11 @@ var encoderMgr = encoderManager{}
 
 type encoderManager struct{}
 
-func (encoderManager) CreateEncoder(config logfmt.MsgFormatConfig) bilogencoder.Encoder {
+func (encoderManager) CreateEncoder(config logfmt.MsgFormatConfig) msgencoder.Encoder {
 	return textEncoder{config.Sformatf, config.TimeFmt}
 }
 
-var _ bilogencoder.Encoder = textEncoder{}
+var _ msgencoder.Encoder = textEncoder{}
 
 type textEncoder struct {
 	sformatf logfmt.FormatfFunc

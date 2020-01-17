@@ -132,7 +132,7 @@ func TestLogLevels(t *testing.T) {
 	buf := bytes.Buffer{}
 	lg, _ := Logger().Copy().WithOutput(&buf).Build()
 
-	lg.Level(log.FatalLevel).Warn(logstring)
+	lg.Copy().WithLevel(log.FatalLevel).MustBuild().Warn(logstring)
 	require.Nil(t, buf.Bytes(), "do not log warns at panic level")
 
 	lg.Warn(logstring)

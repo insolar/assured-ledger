@@ -35,7 +35,7 @@ func newAdapter(level logcommon.Level) (logm.Logger, error) {
 	var err error
 	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
 	if err != nil {
-		return nil, err
+		return logm.Logger{}, err
 	}
 	if zc.BareOutput.Writer == nil {
 		panic("output is nil")

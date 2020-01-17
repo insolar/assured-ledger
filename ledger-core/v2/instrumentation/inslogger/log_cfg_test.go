@@ -46,8 +46,8 @@ func TestLog_NewLog_Config(t *testing.T) {
 	for name, test := range invalidtests {
 		t.Run(name, func(t *testing.T) {
 			logger, err := newTestLogger(test)
-			assert.Nil(t, logger)
 			assert.Error(t, err)
+			assert.True(t, logger.IsZero())
 		})
 	}
 
@@ -57,8 +57,8 @@ func TestLog_NewLog_Config(t *testing.T) {
 	for name, test := range validtests {
 		t.Run(name, func(t *testing.T) {
 			logger, err := newTestLogger(test)
-			assert.NotNil(t, logger)
 			assert.NoError(t, err)
+			assert.False(t, logger.IsZero())
 		})
 	}
 }

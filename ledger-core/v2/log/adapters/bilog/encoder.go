@@ -20,14 +20,14 @@ import (
 	"sort"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/bilogencoder"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
 var _ logfmt.LogObjectWriter = &objectEncoder{}
 
 type objectEncoder struct {
-	fieldEncoder bilogencoder.Encoder
+	fieldEncoder msgencoder.Encoder
 	content      []byte
 	reportedAt   time.Time
 }

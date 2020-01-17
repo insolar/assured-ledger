@@ -34,7 +34,7 @@ import (
 var globalLogger = struct {
 	mutex   sync.RWMutex
 	output  logwriter.ProxyLoggerOutput
-	logger  log.Logger
+	logger  *log.Logger
 	defInit func() (log.LoggerBuilder, error)
 }{
 	defInit: _initDefaultWithZlog,
@@ -75,10 +75,8 @@ func initDefault() {
 		switch logger, err := b.Build(); {
 		case err != nil:
 			panic(errors.Wrap(err, "default global logger builder has failed"))
-		case logger == nil:
-			panic("default global logger builder has returned nil")
 		default:
-			globalLogger.logger = logger
+			globalLogger.logger = &logger
 		}
 	}
 }
@@ -89,7 +87,7 @@ func Logger() log.Logger {
 	globalLogger.mutex.RUnlock()
 
 	if l != nil {
-		return l
+		return *l
 	}
 
 	globalLogger.mutex.Lock()
@@ -98,7 +96,7 @@ func Logger() log.Logger {
 		initDefault()
 	}
 
-	return globalLogger.logger
+	return *globalLogger.logger
 }
 
 func CopyForContext() log.Logger {
@@ -192,31 +190,21 @@ func setLogger(logger log.Logger) error {
 	b = b.WithOutput(&globalLogger.output)
 
 	logger, err := b.Build()
-	switch {
-	case err != nil:
+	if err != nil {
 		return err
-	case logger == nil:
-		return errors.New("log adapter builder has returned nil")
 	}
 
 	setGlobalLogAdapter(adapter)
-	globalLogger.logger = logger
+	globalLogger.logger = &logger
 
 	globalLogger.output.SetTarget(output)
 	return nil
 }
 
 func SetLogger(logger log.Logger) {
-	if logger == nil {
-		panic("illegal value")
-	}
-
 	globalLogger.mutex.Lock()
 	defer globalLogger.mutex.Unlock()
 
-	if globalLogger.logger == logger {
-		return
-	}
 	if err := setLogger(logger); err != nil {
 		stdlog.Println("warning: unable to update global logger, ", err)
 		panic("unable to update global logger")
@@ -242,7 +230,13 @@ func SetLevel(level log.Level) {
 		initDefault()
 	}
 
-	globalLogger.logger = globalLogger.logger.Level(level)
+	b := globalLogger.logger.Copy()
+	if b.GetLogLevel() == level {
+		return
+	}
+
+	logger := b.WithLevel(level).MustBuild()
+	globalLogger.logger = &logger
 }
 
 func SetFilter(level log.Level) error {

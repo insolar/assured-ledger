@@ -14,9 +14,7 @@
 //    limitations under the License.
 //
 
-package bilogencoder
-
-// TODO rename logencoder
+package msgencoder
 
 import (
 	"time"
