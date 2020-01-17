@@ -24,12 +24,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 )
 
 type logProcessing struct {
-	*logadapter.Msg `txt:"processing message"`
+	*log.Msg `txt:"processing message"`
 
 	message_type string
 }

@@ -30,7 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/preprocessor"
 )
 
@@ -87,10 +87,10 @@ func newContractBuilder(tmpDir string, skipProxy bool) *contractsBuilder {
 
 // clean deletes tmp directory used for contracts building
 func (cb *contractsBuilder) clean() {
-	log.Infof("Cleaning build directory %q", cb.root)
+	global.Infof("Cleaning build directory %q", cb.root)
 	err := os.RemoveAll(cb.root)
 	if err != nil {
-		log.Error(err)
+		global.Error(err)
 	}
 }
 
@@ -113,7 +113,7 @@ func (cb *contractsBuilder) build(ctx context.Context, names ...string) ([]build
 
 	result := make([]buildResult, 0, len(contractNames))
 	for _, name := range names {
-		log.Infof("building plugin for contract %q in %q", name, cb.root)
+		global.Infof("building plugin for contract %q in %q", name, cb.root)
 		soFile, err := cb.plugin(ctx, name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to build plugin %v", name)
@@ -265,6 +265,6 @@ func createFileInDir(dir string, name string) (*os.File, error) {
 func closeAndCheck(f *os.File) {
 	err := f.Close()
 	if err != nil {
-		log.Errorf("failed close file %v: %v", f.Name(), err.Error())
+		global.Errorf("failed close file %v: %v", f.Name(), err.Error())
 	}
 }

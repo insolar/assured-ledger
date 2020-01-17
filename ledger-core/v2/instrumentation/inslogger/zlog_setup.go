@@ -21,33 +21,35 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/zlog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/zlogadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 )
 
 func initZlog() {
 	zerolog.CallerMarshalFunc = fileLineMarshaller
 	zerolog.TimeFieldFormat = TimestampFormat
-	zerolog.CallerFieldName = logadapter.CallerFieldName
-	zerolog.LevelFieldName = logadapter.LevelFieldName
-	zerolog.TimestampFieldName = logadapter.TimestampFieldName
-	zerolog.MessageFieldName = logadapter.MessageFieldName
+	zerolog.CallerFieldName = logoutput.CallerFieldName
+	zerolog.LevelFieldName = logoutput.LevelFieldName
+	zerolog.TimestampFieldName = logoutput.TimestampFieldName
+	zerolog.MessageFieldName = logoutput.MessageFieldName
 }
 
-func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logadapter.MsgFormatConfig) (logcommon.LoggerBuilder, error) {
-	zc := logadapter.Config{}
+func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logmsgfmt.MsgFormatConfig) (log.LoggerBuilder, error) {
+	zc := logcommon.Config{}
 
 	var err error
-	zc.BareOutput, err = logadapter.OpenLogBareOutput(pCfg.OutputType, pCfg.OutputParam)
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(pCfg.OutputType, pCfg.OutputParam)
 	if err != nil {
-		return nil, err
+		return log.LoggerBuilder{}, err
 	}
 	if zc.BareOutput.Writer == nil {
-		return nil, errors.New("output is nil")
+		return log.LoggerBuilder{}, errors.New("output is nil")
 	}
 
-	sfb := zlogadapter.ZerologSkipFrameCount + pCfg.SkipFrameBaselineAdjustment
+	sfb := zlog.ZerologSkipFrameCount + pCfg.SkipFrameBaselineAdjustment
 	if sfb < 0 {
 		sfb = 0
 	}
@@ -57,5 +59,5 @@ func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logadapter.MsgFormatConfig) 
 	zc.MsgFormat = msgFmt
 	zc.Instruments.SkipFrameCountBaseline = uint8(sfb)
 
-	return zlogadapter.NewBuilder(zc, pCfg.LogLevel), nil
+	return log.NewBuilder(zlog.NewFactory(), zc, pCfg.LogLevel), nil
 }

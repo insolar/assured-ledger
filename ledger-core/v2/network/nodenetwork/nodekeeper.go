@@ -55,6 +55,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
@@ -68,7 +69,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -94,7 +94,7 @@ func createOrigin(configuration configuration.Transport, certificate insolar.Cer
 
 	role := certificate.GetRole()
 	if role == insolar.StaticRoleUnknown {
-		log.Info("[ createOrigin ] Use insolar.StaticRoleLightMaterial, since no role in certificate")
+		global.Info("[ createOrigin ] Use insolar.StaticRoleLightMaterial, since no role in certificate")
 		role = insolar.StaticRoleLightMaterial
 	}
 

@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +33,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 // Beware, test results there depends on test file and package names!
@@ -59,7 +60,7 @@ func TestExt_Global(t *testing.T) {
 	l := inslogger.FromContext(context.Background())
 
 	var b bytes.Buffer
-	l, err := l.Copy().WithOutput(&b).WithCaller(logcommon.CallerField).WithLevel(logcommon.InfoLevel).Build()
+	l, err := l.Copy().WithOutput(&b).WithCaller(logcommon.CallerField).WithLevel(log.InfoLevel).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -74,7 +75,7 @@ func TestExt_Global_WithFunc(t *testing.T) {
 	l := inslogger.FromContext(context.Background())
 	var b bytes.Buffer
 
-	l, err := l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).WithLevel(logcommon.InfoLevel).Build()
+	l, err := l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).WithLevel(log.InfoLevel).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -173,7 +174,7 @@ func logCallerGlobal(ctx context.Context, t *testing.T) (loggerField, string) {
 
 	var b bytes.Buffer
 	var err error
-	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).WithLevel(logcommon.InfoLevel).Build()
+	l, err = l.Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).WithLevel(log.InfoLevel).Build()
 	require.NoError(t, err)
 
 	_, _, line, _ := runtime.Caller(0)
@@ -182,22 +183,11 @@ func logCallerGlobal(ctx context.Context, t *testing.T) (loggerField, string) {
 }
 
 func TestExt_Check_LoggerProxy_DoesntLoop(t *testing.T) {
-	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
+	l, err := global.Logger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(log.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}
-	log.SetGlobalLogger(l.Level(logcommon.InfoLevel)) // enforce different instance
+	global.SetLogger(l.Level(log.InfoLevel)) // enforce different instance
 
 	l.Info("test") // here will be a stack overflow if logger proxy doesn't handle self-setting
 }
-
-//func TestMain(m *testing.M) {
-//	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
-//	if err != nil {
-//		panic(err)
-//	}
-//	log.SetGlobalLogger(l)
-//	_ = log.SetGlobalLevelFilter(logcommon.DebugLevel)
-//	exitCode := m.Run()
-//	os.Exit(exitCode)
-//}

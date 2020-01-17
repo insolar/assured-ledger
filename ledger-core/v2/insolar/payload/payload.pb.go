@@ -4,22 +4,22 @@
 package payload
 
 import (
-	bytes "bytes"
-	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strconv "strconv"
-	strings "strings"
+	"bytes"
+	"fmt"
+	"io"
+	"math"
+	"reflect"
+	"strconv"
+	"strings"
 
 	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	pulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	record "github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
-	drop "github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
+	"github.com/gogo/protobuf/proto"
 
-	logcommon "github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1673,10 +1673,10 @@ func (m *Request) GetRequest() record.Virtual {
 }
 
 type ServiceData struct {
-	Polymorph     uint32             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	LogTraceID    string             `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
-	LogLevel      logcommon.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.LogLevel" json:"LogLevel"`
-	TraceSpanData []byte             `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
+	Polymorph     uint32       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	LogTraceID    string       `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
+	LogLevel      log.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/logcommon.LogLevel" json:"LogLevel"`
+	TraceSpanData []byte       `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
 }
 
 func (m *ServiceData) Reset()      { *m = ServiceData{} }
@@ -13698,7 +13698,7 @@ func (m *ServiceData) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.LogLevel |= logcommon.LogLevel(b&0x7F) << shift
+				m.LogLevel |= log.LogLevel(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

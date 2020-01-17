@@ -26,7 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -50,7 +50,7 @@ func (s *Server) Serve() {
 		err = cfgHolder.Load()
 	}
 	if err != nil {
-		log.Warn("failed to load configuration from file: ", err.Error())
+		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 
 	cfg := &cfgHolder.Configuration
@@ -72,7 +72,7 @@ func (s *Server) Serve() {
 
 	traceID := utils.RandTraceID() + "_main"
 	ctx, logger := inslogger.InitNodeLogger(ctx, cfg.Log, nodeRef, nodeRole)
-	log.InitTicker()
+	global.InitTicker()
 
 	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
 		jaegerFlush := internal.Jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole)

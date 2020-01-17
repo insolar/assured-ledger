@@ -29,7 +29,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
@@ -59,7 +59,7 @@ func NewBootstrapNode(pubKey crypto.PublicKey, publicKey, host, noderef, role st
 func (bn *BootstrapNode) GetNodeRef() *insolar.Reference {
 	ref, err := insolar.NewReferenceFromString(bn.NodeRef)
 	if err != nil {
-		log.Errorf("Invalid bootstrap node reference: %s. Error: %s", bn.NodeRef, err.Error())
+		global.Errorf("Invalid bootstrap node reference: %s. Error: %s", bn.NodeRef, err.Error())
 		return nil
 	}
 	return ref
@@ -191,7 +191,7 @@ func (cert *Certificate) fillExtraFields(keyProcessor insolar.KeyProcessor) erro
 func (cert *Certificate) GetRootDomainReference() *insolar.Reference {
 	ref, err := insolar.NewReferenceFromString(cert.RootDomainReference)
 	if err != nil {
-		log.Errorf("Invalid domain reference in cert: %s\n", cert.Reference)
+		global.Errorf("Invalid domain reference in cert: %s\n", cert.Reference)
 		return nil
 	}
 	return ref

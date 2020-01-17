@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
 )
 
 type StepLoggerEvent uint8
@@ -112,12 +112,12 @@ type StepLogger interface {
 	//LogMetric()
 	LogUpdate(StepLoggerData, StepLoggerUpdateData)
 	LogInternal(data StepLoggerData, updateType string)
-	LogEvent(data StepLoggerData, customEvent interface{}, fields []logcommon.LogFieldMarshaller)
+	LogEvent(data StepLoggerData, customEvent interface{}, fields []logmsgfmt.LogFieldMarshaller)
 
 	// (callId) is guaranteed to be unique per Slot for async calls.
 	// For notify and sync calls there is no guarantees on (callId).
 	// Type of call can be identified by (data.Flags).
-	LogAdapter(data StepLoggerData, adapterId AdapterId, callId uint64, fields []logcommon.LogFieldMarshaller)
+	LogAdapter(data StepLoggerData, adapterId AdapterId, callId uint64, fields []logmsgfmt.LogFieldMarshaller)
 
 	GetTracerId() TracerId
 
@@ -178,48 +178,48 @@ func (p Logger) getStepLoggerData(eventType StepLoggerEvent, stepUpdate uint32, 
 }
 
 func (p Logger) _doLog(stepLogger StepLogger, stepUpdate uint32, eventType StepLoggerEvent,
-	msg interface{}, fields []logcommon.LogFieldMarshaller, err error,
+	msg interface{}, fields []logmsgfmt.LogFieldMarshaller, err error,
 ) {
 	stepLogger.LogEvent(p.getStepLoggerData(eventType, stepUpdate, err), msg, fields)
 }
 
 func (p Logger) _doAdapterLog(stepLogger StepLogger, stepUpdate uint32, extraFlags StepLoggerFlags,
-	adapterId AdapterId, callId uint64, fields []logcommon.LogFieldMarshaller, err error,
+	adapterId AdapterId, callId uint64, fields []logmsgfmt.LogFieldMarshaller, err error,
 ) {
 	stepData := p.getStepLoggerData(StepLoggerAdapterCall, stepUpdate, err)
 	stepData.Flags |= extraFlags
 	stepLogger.LogAdapter(stepData, adapterId, callId, fields)
 }
 
-func (p Logger) adapterCall(flags StepLoggerFlags, adapterId AdapterId, callId uint64, err error, fields ...logcommon.LogFieldMarshaller) {
+func (p Logger) adapterCall(flags StepLoggerFlags, adapterId AdapterId, callId uint64, err error, fields ...logmsgfmt.LogFieldMarshaller) {
 	if stepLogger, stepUpdate, _ := p._checkLog(StepLoggerAdapterCall); stepLogger != nil {
 		p._doAdapterLog(stepLogger, stepUpdate, flags, adapterId, callId, fields, err)
 	}
 }
 
 // NB! keep method simple to ensure inlining
-func (p Logger) Trace(msg interface{}, fields ...logcommon.LogFieldMarshaller) {
+func (p Logger) Trace(msg interface{}, fields ...logmsgfmt.LogFieldMarshaller) {
 	if stepLogger, stepUpdate, eventType := p._checkLog(StepLoggerTrace); stepLogger != nil {
 		p._doLog(stepLogger, stepUpdate, eventType, msg, fields, nil)
 	}
 }
 
 // NB! keep method simple to ensure inlining
-func (p Logger) Warn(msg interface{}, fields ...logcommon.LogFieldMarshaller) {
+func (p Logger) Warn(msg interface{}, fields ...logmsgfmt.LogFieldMarshaller) {
 	if stepLogger, stepUpdate, eventType := p._checkLog(StepLoggerWarn); stepLogger != nil {
 		p._doLog(stepLogger, stepUpdate, eventType, msg, fields, nil)
 	}
 }
 
 // NB! keep method simple to ensure inlining
-func (p Logger) Error(msg interface{}, err error, fields ...logcommon.LogFieldMarshaller) {
+func (p Logger) Error(msg interface{}, err error, fields ...logmsgfmt.LogFieldMarshaller) {
 	if stepLogger, stepUpdate, eventType := p._checkLog(StepLoggerError); stepLogger != nil {
 		p._doLog(stepLogger, stepUpdate, eventType, msg, fields, err)
 	}
 }
 
 // NB! keep method simple to ensure inlining
-func (p Logger) Fatal(msg interface{}, fields ...logcommon.LogFieldMarshaller) {
+func (p Logger) Fatal(msg interface{}, fields ...logmsgfmt.LogFieldMarshaller) {
 	if stepLogger, stepUpdate, eventType := p._checkLog(StepLoggerFatal); stepLogger != nil {
 		p._doLog(stepLogger, stepUpdate, eventType, msg, fields, nil)
 	}

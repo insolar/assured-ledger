@@ -19,7 +19,7 @@ package smachine
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
 )
 
 type StepLoggerStub struct {
@@ -32,8 +32,8 @@ func (StepLoggerStub) CanLogEvent(StepLoggerEvent, StepLogLevel) bool {
 
 func (StepLoggerStub) LogUpdate(StepLoggerData, StepLoggerUpdateData)                               {}
 func (StepLoggerStub) LogInternal(StepLoggerData, string)                                           {}
-func (StepLoggerStub) LogEvent(StepLoggerData, interface{}, []logcommon.LogFieldMarshaller)         {}
-func (StepLoggerStub) LogAdapter(StepLoggerData, AdapterId, uint64, []logcommon.LogFieldMarshaller) {}
+func (StepLoggerStub) LogEvent(StepLoggerData, interface{}, []logmsgfmt.LogFieldMarshaller)         {}
+func (StepLoggerStub) LogAdapter(StepLoggerData, AdapterId, uint64, []logmsgfmt.LogFieldMarshaller) {}
 
 func (StepLoggerStub) CreateAsyncLogger(ctx context.Context, data *StepLoggerData) (context.Context, StepLogger) {
 	return ctx, nil

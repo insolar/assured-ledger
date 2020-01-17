@@ -31,6 +31,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -44,19 +46,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/handle"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/proc"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	networknode "github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/component-manager"
 )
 
 var (

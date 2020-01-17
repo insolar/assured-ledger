@@ -23,13 +23,14 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 const pkgRegexPrefix = "^instrumentation/inslogger/"
@@ -80,18 +81,18 @@ func TestExtLog_ZerologCallerWithFunc(t *testing.T) {
 }
 
 func TestExtLog_GlobalCaller(t *testing.T) {
-	defer log.SaveGlobalLogger()()
+	defer global.SaveLogger()()
 
 	var b bytes.Buffer
-	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
+	gl2, err := global.Logger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
-	log.SetGlobalLogger(gl2)
+	global.SetLogger(gl2)
 
-	log.SetLogLevel(logcommon.InfoLevel)
+	global.SetLevel(log.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
-	log.Info("test")
-	log.Debug("test2shouldNotBeThere")
+	global.Info("test")
+	global.Debug("test2shouldNotBeThere")
 
 	s := b.String()
 	lf := logFields(t, []byte(s))
@@ -101,17 +102,17 @@ func TestExtLog_GlobalCaller(t *testing.T) {
 }
 
 func TestExtLog_GlobalCallerWithFunc(t *testing.T) {
-	defer log.SaveGlobalLogger()()
+	defer global.SaveLogger()()
 
 	var b bytes.Buffer
-	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
+	gl2, err := global.Logger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
-	log.SetGlobalLogger(gl2)
-	log.SetLogLevel(logcommon.InfoLevel)
+	global.SetLogger(gl2)
+	global.SetLevel(log.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
-	log.Info("test")
-	log.Debug("test2shouldNotBeThere")
+	global.Info("test")
+	global.Debug("test2shouldNotBeThere")
 
 	s := b.String()
 	lf := logFields(t, []byte(s))

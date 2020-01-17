@@ -55,13 +55,14 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 )
 
 func testRPCPacket() *Packet {
@@ -92,7 +93,7 @@ func TestDeserializePacket(t *testing.T) {
 
 	buffer.Write(serialized)
 
-	deserialized, _, err := DeserializePacket(log.GlobalLogger(), &buffer)
+	deserialized, _, err := DeserializePacket(global.Logger(), &buffer)
 
 	require.NoError(t, err)
 	require.Equal(t, deserialized.Packet, msg)
@@ -112,7 +113,7 @@ func TestDeserializeBigPacket(t *testing.T) {
 	var buffer bytes.Buffer
 	buffer.Write(serialized)
 
-	deserializedMsg, _, err := DeserializePacket(log.GlobalLogger(), &buffer)
+	deserializedMsg, _, err := DeserializePacket(global.Logger(), &buffer)
 	require.NoError(t, err)
 
 	deserializedData := deserializedMsg.GetRequest().GetRPC().Data

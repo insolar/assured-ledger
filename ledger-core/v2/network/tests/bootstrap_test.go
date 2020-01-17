@@ -58,7 +58,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,7 +91,7 @@ func (s *bootstrapSuite) Setup() {
 		pulseReceivers = append(pulseReceivers, node.host)
 	}
 
-	log.Info("Start test pulsar")
+	global.Info("Start test pulsar")
 	err = s.pulsar.Start(s.ctx, pulseReceivers)
 	require.NoError(s.t, err)
 }

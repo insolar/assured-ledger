@@ -28,13 +28,15 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
@@ -43,7 +45,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
-	"github.com/insolar/component-manager"
 )
 
 type inputParams struct {
@@ -77,11 +78,11 @@ func main() {
 	}
 	err = vp.ReadInConfig()
 	if err != nil {
-		log.Warn("failed to load configuration from file: ", err.Error())
+		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 	err = vp.Unmarshal(&pCfg)
 	if err != nil {
-		log.Warn("failed to load configuration from file: ", err.Error())
+		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 
 	ctx := context.Background()
@@ -90,7 +91,7 @@ func main() {
 	jaegerflush := func() {}
 	if pCfg.Tracer.Jaeger.AgentEndpoint != "" {
 		jconf := pCfg.Tracer.Jaeger
-		log.Infof("Tracing enabled. Agent endpoint: '%s', collector endpoint: '%s'", jconf.AgentEndpoint, jconf.CollectorEndpoint)
+		global.Infof("Tracing enabled. Agent endpoint: '%s', collector endpoint: '%s'", jconf.AgentEndpoint, jconf.CollectorEndpoint)
 		jaegerflush = instracer.ShouldRegisterJaeger(
 			ctx,
 			"pulsar",
@@ -104,12 +105,12 @@ func main() {
 	m := metrics.NewMetrics(pCfg.Metrics, metrics.GetInsolarRegistry("pulsar"), "pulsar")
 	err = m.Init(ctx)
 	if err != nil {
-		log.Fatal("Couldn't init metrics:", err)
+		global.Fatal("Couldn't init metrics:", err)
 		os.Exit(1)
 	}
 	err = m.Start(ctx)
 	if err != nil {
-		log.Fatal("Couldn't start metrics:", err)
+		global.Fatal("Couldn't start metrics:", err)
 		os.Exit(1)
 	}
 

@@ -29,7 +29,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 func accessorMock(t *testing.T) pulse.Accessor {
@@ -268,10 +267,10 @@ func TestRetryerSend_FlowCancelled_Once_SeveralReply(t *testing.T) {
 	sender.SendRoleMock.Set(func(p context.Context, p1 *message.Message, p2 insolar.DynamicRole, p3 insolar.Reference) (r <-chan *message.Message, r1 func()) {
 		innerReps = make(chan *message.Message)
 		if sender.SendRoleAfterCounter() == 0 {
-			log.Error("send test error code flow canceled")
+			t.Log("send test error code flow canceled")
 			go sendTestReply(&payload.Error{Text: "test error", Code: payload.CodeFlowCanceled}, innerReps, make(chan<- interface{}))
 		} else {
-			log.Error("send test error code flow not-canceled")
+			t.Log("send test error code flow not-canceled")
 			go sendTestReply(&payload.State{}, innerReps, make(chan<- interface{}))
 			go sendTestReply(&payload.State{}, innerReps, make(chan<- interface{}))
 		}

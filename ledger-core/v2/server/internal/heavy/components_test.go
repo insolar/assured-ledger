@@ -28,7 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 func TestComponents(t *testing.T) {
@@ -36,7 +36,7 @@ func TestComponents(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 	require.NoError(t, err)
 
-	ctx := inslogger.UpdateLogger(context.Background(), func(logger logcommon.Logger) (logcommon.Logger, error) {
+	ctx := inslogger.UpdateLogger(context.Background(), func(logger log.Logger) (log.Logger, error) {
 		return logger.Copy().WithBuffer(100, false).Build()
 	})
 	cfg := configuration.NewConfiguration()

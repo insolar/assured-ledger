@@ -22,7 +22,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 type ConveyorWorker struct {
@@ -54,7 +54,7 @@ func NewConveyorWorker() ConveyorWorker {
 }
 
 type AsyncTimeMessage struct {
-	*logadapter.Msg `txt:"async time"`
+	*log.Msg `txt:"async time"`
 
 	AsyncComponent     string `opt:""`
 	AsyncExecutionTime int64

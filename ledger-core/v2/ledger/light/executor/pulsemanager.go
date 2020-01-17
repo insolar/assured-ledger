@@ -29,7 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
@@ -150,7 +150,7 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 				}).Debug("before hotStatusChecker.IsReceived")
 
 				if !m.hotStatusChecker.IsReceived(ctx, jet, endedPulse.PulseNumber) {
-					log.Fatalf("hot data for jet: %s and pulse: %d wasn't received", jet.DebugString(), endedPulse.PulseNumber)
+					global.Fatalf("hot data for jet: %s and pulse: %d wasn't received", jet.DebugString(), endedPulse.PulseNumber)
 				}
 			}
 

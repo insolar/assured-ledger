@@ -31,7 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
@@ -69,11 +69,11 @@ func main() {
 	}
 	err := vp.ReadInConfig()
 	if err != nil {
-		log.Warn("failed to load configuration from file: ", err.Error())
+		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 	err = vp.Unmarshal(&pCfg)
 	if err != nil {
-		log.Warn("failed to load configuration from file: ", err.Error())
+		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 
 	ctx := context.Background()

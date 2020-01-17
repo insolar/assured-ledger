@@ -28,6 +28,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
@@ -91,17 +92,17 @@ func TestLog_ZerologCallerWithFunc(t *testing.T) {
 }
 
 func TestLog_GlobalCaller(t *testing.T) {
-	defer log.SaveGlobalLogger()()
+	defer global.SaveLogger()()
 
 	var b bytes.Buffer
-	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
+	gl2, err := global.Logger().Copy().WithOutput(&b).WithCaller(logcommon.CallerField).Build()
 	require.NoError(t, err)
-	log.SetGlobalLogger(gl2)
-	log.SetLogLevel(logcommon.InfoLevel)
+	global.SetLogger(gl2)
+	global.SetLevel(log.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
-	log.Info("test")
-	log.Debug("test2shouldNotBeThere")
+	global.Info("test")
+	global.Debug("test2shouldNotBeThere")
 
 	s := b.String()
 	lf := logFields(t, []byte(s))
@@ -111,17 +112,17 @@ func TestLog_GlobalCaller(t *testing.T) {
 }
 
 func TestLog_GlobalCallerWithFunc(t *testing.T) {
-	defer log.SaveGlobalLogger()()
+	defer global.SaveLogger()()
 
 	var b bytes.Buffer
-	gl2, err := log.GlobalLogger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
+	gl2, err := global.Logger().Copy().WithOutput(&b).WithCaller(logcommon.CallerFieldWithFuncName).Build()
 	require.NoError(t, err)
-	log.SetGlobalLogger(gl2)
-	log.SetLogLevel(logcommon.InfoLevel)
+	global.SetLogger(gl2)
+	global.SetLevel(log.InfoLevel)
 
 	_, _, line, _ := runtime.Caller(0)
-	log.Info("test")
-	log.Debug("test2shouldNotBeThere")
+	global.Info("test")
+	global.Debug("test2shouldNotBeThere")
 
 	s := b.String()
 	lf := logFields(t, []byte(s))

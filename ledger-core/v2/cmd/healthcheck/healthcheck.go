@@ -21,11 +21,12 @@ import (
 	"os"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/rpctypes"
 )
 
@@ -36,19 +37,19 @@ func main() {
 	pflag.Parse()
 
 	if *rpcAddress == "" || *rpcProtocol == "" || *refString == "" {
-		log.Error(errors.New("need to provide all params"))
+		global.Error(errors.New("need to provide all params"))
 		os.Exit(2)
 	}
 
 	client, err := rpc.Dial(*rpcProtocol, *rpcAddress)
 	if err != nil {
-		log.Error(err.Error())
+		global.Error(err.Error())
 		os.Exit(2)
 	}
 
 	ref, err := insolar.NewReferenceFromString(*refString)
 	if err != nil {
-		log.Errorf("Failed to parse healthcheck contract ref: %s", err.Error())
+		global.Errorf("Failed to parse healthcheck contract ref: %s", err.Error())
 		os.Exit(2)
 	}
 
@@ -66,7 +67,7 @@ func main() {
 
 	err = client.Call("RPC.CallMethod", req, &res)
 	if err != nil {
-		log.Error(err.Error())
+		global.Error(err.Error())
 		os.Exit(2)
 	}
 }

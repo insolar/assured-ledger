@@ -21,16 +21,16 @@ import (
 	"sync"
 	"time"
 
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
-	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 // Pulsar is a base struct for pulsar's node
@@ -61,7 +61,7 @@ func NewPulsar(
 	entropyGenerator entropygenerator.EntropyGenerator,
 ) *Pulsar {
 
-	log.Info("[NewPulsar]")
+	global.Info("[NewPulsar]")
 
 	pulsar := &Pulsar{
 		CryptographyService:        cryptographyService,
@@ -74,11 +74,11 @@ func NewPulsar(
 
 	pubKey, err := cryptographyService.GetPublicKey()
 	if err != nil {
-		log.Fatal(err)
+		global.Fatal(err)
 	}
 	pubKeyRaw, err := keyProcessor.ExportPublicKeyPEM(pubKey)
 	if err != nil {
-		log.Fatal(err)
+		global.Fatal(err)
 	}
 	pulsar.PublicKeyRaw = string(pubKeyRaw)
 

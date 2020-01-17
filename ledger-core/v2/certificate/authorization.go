@@ -20,7 +20,8 @@ import (
 	"crypto"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+
 	"github.com/pkg/errors"
 )
 
@@ -43,7 +44,7 @@ func (authCert *AuthorizationCertificate) GetPublicKey() crypto.PublicKey {
 func (authCert *AuthorizationCertificate) GetNodeRef() *insolar.Reference {
 	ref, err := insolar.NewReferenceFromString(authCert.Reference)
 	if err != nil {
-		log.Errorf("Invalid node reference in auth cert: %s\n", authCert.Reference)
+		global.Errorf("Invalid node reference in auth cert: %s\n", authCert.Reference)
 		return nil
 	}
 	return ref

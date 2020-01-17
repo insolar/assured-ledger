@@ -27,12 +27,12 @@ import (
 	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 
 	"github.com/spf13/pflag"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/ginsider"
 )
 
@@ -48,25 +48,25 @@ func main() {
 
 	pflag.Parse()
 
-	err := log.SetLevel(*logLevel)
+	err := global.SetTextLevel(*logLevel)
 	if err != nil {
-		log.Fatalf("Couldn't set log level to %q: %s", *logLevel, err)
+		global.Fatalf("Couldn't set log level to %q: %s", *logLevel, err)
 	}
-	log.InitTicker()
+	global.InitTicker()
 
 	if *path == "" {
 		tmpDir, err := ioutil.TempDir("", "funcTestContractcache-")
 		if err != nil {
-			log.Fatalf("Couldn't create temp cache dir: %s", err.Error())
+			global.Fatalf("Couldn't create temp cache dir: %s", err.Error())
 		}
 		defer func() {
 			err := os.RemoveAll(tmpDir)
 			if err != nil {
-				log.Fatalf("Failed to clean up tmp dir: %s", err.Error())
+				global.Fatalf("Failed to clean up tmp dir: %s", err.Error())
 			}
 		}()
 		*path = tmpDir
-		log.Debug("ginsider cache dir is " + tmpDir)
+		global.Debug("ginsider cache dir is " + tmpDir)
 	}
 
 	insider := ginsider.NewGoInsider(*path, *rpcProtocol, *rpcAddress)
@@ -74,28 +74,28 @@ func main() {
 	if *code != "" {
 		codeSlice := strings.Split(*code, ":")
 		if len(codeSlice) != 2 {
-			log.Fatal("code param format is <ref>:</path/to/plugin.so>")
+			global.Fatal("code param format is <ref>:</path/to/plugin.so>")
 		}
 		ref, err := insolar.NewReferenceFromString(codeSlice[0])
 		if err != nil {
-			log.Fatalf("Couldn't parse ref: %s", err.Error())
+			global.Fatalf("Couldn't parse ref: %s", err.Error())
 		}
 		pluginPath := codeSlice[1]
 
 		err = insider.AddPlugin(*ref, pluginPath)
 		if err != nil {
-			log.Fatalf("Couldn't add plugin by ref %s with .so from %s, err: %s ", ref, pluginPath, err.Error())
+			global.Fatalf("Couldn't add plugin by ref %s with .so from %s, err: %s ", ref, pluginPath, err.Error())
 		}
 	}
 
 	err = rpc.Register(&ginsider.RPC{GI: insider})
 	if err != nil {
-		log.Fatal("Couldn't register RPC interface: ", err)
+		global.Fatal("Couldn't register RPC interface: ", err)
 	}
 
 	listener, err := net.Listen(*protocol, *listen)
 	if err != nil {
-		log.Fatal("couldn't setup listener on '"+*listen+"':", err)
+		global.Fatal("couldn't setup listener on '"+*listen+"':", err)
 	}
 
 	var gracefulStop = make(chan os.Signal, 1)
@@ -106,7 +106,7 @@ func main() {
 
 	go func() {
 		sig := <-gracefulStop
-		log.Info("ginsider get signal: ", sig)
+		global.Info("ginsider get signal: ", sig)
 		close(waitChannel)
 	}()
 
@@ -122,15 +122,15 @@ func main() {
 		m := metrics.NewMetrics(metricsConfiguration, metrics.GetInsgorundRegistry(), "virtual")
 		err = m.Start(ctx)
 		if err != nil {
-			log.Fatal("couldn't setup metrics ", err)
+			global.Fatal("couldn't setup metrics ", err)
 		}
 
 		defer m.Stop(ctx) // nolint: errcheck
 	}
 
-	log.Debug("ginsider launched, listens " + *listen)
+	global.Debug("ginsider launched, listens " + *listen)
 	go rpc.Accept(listener)
 
 	<-waitChannel
-	log.Debug("bye\n")
+	global.Debug("bye\n")
 }

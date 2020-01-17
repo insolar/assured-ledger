@@ -54,9 +54,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/machinesmanager"
@@ -107,7 +108,7 @@ func DefaultVMConfig() configuration.Configuration {
 	cfg.LogicRunner.BuiltIn = &configuration.BuiltIn{}
 	cfg.Bus.ReplyTimeout = 5 * time.Second
 	cfg.Log = configuration.NewLog()
-	cfg.Log.Level = logcommon.InfoLevel.String()      // insolar.DebugLevel.String()
+	cfg.Log.Level = log.InfoLevel.String()            // insolar.DebugLevel.String()
 	cfg.Log.Formatter = logcommon.JSONFormat.String() // insolar.TextFormat.String()
 	return cfg
 }
@@ -581,7 +582,7 @@ func (s *Server) BasicAPICall(
 }
 
 func (s *Server) LoadGenesis(ctx context.Context, genesisDirectory string) error {
-	ctx = inslogger.WithLoggerLevel(ctx, logcommon.ErrorLevel)
+	ctx = inslogger.WithLoggerLevel(ctx, log.ErrorLevel)
 
 	if genesisDirectory == "" {
 		genesisDirectory = GenesisDirectory

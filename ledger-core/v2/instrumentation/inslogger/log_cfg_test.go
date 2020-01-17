@@ -25,13 +25,14 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestLogger(cfg configuration.Log) (logcommon.Logger, error) {
+func newTestLogger(cfg configuration.Log) (log.Logger, error) {
 	return NewLog(cfg)
 }
 
@@ -72,18 +73,18 @@ func TestLog_AddFields(t *testing.T) {
 	)
 	tt := []struct {
 		name    string
-		fieldfn func(la logcommon.Logger) logcommon.Logger
+		fieldfn func(la log.Logger) log.Logger
 	}{
 		{
 			name: "WithFields",
-			fieldfn: func(la logcommon.Logger) logcommon.Logger {
+			fieldfn: func(la log.Logger) log.Logger {
 				fields := map[string]interface{}{fieldname: fieldvalue}
 				return la.WithFields(fields)
 			},
 		},
 		{
 			name: "WithField",
-			fieldfn: func(la logcommon.Logger) logcommon.Logger {
+			fieldfn: func(la log.Logger) log.Logger {
 				return la.WithField(fieldname, fieldvalue)
 			},
 		},
@@ -203,12 +204,12 @@ func TestLog_DynField(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	l, err := log.GlobalLogger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(logcommon.DebugLevel).Build()
+	l, err := global.Logger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(log.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}
-	log.SetGlobalLogger(l)
-	_ = log.SetGlobalLevelFilter(logcommon.DebugLevel)
+	global.SetLogger(l)
+	_ = global.SetFilter(log.DebugLevel)
 	exitCode := m.Run()
 	os.Exit(exitCode)
 }

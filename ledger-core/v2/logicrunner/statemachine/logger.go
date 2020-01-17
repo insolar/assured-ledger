@@ -10,15 +10,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	logger "github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logmsgfmt"
 )
 
 type ConveyorLogger struct {
 	smachine.StepLoggerStub
 
-	logger logcommon.Logger
+	logger log.Logger
 }
 
 func (c ConveyorLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
@@ -30,7 +30,7 @@ func (c ConveyorLogger) CreateAsyncLogger(ctx context.Context, _ *smachine.StepL
 }
 
 type LogStepMessage struct {
-	*logadapter.Msg
+	*log.Msg
 
 	Message   string
 	Component string `txt:"sm"`
@@ -68,7 +68,7 @@ func prepareStepName(sd *smachine.StepDeclaration) {
 	sd.Name = getStepName(sd.Transition)
 }
 
-func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logcommon.LogFieldMarshaller) {
+func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logmsgfmt.LogFieldMarshaller) {
 	c.logger.Errorm(msg, fields...)
 }
 
@@ -142,7 +142,7 @@ func (c ConveyorLoggerFactory) CreateStepLogger(ctx context.Context, _ smachine.
 }
 
 type LogInternal struct {
-	*logadapter.Msg `txt:"internal"`
+	*log.Msg `txt:"internal"`
 
 	Message   string `fmt:"internal - %s"`
 	Component string `txt:"sm"`
@@ -160,7 +160,7 @@ func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMac
 			backtrace = string(slotPanicError.Stack)
 		}
 	}
-	logger.GlobalLogger().Error(LogInternal{
+	global.Logger().Error(LogInternal{
 		Message: msg,
 
 		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineId(), slotMachineData.CycleNo),
@@ -171,7 +171,7 @@ func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMac
 }
 
 type LogCritical struct {
-	*logadapter.Msg `txt:"internal"`
+	*log.Msg `txt:"internal"`
 
 	Message   string `fmt:"internal critical - %s"`
 	Component string `txt:"sm"`
@@ -189,7 +189,7 @@ func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMac
 			backtrace = string(slotPanicError.Stack)
 		}
 	}
-	logger.GlobalLogger().Error(LogCritical{
+	global.Logger().Error(LogCritical{
 		Message: msg,
 
 		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineId(), slotMachineData.CycleNo),

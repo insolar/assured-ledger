@@ -61,11 +61,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
-	"github.com/pkg/errors"
 )
 
 func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
@@ -169,7 +170,7 @@ func IsDiscovery(nodeID insolar.Reference, cert insolar.Certificate) bool {
 func CloseVerbose(closer io.Closer) {
 	err := closer.Close()
 	if err != nil {
-		log.Warnf("[ CloseVerbose ] Failed to close: %s", err.Error())
+		global.Warnf("[ CloseVerbose ] Failed to close: %s", err.Error())
 	}
 }
 

@@ -59,7 +59,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 )
@@ -179,7 +179,7 @@ func DeserializePacketRaw(conn io.Reader) (*ReceivedPacket, uint64, error) {
 }
 
 // DeserializePacket reads packet from io.Reader.
-func DeserializePacket(logger logcommon.Logger, conn io.Reader) (*ReceivedPacket, uint64, error) {
+func DeserializePacket(logger log.Logger, conn io.Reader) (*ReceivedPacket, uint64, error) {
 	receivedPacket, length, err := DeserializePacketRaw(conn)
 	if err != nil {
 		return nil, 0, err

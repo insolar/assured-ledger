@@ -23,11 +23,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwatermill"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -36,8 +39,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
 )
 
 var defaultConfig = configuration.Bus{ReplyTimeout: 15 * time.Second}
