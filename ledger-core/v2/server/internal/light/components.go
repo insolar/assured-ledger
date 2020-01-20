@@ -18,18 +18,20 @@ package light
 
 import (
 	"context"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-	"github.com/pkg/errors"
-
 	"github.com/insolar/component-manager"
+	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/contractrequester"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
@@ -45,9 +47,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/handle"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/proc"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/smachines"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
+	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
@@ -250,6 +254,31 @@ func newComponents(ctx context.Context, cfg configuration.Configuration) (*compo
 	)
 
 	metricsRegistry := executor.NewMetricsRegistry()
+
+	// Conveyor.
+	{
+		machineConfig := smachine.SlotMachineConfig{
+			PollingPeriod:     500 * time.Millisecond,
+			PollingTruncate:   1 * time.Millisecond,
+			SlotPageSize:      1000,
+			ScanCountLimit:    100000,
+			SlotMachineLogger: statemachine.ConveyorLoggerFactory{},
+		}
+
+		conv := conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
+			ConveyorMachineConfig: machineConfig,
+			SlotMachineConfig:     machineConfig,
+			EventlessSleep:        100 * time.Millisecond,
+			MinCachePulseAge:      100,
+			MaxPastPulseAge:       1000,
+		}, smachines.CommonFactory, nil)
+
+		worker := smachines.NewWorker()
+		worker.AttachTo(conv)
+
+		disp := smachines.NewDispatcher(conv)
+		_ = disp
+	}
 
 	// Light components.
 	var (
