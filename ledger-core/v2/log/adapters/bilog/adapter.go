@@ -39,7 +39,7 @@ var (
 )
 
 var _ logcommon.EmbeddedLogger = &binLogAdapter{}
-var _ logcommon.EmbeddedLoggerAssistant = &binLogAdapter{}
+var _ logcommon.EmbeddedLoggerOptional = &binLogAdapter{}
 
 type binLogAdapter struct {
 	config  *logcommon.Config
@@ -54,19 +54,30 @@ type binLogAdapter struct {
 
 	levelFilter log.Level
 	lowLatency  bool
+	recycleBuf  bool
 }
 
 const loggerSkipFrameCount = 3
 
 func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEncoder {
 	if preallocate < minEventBuffer {
+		preallocate = minEventBuffer
+	} else if preallocate > minEventBuffer {
 		preallocate += maxEventBufferIncrement
 	}
 
-	encoder := objectEncoder{v.encoder, make([]byte, 0, preallocate), time.Now()}
+	encoder := objectEncoder{v.encoder, nil, time.Now()}
+	if v.recycleBuf {
+		encoder.content = allocateBuffer(preallocate)
+	} else {
+		encoder.content = make([]byte, 0, preallocate)
+	}
 
-	v.encoder.PrepareBuffer(&encoder.content, logoutput.LevelFieldName, level)
-	encoder.AddTimeField(logoutput.TimestampFieldName, encoder.reportedAt, logfmt.LogFieldFormat{})
+	encoder.content = v.encoder.PrepareBuffer(encoder.content, logoutput.LevelFieldName, level)
+
+	if v.config.Instruments.MetricsMode&logcommon.LogMetricsTimestamp != 0 {
+		encoder.AddTimeField(logoutput.TimestampFieldName, encoder.reportedAt, logfmt.LogFieldFormat{})
+	}
 
 	switch withFuncName := false; v.config.Instruments.CallerMode {
 	case logcommon.CallerFieldWithFuncName:
@@ -89,55 +100,84 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 
 	for _, field := range v.dynFields {
 		val := field.Getter()
+		if val == nil {
+			continue
+		}
 		encoder.AddIntfField(field.Name, val, logfmt.LogFieldFormat{})
 	}
 
 	return encoder
 }
 
-func (v binLogAdapter) sendEvent(level log.Level, encoder objectEncoder, msg string) {
-	encoder.AddStrField(logoutput.MessageFieldName, msg, logfmt.LogFieldFormat{})
-	v.encoder.FinalizeBuffer(&encoder.content, encoder.reportedAt)
+func (v binLogAdapter) sendEvent(level log.Level, encoder objectEncoder, msgStr string, completed *bool) {
+	encoder.AddStrField(logoutput.MessageFieldName, msgStr, logfmt.LogFieldFormat{})
+
+	var content []byte
+	if v.config.Instruments.MetricsMode.HasWriteMetric() {
+		content = v.encoder.FinalizeBuffer(encoder.content, encoder.reportedAt)
+	} else {
+		content = v.encoder.FinalizeBuffer(encoder.content, time.Time{})
+	}
+
+	// NB! writer's methods can call runtime.Goexit() etc
+	// So we have to mark our part as complete before it
+	*completed = true
 
 	var err error
 	if v.lowLatency {
-		_, err = v.writer.LowLatencyWrite(level, encoder.content)
+		_, err = v.writer.LowLatencyWrite(level, content)
 	} else {
-		_, err = v.writer.LogLevelWrite(level, encoder.content)
+		_, err = v.writer.LogLevelWrite(level, content)
+	}
+
+	if level == log.FatalLevel {
+		// MUST NOT do it before writer's call to properly handle runtime.Goexit()
+		// make sure not to loose Fatal by an internal panic
+		defer os.Exit(1)
+	}
+
+	if v.recycleBuf {
+		// only non-finalized buffer can be recycled
+		// as finalization can cut a buffer's head
+		reuseBuffer(encoder.content)
 	}
 
 	switch {
 	case err == nil:
-		return
+		//
 	case v.config.ErrorFn != nil:
 		v.config.ErrorFn(err)
 	default:
 		_, _ = fmt.Fprintf(os.Stderr, "bilog: could not write event: %v\n", err)
 	}
-}
 
-func (v binLogAdapter) postEvent(level log.Level, msgStr string) {
-	switch level {
-	case log.FatalLevel:
-		os.Exit(1)
-	case log.PanicLevel:
+	if level == log.PanicLevel {
 		panic(msgStr)
 	}
 }
 
-func (v binLogAdapter) doneEvent(recovered interface{}) {
+func (v binLogAdapter) doneEvent(level log.Level, recovered interface{}) {
+	switch {
+	case recovered == nil:
+		// this is runtime.Goexit() - probably is caused by testing.T.FatalNow() - don't use os.Exit()
+		return
+	case level == log.FatalLevel:
+		// make sure not to loose Fatal by an internal panic
+		defer os.Exit(1)
+	}
+
 	var err error
 	if e, ok := recovered.(error); ok {
 		err = e
 	} else {
-		err = errors.New(fmt.Sprintf("internal error (%v) stack:\n%s", recovered, debug.Stack()))
+		err = errors.New(fmt.Sprintf("internal error (%v)", recovered))
 	}
 
 	switch {
 	case v.config.ErrorFn != nil:
 		v.config.ErrorFn(err)
 	default:
-		_, _ = fmt.Fprintf(os.Stderr, "bilog: could not handle event: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "bilog: could not handle event, %v\n\tstack:\n%s", err, debug.Stack())
 	}
 }
 
@@ -149,7 +189,7 @@ func (v binLogAdapter) NewEventStruct(level log.Level) func(interface{}, []logfm
 		completed := false
 		defer func() {
 			if !completed {
-				v.doneEvent(recover())
+				v.doneEvent(level, recover())
 			}
 		}()
 
@@ -164,9 +204,7 @@ func (v binLogAdapter) NewEventStruct(level log.Level) func(interface{}, []logfm
 			collector := v.config.Metrics.GetMetricsCollector()
 			msgStr = obj.MarshalLogObject(&event, collector)
 		}
-		v.sendEvent(level, event, msgStr)
-		completed = true
-		v.postEvent(level, msgStr)
+		v.sendEvent(level, event, msgStr, &completed)
 	}
 }
 
@@ -178,16 +216,14 @@ func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 		completed := false
 		defer func() {
 			if !completed {
-				v.doneEvent(recover())
+				v.doneEvent(level, recover())
 			}
 		}()
 
 		if len(args) != 1 {
 			msgStr := v.config.MsgFormat.FmtLogObject(args...)
 			event := v.prepareEncoder(level, v.expectedEventLen)
-			v.sendEvent(level, event, msgStr)
-			completed = true
-			v.postEvent(level, msgStr)
+			v.sendEvent(level, event, msgStr, &completed)
 			return
 		}
 
@@ -198,9 +234,7 @@ func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 			collector := v.config.Metrics.GetMetricsCollector()
 			msgStr = obj.MarshalLogObject(&event, collector)
 		}
-		v.sendEvent(level, event, msgStr)
-		completed = true
-		v.postEvent(level, msgStr)
+		v.sendEvent(level, event, msgStr, &completed)
 	}
 }
 
@@ -212,36 +246,33 @@ func (v binLogAdapter) NewEventFmt(level log.Level) func(fmt string, args []inte
 		completed := false
 		defer func() {
 			if !completed {
-				v.doneEvent(recover())
+				v.doneEvent(level, recover())
 			}
 		}()
 
 		msgStr := v.config.MsgFormat.Sformatf(fmt, args...)
 		event := v.prepareEncoder(level, len(msgStr))
-		v.sendEvent(level, event, msgStr)
-		completed = true
-		v.postEvent(level, msgStr)
+		v.sendEvent(level, event, msgStr, &completed)
 	}
 }
 
-const flushEventLevel = log.WarnLevel
-
 func (v binLogAdapter) EmbeddedFlush(msgStr string) {
+	if len(msgStr) == 0 {
+		_ = v.config.LoggerOutput.Flush()
+		return
+	}
+
+	const level = log.WarnLevel
 	completed := false
 	defer func() {
 		if !completed {
-			v.doneEvent(recover())
+			v.doneEvent(level, recover())
 		}
+		_ = v.config.LoggerOutput.Flush()
 	}()
 
-	const level = flushEventLevel
-	if len(msgStr) > 0 {
-		event := v.prepareEncoder(level, len(msgStr))
-		v.sendEvent(level, event, msgStr)
-		completed = true
-	}
-	_ = v.config.LoggerOutput.Flush()
-	//	v.postEvent(level, msgStr)
+	event := v.prepareEncoder(level, len(msgStr))
+	v.sendEvent(level, event, msgStr, &completed)
 }
 
 func (v binLogAdapter) Is(level log.Level) bool {
@@ -331,7 +362,11 @@ func (v *binLogAdapter) _addDynFieldsByBuilder(newFields logcommon.DynFieldMap) 
 			fields[ve.Name] = ve.Getter
 		}
 		for k, v := range newFields {
-			fields[k] = v
+			if v == nil {
+				delete(fields, k)
+			} else {
+				fields[k] = v
+			}
 		}
 		newFields = fields
 	}

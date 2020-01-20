@@ -17,6 +17,7 @@
 package json
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 	"unicode/utf8"
@@ -24,10 +25,33 @@ import (
 
 const hex = "0123456789abcdef"
 
-var noEscapeTable = func() (t [256]bool) {
-	for i := 0; i <= 0x7e; i++ {
-		t[i] = i >= 0x20 && i != '\\' && i != '"'
+type escapeMode uint8
+
+const (
+	_ escapeMode = iota
+	quoteChar
+	escapeChar
+)
+
+func (v escapeMode) needsEscape() bool {
+	return v == escapeChar
+}
+
+func (v escapeMode) needsQuotes() bool {
+	return v >= quoteChar
+}
+
+var escapeTable = func() (t [256]escapeMode) {
+
+	for i := 0; i < 0x20; i++ {
+		t[i] = escapeChar
 	}
+	for i := 0x80; i < 0x100; i++ {
+		t[i] = escapeChar
+	}
+	t['\\'] = escapeChar
+	t['"'] = escapeChar
+	t[' '] = quoteChar
 	return
 }()
 
@@ -97,7 +121,7 @@ func AppendString(dst []byte, s string) []byte {
 		// Check if the character needs encoding. Control characters, slashes,
 		// and the double quote need json encoding. Bytes above the ascii
 		// boundary needs utf8 encoding.
-		if !noEscapeTable[s[i]] {
+		if escapeTable[s[i]].needsEscape() {
 			// We encountered a character that needs to be encoded. Switch
 			// to complex version of the algorithm.
 			dst = appendStringComplex(dst, s, i)
@@ -108,6 +132,30 @@ func AppendString(dst []byte, s string) []byte {
 	// appended to the byte slice.
 	dst = append(dst, s...)
 	// End with a double quote
+	return append(dst, '"')
+}
+
+// AppendOptQuotedString only adds quotes when escaped characters or spaces are present.
+func AppendOptQuotedString(dst []byte, s string) []byte {
+
+	var needQuotes = false
+	for i := 0; i < len(s); i++ {
+		switch escapeTable[s[i]] {
+		case escapeChar:
+			dst = append(dst, '"')
+			// We encountered a character that needs to be encoded. Switch
+			// to complex version of the algorithm.
+			dst = appendStringComplex(dst, s, i)
+			return append(dst, '"')
+		case quoteChar:
+			needQuotes = true
+		}
+	}
+	if !needQuotes {
+		return append(dst, s...)
+	}
+	dst = append(dst, '"')
+	dst = append(dst, s...)
 	return append(dst, '"')
 }
 
@@ -135,7 +183,7 @@ func appendStringComplex(dst []byte, s string, i int) []byte {
 			i += size
 			continue
 		}
-		if noEscapeTable[b] {
+		if !escapeTable[b].needsEscape() {
 			i++
 			continue
 		}
@@ -169,4 +217,12 @@ func appendStringComplex(dst []byte, s string, i int) []byte {
 		dst = append(dst, s[start:]...)
 	}
 	return dst
+}
+
+func AppendMarshalled(dst []byte, v interface{}) []byte {
+	marshaled, err := json.Marshal(v)
+	if err != nil {
+		return append(append(append(dst, `"marshaling error: `...), err.Error()...), '"')
+	}
+	return append(dst, marshaled...)
 }

@@ -11,33 +11,30 @@ var _ reflectkit.TypedReceiver = fieldFmtReceiver{}
 
 type fieldFmtReceiver struct {
 	w LogObjectWriter
-
-	k      string
-	fmtStr string
-	fmtTag fmtTagType
+	*logField
 }
 
 func (f fieldFmtReceiver) def(t reflect.Kind) bool {
-	switch f.fmtTag {
+	switch f.receiver.fmtTag {
 	case fmtTagText:
-		f.w.AddStrField(f.k, f.fmtStr, LogFieldFormat{Kind: t})
+		f.w.AddStrField(f.receiver.key, f.receiver.fmtStr, LogFieldFormat{Kind: t})
 		return true
 	}
 	return false
 }
 
 func (f fieldFmtReceiver) fmt(t reflect.Kind) LogFieldFormat {
-	return LogFieldFormat{Fmt: f.fmtStr, Kind: t, HasFmt: f.fmtTag.HasFmt()}
+	return LogFieldFormat{Fmt: f.receiver.fmtStr, Kind: t, HasFmt: f.receiver.fmtTag.HasFmt()}
 }
 
 func (f fieldFmtReceiver) ReceiveBool(t reflect.Kind, v bool) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddBoolField(f.k, v, f.fmt(t))
+		f.w.AddBoolField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
@@ -45,10 +42,10 @@ func (f fieldFmtReceiver) ReceiveInt(t reflect.Kind, v int64) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddIntField(f.k, v, f.fmt(t))
+		f.w.AddIntField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
@@ -56,10 +53,10 @@ func (f fieldFmtReceiver) ReceiveUint(t reflect.Kind, v uint64) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddUintField(f.k, v, f.fmt(t))
+		f.w.AddUintField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
@@ -67,10 +64,10 @@ func (f fieldFmtReceiver) ReceiveFloat(t reflect.Kind, v float64) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddFloatField(f.k, v, f.fmt(t))
+		f.w.AddFloatField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
@@ -78,10 +75,10 @@ func (f fieldFmtReceiver) ReceiveComplex(t reflect.Kind, v complex128) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddComplexField(f.k, v, f.fmt(t))
+		f.w.AddComplexField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
@@ -89,10 +86,10 @@ func (f fieldFmtReceiver) ReceiveString(t reflect.Kind, v string) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddStrField(f.k, v, f.fmt(t))
+		f.w.AddStrField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
@@ -102,12 +99,12 @@ func (f fieldFmtReceiver) ReceiveZero(t reflect.Kind) {
 
 func (f fieldFmtReceiver) ReceiveNil(t reflect.Kind) {
 	switch {
-	case f.def(t) || f.fmtTag.IsOpt():
+	case f.def(t) || f.receiver.fmtTag.IsOpt():
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, nil, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, nil, f.fmt(t))
 	default:
-		f.w.AddIntfField(f.k, nil, f.fmt(t))
+		f.w.AddIntfField(f.receiver.key, nil, f.fmt(t))
 	}
 }
 
@@ -115,21 +112,21 @@ func (f fieldFmtReceiver) ReceiveIface(t reflect.Kind, v interface{}) {
 	switch {
 	case f.def(t):
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddIntfField(f.k, v, f.fmt(t))
+		f.w.AddIntfField(f.receiver.key, v, f.fmt(t))
 	}
 }
 
 func (f fieldFmtReceiver) ReceiveElse(t reflect.Kind, v interface{}, isZero bool) {
 	switch {
-	case f.def(t) || f.fmtTag.IsOpt() && isZero:
+	case f.def(t) || f.receiver.fmtTag.IsOpt() && isZero:
 		return
-	case f.fmtTag.IsRaw():
-		f.w.AddRawJSONField(f.k, v, f.fmt(t))
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
 	default:
-		f.w.AddIntfField(f.k, v, f.fmt(t))
+		f.w.AddIntfField(f.receiver.key, v, f.fmt(t))
 	}
 }
 

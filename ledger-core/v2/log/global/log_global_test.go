@@ -149,7 +149,7 @@ func TestLog_GlobalLogger_Save(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	l, err := Logger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(log.DebugLevel).Build()
+	l, err := Logger().Copy().WithFormat(logcommon.JsonFormat).WithLevel(log.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}

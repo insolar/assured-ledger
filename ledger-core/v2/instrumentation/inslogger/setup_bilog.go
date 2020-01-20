@@ -19,25 +19,20 @@ package inslogger
 import (
 	"errors"
 
-	"github.com/rs/zerolog"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/zlog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 )
 
-func initZlog() {
-	zerolog.CallerMarshalFunc = fileLineMarshaller
-	zerolog.TimeFieldFormat = TimestampFormat
-	zerolog.CallerFieldName = logoutput.CallerFieldName
-	zerolog.LevelFieldName = logoutput.LevelFieldName
-	zerolog.TimestampFieldName = logoutput.TimestampFieldName
-	zerolog.MessageFieldName = logoutput.MessageFieldName
+func initBilog() {
+	bilog.CallerMarshalFunc = fileLineMarshaller
+	//zerolog.TimeFieldFormat = TimestampFormat
 }
 
-func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logfmt.MsgFormatConfig) (log.LoggerBuilder, error) {
+func newBilogAdapter(pCfg ParsedLogConfig, msgFmt logfmt.MsgFormatConfig) (log.LoggerBuilder, error) {
 	zc := logcommon.Config{}
 
 	var err error
@@ -49,7 +44,7 @@ func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logfmt.MsgFormatConfig) (log
 		return log.LoggerBuilder{}, errors.New("output is nil")
 	}
 
-	sfb := zlog.ZerologSkipFrameCount + pCfg.SkipFrameBaselineAdjustment
+	sfb := pCfg.SkipFrameBaselineAdjustment
 	if sfb < 0 {
 		sfb = 0
 	}
@@ -57,7 +52,8 @@ func newZerologAdapter(pCfg ParsedLogConfig, msgFmt logfmt.MsgFormatConfig) (log
 	zc.Output = pCfg.Output
 	zc.Instruments = pCfg.Instruments
 	zc.MsgFormat = msgFmt
+	zc.MsgFormat.TimeFmt = TimestampFormat
 	zc.Instruments.SkipFrameCountBaseline = uint8(sfb)
 
-	return log.NewBuilder(zlog.NewFactory(), zc, pCfg.LogLevel), nil
+	return log.NewBuilder(bilog.NewFactory(nil, false), zc, pCfg.LogLevel), nil
 }

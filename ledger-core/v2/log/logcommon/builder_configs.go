@@ -68,8 +68,8 @@ type InstrumentationConfig struct {
 }
 
 func (v InstrumentationConfig) CanReuseOutputFor(config InstrumentationConfig) bool {
-	vTWD := v.MetricsMode&LogMetricsWriteDelayFlags != 0
-	cTWD := config.MetricsMode&LogMetricsWriteDelayFlags != 0
+	vTWD := v.MetricsMode.HasWriteMetric()
+	cTWD := config.MetricsMode.HasWriteMetric()
 
 	if v.Recorder != config.Recorder {
 		return !cTWD && !vTWD

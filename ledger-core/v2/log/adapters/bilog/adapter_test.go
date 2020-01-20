@@ -18,8 +18,12 @@ package bilog
 
 import (
 	"bytes"
+	"encoding/json"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/suite"
 
 	logm "github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
@@ -29,74 +33,135 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newAdapter(level logcommon.Level) (logm.Logger, error) {
+func TestTextFormat(t *testing.T) {
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.TextFormat})
+	// TODO parsing for text
+}
+
+func TestJsonFormat(t *testing.T) {
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.JsonFormat,
+		parseFn: func(t *testing.T, b []byte) map[string]interface{} {
+			fields := make(map[string]interface{})
+			err := json.Unmarshal(b, &fields)
+			require.NoError(t, err, "unmarshal %s", b)
+			return fields
+		},
+	})
+}
+
+func TestPbufFormat(t *testing.T) {
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.PbufFormat})
+	// TODO parsing for pbuf
+}
+
+type SuiteTextualLog struct {
+	suite.Suite
+	logFormat logcommon.LogFormat
+	parseFn   func(*testing.T, []byte) map[string]interface{}
+}
+
+func (st SuiteTextualLog) newAdapter(level logcommon.Level) logm.Logger {
 	zc := logcommon.Config{}
 
 	var err error
 	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
-	if err != nil {
-		return logm.Logger{}, err
-	}
-	if zc.BareOutput.Writer == nil {
-		panic("output is nil")
-	}
+
+	t := st.T()
+	require.NoError(t, err)
+	require.NotNil(t, zc.BareOutput.Writer)
 
 	zc.Output = logcommon.OutputConfig{
-		Format: logcommon.TextFormat,
+		Format: st.logFormat,
 	}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 
-	zb := NewBuilder(zc, level, nil)
-	return zb.Build()
+	zb := logm.NewBuilder(NewFactory(nil, false), zc, level)
+
+	l, err := zb.Build()
+	require.NoError(t, err)
+	require.False(t, l.IsZero())
+	return l
 }
 
-func TestLogAdapter_CallerInfoWithFunc(t *testing.T) {
-	log, err := newAdapter(logcommon.InfoLevel)
-	require.NoError(t, err)
-	require.NotNil(t, log)
+type logRecord struct {
+	s string
+}
+
+func (st SuiteTextualLog) TestFields() {
+	t := st.T()
+
+	if st.parseFn == nil {
+		t.Skip("missing parser for", st.logFormat.String())
+		return
+	}
+
+	t.Log()
+	buf := bytes.Buffer{}
+	lg, _ := st.newAdapter(logcommon.InfoLevel).Copy().
+		WithOutput(&buf).
+		WithCaller(logcommon.CallerFieldWithFuncName).
+		WithMetrics(logcommon.LogMetricsWriteDelayField | logcommon.LogMetricsTimestamp).
+		Build()
+
+	const logstring = "msgstrval"
+	lg.WithField("testfield", 200.200).Warnm(logRecord{logstring})
+	fileLine, _ := logoutput.GetCallerFileNameWithLine(0, -1)
+
+	c := st.parseFn(t, buf.Bytes())
+
+	require.Equal(t, "warn", c["level"], "right message")
+	require.Equal(t, logstring, c["s"], "right message")
+	require.Equal(t, "bilog.logRecord", c["message"], "right message")
+	require.Contains(t, c["caller"], fileLine, "right caller line")
+	ltime, err := time.Parse(time.RFC3339Nano, c["time"].(string))
+	require.NoError(t, err, "parseable time")
+	ldur := time.Now().Sub(ltime)
+	require.True(t, ldur >= 0, "worktime is not less than zero")
+	require.True(t, ldur < time.Second, "worktime lesser than second")
+	require.Equal(t, 200.200, c["testfield"], "customfield")
+	require.NotNil(t, c["writeDuration"], "duration exists")
+}
+
+func (st SuiteTextualLog) TestCallerInfoWithFunc() {
+	t := st.T()
+	log := st.newAdapter(logcommon.InfoLevel)
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerFieldWithFuncName).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerFieldWithFuncName).MustBuild()
 
 	log.Error("test")
+	fileName, funcName := logoutput.GetCallerFileNameWithLine(0, -1)
 
 	s := buf.String()
-	require.Contains(t, s, "adapter_test.go:62")
-	require.Contains(t, s, "TestLogAdapter_CallerInfoWithFunc")
+	require.Contains(t, s, fileName)
+	require.Contains(t, s, funcName)
 }
 
-func TestLogAdapter_CallerInfo(t *testing.T) {
-	log, err := newAdapter(logcommon.InfoLevel)
-
-	require.NoError(t, err)
-	require.NotNil(t, log)
+func (st SuiteTextualLog) TestCallerInfo() {
+	t := st.T()
+	log := st.newAdapter(logcommon.InfoLevel)
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerField).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerField).MustBuild()
 
 	log.Error("test")
+	fileName, _ := logoutput.GetCallerFileNameWithLine(0, -1)
 
 	s := buf.String()
-	require.Contains(t, s, "adapter_test.go:79")
+	require.Contains(t, s, fileName)
 }
 
-func TestLogAdapter_InheritFields(t *testing.T) {
-	log, err := newAdapter(logcommon.InfoLevel)
-
-	require.NoError(t, err)
-	require.NotNil(t, log)
+func (st SuiteTextualLog) TestInheritFields() {
+	t := st.T()
+	log := st.newAdapter(logcommon.InfoLevel)
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerField).WithField("field1", "value1").Build()
-	require.NoError(t, err)
+	log = log.Copy().WithOutput(&buf).WithCaller(logcommon.CallerField).WithField("field1", "value1").MustBuild()
 
 	log = log.WithField("field2", "value2")
 
 	var buf2 bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf2).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithOutput(&buf2).MustBuild()
 
 	log.Error("test")
 
@@ -105,40 +170,30 @@ func TestLogAdapter_InheritFields(t *testing.T) {
 	require.Contains(t, s, "value2")
 }
 
-func TestLogAdapter_ChangeLevel(t *testing.T) {
-	log, err := newAdapter(logcommon.InfoLevel)
-
-	require.NoError(t, err)
-	require.NotNil(t, log)
+func (st SuiteTextualLog) TestChangeLevel() {
+	t := st.T()
+	log := st.newAdapter(logcommon.InfoLevel)
 	require.True(t, log.Is(logcommon.InfoLevel))
 
 	prevLog := log
-	log, err = log.Copy().WithLevel(logcommon.InfoLevel).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithLevel(logcommon.InfoLevel).MustBuild()
 	require.Equal(t, prevLog, log)
 	require.True(t, log.Is(logcommon.InfoLevel))
 
-	log, err = log.Copy().WithLevel(logcommon.DebugLevel).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithLevel(logcommon.DebugLevel).MustBuild()
 	require.True(t, log.Is(logcommon.DebugLevel))
 }
 
-func TestLogAdapter_BuildFields(t *testing.T) {
-	log, err := newAdapter(logcommon.InfoLevel)
-
-	require.NoError(t, err)
-	require.NotNil(t, log)
+func (st SuiteTextualLog) TestBuildFields() {
+	t := st.T()
+	log := st.newAdapter(logcommon.InfoLevel)
 	require.True(t, log.Is(logcommon.InfoLevel))
 
-	log, err = log.Copy().WithField("test0", "value0").Build()
-	require.NoError(t, err)
+	log = log.Copy().WithField("test0", "value0").MustBuild()
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).Build()
-	require.NoError(t, err)
-
-	log, err = log.Copy().WithField("test1", "value1").Build()
-	require.NoError(t, err)
+	log = log.Copy().WithOutput(&buf).MustBuild()
+	log = log.Copy().WithField("test1", "value1").MustBuild()
 
 	log.Error("test")
 
@@ -147,8 +202,7 @@ func TestLogAdapter_BuildFields(t *testing.T) {
 	require.Contains(t, s, "value1")
 	buf.Reset()
 
-	log, err = log.Copy().WithoutInheritedFields().WithField("test2", "value2").Build()
-	require.NoError(t, err)
+	log = log.Copy().WithoutInheritedFields().WithField("test2", "value2").MustBuild()
 
 	log.Error("test")
 	s = buf.String()
@@ -157,25 +211,19 @@ func TestLogAdapter_BuildFields(t *testing.T) {
 	require.Contains(t, s, "value2")
 }
 
-func TestLogAdapter_BuildDynFields(t *testing.T) {
-	log, err := newAdapter(logcommon.InfoLevel)
+func (st SuiteTextualLog) TestBuildDynFields() {
+	t := st.T()
+	log := st.newAdapter(logcommon.InfoLevel)
 
-	require.NoError(t, err)
-	require.NotNil(t, log)
-	require.True(t, log.Is(logcommon.InfoLevel))
-
-	log, err = log.Copy().
+	log = log.Copy().
 		WithDynamicField("test0", func() interface{} { return "value0" }).
 		WithField("test00", "static0").
-		Build()
-	require.NoError(t, err)
+		MustBuild()
 
 	var buf bytes.Buffer
-	log, err = log.Copy().WithOutput(&buf).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithOutput(&buf).MustBuild()
 
-	log, err = log.Copy().WithDynamicField("test1", func() interface{} { return "value1" }).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithDynamicField("test1", func() interface{} { return "value1" }).MustBuild()
 
 	log.Error("test")
 
@@ -185,8 +233,7 @@ func TestLogAdapter_BuildDynFields(t *testing.T) {
 	require.Contains(t, s, "value1")
 
 	buf.Reset()
-	log, err = log.Copy().WithoutInheritedDynFields().WithDynamicField("test2", func() interface{} { return "value2" }).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithoutInheritedDynFields().WithDynamicField("test2", func() interface{} { return "value2" }).MustBuild()
 
 	log.Error("test")
 	s = buf.String()
@@ -196,8 +243,7 @@ func TestLogAdapter_BuildDynFields(t *testing.T) {
 	require.Contains(t, s, "value2")
 
 	buf.Reset()
-	log, err = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value3" }).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value3" }).MustBuild()
 
 	log.Error("test")
 	s = buf.String()
@@ -208,8 +254,7 @@ func TestLogAdapter_BuildDynFields(t *testing.T) {
 	require.Contains(t, s, "value3")
 
 	buf.Reset()
-	log, err = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value-3" }).Build()
-	require.NoError(t, err)
+	log = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value-3" }).MustBuild()
 
 	log.Error("test")
 	s = buf.String()
@@ -221,7 +266,8 @@ func TestLogAdapter_BuildDynFields(t *testing.T) {
 	require.Contains(t, s, "value-3")
 }
 
-func TestLogAdapter_Fatal(t *testing.T) {
+func (st SuiteTextualLog) TestFatal() {
+	t := st.T()
 	zc := logcommon.Config{}
 
 	var buf bytes.Buffer
@@ -253,7 +299,8 @@ func TestLogAdapter_Fatal(t *testing.T) {
 	require.Contains(t, s, "fatalMsgText")
 }
 
-func TestLogAdapter_Panic(t *testing.T) {
+func (st SuiteTextualLog) TestPanic() {
+	t := st.T()
 	zc := logcommon.Config{}
 
 	var buf bytes.Buffer

@@ -38,7 +38,7 @@ type MarshallerFactory interface {
 	RegisterFieldReporter(fieldType reflect.Type, fn FieldReporterFunc)
 }
 
-func (v MsgFormatConfig) fmtLogStruct(a interface{}) (LogObjectMarshaller, *string) {
+func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogObjectMarshaller, *string) {
 	switch vv := a.(type) {
 	case LogObject:
 		m := vv.GetLogObjectMarshaller()
@@ -78,7 +78,7 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}) (LogObjectMarshaller, *stri
 			}
 			fallthrough
 		case reflect.Struct:
-			if len(vr.Type().Name()) == 0 { // only unnamed objects are handled by default
+			if !optionalStruct || len(vr.Type().PkgPath()) == 0 {
 				return v.MFactory.CreateLogObjectMarshaller(vr), nil
 			}
 		}
@@ -87,7 +87,7 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}) (LogObjectMarshaller, *stri
 }
 
 func (v MsgFormatConfig) FmtLogStruct(a interface{}) (LogObjectMarshaller, string) {
-	if m, s := v.fmtLogStruct(a); m != nil {
+	if m, s := v.fmtLogStruct(a, false); m != nil {
 		return m, ""
 	} else if s != nil {
 		return m, *s
@@ -96,10 +96,10 @@ func (v MsgFormatConfig) FmtLogStruct(a interface{}) (LogObjectMarshaller, strin
 }
 
 func (v MsgFormatConfig) FmtLogStructOrObject(a interface{}) (LogObjectMarshaller, string) {
-	if m, s := v.fmtLogStruct(a); m != nil {
+	if m, s := v.fmtLogStruct(a, true); m != nil {
 		return m, ""
 	} else if s != nil {
-		return m, *s
+		return nil, *s
 	}
 	return nil, v.Sformat(a)
 }

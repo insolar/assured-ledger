@@ -29,8 +29,8 @@ import (
 var fieldsOrder = []string{
 	zerolog.TimestampFieldName,
 	zerolog.LevelFieldName,
-	zerolog.MessageFieldName,
 	zerolog.CallerFieldName,
+	zerolog.MessageFieldName,
 }
 
 var _ io.WriteCloser = &closableConsoleWriter{}
@@ -55,29 +55,26 @@ func (p *closableConsoleWriter) Sync() error {
 
 func newDefaultTextOutput(out io.Writer) io.WriteCloser {
 	return &closableConsoleWriter{zerolog.ConsoleWriter{
-		Out:          out,
-		NoColor:      true,
-		TimeFormat:   zerolog.TimeFieldFormat,
-		PartsOrder:   fieldsOrder,
-		FormatCaller: formatCaller(),
-	}}
-}
-
-func formatCaller() zerolog.Formatter {
-	return func(i interface{}) string {
-		var c string
-		if cc, ok := i.(string); ok {
-			c = cc
-		}
-		if len(c) > 0 {
-			if len(cwd) > 0 {
-				c = strings.TrimPrefix(c, cwd)
-				c = strings.TrimPrefix(c, "/")
+		Out:        out,
+		NoColor:    true,
+		TimeFormat: zerolog.TimeFieldFormat,
+		PartsOrder: fieldsOrder,
+		FormatTimestamp: func(i interface{}) string {
+			if c, ok := i.(string); ok {
+				return c
 			}
-			c = "file=" + c
-		}
-		return c
-	}
+			return ""
+		},
+		FormatCaller: func(i interface{}) string {
+			if c, ok := i.(string); ok && len(c) > 0 {
+				if len(cwd) > 0 {
+					c = strings.TrimPrefix(strings.TrimPrefix(c, cwd), "/")
+				}
+				return "caller=" + c
+			}
+			return ""
+		},
+	}}
 }
 
 var cwd string

@@ -17,10 +17,13 @@
 package text
 
 import (
-	std_json "encoding/json"
+	"io"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/json"
@@ -37,19 +40,31 @@ var encoderMgr = encoderManager{}
 
 type encoderManager struct{}
 
+func (m encoderManager) CreateMetricWriter(downstream io.Writer, fieldName string, reportFn logcommon.DurationReportFunc) (io.Writer, error) {
+	w := &json.MetricTimeWriter{downstream, []byte(tail), reportFn, nil}
+	if fieldName != "" {
+		w.AppendFn = func(dst []byte, d time.Duration) []byte {
+			dst = AppendKey(dst, fieldName)
+			return json.AppendOptQuotedString(dst, args.DurationFixedLen(d, 7))
+		}
+	}
+	return w, nil
+}
+
 func (encoderManager) CreateEncoder(config logfmt.MsgFormatConfig) msgencoder.Encoder {
-	return textEncoder{config.Sformatf, config.TimeFmt}
+	return textEncoder{config.Sformat, config.Sformatf, config.TimeFmt}
 }
 
 var _ msgencoder.Encoder = textEncoder{}
 
 type textEncoder struct {
+	sformat  logfmt.FormatFunc
 	sformatf logfmt.FormatfFunc
 	timeFmt  string
 }
 
-func (p textEncoder) PrepareBuffer(dst *[]byte, _ string, level log.Level) {
-	*dst = append(*dst, encodeLevel(level)...)
+func (p textEncoder) PrepareBuffer(dst []byte, _ string, level log.Level) []byte {
+	return append(dst, encodeLevel(level)...)
 }
 
 func encodeLevel(level log.Level) string {
@@ -71,135 +86,126 @@ func encodeLevel(level log.Level) string {
 	}
 }
 
-func (p textEncoder) FinalizeBuffer(dst *[]byte, reportedAt time.Time) {
-	*dst = append(*dst, `\n`...)
+const tail = "\n"
+
+func (p textEncoder) FinalizeBuffer(dst []byte, metricTime time.Time) []byte {
+	return json.AppendMetricTimeMark(append(dst, tail...), metricTime)
 }
 
-func (p textEncoder) appendKey(dst *[]byte, key string) {
-	b := *dst
-	if len(b) != 0 {
-		b = append(b, ' ')
+func AppendKey(dst []byte, key string) []byte {
+	if len(dst) != 0 {
+		dst = append(dst, ' ')
 	}
-	//b = append(json.AppendString(b, key), '=')
-	b = append(append(b, key...), '=')
-	*dst = b
+	return append(json.AppendOptQuotedString(dst, key), '=')
 }
 
-func (p textEncoder) appendStrf(dst *[]byte, f string, a ...interface{}) {
-	*dst = json.AppendString(*dst, p.sformatf(f, a...))
+func (p textEncoder) appendStrf(dst []byte, f string, a ...interface{}) []byte {
+	return json.AppendOptQuotedString(dst, p.sformatf(f, a...))
 }
 
-func (p textEncoder) AppendIntField(dst *[]byte, key string, v int64, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendIntField(dst []byte, key string, v int64, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		*dst = strconv.AppendInt(*dst, v, 10)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return strconv.AppendInt(dst, v, 10)
 }
 
-func (p textEncoder) AppendUintField(dst *[]byte, key string, v uint64, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendUintField(dst []byte, key string, v uint64, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	switch {
 	case fFmt.Kind == reflect.Uintptr:
-		if !fFmt.HasFmt {
-			fFmt.Fmt = "%v"
+		if fFmt.HasFmt {
+			return p.appendStrf(dst, fFmt.Fmt, uintptr(v))
 		}
-		p.appendStrf(dst, fFmt.Fmt, uintptr(v))
+		return append(dst, p.sformat(uintptr(v))...)
 	case fFmt.HasFmt:
-		p.appendStrf(dst, fFmt.Fmt, v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	default:
-		*dst = strconv.AppendUint(*dst, uint64(v), 10)
+		return strconv.AppendUint(dst, v, 10)
 	}
 }
 
-func (p textEncoder) AppendBoolField(dst *[]byte, key string, v bool, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendBoolField(dst []byte, key string, v bool, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		*dst = strconv.AppendBool(*dst, v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return strconv.AppendBool(dst, v)
 }
 
-func (p textEncoder) AppendFloatField(dst *[]byte, key string, v float64, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendFloatField(dst []byte, key string, v float64, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
 		if fFmt.Kind == reflect.Float32 {
-			p.appendStrf(dst, fFmt.Fmt, float32(v))
-		} else {
-			p.appendStrf(dst, fFmt.Fmt, v)
+			return p.appendStrf(dst, fFmt.Fmt, float32(v))
 		}
-	} else {
-		bits := 64
-		if fFmt.Kind == reflect.Float32 {
-			bits = 32
-		}
-		*dst = json.AppendFloat(*dst, v, bits)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+
+	bits := 64
+	if fFmt.Kind == reflect.Float32 {
+		bits = 32
+	}
+	return json.AppendFloat(dst, v, bits)
 }
 
-func (p textEncoder) AppendComplexField(dst *[]byte, key string, v complex128, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendComplexField(dst []byte, key string, v complex128, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		bits := 64
-		if fFmt.Kind == reflect.Complex64 {
-			bits = 32
-		}
-		*dst = append(*dst, '[')
-		*dst = json.AppendFloat(*dst, real(v), bits)
-		*dst = append(*dst, ',')
-		*dst = json.AppendFloat(*dst, imag(v), bits)
-		*dst = append(*dst, ']')
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+
+	bits := 64
+	if fFmt.Kind == reflect.Complex64 {
+		bits = 32
+	}
+	dst = append(dst, '(')
+	dst = json.AppendFloat(dst, real(v), bits)
+	if imag(v) >= 0 {
+		dst = append(dst, '+')
+	}
+	dst = json.AppendFloat(dst, imag(v), bits)
+	return append(dst, `i)`...)
 }
 
-func (p textEncoder) AppendStrField(dst *[]byte, key string, v string, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendStrField(dst []byte, key string, v string, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		*dst = json.AppendString(*dst, v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return json.AppendOptQuotedString(dst, v)
 }
 
-func (p textEncoder) AppendIntfField(dst *[]byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendIntfField(dst []byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		p.appendStrf(dst, "%v", v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return json.AppendOptQuotedString(dst, p.sformat(v))
 }
 
-func (p textEncoder) AppendRawJSONField(dst *[]byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendRawJSONField(dst []byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		*dst = append(*dst, p.sformatf(fFmt.Fmt, v)...)
-	} else {
-		switch vv := v.(type) {
-		case string:
-			*dst = append(*dst, vv...)
-		case []byte:
-			*dst = append(*dst, vv...)
-		default:
-			marshaled, err := std_json.Marshal(vv)
-			if err != nil {
-				p.appendStrf(dst, "marshaling error: %v", err)
-			} else {
-				*dst = append(*dst, marshaled...)
-			}
-		}
+		return append(dst, p.sformatf(fFmt.Fmt, v)...)
 	}
+
+	switch vv := v.(type) {
+	case string:
+		return append(dst, vv...)
+	case []byte:
+		return append(dst, vv...)
+	}
+
+	return json.AppendMarshalled(dst, v)
 }
 
-func (p textEncoder) AppendTimeField(dst *[]byte, key string, v time.Time, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p textEncoder) AppendTimeField(dst []byte, key string, v time.Time, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		*dst = append(*dst, v.Format(fFmt.Fmt)...)
-	} else {
-		*dst = append(*dst, v.Format(p.timeFmt)...)
+		return json.AppendOptQuotedString(dst, v.Format(fFmt.Fmt))
 	}
+
+	return json.AppendOptQuotedString(dst, v.Format(p.timeFmt))
 }

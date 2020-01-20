@@ -62,17 +62,22 @@ const (
 	LogMetricsWriteDelayReport
 	// Logger will add a write duration field into to the output
 	LogMetricsWriteDelayField
+	// Logger will add a timestamp to every event
+	LogMetricsTimestamp
 	// No effect on logger. Indicates that WithMetrics should replace the mode, instead of adding it.
 	LogMetricsResetMode
 )
 
-const LogMetricsWriteDelayFlags = LogMetricsWriteDelayReport | LogMetricsWriteDelayField
+func (v LogMetricsMode) HasWriteMetric() bool {
+	return v&(LogMetricsWriteDelayReport|LogMetricsWriteDelayField) != 0
+}
 
 type LogFormat string
 
 const (
 	TextFormat LogFormat = "text"
-	JSONFormat LogFormat = "json"
+	JsonFormat LogFormat = "json"
+	PbufFormat LogFormat = "pbuf"
 )
 
 func (l LogFormat) String() string {

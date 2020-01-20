@@ -17,10 +17,13 @@
 package json
 
 import (
-	"encoding/json"
+	"io"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 
@@ -36,157 +39,152 @@ var encoderMgr = encoderManager{}
 
 type encoderManager struct{}
 
+func (m encoderManager) CreateMetricWriter(downstream io.Writer, fieldName string, reportFn logcommon.DurationReportFunc) (io.Writer, error) {
+	w := &MetricTimeWriter{downstream, []byte(tail), reportFn, nil}
+	if fieldName != "" {
+		w.AppendFn = func(dst []byte, d time.Duration) []byte {
+			dst = AppendKey(dst, fieldName)
+			return AppendString(dst, args.DurationFixedLen(d, 7))
+		}
+	}
+	return w, nil
+}
+
 func (encoderManager) CreateEncoder(config logfmt.MsgFormatConfig) msgencoder.Encoder {
-	return jsonEncoder{config.Sformatf, config.TimeFmt}
+	return jsonEncoder{config.Sformat, config.Sformatf, config.TimeFmt}
 }
 
 var _ msgencoder.Encoder = jsonEncoder{}
 
 type jsonEncoder struct {
+	sformat  logfmt.FormatFunc
 	sformatf logfmt.FormatfFunc
 	timeFmt  string
-	//	metricMode logcommon.LogMetricsMode
 }
 
-func (p jsonEncoder) PrepareBuffer(dst *[]byte, key string, level log.Level) {
-	buf := append(*dst, `{`...)
-	buf = AppendKey(buf, key)
+func (p jsonEncoder) PrepareBuffer(dst []byte, key string, level log.Level) []byte {
+	dst = append(dst, `{`...)
+	dst = AppendKey(dst, key)
 
 	levelStr := ""
 	if level.IsValid() {
 		levelStr = level.String()
 	}
-	*dst = AppendString(*dst, levelStr)
+	return AppendString(dst, levelStr)
 }
 
-func (p jsonEncoder) FinalizeBuffer(dst *[]byte, reportedAt time.Time) {
-	*dst = append(*dst, `}\n`...)
+const tail = "}\n"
+
+func (p jsonEncoder) FinalizeBuffer(dst []byte, metricTime time.Time) []byte {
+	return AppendMetricTimeMark(append(dst, tail...), metricTime)
 }
 
-func (p jsonEncoder) appendKey(dst *[]byte, key string) {
-	*dst = AppendKey(*dst, key)
+func (p jsonEncoder) appendStrf(dst []byte, f string, a ...interface{}) []byte {
+	return AppendString(dst, p.sformatf(f, a...))
 }
 
-func (p jsonEncoder) appendStrf(dst *[]byte, f string, a ...interface{}) {
-	*dst = AppendString(*dst, p.sformatf(f, a...))
-}
-
-func (p jsonEncoder) AppendIntField(dst *[]byte, key string, v int64, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendIntField(dst []byte, key string, v int64, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		*dst = strconv.AppendInt(*dst, v, 10)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return strconv.AppendInt(dst, v, 10)
 }
 
-func (p jsonEncoder) AppendUintField(dst *[]byte, key string, v uint64, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendUintField(dst []byte, key string, v uint64, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
+
 	switch {
 	case fFmt.Kind == reflect.Uintptr:
 		if !fFmt.HasFmt {
-			fFmt.Fmt = "%v"
+			return append(dst, p.sformat(uintptr(v))...)
 		}
-		p.appendStrf(dst, fFmt.Fmt, uintptr(v))
+		return p.appendStrf(dst, fFmt.Fmt, uintptr(v))
 	case fFmt.HasFmt:
-		p.appendStrf(dst, fFmt.Fmt, v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	default:
-		*dst = strconv.AppendUint(*dst, uint64(v), 10)
+		return strconv.AppendUint(dst, uint64(v), 10)
 	}
 }
 
-func (p jsonEncoder) AppendBoolField(dst *[]byte, key string, v bool, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendBoolField(dst []byte, key string, v bool, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		*dst = strconv.AppendBool(*dst, v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return strconv.AppendBool(dst, v)
 }
 
-func (p jsonEncoder) AppendFloatField(dst *[]byte, key string, v float64, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendFloatField(dst []byte, key string, v float64, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
 		if fFmt.Kind == reflect.Float32 {
-			p.appendStrf(dst, fFmt.Fmt, float32(v))
-		} else {
-			p.appendStrf(dst, fFmt.Fmt, v)
+			return p.appendStrf(dst, fFmt.Fmt, float32(v))
 		}
-	} else {
-		bits := 64
-		if fFmt.Kind == reflect.Float32 {
-			bits = 32
-		}
-		*dst = AppendFloat(*dst, v, bits)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+
+	bits := 64
+	if fFmt.Kind == reflect.Float32 {
+		bits = 32
+	}
+	return AppendFloat(dst, v, bits)
 }
 
-func (p jsonEncoder) AppendComplexField(dst *[]byte, key string, v complex128, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendComplexField(dst []byte, key string, v complex128, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		bits := 64
-		if fFmt.Kind == reflect.Complex64 {
-			bits = 32
-		}
-		*dst = append(*dst, '[')
-		*dst = AppendFloat(*dst, real(v), bits)
-		*dst = append(*dst, ',')
-		*dst = AppendFloat(*dst, imag(v), bits)
-		*dst = append(*dst, ']')
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	bits := 64
+	if fFmt.Kind == reflect.Complex64 {
+		bits = 32
+	}
+	dst = append(dst, '[')
+	dst = AppendFloat(dst, real(v), bits)
+	dst = append(dst, ',')
+	dst = AppendFloat(dst, imag(v), bits)
+	return append(dst, ']')
 }
 
-func (p jsonEncoder) AppendStrField(dst *[]byte, key string, v string, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendStrField(dst []byte, key string, v string, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		*dst = AppendString(*dst, v)
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+	return AppendString(dst, v)
 }
 
-func (p jsonEncoder) AppendIntfField(dst *[]byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendIntfField(dst []byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		p.appendStrf(dst, fFmt.Fmt, v)
-	} else {
-		marshaled, err := json.Marshal(v)
-		if err != nil {
-			p.appendStrf(dst, "marshaling error: %v", err)
-		} else {
-			*dst = append(*dst, marshaled...)
-		}
+		return p.appendStrf(dst, fFmt.Fmt, v)
 	}
+
+	return AppendMarshalled(dst, v)
 }
 
-func (p jsonEncoder) AppendRawJSONField(dst *[]byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendRawJSONField(dst []byte, key string, v interface{}, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		*dst = append(*dst, p.sformatf(fFmt.Fmt, v)...)
-	} else {
-		switch vv := v.(type) {
-		case string:
-			*dst = append(*dst, vv...)
-		case []byte:
-			*dst = append(*dst, vv...)
-		default:
-			marshaled, err := json.Marshal(vv)
-			if err != nil {
-				p.appendStrf(dst, "marshaling error: %v", err)
-			} else {
-				*dst = append(*dst, marshaled...)
-			}
-		}
+		return append(dst, p.sformatf(fFmt.Fmt, v)...)
 	}
+
+	switch vv := v.(type) {
+	case string:
+		return append(dst, vv...)
+	case []byte:
+		return append(dst, vv...)
+	}
+
+	return AppendMarshalled(dst, v)
 }
 
-func (p jsonEncoder) AppendTimeField(dst *[]byte, key string, v time.Time, fFmt logfmt.LogFieldFormat) {
-	p.appendKey(dst, key)
+func (p jsonEncoder) AppendTimeField(dst []byte, key string, v time.Time, fFmt logfmt.LogFieldFormat) []byte {
+	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
-		*dst = append(*dst, v.Format(fFmt.Fmt)...)
-	} else {
-		*dst = append(*dst, v.Format(p.timeFmt)...)
+		return AppendString(dst, v.Format(fFmt.Fmt))
 	}
+
+	return AppendString(dst, v.Format(p.timeFmt))
 }

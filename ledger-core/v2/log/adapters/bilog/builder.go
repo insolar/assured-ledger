@@ -20,6 +20,9 @@ import (
 	"errors"
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/pbuf"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/json"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
@@ -27,16 +30,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
-/* =========================== */
+// TODO test performance and memory impact of (recycleBuf)
 
-func NewBuilder(cfg logcommon.Config, level log.Level, encoders msgencoder.EncoderFactoryDispatcherFunc) log.LoggerBuilder {
-	return log.NewBuilder(binLogFactory{encoders}, cfg, level)
+func NewFactory(encoders msgencoder.FactoryDispatcherFunc, recycleBuf bool) logcommon.Factory {
+	return binLogFactory{encoders, recycleBuf}
 }
 
 var _ logcommon.Factory = binLogFactory{}
 
 type binLogFactory struct {
-	encoders msgencoder.EncoderFactoryDispatcherFunc
+	encoders   msgencoder.FactoryDispatcherFunc
+	recycleBuf bool
 	//	writeDelayPreferTrim bool
 }
 
@@ -44,20 +48,56 @@ func (binLogFactory) GetGlobalLogAdapter() logcommon.GlobalLogAdapter {
 	return binLogGlobalAdapter
 }
 
-func (binLogFactory) CanReuseMsgBuffer() bool {
-	return true
+func (f binLogFactory) CanReuseMsgBuffer() bool {
+	return !f.recycleBuf
 }
 
-func (b binLogFactory) PrepareBareOutput(output logcommon.BareOutput, _ *logcommon.MetricsHelper, config logcommon.BuildConfig) (io.Writer, error) {
-	return output.Writer, nil
+func (f binLogFactory) PrepareBareOutput(output logcommon.BareOutput, metrics *logcommon.MetricsHelper, config logcommon.BuildConfig) (io.Writer, error) {
+	if !config.Instruments.MetricsMode.HasWriteMetric() {
+		return output.Writer, nil
+	}
+
+	encoder, err := f.createEncoderFactory(config.Output.Format)
+	if err != nil {
+		return nil, err
+	}
+
+	var reportFn logcommon.DurationReportFunc
+	if config.Instruments.MetricsMode&logcommon.LogMetricsWriteDelayReport != 0 {
+		reportFn = metrics.GetOnWriteDurationReport()
+	}
+
+	if config.Instruments.MetricsMode&logcommon.LogMetricsWriteDelayField != 0 {
+		return encoder.CreateMetricWriter(output.Writer, logoutput.WriteDurationFieldName, reportFn)
+	}
+	return encoder.CreateMetricWriter(output.Writer, "", reportFn)
 }
 
-func (b binLogFactory) CreateNewLogger(params logcommon.NewLoggerParams) (logcommon.EmbeddedLogger, error) {
-	return b.createLogger(params, nil)
+func (f binLogFactory) CreateNewLogger(params logcommon.NewLoggerParams) (logcommon.EmbeddedLogger, error) {
+	return f.createLogger(params, nil)
+}
+
+func (f binLogFactory) createEncoderFactory(outFormat logcommon.LogFormat) (msgencoder.EncoderFactory, error) {
+	switch outFormat {
+	case logcommon.JsonFormat:
+		return json.EncoderManager(), nil
+	case logcommon.TextFormat:
+		return text.EncoderManager(), nil
+	case logcommon.PbufFormat:
+		return pbuf.EncoderManager(), nil
+	default:
+		if f.encoders == nil {
+			break
+		}
+		if encoderFactory := f.encoders(string(outFormat)); encoderFactory != nil {
+			return encoderFactory, nil
+		}
+	}
+	return nil, errors.New("unknown output format: " + outFormat.String())
 }
 
 const minEventBuffer = 512
-const maxEventBufferIncrement = minEventBuffer << 1
+const maxEventBufferIncrement = minEventBuffer >> 1
 const anticipatedFieldBuffer = 32
 
 func estimateBufferSizeByFields(nCount int) int {
@@ -70,42 +110,35 @@ func estimateBufferSizeByFields(nCount int) int {
 	return maxEventBufferIncrement
 }
 
-func (b binLogFactory) createLogger(params logcommon.NewLoggerParams, template *binLogAdapter) (logcommon.EmbeddedLogger, error) {
-
-	//if params.Config.Instruments.MetricsMode&logcommon.LogMetricsWriteDelayFlags != 0 {
-	//	return nil, errors.New("WriteDelay metric is not supported")
-	//}
-
-	var encoderFactory msgencoder.EncoderFactory
+func (f binLogFactory) createLogger(params logcommon.NewLoggerParams, template *binLogAdapter) (logcommon.EmbeddedLogger, error) {
 
 	outFormat := params.Config.Output.Format
-	switch outFormat {
-	case logcommon.JSONFormat:
-		encoderFactory = json.EncoderManager()
-	case logcommon.TextFormat:
-		encoderFactory = text.EncoderManager()
-	default:
-		if b.encoders != nil {
-			encoderFactory = b.encoders(string(outFormat))
-			if encoderFactory != nil {
-				break
-			}
-		}
-		return nil, errors.New("unknown output format: " + outFormat.String())
-	}
-	encoder := encoderFactory.CreateEncoder(params.Config.MsgFormat)
-	if encoder == nil {
-		return nil, errors.New("encoder factory has failed: " + outFormat.String())
+
+	if template != nil && outFormat != template.config.Output.Format {
+		// no field inheritance when format is changed
+		params.Reqs &^= logcommon.RequiresParentCtxFields
 	}
 
-	cfg := params.Config
+	// ========== DO NOT modify config beyond this point ================
+	cfg := params.Config // ensure a separate copy on heap
 
 	la := binLogAdapter{
 		config:      &cfg,
-		encoder:     encoder,
 		writer:      params.Config.LoggerOutput,
 		levelFilter: params.Level,
+		recycleBuf:  f.recycleBuf,
 		lowLatency:  params.Reqs&logcommon.RequiresLowLatency != 0,
+
+		expectedEventLen: anticipatedFieldBuffer,
+	}
+
+	if encoderFactory, err := f.createEncoderFactory(outFormat); err != nil {
+		return nil, err
+	} else {
+		la.encoder = encoderFactory.CreateEncoder(params.Config.MsgFormat)
+		if la.encoder == nil {
+			return nil, errors.New("encoder factory has failed: " + outFormat.String())
+		}
 	}
 
 	{ // replacement and inheritance for ctxFields

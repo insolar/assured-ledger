@@ -192,6 +192,12 @@ func (v WireTag) EncodeTo(w io.ByteWriter, u uint64) error {
 	}
 }
 
+func (v WireTag) MustEncodeTo(w io.ByteWriter, u uint64) {
+	if err := v.EncodeTo(w, u); err != nil {
+		panic(err)
+	}
+}
+
 func (v WireTag) String() string {
 	if v == 0 {
 		return "zeroTag"

@@ -41,7 +41,7 @@ type EmbeddedLoggerBuilder interface {
 	GetLoggerOutput() LoggerOutput
 }
 
-type EmbeddedLoggerAssistant interface {
+type EmbeddedLoggerOptional interface {
 	WithFields(fields map[string]interface{}) EmbeddedLogger
 	WithField(name string, value interface{}) EmbeddedLogger
 }

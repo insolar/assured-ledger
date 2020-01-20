@@ -21,15 +21,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -90,14 +93,14 @@ func reflectedRandom(t reflect.Kind) reflect.Value {
 	case reflect.Complex128:
 		return reflect.ValueOf(complex128(9))
 	case reflect.String:
-		return reflect.ValueOf(string("opaopa"))
+		return reflect.ValueOf(logstring)
 	// END OF GENERATED PART
 	default:
 		return reflect.ValueOf(nil)
 	}
 }
 
-var logstring = "opaopa"
+var logstring = "msgstrval"
 
 func TestLogFieldsMarshaler(t *testing.T) {
 	for _, obj := range []interface{}{
@@ -108,16 +111,16 @@ func TestLogFieldsMarshaler(t *testing.T) {
 		buf := bytes.Buffer{}
 		lg, _ := Logger().Copy().WithOutput(&buf).Build()
 
-		_, file, line, _ := runtime.Caller(0)
 		lg.WithField("testfield", 200.200).Warn(obj)
+		fileLine, _ := logoutput.GetCallerFileNameWithLine(0, -1)
 
 		c := make(map[string]interface{})
 		err := json.Unmarshal(buf.Bytes(), &c)
 		require.NoError(t, err, "unmarshal %s", buf.Bytes())
 
 		require.Equal(t, "warn", c["level"], "right message")
-		require.Equal(t, "opaopa", c["message"], "right message")
-		require.Regexp(t, zerolog.CallerMarshalFunc(file, line+1), c["caller"], "right caller line")
+		require.Equal(t, logstring, c["message"], "right message")
+		require.Contains(t, c["caller"], fileLine, "right caller line")
 		ltime, err := time.Parse(time.RFC3339Nano, c["time"].(string))
 		require.NoError(t, err, "parseable time")
 		ldur := time.Now().Sub(ltime)
@@ -199,13 +202,27 @@ var types = map[string]string{
 
 // END OF GENERATED PART
 
-var tags = []string{"fmt+opt", "raw+opt", "fmt", "raw", "skip", "txt", "opt"}
-
 func TestLogValueGetters(t *testing.T) {
+	for _, fmtOpt := range []struct {
+		fmtType    logcommon.LogFormat
+		pairSep    string
+		complexFmt string
+		quotedStr  bool
+	}{
+		{logcommon.JsonFormat, `":`, "[%.0f,%.0f]", true},
+		{logcommon.TextFormat, `=`, "(%.0f+%.0fi)", false},
+	} {
+		t.Run(fmtOpt.fmtType.String(), func(t *testing.T) {
+			_testLogValueGetters(t, fmtOpt.fmtType, fmtOpt.pairSep, fmtOpt.complexFmt, fmtOpt.quotedStr)
+		})
+	}
+}
+
+func _testLogValueGetters(t *testing.T, fmtType logcommon.LogFormat, pairSep, complexFmt string, quotedStr bool) {
 	for ft := range types {
-		for _, tag := range tags {
+		for _, tag := range []string{"fmt+opt", "raw+opt", "fmt", "raw", "skip", "txt", "opt"} {
 			buf := bytes.Buffer{}
-			lg, _ := Logger().Copy().WithOutput(&buf).Build()
+			lg, _ := Logger().Copy().WithFormat(fmtType).WithOutput(&buf).Build()
 			plr := struct {
 				msg string
 
@@ -356,27 +373,38 @@ func TestLogValueGetters(t *testing.T) {
 			lg.Warn(plr)
 
 			format := "<<" + types[ft] + ">>"
+			//if ft == "string" {
 			mustHave := fmt.Sprintf(format, saved.Interface())
 
-			if tag == "txt" {
+			switch {
+			case tag == "txt":
 				mustHave = format
-			} else if tag == "opt" {
-				if ft == "string" {
-					mustHave = fmt.Sprintf(`"%s"`, saved.String())
-				} else {
+			case tag == "opt":
+				switch ft {
+				case "string":
+					mustHave = saved.String()
+					if quotedStr {
+						mustHave = fmt.Sprintf(`"%s"`, mustHave)
+					}
+				case "complex64", "complex128":
+					c := saved.Complex()
+					mustHave = fmt.Sprintf(complexFmt, real(c), imag(c))
+				default:
 					mustHave = fmt.Sprint(saved.Interface())
 				}
 			}
 
-			if !strings.Contains(tag, "raw") && (tag != "opt" || strings.Contains(fname, "complex")) {
+			if quotedStr && !strings.Contains(tag, "raw") && tag != "opt" {
 				mustHave = `"` + mustHave
 			}
 
 			s := buf.String()
+
+			fname += pairSep
 			if tag == "skip" {
-				require.NotContains(t, s, fname+`":`)
+				assert.NotContains(t, s, fname)
 			} else {
-				require.Contains(t, s, fname+`":`+mustHave)
+				assert.Contains(t, s, fname+mustHave)
 			}
 		}
 	}

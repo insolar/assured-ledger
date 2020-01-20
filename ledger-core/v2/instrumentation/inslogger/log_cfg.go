@@ -47,7 +47,11 @@ const defaultLowLatencyBufferSize = 100
 
 func DefaultLoggerSettings() ParsedLogConfig {
 	r := ParsedLogConfig{}
-	r.Instruments.MetricsMode = logcommon.LogMetricsEventCount | logcommon.LogMetricsWriteDelayReport | logcommon.LogMetricsWriteDelayField
+	r.Instruments.MetricsMode = logcommon.LogMetricsEventCount |
+		logcommon.LogMetricsWriteDelayReport |
+		logcommon.LogMetricsWriteDelayField |
+		logcommon.LogMetricsTimestamp
+
 	r.Instruments.CallerMode = logcommon.CallerField
 	return r
 }
@@ -113,8 +117,8 @@ func ParseFormat(formatStr string, defValue logcommon.LogFormat) (logcommon.LogF
 		return defValue, nil
 	case logcommon.TextFormat.String():
 		return logcommon.TextFormat, nil
-	case logcommon.JSONFormat.String():
-		return logcommon.JSONFormat, nil
+	case logcommon.JsonFormat.String():
+		return logcommon.JsonFormat, nil
 	}
 	return defValue, fmt.Errorf("unknown Format: '%s', replaced with '%s'", formatStr, defValue)
 }

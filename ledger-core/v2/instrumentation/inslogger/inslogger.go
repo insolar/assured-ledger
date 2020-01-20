@@ -37,19 +37,23 @@ const insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/v2/"
 const skipFrameBaselineAdjustment = 0
 
 func init() {
+	initBilog()
 	initZlog()
 
 	// NB! initialize adapters' globals before the next call
 	global.TrySetDefaultInitializer(func() (log.LoggerBuilder, error) {
-		holder := configuration.NewHolder().MustInit(false)
-		logCfg := holder.Configuration.Log
-
-		// enforce buffer-less for a non-configured logger
-		logCfg.BufferSize = 0
-		logCfg.LLBufferSize = -1
-
-		return newLogger(logCfg)
+		return newLogger(defaultLogConfig())
 	})
+}
+
+func defaultLogConfig() configuration.Log {
+	holder := configuration.NewHolder().MustInit(false)
+	logCfg := holder.Configuration.Log
+
+	// enforce buffer-less for a non-configured logger
+	logCfg.BufferSize = 0
+	logCfg.LLBufferSize = -1
+	return logCfg
 }
 
 func fileLineMarshaller(file string, line int) string {
@@ -77,6 +81,8 @@ func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
 	switch strings.ToLower(cfg.Adapter) {
 	case "zerolog":
 		logBuilder, err = newZerologAdapter(pCfg, msgFmt)
+	case "bilog":
+		logBuilder, err = newBilogAdapter(pCfg, msgFmt)
 	default:
 		return log.LoggerBuilder{}, errors.New("invalid logger config, unknown adapter")
 	}

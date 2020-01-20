@@ -35,7 +35,7 @@ func NewBuilderWithTemplate(template logcommon.Template, level Level) LoggerBuil
 		factory:     template,
 		hasTemplate: true,
 		level:       level,
-		Config:      config,
+		cfg:         config,
 	}
 }
 
@@ -43,7 +43,7 @@ func NewBuilder(factory logcommon.Factory, config logcommon.Config, level Level)
 	return LoggerBuilder{
 		factory: factory,
 		level:   level,
-		Config:  config,
+		cfg:     config,
 	}
 }
 
@@ -59,88 +59,105 @@ type LoggerBuilder struct {
 	fields    map[string]interface{}
 	dynFields logcommon.DynFieldMap
 
-	logcommon.Config
+	cfg logcommon.Config
 }
 
 func (z LoggerBuilder) IsZero() bool {
 	return z.factory == nil
 }
 
+// Returns the current output destination/writer
 func (z LoggerBuilder) GetOutput() io.Writer {
-	return z.BareOutput.Writer
+	return z.cfg.BareOutput.Writer
 }
 
+// Returns the current log level
 func (z LoggerBuilder) GetLogLevel() Level {
 	return z.level
 }
 
+// Sets the output destination/writer for the logger.
+// Argument of LoggerOutput type will allow fine-grain control of events, but it may ignore WithFormat (depends on adapter).
 func (z LoggerBuilder) WithOutput(w io.Writer) LoggerBuilder {
 
-	z.BareOutput = logcommon.BareOutput{Writer: w}
+	z.cfg.BareOutput = logcommon.BareOutput{Writer: w}
 	switch ww := w.(type) {
 	case interface{ Flush() error }:
-		z.BareOutput.FlushFn = ww.Flush
+		z.cfg.BareOutput.FlushFn = ww.Flush
 	case interface{ Sync() error }:
-		z.BareOutput.FlushFn = ww.Sync
+		z.cfg.BareOutput.FlushFn = ww.Sync
 	}
 
 	return z
 }
 
+// Set buffer size and applicability of the buffer. Will be IGNORED when a reused output is already buffered.
 func (z LoggerBuilder) WithBuffer(bufferSize int, bufferForAll bool) LoggerBuilder {
-	z.Output.BufferSize = bufferSize
-	z.Output.EnableRegularBuffer = bufferForAll
+	z.cfg.Output.BufferSize = bufferSize
+	z.cfg.Output.EnableRegularBuffer = bufferForAll
 	return z
 }
 
+// WithLevel sets log level.
 func (z LoggerBuilder) WithLevel(level Level) LoggerBuilder {
 	z.level = level
 	return z
 }
 
+// WithFormat sets logger output format.
+// Format support depends on the log adapter. Unsupported format will fail on Build().
+// NB! Changing log format may clear out inherited non-dynamic fields (depends on adapter).
+// NB! Format can be ignored when WithOutput(LoggerOutput) is applied (depends on adapter).
 func (z LoggerBuilder) WithFormat(format logcommon.LogFormat) LoggerBuilder {
-	z.Output.Format = format
+	z.cfg.Output.Format = format
 	return z
 }
 
+// Controls 'func' and 'caller' field computation. See also WithSkipFrameCount().
 func (z LoggerBuilder) WithCaller(mode logcommon.CallerFieldMode) LoggerBuilder {
-	z.Instruments.CallerMode = mode
+	z.cfg.Instruments.CallerMode = mode
 	return z
 }
 
-func (z LoggerBuilder) WithMetrics(mode logcommon.LogMetricsMode) LoggerBuilder {
-	if mode&logcommon.LogMetricsResetMode != 0 {
-		z.Instruments.MetricsMode = 0
-		mode &^= logcommon.LogMetricsResetMode
-	}
-	z.Instruments.MetricsMode |= mode
-	return z
-}
-
-func (z LoggerBuilder) WithMetricsRecorder(recorder logcommon.LogMetricsRecorder) LoggerBuilder {
-	z.Instruments.Recorder = recorder
-	return z
-}
-
+// Allows customization of skip frames for 'func' and 'caller' fields.
 func (z LoggerBuilder) WithSkipFrameCount(skipFrameCount int) LoggerBuilder {
 	if skipFrameCount < math.MinInt8 || skipFrameCount > math.MaxInt8 {
 		panic("illegal value")
 	}
-	z.Instruments.SkipFrameCount = int8(skipFrameCount)
+	z.cfg.Instruments.SkipFrameCount = int8(skipFrameCount)
 	return z
 }
 
+// Controls collection of metrics. Required flags are ADDED to the current flags. Include specify LogMetricsResetMode to replace flags.
+func (z LoggerBuilder) WithMetrics(mode logcommon.LogMetricsMode) LoggerBuilder {
+	if mode&logcommon.LogMetricsResetMode != 0 {
+		z.cfg.Instruments.MetricsMode = 0
+		mode &^= logcommon.LogMetricsResetMode
+	}
+	z.cfg.Instruments.MetricsMode |= mode
+	return z
+}
+
+//Sets an custom recorder for metric collection.
+func (z LoggerBuilder) WithMetricsRecorder(recorder logcommon.LogMetricsRecorder) LoggerBuilder {
+	z.cfg.Instruments.Recorder = recorder
+	return z
+}
+
+// Clears out inherited fields (dynamic or not)
 func (z LoggerBuilder) WithoutInheritedFields() LoggerBuilder {
 	z.noFields = true
 	z.noDynFields = true
 	return z
 }
 
+// Clears out inherited dynamic fields only
 func (z LoggerBuilder) WithoutInheritedDynFields() LoggerBuilder {
 	z.noDynFields = true
 	return z
 }
 
+// WithFields adds fields for to-be-built logger. Fields are deduplicated within a single builder only.
 func (z LoggerBuilder) WithFields(fields map[string]interface{}) LoggerBuilder {
 	if z.fields == nil {
 		z.fields = make(map[string]interface{}, len(fields))
@@ -152,6 +169,7 @@ func (z LoggerBuilder) WithFields(fields map[string]interface{}) LoggerBuilder {
 	return z
 }
 
+// WithField add a fields for to-be-built logger. Fields are deduplicated within a single builder only.
 func (z LoggerBuilder) WithField(k string, v interface{}) LoggerBuilder {
 	if z.fields == nil {
 		z.fields = make(map[string]interface{})
@@ -161,6 +179,7 @@ func (z LoggerBuilder) WithField(k string, v interface{}) LoggerBuilder {
 	return z
 }
 
+// Adds a dynamically-evaluated field. Fields are deduplicated. When func=nil or func()=nil then the field is omitted.
 func (z LoggerBuilder) WithDynamicField(k string, fn logcommon.DynFieldFunc) LoggerBuilder {
 	if fn == nil {
 		panic("illegal value")
@@ -173,6 +192,7 @@ func (z LoggerBuilder) WithDynamicField(k string, fn logcommon.DynFieldFunc) Log
 	return z
 }
 
+// Creates a logger. Panics on error.
 func (z LoggerBuilder) MustBuild() Logger {
 	if l, err := z.build(false); err != nil {
 		panic(err)
@@ -181,10 +201,12 @@ func (z LoggerBuilder) MustBuild() Logger {
 	}
 }
 
+// Creates a logger.
 func (z LoggerBuilder) Build() (Logger, error) {
 	return z.build(false)
 }
 
+// Creates a logger with no write delays.
 func (z LoggerBuilder) BuildLowLatency() (Logger, error) {
 	return z.build(true)
 }
@@ -200,8 +222,8 @@ func (z LoggerBuilder) build(needsLowLatency bool) (Logger, error) {
 func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLogger, error) {
 	var metrics *logcommon.MetricsHelper
 
-	if z.Config.Instruments.MetricsMode != logcommon.NoLogMetrics {
-		metrics = logcommon.NewMetricsHelper(z.Config.Instruments.Recorder)
+	if z.cfg.Instruments.MetricsMode != logcommon.NoLogMetrics {
+		metrics = logcommon.NewMetricsHelper(z.cfg.Instruments.Recorder)
 	}
 
 	reqs := logcommon.RequiresParentCtxFields | logcommon.RequiresParentDynFields
@@ -211,6 +233,7 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 	case z.noDynFields:
 		reqs &^= logcommon.RequiresParentDynFields
 	}
+
 	if needsLowLatency {
 		reqs |= logcommon.RequiresLowLatency
 	}
@@ -218,7 +241,7 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 	var output logcommon.LoggerOutput
 
 	switch {
-	case z.BareOutput.Writer == nil:
+	case z.cfg.BareOutput.Writer == nil:
 		return nil, errors.New("output is nil")
 	case z.hasTemplate:
 		template := z.factory.(logcommon.Template)
@@ -226,15 +249,15 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 
 		sameBareOutput := false
 		switch {
-		case z.BareOutput.Writer == origConfig.LoggerOutput: // users can be crazy
+		case z.cfg.BareOutput.Writer == origConfig.LoggerOutput: // users can be crazy
 			fallthrough
-		case z.BareOutput.Writer == origConfig.BareOutput.Writer:
+		case z.cfg.BareOutput.Writer == origConfig.BareOutput.Writer:
 			// keep the original settings if writer wasn't changed
-			z.BareOutput = origConfig.BareOutput
+			z.cfg.BareOutput = origConfig.BareOutput
 			sameBareOutput = true
 		}
 
-		if origConfig.BuildConfig == z.Config.BuildConfig && sameBareOutput {
+		if origConfig.BuildConfig == z.cfg.BuildConfig && sameBareOutput {
 			// config and output are identical - we can reuse the original logger
 			// but we must check for exceptions
 
@@ -249,17 +272,23 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 			}
 			break
 		}
-		if lo, ok := z.BareOutput.Writer.(logcommon.LoggerOutput); ok {
+		if lo, ok := z.cfg.BareOutput.Writer.(logcommon.LoggerOutput); ok {
 			// something strange, but we can also work this way
 			output = lo
 			break
 		}
 		if sameBareOutput &&
-			origConfig.Output.CanReuseOutputFor(z.Output) &&
-			origConfig.Instruments.CanReuseOutputFor(z.Instruments) {
+			origConfig.Output.CanReuseOutputFor(z.cfg.Output) &&
+			origConfig.Instruments.CanReuseOutputFor(z.cfg.Instruments) {
 
 			// same output, and it can be reused with the new settings
 			output = origConfig.LoggerOutput
+			break
+		}
+	default:
+		if lo, ok := z.cfg.BareOutput.Writer.(logcommon.LoggerOutput); ok {
+			// something strange, but we can also work this way
+			output = lo
 			break
 		}
 	}
@@ -271,36 +300,40 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 		}
 	}
 
-	z.Config.Metrics = metrics
-	z.Config.LoggerOutput = output
+	z.cfg.Metrics = metrics
+	z.cfg.LoggerOutput = output
 
-	params := logcommon.NewLoggerParams{reqs, z.level, z.fields, z.dynFields, z.Config}
+	params := logcommon.NewLoggerParams{reqs, z.level, z.fields, z.dynFields, z.cfg}
 	return z.factory.CreateNewLogger(params)
 }
 
 func (z LoggerBuilder) prepareOutput(metrics *logcommon.MetricsHelper, needsLowLatency bool) (logcommon.LoggerOutput, error) {
 
-	outputWriter, err := z.factory.PrepareBareOutput(z.BareOutput, metrics, z.Config.BuildConfig)
-	if err != nil {
+	outputWriter, err := z.factory.PrepareBareOutput(z.cfg.BareOutput, metrics, z.cfg.BuildConfig)
+	switch {
+	case err != nil:
 		return nil, err
+		//case outputWriter == z.cfg.LoggerOutput:
+		//
 	}
+	//if _, ok := z.cfg.BareOutput.(logcommon.LoggerOutput); ok &&
 
-	outputAdapter := logwriter.NewAdapter(outputWriter, z.BareOutput.ProtectedClose,
-		z.BareOutput.FlushFn, z.BareOutput.FlushFn)
+	outputAdapter := logwriter.NewAdapter(outputWriter, z.cfg.BareOutput.ProtectedClose,
+		z.cfg.BareOutput.FlushFn, z.cfg.BareOutput.FlushFn)
 
-	if z.Config.Output.ParallelWriters < 0 || z.Config.Output.ParallelWriters > math.MaxUint8 {
+	if z.cfg.Output.ParallelWriters < 0 || z.cfg.Output.ParallelWriters > math.MaxUint8 {
 		return nil, errors.New("argument ParallelWriters is out of bounds")
 	}
 
-	if z.Config.Output.BufferSize > 0 {
-		if z.Config.Output.ParallelWriters > 0 && z.Config.Output.ParallelWriters*2 < z.Config.Output.BufferSize {
+	if z.cfg.Output.BufferSize > 0 {
+		if z.cfg.Output.ParallelWriters > 0 && z.cfg.Output.ParallelWriters*2 < z.cfg.Output.BufferSize {
 			// to limit write parallelism - buffer must be active
 			return nil, errors.New("write parallelism limiter requires BufferSize >= ParallelWriters*2 ")
 		}
 
 		flags := bpbuffer.BufferWriteDelayFairness | bpbuffer.BufferTrackWriteDuration
 
-		if z.Config.Output.BufferSize > 1000 {
+		if z.cfg.Output.BufferSize > 1000 {
 			flags |= bpbuffer.BufferDropOnFatal
 		}
 
@@ -312,18 +345,18 @@ func (z LoggerBuilder) prepareOutput(metrics *logcommon.MetricsHelper, needsLowL
 
 		var bpb *bpbuffer.BackpressureBuffer
 		switch {
-		case z.Config.Output.EnableRegularBuffer:
+		case z.cfg.Output.EnableRegularBuffer:
 			pw := uint8(DefaultOutputParallelLimit)
-			if z.Config.Output.ParallelWriters != 0 {
-				pw = uint8(z.Config.Output.ParallelWriters)
+			if z.cfg.Output.ParallelWriters != 0 {
+				pw = uint8(z.cfg.Output.ParallelWriters)
 			}
-			bpb = bpbuffer.NewBackpressureBuffer(outputAdapter, z.Config.Output.BufferSize, pw, flags, missedFn)
-		case z.Config.Output.ParallelWriters == 0 || z.Config.Output.ParallelWriters == math.MaxUint8:
-			bpb = bpbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.Config.Output.BufferSize,
+			bpb = bpbuffer.NewBackpressureBuffer(outputAdapter, z.cfg.Output.BufferSize, pw, flags, missedFn)
+		case z.cfg.Output.ParallelWriters == 0 || z.cfg.Output.ParallelWriters == math.MaxUint8:
+			bpb = bpbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.cfg.Output.BufferSize,
 				0 /* no limit */, flags, missedFn)
 		default:
-			bpb = bpbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.Config.Output.BufferSize,
-				uint8(z.Config.Output.ParallelWriters), flags, missedFn)
+			bpb = bpbuffer.NewBackpressureBufferWithBypass(outputAdapter, z.cfg.Output.BufferSize,
+				uint8(z.cfg.Output.ParallelWriters), flags, missedFn)
 		}
 
 		bpb.StartWorker(context.Background())

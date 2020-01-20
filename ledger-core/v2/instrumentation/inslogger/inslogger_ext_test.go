@@ -183,7 +183,7 @@ func logCallerGlobal(ctx context.Context, t *testing.T) (loggerField, string) {
 }
 
 func TestExt_Check_LoggerProxy_DoesntLoop(t *testing.T) {
-	l, err := global.Logger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(log.DebugLevel).Build()
+	l, err := global.Logger().Copy().WithFormat(logcommon.JsonFormat).WithLevel(log.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}

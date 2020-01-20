@@ -14,21 +14,14 @@
 //    limitations under the License.
 //
 
-package msgencoder
+package pbuf
 
-import "time"
+import (
+	"testing"
 
-type MetricHelper struct {
-}
+	"github.com/stretchr/testify/require"
+)
 
-func (v MetricHelper) AppendTimeMark(dst *[]byte, reportedAt time.Time) {
-	panic("not implemented")
-}
-
-func (v MetricHelper) CutTimeMark(dst *[]byte) (time.Duration, bool) {
-	panic("not implemented")
-}
-
-func (v MetricHelper) ApplyTimeMark(time.Duration) string {
-	panic("not implemented")
+func TestPrependSize(t *testing.T) {
+	require.Equal(t, fieldLogEntry.TagSize(), prependFieldSize)
 }

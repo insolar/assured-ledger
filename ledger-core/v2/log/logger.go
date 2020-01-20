@@ -34,20 +34,23 @@ type Logger struct {
 	embedded logcommon.EmbeddedLogger
 }
 
+// Returns true when the given level will reach the output
 func (z Logger) Is(level Level) bool {
 	return z.embedded.Is(level)
 }
 
+// Returns a builder to create a new logger that inherits current settings.
 func (z Logger) Copy() LoggerBuilder {
 	template := z.embedded.Copy()
 	return NewBuilderWithTemplate(template, template.GetTemplateLevel())
 }
 
+// WithFields adds fields for to-be-built logger. Fields are deduplicated within a single builder only.
 func (z Logger) WithFields(fields map[string]interface{}) Logger {
 	if len(fields) == 0 {
 		return z
 	}
-	if assist, ok := z.embedded.(logcommon.EmbeddedLoggerAssistant); ok {
+	if assist, ok := z.embedded.(logcommon.EmbeddedLoggerOptional); ok {
 		return WrapEmbeddedLogger(assist.WithFields(fields))
 	}
 	if logger, err := z.Copy().WithFields(fields).Build(); err != nil {
@@ -57,8 +60,9 @@ func (z Logger) WithFields(fields map[string]interface{}) Logger {
 	}
 }
 
+// WithField add a fields for to-be-built logger. Fields are deduplicated within a single builder only.
 func (z Logger) WithField(name string, value interface{}) Logger {
-	if assist, ok := z.embedded.(logcommon.EmbeddedLoggerAssistant); ok {
+	if assist, ok := z.embedded.(logcommon.EmbeddedLoggerOptional); ok {
 		return WrapEmbeddedLogger(assist.WithField(name, value))
 	}
 	if logger, err := z.Copy().WithField(name, value).Build(); err != nil {
@@ -68,25 +72,35 @@ func (z Logger) WithField(name string, value interface{}) Logger {
 	}
 }
 
+// Returns an internal representation of the logger.
+// Do not use directly as caller handling may be incorrect.
 func (z Logger) Embeddable() logcommon.EmbeddedLogger {
 	return z.embedded
 }
 
+// Logs an event of the given (level).
+// When a single argument is provided - the argument is evaluated as a logging struct.
+// Multiple arguments or single non-record argument are formatted into a string by MsgFormatConfig.Sformat()
 func (z Logger) Event(level Level, args ...interface{}) {
 	if fn := z.embedded.NewEvent(level); fn != nil {
 		fn(args)
 	}
 }
 
+// Logs an event of the given (level).
+// Argument(s) are formatted into a string by MsgFormatConfig.Sformatf()
 func (z Logger) Eventf(level Level, fmt string, args ...interface{}) {
 	if fn := z.embedded.NewEventFmt(level); fn != nil {
 		fn(fmt, args)
 	}
 }
 
-func (z Logger) Events(level Level, msg interface{}, fields ...logfmt.LogFieldMarshaller) {
+// Logs an event of the given (level).
+// Value of (msgStruct) is processed as a logging struct.
+// And the event will also include provided (fields).
+func (z Logger) Events(level Level, msgStruct interface{}, fields ...logfmt.LogFieldMarshaller) {
 	if fn := z.embedded.NewEventStruct(level); fn != nil {
-		fn(msg, fields)
+		fn(msgStruct, fields)
 	}
 }
 

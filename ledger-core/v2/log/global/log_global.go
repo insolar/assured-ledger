@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/zlog"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
@@ -37,10 +37,10 @@ var globalLogger = struct {
 	logger  *log.Logger
 	defInit func() (log.LoggerBuilder, error)
 }{
-	defInit: _initDefaultWithZlog,
+	defInit: _initDefaultWithBilog,
 }
 
-func _initDefaultWithZlog() (log.LoggerBuilder, error) {
+func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 	zc := logcommon.Config{}
 
 	var err error
@@ -56,11 +56,10 @@ func _initDefaultWithZlog() (log.LoggerBuilder, error) {
 		Format: logcommon.TextFormat,
 	}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
-	zc.Instruments.SkipFrameCountBaseline = zlog.ZerologSkipFrameCount
 	zc.Instruments.CallerMode = logcommon.CallerField
-	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField
+	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField | logcommon.LogMetricsTimestamp
 
-	b := log.NewBuilder(zlog.NewFactory(), zc, log.InfoLevel)
+	b := log.NewBuilder(bilog.NewFactory(nil, false), zc, log.InfoLevel)
 	b = b.WithField("loginstance", "global_default")
 	return b, nil
 }
@@ -253,6 +252,8 @@ func GetFilter() log.Level {
 	}
 	return log.MinLevel
 }
+
+//func EnforceOutput(outFn func())
 
 /*
 We use EmbeddedLog functions here to avoid SkipStackFrame corrections

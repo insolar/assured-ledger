@@ -222,11 +222,11 @@ func TestTryLogObject_SingleLogObject(t *testing.T) {
 		f.testTryLogObject(SomeLogObjectPtr{7, "msgText"})) // function has ptr receiver and is not taken
 
 	require.Equal(t,
-		"IntVal:7:int,msg:",
+		"IntVal:7:int,msg:logfmt.SomeLogObjectWithTemplate",
 		f.testTryLogObject(&SomeLogObjectWithTemplate{nil, 7}))
 
 	require.Equal(t,
-		"IntVal:7:int,msg:",
+		"IntVal:7:int,msg:logfmt.SomeLogObjectWithTemplate",
 		f.testTryLogObject(SomeLogObjectWithTemplate{nil, 7}))
 
 	require.Equal(t,
@@ -274,11 +274,35 @@ func TestTryLogObject_Optionals(t *testing.T) {
 		}{}))
 }
 
+type ForcedLogObjectValue struct {
+	IntVal  int
+	SomeTxt string
+}
+
+func TestTryLogObject_ForcedStruct(t *testing.T) {
+	f := GetDefaultLogMsgFormatter()
+
+	require.Equal(t,
+		"{7 abc}", // regular fmt.Sprint
+		f.testTryLogObject(ForcedLogObjectValue{7, "abc"}))
+
+	require.Equal(t,
+		"IntVal:7:int,SomeTxt:abc:string,msg:logfmt.ForcedLogObjectValue",
+		f.testLogObject(ForcedLogObjectValue{7, "abc"}))
+}
+
 func (v MsgFormatConfig) testTryLogObject(a ...interface{}) string {
 	if len(a) != 1 {
 		return v.FmtLogObject(a...)
 	}
-	m, s := v.FmtLogStructOrObject(a[0])
+	return v._logObject(v.FmtLogStructOrObject(a[0]))
+}
+
+func (v MsgFormatConfig) testLogObject(a interface{}) string {
+	return v._logObject(v.FmtLogStruct(a))
+}
+
+func (v MsgFormatConfig) _logObject(m LogObjectMarshaller, s string) string {
 	if m == nil {
 		return s
 	}

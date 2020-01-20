@@ -129,6 +129,7 @@ type typeMarshaller struct {
 	msgField        logField
 	printNeedsAddr  bool
 	reportNeedsAddr bool
+	hasReports      bool
 }
 
 type reportField struct {
@@ -141,7 +142,13 @@ type logField struct {
 	fieldGet reflectkit.FieldGetterFunc
 	reportFn FieldReporterFunc
 	getterFn reflectkit.ValueToReceiverFunc
-	receiver fieldFmtReceiver
+	receiver logFieldReceiver
+}
+
+type logFieldReceiver struct {
+	key    string
+	fmtStr string
+	fmtTag fmtTagType
 }
 
 type fieldDesc struct {
@@ -149,7 +156,7 @@ type fieldDesc struct {
 	getterFn   reflectkit.ValueToReceiverFunc
 	index      int
 	reportFn   FieldReporterFunc
-	outputRecv fieldFmtReceiver
+	outputRecv logFieldReceiver
 }
 
 func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getReporterFn func(reflect.Type) FieldReporterFunc) bool {
@@ -172,6 +179,9 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 
 		fd.reportFn = getReporterFn(fd.Type)
 		tagType, fmtStr := singleTag(fd.Tag)
+		if !tagType.HasStr() {
+			fmtStr = ""
+		}
 
 		msgField := false
 		switch {
@@ -215,23 +225,22 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 			fd.getterFn = func(reflect.Value, reflectkit.TypedReceiver) {}
 		}
 
-		fd.outputRecv = fieldFmtReceiver{fmtStr: fmtStr, fmtTag: tagType, k: fd.StructField.Name}
+		fd.outputRecv = logFieldReceiver{fd.StructField.Name, fmtStr, tagType}
 
 		switch {
 		case msgField && msgGetter.getterFn == nil:
 			msgGetter = fd
 		case msgField && fieldName == "_":
-			fd.outputRecv.k = fmt.Sprintf("_txtTag%d", i)
+			fd.outputRecv.key = fmt.Sprintf("_txtTag%d", i)
 			fallthrough
 		default:
 			valueGetters = append(valueGetters, fd)
 		}
 
-		if needsAddr {
-			p.printNeedsAddr = true
-			if fd.reportFn != nil {
-				p.reportNeedsAddr = true
-			}
+		p.printNeedsAddr = needsAddr || p.printNeedsAddr
+		if fd.reportFn != nil {
+			p.hasReports = true
+			p.reportNeedsAddr = needsAddr || p.reportNeedsAddr
 		}
 	}
 
@@ -263,7 +272,23 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 		}
 	}
 
-	if msgGetter.getterFn == nil {
+	switch {
+	case msgGetter.getterFn != nil:
+		//
+	case len(t.PkgPath()) != 0:
+		if s := t.String(); len(s) > 0 {
+			p.msgField = logField{
+				fieldGet: func(_ reflect.Value) reflect.Value {
+					return reflect.Value{}
+				},
+				getterFn: func(value reflect.Value, out reflectkit.TypedReceiver) {
+					out.ReceiveString(reflect.String, s)
+				},
+			}
+			return true
+		}
+		fallthrough
+	default:
 		p.msgField = logField{}
 		return true
 	}
@@ -271,7 +296,7 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 	fieldGetter := reflectkit.FieldValueGetter(msgGetter.index, msgGetter.StructField, p.printNeedsAddr, baseOffset)
 	p.msgField = logField{
 		fieldGetter, msgGetter.reportFn, msgGetter.getterFn, msgGetter.outputRecv}
-	p.msgField.receiver.k = ""
+	p.msgField.receiver.key = ""
 
 	return true
 }
@@ -287,29 +312,50 @@ func (p *typeMarshaller) _prepareValue(value reflect.Value, needsAddr bool) refl
 	return reflectkit.MakeAddressable(value)
 }
 
-func (f logField) printField(v reflect.Value, w LogObjectWriter, c LogObjectMetricCollector) {
-	fieldValue := f.fieldGet(v)
-	if c != nil && f.reportFn != nil {
-		f.reportFn(c, f.receiver.k, fieldValue.Interface())
+func printAndReportField(v reflect.Value, receiver fieldFmtReceiver, c LogObjectMetricCollector) {
+	fieldValue := receiver.fieldGet(v)
+	if receiver.reportFn != nil {
+		receiver.reportFn(c, receiver.receiver.key, fieldValue.Interface())
 	}
-	f.receiver.w = w
-	f.getterFn(fieldValue, f.receiver)
+	receiver.getterFn(fieldValue, receiver)
+}
+
+func printField(v reflect.Value, receiver fieldFmtReceiver) {
+	fieldValue := receiver.fieldGet(v)
+	receiver.getterFn(fieldValue, receiver)
 }
 
 func (p *typeMarshaller) printFields(value reflect.Value, writer LogObjectWriter, collector LogObjectMetricCollector) string {
 	value = p._prepareValue(value, p.printNeedsAddr) // double check
 
-	for _, field := range p.loggerFields {
-		field.printField(value, writer, collector)
+	receiver := fieldFmtReceiver{w: writer}
+
+	doReports := collector != nil && p.hasReports
+	if doReports {
+		for i := range p.loggerFields {
+			receiver.logField = &p.loggerFields[i]
+			printAndReportField(value, receiver, collector)
+		}
+	} else {
+		for i := range p.loggerFields {
+			receiver.logField = &p.loggerFields[i]
+			printField(value, receiver)
+		}
 	}
 
-	if field := p.msgField; field.getterFn == nil {
+	if p.msgField.getterFn == nil {
 		return ""
-	} else {
-		sc := stringCapturer{}
-		field.printField(value, &sc, collector)
-		return sc.v
 	}
+
+	sc := stringCapturer{}
+	receiver.logField = &p.msgField
+	receiver.w = &sc
+	if doReports {
+		printAndReportField(value, receiver, collector)
+	} else {
+		printField(value, receiver)
+	}
+	return sc.v
 }
 
 func (p *typeMarshaller) reportFields(value reflect.Value, collector LogObjectMetricCollector) {
@@ -351,6 +397,10 @@ func (v fmtTagType) IsRaw() bool {
 
 func (v fmtTagType) HasFmt() bool {
 	return v >= fmtTagFormatRaw
+}
+
+func (v fmtTagType) HasStr() bool {
+	return v == fmtTagText || v.HasFmt()
 }
 
 func singleTag(tag reflect.StructTag) (fmtTagType, string) {
