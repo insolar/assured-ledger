@@ -41,6 +41,7 @@ func NewTestLoggerExt(target logcommon.TestingRedirectTarget, adapter string) lo
 	}
 	return l.WithMetrics(logcommon.LogMetricsResetMode).
 		WithFormat(logcommon.TextFormat).
+		WithCaller(logcommon.CallerField).
 		WithOutput(logcommon.TestingLoggerOutput{target}).
 		MustBuild()
 }
