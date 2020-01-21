@@ -5,11 +5,11 @@ title "General machines interaction for Object operations"
 entity "Message Handle Machine" as m
 entity "Object Machine" as o
 entity "Drop Batch Machine" as d
-database "Global Storage" as db
+database "Node Storage" as db
 
 m -> o : Get or create machine.
 o -> o : Fetch Lifeline Index.
-o --> m : Sanity check error (optional).
+o --> m : Sanity check error.
 o -> d : Get or create machine.
 o -> d : Send new state.
 d -> d : Wait batch, hash calculations,\nreplication etc.
