@@ -20,7 +20,7 @@ import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 
 type Key = longbits.ByteString
 
-// A basic set of keys, that can be wrapped but other logic.
+// A basic set of keys, that can be wrapped by an extra keyset logic.
 type KeyList interface {
 	// returns true when the given key is within the set
 	Contains(Key) bool
@@ -67,10 +67,10 @@ type KeySet interface {
 	Subtract(KeySet) KeySet
 
 	// WARNING! Do not use
-	// lists keys (when IsOpenSet() == true, then lists all excluded keys)
+	// lists keys (when IsOpenSet() == true, as then it lists _excluded_ keys)
 	EnumRawKeys(func(k Key, exclusive bool) bool) bool
 	// WARNING! Do not use. This must NOT be treated as a size of a set.
-	// number of keys (when IsOpenSet() == true, then number of excluded keys)
+	// number of keys (when IsOpenSet() == true, as then it gives a number of _excluded_ keys)
 	RawKeyCount() int
 }
 
