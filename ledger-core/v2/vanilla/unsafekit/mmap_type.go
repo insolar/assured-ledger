@@ -35,6 +35,11 @@ type Unwrapper interface {
 	MemoryModelIndependent() bool
 }
 
+type MMType interface {
+	ReflectType() reflect.Type
+	MemoryModelIndependent() bool
+}
+
 type MMapType struct {
 	t                reflect.Type
 	modelIndependent bool
@@ -192,5 +197,5 @@ func (v MMapSliceType) ElemReflectType() reflect.Type {
 }
 
 func (v MMapSliceType) Unwrap(s longbits.ByteString) interface{} {
-	return UnwrapAsSlice(s, v)
+	return UnwrapAsSliceOf(s, v)
 }

@@ -35,7 +35,7 @@ func WrapBytes(b []byte) longbits.ByteString {
 	return wrapUnsafe(b)
 }
 
-// WARNING! The given struct MUST be immutable. Expects struct ptr.
+// Expects struct ptr.
 // WARNING! This method violates unsafe pointer-conversion rules.
 // You MUST make sure that (v) stays alive while the resulting ByteString is in use.
 func WrapStruct(v interface{}) longbits.ByteString {
@@ -43,7 +43,18 @@ func WrapStruct(v interface{}) longbits.ByteString {
 	if vt.Kind() != reflect.Ptr {
 		panic("illegal value")
 	}
-	vt = vt.Elem()
+	return wrapStruct(vt.Elem())
+}
+
+// Expects struct value. Reuses the value.
+// WARNING! Further unwraps MUST NOT modify the content.
+// WARNING! This method violates unsafe pointer-conversion rules.
+// You MUST make sure that (v) stays alive while the resulting ByteString is in use.
+func WrapValueStruct(v interface{}) longbits.ByteString {
+	return wrapStruct(reflect.ValueOf(v))
+}
+
+func wrapStruct(vt reflect.Value) longbits.ByteString {
 	if vt.Kind() != reflect.Struct {
 		panic("illegal value")
 	}
@@ -53,11 +64,25 @@ func WrapStruct(v interface{}) longbits.ByteString {
 	return wrapUnsafePtr(vt.Pointer(), vt.Type().Size())
 }
 
-func UnwrapAs(v longbits.ByteString, vt MMapType) interface{} {
-	if vt.Size() != len(v) {
+func WrapOf(v interface{}, mt MMapType) longbits.ByteString {
+	vt := reflect.ValueOf(v)
+	if vt.Kind() == reflect.Ptr {
+		vt = vt.Elem()
+	}
+	if vt.Type() != mt.ReflectType() {
+		panic("illegal value type")
+	}
+	if !vt.CanAddr() {
 		panic("illegal value")
 	}
-	return reflect.NewAt(vt.ReflectType(), _unwrapUnsafe(v)).Interface()
+	return wrapUnsafePtr(vt.Pointer(), vt.Type().Size())
+}
+
+func UnwrapAs(v longbits.ByteString, mt MMapType) interface{} {
+	if mt.Size() != len(v) {
+		panic("illegal value")
+	}
+	return reflect.NewAt(mt.ReflectType(), _unwrapUnsafe(v)).Interface()
 }
 
 func Hash(v longbits.ByteString, h hash.Hash) hash.Hash {
