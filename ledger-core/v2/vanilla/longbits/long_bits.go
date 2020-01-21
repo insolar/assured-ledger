@@ -61,7 +61,7 @@ func (v Bits64) CutOutUint64() uint64 {
 }
 
 func (v Bits64) FoldToUint64() uint64 {
-	return v.CutOutUint64()
+	return binary.LittleEndian.Uint64(v[:])
 }
 
 func (v Bits64) FixedByteSize() int {
@@ -85,14 +85,13 @@ func (v Bits64) Compare(other Bits64) int {
 }
 
 /* Array size doesnt need to be aligned */
-func FoldToBits64(v []byte) Bits64 {
-	var folded Bits64
+func FoldToBits64(v []byte) (folded Bits64) {
 	if len(v) == 0 {
 		return folded
 	}
 
-	alignedLen := len(v) & (len(folded) - 1) // NB! len(folded) MUST be power of 2
-	copy(folded[alignedLen:], v)
+	alignedLen := len(v) &^ (len(folded) - 1) // NB! len(folded) MUST be power of 2
+	copy(folded[:], v[alignedLen:])
 
 	for i := 0; i < alignedLen; i += len(folded) {
 		folded[0] ^= v[i+0]
@@ -108,43 +107,16 @@ func FoldToBits64(v []byte) Bits64 {
 }
 
 /* Array size doesnt need to be aligned */
-func CutOutBits64(v []byte) Bits64 {
-	panic("not implemented") // TODO CutOutBits64
-	//var folded Bits64
-	//switch n := len(v); {
-	//case n == 0:
-	//	return folded
-	//case n <= len(folded):
-	//	copy(folded[:], v)
-	//	return folded
-	//}
-	//
-	//folds := len(v) / len(folded)
-	//
-	//for i := 0; i < len(folded); i += 2 {
-	//	folded[i] = v[folds*(i>>1)]
-	//}
-	//foldedEmpty := len(folded) - len(folded)>>1
-	//
-	//samplingStep :=
-	//
-	//j := 0
-	//for i := 0; i < len(folded); i += folds {
-	//	folded[i] = v[j]
-	//	j++
-	//}
-	//
-	//for seq := 0; seq < folds; seq++ {
-	//
-	//	j := 0
-	//	for i := seq; i < len(folded); i += folds {
-	//		folded[i] = v[j]
-	//		j++
-	//	}
-	//
-	//}
-	//
-	//
+func CutOutBits64(v []byte) (folded Bits64) {
+	if len(v) <= len(folded) {
+		copy(folded[:], v)
+		return folded
+	}
+
+	for i := range folded {
+		folded[i] = v[i*(len(v)-1)/(len(folded)-1)]
+	}
+	return folded
 }
 
 func NewBits128(lo, hi uint64) Bits128 {
@@ -220,10 +192,12 @@ func (v Bits224) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
+func (v Bits224) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
+}
+
 func (v Bits224) FoldToUint64() uint64 {
-	return binary.LittleEndian.Uint64(v[:]) ^
-		binary.LittleEndian.Uint64(v[8:]) ^
-		binary.LittleEndian.Uint64(v[16:])
+	return FoldToUint64(v[:])
 }
 
 func (v Bits224) FixedByteSize() int {
@@ -265,12 +239,15 @@ func (v Bits256) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
+func (v Bits256) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
+}
+
 func (v Bits256) FoldToUint64() uint64 {
 	return FoldToUint64(v[:])
 }
 
-func (v Bits256) FoldToBits128() Bits128 {
-	r := Bits128{}
+func (v Bits256) FoldToBits128() (r Bits128) {
 	for i := range r {
 		r[i] = v[i] ^ v[i+len(r)]
 	}
@@ -278,7 +255,10 @@ func (v Bits256) FoldToBits128() Bits128 {
 }
 
 func (v Bits256) FoldToBits224() Bits224 {
-	r := Bits224{}
+	return v.CutOutBits224()
+}
+
+func (v Bits256) CutOutBits224() (r Bits224) {
 	for i := range r {
 		r[i] = v[i]
 	}
@@ -324,20 +304,22 @@ func (v Bits512) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
+func (v Bits512) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
+}
+
 func (v Bits512) FoldToUint64() uint64 {
 	return FoldToUint64(v[:])
 }
 
-func (v Bits512) FoldToBits256() Bits256 {
-	r := Bits256{}
+func (v Bits512) FoldToBits256() (r Bits256) {
 	for i := range r {
 		r[i] = v[i] ^ v[i+len(r)]
 	}
 	return r
 }
 
-func (v Bits512) FoldToBits224() Bits224 {
-	r := Bits224{}
+func (v Bits512) FoldToBits224() (r Bits224) {
 	for i := range r {
 		r[i] = v[i] ^ v[i+32]
 	}
