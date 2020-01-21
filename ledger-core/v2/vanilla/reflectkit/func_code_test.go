@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -46,35 +45,31 @@ func TestCodeOfNegative(t *testing.T) {
 	require.Panics(t, func() { CodeOf(reflect.ValueOf(TestCodeOf).Pointer()) })
 }
 
-func TestCodeSpeed(t *testing.T) {
+func BenchmarkCodeOf(t *testing.B) {
 	samples := [5]interface{}{TestCodeOf, bytes.NewBufferString("abc").Len, (*bytes.Buffer).Len, io.Writer.Write,
 		((io.Writer)(bytes.NewBufferString("abc"))).Write,
 	}
 
-	const count = int(1e8)
-	startedAt := time.Now()
+	count := t.N * 100000000
 	for i := count; i > 0; i-- {
 		if v := samples[i%len(samples)]; v == nil {
 			runtime.KeepAlive(i)
 		}
 	}
-	overheadDuration := time.Since(startedAt)
 
-	startedAt = time.Now()
-	for i := count; i > 0; i-- {
-		if v := reflect.ValueOf(samples[i%len(samples)]).Pointer(); v+1 == 0 {
-			runtime.KeepAlive(v)
+	t.Run("reflect", func(b *testing.B) {
+		for i := count; i > 0; i-- {
+			if v := reflect.ValueOf(samples[i%len(samples)]).Pointer(); v+1 == 0 {
+				runtime.KeepAlive(v)
+			}
 		}
-	}
-	reflectDuration := time.Since(startedAt)
+	})
 
-	startedAt = time.Now()
-	for i := count; i > 0; i-- {
-		if v := CodeOf(samples[i%len(samples)]); v+1 == 0 {
-			runtime.KeepAlive(v)
+	t.Run("direct", func(b *testing.B) {
+		for i := count; i > 0; i-- {
+			if v := CodeOf(samples[i%len(samples)]); v+1 == 0 {
+				runtime.KeepAlive(v)
+			}
 		}
-	}
-	directDuration := time.Since(startedAt)
-
-	t.Logf("overhead=%v reflect=%v direct=%v", overheadDuration, reflectDuration, directDuration)
+	})
 }
