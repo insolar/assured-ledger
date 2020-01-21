@@ -222,7 +222,7 @@ func NewECDSASignatureKeyHolder(publicKey *ecdsa.PublicKey, processor insolar.Ke
 
 	bits := longbits.NewBits512FromBytes(publicKeyBytes)
 	return &ECDSASignatureKeyHolder{
-		Bits512:   *bits,
+		Bits512:   bits,
 		publicKey: publicKey,
 	}
 }
