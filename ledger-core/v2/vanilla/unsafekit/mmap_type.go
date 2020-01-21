@@ -112,26 +112,30 @@ func MemoryModelDependencyOf(t reflect.Type) MemoryMapModel {
 		//
 	}
 
+	memoryModelDepended := false
 	fieldCount := t.NumField()
 	endOfPrev := uintptr(0)
+
 	for i := 0; i < fieldCount; i++ {
 		f := t.Field(i)
 		if f.Offset != endOfPrev {
-			return MemoryModelDepended
+			memoryModelDepended = true
 		}
 
 		switch mt := MemoryModelDependencyOf(f.Type); mt {
 		case MemoryModelIndependent:
 			//
-		case MemoryModelDepended, MemoryMapIncompatible:
-			return mt
+		case MemoryModelDepended:
+			memoryModelDepended = true
+		case MemoryMapIncompatible:
+			return MemoryMapIncompatible
 		default:
 			panic("unexpected")
 		}
 
 		endOfPrev += f.Type.Size()
 	}
-	if endOfPrev != t.Size() {
+	if memoryModelDepended || endOfPrev != t.Size() {
 		return MemoryModelDepended
 	}
 	return MemoryModelIndependent
