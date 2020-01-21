@@ -51,8 +51,8 @@
 package merkler
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 

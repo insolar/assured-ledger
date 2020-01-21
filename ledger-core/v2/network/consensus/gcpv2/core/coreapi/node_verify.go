@@ -56,11 +56,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 func VerifyPacketAuthenticityBy(packetSignature cryptkit.SignedDigest, nr profiles.Host, sf cryptkit.SignatureVerifier,

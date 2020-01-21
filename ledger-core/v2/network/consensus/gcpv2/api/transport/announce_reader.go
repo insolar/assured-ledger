@@ -52,8 +52,8 @@ package transport
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 func NewBriefJoinerAnnouncement(np profiles.StaticProfile, announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {

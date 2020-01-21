@@ -54,18 +54,19 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 var defaultNeighbourhoodSize = transport.NeighbourhoodSizes{
