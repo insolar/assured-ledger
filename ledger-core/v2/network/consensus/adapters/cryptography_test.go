@@ -172,7 +172,7 @@ func TestECDSADigestSigner_SignDigest(t *testing.T) {
 func TestECDSADigestSigner_GetSignMethod(t *testing.T) {
 	ds := NewECDSADigestSigner(privateKey, scheme)
 
-	require.Equal(t, ds.GetSignMethod(), SECP256r1Sign)
+	require.Equal(t, ds.GetSigningMethod(), SECP256r1Sign)
 }
 
 func TestNewECDSASignatureVerifier(t *testing.T) {

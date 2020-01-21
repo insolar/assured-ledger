@@ -24,6 +24,7 @@ import (
 
 type Foldable interface {
 	FoldToUint64() uint64
+	//CutOutUint64() uint64
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FixedReader -o . -s _mock.go -g
@@ -48,7 +49,7 @@ func FoldUint64(v uint64) uint32 {
 }
 
 func EqualFixedLenWriterTo(t, o FixedReader) bool {
-	if t == FixedReader(nil) || o == FixedReader(nil) {
+	if t == nil || o == nil {
 		return false
 	}
 	return (&writerToComparer{}).compare(t, o)

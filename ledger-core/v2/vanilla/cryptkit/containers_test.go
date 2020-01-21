@@ -42,7 +42,7 @@ func TestIsSecret(t *testing.T) {
 func TestSignedBy(t *testing.T) {
 	td := "testDigest"
 	ts := "testSign"
-	require.Equal(t, SignatureMethod(strings.Join([]string{td, ts}, "/")), DigestMethod(td).SignedBy(SignMethod(ts)))
+	require.Equal(t, SignatureMethod(strings.Join([]string{td, ts}, "/")), DigestMethod(td).SignedBy(SigningMethod(ts)))
 }
 
 func TestDigestMethodString(t *testing.T) {
@@ -53,7 +53,7 @@ func TestDigestMethodString(t *testing.T) {
 
 func TestSignMethodString(t *testing.T) {
 	ts := "test"
-	s := SignMethod(ts)
+	s := SigningMethod(ts)
 	require.Equal(t, ts, s.String())
 }
 
@@ -73,9 +73,9 @@ func TestSignMethod(t *testing.T) {
 	td := "testDigest"
 	ts := "testSign"
 	sep := "/"
-	require.Equal(t, SignMethod(ts), SignatureMethod(strings.Join([]string{td, ts}, sep)).SignMethod())
+	require.Equal(t, SigningMethod(ts), SignatureMethod(strings.Join([]string{td, ts}, sep)).SignMethod())
 
-	emptySignMethod := SignMethod("")
+	emptySignMethod := SigningMethod("")
 	require.Equal(t, emptySignMethod, SignatureMethod("testSignature").SignMethod())
 
 	require.Equal(t, emptySignMethod, SignatureMethod(strings.Join([]string{td, ts, "test"}, sep)).SignMethod())
@@ -401,7 +401,7 @@ func TestGetSignMethod(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
 	ts := "testSign"
 	sk := NewSignatureKey(fd, SignatureMethod(strings.Join([]string{"testDigest", ts}, "/")), PublicAsymmetricKey)
-	require.Equal(t, ts, sk.GetSignMethod().String())
+	require.Equal(t, ts, sk.GetSigningMethod().String())
 }
 
 func TestGetSignatureKeyMethod(t *testing.T) {

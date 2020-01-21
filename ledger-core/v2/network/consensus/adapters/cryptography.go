@@ -61,7 +61,7 @@ import (
 
 const (
 	SHA3512Digest = cryptkit.DigestMethod("sha3-512")
-	SECP256r1Sign = cryptkit.SignMethod("secp256r1")
+	SECP256r1Sign = cryptkit.SigningMethod("secp256r1")
 )
 
 type Sha3512Digester struct {
@@ -149,10 +149,10 @@ func (ds *ECDSADigestSigner) SignDigest(digest cryptkit.Digest) cryptkit.Signatu
 	sigBytes := sig.Bytes()
 	bits := longbits.NewBits512FromBytes(sigBytes)
 
-	return cryptkit.NewSignature(bits, digest.GetDigestMethod().SignedBy(ds.GetSignMethod()))
+	return cryptkit.NewSignature(bits, digest.GetDigestMethod().SignedBy(ds.GetSigningMethod()))
 }
 
-func (ds *ECDSADigestSigner) GetSignMethod() cryptkit.SignMethod {
+func (ds *ECDSADigestSigner) GetSigningMethod() cryptkit.SigningMethod {
 	return SECP256r1Sign
 }
 
@@ -178,7 +178,7 @@ func (sv *ECDSASignatureVerifier) IsDigestMethodSupported(method cryptkit.Digest
 	return method == SHA3512Digest
 }
 
-func (sv *ECDSASignatureVerifier) IsSignMethodSupported(method cryptkit.SignMethod) bool {
+func (sv *ECDSASignatureVerifier) IsSignMethodSupported(method cryptkit.SigningMethod) bool {
 	return method == SECP256r1Sign
 }
 
@@ -239,7 +239,7 @@ func NewECDSASignatureKeyHolderFromBits(publicKeyBytes longbits.Bits512, process
 	}
 }
 
-func (kh *ECDSASignatureKeyHolder) GetSignMethod() cryptkit.SignMethod {
+func (kh *ECDSASignatureKeyHolder) GetSigningMethod() cryptkit.SigningMethod {
 	return SECP256r1Sign
 }
 

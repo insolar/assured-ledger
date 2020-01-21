@@ -298,7 +298,7 @@ func (c *Installer) createConsensusController(
 func (c *Installer) createPacketParserFactory() adapters.PacketParserFactory {
 	return serialization.NewPacketParserFactory(
 		c.consensus.transportCryptographyFactory.GetDigestFactory().CreateDataDigester(),
-		c.consensus.transportCryptographyFactory.CreateNodeSigner(c.consensus.localNodeConfiguration.GetSecretKeyStore()).GetSignMethod(),
+		c.consensus.transportCryptographyFactory.CreateNodeSigner(c.consensus.localNodeConfiguration.GetSecretKeyStore()).GetSigningMethod(),
 		c.dep.KeyProcessor,
 	)
 }

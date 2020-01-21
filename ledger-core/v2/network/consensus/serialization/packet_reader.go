@@ -80,7 +80,7 @@ func (p *packetData) GetPulseNumber() pulse.Number {
 type PacketParser struct {
 	packetData
 	digester     cryptkit.DataDigester
-	signMethod   cryptkit.SignMethod
+	signMethod   cryptkit.SigningMethod
 	keyProcessor insolar.KeyProcessor
 }
 
@@ -88,7 +88,7 @@ func newPacketParser(
 	ctx context.Context,
 	reader io.Reader,
 	digester cryptkit.DataDigester,
-	signMethod cryptkit.SignMethod,
+	signMethod cryptkit.SigningMethod,
 	keyProcessor insolar.KeyProcessor,
 ) (*PacketParser, error) {
 
@@ -122,13 +122,13 @@ func (p *PacketParser) ParsePacketBody() (transport.PacketParser, error) {
 
 type PacketParserFactory struct {
 	digester     cryptkit.DataDigester
-	signMethod   cryptkit.SignMethod
+	signMethod   cryptkit.SigningMethod
 	keyProcessor insolar.KeyProcessor
 }
 
 func NewPacketParserFactory(
 	digester cryptkit.DataDigester,
-	signMethod cryptkit.SignMethod,
+	signMethod cryptkit.SigningMethod,
 	keyProcessor insolar.KeyProcessor,
 ) *PacketParserFactory {
 

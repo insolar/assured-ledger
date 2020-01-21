@@ -329,7 +329,7 @@ func (r *emuTransportCryptography) IsDigestOfSignatureMethodSupported(m cryptkit
 	return true
 }
 
-func (r *emuTransportCryptography) IsSignMethodSupported(m cryptkit.SignMethod) bool {
+func (r *emuTransportCryptography) IsSignMethodSupported(m cryptkit.SigningMethod) bool {
 	return true
 }
 
@@ -338,10 +338,10 @@ func (r *emuTransportCryptography) IsValidDigestSignature(digest cryptkit.Digest
 }
 
 func (r *emuTransportCryptography) SignDigest(digest cryptkit.Digest) cryptkit.Signature {
-	return cryptkit.NewSignature(digest, digest.GetDigestMethod().SignedBy(r.GetSignMethod()))
+	return cryptkit.NewSignature(digest, digest.GetDigestMethod().SignedBy(r.GetSigningMethod()))
 }
 
-func (r *emuTransportCryptography) GetSignMethod() cryptkit.SignMethod {
+func (r *emuTransportCryptography) GetSigningMethod() cryptkit.SigningMethod {
 	return "emuSing"
 }
 

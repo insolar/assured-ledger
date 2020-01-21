@@ -33,7 +33,7 @@ type DataSignerMock struct {
 	beforeGetDigestSizeCounter uint64
 	GetDigestSizeMock          mDataSignerMockGetDigestSize
 
-	funcGetSignMethod          func() (s1 SignMethod)
+	funcGetSignMethod          func() (s1 SigningMethod)
 	inspectFuncGetSignMethod   func()
 	afterGetSignMethodCounter  uint64
 	beforeGetSignMethodCounter uint64
@@ -592,7 +592,7 @@ type mDataSignerMockGetSignMethod struct {
 	expectations       []*DataSignerMockGetSignMethodExpectation
 }
 
-// DataSignerMockGetSignMethodExpectation specifies expectation struct of the DataSigner.GetSignMethod
+// DataSignerMockGetSignMethodExpectation specifies expectation struct of the DataSigner.GetSigningMethod
 type DataSignerMockGetSignMethodExpectation struct {
 	mock *DataSignerMock
 
@@ -600,15 +600,15 @@ type DataSignerMockGetSignMethodExpectation struct {
 	Counter uint64
 }
 
-// DataSignerMockGetSignMethodResults contains results of the DataSigner.GetSignMethod
+// DataSignerMockGetSignMethodResults contains results of the DataSigner.GetSigningMethod
 type DataSignerMockGetSignMethodResults struct {
-	s1 SignMethod
+	s1 SigningMethod
 }
 
-// Expect sets up expected params for DataSigner.GetSignMethod
+// Expect sets up expected params for DataSigner.GetSigningMethod
 func (mmGetSignMethod *mDataSignerMockGetSignMethod) Expect() *mDataSignerMockGetSignMethod {
 	if mmGetSignMethod.mock.funcGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("DataSignerMock.GetSignMethod mock is already set by Set")
+		mmGetSignMethod.mock.t.Fatalf("DataSignerMock.GetSigningMethod mock is already set by Set")
 	}
 
 	if mmGetSignMethod.defaultExpectation == nil {
@@ -618,10 +618,10 @@ func (mmGetSignMethod *mDataSignerMockGetSignMethod) Expect() *mDataSignerMockGe
 	return mmGetSignMethod
 }
 
-// Inspect accepts an inspector function that has same arguments as the DataSigner.GetSignMethod
+// Inspect accepts an inspector function that has same arguments as the DataSigner.GetSigningMethod
 func (mmGetSignMethod *mDataSignerMockGetSignMethod) Inspect(f func()) *mDataSignerMockGetSignMethod {
 	if mmGetSignMethod.mock.inspectFuncGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("Inspect function is already set for DataSignerMock.GetSignMethod")
+		mmGetSignMethod.mock.t.Fatalf("Inspect function is already set for DataSignerMock.GetSigningMethod")
 	}
 
 	mmGetSignMethod.mock.inspectFuncGetSignMethod = f
@@ -629,10 +629,10 @@ func (mmGetSignMethod *mDataSignerMockGetSignMethod) Inspect(f func()) *mDataSig
 	return mmGetSignMethod
 }
 
-// Return sets up results that will be returned by DataSigner.GetSignMethod
-func (mmGetSignMethod *mDataSignerMockGetSignMethod) Return(s1 SignMethod) *DataSignerMock {
+// Return sets up results that will be returned by DataSigner.GetSigningMethod
+func (mmGetSignMethod *mDataSignerMockGetSignMethod) Return(s1 SigningMethod) *DataSignerMock {
 	if mmGetSignMethod.mock.funcGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("DataSignerMock.GetSignMethod mock is already set by Set")
+		mmGetSignMethod.mock.t.Fatalf("DataSignerMock.GetSigningMethod mock is already set by Set")
 	}
 
 	if mmGetSignMethod.defaultExpectation == nil {
@@ -642,22 +642,22 @@ func (mmGetSignMethod *mDataSignerMockGetSignMethod) Return(s1 SignMethod) *Data
 	return mmGetSignMethod.mock
 }
 
-//Set uses given function f to mock the DataSigner.GetSignMethod method
-func (mmGetSignMethod *mDataSignerMockGetSignMethod) Set(f func() (s1 SignMethod)) *DataSignerMock {
+//Set uses given function f to mock the DataSigner.GetSigningMethod method
+func (mmGetSignMethod *mDataSignerMockGetSignMethod) Set(f func() (s1 SigningMethod)) *DataSignerMock {
 	if mmGetSignMethod.defaultExpectation != nil {
-		mmGetSignMethod.mock.t.Fatalf("Default expectation is already set for the DataSigner.GetSignMethod method")
+		mmGetSignMethod.mock.t.Fatalf("Default expectation is already set for the DataSigner.GetSigningMethod method")
 	}
 
 	if len(mmGetSignMethod.expectations) > 0 {
-		mmGetSignMethod.mock.t.Fatalf("Some expectations are already set for the DataSigner.GetSignMethod method")
+		mmGetSignMethod.mock.t.Fatalf("Some expectations are already set for the DataSigner.GetSigningMethod method")
 	}
 
 	mmGetSignMethod.mock.funcGetSignMethod = f
 	return mmGetSignMethod.mock
 }
 
-// GetSignMethod implements DataSigner
-func (mmGetSignMethod *DataSignerMock) GetSignMethod() (s1 SignMethod) {
+// GetSigningMethod implements DataSigner
+func (mmGetSignMethod *DataSignerMock) GetSigningMethod() (s1 SigningMethod) {
 	mm_atomic.AddUint64(&mmGetSignMethod.beforeGetSignMethodCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetSignMethod.afterGetSignMethodCounter, 1)
 
@@ -670,28 +670,28 @@ func (mmGetSignMethod *DataSignerMock) GetSignMethod() (s1 SignMethod) {
 
 		mm_results := mmGetSignMethod.GetSignMethodMock.defaultExpectation.results
 		if mm_results == nil {
-			mmGetSignMethod.t.Fatal("No results are set for the DataSignerMock.GetSignMethod")
+			mmGetSignMethod.t.Fatal("No results are set for the DataSignerMock.GetSigningMethod")
 		}
 		return (*mm_results).s1
 	}
 	if mmGetSignMethod.funcGetSignMethod != nil {
 		return mmGetSignMethod.funcGetSignMethod()
 	}
-	mmGetSignMethod.t.Fatalf("Unexpected call to DataSignerMock.GetSignMethod.")
+	mmGetSignMethod.t.Fatalf("Unexpected call to DataSignerMock.GetSigningMethod.")
 	return
 }
 
-// GetSignMethodAfterCounter returns a count of finished DataSignerMock.GetSignMethod invocations
+// GetSignMethodAfterCounter returns a count of finished DataSignerMock.GetSigningMethod invocations
 func (mmGetSignMethod *DataSignerMock) GetSignMethodAfterCounter() uint64 {
 	return mm_atomic.LoadUint64(&mmGetSignMethod.afterGetSignMethodCounter)
 }
 
-// GetSignMethodBeforeCounter returns a count of DataSignerMock.GetSignMethod invocations
+// GetSignMethodBeforeCounter returns a count of DataSignerMock.GetSigningMethod invocations
 func (mmGetSignMethod *DataSignerMock) GetSignMethodBeforeCounter() uint64 {
 	return mm_atomic.LoadUint64(&mmGetSignMethod.beforeGetSignMethodCounter)
 }
 
-// MinimockGetSignMethodDone returns true if the count of the GetSignMethod invocations corresponds
+// MinimockGetSignMethodDone returns true if the count of the GetSigningMethod invocations corresponds
 // the number of defined expectations
 func (m *DataSignerMock) MinimockGetSignMethodDone() bool {
 	for _, e := range m.GetSignMethodMock.expectations {
@@ -715,17 +715,17 @@ func (m *DataSignerMock) MinimockGetSignMethodDone() bool {
 func (m *DataSignerMock) MinimockGetSignMethodInspect() {
 	for _, e := range m.GetSignMethodMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to DataSignerMock.GetSignMethod")
+			m.t.Error("Expected call to DataSignerMock.GetSigningMethod")
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
 	if m.GetSignMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
-		m.t.Error("Expected call to DataSignerMock.GetSignMethod")
+		m.t.Error("Expected call to DataSignerMock.GetSigningMethod")
 	}
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetSignMethod != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
-		m.t.Error("Expected call to DataSignerMock.GetSignMethod")
+		m.t.Error("Expected call to DataSignerMock.GetSigningMethod")
 	}
 }
 

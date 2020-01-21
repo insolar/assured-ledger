@@ -21,8 +21,8 @@ type SignatureVerifierMock struct {
 	beforeIsDigestMethodSupportedCounter uint64
 	IsDigestMethodSupportedMock          mSignatureVerifierMockIsDigestMethodSupported
 
-	funcIsSignMethodSupported          func(m SignMethod) (b1 bool)
-	inspectFuncIsSignMethodSupported   func(m SignMethod)
+	funcIsSignMethodSupported          func(m SigningMethod) (b1 bool)
+	inspectFuncIsSignMethodSupported   func(m SigningMethod)
 	afterIsSignMethodSupportedCounter  uint64
 	beforeIsSignMethodSupportedCounter uint64
 	IsSignMethodSupportedMock          mSignatureVerifierMockIsSignMethodSupported
@@ -305,7 +305,7 @@ type SignatureVerifierMockIsSignMethodSupportedExpectation struct {
 
 // SignatureVerifierMockIsSignMethodSupportedParams contains parameters of the SignatureVerifier.IsSignMethodSupported
 type SignatureVerifierMockIsSignMethodSupportedParams struct {
-	m SignMethod
+	m SigningMethod
 }
 
 // SignatureVerifierMockIsSignMethodSupportedResults contains results of the SignatureVerifier.IsSignMethodSupported
@@ -314,7 +314,7 @@ type SignatureVerifierMockIsSignMethodSupportedResults struct {
 }
 
 // Expect sets up expected params for SignatureVerifier.IsSignMethodSupported
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Expect(m SignMethod) *mSignatureVerifierMockIsSignMethodSupported {
+func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Expect(m SigningMethod) *mSignatureVerifierMockIsSignMethodSupported {
 	if mmIsSignMethodSupported.mock.funcIsSignMethodSupported != nil {
 		mmIsSignMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignMethodSupported mock is already set by Set")
 	}
@@ -334,7 +334,7 @@ func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Expe
 }
 
 // Inspect accepts an inspector function that has same arguments as the SignatureVerifier.IsSignMethodSupported
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Inspect(f func(m SignMethod)) *mSignatureVerifierMockIsSignMethodSupported {
+func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Inspect(f func(m SigningMethod)) *mSignatureVerifierMockIsSignMethodSupported {
 	if mmIsSignMethodSupported.mock.inspectFuncIsSignMethodSupported != nil {
 		mmIsSignMethodSupported.mock.t.Fatalf("Inspect function is already set for SignatureVerifierMock.IsSignMethodSupported")
 	}
@@ -358,7 +358,7 @@ func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Retu
 }
 
 //Set uses given function f to mock the SignatureVerifier.IsSignMethodSupported method
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Set(f func(m SignMethod) (b1 bool)) *SignatureVerifierMock {
+func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Set(f func(m SigningMethod) (b1 bool)) *SignatureVerifierMock {
 	if mmIsSignMethodSupported.defaultExpectation != nil {
 		mmIsSignMethodSupported.mock.t.Fatalf("Default expectation is already set for the SignatureVerifier.IsSignMethodSupported method")
 	}
@@ -373,7 +373,7 @@ func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Set(
 
 // When sets expectation for the SignatureVerifier.IsSignMethodSupported which will trigger the result defined by the following
 // Then helper
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) When(m SignMethod) *SignatureVerifierMockIsSignMethodSupportedExpectation {
+func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) When(m SigningMethod) *SignatureVerifierMockIsSignMethodSupportedExpectation {
 	if mmIsSignMethodSupported.mock.funcIsSignMethodSupported != nil {
 		mmIsSignMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignMethodSupported mock is already set by Set")
 	}
@@ -393,7 +393,7 @@ func (e *SignatureVerifierMockIsSignMethodSupportedExpectation) Then(b1 bool) *S
 }
 
 // IsSignMethodSupported implements SignatureVerifier
-func (mmIsSignMethodSupported *SignatureVerifierMock) IsSignMethodSupported(m SignMethod) (b1 bool) {
+func (mmIsSignMethodSupported *SignatureVerifierMock) IsSignMethodSupported(m SigningMethod) (b1 bool) {
 	mm_atomic.AddUint64(&mmIsSignMethodSupported.beforeIsSignMethodSupportedCounter, 1)
 	defer mm_atomic.AddUint64(&mmIsSignMethodSupported.afterIsSignMethodSupportedCounter, 1)
 
