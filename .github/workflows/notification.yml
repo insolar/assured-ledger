@@ -1,0 +1,19 @@
+name: Platform CI notifications
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  Notify:
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/shaburov/release-notify
+    steps:
+      - uses: actions/checkout@v2
+      - run: notifier
+        env:
+          SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
