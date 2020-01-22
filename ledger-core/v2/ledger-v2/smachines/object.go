@@ -2,8 +2,27 @@ package smachines
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
+
+type filament struct {
+	record record.Record
+	prev   *filament
+}
+
+type sharedObject struct {
+	mutex smachine.SyncLink
+	state *filament
+}
+
+func (s *sharedObject) appendState(state record.Record) {
+	s.state = &filament{
+		record: state,
+		prev:   s.state,
+	}
+}
 
 /* -------- Declaration ------------- */
 
@@ -23,10 +42,13 @@ func (*declarationObject) GetInitStateFor(sm smachine.StateMachine) smachine.Ini
 /* -------- Instance ------------- */
 
 type Object struct {
+	id insolar.ID
+
+	index sharedObject
 }
 
-func NewObject() *Object {
-	return &Object{}
+func NewObject(id insolar.ID) *Object {
+	return &Object{id: id}
 }
 
 func (s *Object) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -34,5 +56,6 @@ func (s *Object) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 }
 
 func (s *Object) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.Publish(s.id, &s.index)
 	return ctx.Stop()
 }

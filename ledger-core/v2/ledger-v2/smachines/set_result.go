@@ -3,7 +3,6 @@ package smachines
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
@@ -28,8 +27,8 @@ type SetResult struct {
 	meta    payload.Meta
 	message payload.V2SetRequestResult
 
-	objLink     smachine.SharedDataLink
-	objLifeline record.Lifeline
+	objLink  smachine.SharedDataLink
+	objIndex *sharedObject
 }
 
 func NewSetResult(meta payload.Meta) *SetResult {
@@ -53,13 +52,13 @@ func (s *SetResult) getObject(ctx smachine.ExecutionContext) smachine.StateUpdat
 	lifelineLink := ctx.GetPublishedLink(s.message.ObjectID)
 	if lifelineLink.IsZero() {
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return NewObject()
+			return NewObject(s.message.ObjectID)
 		})
-		return ctx.WaitShared(lifelineLink).ThenRepeat()
+		lifelineLink = ctx.GetPublishedLink(s.message.ObjectID)
 	}
 
 	accessDecision := lifelineLink.PrepareAccess(func(val interface{}) (wakeup bool) {
-		s.objLifeline = val.(record.Lifeline)
+		s.objIndex = val.(*sharedObject)
 		return false
 	}).TryUse(ctx).GetDecision()
 
@@ -69,6 +68,9 @@ func (s *SetResult) getObject(ctx smachine.ExecutionContext) smachine.StateUpdat
 	case smachine.Impossible:
 		return ctx.Stop()
 	case smachine.Passed:
+		if ctx.Acquire(s.objIndex.mutex).IsNotPassed() {
+			return ctx.Sleep().ThenRepeat()
+		}
 	default:
 		panic("unknown state from TryUse")
 	}
@@ -77,5 +79,8 @@ func (s *SetResult) getObject(ctx smachine.ExecutionContext) smachine.StateUpdat
 }
 
 func (s *SetResult) saveResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	defer ctx.Release(s.objIndex.mutex)
 
+	s.objIndex.appendState(s.message.SideEffect)
+	return ctx.Stop()
 }
