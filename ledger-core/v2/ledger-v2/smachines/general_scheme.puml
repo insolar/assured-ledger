@@ -1,7 +1,6 @@
 @startuml
 
 title "General machines interaction for Object operations"
-
 entity "Message Handle Machine" as m
 entity "Object Machine" as o
 entity "Drop Batch Machine" as d
@@ -14,9 +13,13 @@ o -> m : Lifeline index.
 m -> o : Send new state.
 o -> d : Get or create machine.
 o -> d : Send new state.
+d -> o : Return sync obj + getter.
+o -> m : Return sync obj + getter.
+...
 d -> d : Wait batch, hash calculations,\nreplication etc.
 d -> db : Update record number.
-d -> o : Return result.
-o -> m : Return result.
+d -> o : Trigger sync obj.
+d -> m : Trigger sync obj.
+m <-> db : Get result via getter
 
 @enduml
