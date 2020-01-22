@@ -89,7 +89,7 @@ func (d *SequenceDigester) GetDigestMethod() cryptkit.DigestMethod {
 	return d.dataDigester.GetDigestMethod()
 }
 
-func (d *SequenceDigester) ForkSequence() cryptkit.SequenceDigester {
+func (d *SequenceDigester) ForkSequence() cryptkit.ForkingDigester {
 	return &SequenceDigester{
 		dataDigester: d.dataDigester,
 		state:        d.state,

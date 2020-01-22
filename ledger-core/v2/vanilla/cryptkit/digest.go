@@ -39,7 +39,8 @@ type BasicDigester interface {
 
 type DataDigester interface {
 	BasicDigester
-	DigestData(reader io.Reader) Digest
+	DigestData(io.Reader) Digest
+	// DigestBytes([]byte) Digest
 }
 
 type PairDigester interface {
@@ -50,21 +51,19 @@ type PairDigester interface {
 type SequenceDigester interface {
 	BasicDigester
 	AddNext(digest longbits.FoldableReader)
-	/* deprecated */
-	ForkSequence() SequenceDigester
-
 	FinishSequence() Digest
 }
 
-//type ForkingDigester interface {
-//	SequenceDigester
-//	ForkSequence() SequenceDigester
-//}
+type ForkingDigester interface {
+	SequenceDigester
+	ForkSequence() ForkingDigester
+}
 
 type DigestFactory interface {
 	CreatePairDigester() PairDigester
 	CreateDataDigester() DataDigester
 	CreateSequenceDigester() SequenceDigester
+	CreateForkingDigester() ForkingDigester
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.DigestHolder -o . -s _mock.go -g

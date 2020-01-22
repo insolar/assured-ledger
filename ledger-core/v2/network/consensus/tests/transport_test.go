@@ -301,6 +301,10 @@ func (r *emuTransportCryptography) CreateSequenceDigester() cryptkit.SequenceDig
 	return &seqDigester{}
 }
 
+func (r *emuTransportCryptography) CreateForkingDigester() cryptkit.ForkingDigester {
+	return &seqDigester{}
+}
+
 func (r *emuTransportCryptography) CreateGlobulaStateDigester() transport.StateDigester {
 	return &gshDigester{&seqDigester{}, r.defaultDigest}
 }
@@ -309,7 +313,7 @@ func (r *emuTransportCryptography) CreatePublicKeyStore(skh cryptkit.SignatureKe
 	return nil
 }
 
-func (r *emuTransportCryptography) CreateAnnouncementDigester() cryptkit.SequenceDigester {
+func (r *emuTransportCryptography) CreateAnnouncementDigester() cryptkit.ForkingDigester {
 	return &seqDigester{}
 }
 
@@ -380,7 +384,7 @@ func (s *seqDigester) GetDigestMethod() cryptkit.DigestMethod {
 	return "emuDigest64"
 }
 
-func (s *seqDigester) ForkSequence() cryptkit.SequenceDigester {
+func (s *seqDigester) ForkSequence() cryptkit.ForkingDigester {
 	cp := seqDigester{}
 	if s.rnd != nil {
 		cp.rnd = rand.New(rand.NewSource(s.lastSeed))
@@ -398,7 +402,7 @@ func (s *seqDigester) FinishSequence() cryptkit.Digest {
 }
 
 type gshDigester struct {
-	sd            cryptkit.SequenceDigester
+	sd            cryptkit.ForkingDigester
 	defaultDigest longbits.FoldableReader
 }
 

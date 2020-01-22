@@ -73,76 +73,75 @@ func (p *timerWithFn) Stop() {
 }
 
 func NewOccasion(deadline time.Time) Occasion {
-	return &factory{deadline}
+	return factory{deadline}
 }
 
 func NewOccasionAfter(d time.Duration) Occasion {
-	return &factory{time.Now().Add(d)}
+	return factory{time.Now().Add(d)}
 }
 
 type factory struct {
 	d time.Time
 }
 
-func (p *factory) IsExpired() bool {
+func (p factory) IsExpired() bool {
 	return p.d.Before(time.Now())
 }
 
-func (p *factory) Deadline() time.Time {
+func (p factory) Deadline() time.Time {
 	return p.d
 }
 
-func (p *factory) NewTimer() TimerHolder {
+func (p factory) NewTimer() TimerHolder {
 	return NewTimer(time.Until(p.d))
 }
 
-func (p *factory) NewFunc(fn func()) TimerHolder {
+func (p factory) NewFunc(fn func()) TimerHolder {
 	return NewTimerWithFunc(time.Until(p.d), fn)
 }
 
 func NeverOccasion() Occasion {
-	return &factoryNever{}
+	return factoryNever{}
 }
 
-type factoryNever struct {
-}
+type factoryNever struct{}
 
-func (*factoryNever) IsExpired() bool {
+func (factoryNever) IsExpired() bool {
 	return false
 }
 
-func (*factoryNever) Deadline() time.Time {
+func (factoryNever) Deadline() time.Time {
 	return time.Time{}
 }
 
-func (*factoryNever) NewTimer() TimerHolder {
+func (factoryNever) NewTimer() TimerHolder {
 	return Never()
 }
 
-func (*factoryNever) NewFunc(fn func()) TimerHolder {
+func (factoryNever) NewFunc(fn func()) TimerHolder {
 	return Never()
 }
 
 func EverOccasion() Occasion {
-	return &factoryEver{}
+	return factoryEver{}
 }
 
 type factoryEver struct {
 }
 
-func (*factoryEver) IsExpired() bool {
+func (factoryEver) IsExpired() bool {
 	return true
 }
 
-func (*factoryEver) Deadline() time.Time {
+func (factoryEver) Deadline() time.Time {
 	return time.Time{}
 }
 
-func (*factoryEver) NewTimer() TimerHolder {
+func (factoryEver) NewTimer() TimerHolder {
 	return NewTimer(0)
 }
 
-func (*factoryEver) NewFunc(fn func()) TimerHolder {
+func (factoryEver) NewFunc(fn func()) TimerHolder {
 	go fn()
 	return Never()
 }

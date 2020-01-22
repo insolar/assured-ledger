@@ -211,7 +211,11 @@ func (cdf *ConsensusDigestFactory) CreateSequenceDigester() cryptkit.SequenceDig
 	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
 }
 
-func (cdf *ConsensusDigestFactory) CreateAnnouncementDigester() cryptkit.SequenceDigester {
+func (cdf *ConsensusDigestFactory) CreateForkingDigester() cryptkit.ForkingDigester {
+	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
+}
+
+func (cdf *ConsensusDigestFactory) CreateAnnouncementDigester() cryptkit.ForkingDigester {
 	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
 }
 

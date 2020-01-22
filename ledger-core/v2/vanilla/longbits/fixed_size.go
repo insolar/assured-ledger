@@ -24,7 +24,6 @@ import (
 
 type Foldable interface {
 	FoldToUint64() uint64
-	//CutOutUint64() uint64
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FixedReader -o . -s _mock.go -g

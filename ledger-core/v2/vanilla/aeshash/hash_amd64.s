@@ -1,5 +1,3 @@
-#include "go_asm.h"
-#include "funcdata.h"
 #include "textflag.h"
 
 // hash function using AES hardware instructions

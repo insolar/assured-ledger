@@ -65,7 +65,7 @@ type CryptographyAssistant interface {
 
 type ConsensusDigestFactory interface {
 	cryptkit.DigestFactory
-	CreateAnnouncementDigester() cryptkit.SequenceDigester
+	CreateAnnouncementDigester() cryptkit.ForkingDigester
 	CreateGlobulaStateDigester() StateDigester
 }
 

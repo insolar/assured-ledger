@@ -64,7 +64,7 @@ func NewAnnouncementSequenceCalc(digestFactory transport.ConsensusDigestFactory)
 
 type AnnouncementSequenceCalc struct {
 	digestFactory transport.ConsensusDigestFactory
-	digester      cryptkit.SequenceDigester
+	digester      cryptkit.ForkingDigester
 }
 
 func (p *AnnouncementSequenceCalc) AddNext(nodeData VectorEntryData, zeroPower bool) {

@@ -88,6 +88,17 @@ func (pd *Sha3512Digester) DigestData(reader io.Reader) cryptkit.Digest {
 	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
 }
 
+func (pd *Sha3512Digester) DigestBytes(bytes []byte) cryptkit.Digest {
+	hasher := pd.scheme.IntegrityHasher()
+
+	hasher.Hash(bytes)
+
+	bytes = hasher.Sum(nil)
+	bits := longbits.NewBits512FromBytes(bytes)
+
+	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
+}
+
 func (pd *Sha3512Digester) GetDigestSize() int {
 	return 64
 }
