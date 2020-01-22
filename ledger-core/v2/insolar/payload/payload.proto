@@ -391,3 +391,12 @@ message Pulse {
 
     pulse.PulseProto Pulse = 20 [(gogoproto.nullable) = false];
 }
+
+message V2SetRequestResult {
+    uint32 Polymorph = 16;
+
+    bytes ObjectID = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID", (gogoproto.nullable) = false];
+    bytes Request = 21;
+    record.Result Result = 22;
+    record.Material SideEffect = 23;
+}

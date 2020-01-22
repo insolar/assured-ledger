@@ -103,7 +103,7 @@ func MessageFactory(message *message.Message) smachine.CreateFunc {
 	switch payloadType {
 	case payload.TypeGetObject:
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return &GetObject{}
+			return NewSetResult(messageMeta)
 		}
 	default:
 		panic("unsupported payload type")

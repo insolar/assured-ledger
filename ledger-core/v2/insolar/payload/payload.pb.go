@@ -6,20 +6,17 @@ package payload
 import (
 	bytes "bytes"
 	fmt "fmt"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	pulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	record "github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
+	drop "github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
 	io "io"
 	math "math"
 	reflect "reflect"
 	strconv "strconv"
 	strings "strings"
-
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	pulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	record "github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
-	drop "github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
-
-	logcommon "github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -61,13 +58,13 @@ func (PreviousExecutorState) EnumDescriptor() ([]byte, []int) {
 }
 
 type Meta struct {
-	Polymorph  uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Payload    []byte                                         `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload,omitempty"`
-	Sender     github_com_insolar_insolar_insolar.Reference   `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Sender"`
-	Receiver   github_com_insolar_insolar_insolar.Reference   `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Receiver"`
-	Pulse      github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,23,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	ID         []byte                                         `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID,omitempty"`
-	OriginHash MessageHash                                    `protobuf:"bytes,25,opt,name=OriginHash,proto3,customtype=MessageHash" json:"OriginHash"`
+	Polymorph  uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Payload    []byte                                                               `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	Sender     github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Sender"`
+	Receiver   github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Receiver"`
+	Pulse      github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,23,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	ID         []byte                                                               `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID,omitempty"`
+	OriginHash MessageHash                                                          `protobuf:"bytes,25,opt,name=OriginHash,proto3,customtype=MessageHash" json:"OriginHash"`
 }
 
 func (m *Meta) Reset()      { *m = Meta{} }
@@ -176,9 +173,9 @@ func (m *Error) GetText() string {
 }
 
 type GetObject struct {
-	Polymorph uint32                                 `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID  `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	RequestID *github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID,omitempty"`
+	Polymorph uint32                                                       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID  `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	RequestID *github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID,omitempty"`
 }
 
 func (m *GetObject) Reset()      { *m = GetObject{} }
@@ -221,8 +218,8 @@ func (m *GetObject) GetPolymorph() uint32 {
 }
 
 type GetCode struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	CodeID    github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=CodeID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"CodeID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	CodeID    github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=CodeID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"CodeID"`
 }
 
 func (m *GetCode) Reset()      { *m = GetCode{} }
@@ -265,9 +262,9 @@ func (m *GetCode) GetPolymorph() uint32 {
 }
 
 type PassState struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Origin    []byte                                `protobuf:"bytes,20,opt,name=Origin,proto3" json:"Origin,omitempty"`
-	StateID   github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=StateID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"StateID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Origin    []byte                                                      `protobuf:"bytes,20,opt,name=Origin,proto3" json:"Origin,omitempty"`
+	StateID   github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=StateID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"StateID"`
 }
 
 func (m *PassState) Reset()      { *m = PassState{} }
@@ -419,9 +416,9 @@ func (m *SetCode) GetRecord() []byte {
 }
 
 type Index struct {
-	Polymorph         uint32                                 `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Index             []byte                                 `protobuf:"bytes,20,opt,name=Index,proto3" json:"Index,omitempty"`
-	EarliestRequestID *github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=EarliestRequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"EarliestRequestID,omitempty"`
+	Polymorph         uint32                                                       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Index             []byte                                                       `protobuf:"bytes,20,opt,name=Index,proto3" json:"Index,omitempty"`
+	EarliestRequestID *github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=EarliestRequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"EarliestRequestID,omitempty"`
 }
 
 func (m *Index) Reset()      { *m = Index{} }
@@ -624,8 +621,8 @@ func (m *State) GetRecord() []byte {
 }
 
 type ID struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ID        github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ID        github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ID"`
 }
 
 func (m *ID) Reset()      { *m = ID{} }
@@ -668,8 +665,8 @@ func (m *ID) GetPolymorph() uint32 {
 }
 
 type IDs struct {
-	Polymorph uint32                                  `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	IDs       []github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,rep,name=IDs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"IDs"`
+	Polymorph uint32                                                        `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	IDs       []github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,rep,name=IDs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"IDs"`
 }
 
 func (m *IDs) Reset()      { *m = IDs{} }
@@ -712,9 +709,9 @@ func (m *IDs) GetPolymorph() uint32 {
 }
 
 type Jet struct {
-	Polymorph uint32                                   `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	JetID     github_com_insolar_insolar_insolar.JetID `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	Actual    bool                                     `protobuf:"varint,21,opt,name=Actual,proto3" json:"Actual,omitempty"`
+	Polymorph uint32                                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	JetID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	Actual    bool                                                           `protobuf:"varint,21,opt,name=Actual,proto3" json:"Actual,omitempty"`
 }
 
 func (m *Jet) Reset()      { *m = Jet{} }
@@ -867,11 +864,11 @@ func (m *SetOutgoingRequest) GetRequest() record.Virtual {
 
 // SagaCallAcceptNotification informs virtual node that it's time to call saga Accept method.
 type SagaCallAcceptNotification struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
 	// OutgoingReqID contains the id of registered outgoing request.
 	// VE needs it to register the result of the outgoing request.
-	DetachedRequestID github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=DetachedRequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"DetachedRequestID"`
+	DetachedRequestID github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=DetachedRequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"DetachedRequestID"`
 	// Request contains original OutgoingRequest registered by VE
 	Request []byte `protobuf:"bytes,22,opt,name=Request,proto3" json:"Request,omitempty"`
 }
@@ -1151,10 +1148,10 @@ func (m *Update) GetResult() []byte {
 }
 
 type GetFilament struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	StartFrom github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,21,opt,name=StartFrom,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"StartFrom"`
-	ReadUntil github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,22,opt,name=ReadUntil,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"ReadUntil"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	StartFrom github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,21,opt,name=StartFrom,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"StartFrom"`
+	ReadUntil github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,22,opt,name=ReadUntil,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"ReadUntil"`
 }
 
 func (m *GetFilament) Reset()      { *m = GetFilament{} }
@@ -1197,9 +1194,9 @@ func (m *GetFilament) GetPolymorph() uint32 {
 }
 
 type FilamentSegment struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	Records   []record.CompositeFilamentRecord      `protobuf:"bytes,21,rep,name=Records,proto3" json:"Records"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Records   []record.CompositeFilamentRecord                            `protobuf:"bytes,21,rep,name=Records,proto3" json:"Records"`
 }
 
 func (m *FilamentSegment) Reset()      { *m = FilamentSegment{} }
@@ -1249,10 +1246,10 @@ func (m *FilamentSegment) GetRecords() []record.CompositeFilamentRecord {
 }
 
 type GetRequestInfo struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	RequestID github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
-	Pulse     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,22,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	RequestID github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
+	Pulse     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,22,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
 }
 
 func (m *GetRequestInfo) Reset()      { *m = GetRequestInfo{} }
@@ -1295,12 +1292,12 @@ func (m *GetRequestInfo) GetPolymorph() uint32 {
 }
 
 type RequestInfo struct {
-	Polymorph     uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID      github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	RequestID     github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
-	Request       []byte                                `protobuf:"bytes,22,opt,name=Request,proto3" json:"Request,omitempty"`
-	Result        []byte                                `protobuf:"bytes,23,opt,name=Result,proto3" json:"Result,omitempty"`
-	OldestMutable bool                                  `protobuf:"varint,24,opt,name=OldestMutable,proto3" json:"OldestMutable,omitempty"`
+	Polymorph     uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID      github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	RequestID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
+	Request       []byte                                                      `protobuf:"bytes,22,opt,name=Request,proto3" json:"Request,omitempty"`
+	Result        []byte                                                      `protobuf:"bytes,23,opt,name=Result,proto3" json:"Result,omitempty"`
+	OldestMutable bool                                                        `protobuf:"varint,24,opt,name=OldestMutable,proto3" json:"OldestMutable,omitempty"`
 }
 
 func (m *RequestInfo) Reset()      { *m = RequestInfo{} }
@@ -1364,10 +1361,10 @@ func (m *RequestInfo) GetOldestMutable() bool {
 }
 
 type GotHotConfirmation struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	JetID     github_com_insolar_insolar_insolar.JetID       `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	Pulse     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	Split     bool                                           `protobuf:"varint,22,opt,name=Split,proto3" json:"Split,omitempty"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	JetID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID       `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	Pulse     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	Split     bool                                                                 `protobuf:"varint,22,opt,name=Split,proto3" json:"Split,omitempty"`
 }
 
 func (m *GotHotConfirmation) Reset()      { *m = GotHotConfirmation{} }
@@ -1417,9 +1414,9 @@ func (m *GotHotConfirmation) GetSplit() bool {
 }
 
 type ResultInfo struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	ResultID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=ResultID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ResultID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	ResultID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=ResultID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ResultID"`
 }
 
 func (m *ResultInfo) Reset()      { *m = ResultInfo{} }
@@ -1462,10 +1459,10 @@ func (m *ResultInfo) GetPolymorph() uint32 {
 }
 
 type ErrorResultExists struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	ResultID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=ResultID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ResultID"`
-	Result    []byte                                `protobuf:"bytes,22,opt,name=Result,proto3" json:"Result,omitempty"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	ResultID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=ResultID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ResultID"`
+	Result    []byte                                                      `protobuf:"bytes,22,opt,name=Result,proto3" json:"Result,omitempty"`
 }
 
 func (m *ErrorResultExists) Reset()      { *m = ErrorResultExists{} }
@@ -1515,11 +1512,11 @@ func (m *ErrorResultExists) GetResult() []byte {
 }
 
 type HotObjects struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	JetID     github_com_insolar_insolar_insolar.JetID       `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	Pulse     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,22,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	Drop      drop.Drop                                      `protobuf:"bytes,21,opt,name=Drop,proto3" json:"Drop"`
-	Indexes   []record.Index                                 `protobuf:"bytes,23,rep,name=Indexes,proto3" json:"Indexes"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	JetID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID       `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	Pulse     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,22,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	Drop      drop.Drop                                                            `protobuf:"bytes,21,opt,name=Drop,proto3" json:"Drop"`
+	Indexes   []record.Index                                                       `protobuf:"bytes,23,rep,name=Indexes,proto3" json:"Indexes"`
 }
 
 func (m *HotObjects) Reset()      { *m = HotObjects{} }
@@ -1576,9 +1573,9 @@ func (m *HotObjects) GetIndexes() []record.Index {
 }
 
 type GetRequest struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	RequestID github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	RequestID github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
 }
 
 func (m *GetRequest) Reset()      { *m = GetRequest{} }
@@ -1621,9 +1618,9 @@ func (m *GetRequest) GetPolymorph() uint32 {
 }
 
 type Request struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	RequestID github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
-	Request   record.Virtual                        `protobuf:"bytes,21,opt,name=Request,proto3" json:"Request"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	RequestID github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=RequestID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RequestID"`
+	Request   record.Virtual                                              `protobuf:"bytes,21,opt,name=Request,proto3" json:"Request"`
 }
 
 func (m *Request) Reset()      { *m = Request{} }
@@ -1673,10 +1670,10 @@ func (m *Request) GetRequest() record.Virtual {
 }
 
 type ServiceData struct {
-	Polymorph     uint32             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	LogTraceID    string             `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
-	LogLevel      logcommon.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.LogLevel" json:"LogLevel"`
-	TraceSpanData []byte             `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
+	Polymorph     uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	LogTraceID    string                                                            `protobuf:"bytes,20,opt,name=LogTraceID,proto3" json:"LogTraceID,omitempty"`
+	LogLevel      github_com_insolar_assured_ledger_ledger_core_v2_insolar.LogLevel `protobuf:"varint,21,opt,name=LogLevel,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.LogLevel" json:"LogLevel"`
+	TraceSpanData []byte                                                            `protobuf:"bytes,22,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
 }
 
 func (m *ServiceData) Reset()      { *m = ServiceData{} }
@@ -1733,13 +1730,13 @@ func (m *ServiceData) GetTraceSpanData() []byte {
 }
 
 type ReturnResults struct {
-	Polymorph   uint32                                       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Target      github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,20,opt,name=Target,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Target"`
-	RequestRef  github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,21,opt,name=RequestRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RequestRef"`
-	Reason      github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,22,opt,name=Reason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Reason"`
-	Reply       []byte                                       `protobuf:"bytes,23,opt,name=Reply,proto3" json:"Reply,omitempty"`
-	Error       string                                       `protobuf:"bytes,24,opt,name=Error,proto3" json:"Error,omitempty"`
-	ResendCount uint32                                       `protobuf:"varint,25,opt,name=ResendCount,proto3" json:"ResendCount,omitempty"`
+	Polymorph   uint32                                                             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Target      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=Target,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Target"`
+	RequestRef  github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,21,opt,name=RequestRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RequestRef"`
+	Reason      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,22,opt,name=Reason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Reason"`
+	Reply       []byte                                                             `protobuf:"bytes,23,opt,name=Reply,proto3" json:"Reply,omitempty"`
+	Error       string                                                             `protobuf:"bytes,24,opt,name=Error,proto3" json:"Error,omitempty"`
+	ResendCount uint32                                                             `protobuf:"varint,25,opt,name=ResendCount,proto3" json:"ResendCount,omitempty"`
 }
 
 func (m *ReturnResults) Reset()      { *m = ReturnResults{} }
@@ -1803,9 +1800,9 @@ func (m *ReturnResults) GetResendCount() uint32 {
 }
 
 type CallMethod struct {
-	Polymorph   uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Request     *record.IncomingRequest                        `protobuf:"bytes,20,opt,name=Request,proto3" json:"Request,omitempty"`
-	PulseNumber github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,21,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
+	Polymorph   uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Request     *record.IncomingRequest                                              `protobuf:"bytes,20,opt,name=Request,proto3" json:"Request,omitempty"`
+	PulseNumber github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,21,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
 }
 
 func (m *CallMethod) Reset()      { *m = CallMethod{} }
@@ -1855,10 +1852,10 @@ func (m *CallMethod) GetRequest() *record.IncomingRequest {
 }
 
 type ExecutorResults struct {
-	Polymorph             uint32                                       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectReference       github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,20,opt,name=ObjectReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectReference"`
-	LedgerHasMoreRequests bool                                         `protobuf:"varint,21,opt,name=LedgerHasMoreRequests,proto3" json:"LedgerHasMoreRequests,omitempty"`
-	State                 PreviousExecutorState                        `protobuf:"varint,22,opt,name=State,proto3,enum=payload.PreviousExecutorState" json:"State,omitempty"`
+	Polymorph             uint32                                                             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectReference       github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=ObjectReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectReference"`
+	LedgerHasMoreRequests bool                                                               `protobuf:"varint,21,opt,name=LedgerHasMoreRequests,proto3" json:"LedgerHasMoreRequests,omitempty"`
+	State                 PreviousExecutorState                                              `protobuf:"varint,22,opt,name=State,proto3,enum=payload.PreviousExecutorState" json:"State,omitempty"`
 }
 
 func (m *ExecutorResults) Reset()      { *m = ExecutorResults{} }
@@ -1915,8 +1912,8 @@ func (m *ExecutorResults) GetState() PreviousExecutorState {
 }
 
 type PendingFinished struct {
-	Polymorph uint32                                       `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectRef github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,20,opt,name=ObjectRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectRef"`
+	Polymorph uint32                                                             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectRef github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=ObjectRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectRef"`
 }
 
 func (m *PendingFinished) Reset()      { *m = PendingFinished{} }
@@ -1959,12 +1956,12 @@ func (m *PendingFinished) GetPolymorph() uint32 {
 }
 
 type AdditionalCallFromPreviousExecutor struct {
-	Polymorph       uint32                                          `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectReference github_com_insolar_insolar_insolar.Reference    `protobuf:"bytes,20,opt,name=ObjectReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectReference"`
-	Pending         github_com_insolar_insolar_insolar.PendingState `protobuf:"varint,21,opt,name=Pending,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PendingState" json:"Pending"`
-	RequestRef      github_com_insolar_insolar_insolar.Reference    `protobuf:"bytes,22,opt,name=RequestRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RequestRef"`
-	Request         *record.IncomingRequest                         `protobuf:"bytes,23,opt,name=Request,proto3" json:"Request,omitempty"`
-	ServiceData     *ServiceData                                    `protobuf:"bytes,24,opt,name=ServiceData,proto3" json:"ServiceData,omitempty"`
+	Polymorph       uint32                                                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectReference github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference    `protobuf:"bytes,20,opt,name=ObjectReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectReference"`
+	Pending         github_com_insolar_assured_ledger_ledger_core_v2_insolar.PendingState `protobuf:"varint,21,opt,name=Pending,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PendingState" json:"Pending"`
+	RequestRef      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference    `protobuf:"bytes,22,opt,name=RequestRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RequestRef"`
+	Request         *record.IncomingRequest                                               `protobuf:"bytes,23,opt,name=Request,proto3" json:"Request,omitempty"`
+	ServiceData     *ServiceData                                                          `protobuf:"bytes,24,opt,name=ServiceData,proto3" json:"ServiceData,omitempty"`
 }
 
 func (m *AdditionalCallFromPreviousExecutor) Reset()      { *m = AdditionalCallFromPreviousExecutor{} }
@@ -2021,10 +2018,10 @@ func (m *AdditionalCallFromPreviousExecutor) GetServiceData() *ServiceData {
 }
 
 type StillExecuting struct {
-	Polymorph   uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectRef   github_com_insolar_insolar_insolar.Reference   `protobuf:"bytes,20,opt,name=ObjectRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectRef"`
-	Executor    github_com_insolar_insolar_insolar.Reference   `protobuf:"bytes,21,opt,name=Executor,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Executor"`
-	RequestRefs []github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,22,rep,name=RequestRefs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RequestRefs"`
+	Polymorph   uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectRef   github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,20,opt,name=ObjectRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ObjectRef"`
+	Executor    github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,21,opt,name=Executor,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Executor"`
+	RequestRefs []github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,22,rep,name=RequestRefs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RequestRefs"`
 }
 
 func (m *StillExecuting) Reset()      { *m = StillExecuting{} }
@@ -2067,10 +2064,10 @@ func (m *StillExecuting) GetPolymorph() uint32 {
 }
 
 type GetPendings struct {
-	Polymorph       uint32                                  `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID        github_com_insolar_insolar_insolar.ID   `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	Count           uint32                                  `protobuf:"varint,21,opt,name=Count,proto3" json:"Count,omitempty"`
-	SkipRequestRefs []github_com_insolar_insolar_insolar.ID `protobuf:"bytes,22,rep,name=SkipRequestRefs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"SkipRequestRefs"`
+	Polymorph       uint32                                                        `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID        github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID   `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Count           uint32                                                        `protobuf:"varint,21,opt,name=Count,proto3" json:"Count,omitempty"`
+	SkipRequestRefs []github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,22,rep,name=SkipRequestRefs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"SkipRequestRefs"`
 }
 
 func (m *GetPendings) Reset()      { *m = GetPendings{} }
@@ -2120,8 +2117,8 @@ func (m *GetPendings) GetCount() uint32 {
 }
 
 type HasPendings struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
 }
 
 func (m *HasPendings) Reset()      { *m = HasPendings{} }
@@ -2215,12 +2212,12 @@ func (m *PendingsInfo) GetHasPendings() bool {
 }
 
 type Replication struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	JetID     github_com_insolar_insolar_insolar.JetID       `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	Pulse     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	Indexes   []record.Index                                 `protobuf:"bytes,22,rep,name=Indexes,proto3" json:"Indexes"`
-	Records   []record.Material                              `protobuf:"bytes,23,rep,name=Records,proto3" json:"Records"`
-	Drop      drop.Drop                                      `protobuf:"bytes,24,opt,name=Drop,proto3" json:"Drop"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	JetID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID       `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	Pulse     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	Indexes   []record.Index                                                       `protobuf:"bytes,22,rep,name=Indexes,proto3" json:"Indexes"`
+	Records   []record.Material                                                    `protobuf:"bytes,23,rep,name=Records,proto3" json:"Records"`
+	Drop      drop.Drop                                                            `protobuf:"bytes,24,opt,name=Drop,proto3" json:"Drop"`
 }
 
 func (m *Replication) Reset()      { *m = Replication{} }
@@ -2284,9 +2281,9 @@ func (m *Replication) GetDrop() drop.Drop {
 }
 
 type GetJet struct {
-	Polymorph   uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID    github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	PulseNumber github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,21,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
+	Polymorph   uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID    github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	PulseNumber github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,21,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
 }
 
 func (m *GetJet) Reset()      { *m = GetJet{} }
@@ -2329,8 +2326,8 @@ func (m *GetJet) GetPolymorph() uint32 {
 }
 
 type AbandonedRequestsNotification struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
 }
 
 func (m *AbandonedRequestsNotification) Reset()      { *m = AbandonedRequestsNotification{} }
@@ -2373,8 +2370,8 @@ func (m *AbandonedRequestsNotification) GetPolymorph() uint32 {
 }
 
 type GetLightInitialState struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Pulse     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Pulse     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
 }
 
 func (m *GetLightInitialState) Reset()      { *m = GetLightInitialState{} }
@@ -2417,13 +2414,13 @@ func (m *GetLightInitialState) GetPolymorph() uint32 {
 }
 
 type LightInitialState struct {
-	Polymorph       uint32                                     `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	NetworkStart    bool                                       `protobuf:"varint,20,opt,name=NetworkStart,proto3" json:"NetworkStart,omitempty"`
-	JetIDs          []github_com_insolar_insolar_insolar.JetID `protobuf:"bytes,21,rep,name=JetIDs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetIDs"`
-	Drops           []drop.Drop                                `protobuf:"bytes,22,rep,name=Drops,proto3" json:"Drops"`
-	Indexes         []record.Index                             `protobuf:"bytes,23,rep,name=Indexes,proto3" json:"Indexes"`
-	Pulse           pulse.PulseProto                           `protobuf:"bytes,24,opt,name=Pulse,proto3" json:"Pulse"`
-	LightChainLimit uint32                                     `protobuf:"varint,25,opt,name=LightChainLimit,proto3" json:"LightChainLimit,omitempty"`
+	Polymorph       uint32                                                           `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	NetworkStart    bool                                                             `protobuf:"varint,20,opt,name=NetworkStart,proto3" json:"NetworkStart,omitempty"`
+	JetIDs          []github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID `protobuf:"bytes,21,rep,name=JetIDs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetIDs"`
+	Drops           []drop.Drop                                                      `protobuf:"bytes,22,rep,name=Drops,proto3" json:"Drops"`
+	Indexes         []record.Index                                                   `protobuf:"bytes,23,rep,name=Indexes,proto3" json:"Indexes"`
+	Pulse           pulse.PulseProto                                                 `protobuf:"bytes,24,opt,name=Pulse,proto3" json:"Pulse"`
+	LightChainLimit uint32                                                           `protobuf:"varint,25,opt,name=LightChainLimit,proto3" json:"LightChainLimit,omitempty"`
 }
 
 func (m *LightInitialState) Reset()      { *m = LightInitialState{} }
@@ -2501,8 +2498,8 @@ func (m *LightInitialState) GetLightChainLimit() uint32 {
 }
 
 type GetIndex struct {
-	Polymorph uint32                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Polymorph uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
 }
 
 func (m *GetIndex) Reset()      { *m = GetIndex{} }
@@ -2545,9 +2542,9 @@ func (m *GetIndex) GetPolymorph() uint32 {
 }
 
 type SearchIndex struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjectID  github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	Until     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Until,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Until"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Until     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,21,opt,name=Until,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Until"`
 }
 
 func (m *SearchIndex) Reset()      { *m = SearchIndex{} }
@@ -2590,9 +2587,9 @@ func (m *SearchIndex) GetPolymorph() uint32 {
 }
 
 type UpdateJet struct {
-	Polymorph uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Pulse     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,20,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	JetID     github_com_insolar_insolar_insolar.JetID       `protobuf:"bytes,21,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	Polymorph uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Pulse     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,20,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	JetID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID       `protobuf:"bytes,21,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
 }
 
 func (m *UpdateJet) Reset()      { *m = UpdateJet{} }
@@ -2635,8 +2632,8 @@ func (m *UpdateJet) GetPolymorph() uint32 {
 }
 
 type GetPulse struct {
-	Polymorph   uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	PulseNumber github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,20,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
+	Polymorph   uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	PulseNumber github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,20,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
 }
 
 func (m *GetPulse) Reset()      { *m = GetPulse{} }
@@ -2729,6 +2726,74 @@ func (m *Pulse) GetPulse() pulse.PulseProto {
 	return pulse.PulseProto{}
 }
 
+type V2SetRequestResult struct {
+	Polymorph  uint32                                                      `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjectID   github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	Request    []byte                                                      `protobuf:"bytes,21,opt,name=Request,proto3" json:"Request,omitempty"`
+	Result     *record.Result                                              `protobuf:"bytes,22,opt,name=Result,proto3" json:"Result,omitempty"`
+	SideEffect *record.Material                                            `protobuf:"bytes,23,opt,name=SideEffect,proto3" json:"SideEffect,omitempty"`
+}
+
+func (m *V2SetRequestResult) Reset()      { *m = V2SetRequestResult{} }
+func (*V2SetRequestResult) ProtoMessage() {}
+func (*V2SetRequestResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_33334fec96407f54, []int{51}
+}
+func (m *V2SetRequestResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *V2SetRequestResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_V2SetRequestResult.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *V2SetRequestResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_V2SetRequestResult.Merge(m, src)
+}
+func (m *V2SetRequestResult) XXX_Size() int {
+	return m.Size()
+}
+func (m *V2SetRequestResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_V2SetRequestResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_V2SetRequestResult proto.InternalMessageInfo
+
+func (m *V2SetRequestResult) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+func (m *V2SetRequestResult) GetRequest() []byte {
+	if m != nil {
+		return m.Request
+	}
+	return nil
+}
+
+func (m *V2SetRequestResult) GetResult() *record.Result {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+func (m *V2SetRequestResult) GetSideEffect() *record.Material {
+	if m != nil {
+		return m.SideEffect
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("payload.PreviousExecutorState", PreviousExecutorState_name, PreviousExecutorState_value)
 	proto.RegisterType((*Meta)(nil), "payload.Meta")
@@ -2782,136 +2847,142 @@ func init() {
 	proto.RegisterType((*UpdateJet)(nil), "payload.UpdateJet")
 	proto.RegisterType((*GetPulse)(nil), "payload.GetPulse")
 	proto.RegisterType((*Pulse)(nil), "payload.Pulse")
+	proto.RegisterType((*V2SetRequestResult)(nil), "payload.V2SetRequestResult")
 }
 
 func init() { proto.RegisterFile("insolar/payload/payload.proto", fileDescriptor_33334fec96407f54) }
 
 var fileDescriptor_33334fec96407f54 = []byte{
-	// 1969 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x5a, 0x4d, 0x6c, 0x5b, 0x59,
-	0x15, 0xf6, 0x73, 0x62, 0xc7, 0x3e, 0x6e, 0x9a, 0xe6, 0x61, 0x3b, 0xa6, 0xcc, 0xb8, 0xd1, 0x55,
-	0x07, 0x85, 0x9f, 0x24, 0x33, 0x69, 0x54, 0x36, 0x8c, 0xaa, 0x24, 0x4e, 0x1d, 0x0f, 0x4e, 0x63,
-	0x9e, 0xd3, 0x32, 0x9a, 0x91, 0x10, 0xd7, 0x7e, 0x37, 0xf6, 0xa3, 0xcf, 0xef, 0x9a, 0xf7, 0xae,
-	0x33, 0xed, 0x0e, 0x31, 0x1b, 0xc4, 0x8a, 0x05, 0x20, 0x10, 0x6b, 0x24, 0x16, 0xac, 0x61, 0xc1,
-	0x02, 0x18, 0xb1, 0xa8, 0xc4, 0x82, 0x2e, 0x47, 0x2c, 0x0a, 0x4d, 0x85, 0xc4, 0x06, 0x69, 0x58,
-	0xc3, 0x02, 0xdd, 0x9f, 0xf7, 0xfc, 0xec, 0x86, 0x3e, 0xc7, 0x76, 0x3d, 0x74, 0x13, 0xe7, 0xfe,
-	0x9c, 0xef, 0x9c, 0x7b, 0xee, 0x39, 0xe7, 0x9e, 0x73, 0x6c, 0x78, 0xdd, 0x72, 0x3c, 0x6a, 0x63,
-	0x77, 0xb3, 0x8b, 0x1f, 0xda, 0x14, 0x9b, 0xfe, 0xe7, 0x46, 0xd7, 0xa5, 0x8c, 0xea, 0x0b, 0x6a,
-	0x78, 0x75, 0xbd, 0x65, 0xb1, 0x76, 0xaf, 0xb1, 0xd1, 0xa4, 0x9d, 0xcd, 0x16, 0x6d, 0xd1, 0x4d,
-	0xb1, 0xde, 0xe8, 0x9d, 0x88, 0x91, 0x18, 0x88, 0xff, 0x24, 0xdd, 0xd5, 0x9b, 0xa1, 0xed, 0x3e,
-	0x87, 0xe1, 0x4f, 0x97, 0x34, 0xa9, 0x6b, 0xaa, 0x0f, 0x45, 0xb7, 0x3d, 0x02, 0x5d, 0xb7, 0x67,
-	0x7b, 0x44, 0xfe, 0x55, 0x54, 0x6f, 0xbd, 0x80, 0xca, 0x26, 0x66, 0x8b, 0xb8, 0x9b, 0xa6, 0x4b,
-	0xbb, 0xe2, 0x8f, 0x24, 0x41, 0xff, 0x8a, 0xc3, 0xfc, 0x21, 0x61, 0x58, 0x7f, 0x0d, 0xd2, 0x35,
-	0x6a, 0x3f, 0xec, 0x50, 0xb7, 0xdb, 0x2e, 0x5c, 0x59, 0xd5, 0xd6, 0x16, 0x8d, 0xfe, 0x84, 0x5e,
-	0x80, 0x85, 0x9a, 0xd4, 0x40, 0x21, 0xbb, 0xaa, 0xad, 0x5d, 0x32, 0xfc, 0xa1, 0x5e, 0x85, 0x64,
-	0x9d, 0x38, 0x26, 0x71, 0x0b, 0x39, 0xbe, 0xb0, 0xbb, 0xfd, 0xe8, 0xc9, 0xb5, 0xd8, 0x5f, 0x9e,
-	0x5c, 0xfb, 0x72, 0xf4, 0x09, 0x36, 0x0c, 0x72, 0x42, 0x5c, 0xe2, 0x34, 0x89, 0xa1, 0x30, 0xf4,
-	0x1a, 0xa4, 0x0c, 0xd2, 0x24, 0xd6, 0x29, 0x71, 0x0b, 0xf9, 0x09, 0xf0, 0x02, 0x14, 0xbd, 0x0a,
-	0x89, 0x1a, 0x57, 0x51, 0x61, 0x45, 0xc0, 0xdd, 0x54, 0x70, 0x1b, 0x23, 0xc0, 0x09, 0xba, 0x3b,
-	0xbd, 0x4e, 0x83, 0xb8, 0x86, 0x04, 0xd1, 0x2f, 0x43, 0xbc, 0x52, 0x2a, 0x14, 0x84, 0x0a, 0xe2,
-	0x95, 0x92, 0x7e, 0x03, 0xe0, 0xc8, 0xb5, 0x5a, 0x96, 0x73, 0x80, 0xbd, 0x76, 0xe1, 0xb3, 0x82,
-	0xc5, 0x67, 0x14, 0x8b, 0xcc, 0x21, 0xf1, 0x3c, 0xdc, 0x22, 0x7c, 0xc9, 0x08, 0x6d, 0x43, 0xdf,
-	0x82, 0xc4, 0xbe, 0xeb, 0x52, 0x37, 0x42, 0xe7, 0x6f, 0xc0, 0xfc, 0x1e, 0x35, 0x89, 0x50, 0xf8,
-	0xe2, 0xee, 0xb2, 0x42, 0x4d, 0x0b, 0x52, 0xbe, 0x60, 0x88, 0x65, 0x5d, 0x87, 0xf9, 0x63, 0xf2,
-	0x80, 0x09, 0xf5, 0xa7, 0x0d, 0xf1, 0x3f, 0xfa, 0x83, 0x06, 0xe9, 0x32, 0x61, 0x47, 0x8d, 0x6f,
-	0x93, 0x26, 0x8b, 0x60, 0x53, 0x81, 0x94, 0xdc, 0x57, 0x29, 0xc9, 0xbb, 0xdd, 0x5d, 0x57, 0xac,
-	0xde, 0x18, 0x41, 0x47, 0x95, 0x92, 0x11, 0x90, 0xeb, 0x5f, 0x83, 0xb4, 0x41, 0xbe, 0xd3, 0x23,
-	0x1e, 0xc7, 0xca, 0x05, 0x58, 0xda, 0xe8, 0x58, 0x7d, 0x7a, 0xe4, 0xc0, 0x42, 0x99, 0x30, 0x71,
-	0xc4, 0x17, 0x1f, 0x60, 0x1f, 0x92, 0x7c, 0xd7, 0xb8, 0xe2, 0x2b, 0x62, 0xf4, 0x03, 0x0d, 0xd2,
-	0x35, 0xec, 0x79, 0x75, 0x86, 0x59, 0x14, 0xcb, 0x3c, 0x24, 0xe5, 0x7d, 0x2a, 0x6f, 0x50, 0x23,
-	0xbd, 0x0c, 0x0b, 0x82, 0x7c, 0xe0, 0xf8, 0x17, 0x90, 0xc5, 0xa7, 0x46, 0x5f, 0x85, 0x79, 0x2e,
-	0xcb, 0x78, 0x62, 0xa0, 0x5b, 0xb0, 0x50, 0x1f, 0x49, 0x75, 0x79, 0x48, 0x1a, 0x22, 0xec, 0xf8,
-	0x00, 0x72, 0x84, 0x7e, 0xaa, 0x41, 0xa2, 0xe2, 0x98, 0xe4, 0x41, 0x04, 0x7d, 0x56, 0x6d, 0x53,
-	0xe4, 0x8a, 0xe6, 0x7d, 0x58, 0xde, 0xc7, 0xae, 0x6d, 0x11, 0x8f, 0x4d, 0x68, 0x0e, 0xcf, 0xe3,
-	0xa0, 0xf7, 0x60, 0xa9, 0x4e, 0xb0, 0xdb, 0x6c, 0x0b, 0x5e, 0x15, 0xe7, 0x84, 0x46, 0xc8, 0xf8,
-	0x85, 0xb0, 0x8c, 0x99, 0xad, 0xc5, 0x0d, 0x15, 0x68, 0xc5, 0xe4, 0xee, 0x3c, 0x17, 0x48, 0x09,
-	0xce, 0xb5, 0x3e, 0x81, 0xd2, 0xde, 0x86, 0xc4, 0x88, 0xb6, 0x73, 0x2e, 0x39, 0xe6, 0xa1, 0x25,
-	0x82, 0xf6, 0x6d, 0x11, 0x7e, 0xc6, 0x32, 0xf3, 0x78, 0xa5, 0x84, 0x4c, 0x98, 0xab, 0x94, 0xa2,
-	0x8c, 0xea, 0x96, 0xd8, 0x54, 0xc8, 0xae, 0xce, 0x5d, 0x9c, 0x09, 0xa7, 0x44, 0x1f, 0x6a, 0x30,
-	0xf7, 0x0e, 0x89, 0x0a, 0x3b, 0xb7, 0x21, 0xf1, 0x0e, 0xe9, 0xc7, 0x9c, 0x37, 0x15, 0xa3, 0xb5,
-	0x11, 0x18, 0x09, 0x3a, 0x43, 0x92, 0x73, 0x75, 0xee, 0x34, 0x59, 0x0f, 0xdb, 0xc2, 0xc2, 0x52,
-	0x86, 0x1a, 0xa1, 0x26, 0xe8, 0x75, 0xc2, 0x2a, 0x4e, 0x93, 0x76, 0x2c, 0xa7, 0xa5, 0xec, 0x27,
-	0x42, 0xa6, 0x4d, 0x58, 0x50, 0x1b, 0x95, 0xb1, 0x2c, 0xf9, 0xc6, 0x72, 0xcf, 0x72, 0x39, 0xaa,
-	0x30, 0x97, 0x98, 0xe1, 0xef, 0x52, 0x4c, 0x8e, 0x7a, 0xac, 0x45, 0x5f, 0x1e, 0x93, 0xff, 0x68,
-	0x70, 0xb5, 0x8e, 0x5b, 0x78, 0x0f, 0xdb, 0xf6, 0x4e, 0xb3, 0x49, 0xba, 0xec, 0x0e, 0x65, 0xd6,
-	0x89, 0xd5, 0xc4, 0xcc, 0xa2, 0xce, 0xec, 0xa2, 0xfb, 0xfb, 0xb0, 0x5c, 0x22, 0x0c, 0x37, 0xdb,
-	0xc4, 0x3c, 0xcf, 0xad, 0x2f, 0x80, 0xf9, 0x3c, 0x0e, 0x4f, 0x30, 0x7c, 0xad, 0xe4, 0x65, 0x82,
-	0xe1, 0x1f, 0x7f, 0x07, 0xd2, 0x75, 0xc2, 0x0c, 0xe2, 0xf5, 0x6c, 0x36, 0x8a, 0x6b, 0xf1, 0x7d,
-	0x7d, 0xd7, 0xe2, 0x23, 0xf4, 0x2e, 0xa4, 0x76, 0x9a, 0xcc, 0x3a, 0x1d, 0xdb, 0x39, 0x43, 0xc8,
-	0xb9, 0x01, 0xe4, 0xf7, 0x00, 0x4a, 0x04, 0xbf, 0x1c, 0xec, 0x7b, 0x90, 0xbc, 0xdb, 0x35, 0xa7,
-	0x8f, 0xfb, 0xb3, 0x38, 0x64, 0xca, 0x84, 0xdd, 0xb6, 0x6c, 0xdc, 0x21, 0xce, 0x6c, 0xd3, 0x83,
-	0x3a, 0xc3, 0x2e, 0xbb, 0xed, 0xd2, 0xce, 0x78, 0x86, 0xd3, 0xa7, 0xd7, 0x8f, 0x79, 0xae, 0x81,
-	0xcd, 0xbb, 0x0e, 0xb3, 0x6c, 0x95, 0x2a, 0x8e, 0x9b, 0xdb, 0xf5, 0x81, 0xd0, 0x6f, 0x35, 0x58,
-	0xf2, 0x15, 0x53, 0x27, 0xad, 0xd9, 0xea, 0xe7, 0x16, 0xf7, 0x01, 0x7e, 0x75, 0x5e, 0x21, 0xb7,
-	0x3a, 0xb7, 0x96, 0xd9, 0xba, 0xe6, 0x47, 0x86, 0x3d, 0xda, 0xe9, 0x52, 0xcf, 0x62, 0xc4, 0x97,
-	0x4d, 0xee, 0xeb, 0x47, 0x0a, 0x41, 0x85, 0x7e, 0x14, 0x87, 0xcb, 0x65, 0x12, 0x3c, 0x96, 0xd1,
-	0x6f, 0xe3, 0xcb, 0xcf, 0xfd, 0x62, 0xe3, 0xe4, 0x7e, 0xfd, 0xa4, 0x3d, 0x3f, 0x85, 0xa4, 0x1d,
-	0xfd, 0x3c, 0x0e, 0x99, 0x57, 0x5f, 0x27, 0xff, 0x33, 0x42, 0x86, 0x1c, 0x7d, 0x25, 0xec, 0xe8,
-	0xfa, 0x75, 0x58, 0x3c, 0xb2, 0x4d, 0xe2, 0xb1, 0xc3, 0x1e, 0xc3, 0x0d, 0x9b, 0x88, 0xba, 0x25,
-	0x65, 0x0c, 0x4e, 0xa2, 0x27, 0x1a, 0xe8, 0x65, 0xca, 0x0e, 0x28, 0xdb, 0xa3, 0xce, 0x89, 0xe5,
-	0x76, 0x46, 0x79, 0x56, 0xa6, 0xf5, 0x7a, 0x07, 0x17, 0x9d, 0x9b, 0x46, 0x75, 0x96, 0x85, 0x44,
-	0xbd, 0x6b, 0x5b, 0x52, 0x41, 0x29, 0x43, 0x0e, 0xd0, 0xef, 0x35, 0x00, 0xa9, 0x91, 0xd9, 0xde,
-	0x7e, 0x85, 0xd7, 0xb2, 0x82, 0xed, 0x98, 0x97, 0x1f, 0x90, 0xa3, 0xbf, 0x6a, 0xb0, 0x2c, 0xea,
-	0x3e, 0x39, 0xb3, 0xff, 0xc0, 0xf2, 0x98, 0xf7, 0x2a, 0x9e, 0x24, 0x64, 0xab, 0xf9, 0x81, 0x47,
-	0xe9, 0xc7, 0x71, 0x80, 0x03, 0xaa, 0x2a, 0x56, 0x6f, 0xd6, 0xd6, 0x37, 0x8d, 0x30, 0xa3, 0x5f,
-	0x87, 0xf9, 0x92, 0x4b, 0xbb, 0x42, 0x43, 0x99, 0x2d, 0xd8, 0x10, 0x5d, 0x16, 0x3e, 0xa3, 0xc2,
-	0xb4, 0x58, 0xd5, 0xd7, 0x61, 0x41, 0x14, 0x1b, 0xc4, 0x2b, 0xac, 0x88, 0x20, 0x7f, 0x4e, 0x41,
-	0x12, 0x33, 0xfc, 0x3d, 0xe8, 0x23, 0x0d, 0xa0, 0x1f, 0xd2, 0x5f, 0xcd, 0xd0, 0x85, 0x7e, 0xa1,
-	0x05, 0xb1, 0x2b, 0xe2, 0x04, 0x03, 0x6c, 0xb3, 0x13, 0x46, 0xcc, 0x50, 0xa6, 0x9d, 0x1b, 0x29,
-	0xd3, 0xfe, 0x48, 0x83, 0x4c, 0x9d, 0xb8, 0xa7, 0x56, 0x93, 0x94, 0x70, 0x64, 0x4f, 0xac, 0x08,
-	0x50, 0xa5, 0xad, 0x63, 0x17, 0x37, 0xfd, 0xde, 0x43, 0xda, 0x08, 0xcd, 0xe8, 0x47, 0x90, 0xaa,
-	0xd2, 0x56, 0x95, 0x9c, 0x12, 0x59, 0x9b, 0x2c, 0xee, 0xde, 0x50, 0x47, 0xf9, 0xd2, 0x08, 0x47,
-	0xf1, 0x49, 0x8d, 0x00, 0x84, 0xc7, 0x73, 0x81, 0x5d, 0xef, 0x62, 0x87, 0xcb, 0xa7, 0x5c, 0x68,
-	0x70, 0x12, 0xfd, 0x33, 0x0e, 0x8b, 0x06, 0x61, 0x3d, 0xd7, 0x91, 0xae, 0x15, 0xe5, 0x4c, 0x55,
-	0x48, 0x1e, 0x63, 0xb7, 0x45, 0x54, 0xd2, 0x3c, 0x6e, 0x03, 0x4f, 0x62, 0xe8, 0xc7, 0x3c, 0xd6,
-	0x0a, 0x6d, 0x1a, 0xe4, 0x64, 0xa2, 0x96, 0x60, 0x08, 0x87, 0xcb, 0x68, 0x10, 0xec, 0x51, 0x67,
-	0xa2, 0xa6, 0xa0, 0xc2, 0xe0, 0xcf, 0x84, 0x41, 0xba, 0xf6, 0x43, 0xf5, 0x5c, 0xca, 0x01, 0x9f,
-	0x15, 0x21, 0x56, 0xbc, 0x92, 0x69, 0x43, 0xb5, 0xe8, 0x56, 0x79, 0xea, 0xe0, 0x11, 0xc7, 0xdc,
-	0xa3, 0x3d, 0x87, 0x89, 0x0e, 0xdf, 0xa2, 0x11, 0x9e, 0x42, 0xbf, 0xd1, 0x00, 0x78, 0x69, 0x76,
-	0x48, 0x58, 0x9b, 0x9a, 0x11, 0xca, 0x7e, 0x6b, 0xb8, 0xf8, 0x5b, 0xe9, 0x7b, 0xff, 0x40, 0xa5,
-	0xda, 0x7f, 0xdd, 0xdf, 0x85, 0x4c, 0x28, 0xd8, 0x28, 0x4b, 0x1a, 0x37, 0x54, 0x85, 0xa1, 0xd0,
-	0xbf, 0x35, 0x58, 0xda, 0x7f, 0x40, 0x9a, 0x3d, 0xe6, 0x3f, 0x2c, 0x51, 0xb6, 0xf2, 0x4d, 0x58,
-	0x92, 0x11, 0x22, 0x50, 0xea, 0x44, 0x46, 0x33, 0x0c, 0xa6, 0x6f, 0x43, 0xae, 0x2a, 0xfa, 0xd4,
-	0x07, 0xd8, 0x3b, 0xa4, 0x2e, 0x51, 0x3a, 0xf0, 0x54, 0x6d, 0x7f, 0xfe, 0xa2, 0xbe, 0xad, 0x1a,
-	0x2f, 0xc2, 0x38, 0x2e, 0x6f, 0x15, 0x37, 0xfc, 0xde, 0x7d, 0xcd, 0x25, 0xa7, 0x16, 0xed, 0x79,
-	0xfe, 0x21, 0xc5, 0x2e, 0x43, 0x6e, 0x46, 0x1f, 0x6a, 0xb0, 0x54, 0x23, 0x8e, 0x69, 0x39, 0xad,
-	0xdb, 0x96, 0x63, 0x79, 0x6d, 0x12, 0x75, 0x79, 0x06, 0xa4, 0x03, 0x81, 0x27, 0x3a, 0x77, 0x1f,
-	0x06, 0xfd, 0x7a, 0x0e, 0xd0, 0x8e, 0x69, 0x5a, 0x3c, 0xe7, 0xc2, 0x36, 0xb7, 0x23, 0x5e, 0xdd,
-	0x0c, 0x0b, 0xfe, 0x29, 0x5f, 0xcb, 0xd7, 0x61, 0x41, 0x69, 0x4a, 0x5c, 0x44, 0x62, 0xf7, 0x2b,
-	0x0a, 0x77, 0x73, 0x14, 0xf3, 0x93, 0x94, 0x52, 0xf7, 0x3e, 0xce, 0x50, 0x9c, 0xc8, 0x4f, 0x29,
-	0x4e, 0x84, 0xdc, 0x6b, 0x65, 0x44, 0xf7, 0xba, 0x39, 0x10, 0xf2, 0x85, 0xf3, 0x67, 0xb6, 0xb2,
-	0x81, 0x09, 0x85, 0xd6, 0x8c, 0xf0, 0x46, 0xf4, 0xab, 0x38, 0x5c, 0xae, 0x33, 0xcb, 0xb6, 0xe5,
-	0x1d, 0xf1, 0x33, 0xcd, 0xdc, 0x7a, 0xf4, 0x1a, 0xa4, 0x7c, 0x13, 0x99, 0x28, 0xd6, 0x06, 0x28,
-	0xfa, 0xbd, 0xa0, 0x54, 0x32, 0xc8, 0x89, 0x57, 0xc8, 0x8b, 0x2e, 0xe0, 0x78, 0xa0, 0x61, 0x20,
-	0xf4, 0x77, 0x4d, 0x34, 0x1d, 0xd4, 0xf5, 0xcf, 0x30, 0x77, 0xcd, 0x42, 0x42, 0x86, 0x6e, 0x11,
-	0x38, 0x0d, 0x39, 0xd0, 0xbf, 0x01, 0x4b, 0xf5, 0xfb, 0x56, 0xf7, 0xf9, 0xa3, 0x5e, 0x90, 0xcf,
-	0x30, 0x0a, 0x3a, 0x85, 0xcc, 0x01, 0xf6, 0x66, 0x7e, 0x4c, 0x74, 0x07, 0x2e, 0xf9, 0x4c, 0x47,
-	0xa8, 0x72, 0x56, 0x07, 0xa4, 0x14, 0xbc, 0x53, 0x46, 0x78, 0x0a, 0x3d, 0x12, 0x35, 0x73, 0xd7,
-	0x1e, 0xad, 0xcb, 0xf8, 0xff, 0x59, 0x0e, 0x86, 0x52, 0xed, 0x7c, 0x74, 0xaa, 0xad, 0xbf, 0xd9,
-	0x6f, 0xbf, 0xc8, 0xcc, 0xfc, 0x8a, 0xbf, 0xfd, 0x10, 0x33, 0xe2, 0x5a, 0xe1, 0x7c, 0x51, 0x6c,
-	0x0b, 0x32, 0xfe, 0xc2, 0x8b, 0x32, 0x7e, 0xf4, 0x27, 0x0d, 0x92, 0x65, 0xc2, 0xa2, 0x5b, 0xe2,
-	0x53, 0xb4, 0xfa, 0x97, 0x97, 0x34, 0x7c, 0x5f, 0x83, 0xd7, 0x77, 0x1a, 0xd8, 0x31, 0xa9, 0x13,
-	0xf4, 0x6f, 0xbd, 0x4f, 0xa5, 0x21, 0x8d, 0xbe, 0xa7, 0x41, 0xb6, 0x4c, 0x58, 0xd5, 0x6a, 0xb5,
-	0x59, 0xc5, 0xb1, 0x98, 0x85, 0xed, 0x51, 0xbe, 0x80, 0x99, 0xaa, 0x91, 0xa1, 0x3f, 0xc7, 0x61,
-	0xf9, 0xa2, 0x12, 0x20, 0xb8, 0x74, 0x87, 0xb0, 0x0f, 0xa8, 0x7b, 0x5f, 0xf4, 0x33, 0x95, 0xff,
-	0x0d, 0xcc, 0xe9, 0x07, 0x90, 0x14, 0x3e, 0x21, 0x7b, 0x81, 0xe3, 0xf8, 0x94, 0xa2, 0xd7, 0x3f,
-	0x0f, 0x09, 0x6e, 0x87, 0xbe, 0x13, 0x3c, 0x6f, 0xa6, 0x72, 0xf9, 0x82, 0x95, 0xa9, 0xbe, 0xee,
-	0xab, 0x51, 0x5a, 0xff, 0xf2, 0x86, 0xfc, 0x25, 0x82, 0x98, 0xab, 0xb9, 0x94, 0x51, 0x1f, 0x5d,
-	0x3a, 0xe3, 0x1a, 0x2c, 0x09, 0x35, 0xed, 0xb5, 0xb1, 0xe5, 0x54, 0xad, 0x8e, 0xe5, 0x27, 0xd3,
-	0xc3, 0xd3, 0xc8, 0x83, 0x54, 0x99, 0xb0, 0x51, 0xbe, 0x7e, 0x9c, 0xa2, 0x2d, 0xfd, 0x51, 0x94,
-	0x7e, 0xc1, 0xf7, 0x8a, 0xb3, 0xf3, 0xd4, 0x2a, 0x24, 0x64, 0x0f, 0x7b, 0x42, 0x6b, 0x94, 0xfd,
-	0xeb, 0xdf, 0x69, 0x90, 0x96, 0x5f, 0x1a, 0x44, 0x87, 0x9b, 0xc0, 0x0f, 0xb2, 0xd3, 0x08, 0xb6,
-	0xc1, 0x13, 0x90, 0x9b, 0xe8, 0x09, 0xe0, 0x4e, 0xcd, 0xaf, 0x5f, 0x82, 0xbe, 0xf8, 0x00, 0x43,
-	0x41, 0x6e, 0xb2, 0x63, 0x0c, 0x04, 0xb9, 0x63, 0xa5, 0x9a, 0x08, 0x01, 0xd6, 0xc3, 0x1a, 0x8c,
-	0x74, 0x81, 0x2f, 0xfe, 0x44, 0x83, 0xdc, 0xb9, 0x25, 0x89, 0xfe, 0x39, 0x58, 0x19, 0x5e, 0xb8,
-	0xeb, 0xdc, 0x77, 0xe8, 0x07, 0xce, 0x95, 0x98, 0x7e, 0x1d, 0x56, 0x87, 0x17, 0x6b, 0x2e, 0x6d,
-	0xe0, 0x86, 0xfd, 0x50, 0x8e, 0x89, 0x77, 0x45, 0xd3, 0x5f, 0x83, 0xc2, 0xf0, 0xae, 0x60, 0x35,
-	0x7e, 0xde, 0xaa, 0x5f, 0xf4, 0x5c, 0x99, 0xdb, 0xdd, 0x7e, 0xfc, 0xb4, 0x18, 0xfb, 0xf8, 0x69,
-	0x31, 0xf6, 0xc9, 0xd3, 0xa2, 0xf6, 0xdd, 0xb3, 0xa2, 0xf6, 0xcb, 0xb3, 0xa2, 0xf6, 0xe8, 0xac,
-	0xa8, 0x3d, 0x3e, 0x2b, 0x6a, 0x7f, 0x3b, 0x2b, 0x6a, 0xff, 0x38, 0x2b, 0xc6, 0x3e, 0x39, 0x2b,
-	0x6a, 0x3f, 0x7c, 0x56, 0x8c, 0x3d, 0x7e, 0x56, 0x8c, 0x7d, 0xfc, 0xac, 0x18, 0x6b, 0x24, 0xc5,
-	0x2f, 0x88, 0x6e, 0xfc, 0x37, 0x00, 0x00, 0xff, 0xff, 0x64, 0x96, 0x6e, 0x77, 0x3b, 0x25, 0x00,
-	0x00,
+	// 2055 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x5a, 0x4d, 0x6c, 0x1b, 0x5b,
+	0x15, 0xf6, 0x38, 0x71, 0x62, 0x1f, 0x37, 0x7f, 0x43, 0xec, 0x98, 0xf2, 0x9e, 0x1b, 0x5d, 0x95,
+	0xa7, 0x82, 0x94, 0xe4, 0x91, 0x57, 0xb1, 0xe1, 0xe7, 0x29, 0x89, 0x53, 0xc7, 0x55, 0xd2, 0x46,
+	0xe3, 0xb6, 0x42, 0x8f, 0x9f, 0xc7, 0x78, 0xe6, 0xd8, 0x9e, 0x76, 0x3c, 0xd7, 0x9d, 0xb9, 0x4e,
+	0x5b, 0x56, 0x2c, 0x90, 0x10, 0x3f, 0x0b, 0xd8, 0x20, 0xde, 0x06, 0xb1, 0x7c, 0x2b, 0x58, 0xb0,
+	0x64, 0xc5, 0x8a, 0xb7, 0x41, 0x2a, 0x1b, 0x54, 0x81, 0xf4, 0x44, 0x53, 0x21, 0x21, 0x01, 0x4f,
+	0x5d, 0x20, 0xc1, 0x12, 0xcd, 0xbd, 0x77, 0xc6, 0x63, 0x27, 0x74, 0x5c, 0xd7, 0xf3, 0x1a, 0xca,
+	0x26, 0xce, 0xfd, 0xfb, 0xce, 0xb9, 0xe7, 0x9e, 0x9f, 0x7b, 0xce, 0x1d, 0x78, 0xdd, 0x72, 0x3c,
+	0x6a, 0xeb, 0xee, 0x46, 0x57, 0x7f, 0x60, 0x53, 0xdd, 0x0c, 0x7e, 0xd7, 0xbb, 0x2e, 0x65, 0x54,
+	0x9d, 0x95, 0xcd, 0xf3, 0x6b, 0x2d, 0x8b, 0xb5, 0x7b, 0x8d, 0x75, 0x83, 0x76, 0x36, 0x5a, 0xb4,
+	0x45, 0x37, 0xf8, 0x78, 0xa3, 0xd7, 0xe4, 0x2d, 0xde, 0xe0, 0xff, 0x89, 0x75, 0xe7, 0xf7, 0x23,
+	0xd3, 0x03, 0x0a, 0xba, 0xe7, 0xf5, 0x5c, 0x34, 0xd7, 0x6c, 0x34, 0x5b, 0xe8, 0x6e, 0x88, 0x9f,
+	0x35, 0x83, 0xba, 0xb8, 0x71, 0xb4, 0x19, 0xce, 0x72, 0xd1, 0xa0, 0xae, 0x29, 0x7f, 0x24, 0xda,
+	0xd5, 0xb1, 0xd1, 0xba, 0x3d, 0xdb, 0x43, 0xf1, 0x57, 0x62, 0x55, 0x9f, 0x1b, 0x4b, 0xf6, 0x9a,
+	0x2e, 0xed, 0xf2, 0x3f, 0x02, 0x88, 0xfc, 0x6a, 0x0a, 0xa6, 0x0f, 0x90, 0xe9, 0xea, 0x6b, 0x90,
+	0x3b, 0xa4, 0xf6, 0x83, 0x0e, 0x75, 0xbb, 0xed, 0xd2, 0xe2, 0xaa, 0x72, 0x69, 0x4e, 0xeb, 0x77,
+	0xa8, 0x25, 0x98, 0x3d, 0x14, 0x32, 0x2c, 0x2d, 0xaf, 0x2a, 0x97, 0xce, 0x69, 0x41, 0x53, 0x6d,
+	0xc0, 0x4c, 0x1d, 0x1d, 0x13, 0xdd, 0x52, 0xc1, 0x1f, 0xd8, 0xbe, 0xfa, 0xc1, 0x87, 0x17, 0x52,
+	0x7f, 0xfc, 0xf0, 0xc2, 0xf6, 0xb8, 0xbb, 0x5d, 0xd7, 0xb0, 0x89, 0x2e, 0x3a, 0x06, 0x6a, 0x12,
+	0x59, 0x6d, 0x42, 0x56, 0x43, 0x03, 0xad, 0x23, 0x74, 0x4b, 0xc5, 0x89, 0x53, 0x09, 0xb1, 0xd5,
+	0x06, 0x64, 0x0e, 0x7d, 0x21, 0x97, 0x56, 0x38, 0x91, 0x7d, 0x49, 0xa4, 0x32, 0x36, 0x11, 0x8e,
+	0x76, 0xad, 0xd7, 0x69, 0xa0, 0xab, 0x09, 0x68, 0x75, 0x1e, 0xd2, 0xb5, 0x4a, 0xa9, 0xc4, 0x85,
+	0x98, 0xae, 0x55, 0xd4, 0xb7, 0x00, 0xae, 0xbb, 0x56, 0xcb, 0x72, 0xf6, 0x74, 0xaf, 0x5d, 0xfa,
+	0x24, 0x27, 0xfc, 0x09, 0x49, 0x38, 0x7f, 0x80, 0x9e, 0xa7, 0xb7, 0xd0, 0x1f, 0xd2, 0x22, 0xd3,
+	0xc8, 0x37, 0x21, 0xb3, 0xeb, 0xba, 0xd4, 0x8d, 0x39, 0xb5, 0x4f, 0xc3, 0xf4, 0x0e, 0x35, 0x91,
+	0x1f, 0xd9, 0xdc, 0xf6, 0x92, 0x44, 0xcd, 0xf1, 0xa5, 0xfe, 0x80, 0xc6, 0x87, 0x55, 0x15, 0xa6,
+	0x6f, 0xe0, 0x7d, 0xc6, 0x0f, 0x30, 0xa7, 0xf1, 0xff, 0xc9, 0x3f, 0x14, 0xc8, 0x55, 0x91, 0x5d,
+	0x6f, 0xdc, 0x46, 0x83, 0xc5, 0x90, 0x79, 0x17, 0xb2, 0x62, 0x5e, 0xad, 0x22, 0xb4, 0x63, 0x7b,
+	0x47, 0x92, 0xfa, 0xc2, 0xd8, 0x92, 0xab, 0x55, 0xb4, 0x10, 0x54, 0xd5, 0x21, 0xa7, 0xe1, 0xdd,
+	0x1e, 0x7a, 0x3e, 0x85, 0x42, 0x48, 0x41, 0x79, 0x51, 0x0a, 0x7d, 0x54, 0xf2, 0x1d, 0x05, 0x66,
+	0xab, 0xc8, 0xb8, 0x3c, 0x9e, 0xbd, 0xdb, 0xaf, 0xc2, 0x8c, 0x3f, 0x6b, 0xb2, 0x7b, 0x95, 0x90,
+	0xe4, 0xe7, 0x0a, 0xe4, 0x0e, 0x75, 0xcf, 0xab, 0x33, 0x9d, 0xc5, 0x31, 0x52, 0x84, 0x19, 0xa1,
+	0x12, 0xd2, 0x24, 0x65, 0x4b, 0xfd, 0x3a, 0xcc, 0xf2, 0xe5, 0x03, 0xb2, 0x7a, 0x61, 0x0e, 0x03,
+	0x4c, 0xf2, 0x45, 0x98, 0xf6, 0x39, 0x1c, 0x8f, 0x39, 0xf2, 0x36, 0xcc, 0xd6, 0x47, 0x12, 0x73,
+	0x11, 0x66, 0x34, 0xee, 0x3d, 0x03, 0x00, 0xd1, 0x22, 0xbf, 0x50, 0x20, 0x53, 0x73, 0x4c, 0xbc,
+	0x1f, 0xb3, 0x7e, 0x59, 0x4e, 0x93, 0xcb, 0xe5, 0x9a, 0xbb, 0xb0, 0xb4, 0xab, 0xbb, 0xb6, 0x85,
+	0x1e, 0x4b, 0x44, 0xa3, 0x4e, 0xa2, 0x93, 0x77, 0x60, 0xa1, 0x8e, 0xba, 0x6b, 0xb4, 0x39, 0x07,
+	0x35, 0xa7, 0x49, 0x63, 0x38, 0xff, 0x4c, 0x94, 0xf3, 0xfc, 0xe6, 0xdc, 0xba, 0x8c, 0x22, 0xbc,
+	0x73, 0x7b, 0xda, 0x67, 0x53, 0x6e, 0xc7, 0x3f, 0x8b, 0x17, 0x10, 0xe5, 0x97, 0x20, 0x33, 0xa2,
+	0x9e, 0x9d, 0xba, 0xfc, 0x9e, 0xef, 0xc9, 0x62, 0xd6, 0xd6, 0xb9, 0xb7, 0x9b, 0xa0, 0xa1, 0xa4,
+	0x6b, 0x15, 0xf2, 0x2d, 0x98, 0xaa, 0x55, 0xe2, 0x14, 0xf0, 0x26, 0x9f, 0x54, 0x5a, 0x5e, 0x9d,
+	0x9a, 0x14, 0x69, 0x1f, 0x8f, 0xbc, 0xa7, 0xc0, 0xd4, 0x55, 0x8c, 0xf3, 0x88, 0x5f, 0x83, 0xcc,
+	0x55, 0xec, 0xbb, 0xc3, 0x2b, 0x92, 0xfc, 0x97, 0xc7, 0x26, 0xcf, 0xd1, 0x34, 0x01, 0xea, 0x1f,
+	0xc8, 0x96, 0xc1, 0x7a, 0xba, 0xcd, 0x35, 0x37, 0xab, 0xc9, 0x16, 0x31, 0x40, 0xad, 0x23, 0xab,
+	0x39, 0x06, 0xed, 0x58, 0x4e, 0x4b, 0x6a, 0x60, 0x0c, 0xa7, 0x1b, 0x30, 0x2b, 0x27, 0x4a, 0x75,
+	0x5b, 0x08, 0xd4, 0xed, 0x96, 0xe5, 0xfa, 0xa8, 0x5c, 0xe1, 0x52, 0x5a, 0x30, 0x4b, 0x12, 0xb9,
+	0xde, 0x63, 0x2d, 0x9a, 0x1c, 0x91, 0xf7, 0xd3, 0x70, 0xbe, 0xae, 0xb7, 0xf4, 0x1d, 0xdd, 0xb6,
+	0xb7, 0x0c, 0x03, 0xbb, 0xec, 0x1a, 0x65, 0x56, 0xd3, 0x32, 0x74, 0x66, 0x51, 0xe7, 0x65, 0x87,
+	0xa3, 0xbb, 0xb0, 0x54, 0x41, 0xa6, 0x1b, 0x6d, 0x34, 0x4f, 0x73, 0x22, 0x2f, 0x4c, 0xe9, 0x24,
+	0xba, 0x7f, 0xff, 0x0a, 0x24, 0x58, 0x14, 0xf7, 0xaf, 0x40, 0x54, 0x5b, 0x90, 0xab, 0x23, 0xd3,
+	0xd0, 0xeb, 0xd9, 0x6c, 0x14, 0x43, 0xf6, 0xe7, 0xf5, 0x0d, 0xd9, 0x6f, 0x91, 0xaf, 0x40, 0x76,
+	0xcb, 0x60, 0xd6, 0xd1, 0xd8, 0xae, 0x20, 0x82, 0x5c, 0x18, 0x40, 0x7e, 0x07, 0xa0, 0x82, 0x7a,
+	0x32, 0xd8, 0xb7, 0x60, 0xe6, 0x66, 0xd7, 0x9c, 0x3c, 0xee, 0x9f, 0xd2, 0x90, 0xaf, 0x22, 0xbb,
+	0x62, 0xd9, 0x7a, 0x07, 0x9d, 0xb3, 0x70, 0xf7, 0xa9, 0x33, 0xdd, 0x65, 0x57, 0x5c, 0xda, 0x99,
+	0xa4, 0x92, 0xf5, 0x51, 0xd5, 0xdb, 0xfe, 0xf5, 0x4a, 0x37, 0x6f, 0x3a, 0xcc, 0xb2, 0xe5, 0xfd,
+	0x7a, 0xb2, 0x57, 0xdf, 0x3e, 0x3c, 0xf9, 0xbd, 0x02, 0x0b, 0x81, 0x68, 0xeb, 0xd8, 0x3a, 0x0b,
+	0x12, 0x7e, 0xdb, 0xb7, 0x2d, 0x5f, 0x25, 0xbc, 0x52, 0x61, 0x75, 0xea, 0x52, 0x7e, 0xf3, 0x42,
+	0xe0, 0x9d, 0x76, 0x68, 0xa7, 0x4b, 0x3d, 0x8b, 0x61, 0xc0, 0xb1, 0x98, 0xd7, 0xf7, 0x56, 0x7c,
+	0x15, 0xf9, 0x43, 0x1a, 0xe6, 0xab, 0x18, 0x86, 0xfc, 0xf8, 0x08, 0xff, 0xb2, 0x2e, 0xcc, 0xa9,
+	0xc9, 0x5d, 0x98, 0xfb, 0xb9, 0x52, 0x31, 0xb1, 0x5c, 0x89, 0xfc, 0x36, 0x0d, 0xf9, 0xff, 0x2f,
+	0xa9, 0xfe, 0x57, 0x3f, 0x1f, 0x71, 0x57, 0x2b, 0x51, 0x77, 0xa5, 0x5e, 0x84, 0xb9, 0xeb, 0xb6,
+	0x89, 0x1e, 0x3b, 0xe8, 0x31, 0xbd, 0x61, 0x23, 0x4f, 0x2d, 0xb3, 0xda, 0x60, 0x27, 0xf9, 0x7e,
+	0x1a, 0xd4, 0x2a, 0x65, 0x7b, 0x94, 0xed, 0x50, 0xa7, 0x69, 0xb9, 0x9d, 0x51, 0x02, 0x69, 0xb2,
+	0xb7, 0x98, 0x50, 0x81, 0x0a, 0xc9, 0x25, 0xdb, 0xcb, 0x90, 0xa9, 0x77, 0x6d, 0x4b, 0x08, 0x33,
+	0xab, 0x89, 0x06, 0xf9, 0xbb, 0x02, 0x20, 0xa4, 0x77, 0x16, 0xb4, 0xea, 0x5d, 0xc8, 0x4a, 0x66,
+	0x26, 0xaa, 0x54, 0x21, 0x28, 0xf9, 0x41, 0x1a, 0x96, 0x78, 0xca, 0x2f, 0x7a, 0x76, 0xef, 0x5b,
+	0x1e, 0xf3, 0x5e, 0xf5, 0x5d, 0x47, 0xec, 0xa5, 0x38, 0x10, 0xde, 0x7f, 0x93, 0x06, 0xd8, 0xa3,
+	0xb2, 0xb0, 0xe1, 0x9d, 0x0d, 0x0b, 0x48, 0xce, 0x85, 0xaa, 0x17, 0x61, 0xba, 0xe2, 0xd2, 0x2e,
+	0x97, 0x71, 0x7e, 0x13, 0xd6, 0x79, 0xe9, 0xcf, 0xef, 0x91, 0x41, 0x8c, 0x8f, 0xaa, 0x6b, 0x30,
+	0xcb, 0x13, 0x4a, 0xf4, 0x4a, 0x2b, 0x3c, 0x04, 0x9e, 0x92, 0x74, 0xa6, 0xb4, 0x60, 0x0e, 0xf9,
+	0x48, 0x01, 0xe8, 0x07, 0xbc, 0x57, 0xdf, 0x2d, 0x93, 0x5f, 0x2b, 0xa1, 0x5f, 0x8e, 0xd9, 0xed,
+	0x00, 0x33, 0xcb, 0x89, 0xc4, 0x88, 0x48, 0x36, 0x55, 0x18, 0x29, 0x9b, 0x7a, 0xa4, 0x40, 0xbe,
+	0x8e, 0xee, 0x91, 0x65, 0x60, 0x45, 0x8f, 0x2d, 0xf5, 0x96, 0x01, 0xf6, 0x69, 0xeb, 0x86, 0xab,
+	0x1b, 0x41, 0x8d, 0x2b, 0xa7, 0x45, 0x7a, 0x54, 0x84, 0xec, 0x3e, 0x6d, 0xed, 0xe3, 0x11, 0x8a,
+	0xfc, 0x73, 0x6e, 0xbb, 0x26, 0x37, 0xb8, 0x35, 0xf6, 0x06, 0x03, 0x40, 0x2d, 0x84, 0xf6, 0xe3,
+	0x1a, 0xa7, 0x58, 0xef, 0xea, 0x8e, 0xcf, 0xb5, 0x34, 0xe3, 0xc1, 0x4e, 0xf2, 0xcb, 0x29, 0x98,
+	0xd3, 0x90, 0xf5, 0x5c, 0x47, 0x98, 0x77, 0x9c, 0x41, 0x37, 0x60, 0xe6, 0x86, 0xee, 0xb6, 0x50,
+	0xa6, 0x40, 0x93, 0xad, 0x56, 0x0b, 0x64, 0xf5, 0xb6, 0x1f, 0x5d, 0xb8, 0xe4, 0x35, 0x6c, 0x26,
+	0x50, 0x15, 0x8f, 0xa0, 0xfb, 0xfb, 0xd1, 0x50, 0xf7, 0xa8, 0x93, 0x40, 0x5d, 0x5c, 0x22, 0xfb,
+	0x41, 0x54, 0xc3, 0xae, 0xfd, 0x40, 0x5e, 0x3c, 0x44, 0xc3, 0xef, 0xe5, 0x41, 0x85, 0xdf, 0x37,
+	0x72, 0x9a, 0xac, 0x47, 0xaf, 0xfa, 0x17, 0x36, 0x0f, 0x1d, 0x73, 0x87, 0xf6, 0x1c, 0xc6, 0xcb,
+	0xd9, 0x73, 0x5a, 0xb4, 0x8b, 0xfc, 0x4e, 0x01, 0xf0, 0xd3, 0xfa, 0x03, 0x64, 0x6d, 0x6a, 0xc6,
+	0x1c, 0xd7, 0xe7, 0x86, 0x0b, 0x07, 0x2b, 0x7d, 0xbf, 0x34, 0x50, 0xe5, 0xe8, 0xdf, 0x93, 0x1c,
+	0xc8, 0x47, 0xdc, 0xa0, 0xd4, 0xd0, 0xc9, 0xba, 0xd6, 0x28, 0x01, 0xf2, 0xe3, 0x34, 0x2c, 0xec,
+	0xde, 0x47, 0xa3, 0xc7, 0x82, 0x00, 0x1b, 0xa7, 0x83, 0x0c, 0x16, 0x84, 0xef, 0x0a, 0x45, 0x9d,
+	0x80, 0x32, 0x0e, 0x93, 0x50, 0x2f, 0x43, 0x61, 0x9f, 0x2f, 0xda, 0xd3, 0xbd, 0x03, 0xea, 0xa2,
+	0x94, 0x97, 0x27, 0x6b, 0x48, 0xa7, 0x0f, 0xaa, 0x97, 0x65, 0x89, 0x90, 0xab, 0xd7, 0xfc, 0x66,
+	0x79, 0x3d, 0x78, 0x58, 0x3b, 0x74, 0xf1, 0xc8, 0xa2, 0x3d, 0x2f, 0xd8, 0x3a, 0x9f, 0xa5, 0x89,
+	0xc9, 0xe4, 0x3d, 0x05, 0x16, 0x0e, 0xd1, 0x31, 0x2d, 0xa7, 0x75, 0xc5, 0x72, 0x2c, 0xaf, 0x8d,
+	0x71, 0x07, 0xdd, 0x86, 0x5c, 0xc8, 0x70, 0x02, 0xd2, 0xe8, 0x83, 0x93, 0x7f, 0x4f, 0x01, 0xd9,
+	0x32, 0x4d, 0xcb, 0xbf, 0xff, 0xea, 0xb6, 0xaf, 0x89, 0x7e, 0x0e, 0x3c, 0xbc, 0x9d, 0x33, 0x79,
+	0x84, 0x2d, 0x98, 0x95, 0x52, 0xe5, 0x87, 0x96, 0xd9, 0x3e, 0x90, 0xd4, 0x76, 0xc7, 0x57, 0x6b,
+	0x81, 0x27, 0x4e, 0x2f, 0x40, 0x1f, 0xf2, 0x60, 0xc5, 0x44, 0x3d, 0x58, 0xc4, 0xc4, 0x57, 0x46,
+	0x34, 0xf1, 0xcf, 0x0f, 0x84, 0x33, 0xee, 0x80, 0xf2, 0x9b, 0xcb, 0xa1, 0x6a, 0x46, 0xc6, 0xb4,
+	0xe8, 0x44, 0xf2, 0x51, 0x1a, 0xe6, 0xeb, 0xcc, 0xb2, 0x6d, 0x71, 0xca, 0xfe, 0x4e, 0xcf, 0x88,
+	0x56, 0xaa, 0x4d, 0xc8, 0x06, 0xaa, 0x97, 0x40, 0xc4, 0x08, 0xb1, 0x55, 0x3b, 0x4c, 0xa8, 0x35,
+	0x6c, 0x7a, 0xa5, 0x22, 0xaf, 0x8e, 0x4f, 0x92, 0x54, 0x14, 0xde, 0xf7, 0x8d, 0xf9, 0x2a, 0x32,
+	0xa9, 0x56, 0x2f, 0x3d, 0xe7, 0x58, 0x86, 0x8c, 0x08, 0x4b, 0x3c, 0x28, 0x68, 0xa2, 0xa1, 0x76,
+	0x60, 0xa1, 0x7e, 0xc7, 0xea, 0x9e, 0x14, 0xcb, 0x44, 0xa8, 0x0f, 0x63, 0x93, 0x1f, 0x2a, 0x90,
+	0xdf, 0xd3, 0xbd, 0x33, 0x22, 0x13, 0x72, 0x0d, 0xce, 0x05, 0xac, 0x8c, 0x90, 0x0c, 0xaf, 0x0e,
+	0xf0, 0xce, 0x39, 0xca, 0x6a, 0xd1, 0x2e, 0xf2, 0x4f, 0x5e, 0xb2, 0xe9, 0xda, 0xa3, 0x95, 0xea,
+	0xff, 0xf7, 0x2b, 0x0c, 0x91, 0xcc, 0xa9, 0x18, 0x9f, 0x39, 0xa9, 0x6f, 0xf6, 0x6b, 0x8d, 0x22,
+	0xd1, 0x5a, 0x0c, 0xa6, 0x1f, 0xe8, 0x0c, 0x5d, 0x2b, 0x7a, 0x79, 0xe7, 0xd3, 0xc2, 0x04, 0xae,
+	0xf4, 0xac, 0x04, 0x8e, 0xfc, 0x4b, 0x81, 0x99, 0x2a, 0xb2, 0xf8, 0x97, 0xa9, 0xc4, 0x8d, 0xec,
+	0xe3, 0xbe, 0x7f, 0xfd, 0x4c, 0x81, 0xd7, 0xb7, 0x1a, 0xba, 0x63, 0x52, 0x27, 0x7c, 0x30, 0xf1,
+	0xce, 0xd0, 0x6b, 0x11, 0xf9, 0xa9, 0x02, 0xcb, 0x55, 0x64, 0xfb, 0x56, 0xab, 0xcd, 0x6a, 0x8e,
+	0xc5, 0x2c, 0xdd, 0x1e, 0xe5, 0xd5, 0xf5, 0x63, 0x50, 0x5e, 0xf2, 0x97, 0x34, 0x2c, 0x3d, 0x2f,
+	0x5f, 0x04, 0xce, 0x5d, 0x43, 0x76, 0x8f, 0xba, 0x77, 0xf8, 0x03, 0x82, 0xf4, 0x01, 0x03, 0x7d,
+	0xea, 0x37, 0x60, 0x86, 0x5b, 0xa0, 0x28, 0xa8, 0x4f, 0xce, 0xae, 0x25, 0xaa, 0xfa, 0x06, 0x64,
+	0x7c, 0xad, 0x0f, 0x4c, 0xee, 0xa4, 0x51, 0x88, 0xe1, 0xe7, 0x2c, 0x6b, 0xa8, 0x6b, 0x81, 0xc8,
+	0x85, 0xad, 0x2d, 0xad, 0x8b, 0x2f, 0xae, 0x78, 0xdf, 0xa1, 0x4b, 0x19, 0x0d, 0xd0, 0x85, 0xe9,
+	0x5f, 0x82, 0x05, 0x2e, 0xbc, 0x9d, 0xb6, 0x6e, 0x39, 0xfb, 0x56, 0xc7, 0x0a, 0xf2, 0x9d, 0xe1,
+	0x6e, 0xf2, 0x3d, 0x05, 0xb2, 0x55, 0x64, 0xa3, 0x7c, 0xb6, 0x90, 0xb8, 0x3a, 0x3e, 0xe5, 0xc5,
+	0x80, 0xf0, 0x7b, 0x84, 0x97, 0xed, 0x2e, 0x1a, 0x90, 0x11, 0xef, 0x4e, 0x89, 0xa8, 0xb9, 0x78,
+	0x73, 0xfa, 0x9b, 0x02, 0x39, 0xf1, 0x54, 0x18, 0xef, 0x1f, 0x43, 0xb3, 0x5b, 0x4e, 0x2e, 0x66,
+	0x84, 0x51, 0xaf, 0x90, 0x40, 0xd4, 0xf3, 0xfd, 0x8d, 0xaf, 0x6c, 0x82, 0xd4, 0xb3, 0x37, 0x3b,
+	0xe4, 0xab, 0x93, 0xd8, 0xf2, 0x80, 0xaf, 0xbe, 0x21, 0x85, 0x1b, 0xc3, 0xd6, 0x5a, 0xf4, 0x0c,
+	0x62, 0xed, 0x90, 0x7c, 0x37, 0x0d, 0xea, 0xad, 0xcd, 0x7a, 0x58, 0x8f, 0x1c, 0xe9, 0x2d, 0x3c,
+	0x71, 0xc5, 0x2e, 0x0d, 0x56, 0xe9, 0x22, 0x2f, 0x39, 0x6f, 0x0c, 0x54, 0xa6, 0xf3, 0x9b, 0xf3,
+	0x81, 0x53, 0x12, 0xbd, 0xe1, 0xcb, 0xce, 0x9b, 0x00, 0x75, 0xcb, 0xc4, 0xdd, 0x66, 0x13, 0x8d,
+	0x20, 0x39, 0x3a, 0x71, 0x5d, 0xd0, 0x22, 0x73, 0x3e, 0xfb, 0x13, 0x05, 0x0a, 0xa7, 0x26, 0xe6,
+	0xea, 0xa7, 0x60, 0x65, 0x78, 0xe0, 0xa6, 0x73, 0xc7, 0xa1, 0xf7, 0x9c, 0xc5, 0x94, 0x7a, 0x11,
+	0x56, 0x87, 0x07, 0x0f, 0x5d, 0xda, 0xd0, 0x1b, 0xf6, 0x03, 0xd1, 0x46, 0x6f, 0x51, 0x51, 0x5f,
+	0x83, 0xd2, 0xf0, 0xac, 0x70, 0x34, 0x7d, 0xda, 0x68, 0x90, 0xfa, 0x2f, 0x4e, 0x6d, 0x5f, 0x7e,
+	0xf8, 0xb8, 0x9c, 0x7a, 0xf4, 0xb8, 0x9c, 0x7a, 0xfa, 0xb8, 0xac, 0x7c, 0xfb, 0xb8, 0xac, 0xbc,
+	0x7f, 0x5c, 0x56, 0x3e, 0x38, 0x2e, 0x2b, 0x0f, 0x8f, 0xcb, 0xca, 0x9f, 0x8f, 0xcb, 0xca, 0x5f,
+	0x8f, 0xcb, 0xa9, 0xa7, 0xc7, 0x65, 0xe5, 0x47, 0x4f, 0xca, 0xa9, 0x87, 0x4f, 0xca, 0xa9, 0x47,
+	0x4f, 0xca, 0xa9, 0xc6, 0x0c, 0xff, 0x44, 0xf5, 0xad, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0xaf,
+	0x57, 0x6d, 0xd3, 0xde, 0x2b, 0x00, 0x00,
 }
 
 func (x PreviousExecutorState) String() string {
@@ -4548,6 +4619,42 @@ func (this *Pulse) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *V2SetRequestResult) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*V2SetRequestResult)
+	if !ok {
+		that2, ok := that.(V2SetRequestResult)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Polymorph != that1.Polymorph {
+		return false
+	}
+	if !this.ObjectID.Equal(that1.ObjectID) {
+		return false
+	}
+	if !bytes.Equal(this.Request, that1.Request) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
+		return false
+	}
+	if !this.SideEffect.Equal(that1.SideEffect) {
+		return false
+	}
+	return true
+}
 func (this *Meta) GoString() string {
 	if this == nil {
 		return "nil"
@@ -5214,6 +5321,24 @@ func (this *Pulse) GoString() string {
 	s = append(s, "&payload.Pulse{")
 	s = append(s, "Polymorph: "+fmt.Sprintf("%#v", this.Polymorph)+",\n")
 	s = append(s, "Pulse: "+strings.Replace(this.Pulse.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *V2SetRequestResult) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 9)
+	s = append(s, "&payload.V2SetRequestResult{")
+	s = append(s, "Polymorph: "+fmt.Sprintf("%#v", this.Polymorph)+",\n")
+	s = append(s, "ObjectID: "+fmt.Sprintf("%#v", this.ObjectID)+",\n")
+	s = append(s, "Request: "+fmt.Sprintf("%#v", this.Request)+",\n")
+	if this.Result != nil {
+		s = append(s, "Result: "+fmt.Sprintf("%#v", this.Result)+",\n")
+	}
+	if this.SideEffect != nil {
+		s = append(s, "SideEffect: "+fmt.Sprintf("%#v", this.SideEffect)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -7639,6 +7764,73 @@ func (m *Pulse) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *V2SetRequestResult) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *V2SetRequestResult) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Polymorph != 0 {
+		dAtA[i] = 0x80
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	}
+	dAtA[i] = 0xa2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
+	n67, err := m.ObjectID.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n67
+	if len(m.Request) > 0 {
+		dAtA[i] = 0xaa
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Request)))
+		i += copy(dAtA[i:], m.Request)
+	}
+	if m.Result != nil {
+		dAtA[i] = 0xb2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayload(dAtA, i, uint64(m.Result.Size()))
+		n68, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n68
+	}
+	if m.SideEffect != nil {
+		dAtA[i] = 0xba
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayload(dAtA, i, uint64(m.SideEffect.Size()))
+		n69, err := m.SideEffect.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n69
+	}
+	return i, nil
+}
+
 func encodeVarintPayload(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -8605,6 +8797,32 @@ func (m *Pulse) Size() (n int) {
 	return n
 }
 
+func (m *V2SetRequestResult) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Polymorph != 0 {
+		n += 2 + sovPayload(uint64(m.Polymorph))
+	}
+	l = m.ObjectID.Size()
+	n += 2 + l + sovPayload(uint64(l))
+	l = len(m.Request)
+	if l > 0 {
+		n += 2 + l + sovPayload(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
+		n += 2 + l + sovPayload(uint64(l))
+	}
+	if m.SideEffect != nil {
+		l = m.SideEffect.Size()
+		n += 2 + l + sovPayload(uint64(l))
+	}
+	return n
+}
+
 func sovPayload(x uint64) (n int) {
 	for {
 		n++
@@ -9243,6 +9461,20 @@ func (this *Pulse) String() string {
 	}, "")
 	return s
 }
+func (this *V2SetRequestResult) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&V2SetRequestResult{`,
+		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
+		`ObjectID:` + fmt.Sprintf("%v", this.ObjectID) + `,`,
+		`Request:` + fmt.Sprintf("%v", this.Request) + `,`,
+		`Result:` + strings.Replace(fmt.Sprintf("%v", this.Result), "Result", "record.Result", 1) + `,`,
+		`SideEffect:` + strings.Replace(fmt.Sprintf("%v", this.SideEffect), "Material", "record.Material", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func valueToStringPayload(v interface{}) string {
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
@@ -9756,7 +9988,7 @@ func (m *GetObject) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.RequestID = &v
 			if err := m.RequestID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -10353,7 +10585,7 @@ func (m *Index) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.EarliestRequestID = &v
 			if err := m.EarliestRequestID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -10885,7 +11117,7 @@ func (m *IDs) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.IDs = append(m.IDs, v)
 			if err := m.IDs[len(m.IDs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -13698,7 +13930,7 @@ func (m *ServiceData) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.LogLevel |= logcommon.LogLevel(b&0x7F) << shift
+				m.LogLevel |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.LogLevel(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -14115,7 +14347,7 @@ func (m *CallMethod) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -14488,7 +14720,7 @@ func (m *AdditionalCallFromPreviousExecutor) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Pending |= github_com_insolar_insolar_insolar.PendingState(b&0x7F) << shift
+				m.Pending |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PendingState(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -14765,7 +14997,7 @@ func (m *StillExecuting) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.RequestRefs = append(m.RequestRefs, v)
 			if err := m.RequestRefs[len(m.RequestRefs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -14924,7 +15156,7 @@ func (m *GetPendings) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.SkipRequestRefs = append(m.SkipRequestRefs, v)
 			if err := m.SkipRequestRefs[len(m.SkipRequestRefs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -15485,7 +15717,7 @@ func (m *GetJet) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -15821,7 +16053,7 @@ func (m *LightInitialState) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.JetID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID
 			m.JetIDs = append(m.JetIDs, v)
 			if err := m.JetIDs[len(m.JetIDs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -16535,6 +16767,217 @@ func (m *Pulse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPayload(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *V2SetRequestResult) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPayload
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: V2SetRequestResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: V2SetRequestResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Request = append(m.Request[:0], dAtA[iNdEx:postIndex]...)
+			if m.Request == nil {
+				m.Request = []byte{}
+			}
+			iNdEx = postIndex
+		case 22:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &record.Result{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SideEffect", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.SideEffect == nil {
+				m.SideEffect = &record.Material{}
+			}
+			if err := m.SideEffect.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
