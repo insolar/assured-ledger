@@ -24,6 +24,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -63,6 +64,7 @@ func TestMutable(t *testing.T) {
 			runMSomeTest(t, factoryFn(), testInverseCopy)
 			runMSomeTest(t, factoryFn(), testAddKeys)
 			runMSomeTest(t, factoryFn(), testRemoveKeys)
+			runMSomeTest(t, factoryFn(), testCopyInverse)
 
 			runMSetTest(t, factoryFn, (*MutableKeySet).RetainAll, func(i, j uint) uint { return i & j })
 			runMSetTest(t, factoryFn, (*MutableKeySet).RemoveAll, func(i, j uint) uint { return i &^ j })
@@ -70,8 +72,6 @@ func TestMutable(t *testing.T) {
 		})
 	}
 }
-
-// TODO PLAT-16 test independence of copies made by MutableKeySet.Copy() & InverseCopy()
 
 func runKSetTest(t *testing.T, genFn keySetGeneratorFunc, testFn func(KeySet, KeySet) KeySet, checkFn func(i, j uint) uint) {
 	t.Run(methodName(testFn), func(t *testing.T) {
@@ -165,13 +165,31 @@ func testRemoveKeys(t *testing.T, ksi *MutableKeySet, bitMask uint) {
 	require.Equal(t, keySetToBits(ksi), bitMask)
 }
 
+func testCopyInverse(t *testing.T, ksi *MutableKeySet, bitMask uint) {
+	copy := ksi.Copy()
+	inversed := ksi.InverseCopy()
+
+	require.Equal(t, copy, inversed.Inverse())
+
+	k := bitToKey(2)
+	copy.Remove(k)
+	copyMask := bitMask
+	copyMask &^= 1 << 2
+	require.False(t, copy.Contains(k))
+
+	require.Equal(t, keySetToBits(copy), copyMask)
+	require.Equal(t, keySetToBits(inversed), ^bitMask)
+}
+
 func testContains(t *testing.T, ksi KeySet, bitMask uint) {
 	for i := uint(1 << 16); i != 0; i >>= 1 {
 		k := bitToKey(bits.Len(i) - 1)
 		if bitMask&i != 0 {
-			require.True(t, ksi.Contains(k), "f(%x, %x)=true", bitMask, i)
+			t.Log("In:", i, bits.Len(i)-1)
+			assert.True(t, ksi.Contains(k), "f(%x, %x)=true", bitMask, i)
 		} else {
-			require.False(t, ksi.Contains(k), "f(%x, %x)=false", bitMask, i)
+			t.Log("Not: ", i, bits.Len(i)-1)
+			assert.False(t, ksi.Contains(k), "f(%x, %x)=false", bitMask, i)
 		}
 	}
 }
