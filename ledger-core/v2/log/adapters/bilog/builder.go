@@ -30,7 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
-// TODO test performance and memory impact of (recycleBuf)
+// TODO PLAT-45 test performance and memory impact of (recycleBuf)
 
 func NewFactory(encoders msgencoder.FactoryDispatcherFunc, recycleBuf bool) logcommon.Factory {
 	return binLogFactory{encoders, recycleBuf}

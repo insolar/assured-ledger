@@ -35,7 +35,7 @@ import (
 
 func TestTextFormat(t *testing.T) {
 	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.TextFormat})
-	// TODO parsing for text
+	// TODO PLAT-44 parsing for text
 }
 
 func TestJsonFormat(t *testing.T) {
@@ -51,7 +51,7 @@ func TestJsonFormat(t *testing.T) {
 
 func TestPbufFormat(t *testing.T) {
 	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.PbufFormat})
-	// TODO parsing for pbuf
+	// TODO PLAT-44 parsing for pbuf
 }
 
 type SuiteTextualLog struct {

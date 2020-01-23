@@ -60,7 +60,7 @@ func ConnectSyslogByParam(outputParam, tag string) (LogLevelWriteCloser, error) 
 	return ConnectRemoteSyslog(nw, addr, tag)
 }
 
-// TODO reimplement syslog sender to (1) use []byte for messages (2) support for windows
+// TODO PLAT-43 reimplement syslog sender to (1) use []byte for messages (2) support for windows
 
 // SyslogLevelWriter wraps a SyslogWriter and call the right syslog level
 // method matching the zerolog level.
