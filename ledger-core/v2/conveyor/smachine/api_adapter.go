@@ -102,6 +102,6 @@ type AdapterExecutor interface {
 	SendNotify(AdapterNotifyFunc)
 
 	// Performs sync call ONLY if *natively* supported by the adapter, otherwise must return (false, nil)
-	// TODO pass in a cancellation object
+	// TODO PLAT-41 pass in a cancellation object
 	TrySyncCall(AdapterCallFunc) (bool, AsyncResultFunc)
 }

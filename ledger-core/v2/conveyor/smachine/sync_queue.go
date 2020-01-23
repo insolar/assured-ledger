@@ -131,7 +131,7 @@ func (p *DependencyQueueHead) _addSlot(link SlotLink, flags SlotDependencyFlags,
 }
 
 func (p *DependencyQueueHead) _addBefore(position, entry *dependencyQueueEntry) {
-	p.initEmpty() // TODO move to controller's Init
+	p.initEmpty() // TODO PLAT-27 move to controller's Init
 	entry.ensureNotInQueue()
 
 	position._addQueuePrev(entry, entry)

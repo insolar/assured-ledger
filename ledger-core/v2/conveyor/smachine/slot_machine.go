@@ -860,7 +860,7 @@ func (m *SlotMachine) ScheduleCall(fn MachineCallFunc, isSignal bool) bool {
 // SAFE for concurrent use
 func (m *SlotMachine) runTerminationHandler(ctx context.Context, th TerminationHandlerFunc, td TerminationData) {
 	if ctx == nil {
-		ctx = context.Background() // TODO provide a default context for SlotMachine?
+		ctx = context.Background() // TODO PLAT-24 provide a default context for SlotMachine?
 	}
 
 	m.syncQueue.AddAsyncCallback(td.Slot.SlotLink, func(_ SlotLink, _ DetachableSlotWorker) bool {
@@ -914,7 +914,7 @@ func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (Sl
 	if parent.IsEmpty() {
 		panic("illegal value")
 	}
-	// TODO pass adapterId into injections?
+	// TODO PLAT-25 pass adapterId into injections?
 
 	link, ok := m.prepareNewSlot(nil, cf, nil,
 		prepareSlotValue{slotReplaceData: slotReplaceData{parent: parent}})
@@ -994,11 +994,11 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 	case creator != nil:
 		slot.ctx = creator.ctx
 	case slot.parent.IsValid():
-		// TODO this can be racy when the parent is from another SlotMachine running under a different worker ...
+		// TODO PLAT-26 this can be racy when the parent is from another SlotMachine running under a different worker ...
 		slot.ctx = slot.parent.s.ctx
 	}
 	if slot.ctx == nil {
-		slot.ctx = context.Background() // TODO provide SlotMachine context?
+		slot.ctx = context.Background() // TODO PLAT-24 provide SlotMachine context?
 	}
 
 	cc := constructionContext{s: slot, injects: defValues.overrides, tracerId: defValues.tracerId}
@@ -1497,7 +1497,7 @@ func (m *SlotMachine) wakeupOnDeactivationOf(slot *Slot, waitOn SlotLink, worker
 	waitOnMachine._wakeupOnDeactivateAsync(wakeupLink, waitOn)
 }
 
-//waitOn MUST belong to this machine!
+// waitOn MUST belong to this machine!
 func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 	m.syncQueue.AddAsyncCallback(waitOn, func(waitOn SlotLink, worker DetachableSlotWorker) bool {
 		switch {
@@ -1534,7 +1534,7 @@ func (m *SlotMachine) useSlotAsShared(link *SharedDataLink, accessFn SharedDataF
 	}
 
 	if !link.link.isMachine(m) { // isRemote
-		panic("unimplemented") // TODO access to non-local slot machine
+		panic("unimplemented") // TODO PLAT-28 access to non-local slot machine
 
 		//if isBusy {
 		//	return SharedSlotRemoteBusy
