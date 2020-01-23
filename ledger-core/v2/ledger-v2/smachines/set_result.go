@@ -27,8 +27,7 @@ type SetResult struct {
 	meta    payload.Meta
 	message payload.V2SetRequestResult
 
-	objLink  smachine.SharedDataLink
-	objIndex *sharedObject
+	sharedObject smachine.SharedDataLink
 }
 
 func NewSetResult(meta payload.Meta) *SetResult {
@@ -45,42 +44,35 @@ func (s *SetResult) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		panic(err)
 	}
 	s.message = *pl.(*payload.V2SetRequestResult)
-	return ctx.Jump(s.getObject)
-}
-
-func (s *SetResult) getObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	lifelineLink := ctx.GetPublishedLink(s.message.ObjectID)
-	if lifelineLink.IsZero() {
-		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return NewObject(s.message.ObjectID)
-		})
-		lifelineLink = ctx.GetPublishedLink(s.message.ObjectID)
-	}
-
-	accessDecision := lifelineLink.PrepareAccess(func(val interface{}) (wakeup bool) {
-		s.objIndex = val.(*sharedObject)
-		return false
-	}).TryUse(ctx).GetDecision()
-
-	switch accessDecision {
-	case smachine.NotPassed:
-		return ctx.WaitShared(lifelineLink).ThenRepeat()
-	case smachine.Impossible:
-		return ctx.Stop()
-	case smachine.Passed:
-		if ctx.Acquire(s.objIndex.mutex).IsNotPassed() {
-			return ctx.Sleep().ThenRepeat()
-		}
-	default:
-		panic("unknown state from TryUse")
-	}
-
 	return ctx.Jump(s.saveResult)
 }
 
 func (s *SetResult) saveResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	defer ctx.Release(s.objIndex.mutex)
+	s.sharedObject = ctx.GetPublishedLink(s.message.ObjectID)
+	if s.sharedObject.IsZero() {
+		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return NewObject(s.message.ObjectID)
+		})
+		s.sharedObject = ctx.GetPublishedLink(s.message.ObjectID)
+		if s.sharedObject.IsZero() {
+			ctx.Stop()
+		}
+	}
 
-	s.objIndex.appendState(s.message.SideEffect)
+	decision := s.sharedObject.PrepareAccess(func(val interface{}) (wakeup bool) {
+		object := val.(*sharedObject)
+		object.appendState(s.message.SideEffect)
+		return true
+	}).TryUse(ctx).GetDecision()
+
+	switch decision {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.sharedObject).ThenRepeat()
+	case smachine.Impossible:
+		return ctx.Stop()
+	default:
+		panic("unknown state from TryUse")
+	}
+
 	return ctx.Stop()
 }

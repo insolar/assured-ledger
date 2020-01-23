@@ -10,9 +10,9 @@ m -> o : Get or create machine.
 o -> o : Fetch Lifeline Index.
 o --> m : Sanity check error.
 o -> m : Lifeline index.
-m -> o : Send new state.
+m -> o : Set new state.
 o -> d : Get or create machine.
-o -> d : Send new state.
+o -> d : Set new state.
 d -> o : Return sync obj + getter.
 o -> m : Return sync obj + getter.
 ...
