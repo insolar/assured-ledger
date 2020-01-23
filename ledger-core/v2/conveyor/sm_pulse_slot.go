@@ -230,7 +230,10 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 // Conveyor direct barge-in
 func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext) smachine.StateUpdate {
 	//out := ctx.BargeInParam().(PreparePulseChangeChannel)
-	// TODO initiate state calculations
+
+	// =================
+	// HERE - initiate state calculations
+	// =================
 
 	return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPreparingChange, Flags: smachine.StepPriority})
 }

@@ -18,7 +18,6 @@ package smachine
 
 import (
 	"context"
-	"log"
 	"sync"
 )
 
@@ -51,46 +50,6 @@ func WrapCallChannelNoLimit(ctx context.Context, requestCancel bool, output chan
 
 func WrapCallChannelNoBuffer(requestCancel bool, output chan AdapterCall) OverflowPanicCallChannel {
 	return OverflowPanicCallChannel{output, requestCancel}
-}
-
-func StartChannelWorker(ctx context.Context, ch <-chan AdapterCall, runArg interface{}) {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case t, ok := <-ch:
-				if !ok {
-					return
-				}
-				err := t.RunAndSendResult(runArg)
-				if err != nil {
-					log.Println(err) // TODO logging?
-				}
-			}
-		}
-	}()
-}
-
-func StartDynamicChannelWorker(ctx context.Context, ch <-chan AdapterCall, runArg interface{}) {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case t, ok := <-ch:
-				if !ok {
-					return
-				}
-				go func() {
-					err := t.RunAndSendResult(runArg)
-					if err != nil {
-						log.Println(err)
-					}
-				}()
-			}
-		}
-	}()
 }
 
 type channelRecord = AdapterCall

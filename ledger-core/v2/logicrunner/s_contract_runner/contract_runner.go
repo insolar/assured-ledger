@@ -159,7 +159,7 @@ func CreateContractRunnerService(
 	ctx := context.Background()
 
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
-	smachine.StartDynamicChannelWorker(ctx, ch, nil)
+	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &ContractRunnerServiceAdapter{
 		svc:  contractRunner,

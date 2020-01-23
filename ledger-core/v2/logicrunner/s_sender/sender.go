@@ -59,7 +59,7 @@ type senderService struct {
 func CreateSenderService(sender bus.Sender, accessor pulse.Accessor) *SenderServiceAdapter {
 	ctx := context.Background()
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
-	smachine.StartDynamicChannelWorker(ctx, ch, nil)
+	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &SenderServiceAdapter{
 		svc: senderService{
