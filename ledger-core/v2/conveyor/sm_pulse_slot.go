@@ -189,7 +189,7 @@ func (p *PulseSlotMachine) onTerminate(context.Context, smachine.TerminationData
 }
 
 func (p *PulseSlotMachine) _runInnerMigrate(ctx smachine.MigrationContext) {
-	// TODO ensure that p.innerWorker is stopped or detached
+	// TODO PLAT-23 ensure that p.innerWorker is stopped or detached
 	p.innerMachine.MigrateNested(ctx)
 }
 

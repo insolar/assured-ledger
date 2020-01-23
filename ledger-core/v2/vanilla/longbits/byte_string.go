@@ -53,7 +53,7 @@ var _ FoldableReader = EmptyByteString
 
 type ByteString string
 
-// TODO test behavior with nil/zero strings
+// TODO PLAT-17 test behavior with nil/zero strings
 
 func (v ByteString) IsEmpty() bool {
 	return len(v) == 0

@@ -71,7 +71,7 @@ func TestMutable(t *testing.T) {
 	}
 }
 
-// TODO test independence of copies made by MutableKeySet.Copy() & InverseCopy()
+// TODO PLAT-16 test independence of copies made by MutableKeySet.Copy() & InverseCopy()
 
 func runKSetTest(t *testing.T, genFn keySetGeneratorFunc, testFn func(KeySet, KeySet) KeySet, checkFn func(i, j uint) uint) {
 	t.Run(methodName(testFn), func(t *testing.T) {

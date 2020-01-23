@@ -133,7 +133,7 @@ func (v *inclusiveMutableOverlay) retainAll(ks KeySet) mutableKeySet {
 			return keys.isEmpty()
 		})
 	default:
-		// TODO efficiency can be improved
+		// TODO PLAT-20 efficiency can be improved
 		keys.EnumKeys(func(k Key) bool {
 			if !ks.Contains(k) {
 				keys._remove(k)

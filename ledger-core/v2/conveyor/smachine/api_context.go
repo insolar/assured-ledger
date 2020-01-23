@@ -285,8 +285,8 @@ type ExecutionContext interface {
 	Poll() StateConditionalBuilder
 
 	// EXPERIMENTAL! SM will apply an action chosen by the builder and wait for activation or stop of the given slot.
-	// TODO WaitActivation(SlotLink) StateConditionalBuilder
-	// TODO WaitStepChange(StepLink, tolerance uint32) StateConditionalBuilder
+	// TODO PLAT-42 WaitActivation(SlotLink) StateConditionalBuilder
+	// TODO PLAT-42 WaitStepChange(StepLink, tolerance uint32) StateConditionalBuilder
 
 	// SM will apply an action chosen by the builder and wait for availability of the SharedDataLink.
 	WaitShared(SharedDataLink) StateConditionalBuilder
