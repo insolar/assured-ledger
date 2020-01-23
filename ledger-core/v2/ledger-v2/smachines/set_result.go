@@ -2,6 +2,7 @@ package smachines
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
@@ -28,6 +29,7 @@ type SetResult struct {
 	message payload.V2SetRequestResult
 
 	sharedObject smachine.SharedDataLink
+	syncFinished smachine.SyncLink
 }
 
 func NewSetResult(meta payload.Meta) *SetResult {
@@ -48,24 +50,16 @@ func (s *SetResult) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 }
 
 func (s *SetResult) saveResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.sharedObject = ctx.GetPublishedLink(s.message.ObjectID)
-	if s.sharedObject.IsZero() {
-		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return NewObject(s.message.ObjectID)
-		})
-		s.sharedObject = ctx.GetPublishedLink(s.message.ObjectID)
-		if s.sharedObject.IsZero() {
-			ctx.Stop()
-		}
-	}
-
+	s.sharedObject = sharedObjectLink(ctx, s.message.ObjectID)
 	decision := s.sharedObject.PrepareAccess(func(val interface{}) (wakeup bool) {
 		object := val.(*sharedObject)
 		object.appendState(s.message.SideEffect)
-		return true
+		return false
 	}).TryUse(ctx).GetDecision()
 
 	switch decision {
+	case smachine.Passed:
+		return ctx.Jump(s.getSyncLink)
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.sharedObject).ThenRepeat()
 	case smachine.Impossible:
@@ -75,4 +69,41 @@ func (s *SetResult) saveResult(ctx smachine.ExecutionContext) smachine.StateUpda
 	}
 
 	return ctx.Stop()
+}
+
+func (s *SetResult) getSyncLink(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	objectID := s.message.ObjectID
+	// TODO: calculate jet.
+	jetID := insolar.JetID(objectID)
+
+	decision := sharedDropBatchLink(ctx, jetID).PrepareAccess(func(val interface{}) (wakeup bool) {
+		batch := val.(*sharedDropBatch)
+		s.syncFinished = batch.syncFinished
+		return false
+	}).TryUse(ctx).GetDecision()
+
+	switch decision {
+	case smachine.Passed:
+		return ctx.Jump(s.waitForSync)
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.sharedObject).ThenRepeat()
+	case smachine.Impossible:
+		return ctx.Stop()
+	default:
+		panic("unknown state from TryUse")
+	}
+}
+
+func (s *SetResult) waitForSync(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	switch ctx.Acquire(s.syncFinished).GetDecision() {
+	case smachine.Passed:
+		// TODO: return OK.
+		return ctx.Stop()
+	case smachine.NotPassed:
+		return ctx.Sleep().ThenRepeat()
+	case smachine.Impossible:
+		return ctx.Stop()
+	default:
+		panic("unknown state from TryUse")
+	}
 }

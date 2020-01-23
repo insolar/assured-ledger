@@ -73,17 +73,7 @@ func (s *Object) propagateChangeToDrop(ctx smachine.ExecutionContext) smachine.S
 	// TODO: calculate jet.
 	jetID := insolar.JetID(s.id)
 
-	s.sharedDropBatch = ctx.GetPublishedLink(jetID)
-	if s.sharedDropBatch.IsZero() {
-		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return NewDropBatch(jetID)
-		})
-		s.sharedDropBatch = ctx.GetPublishedLink(jetID)
-		if s.sharedDropBatch.IsZero() {
-			ctx.Stop()
-		}
-	}
-
+	s.sharedDropBatch = sharedDropBatchLink(ctx, jetID)
 	decision := s.sharedDropBatch.PrepareAccess(func(val interface{}) (wakeup bool) {
 		batch := val.(*sharedDropBatch)
 		batch.appendRecords(s.ownedObject.updates)
@@ -101,4 +91,19 @@ func (s *Object) propagateChangeToDrop(ctx smachine.ExecutionContext) smachine.S
 	}
 
 	return ctx.Stop()
+}
+
+func sharedObjectLink(ctx smachine.ExecutionContext, objID insolar.ID) smachine.SharedDataLink {
+	link := ctx.GetPublishedLink(objID)
+	if link.IsZero() {
+		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return NewObject(objID)
+		})
+		link = ctx.GetPublishedLink(objID)
+		if link.IsZero() {
+			panic("failed to acquire shared object")
+		}
+	}
+
+	return link
 }
