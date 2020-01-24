@@ -179,3 +179,35 @@ func TestBitBuilder_FirstHigh_SubByte(t *testing.T) {
 	require.Equal(t, 24, bb.Len())
 	require.Equal(t, []byte{0x11, 0x63, 0x5F}, bb.dump())
 }
+
+func TestBitBuilder_Done(t *testing.T) {
+	t.Run("Aligned", func(t *testing.T) {
+		bb := NewBitBuilder(MSB, 0)
+		bb.AppendBit(0)
+		bb.AppendBit(0)
+		bb.AppendBit(1)
+		bb.AppendBit(0)
+		bb.AppendBit(1)
+		bb.AppendBit(1)
+		bb.AppendBit(1)
+		bb.AppendBit(1)
+
+		doneBytes, doneLen := bb.Done()
+		require.Equal(t, []byte{0x2f}, doneBytes)
+		require.Equal(t, 0, doneLen)
+	})
+
+	t.Run("NonAligned", func(t *testing.T) {
+		bb := NewBitBuilder(MSB, 0)
+		bb.AppendBit(0)
+		bb.AppendBit(0)
+		bb.AppendBit(1)
+		bb.AppendBit(0)
+		bb.AppendBit(1)
+		bb.AppendBit(1)
+
+		doneBytes, doneLen := bb.Done()
+		require.Equal(t, []byte{0x2c}, doneBytes)
+		require.Equal(t, -2, doneLen)
+	})
+}
