@@ -1,4 +1,4 @@
-///
+//
 //    Copyright 2019 Insolar Technologies
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,7 @@
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
-///
+//
 
 package pulse
 
@@ -61,6 +61,11 @@ const (
 	// Base part - same as of Node ref of the node accepted the call
 	// Local part - pulse of seed, hash of request
 	ExternalCall
+
+	// Identity of an endpoint
+	// Indicates when the endpoint is free-to-call, can be served by any node, or needs a special handling.
+	EndpointAddress
+	// FreeEndpointAddress ??
 
 	// Identity of data relevant to pulse, e.g. network state hash, network population, jet tree etc
 	DataOfPulse

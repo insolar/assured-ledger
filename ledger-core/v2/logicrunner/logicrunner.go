@@ -37,7 +37,7 @@ import (
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin"
 	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
@@ -98,9 +98,9 @@ func (lr *LogicRunner) LRI() {}
 
 func (lr *LogicRunner) Init(ctx context.Context) error {
 	lr.ShutdownFlag = shutdown.NewFlag()
-	log.Error("MachinesManager: %v", lr.MachinesManager)
+	global.Error("MachinesManager: %v", lr.MachinesManager)
 	if lr.MachinesManager == machinesmanager.MachinesManager(nil) {
-		log.Error("New MachinesManager")
+		global.Error("New MachinesManager")
 		lr.MachinesManager = machinesmanager.NewMachinesManager()
 	}
 	lr.ContractRunner = s_contract_runner.CreateContractRunner(lr.MachinesManager, lr.ArtifactManager)

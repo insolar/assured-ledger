@@ -53,7 +53,7 @@ var _ FoldableReader = EmptyByteString
 
 type ByteString string
 
-// TODO test behavior with nil/zero strings
+// TODO PLAT-17 test behavior with nil/zero strings
 
 func (v ByteString) IsEmpty() bool {
 	return len(v) == 0
@@ -90,6 +90,11 @@ func (v ByteString) AsByteString() ByteString {
 
 func (v ByteString) FixedByteSize() int {
 	return len(v)
+}
+
+func (v ByteString) CutOutUint64() uint64 {
+	folded := v.CutOutBits64()
+	return folded.FoldToUint64()
 }
 
 func (v ByteString) FoldToUint64() uint64 {
@@ -183,8 +188,19 @@ func (v ByteString) searchBit0(startAt int) int {
 	return -1
 }
 
-func (v ByteString) FoldToBits64() Bits64 {
-	var folded Bits64
+func (v ByteString) CutOutBits64() (folded Bits64) {
+	if len(v) <= len(folded) {
+		copy(folded[:], v)
+		return folded
+	}
+
+	for i := range folded {
+		folded[i] = v[i*(len(v)-1)/(len(folded)-1)]
+	}
+	return folded
+}
+
+func (v ByteString) FoldToBits64() (folded Bits64) {
 	if len(v) == 0 {
 		return folded
 	}

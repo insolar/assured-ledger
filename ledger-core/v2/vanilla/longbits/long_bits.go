@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-var _ FoldableReader = &Bits128{}
+var _ FoldableReader = Bits128{}
 
 const BitsStringPrefix = "0x"
 
@@ -38,17 +38,17 @@ func NewBits64(v uint64) Bits64 {
 	return r
 }
 
-func (v *Bits64) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write((*v)[:])
+func (v Bits64) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write((v)[:])
 	return int64(n), err
 }
 
-func (v *Bits64) Read(p []byte) (n int, err error) {
-	return copy(p, (*v)[:]), nil
+func (v Bits64) Read(p []byte) (n int, err error) {
+	return copy(p, (v)[:]), nil
 }
 
 // TODO test for all ReadAt
-func (v *Bits64) ReadAt(b []byte, off int64) (n int, err error) {
+func (v Bits64) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
 	} else {
@@ -56,23 +56,27 @@ func (v *Bits64) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
-func (v *Bits64) FoldToUint64() uint64 {
+func (v Bits64) CutOutUint64() uint64 {
 	return binary.LittleEndian.Uint64(v[:])
 }
 
-func (v *Bits64) FixedByteSize() int {
-	return len(*v)
+func (v Bits64) FoldToUint64() uint64 {
+	return binary.LittleEndian.Uint64(v[:])
 }
 
-func (v *Bits64) AsByteString() ByteString {
+func (v Bits64) FixedByteSize() int {
+	return len(v)
+}
+
+func (v Bits64) AsByteString() ByteString {
 	return ByteString(v[:])
 }
 
 func (v Bits64) String() string {
-	return bitsToStringDefault(&v)
+	return bitsToStringDefault(v)
 }
 
-func (v *Bits64) AsBytes() []byte {
+func (v Bits64) AsBytes() []byte {
 	return v[:]
 }
 
@@ -81,14 +85,13 @@ func (v Bits64) Compare(other Bits64) int {
 }
 
 /* Array size doesnt need to be aligned */
-func FoldToBits64(v []byte) Bits64 {
-	var folded Bits64
+func FoldToBits64(v []byte) (folded Bits64) {
 	if len(v) == 0 {
 		return folded
 	}
 
-	alignedLen := len(v) & (len(folded) - 1)
-	copy(folded[alignedLen:], v)
+	alignedLen := len(v) &^ (len(folded) - 1) // NB! len(folded) MUST be power of 2
+	copy(folded[:], v[alignedLen:])
 
 	for i := 0; i < alignedLen; i += len(folded) {
 		folded[0] ^= v[i+0]
@@ -103,6 +106,19 @@ func FoldToBits64(v []byte) Bits64 {
 	return folded
 }
 
+/* Array size doesnt need to be aligned */
+func CutOutBits64(v []byte) (folded Bits64) {
+	if len(v) <= len(folded) {
+		copy(folded[:], v)
+		return folded
+	}
+
+	for i := range folded {
+		folded[i] = v[i*(len(v)-1)/(len(folded)-1)]
+	}
+	return folded
+}
+
 func NewBits128(lo, hi uint64) Bits128 {
 	r := Bits128{}
 	binary.LittleEndian.PutUint64(r[:8], lo)
@@ -112,16 +128,16 @@ func NewBits128(lo, hi uint64) Bits128 {
 
 type Bits128 [16]byte
 
-func (v *Bits128) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write((*v)[:])
+func (v Bits128) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write((v)[:])
 	return int64(n), err
 }
 
-func (v *Bits128) Read(p []byte) (n int, err error) {
-	return copy(p, (*v)[:]), nil
+func (v Bits128) Read(p []byte) (n int, err error) {
+	return copy(p, (v)[:]), nil
 }
 
-func (v *Bits128) ReadAt(b []byte, off int64) (n int, err error) {
+func (v Bits128) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
 	} else {
@@ -129,23 +145,27 @@ func (v *Bits128) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
-func (v *Bits128) FoldToUint64() uint64 {
+func (v Bits128) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
+}
+
+func (v Bits128) FoldToUint64() uint64 {
 	return FoldToUint64(v[:])
 }
 
-func (v *Bits128) FixedByteSize() int {
-	return len(*v)
+func (v Bits128) FixedByteSize() int {
+	return len(v)
 }
 
 func (v Bits128) String() string {
-	return bitsToStringDefault(&v)
+	return bitsToStringDefault(v)
 }
 
-func (v *Bits128) AsByteString() ByteString {
+func (v Bits128) AsByteString() ByteString {
 	return ByteString(v[:])
 }
 
-func (v *Bits128) AsBytes() []byte {
+func (v Bits128) AsBytes() []byte {
 	return v[:]
 }
 
@@ -155,16 +175,16 @@ func (v Bits128) Compare(other Bits128) int {
 
 type Bits224 [28]byte
 
-func (v *Bits224) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write((*v)[:])
+func (v Bits224) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write((v)[:])
 	return int64(n), err
 }
 
-func (v *Bits224) Read(p []byte) (n int, err error) {
-	return copy(p, (*v)[:]), nil
+func (v Bits224) Read(p []byte) (n int, err error) {
+	return copy(p, (v)[:]), nil
 }
 
-func (v *Bits224) ReadAt(b []byte, off int64) (n int, err error) {
+func (v Bits224) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
 	} else {
@@ -172,25 +192,27 @@ func (v *Bits224) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
-func (v *Bits224) FoldToUint64() uint64 {
-	return binary.LittleEndian.Uint64(v[:]) ^
-		binary.LittleEndian.Uint64(v[8:]) ^
-		binary.LittleEndian.Uint64(v[16:])
+func (v Bits224) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
 }
 
-func (v *Bits224) FixedByteSize() int {
-	return len(*v)
+func (v Bits224) FoldToUint64() uint64 {
+	return FoldToUint64(v[:])
+}
+
+func (v Bits224) FixedByteSize() int {
+	return len(v)
 }
 
 func (v Bits224) String() string {
-	return bitsToStringDefault(&v)
+	return bitsToStringDefault(v)
 }
 
-func (v *Bits224) AsBytes() []byte {
+func (v Bits224) AsBytes() []byte {
 	return v[:]
 }
 
-func (v *Bits224) AsByteString() ByteString {
+func (v Bits224) AsByteString() ByteString {
 	return ByteString(v[:])
 }
 
@@ -200,16 +222,16 @@ func (v Bits224) Compare(other Bits224) int {
 
 type Bits256 [32]byte
 
-func (v *Bits256) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write((*v)[:])
+func (v Bits256) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write((v)[:])
 	return int64(n), err
 }
 
-func (v *Bits256) Read(p []byte) (n int, err error) {
-	return copy(p, (*v)[:]), nil
+func (v Bits256) Read(p []byte) (n int, err error) {
+	return copy(p, (v)[:]), nil
 }
 
-func (v *Bits256) ReadAt(b []byte, off int64) (n int, err error) {
+func (v Bits256) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
 	} else {
@@ -217,39 +239,45 @@ func (v *Bits256) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
-func (v *Bits256) FoldToUint64() uint64 {
+func (v Bits256) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
+}
+
+func (v Bits256) FoldToUint64() uint64 {
 	return FoldToUint64(v[:])
 }
 
-func (v *Bits256) FoldToBits128() Bits128 {
-	r := Bits128{}
+func (v Bits256) FoldToBits128() (r Bits128) {
 	for i := range r {
 		r[i] = v[i] ^ v[i+len(r)]
 	}
 	return r
 }
 
-func (v *Bits256) FoldToBits224() Bits224 {
-	r := Bits224{}
+func (v Bits256) FoldToBits224() Bits224 {
+	return v.CutOutBits224()
+}
+
+func (v Bits256) CutOutBits224() (r Bits224) {
 	for i := range r {
 		r[i] = v[i]
 	}
 	return r
 }
 
-func (v *Bits256) FixedByteSize() int {
-	return len(*v)
+func (v Bits256) FixedByteSize() int {
+	return len(v)
 }
 
 func (v Bits256) String() string {
-	return bitsToStringDefault(&v)
+	return bitsToStringDefault(v)
 }
 
-func (v *Bits256) AsBytes() []byte {
+func (v Bits256) AsBytes() []byte {
 	return v[:]
 }
 
-func (v *Bits256) AsByteString() ByteString {
+func (v Bits256) AsByteString() ByteString {
 	return ByteString(v[:])
 }
 
@@ -259,16 +287,16 @@ func (v Bits256) Compare(other Bits256) int {
 
 type Bits512 [64]byte
 
-func (v *Bits512) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write((*v)[:])
+func (v Bits512) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write((v)[:])
 	return int64(n), err
 }
 
-func (v *Bits512) Read(p []byte) (n int, err error) {
-	return copy(p, (*v)[:]), nil
+func (v Bits512) Read(p []byte) (n int, err error) {
+	return copy(p, (v)[:]), nil
 }
 
-func (v *Bits512) ReadAt(b []byte, off int64) (n int, err error) {
+func (v Bits512) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
 	} else {
@@ -276,39 +304,41 @@ func (v *Bits512) ReadAt(b []byte, off int64) (n int, err error) {
 	}
 }
 
-func (v *Bits512) FoldToUint64() uint64 {
+func (v Bits512) CutOutUint64() uint64 {
+	return CutOutUint64(v[:])
+}
+
+func (v Bits512) FoldToUint64() uint64 {
 	return FoldToUint64(v[:])
 }
 
-func (v *Bits512) FoldToBits256() Bits256 {
-	r := Bits256{}
+func (v Bits512) FoldToBits256() (r Bits256) {
 	for i := range r {
 		r[i] = v[i] ^ v[i+len(r)]
 	}
 	return r
 }
 
-func (v *Bits512) FoldToBits224() Bits224 {
-	r := Bits224{}
+func (v Bits512) FoldToBits224() (r Bits224) {
 	for i := range r {
 		r[i] = v[i] ^ v[i+32]
 	}
 	return r
 }
 
-func (v *Bits512) FixedByteSize() int {
-	return len(*v)
+func (v Bits512) FixedByteSize() int {
+	return len(v)
 }
 
 func (v Bits512) String() string {
-	return bitsToStringDefault(&v)
+	return bitsToStringDefault(v)
 }
 
-func (v *Bits512) AsBytes() []byte {
+func (v Bits512) AsBytes() []byte {
 	return v[:]
 }
 
-func (v *Bits512) AsByteString() ByteString {
+func (v Bits512) AsByteString() ByteString {
 	return ByteString(v[:])
 }
 
@@ -316,7 +346,11 @@ func (v Bits512) Compare(other Bits512) int {
 	return bytes.Compare(v[:], other[:])
 }
 
-/* Array size must be aligned to 8 bytes */
+func CutOutUint64(v []byte) uint64 {
+	folded := CutOutBits64(v)
+	return folded.CutOutUint64()
+}
+
 func FoldToUint64(v []byte) uint64 {
 	folded := FoldToBits64(v)
 	return folded.FoldToUint64()
@@ -388,32 +422,32 @@ func copyToFixedBits(dst, src []byte, expectedSize int) {
 	copy(dst, src)
 }
 
-func NewBits64FromBytes(bytes []byte) *Bits64 {
+func NewBits64FromBytes(bytes []byte) Bits64 {
 	b := Bits64{}
 	copyToFixedBits(b[:], bytes, b.FixedByteSize())
-	return &b
+	return b
 }
 
-func NewBits128FromBytes(bytes []byte) *Bits128 {
+func NewBits128FromBytes(bytes []byte) Bits128 {
 	b := Bits128{}
 	copyToFixedBits(b[:], bytes, b.FixedByteSize())
-	return &b
+	return b
 }
 
-func NewBits224FromBytes(bytes []byte) *Bits224 {
+func NewBits224FromBytes(bytes []byte) Bits224 {
 	b := Bits224{}
 	copyToFixedBits(b[:], bytes, b.FixedByteSize())
-	return &b
+	return b
 }
 
-func NewBits256FromBytes(bytes []byte) *Bits256 {
+func NewBits256FromBytes(bytes []byte) Bits256 {
 	b := Bits256{}
 	copyToFixedBits(b[:], bytes, b.FixedByteSize())
-	return &b
+	return b
 }
 
-func NewBits512FromBytes(bytes []byte) *Bits512 {
+func NewBits512FromBytes(bytes []byte) Bits512 {
 	b := Bits512{}
 	copyToFixedBits(b[:], bytes, b.FixedByteSize())
-	return &b
+	return b
 }

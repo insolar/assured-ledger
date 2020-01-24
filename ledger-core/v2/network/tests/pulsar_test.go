@@ -59,17 +59,18 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/component-manager"
 )
 
 type TestPulsar interface {
@@ -158,7 +159,7 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 	var err error
 	pls.Signs, err = getPSC(pls)
 	if err != nil {
-		log.Errorf("[ distribute ]", err)
+		global.Errorf("[ distribute ]", err)
 	}
 
 	for {
@@ -195,7 +196,7 @@ func (tp *testPulsar) incrementPulse(pulse insolar.Pulse) insolar.Pulse {
 	var err error
 	newPulse.Signs, err = getPSC(newPulse)
 	if err != nil {
-		log.Errorf("[ incrementPulse ]", err)
+		global.Errorf("[ incrementPulse ]", err)
 	}
 	return newPulse
 }

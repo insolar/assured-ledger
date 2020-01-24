@@ -21,24 +21,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 )
 
 const defaultLogFormat = logcommon.TextFormat
-const defaultLogOutput = logadapter.StdErrOutput
+const defaultLogOutput = logoutput.StdErrOutput
 
 type ParsedLogConfig struct {
-	OutputType logadapter.LogOutput
-	LogLevel   logcommon.LogLevel
-	//GlobalLevel logcommon.LogLevel
+	OutputType logoutput.LogOutput
+	LogLevel   log.Level
 
 	OutputParam string
 
-	Output      logadapter.OutputConfig
-	Instruments logadapter.InstrumentationConfig
+	Output      logcommon.OutputConfig
+	Instruments logcommon.InstrumentationConfig
 
 	SkipFrameBaselineAdjustment int8
 }
@@ -47,7 +47,11 @@ const defaultLowLatencyBufferSize = 100
 
 func DefaultLoggerSettings() ParsedLogConfig {
 	r := ParsedLogConfig{}
-	r.Instruments.MetricsMode = logcommon.LogMetricsEventCount | logcommon.LogMetricsWriteDelayReport | logcommon.LogMetricsWriteDelayField
+	r.Instruments.MetricsMode = logcommon.LogMetricsEventCount |
+		logcommon.LogMetricsWriteDelayReport |
+		logcommon.LogMetricsWriteDelayField |
+		logcommon.LogMetricsTimestamp
+
 	r.Instruments.CallerMode = logcommon.CallerField
 	return r
 }
@@ -70,7 +74,7 @@ func ParseLogConfigWithDefaults(cfg configuration.Log, defaults ParsedLogConfig)
 		return
 	}
 
-	plc.LogLevel, err = logcommon.ParseLevel(cfg.Level)
+	plc.LogLevel, err = log.ParseLevel(cfg.Level)
 	if err != nil {
 		return
 	}
@@ -113,20 +117,20 @@ func ParseFormat(formatStr string, defValue logcommon.LogFormat) (logcommon.LogF
 		return defValue, nil
 	case logcommon.TextFormat.String():
 		return logcommon.TextFormat, nil
-	case logcommon.JSONFormat.String():
-		return logcommon.JSONFormat, nil
+	case logcommon.JsonFormat.String():
+		return logcommon.JsonFormat, nil
 	}
 	return defValue, fmt.Errorf("unknown Format: '%s', replaced with '%s'", formatStr, defValue)
 }
 
-func ParseOutput(outputStr string, defValue logadapter.LogOutput) (logadapter.LogOutput, error) {
+func ParseOutput(outputStr string, defValue logoutput.LogOutput) (logoutput.LogOutput, error) {
 	switch strings.ToLower(outputStr) {
 	case "", "default":
 		return defValue, nil
-	case logadapter.StdErrOutput.String():
-		return logadapter.StdErrOutput, nil
-	case logadapter.SysLogOutput.String():
-		return logadapter.SysLogOutput, nil
+	case logoutput.StdErrOutput.String():
+		return logoutput.StdErrOutput, nil
+	case logoutput.SysLogOutput.String():
+		return logoutput.SysLogOutput, nil
 	}
 	return defValue, fmt.Errorf("unknown Output: '%s', replaced with '%s'", outputStr, defValue)
 }

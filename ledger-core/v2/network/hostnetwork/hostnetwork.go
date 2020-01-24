@@ -60,7 +60,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/future"
@@ -245,7 +245,7 @@ func (hn *hostNetwork) RegisterPacketHandler(t types.PacketType, handler network
 
 	_, exists := hn.handlers[t]
 	if exists {
-		log.Warnf("Multiple handlers for packet type %s are not supported! New handler will replace the old one!", t)
+		global.Warnf("Multiple handlers for packet type %s are not supported! New handler will replace the old one!", t)
 	}
 	hn.handlers[t] = handler
 }

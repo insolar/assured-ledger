@@ -89,15 +89,15 @@ func TestWrite(t *testing.T) {
 }
 
 func TestAsByteString(t *testing.T) {
-	fs := &fixedSize{}
+	fs := fixedSize{}
 	require.Empty(t, fs.AsByteString())
 
-	fs = &fixedSize{data: []byte{'a', 'b', 'c'}}
+	fs = fixedSize{data: []byte{'a', 'b', 'c'}}
 	require.Equal(t, ByteString("abc"), fs.AsByteString())
 }
 
 func TestWriteTo(t *testing.T) {
-	fs := &fixedSize{data: []byte{0}}
+	fs := fixedSize{data: []byte{0}}
 	buf := &bytes.Buffer{}
 	n, err := fs.WriteTo(buf)
 	require.Nil(t, err)
@@ -107,7 +107,7 @@ func TestWriteTo(t *testing.T) {
 
 func TestRead(t *testing.T) {
 	item := byte(3)
-	fs := &fixedSize{data: []byte{item}}
+	fs := fixedSize{data: []byte{item}}
 	buf := make([]byte, 2)
 	n, err := fs.Read(buf)
 	require.Equal(t, 1, n)
@@ -118,20 +118,36 @@ func TestRead(t *testing.T) {
 }
 
 func TestFoldToUint64(t *testing.T) {
-	fs := &fixedSize{data: []byte{1}}
-	require.Panics(t, func() { fs.FoldToUint64() })
+	require.Equal(t, uint64(0), fixedSize{data: []byte{}}.FoldToUint64())
+	require.Equal(t, uint64(0x01), fixedSize{data: []byte{1}}.FoldToUint64())
+	require.Equal(t, uint64(0x0201), fixedSize{data: []byte{1, 2}}.FoldToUint64())
 
-	fs.data = append(fs.data, 2, 3, 4, 5, 6, 7, 8)
-	require.Equal(t, uint64(0x807060504030201), fs.FoldToUint64())
+	fs := fixedSize{data: []byte{1, 2, 3, 4, 5, 6, 7, 8}}
+	require.Equal(t, uint64(0x0807060504030201), fs.FoldToUint64())
+	fs.data = append(fs.data, 9)
+	require.Equal(t, uint64(0x0807060504030208), fs.FoldToUint64())
+	fs.data = append(fs.data, 10)
+	require.Equal(t, uint64(0x0807060504030808), fs.FoldToUint64())
+	fs.data = append(fs.data, 11, 12, 13, 14, 15, 16)
+	require.Equal(t, uint64(0x1808080808080808), fs.FoldToUint64())
+	fs.data = append(fs.data, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80)
+	require.Equal(t, uint64(0x9878685848382818), fs.FoldToUint64())
+}
+
+func TestCutOutUint64(t *testing.T) {
+	require.Equal(t, uint64(0), fixedSize{data: []byte{}}.CutOutUint64())
+	require.Equal(t, uint64(0x01), fixedSize{data: []byte{1}}.CutOutUint64())
+	require.Equal(t, uint64(0x0201), fixedSize{data: []byte{1, 2}}.CutOutUint64())
+	require.Equal(t, uint64(0x807060504030201), fixedSize{data: []byte{1, 2, 3, 4, 5, 6, 7, 8}}.CutOutUint64())
 }
 
 func TestFixedByteSize(t *testing.T) {
-	fs := &fixedSize{data: []byte{1, 2}}
+	fs := fixedSize{data: []byte{1, 2}}
 	require.Equal(t, len(fs.data), fs.FixedByteSize())
 }
 
 func TestAsBytes(t *testing.T) {
-	fs := &fixedSize{data: []byte{1, 2}}
+	fs := fixedSize{data: []byte{1, 2}}
 	require.Len(t, fs.AsBytes(), len(fs.data))
 
 	require.Equal(t, fs.data, fs.AsBytes())

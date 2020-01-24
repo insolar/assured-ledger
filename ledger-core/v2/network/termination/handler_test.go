@@ -55,10 +55,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/gojuno/minimock/v3"
@@ -165,11 +165,30 @@ func TestAbort(t *testing.T) {
 	handler := NewHandler(nil)
 	require.NotNil(t, handler)
 
-	l := insolar.NewLoggerMock(t)
-	l.FatalMock.Set(func(p1 ...interface{}) {
-		assert.Equal(t, "abort", p1[0])
+	intercept := interceptLoggerOutput{make(chan string)}
+	ctx = inslogger.UpdateLogger(context.Background(), func(l log.Logger) (log.Logger, error) {
+		return l.Copy().WithOutput(&intercept).Build()
 	})
 
-	ctx = inslogger.SetLogger(ctx, l)
-	handler.Abort(ctx, "abort")
+	go func() {
+		// As About() calls Fatal, then the call must hang on write to avoid os.Exit()
+		handler.Abort(ctx, "abort")
+		require.FailNow(t, "must hang")
+	}()
+
+	select {
+	case msg := <-intercept.out:
+		require.Contains(t, msg, "abort")
+	case <-time.After(10 * time.Second):
+		require.FailNow(t, "timeout")
+	}
+}
+
+type interceptLoggerOutput struct {
+	out chan string
+}
+
+func (p interceptLoggerOutput) Write(b []byte) (int, error) {
+	p.out <- string(b)
+	select {} // hang up
 }

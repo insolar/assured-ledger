@@ -35,7 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/stretchr/testify/require"
@@ -273,7 +273,7 @@ func fetchMetricValue(h http.Handler, metricName string, expect float64, maxDura
 	for i := 0; i < int(tries); i++ {
 		req, err := http.NewRequest("GET", "/metrics", nil)
 		if err != nil {
-			log.Fatal(err)
+			global.Fatal(err)
 		}
 		rr := httptest.NewRecorder()
 		h.ServeHTTP(rr, req)

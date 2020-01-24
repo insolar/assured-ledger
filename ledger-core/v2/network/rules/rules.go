@@ -56,7 +56,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
@@ -98,7 +98,7 @@ func CheckMinRole(cert insolar.Certificate, nodes []insolar.NetworkNode) error {
 		case insolar.StaticRoleLightMaterial:
 			lightCount++
 		default:
-			log.Warn("unknown node role")
+			global.Warn("unknown node role")
 		}
 	}
 

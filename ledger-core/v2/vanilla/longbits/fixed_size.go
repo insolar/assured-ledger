@@ -26,7 +26,7 @@ type Foldable interface {
 	FoldToUint64() uint64
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/longbits.FixedReader -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FixedReader -o . -s _mock.go -g
 type FixedReader interface {
 	io.WriterTo
 	//io.ReaderAt
@@ -37,7 +37,7 @@ type FixedReader interface {
 	FixedByteSize() int
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/longbits.FoldableReader -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FoldableReader -o . -s _mock.go -g
 type FoldableReader interface {
 	FixedReader
 	Foldable
@@ -48,7 +48,7 @@ func FoldUint64(v uint64) uint32 {
 }
 
 func EqualFixedLenWriterTo(t, o FixedReader) bool {
-	if t == FixedReader(nil) || o == FixedReader(nil) {
+	if t == nil || o == nil {
 		return false
 	}
 	return (&writerToComparer{}).compare(t, o)
@@ -91,28 +91,32 @@ type fixedSize struct {
 	data []byte
 }
 
-func (c *fixedSize) AsByteString() ByteString {
+func (c fixedSize) AsByteString() ByteString {
 	return ByteString(c.data)
 }
 
-func (c *fixedSize) WriteTo(w io.Writer) (n int64, err error) {
+func (c fixedSize) WriteTo(w io.Writer) (n int64, err error) {
 	n32, err := w.Write(c.data)
 	return int64(n32), err
 }
 
-func (c *fixedSize) Read(p []byte) (n int, err error) {
+func (c fixedSize) Read(p []byte) (n int, err error) {
 	return copy(p, c.data), nil
 }
 
-func (c *fixedSize) FoldToUint64() uint64 {
+func (c fixedSize) FoldToUint64() uint64 {
 	return FoldToUint64(c.data)
 }
 
-func (c *fixedSize) FixedByteSize() int {
+func (c fixedSize) CutOutUint64() uint64 {
+	return CutOutUint64(c.data)
+}
+
+func (c fixedSize) FixedByteSize() int {
 	return len(c.data)
 }
 
-func (c *fixedSize) AsBytes() []byte {
+func (c fixedSize) AsBytes() []byte {
 	return c.data
 }
 
@@ -129,15 +133,15 @@ func ReadFixedSize(v FoldableReader) []byte {
 }
 
 func NewFixedReader(data []byte) FixedReader {
-	return &fixedSize{data: data}
+	return fixedSize{data: data}
 }
 
 func NewMutableFixedSize(data []byte) FixedReader {
-	return &fixedSize{data}
+	return fixedSize{data}
 }
 
 func CopyToMutable(v FoldableReader) FoldableReader {
-	return &fixedSize{ReadFixedSize(v)}
+	return fixedSize{ReadFixedSize(v)}
 }
 
 func NewImmutableFixedSize(data []byte) FixedReader {
@@ -151,14 +155,13 @@ func CopyToImmutable(v FoldableReader) FoldableReader {
 func CopyFixedSize(v FoldableReader) FoldableReader {
 	r := fixedSize{}
 	r.data = make([]byte, v.FixedByteSize())
-	n, err := v.Read(r.data)
-	if err != nil {
+	switch n, err := v.Read(r.data); {
+	case err != nil:
 		panic(err)
-	}
-	if n != len(r.data) {
+	case n != len(r.data):
 		panic("unexpected")
 	}
-	return &r
+	return r
 }
 
 func VerifyReadAt(b []byte, off int64, max int) (n int, err error) {

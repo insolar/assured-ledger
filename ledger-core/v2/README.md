@@ -2,12 +2,6 @@
 
 Insolar platform is the most secure, scalable, and comprehensive business-ready blockchain toolkit in the world. Insolar’s goal is to give businesses access to features and services that enable them to launch new decentralized applications quickly and easily. Whether a minimum viable product or full-scale production software, Insolar builds and integrates applications for your enterprise's existing systems.
 
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2150/badge)](https://bestpractices.coreinfrastructure.org/projects/2150)
-[![GolangCI](https://golangci.com/badges/github.com/insolar/assured-ledger/ledger-core/v2.svg)](https://golangci.com/r/github.com/insolar/assured-ledger/ledger-core/v2/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/insolar/assured-ledger/ledger-core/v2)](https://goreportcard.com/report/github.com/insolar/assured-ledger/ledger-core/v2)
-[![GoDoc](https://godoc.org/github.com/insolar/assured-ledger/ledger-core/v2?status.svg)](https://godoc.org/github.com/insolar/assured-ledger/ledger-core/v2)
-[![codecov](https://codecov.io/gh/insolar/insolar/branch/master/graph/badge.svg)](https://codecov.io/gh/insolar/insolar)
-
 # Quick start
 
 To learn what distinguishes Insolar from other blockchain projects, go through the [list of our features](https://insolar.io/platform?utm_source=Github). 

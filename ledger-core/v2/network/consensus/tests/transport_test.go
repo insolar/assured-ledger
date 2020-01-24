@@ -55,11 +55,11 @@ import (
 	"io"
 	"math/rand"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
@@ -301,6 +301,10 @@ func (r *emuTransportCryptography) CreateSequenceDigester() cryptkit.SequenceDig
 	return &seqDigester{}
 }
 
+func (r *emuTransportCryptography) CreateForkingDigester() cryptkit.ForkingDigester {
+	return &seqDigester{}
+}
+
 func (r *emuTransportCryptography) CreateGlobulaStateDigester() transport.StateDigester {
 	return &gshDigester{&seqDigester{}, r.defaultDigest}
 }
@@ -309,7 +313,7 @@ func (r *emuTransportCryptography) CreatePublicKeyStore(skh cryptkit.SignatureKe
 	return nil
 }
 
-func (r *emuTransportCryptography) CreateAnnouncementDigester() cryptkit.SequenceDigester {
+func (r *emuTransportCryptography) CreateAnnouncementDigester() cryptkit.ForkingDigester {
 	return &seqDigester{}
 }
 
@@ -329,7 +333,7 @@ func (r *emuTransportCryptography) IsDigestOfSignatureMethodSupported(m cryptkit
 	return true
 }
 
-func (r *emuTransportCryptography) IsSignMethodSupported(m cryptkit.SignMethod) bool {
+func (r *emuTransportCryptography) IsSignMethodSupported(m cryptkit.SigningMethod) bool {
 	return true
 }
 
@@ -338,10 +342,10 @@ func (r *emuTransportCryptography) IsValidDigestSignature(digest cryptkit.Digest
 }
 
 func (r *emuTransportCryptography) SignDigest(digest cryptkit.Digest) cryptkit.Signature {
-	return cryptkit.NewSignature(digest, digest.GetDigestMethod().SignedBy(r.GetSignMethod()))
+	return cryptkit.NewSignature(digest, digest.GetDigestMethod().SignedBy(r.GetSigningMethod()))
 }
 
-func (r *emuTransportCryptography) GetSignMethod() cryptkit.SignMethod {
+func (r *emuTransportCryptography) GetSigningMethod() cryptkit.SigningMethod {
 	return "emuSing"
 }
 
@@ -380,7 +384,7 @@ func (s *seqDigester) GetDigestMethod() cryptkit.DigestMethod {
 	return "emuDigest64"
 }
 
-func (s *seqDigester) ForkSequence() cryptkit.SequenceDigester {
+func (s *seqDigester) ForkSequence() cryptkit.ForkingDigester {
 	cp := seqDigester{}
 	if s.rnd != nil {
 		cp.rnd = rand.New(rand.NewSource(s.lastSeed))
@@ -398,7 +402,7 @@ func (s *seqDigester) FinishSequence() cryptkit.Digest {
 }
 
 type gshDigester struct {
-	sd            cryptkit.SequenceDigester
+	sd            cryptkit.ForkingDigester
 	defaultDigest longbits.FoldableReader
 }
 

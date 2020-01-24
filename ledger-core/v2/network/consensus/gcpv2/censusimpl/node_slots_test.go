@@ -53,12 +53,13 @@ package censusimpl
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNPSGetNodeID(t *testing.T) {

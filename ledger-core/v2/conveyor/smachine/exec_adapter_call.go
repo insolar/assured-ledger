@@ -18,6 +18,7 @@ package smachine
 
 import (
 	"errors"
+	stdlog "log"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
@@ -25,6 +26,7 @@ import (
 type AdapterCall struct {
 	CallFn   AdapterCallFunc
 	Callback *AdapterCallback
+	ErrorFn  func(error)
 }
 
 var ErrCancelledCall = errors.New("cancelled")
@@ -97,4 +99,12 @@ func (c AdapterCall) RunAndSendResult(arg interface{}) error {
 		func(callFn AdapterCallFunc, _ NestedCallFunc, _ *synckit.ChainedCancel) (AsyncResultFunc, error) {
 			return callFn(arg), nil
 		})
+}
+
+func (c AdapterCall) ReportError(e error) {
+	if c.ErrorFn != nil {
+		c.ErrorFn(e)
+	} else {
+		stdlog.Print(e)
+	}
 }

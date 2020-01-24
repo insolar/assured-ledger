@@ -28,7 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	logger "github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
@@ -74,7 +74,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar
 }
 
 func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject insolar.Pulse) {
-	logger.Errorf("ClosePulse -> [%d]", pulseObject.PulseNumber)
+	global.Errorf("ClosePulse -> [%d]", pulseObject.PulseNumber)
 	c.previousPulse = pulseObject.PulseNumber
 
 	switch c.state {

@@ -25,13 +25,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-
-	"github.com/pkg/errors"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor.BackupMaker -o ./ -s _gen_mock.go -g
@@ -191,7 +191,7 @@ func waitForFile(ctx context.Context, filePath string, numIterations uint) error
 }
 
 type logWrapper struct {
-	logger logcommon.Logger
+	logger log.Logger
 	isInfo bool
 }
 

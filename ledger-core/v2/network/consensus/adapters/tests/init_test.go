@@ -66,6 +66,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
@@ -232,7 +233,7 @@ func initPulsar(ctx context.Context, delta uint16, ns InitializedNodes) {
 	}()
 }
 
-func initLogger(level logcommon.LogLevel) context.Context {
+func initLogger(level log.Level) context.Context {
 	ctx := context.Background()
 
 	cfg := configuration.NewLog()

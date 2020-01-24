@@ -51,9 +51,9 @@
 package adapters
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
@@ -89,7 +89,7 @@ func (d *SequenceDigester) GetDigestMethod() cryptkit.DigestMethod {
 	return d.dataDigester.GetDigestMethod()
 }
 
-func (d *SequenceDigester) ForkSequence() cryptkit.SequenceDigester {
+func (d *SequenceDigester) ForkSequence() cryptkit.ForkingDigester {
 	return &SequenceDigester{
 		dataDigester: d.dataDigester,
 		state:        d.state,

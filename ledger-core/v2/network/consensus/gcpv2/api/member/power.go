@@ -61,7 +61,7 @@ type Power uint8
 
 const MaxLinearMemberPower = (0x1F+32)<<(0xFF>>5) - 32
 
-func PowerOf(linearValue uint16) Power { // TODO tests are needed
+func PowerOf(linearValue uint16) Power {
 	if linearValue <= 0x1F {
 		return Power(linearValue)
 	}

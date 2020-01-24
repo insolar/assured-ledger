@@ -32,11 +32,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 func exitWithError(err error) {
-	log.Error(err.Error())
+	global.Error(err.Error())
 	Exit(1)
 }
 
@@ -51,10 +51,10 @@ func stopDB(ctx context.Context, bdb *store.BadgerDB, originalError error) {
 	closeError := bdb.Stop(ctx)
 	if closeError != nil {
 		err := errors.Wrap(originalError, "failed to stop store.BadgerDB")
-		log.Error(err.Error())
+		global.Error(err.Error())
 	}
 	if originalError != nil {
-		log.Error(originalError.Error())
+		global.Error(originalError.Error())
 	}
 	if originalError != nil || closeError != nil {
 		Exit(1)
@@ -65,10 +65,10 @@ func closeRawDB(bdb *badger.DB, originalError error) {
 	closeError := bdb.Close()
 	if closeError != nil {
 		closeError = errors.Wrap(originalError, "failed to close badger.DB")
-		log.Error(closeError.Error())
+		global.Error(closeError.Error())
 	}
 	if originalError != nil {
-		log.Error(originalError.Error())
+		global.Error(originalError.Error())
 	}
 	if originalError != nil || closeError != nil {
 		Exit(1)
@@ -76,7 +76,7 @@ func closeRawDB(bdb *badger.DB, originalError error) {
 }
 
 type BadgerLogger struct {
-	logcommon.Logger
+	log.Logger
 }
 
 func (b BadgerLogger) Warningf(fmt string, args ...interface{}) {
@@ -95,7 +95,7 @@ func isDBEmpty(bdb *badger.DB) error {
 
 	lsm, vlog := bdb.Size()
 	if lsm != 0 || vlog != 0 {
-		log.Infof("lsm: %zd, vlog: %zd", lsm, vlog)
+		global.Infof("lsm: %zd, vlog: %zd", lsm, vlog)
 		return errors.New("lsm or vlog are not empty")
 	}
 
@@ -106,7 +106,7 @@ func finalizeLastPulse(ctx context.Context, bdb *store.BadgerDB) (insolar.PulseN
 	pulsesDB := pulse.NewDB(bdb)
 
 	jetKeeper := executor.NewJetKeeper(jet.NewDBStore(bdb), bdb, pulsesDB)
-	log.Info("Current top sync pulse: ", jetKeeper.TopSyncPulse().String())
+	global.Info("Current top sync pulse: ", jetKeeper.TopSyncPulse().String())
 
 	it := bdb.NewIterator(executor.BackupStartKey(math.MaxUint32), true)
 	if !it.Next() {
@@ -114,7 +114,7 @@ func finalizeLastPulse(ctx context.Context, bdb *store.BadgerDB) (insolar.PulseN
 	}
 
 	pulseNumber := insolar.NewPulseNumber(it.Key())
-	log.Info("Found last backup start key: ", pulseNumber.String())
+	global.Info("Found last backup start key: ", pulseNumber.String())
 
 	if pulseNumber < jetKeeper.TopSyncPulse() {
 		return 0, errors.New("Found last backup start key must be grater or equal to top sync pulse")
@@ -124,7 +124,7 @@ func finalizeLastPulse(ctx context.Context, bdb *store.BadgerDB) (insolar.PulseN
 		return 0, errors.New("data is inconsistent. pulse " + pulseNumber.String() + " must have all confirms")
 	}
 
-	log.Info("All jets confirmed for pulse: ", pulseNumber.String())
+	global.Info("All jets confirmed for pulse: ", pulseNumber.String())
 	err := jetKeeper.AddBackupConfirmation(ctx, pulseNumber)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to add backup confirmation for pulse "+pulseNumber.String())
@@ -143,7 +143,7 @@ func finalizeLastPulse(ctx context.Context, bdb *store.BadgerDB) (insolar.PulseN
 // 2. gets last backuped version
 // 3. write 2. to file
 func prepareBackup(dbDir string) {
-	log.Info("prepareBackup. dbDir: ", dbDir)
+	global.Info("prepareBackup. dbDir: ", dbDir)
 
 	ops := badger.DefaultOptions(dbDir)
 	ops.Logger = badgerLogger
@@ -152,7 +152,7 @@ func prepareBackup(dbDir string) {
 		err := errors.Wrap(err, "failed to open DB")
 		exitWithError(err)
 	}
-	log.Info("DB is opened")
+	global.Info("DB is opened")
 	ctx := context.Background()
 
 	topSyncPulse, err := finalizeLastPulse(ctx, bdb)
@@ -162,7 +162,7 @@ func prepareBackup(dbDir string) {
 	}
 
 	stopDB(ctx, bdb, nil)
-	log.Info("New top sync pulse: ", topSyncPulse.String())
+	global.Info("New top sync pulse: ", topSyncPulse.String())
 }
 
 func parsePrepareBackupParams() *cobra.Command {
@@ -202,7 +202,7 @@ func parseInputParams() {
 }
 
 func initLogger() context.Context {
-	log.SetLogLevel(logcommon.DebugLevel)
+	global.SetLevel(log.DebugLevel)
 
 	cfg := configuration.NewLog()
 	cfg.Level = "Debug"
@@ -217,7 +217,7 @@ func initLogger() context.Context {
 func initExit(ctx context.Context) {
 	InitExitContext(inslogger.FromContext(ctx))
 	AtExit("logger-flusher", func() error {
-		log.Flush()
+		global.Flush()
 		return nil
 	})
 }

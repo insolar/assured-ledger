@@ -57,12 +57,13 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/stretchr/testify/require"
 )
 
 var digester = func() cryptkit.DataDigester {

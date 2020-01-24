@@ -60,8 +60,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
@@ -172,7 +172,7 @@ func TestECDSADigestSigner_SignDigest(t *testing.T) {
 func TestECDSADigestSigner_GetSignMethod(t *testing.T) {
 	ds := NewECDSADigestSigner(privateKey, scheme)
 
-	require.Equal(t, ds.GetSignMethod(), SECP256r1Sign)
+	require.Equal(t, ds.GetSigningMethod(), SECP256r1Sign)
 }
 
 func TestNewECDSASignatureVerifier(t *testing.T) {

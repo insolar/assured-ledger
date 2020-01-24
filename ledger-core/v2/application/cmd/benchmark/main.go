@@ -36,7 +36,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
@@ -367,7 +367,7 @@ func main() {
 	t := time.Now()
 	fmt.Printf("Start: %s\n\n", t.String())
 
-	err := log.SetLevel(logLevel)
+	err := global.SetTextLevel(logLevel)
 	check(fmt.Sprintf("Can't set '%s' level on logger:", logLevel), err)
 
 	out, err := chooseOutput(output)
@@ -400,9 +400,9 @@ func main() {
 				printResults(b)
 			case syscall.SIGINT:
 				if !stopGracefully {
-					log.Fatal("Force quiting.")
+					global.Fatal("Force quiting.")
 				} else {
-					log.Info("Gracefully finishing benchmark. Press Ctrl+C again to force quit.")
+					global.Info("Gracefully finishing benchmark. Press Ctrl+C again to force quit.")
 				}
 
 				stopGracefully = false
@@ -437,9 +437,9 @@ func main() {
 		totalBalance, membersWithBalanceMap := getTotalBalance(insSDK, members)
 		totalFileBalance := checkBalanceAtFile(members, membersWithBalanceMap)
 		if totalFileBalance.Cmp(totalBalance) != 0 {
-			log.Fatalf("Total balance mismatch: all members balance at file - %s, all members balance at system - %s \n", totalFileBalance, totalBalance)
+			global.Fatalf("Total balance mismatch: all members balance at file - %s, all members balance at system - %s \n", totalFileBalance, totalBalance)
 		}
-		log.Info("Balances for members from file was successfully checked.")
+		global.Info("Balances for members from file was successfully checked.")
 		return
 	}
 
@@ -511,13 +511,13 @@ func checkBalance(insSDK *sdk.SDK, totalBalanceBefore *big.Int, balanceCheckMemb
 
 	fmt.Printf("Total balance before: %v and after: %v\n", totalBalanceBefore, totalBalanceAfter)
 	if totalBalanceAfter.Cmp(totalBalanceBefore) != 0 {
-		log.Fatal("Total balance mismatch!\n")
+		global.Fatal("Total balance mismatch!\n")
 	}
 
 	for n := 0; n < 2; n++ {
 		totalBalanceAfter, membersWithBalanceMap = getTotalBalance(insSDK, balanceCheckMembers)
 		if totalBalanceAfter.Cmp(totalBalanceBefore) != 0 {
-			log.Fatal("Total balance mismatch!\n")
+			global.Fatal("Total balance mismatch!\n")
 		}
 
 		fmt.Println("Wait if balance changes after matching: ", n)
@@ -537,10 +537,10 @@ func checkBalanceAtFile(members []sdk.Member, membersWithBalanceMap map[string]*
 
 		if checkMembersBalance || checkAllBalance {
 			if membersWithBalanceMap[m.GetReference()] == nil {
-				log.Fatalf("Balance mismatch: member with ref %s exists in file, but we didn't get its system balance. Balance at file - %s. \n", m.GetReference(), m.GetBalance())
+				global.Fatalf("Balance mismatch: member with ref %s exists in file, but we didn't get its system balance. Balance at file - %s. \n", m.GetReference(), m.GetBalance())
 			}
 			if b.Cmp(membersWithBalanceMap[m.GetReference()]) != 0 {
-				log.Fatalf("Balance mismatch: member with ref %s, balance at file - %s, balance at system - %s \n", m.GetReference(), m.GetBalance(), membersWithBalanceMap[m.GetReference()])
+				global.Fatalf("Balance mismatch: member with ref %s, balance at file - %s, balance at system - %s \n", m.GetReference(), m.GetBalance(), membersWithBalanceMap[m.GetReference()])
 			}
 		}
 	}

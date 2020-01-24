@@ -45,7 +45,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 // ContractRequester helps to call contracts
@@ -383,7 +383,7 @@ func (cr *ContractRequester) result(ctx context.Context, msg *payload.ReturnResu
 
 func (cr *ContractRequester) ReceiveResult(ctx context.Context, msg *message.Message) error {
 	if msg == nil {
-		log.Error("can't deserialize payload of nil message")
+		global.Error("can't deserialize payload of nil message")
 		return nil
 	}
 

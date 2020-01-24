@@ -57,17 +57,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/insolar/component-manager"
 )
 
 const (
@@ -101,7 +102,7 @@ func TestDistributor_Distribute(t *testing.T) {
 	ctx := context.Background()
 
 	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
-		log.Info("handle Pulse")
+		global.Info("handle Pulse")
 		pulse := r.GetRequest().GetPulse()
 		assert.EqualValues(t, PULSENUMBER, pulse.Pulse.PulseNumber)
 		return nil, nil

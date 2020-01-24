@@ -33,7 +33,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/rpctypes"
@@ -198,7 +198,7 @@ func (gi *GoInsider) Upstream() (*rpc.Client, error) {
 
 	client, err := rpc.Dial(gi.upstreamProtocol, gi.upstreamAddress)
 	if err != nil {
-		log.Fatalf("can't connect to upstream, protocol: %s, address: %s", gi.upstreamProtocol, gi.upstreamAddress)
+		global.Fatalf("can't connect to upstream, protocol: %s, address: %s", gi.upstreamProtocol, gi.upstreamAddress)
 		os.Exit(0)
 	}
 
@@ -233,7 +233,7 @@ func (gi *GoInsider) ObtainCode(ctx context.Context, ref insolar.Reference) (str
 	err = client.Call("RPC.GetCode", req, &res)
 	if err != nil {
 		if err == rpc.ErrShutdown {
-			log.Error("Insgorund can't connect to Insolard")
+			global.Error("Insgorund can't connect to Insolard")
 			os.Exit(0)
 		}
 		return "", errors.Wrap(err, "[ ObtainCode ] on calling main API")
@@ -324,7 +324,7 @@ func (gi *GoInsider) RouteCall(ref insolar.Reference, immutable bool, saga bool,
 	if err != nil {
 		gi.SetSystemError(err)
 		if err == rpc.ErrShutdown {
-			log.Error("Insgorund can't connect to Insolard")
+			global.Error("Insgorund can't connect to Insolard")
 			os.Exit(0)
 		}
 		return nil, errors.Wrap(err, "[ RouteCall ] on calling main API")
@@ -360,7 +360,7 @@ func (gi *GoInsider) SaveAsChild(
 	if err != nil {
 		gi.SetSystemError(err)
 		if err == rpc.ErrShutdown {
-			log.Error("Insgorund can't connect to Insolard")
+			global.Error("Insgorund can't connect to Insolard")
 			os.Exit(0)
 		}
 		return nil, errors.Wrap(err, "[ SaveAsChild ] on calling main API")
@@ -388,7 +388,7 @@ func (gi *GoInsider) DeactivateObject(object insolar.Reference) error {
 	if err != nil {
 		gi.SetSystemError(err)
 		if err == rpc.ErrShutdown {
-			log.Error("Insgorund can't connect to Insolard")
+			global.Error("Insgorund can't connect to Insolard")
 			os.Exit(0)
 		}
 		return errors.Wrap(err, "[ DeactivateObject ] on calling main API")

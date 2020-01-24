@@ -21,7 +21,8 @@ import (
 	"crypto/rand"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+
 	"github.com/pkg/errors"
 )
 
@@ -60,7 +61,7 @@ func (sw *ecdsaDigestVerifyWrapper) Verify(signature insolar.Signature, data []b
 	}
 	r, s, err := DeserializeTwoBigInt(signature.Bytes())
 	if err != nil {
-		log.Error(err)
+		global.Error(err)
 		return false
 	}
 

@@ -22,13 +22,13 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/introspector/introproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 type stat struct {
@@ -53,7 +53,7 @@ type MessageLockerByType struct {
 	sync.Mutex
 	types map[payload.Type]struct{}
 	stat  *stat
-	log   logcommon.Logger
+	log   log.Logger
 }
 
 // NewMessageLockerByType is a constructor for MessageLockerByType.

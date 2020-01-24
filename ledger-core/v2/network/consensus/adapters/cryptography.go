@@ -55,13 +55,13 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 const (
 	SHA3512Digest = cryptkit.DigestMethod("sha3-512")
-	SECP256r1Sign = cryptkit.SignMethod("secp256r1")
+	SECP256r1Sign = cryptkit.SigningMethod("secp256r1")
 )
 
 type Sha3512Digester struct {
@@ -83,6 +83,17 @@ func (pd *Sha3512Digester) DigestData(reader io.Reader) cryptkit.Digest {
 	}
 
 	bytes := hasher.Sum(nil)
+	bits := longbits.NewBits512FromBytes(bytes)
+
+	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
+}
+
+func (pd *Sha3512Digester) DigestBytes(bytes []byte) cryptkit.Digest {
+	hasher := pd.scheme.IntegrityHasher()
+
+	hasher.Hash(bytes)
+
+	bytes = hasher.Sum(nil)
 	bits := longbits.NewBits512FromBytes(bytes)
 
 	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
@@ -149,10 +160,10 @@ func (ds *ECDSADigestSigner) SignDigest(digest cryptkit.Digest) cryptkit.Signatu
 	sigBytes := sig.Bytes()
 	bits := longbits.NewBits512FromBytes(sigBytes)
 
-	return cryptkit.NewSignature(bits, digest.GetDigestMethod().SignedBy(ds.GetSignMethod()))
+	return cryptkit.NewSignature(bits, digest.GetDigestMethod().SignedBy(ds.GetSigningMethod()))
 }
 
-func (ds *ECDSADigestSigner) GetSignMethod() cryptkit.SignMethod {
+func (ds *ECDSADigestSigner) GetSigningMethod() cryptkit.SigningMethod {
 	return SECP256r1Sign
 }
 
@@ -178,7 +189,7 @@ func (sv *ECDSASignatureVerifier) IsDigestMethodSupported(method cryptkit.Digest
 	return method == SHA3512Digest
 }
 
-func (sv *ECDSASignatureVerifier) IsSignMethodSupported(method cryptkit.SignMethod) bool {
+func (sv *ECDSASignatureVerifier) IsSignMethodSupported(method cryptkit.SigningMethod) bool {
 	return method == SECP256r1Sign
 }
 
@@ -222,7 +233,7 @@ func NewECDSASignatureKeyHolder(publicKey *ecdsa.PublicKey, processor insolar.Ke
 
 	bits := longbits.NewBits512FromBytes(publicKeyBytes)
 	return &ECDSASignatureKeyHolder{
-		Bits512:   *bits,
+		Bits512:   bits,
 		publicKey: publicKey,
 	}
 }
@@ -239,7 +250,7 @@ func NewECDSASignatureKeyHolderFromBits(publicKeyBytes longbits.Bits512, process
 	}
 }
 
-func (kh *ECDSASignatureKeyHolder) GetSignMethod() cryptkit.SignMethod {
+func (kh *ECDSASignatureKeyHolder) GetSigningMethod() cryptkit.SigningMethod {
 	return SECP256r1Sign
 }
 

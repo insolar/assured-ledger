@@ -1,0 +1,55 @@
+@startuml
+participant C as "RPC Client" order 10
+participant S as "RPC Server" order 20
+participant V as "Virtual Node" order 30
+== Pulse change ==
+S <- : CommitPulse(PN)
+S -> S : SeqN = FirstSeqN = Rand.UInt()\nmapSecrets[PN] = SecretN = Rand.UInt()
+...
+C -> S : getSeed()
+activate S
+S -> S : seed = [PN, SeqN, hash(PK, SeqN, mapSecrets[PN])]\nmapSeeds[PN][SeqN]=1\nSeqN++
+S -> C : seed
+deactivate S
+note right of S
+To keep seeds:
+- PN, FirstSeqN, SecretN
+- bitmap[# of SeqN]
+=> ~13kB per 100k seeds
+end note
+note right of S
+NB! Seed generation & load balancig can be done
+on a separate server. Then the seed should be
+extended by adding [mapSecrets[PN], FirstSeqN]
+encrypted by target's PK.
+end note
+...
+C -> S : apiCall(payload[seed, endpoint, callSite])
+activate S
+S -> S : assert(mapSeed[seed.PN][seed.SeqN]==1)\nassert(seed.hash == hash(PK, seed.SeqN, mapSecrets[seed.PN])\nmapSeed[seed.PN][seed.SeqN]=0
+V \-> S : facade = getEndpointFacade(endpoint) // cacheable
+S -> S : facade.preValidatePayload(payload)
+V \-> S : slotId := conveyor.AddInput(incomingExternal, payload, validation)
+S -> C : queueId = [PN, slotID, hash(payload)]
+note right of C
+Can also include sign(PK(VN), hash(queueId)) to prevent MitM
+end note
+deactivate S
+activate V
+note right of V
+SM for the request
+end note
+V -> V : identity = validateIdentity(payload) // can call e.g. Kerberos
+V -> : extCallRef = registerExternalIncoming(payload) + \nregisterImpersonatedOutgoing(payload, identity)
+...
+V ->x V : stop
+deactivate V
+S \-> C : (get a new seed)\nstatus = apiCallStatus(payload[new_seed, queueId])
+note right of S
+apiCallStatus will reject too old PNs, then it goes into 4 ways:
+1. (current PN) will look for an SM by slotID
+2. (past PN) will look for an SM, then in a special cache by slotID
+3. (antique PN) will create a special SM to find a registration record by [PN, hash(payload)]
+end note
+
+@enduml

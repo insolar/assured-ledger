@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 )
 
@@ -57,11 +57,11 @@ func rootCommand(cmd *cobra.Command, args []string) {
 		vp.SetConfigFile(configPath)
 		err = vp.ReadInConfig()
 		if err != nil {
-			log.Fatal("failed to load configuration from file: ", err.Error())
+			global.Fatal("failed to load configuration from file: ", err.Error())
 		}
 		err = vp.Unmarshal(&cfg)
 		if err != nil {
-			log.Fatal("failed to load configuration from file: ", err.Error())
+			global.Fatal("failed to load configuration from file: ", err.Error())
 		}
 	}
 
@@ -71,12 +71,12 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	m := metrics.NewMetrics(cfg.Metrics, GetRegistry(), "keeper")
 	err = m.Init(ctx)
 	if err != nil {
-		log.Fatal("Couldn't init metrics:", err)
+		global.Fatal("Couldn't init metrics:", err)
 		os.Exit(1)
 	}
 	err = m.Start(ctx)
 	if err != nil {
-		log.Fatal("Couldn't start metrics:", err)
+		global.Fatal("Couldn't start metrics:", err)
 		os.Exit(1)
 	}
 

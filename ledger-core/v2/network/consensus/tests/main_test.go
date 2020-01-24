@@ -60,21 +60,18 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 func TestConsensusMain(t *testing.T) {
 
 	startedAt := time.Now()
 
-	ctx := context.Background()
-	logger := inslogger.FromContext(ctx) //.WithCaller(false)
-	//logger, _ = logger.WithLevelNumber(insolar.DebugLevel)
-	//logger, _ = logger.WithFormat(insolar.TextFormat)
-	logger = logger.Level(logcommon.DebugLevel)
-	log.SetGlobalLogger(logger)
-	ctx = inslogger.SetLogger(ctx, log.GlobalLogger())
-	_ = log.SetGlobalLevelFilter(logcommon.DebugLevel)
+	ctx := inslogger.WithLoggerLevel(context.Background(), log.DebugLevel)
+	logger := inslogger.FromContext(ctx)
+	global.SetLogger(logger)
+	ctx = inslogger.SetLogger(ctx, global.Logger())
+	_ = global.SetFilter(log.DebugLevel)
 
 	netStrategy := NewDelayNetStrategy(DelayStrategyConf{
 		MinDelay:         10 * time.Millisecond,

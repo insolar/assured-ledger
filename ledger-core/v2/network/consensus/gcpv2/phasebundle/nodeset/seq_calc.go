@@ -52,10 +52,10 @@ package nodeset
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 func NewAnnouncementSequenceCalc(digestFactory transport.ConsensusDigestFactory) AnnouncementSequenceCalc {
@@ -64,7 +64,7 @@ func NewAnnouncementSequenceCalc(digestFactory transport.ConsensusDigestFactory)
 
 type AnnouncementSequenceCalc struct {
 	digestFactory transport.ConsensusDigestFactory
-	digester      cryptkit.SequenceDigester
+	digester      cryptkit.ForkingDigester
 }
 
 func (p *AnnouncementSequenceCalc) AddNext(nodeData VectorEntryData, zeroPower bool) {

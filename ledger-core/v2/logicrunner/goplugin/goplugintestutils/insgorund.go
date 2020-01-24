@@ -24,9 +24,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
 const insolarLogLevel = "INSOLAR_LOG_LEVEL"
@@ -34,7 +35,7 @@ const insolarLogLevel = "INSOLAR_LOG_LEVEL"
 // StartInsgorund starts `insgorund` process
 func StartInsgorund(cmdPath, lProto, listen, upstreamProto, upstreamAddr string, notifyLongExecution bool, combinedOutputPath string) (func(), error) {
 	id := testutils.RandomString()
-	log.Debug("Starting 'insgorund' ", id)
+	global.Debug("Starting 'insgorund' ", id)
 
 	stackTrace := (string)(debug.Stack())
 	cancelWarning := make(chan error, 1)
@@ -96,14 +97,14 @@ func StartInsgorund(cmdPath, lProto, listen, upstreamProto, upstreamAddr string,
 	time.Sleep(200 * time.Millisecond)
 
 	return func() {
-		log.Debug("stopping 'insgorund' ", id)
+		global.Debug("stopping 'insgorund' ", id)
 
 		close(cancelWarning)
 
 		p := runner.Process
 		err := p.Signal(syscall.SIGTERM)
 		if err != nil {
-			log.Error("couldn't kill process: ", err)
+			global.Error("couldn't kill process: ", err)
 		}
 
 		// Wait for the process to finish or kill it after a timeout:
@@ -114,15 +115,15 @@ func StartInsgorund(cmdPath, lProto, listen, upstreamProto, upstreamAddr string,
 
 		select {
 		case <-time.After(3 * time.Second):
-			log.Debug("waited for insgorund to finish and got tired")
+			global.Debug("waited for insgorund to finish and got tired")
 			if err := p.Signal(syscall.SIGTERM); err != nil {
-				log.Fatal("failed to terminate process: ", err)
+				global.Fatal("failed to terminate process: ", err)
 			}
 		case err := <-done:
 			if err != nil {
-				log.Debug("process finished, error: ", err)
+				global.Debug("process finished, error: ", err)
 			} else {
-				log.Debug("process finished successfully")
+				global.Debug("process finished successfully")
 			}
 		}
 	}, nil

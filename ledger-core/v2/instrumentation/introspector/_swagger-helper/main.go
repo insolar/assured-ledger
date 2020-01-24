@@ -28,7 +28,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 var (
@@ -44,12 +44,12 @@ func main() {
 
 	tmpF, err := ioutil.TempFile("", "swghelper_*.go")
 	if err != nil {
-		log.Fatal("failed open tmp file:", err)
+		global.Fatal("failed open tmp file:", err)
 	}
 
 	files, err := ioutil.ReadDir(*inDir)
 	if err != nil {
-		log.Fatal("filed to read current directory", err)
+		global.Fatal("filed to read current directory", err)
 	}
 
 	sw := &strictWriter{w: tmpF}
@@ -63,7 +63,7 @@ func main() {
 			filePath := path.Join(*inDir, info.Name())
 			f, err := os.Open(filePath)
 			if err != nil {
-				log.Fatalf("failed to read file %v: %s", filePath, err)
+				global.Fatalf("failed to read file %v: %s", filePath, err)
 			}
 			sw.write(f)
 			sw.writeString("`\n")
@@ -73,7 +73,7 @@ func main() {
 
 	err = os.Rename(tmpF.Name(), outFileName)
 	if err != nil {
-		log.Fatalf("failed move file from %v to %v: %s", tmpF.Name(), outFileName, err)
+		global.Fatalf("failed move file from %v to %v: %s", tmpF.Name(), outFileName, err)
 	}
 
 	cwd, _ := os.Getwd()

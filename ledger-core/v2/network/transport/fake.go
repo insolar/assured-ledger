@@ -60,7 +60,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 var (
@@ -111,7 +111,7 @@ func (f *fakeDatagramTransport) Stop(ctx context.Context) error {
 }
 
 func (f *fakeDatagramTransport) SendDatagram(ctx context.Context, address string, data []byte) error {
-	log.Debugf("fakeDatagramTransport SendDatagram to %s : %v", address, data)
+	global.Debugf("fakeDatagramTransport SendDatagram to %s : %v", address, data)
 
 	if len(data) > udpMaxPacketSize {
 		return errors.New(fmt.Sprintf("udpTransport.send: too big input data. Maximum: %d. Current: %d",
@@ -165,7 +165,7 @@ func (f *fakeStreamTransport) Stop(ctx context.Context) error {
 }
 
 func (f *fakeStreamTransport) Dial(ctx context.Context, address string) (io.ReadWriteCloser, error) {
-	log.Debugf("fakeStreamTransport Dial from %s to %s", f.address, address)
+	global.Debugf("fakeStreamTransport Dial from %s to %s", f.address, address)
 
 	tcpMutex.RLock()
 	defer tcpMutex.RUnlock()

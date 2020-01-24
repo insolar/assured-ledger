@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logadapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_artifact"
@@ -186,14 +186,14 @@ func (s *ESMOutgoingCallProcess) stepOutgoingRegister(ctx smachine.ExecutionCont
 }
 
 type ContractCallBefore struct {
-	*logadapter.Msg `txt:"before external call"`
+	*log.Msg `txt:"before external call"`
 
 	Method string
 	Object string
 }
 
 type ContractCallAfter struct {
-	*logadapter.Msg `txt:"after contract call"`
+	*log.Msg `txt:"after contract call"`
 
 	CallResultType   insolar.Reply `fmt:"%T"`
 	RequestReference string

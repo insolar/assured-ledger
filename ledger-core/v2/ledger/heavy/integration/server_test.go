@@ -31,6 +31,8 @@ import (
 	"github.com/dgraph-io/badger"
 	"github.com/pkg/errors"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesis"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
@@ -45,6 +47,7 @@ import (
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/artifact"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
@@ -52,13 +55,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/handler"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwatermill"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	networknode "github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/component-manager"
 )
 
 var (
@@ -369,12 +370,12 @@ func NewServer(
 	}).Info("started test server")
 
 	if err := Genesis.Start(ctx); err != nil {
-		log.Fatalf("genesis failed on heavy with error: %v", err)
+		global.Fatalf("genesis failed on heavy with error: %v", err)
 	}
 
 	err := DBRollback.Start(ctx)
 	if err != nil {
-		log.Fatalf("rollback.Start return error: %v", err)
+		global.Fatalf("rollback.Start return error: %v", err)
 	}
 
 	s := &Server{

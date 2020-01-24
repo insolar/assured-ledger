@@ -18,8 +18,8 @@ package filaments
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 type WriteEntry struct {

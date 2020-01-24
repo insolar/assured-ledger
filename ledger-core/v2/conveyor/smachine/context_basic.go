@@ -304,7 +304,6 @@ func (p *slotContext) LogAsync() Logger {
 }
 
 func (p *slotContext) _newLogger() Logger {
-	// TODO make newStepLoggerData() call lazy
 	return Logger{p.s.ctx, p}
 }
 

@@ -27,7 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -51,7 +51,7 @@ func (s *Server) Serve() {
 		err = cfgHolder.Load()
 	}
 	if err != nil {
-		log.Warn("failed to load configuration from file: ", err.Error())
+		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 	cfg := &cfgHolder.Configuration
 
@@ -61,7 +61,7 @@ func (s *Server) Serve() {
 	var (
 		ctx         = context.Background()
 		mainTraceID = utils.RandTraceID() + "_main"
-		logger      logcommon.Logger
+		logger      log.Logger
 	)
 	{
 		var (
@@ -70,14 +70,14 @@ func (s *Server) Serve() {
 		)
 		certManager, err := initTemporaryCertificateManager(ctx, cfg)
 		if err != nil {
-			log.Warn("Failed to initialize nodeRef, nodeRole fields: ", err.Error())
+			global.Warn("Failed to initialize nodeRef, nodeRole fields: ", err.Error())
 		} else {
 			nodeRole = certManager.GetCertificate().GetRole().String()
 			nodeReference = certManager.GetCertificate().GetNodeRef().String()
 		}
 
 		ctx, logger = inslogger.InitNodeLogger(ctx, cfg.Log, nodeReference, nodeRole)
-		log.InitTicker()
+		global.InitTicker()
 	}
 
 	cmp, err := newComponents(ctx, *cfg)

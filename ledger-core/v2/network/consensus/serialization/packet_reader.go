@@ -59,13 +59,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 type packetData struct {
@@ -80,7 +80,7 @@ func (p *packetData) GetPulseNumber() pulse.Number {
 type PacketParser struct {
 	packetData
 	digester     cryptkit.DataDigester
-	signMethod   cryptkit.SignMethod
+	signMethod   cryptkit.SigningMethod
 	keyProcessor insolar.KeyProcessor
 }
 
@@ -88,7 +88,7 @@ func newPacketParser(
 	ctx context.Context,
 	reader io.Reader,
 	digester cryptkit.DataDigester,
-	signMethod cryptkit.SignMethod,
+	signMethod cryptkit.SigningMethod,
 	keyProcessor insolar.KeyProcessor,
 ) (*PacketParser, error) {
 
@@ -122,13 +122,13 @@ func (p *PacketParser) ParsePacketBody() (transport.PacketParser, error) {
 
 type PacketParserFactory struct {
 	digester     cryptkit.DataDigester
-	signMethod   cryptkit.SignMethod
+	signMethod   cryptkit.SigningMethod
 	keyProcessor insolar.KeyProcessor
 }
 
 func NewPacketParserFactory(
 	digester cryptkit.DataDigester,
-	signMethod cryptkit.SignMethod,
+	signMethod cryptkit.SigningMethod,
 	keyProcessor insolar.KeyProcessor,
 ) *PacketParserFactory {
 

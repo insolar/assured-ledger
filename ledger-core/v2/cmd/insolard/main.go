@@ -28,7 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -50,7 +50,7 @@ func main() {
 	rootCmd.AddCommand(version.GetCommand("insolard"))
 	err := rootCmd.Execute()
 	if err != nil {
-		log.Fatal("insolard execution failed:", err)
+		global.Fatal("insolard execution failed:", err)
 	}
 }
 
@@ -62,11 +62,11 @@ func runInsolardServer(configPath string, genesisConfigPath string) {
 
 	role, err := readRole(configPath)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "readRole failed"))
+		global.Fatal(errors.Wrap(err, "readRole failed"))
 	}
 
 	if err := psAgentLauncher(); err != nil {
-		log.Warnf("Failed to launch gops agent: %s", err)
+		global.Warnf("Failed to launch gops agent: %s", err)
 	}
 
 	switch role {

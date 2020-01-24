@@ -23,9 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logglobal"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -35,6 +32,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/pprof"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 const insolarNamespace = "insolar"
@@ -73,7 +71,7 @@ func (m *Metrics) Init(ctx context.Context) error {
 	promHandler := promhttp.HandlerFor(m.registry, promhttp.HandlerOpts{ErrorLog: errLogger})
 	mux.Handle("/metrics", promHandler)
 	mux.Handle("/_status", newProcStatus())
-	mux.Handle("/debug/loglevel", logglobal.NewLoglevelChangeHandler())
+	mux.Handle("/debug/loglevel", inslogger.NewLoglevelChangeHandler())
 	pprof.Handle(mux)
 	if m.config.ZpagesEnabled {
 		// https://opencensus.io/zpages/
@@ -152,7 +150,7 @@ func (m *Metrics) Stop(ctx context.Context) error {
 
 // errorLogger wrapper for error logs.
 type errorLogger struct {
-	logcommon.Logger
+	log.Logger
 }
 
 // Println is wrapper method for Error method.

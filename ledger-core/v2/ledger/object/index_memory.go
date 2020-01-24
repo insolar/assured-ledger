@@ -25,7 +25,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 type IndexStorageMemory struct {
@@ -103,38 +103,38 @@ func (i *IndexStorageMemory) set(ctx context.Context, pn insolar.PulseNumber, bu
 		savedBuck := i.buckets[pn][bucket.ObjID]
 		if savedBuck.LifelineLastUsed > bucket.LifelineLastUsed {
 			debug.PrintStack()
-			log.Fatal("savedBuck.LifelineLastUsed > bucket.LifelineLastUsed")
+			global.Fatal("savedBuck.LifelineLastUsed > bucket.LifelineLastUsed")
 		}
 		if len(savedBuck.PendingRecords) > len(bucket.PendingRecords) {
 			debug.PrintStack()
-			log.Fatal("len(savedBuck.PendingRecords) > len(bucket.PendingRecords)")
+			global.Fatal("len(savedBuck.PendingRecords) > len(bucket.PendingRecords)")
 		}
 		if savedBuck.Lifeline.EarliestOpenRequest != nil && bucket.Lifeline.EarliestOpenRequest != nil &&
 			*savedBuck.Lifeline.EarliestOpenRequest > *bucket.Lifeline.EarliestOpenRequest {
 			debug.PrintStack()
-			log.Fatal("*savedBuck.Lifeline.EarliestOpenRequest > *bucket.Lifeline.EarliestOpenRequest")
+			global.Fatal("*savedBuck.Lifeline.EarliestOpenRequest > *bucket.Lifeline.EarliestOpenRequest")
 		}
 		if !savedBuck.Lifeline.Parent.IsEmpty() && savedBuck.Lifeline.Parent != bucket.Lifeline.Parent {
 			debug.PrintStack()
-			log.Fatalf("savedBuck.Lifeline.Parent:%v != bucket.Lifeline.Parent:%v", savedBuck.Lifeline.Parent, bucket.Lifeline.Parent)
+			global.Fatalf("savedBuck.Lifeline.Parent:%v != bucket.Lifeline.Parent:%v", savedBuck.Lifeline.Parent, bucket.Lifeline.Parent)
 		}
 
 		if savedBuck.Lifeline.LatestRequest != nil && bucket.Lifeline.LatestRequest == nil {
 			debug.PrintStack()
-			log.Fatal("savedBuck.Lifeline.EarliestRequest != nil && bucket.Lifeline.EarliestRequest == nil")
+			global.Fatal("savedBuck.Lifeline.EarliestRequest != nil && bucket.Lifeline.EarliestRequest == nil")
 		}
 		if savedBuck.Lifeline.LatestRequest != nil && savedBuck.Lifeline.LatestRequest.Pulse() > bucket.Lifeline.LatestRequest.Pulse() {
 			debug.PrintStack()
-			log.Fatal("savedBuck.Lifeline.EarliestRequest.Pulse() < bucket.Lifeline.EarliestRequest.Pulse()")
+			global.Fatal("savedBuck.Lifeline.EarliestRequest.Pulse() < bucket.Lifeline.EarliestRequest.Pulse()")
 		}
 
 		if savedBuck.Lifeline.LatestState != nil && bucket.Lifeline.LatestState == nil {
 			debug.PrintStack()
-			log.Fatal("savedBuck.Lifeline.LatestState != nil && bucket.Lifeline.LatestState == nil")
+			global.Fatal("savedBuck.Lifeline.LatestState != nil && bucket.Lifeline.LatestState == nil")
 		}
 		if savedBuck.Lifeline.LatestState != nil && savedBuck.Lifeline.LatestState.Pulse() > bucket.Lifeline.LatestState.Pulse() {
 			debug.PrintStack()
-			log.Fatal("savedBuck.Lifeline.LatestState.Pulse() < bucket.Lifeline.LatestState.Pulse()")
+			global.Fatal("savedBuck.Lifeline.LatestState.Pulse() < bucket.Lifeline.LatestState.Pulse()")
 		}
 	}
 

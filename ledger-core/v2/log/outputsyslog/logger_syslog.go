@@ -27,7 +27,7 @@ type LogLevelWriteCloser interface {
 	logcommon.LogLevelWriter
 }
 
-// SyslogWriter is an interface matching a syslog.Writer struct.
+// SyslogWriter is an interface matching a syslogcommon.Writer struct.
 type SyslogWriteCloser interface {
 	io.Closer
 	io.Writer
@@ -60,6 +60,8 @@ func ConnectSyslogByParam(outputParam, tag string) (LogLevelWriteCloser, error) 
 	return ConnectRemoteSyslog(nw, addr, tag)
 }
 
+// TODO PLAT-43 reimplement syslog sender to (1) use []byte for messages (2) support for windows
+
 // SyslogLevelWriter wraps a SyslogWriter and call the right syslog level
 // method matching the zerolog level.
 func NewSyslogLevelWriter(w SyslogWriteCloser) LogLevelWriteCloser {
@@ -83,7 +85,7 @@ func (sw *syslogWriter) Write(p []byte) (n int, err error) {
 }
 
 // WriteLevel implements LevelWriter interface.
-func (sw *syslogWriter) LogLevelWrite(level logcommon.LogLevel, p []byte) (n int, err error) {
+func (sw *syslogWriter) LogLevelWrite(level logcommon.Level, p []byte) (n int, err error) {
 	switch level {
 	case logcommon.DebugLevel:
 		err = sw.w.Debug(string(p))

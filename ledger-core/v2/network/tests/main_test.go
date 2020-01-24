@@ -56,12 +56,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 )
 
 func TestNetworkConsensusManyTimes(t *testing.T) {
@@ -283,19 +284,19 @@ func TestDiscoveryRestart(t *testing.T) {
 
 	s.waitForConsensus(2)
 
-	log.Info("Discovery node stopping...")
+	global.Info("Discovery node stopping...")
 	err := s.bootstrapNodes[0].serviceNetwork.Stop(context.Background())
 	flushNodeKeeper(s.bootstrapNodes[0].serviceNetwork.NodeKeeper)
-	log.Info("Discovery node stopped...")
+	global.Info("Discovery node stopped...")
 	require.NoError(t, err)
 
 	s.waitForConsensusExcept(2, s.bootstrapNodes[0].id)
 	activeNodes := s.bootstrapNodes[1].GetWorkingNodes()
 	require.Equal(t, s.getNodesCount()-1, len(activeNodes))
 
-	log.Info("Discovery node starting...")
+	global.Info("Discovery node starting...")
 	err = s.bootstrapNodes[0].serviceNetwork.Start(context.Background())
-	log.Info("Discovery node started")
+	global.Info("Discovery node started")
 	require.NoError(t, err)
 
 	s.waitForConsensusExcept(3, s.bootstrapNodes[0].id)
@@ -312,16 +313,16 @@ func TestDiscoveryRestartNoWait(t *testing.T) {
 
 	s.waitForConsensus(2)
 
-	log.Info("Discovery node stopping...")
+	global.Info("Discovery node stopping...")
 	err := s.bootstrapNodes[0].serviceNetwork.Stop(context.Background())
 	flushNodeKeeper(s.bootstrapNodes[0].serviceNetwork.NodeKeeper)
-	log.Info("Discovery node stopped...")
+	global.Info("Discovery node stopped...")
 	require.NoError(t, err)
 
 	go func(s *consensusSuite) {
-		log.Info("Discovery node starting...")
+		global.Info("Discovery node starting...")
 		err = s.bootstrapNodes[0].serviceNetwork.Start(context.Background())
-		log.Info("Discovery node started")
+		global.Info("Discovery node started")
 		require.NoError(t, err)
 	}(s)
 

@@ -95,18 +95,6 @@ func DecodeExpectedTag(expected WireTag, r io.ByteReader) error {
 	}
 }
 
-func DecodeField(expected WireTag, r io.ByteReader) error {
-	if v, err := DecodeVarint(r); err != nil {
-		return err
-	} else if tag, err := SafeWireTag(v); err != nil {
-		return err
-	} else if err = tag.CheckTag(expected); err != nil {
-		return err
-	} else {
-		return nil
-	}
-}
-
 func DecodeFixed32(r io.ByteReader) (uint64, error) {
 	return decodeFixed32(r)
 }

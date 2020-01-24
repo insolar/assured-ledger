@@ -56,12 +56,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 type ECDSASignatureVerifierFactory struct {
@@ -211,7 +211,11 @@ func (cdf *ConsensusDigestFactory) CreateSequenceDigester() cryptkit.SequenceDig
 	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
 }
 
-func (cdf *ConsensusDigestFactory) CreateAnnouncementDigester() cryptkit.SequenceDigester {
+func (cdf *ConsensusDigestFactory) CreateForkingDigester() cryptkit.ForkingDigester {
+	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
+}
+
+func (cdf *ConsensusDigestFactory) CreateAnnouncementDigester() cryptkit.ForkingDigester {
 	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
 }
 

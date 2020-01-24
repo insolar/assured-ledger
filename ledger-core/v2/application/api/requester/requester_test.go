@@ -32,13 +32,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 )
 
 const TESTREFERENCE = "insolar:1MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI"
@@ -51,12 +51,12 @@ var testStatusResponse = StatusResponse{NetworkState: "OK"}
 func writeReponse(response http.ResponseWriter, answer interface{}) {
 	serJSON, err := json.MarshalIndent(answer, "", "    ")
 	if err != nil {
-		log.Errorf("Can't serialize response\n")
+		global.Errorf("Can't serialize response\n")
 	}
 	var newLine byte = '\n'
 	_, err = response.Write(append(serJSON, newLine))
 	if err != nil {
-		log.Errorf("Can't write response\n")
+		global.Errorf("Can't write response\n")
 	}
 }
 
@@ -71,7 +71,7 @@ func FakeRPCHandler(response http.ResponseWriter, req *http.Request) {
 	request := Request{}
 	_, err := unmarshalRequest(req, &request)
 	if err != nil {
-		log.Errorf("Can't read request\n")
+		global.Errorf("Can't read request\n")
 		return
 	}
 
@@ -129,17 +129,17 @@ func startServer() error {
 func setup() error {
 	fRPCh := FakeRPCHandler
 	http.HandleFunc(rpcLOCATION, fRPCh)
-	log.Info("Starting Test api server ...")
+	global.Info("Starting Test api server ...")
 
 	err := startServer()
 	if err != nil {
-		log.Error("Problem with starting test server: ", err)
+		global.Error("Problem with starting test server: ", err)
 		return errors.Wrap(err, "[ setup ]")
 	}
 
 	err = waitForStart()
 	if err != nil {
-		log.Error("Can't start api: ", err)
+		global.Error("Can't start api: ", err)
 		return errors.Wrap(err, "[ setup ]")
 	}
 
@@ -148,7 +148,7 @@ func setup() error {
 
 func teardown() {
 	const timeOut = 2
-	log.Infof("Shutting down test server gracefully ...(waiting for %d seconds)", timeOut)
+	global.Infof("Shutting down test server gracefully ...(waiting for %d seconds)", timeOut)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeOut)*time.Second)
 	defer cancel()
 	err := server.Shutdown(ctx)

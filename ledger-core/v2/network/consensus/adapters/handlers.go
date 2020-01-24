@@ -58,7 +58,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
@@ -93,7 +93,7 @@ func newPacketHandler(packetProcessor PacketProcessor) *packetHandler {
 func (ph *packetHandler) handlePacket(ctx context.Context, packetParser transport.PacketParser, sender string) {
 	ctx, logger := PacketLateLogger(ctx, packetParser)
 
-	if logger.Is(logcommon.DebugLevel) {
+	if logger.Is(log.DebugLevel) {
 		logger.Debugf("Received packet %v", packetParser)
 	}
 

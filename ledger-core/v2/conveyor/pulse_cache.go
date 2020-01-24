@@ -26,7 +26,7 @@ import (
 // Cache that keeps (1) a PD younger than minRange (2) PD touched less than accessRotations ago.
 // Safe for concurrent access.
 // WARNING! Cache size is not directly limited.
-// TODO eviction function is not efficient for 100+ PDs and/or accessRotations > 10
+// TODO PLAT-19 eviction function is not efficient for 100+ PDs and/or accessRotations > 10
 type PulseDataCache struct {
 	pdm       *PulseDataManager
 	mutex     sync.RWMutex
