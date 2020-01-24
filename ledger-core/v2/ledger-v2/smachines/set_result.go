@@ -59,7 +59,7 @@ func (s *SetResult) saveResult(ctx smachine.ExecutionContext) smachine.StateUpda
 
 	switch decision {
 	case smachine.Passed:
-		return ctx.Jump(s.getSyncLink)
+		return s.getSyncLink(ctx)
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.sharedObject).ThenRepeat()
 	case smachine.Impossible:
