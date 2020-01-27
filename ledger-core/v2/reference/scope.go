@@ -49,7 +49,7 @@ const (
 )
 
 const (
-	RemoteDomainMember Scope = GlobalSuperScope + iota
+	_ Scope = GlobalSuperScope + iota
 	_
 	GlobalDomainPublicPolicy
 	GlobalDomainMember
