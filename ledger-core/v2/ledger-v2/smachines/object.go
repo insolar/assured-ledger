@@ -3,21 +3,21 @@ package smachines
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
 type filament struct {
-	record record.Record
+	record *store.Record
 	prev   *filament
 }
 
 type sharedObject struct {
 	state   *filament
-	updates []record.Record
+	updates []*store.Record
 }
 
-func (s *sharedObject) appendState(state record.Record) {
+func (s *sharedObject) appendState(state *store.Record) {
 	s.state = &filament{
 		record: state,
 		prev:   s.state,
