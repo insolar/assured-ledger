@@ -80,6 +80,7 @@ const (
 	TypeAdditionalCallFromPreviousExecutor
 	TypeStillExecuting
 	TypeErrorResultExitsts
+	TypeV2SetRequestResult
 
 	// should be the last (required by TypesMap)
 	_latestType
@@ -328,6 +329,9 @@ func Marshal(payload Payload) ([]byte, error) {
 	case *ErrorResultExists:
 		pl.Polymorph = uint32(TypeErrorResultExitsts)
 		return pl.Marshal()
+	case *V2SetRequestResult:
+		pl.Polymorph = uint32(TypeV2SetRequestResult)
+		return pl.Marshal()
 	}
 
 	return nil, errors.New("unknown payload type")
@@ -545,6 +549,10 @@ func Unmarshal(data []byte) (Payload, error) {
 		return &pl, err
 	case TypePulse:
 		pl := Pulse{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeV2SetRequestResult:
+		pl := V2SetRequestResult{}
 		err := pl.Unmarshal(data)
 		return &pl, err
 	}
