@@ -87,7 +87,9 @@ func (s *DropBatch) calculateHashes(ctx smachine.ExecutionContext) smachine.Stat
 	ctx.UnpublishAll()
 
 	return s.hashingAdapter.PrepareAsync(ctx, func() smachine.AsyncResultFunc {
+		pulseNumber := s.pulseSlot.PulseData().GetPulseNumber()
 		calculatedIDs := make([]insolar.ID, len(s.ownedDropBatch.records))
+
 		for i, r := range s.ownedDropBatch.records {
 			buf, err := r.Record.Marshal()
 			if err != nil {
@@ -95,7 +97,7 @@ func (s *DropBatch) calculateHashes(ctx smachine.ExecutionContext) smachine.Stat
 			}
 			h := s.pcs.ReferenceHasher()
 			h.Hash(buf)
-			calculatedIDs[i] = *insolar.NewID(s.pulseSlot.PulseData().GetPulseNumber(), h.Sum(nil))
+			calculatedIDs[i] = *insolar.NewID(pulseNumber, h.Sum(nil))
 		}
 		return func(ctx smachine.AsyncResultContext) {
 			for i, r := range s.ownedDropBatch.records {
