@@ -1,0 +1,25 @@
+@startuml
+
+title "General machines interaction for Object operations"
+entity "Message Handle Machine" as m
+entity "Object Machine" as o
+entity "Drop Batch Machine" as d
+database "Node Storage" as db
+
+m -> o : Get or create machine.
+o -> o : Fetch Lifeline Index.
+o --> m : Sanity check error.
+o -> m : Lifeline index.
+m -> o : Set new state.
+o -> d : Get or create machine.
+o -> d : Set new state.
+d -> o : Return sync obj + getter.
+o -> m : Return sync obj + getter.
+...
+d -> d : Wait batch, hash calculations,\nreplication etc.
+d -> db : Update record number.
+d -> o : Trigger sync obj.
+d -> m : Trigger sync obj.
+m <-> db : Get result via getter
+
+@enduml
