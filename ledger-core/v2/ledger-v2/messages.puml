@@ -1,0 +1,17 @@
+@startuml
+hide empty members
+
+package MessageType {
+    abstract ProvidedFieldSet
+    abstract MessageSpecificFieldSet
+    class MessageHead
+    class MessageContent
+    MessageSpecificFieldSet o-- MessageHead
+    ProvidedFieldSet o-- MessageHead
+    ProvidedFieldSet o-- MessageContent
+    'MessageHead - MessageContent
+}
+
+Record --|> ProvidedFieldSet
+
+@enduml

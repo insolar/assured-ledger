@@ -35,7 +35,7 @@ type PulseDataManager struct {
 	futureCycles    uint8
 
 	// mutable
-	presentAndFuturePulse uint64 //atomic
+	presentAndFuturePulse uint64 // atomic
 	earliestCacheBound    uint32 // atomic
 	preparingPulseFlag    uint32 // atomic
 }

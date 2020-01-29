@@ -3,14 +3,14 @@
 hide empty members
 
 namespace Caller {
-    DropRecord <-- RegistrationRecord
+    DropRecord <-- CatalogHead
     class DropRecord {
         -RegistrarA_Signature0
 
         ~RegistrationRecordHashA
     }
 
-    class RegistrationRecord {
+    class CatalogHead {
         ..(by Registrar)..
         +EntryTypeAndFlags
         +EntryLocator
@@ -22,8 +22,8 @@ namespace Caller {
         ~RecordBodyHashA
     }
 
-    RegistrationRecord <-- RecordBody
-    class RecordBody {
+    CatalogHead <-- RecordHead
+    class RecordHead {
         +RecordTypeAndFlags
         +ProducerA_NodeHash
         +RegistrarA_NodeHash
@@ -35,8 +35,8 @@ namespace Caller {
         ~RecordPayloadHashA
     }
 
-    RecordBody <-- RecordPayload
-    class RecordPayload {
+    RecordHead <-- RecordContent
+    class RecordContent {
         +CallSite
         +CallExtInfo
     }
@@ -49,7 +49,7 @@ namespace Network {
         ..(from RegRecord)..
         -ProducerA_Signature
         -RegistrarA_Signature1
-        ..(from RecordBody)..
+        ..(from RecordHead)..
         +RecordTypeAndFlags
         +RegistrarA_NodeHash
         +CallerRef
@@ -65,7 +65,7 @@ namespace Network {
         +RecordBodyHashA
     }
 
-    Caller.RecordPayload . RequestPayload
+    Caller.RecordContent . RequestPayload
 
     class RequestPayload {
         +CallSite
@@ -74,14 +74,14 @@ namespace Network {
 }
 
 namespace Callee {
-    DropRecord <-- RegistrationRecord
+    DropRecord <-- CatalogHead
     class DropRecord {
         -RegistrarB_Signature
 
         ~RegistrationRecordHashB
     }
 
-    class RegistrationRecord {
+    class CatalogHead {
         ..(by Registrar)..
         +EntryTypeAndFlags
         +EntryLocator
@@ -93,8 +93,8 @@ namespace Callee {
         ~RecordBodyHashB
     }
 
-    RegistrationRecord <-- RecordBody
-    class RecordBody {
+    CatalogHead <-- RecordHead
+    class RecordHead {
         +RecordTypeAndFlags
         +ProducerB_NodeHash
         +RegistrarB_NodeHash
@@ -106,8 +106,8 @@ namespace Callee {
         ~RecordPayloadHashB
     }
 
-    RecordBody <-- RecordPayload
-    class RecordPayload {
+    RecordHead <-- RecordContent
+    class RecordContent {
         +ProducerA_NodeHash
         +RegistrarA_NodeHash
         -ProducerA_Signature
@@ -118,7 +118,7 @@ namespace Callee {
         +DelegationToken [optional]
     }
 
-    Network.RequestPayload . RecordPayload
+    Network.RequestPayload . RecordContent
 }
 
 @enduml

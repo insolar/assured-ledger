@@ -1,0 +1,68 @@
+@startuml
+participant VEa as "VE(P, A)"
+participant VEap as "VE(P-1, A)"
+participant LMEa as "LME(P, A)"
+
+participant VEb as "VE(P, B)"
+participant LMEb as "LME(P, B)"
+
+alt Option 1 - push by VE(P-1)
+VEap -> VEa : VStateReport(head + content)
+VEa -> LMEa : LMStateRequest(noContent)
+VEa <- LMEa : LMStateReport(head)
+else Option 2 - push by LME
+VEa <- LMEa : LMStateReport(head, id0)
+LMEa <-> VEa : pullMsgContent(id0)
+end
+
+-> VEa : VCallRequest(head, id1)
+alt Option 3 - push by call, once per pulse
+VEa -> VEap : VStateRequest(getFullState)
+alt Option 3.1 VE(P-1) is available
+VEap -> VEa : VStateReport(head + content)
+VEa -> LMEa : LMStateRequest(noContent)
+VEa <- LMEa : LMStateReport(head)
+else Option 3.2 VE(P-1) is unavailable
+VEa ->x VEap : VStateReport
+VEa -> LMEa : LMStateRequest()
+VEa <- LMEa : LMStateReport(head, id0)
+LMEa <-> VEa : pullMsgContent(id0)
+end
+end
+VEa -> VEa : queue up for preload
+<-> VEa : pullMsgContent(id1)
+note right of VEa
+immutable path
+end note
+VEa -> VEa : queue up for execute
+VEa -> VEa : execute
+activate VEa
+VEa -> LMEa : LMRegisterUpdate(callInRequest + callOutRequest)
+VEa -> VEb : VCallRequest(head, id2, sendContentFlag)
+deactivate VEa
+note right of VEa
+the caller may specify to get result in one msg
+as head+content when the caller's load is low
+end note
+note right of VEb
+mutable path
+end note
+VEb -> LMEb : LMRegisterUpdate(callInRequest)
+activate VEb
+VEb --> VEa : (optional) VCallRegistered(id2)
+note left of VEb
+callee should send CallRegistered when either:
+- outcoming registration of the call is in past pulse; or
+- execution takes longer than Ns; or
+- there is less than Ms before the next pulse
+end note
+...
+VEb -> LMEb : LMRegisterUpdate(bundle [ stateUpdate,\n callInRequest + callResult ])
+VEb -> VEa : VCallResult(head+content, id3)
+deactivate VEb
+VEa -> VEa : queue up for execute
+activate VEa
+VEa -> LMEa : LMRegisterUpdate(callResult)
+<- VEa : VCallResult(head, id3)
+deactivate VEa
+@enduml

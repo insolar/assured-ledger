@@ -1,0 +1,9 @@
+@startuml
+start
+:__Record__ Prepared;
+if (Content was requested?) then (yes)
+else (no)
+    :Extract __MsgHead__ from __Record__;
+endif
+
+@enduml
