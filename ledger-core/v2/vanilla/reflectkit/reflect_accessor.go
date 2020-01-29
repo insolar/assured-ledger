@@ -1,5 +1,5 @@
 //
-//    Copyright 2019 Insolar Technologies
+//    Copyright 2020 Insolar Technologies
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"unsafe"
 )
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit.TypedReceiver -o ./mocks -s _mock.go -g
 type TypedReceiver interface {
 	ReceiveBool(reflect.Kind, bool)
 	ReceiveInt(reflect.Kind, int64)
@@ -48,7 +49,7 @@ func ValueToReceiverFactory(k reflect.Kind, custom IfaceToReceiverFactoryFunc) V
 			return false, func(value reflect.Value, outFn TypedReceiver) {
 				v := value.Bool()
 				if !checkZero || v {
-					outFn.ReceiveBool(value.Kind(), value.Bool())
+					outFn.ReceiveBool(value.Kind(), v)
 				} else {
 					outFn.ReceiveZero(value.Kind())
 				}
@@ -186,7 +187,7 @@ func ValueToReceiverFactory(k reflect.Kind, custom IfaceToReceiverFactoryFunc) V
 		}
 
 	// ============ Excluded ===================
-	//reflect.UnsafePointer
+	// reflect.UnsafePointer
 	default:
 		return nil
 	}
