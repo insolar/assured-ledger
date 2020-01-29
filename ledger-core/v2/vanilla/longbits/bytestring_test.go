@@ -65,8 +65,8 @@ func TestByteString_ReadAt(t *testing.T) {
 }
 
 func TestByteString_IsEmpty(t *testing.T) {
-	require.Equal(t, 0, ByteString(""))
-	require.Equal(t, 1, ByteString("1"))
+	require.Equal(t, true, ByteString("").IsEmpty())
+	require.Equal(t, false, ByteString("1").IsEmpty())
 }
 
 func TestFill(t *testing.T) {
