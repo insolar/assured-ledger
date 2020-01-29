@@ -205,7 +205,7 @@ func (v ByteString) FoldToBits64() (folded Bits64) {
 		return folded
 	}
 
-	alignedLen := len(v) & (len(folded) - 1)
+	alignedLen := len(v) &^ (len(folded) - 1)
 	copy(folded[alignedLen:], v)
 
 	for i := 0; i < alignedLen; i += len(folded) {

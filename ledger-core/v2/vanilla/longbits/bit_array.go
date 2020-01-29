@@ -16,7 +16,9 @@
 
 package longbits
 
-import "math/bits"
+import (
+	"math/bits"
+)
 
 type IndexedBits interface {
 	BitMasked(index int) (value byte, mask uint8)
@@ -57,6 +59,9 @@ func (v BitSlice) BitValue(index int) byte {
 }
 
 func (v BitSlice) Byte(index int) byte {
+	if index >= len(v) {
+		panic("out of bounds")
+	}
 	return v[index]
 }
 
