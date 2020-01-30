@@ -1,6 +1,8 @@
 package smachines
 
 import (
+	"fmt"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
@@ -20,7 +22,7 @@ type declarationSetResult struct {
 
 func (*declarationSetResult) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	s := sm.(*SetResult)
-	injector.MustInject(&s.sender)
+	injector.MustInjectById("bus.Sender", &s.sender)
 }
 
 func (*declarationSetResult) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -74,7 +76,7 @@ func (s *SetResult) saveResult(ctx smachine.ExecutionContext) smachine.StateUpda
 	case smachine.Impossible:
 		return ctx.Stop()
 	default:
-		panic("unknown state from TryUse")
+		panic(fmt.Sprintf("unknown state from TryUse: %v", decision))
 	}
 
 	return ctx.Stop()
@@ -99,12 +101,13 @@ func (s *SetResult) getSyncLink(ctx smachine.ExecutionContext) smachine.StateUpd
 	case smachine.Impossible:
 		return ctx.Stop()
 	default:
-		panic("unknown state from TryUse")
+		panic(fmt.Sprintf("unknown state from TryUse: %v", decision))
 	}
 }
 
 func (s *SetResult) waitForSync(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	switch ctx.Acquire(s.syncFinished).GetDecision() {
+	decision := ctx.Acquire(s.syncFinished).GetDecision()
+	switch decision {
 	case smachine.Passed:
 		s.sender.Reply(ctx.GetContext(), s.meta, payload.MustNewMessage(&payload.ID{
 			ID: s.sideEffect.ID,
@@ -115,6 +118,6 @@ func (s *SetResult) waitForSync(ctx smachine.ExecutionContext) smachine.StateUpd
 	case smachine.Impossible:
 		return ctx.Stop()
 	default:
-		panic("unknown state from TryUse")
+		panic(fmt.Sprintf("unknown state from TryUse: %v", decision))
 	}
 }
