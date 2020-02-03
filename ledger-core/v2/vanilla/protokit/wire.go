@@ -94,7 +94,7 @@ func (v WireTag) _checkTag(expected WireTag) error {
 	if v == expected {
 		return nil
 	}
-	return fmt.Errorf("tag mismatch: actual=%v, expected=%v", expected, v)
+	return fmt.Errorf("tag mismatch: actual=%v, expected=%v", v, expected)
 }
 
 func (v WireTag) CheckType(t WireType) error {
