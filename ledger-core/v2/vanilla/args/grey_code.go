@@ -25,7 +25,9 @@ func Grey(v uint) uint {
 
 // Converts a binary-reflected grey code to a linear binary number
 func FromGrey(g uint) uint {
-	g = g ^ (g >> 32) // it is only needed when uint=uint64, so lets hope for the compiler to remove it
+	if bits.UintSize == 64 {
+		g = g ^ (g >> 32)
+	}
 	g = g ^ (g >> 16)
 	g = g ^ (g >> 8)
 	g = g ^ (g >> 4)
@@ -51,29 +53,15 @@ func GreyInc(v uint) uint {
 	return Grey(v ^ (v + 1))
 }
 
-// Grey code has a periodic reflect symmetry, so we can do a shortcut for the most cases.
-// Use of a bigger table is questionable, as the only varying value is at the end.
-var greyDeltaBit = [16]uint8{
-	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, needsCalc,
-
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 7,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 6,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 5,
-	//0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, 4,	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, needsCalc,
-}
-
-const needsCalc = 8
-
 // Returns a bit (offset) that will change in grey-code equivalent of v on incrementing it
 // The following is always true: 1<<GreyIncBit(v) == GreyInc(v)
 func GreyIncBit(v uint) uint8 {
-	r := greyDeltaBit[v&0xF]
-	if r < needsCalc { // quick path
-		return r
+	if v&1 == 0 {
+		return 0 // a faster way
 	}
+	return greyIncBitCalc(v)
+}
+
+func greyIncBitCalc(v uint) uint8 {
 	return uint8(bits.Len(GreyInc(v)) - 1)
 }
