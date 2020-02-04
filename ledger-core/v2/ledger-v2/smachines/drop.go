@@ -8,7 +8,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
-const recordBatchThreshold = 100
+const RecordBatchThreshold = 1000
 
 type sharedDropBatch struct {
 	records      []*store.Record
@@ -31,14 +31,15 @@ type declarationDropBatch struct {
 
 func (*declarationDropBatch) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	m := sm.(*DropBatch)
-	injector.MustInject(m.hashingAdapter)
-	injector.MustInject(m.pulseSlot)
-	injector.MustInject(m.pcs)
-	injector.MustInject(m.records)
+	injector.MustInject(&m.syncAdapter)
+	injector.MustInject(&m.hashingAdapter)
+	injector.MustInject(&m.pulseSlot)
+	injector.MustInject(&m.pcs)
+	injector.MustInject(&m.records)
 }
 
 func (*declarationDropBatch) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
-	return sm.(*Object).Init
+	return sm.(*DropBatch).Init
 }
 
 /* -------- Instance ------------- */
@@ -77,7 +78,7 @@ func (s *DropBatch) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 }
 
 func (s *DropBatch) waitForBatch(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if len(s.ownedDropBatch.records) < recordBatchThreshold {
+	if len(s.ownedDropBatch.records) < RecordBatchThreshold {
 		return ctx.Sleep().ThenRepeat()
 	}
 	return ctx.Jump(s.calculateHashes)

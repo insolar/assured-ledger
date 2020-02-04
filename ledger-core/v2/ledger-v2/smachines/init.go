@@ -66,15 +66,11 @@ func (d *Dispatcher) ClosePulse(_ context.Context, pulseObject insolar.Pulse) {
 }
 
 func (d *Dispatcher) Process(msg *message.Message) error {
-	pl, err := payload.Unmarshal(msg.Payload)
+	plMeta := payload.Meta{}
+	err := plMeta.Unmarshal(msg.Payload)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal payload.Meta")
 	}
-	plMeta, ok := pl.(*payload.Meta)
-	if !ok {
-		return errors.Errorf("unexpected type: %T (expected payload.Meta)", pl)
-	}
-
 	ctx, _ := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(meta.TraceID))
 	return d.conveyor.AddInput(ctx, plMeta.Pulse, msg)
 }
@@ -101,7 +97,7 @@ func MessageFactory(message *message.Message) smachine.CreateFunc {
 	}
 
 	switch payloadType {
-	case payload.TypeGetObject:
+	case payload.TypeV2SetRequestResult:
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return NewSetResult(messageMeta)
 		}

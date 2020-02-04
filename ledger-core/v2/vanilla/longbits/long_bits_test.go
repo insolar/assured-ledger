@@ -18,6 +18,8 @@ package longbits
 
 import (
 	"encoding/binary"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -602,5 +604,113 @@ func TestCutOutBits64FromLonger(t *testing.T) {
 			}
 			prev = b
 		}
+	}
+}
+
+func TestVerifyReadAt(t *testing.T) {
+	for _, tc := range []struct {
+		input []byte
+		off   int64
+		max   int
+		res   int
+		err   error
+	}{
+		{
+			input: []byte{0x1, 0x0},
+			off:   1,
+			max:   10,
+			res:   2,
+		},
+		{
+			input: []byte{0x1},
+			off:   -1,
+			max:   10,
+			err:   errors.New("negative offset"),
+		},
+		{
+			input: []byte{},
+			off:   1,
+			max:   10,
+			res:   0,
+		},
+		{
+			input: []byte{0x1},
+			off:   1,
+			max:   1,
+			err:   io.EOF,
+		},
+		{
+			input: []byte{0x1},
+			off:   2,
+			max:   1,
+			res:   0,
+			err:   io.ErrUnexpectedEOF,
+		},
+	} {
+		res, err := VerifyReadAt(tc.input, tc.off, tc.max)
+		require.Equal(t, tc.err, err)
+		require.Equal(t, tc.res, res)
+	}
+}
+
+func TestBytesToGroupedString(t *testing.T) {
+	for _, tc := range []struct {
+		bytes     []byte
+		prefix    string
+		separator string
+		everyN    int
+		res       string
+	}{
+		{
+			bytes:     nil,
+			prefix:    "",
+			separator: "",
+			everyN:    10,
+			res:       "",
+		},
+		{
+			bytes:     []byte{0x2},
+			prefix:    "",
+			separator: "",
+			everyN:    10,
+			res:       "02",
+		},
+		{
+			bytes:     []byte{0x0},
+			prefix:    "ins",
+			separator: "",
+			everyN:    10,
+			res:       "ins00",
+		},
+		{
+			bytes:     []byte{0x0, 0x0, 0x0},
+			prefix:    "ins",
+			separator: "||",
+			everyN:    0,
+			res:       "ins000000",
+		},
+		{
+			bytes:     []byte{0x0, 0x0, 0x0},
+			prefix:    "ins",
+			separator: "||",
+			everyN:    1,
+			res:       "ins0||0||0",
+		},
+		{
+			bytes:     []byte{0x0, 0x0, 0x0},
+			prefix:    "ins",
+			separator: "||",
+			everyN:    2,
+			res:       "ins00||00",
+		},
+		{
+			bytes:     []byte{0x0, 0x0, 0x0, 0x0},
+			prefix:    "ins",
+			separator: "||",
+			everyN:    2,
+			res:       "ins00||00",
+		},
+	} {
+		require.Equal(t, tc.res, BytesToGroupedString(tc.bytes, tc.prefix, tc.separator, tc.everyN))
 	}
 }

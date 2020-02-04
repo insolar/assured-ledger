@@ -1,6 +1,8 @@
 package smachines
 
 import (
+	"fmt"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/store"
@@ -58,7 +60,7 @@ func (s *Object) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 }
 
 func (s *Object) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	link := ctx.Share(s.ownedObject, smachine.ShareDataWakesUpAfterUse)
+	link := ctx.Share(&s.ownedObject, smachine.ShareDataWakesUpAfterUse)
 	if !ctx.Publish(s.id, link) {
 		return ctx.Stop()
 	}
@@ -82,12 +84,14 @@ func (s *Object) propagateChangeToDrop(ctx smachine.ExecutionContext) smachine.S
 	}).TryUse(ctx).GetDecision()
 
 	switch decision {
+	case smachine.Passed:
+		ctx.Stop()
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.sharedDropBatch).ThenRepeat()
 	case smachine.Impossible:
 		return ctx.Stop()
 	default:
-		panic("unknown state from TryUse")
+		panic(fmt.Sprintf("unknown state from TryUse: %v", decision))
 	}
 
 	return ctx.Stop()
