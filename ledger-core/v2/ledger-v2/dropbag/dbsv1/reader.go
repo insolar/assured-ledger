@@ -177,7 +177,7 @@ func (p *StorageFileV1Reader) Read(sr dbcommon.StorageSeqReader) error {
 	var expectedTailLength uint64
 	totalCrc := crc32.New(p.CrcTable)
 
-	if headLength, err := headField.DecodeFrom(sr); err != nil {
+	if headLength, err := headField.ReadTagValue(sr); err != nil {
 		return err
 	} else if err := p.readStorageEntry(sr, headEntry, headLength, minHeadLength-selfChkFieldLength, maxHeadLength, true,
 		func(ofs int64, b []byte, magicSeq, crc uint32) error {
@@ -205,7 +205,7 @@ outer:
 	for entryNo := headEntry + 1; ; entryNo++ {
 
 		lastFieldStart = sr.Offset()
-		wt, entryLength, err := protokit.WireBytes.DecodeFrom(sr)
+		wt, entryLength, err := protokit.WireBytes.ReadTagValue(sr)
 		if err != nil {
 			return err
 		}
@@ -224,7 +224,7 @@ outer:
 			}
 
 			lastFieldStart = sr.Offset()
-			if tailLength, err = tailField.DecodeFrom(sr); err != nil {
+			if tailLength, err = tailField.ReadTagValue(sr); err != nil {
 				return err
 			}
 			partialCount = false
@@ -242,7 +242,7 @@ outer:
 			if err != nil {
 				return err
 			}
-			if tailLength, err = tailField.DecodeFrom(sr); err != nil {
+			if tailLength, err = tailField.ReadTagValue(sr); err != nil {
 				return err
 			}
 			break outer
@@ -325,7 +325,7 @@ func (p *StorageFileV1Reader) readStorageEntry(sr dbcommon.StorageSeqReader, ent
 
 	rawStart := sr.Offset()
 
-	magicAndCrc, err := magicCrcField.DecodeFrom(sr)
+	magicAndCrc, err := magicCrcField.ReadTagValue(sr)
 	if err != nil {
 		return err
 	}
@@ -357,7 +357,7 @@ func (p *StorageFileV1Reader) readStorageEntry(sr dbcommon.StorageSeqReader, ent
 			return fmt.Errorf("corrupted content, insufficient length: entry=%v outer=%d deficit=%d", entryNo, delimLen, fieldOfs)
 		}
 		rBuf := bytes.NewBuffer(buf[fieldOfs:])
-		switch selfChk, err := selfChkField.DecodeFrom(rBuf); {
+		switch selfChk, err := selfChkField.ReadTagValue(rBuf); {
 		case err != nil:
 			return err
 		case rBuf.Len() != 0:
@@ -380,7 +380,7 @@ func (p *StorageFileV1Reader) readStorageEntry(sr dbcommon.StorageSeqReader, ent
 func (p *StorageFileV1Reader) readPrelude(buf []byte, ofs int64) (uint64, error) {
 	rBuf := bytes.NewBuffer(buf)
 
-	switch strLen, err := magicStringField.DecodeFrom(rBuf); {
+	switch strLen, err := magicStringField.ReadTagValue(rBuf); {
 	case err != nil:
 		return 0, err
 	case uint64(len(magicStrHead)) != strLen:
@@ -392,7 +392,7 @@ func (p *StorageFileV1Reader) readPrelude(buf []byte, ofs int64) (uint64, error)
 		}
 	}
 
-	if declaredTailLen, err := declaredTailLenField.DecodeFrom(rBuf); err != nil {
+	if declaredTailLen, err := declaredTailLenField.ReadTagValue(rBuf); err != nil {
 		return 0, err
 	} else if declaredTailLen < uint64(minTailLength) || declaredTailLen > uint64(maxTailLength) {
 		return 0, fmt.Errorf("illegal content: entry=%v declaredTailLen=%d", headEntry, declaredTailLen)
@@ -406,7 +406,7 @@ func (p *StorageFileV1Reader) readEntry(buf []byte, ofs int64, entryNo entryNo, 
 
 	rBuf := bytes.NewBuffer(buf)
 
-	entryOptions, err := chapterOptionsField.DecodeFrom(rBuf)
+	entryOptions, err := chapterOptionsField.ReadTagValue(rBuf)
 	if err != nil {
 		return err
 	}
@@ -419,7 +419,7 @@ func (p *StorageFileV1Reader) readEntry(buf []byte, ofs int64, entryNo entryNo, 
 func (p *StorageFileV1Reader) readConclude(buf []byte, ofs int64, totalCount uint64, partialCount bool, totalCrc uint32) error {
 	rBuf := bytes.NewBuffer(buf)
 
-	switch strLen, err := magicStringField.DecodeFrom(rBuf); {
+	switch strLen, err := magicStringField.ReadTagValue(rBuf); {
 	case err != nil:
 		return err
 	case uint64(len(magicStrTail)) != strLen:
@@ -431,7 +431,7 @@ func (p *StorageFileV1Reader) readConclude(buf []byte, ofs int64, totalCount uin
 		}
 	}
 
-	switch totals, err := totalCountAndCrcField.DecodeFrom(rBuf); {
+	switch totals, err := totalCountAndCrcField.ReadTagValue(rBuf); {
 	case err != nil:
 		return err
 	case totalCount > math.MaxUint32:
@@ -447,7 +447,7 @@ func (p *StorageFileV1Reader) readConclude(buf []byte, ofs int64, totalCount uin
 		return fmt.Errorf("corrupted content, crc mismatch: entry=%v expected=%x actual=%x", tailEntry, uint32(totals>>32), totalCrc)
 	}
 
-	switch paddingLength, err := tailInnerPadding.DecodeFrom(rBuf); {
+	switch paddingLength, err := tailInnerPadding.ReadTagValue(rBuf); {
 	case err != nil:
 		return err
 	case paddingLength >= maxTailLength:

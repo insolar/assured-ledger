@@ -71,7 +71,7 @@ type ReadConfig struct {
 }
 
 func ReadFormatAndOptions(sr StorageSeqReader) (FileFormat, FormatOptions, error) {
-	if v, err := formatField.DecodeFrom(sr); err != nil {
+	if v, err := formatField.ReadTagValue(sr); err != nil {
 		return 0, 0, err
 	} else {
 		return FileFormat(v & math.MaxUint16), FormatOptions(v >> 16), nil
@@ -79,7 +79,7 @@ func ReadFormatAndOptions(sr StorageSeqReader) (FileFormat, FormatOptions, error
 }
 
 func WriteFormatAndOptions(sw StorageSeqWriter, format FileFormat, options FormatOptions) error {
-	return formatField.EncodeTo(sw, uint64(format)|uint64(options)<<16)
+	return formatField.WriteTagValue(sw, uint64(format)|uint64(options)<<16)
 }
 
 type StorageSeqReader interface {

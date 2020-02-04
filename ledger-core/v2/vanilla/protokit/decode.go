@@ -22,7 +22,7 @@ import (
 	"io"
 )
 
-var errOverflow = errors.New("proto: integer overflow")
+var errOverflow = errors.New("proto: uint32 overflow")
 
 func DecodeVarint(r io.ByteReader) (uint64, error) {
 	b, err := r.ReadByte()
@@ -33,8 +33,7 @@ func DecodeVarint(r io.ByteReader) (uint64, error) {
 }
 
 // Continues to read Varint that was stated with the given (b)
-// So we can't use binary.ReadUvarint(r) here
-
+// See also binary.ReadUvarint(r) here
 func decodeVarint(b byte, r io.ByteReader) (n uint64, err error) {
 	v := uint64(b & 0x7F)
 
@@ -54,62 +53,17 @@ func decodeVarint(b byte, r io.ByteReader) (n uint64, err error) {
 	return v, nil
 }
 
-func TryDecodeTag(expectedType WireType, r io.ByteScanner) (WireTag, error) {
-	b, err := r.ReadByte()
-	switch {
-	case err != nil:
-		return 0, err
-	case !expectedType.isValidByte(b):
-		return 0, r.UnreadByte()
-	}
-	if v, err := decodeVarint(b, r); err != nil {
-		return 0, err
-	} else if tag, err := SafeWireTag(v); err != nil {
-		return 0, err
-	} else {
-		return tag, nil
-	}
-}
-
-func DecodeExpectedType(expectedType WireType, r io.ByteReader) (WireTag, error) {
-	if v, err := DecodeVarint(r); err != nil {
-		return 0, err
-	} else if tag, err := SafeWireTag(v); err != nil {
-		return 0, err
-	} else if err = tag.CheckType(expectedType); err != nil {
-		return 0, err
-	} else {
-		return tag, nil
-	}
-}
-
-func DecodeExpectedTag(expected WireTag, r io.ByteReader) error {
-	if v, err := DecodeVarint(r); err != nil {
-		return err
-	} else if tag, err := SafeWireTag(v); err != nil {
-		return err
-	} else if err = tag.CheckTag(expected); err != nil {
-		return err
-	} else {
-		return nil
-	}
-}
-
-func DecodeFixed32(r io.ByteReader) (uint64, error) {
-	return decodeFixed32(r)
-}
-
 func DecodeFixed64(r io.ByteReader) (uint64, error) {
-	if v, err := decodeFixed32(r); err != nil {
+	if v, err := DecodeFixed32(r); err != nil {
 		return 0, err
-	} else if v2, err := decodeFixed32(r); err != nil {
+	} else if v2, err := DecodeFixed32(r); err != nil {
 		return 0, err
 	} else {
 		return v2<<32 | v, nil
 	}
 }
 
-func decodeFixed32(r io.ByteReader) (v uint64, err error) {
+func DecodeFixed32(r io.ByteReader) (v uint64, err error) {
 	var b byte
 	if b, err = r.ReadByte(); err != nil {
 		return 0, err
@@ -130,35 +84,138 @@ func decodeFixed32(r io.ByteReader) (v uint64, err error) {
 	return v, nil
 }
 
-func MatchStringByteReader(s string, r io.ByteReader) (bool, error) {
-	n := len(s)
-	if n == 0 {
-		panic("illegal value")
-	}
-	for i := 0; i < n; i++ {
-		if cr, err := r.ReadByte(); err != nil {
-			return false, err
-		} else if cr != s[i] {
-			return false, nil
-		}
-	}
-	return true, nil
+func IsValidFirstByteOfTag(firstByte byte) bool {
+	return firstByte > maskWireType && WireType(firstByte&maskWireType).IsValid()
 }
 
-func MatchString(s string, r io.Reader, msg string) error {
-	n := len(s)
-	if n == 0 {
-		panic("illegal value")
-	}
-	buf := make([]byte, n)
-	if nr, err := r.Read(buf); err != nil {
-		return err
-	} else if nr != n {
-		return fmt.Errorf("insufficient read%s actual=%d expected=%d", msg, nr, n)
-	}
+func (v WireType) IsValidFirstByte(firstByte byte) bool {
+	return firstByte > maskWireType && firstByte&maskWireType == byte(v) && v.IsValid()
+}
 
-	if s != string(buf) {
-		return fmt.Errorf("mismatched read%s actual=%s expected=%s", msg, s, buf)
+func (v WireTag) IsValidFirstByte(firstByte byte) bool {
+	switch {
+	case !IsValidFirstByteOfTag(firstByte):
+		return false
+	case v <= 0xFF:
+		return firstByte == byte(v)
+	default:
+		return firstByte == byte(v)|0x80
 	}
-	return nil
+}
+
+func _readTag(firstByte byte, r io.ByteReader) (wt WireTag, err error) {
+	var x uint64
+	x, err = decodeVarint(firstByte, r)
+	if err != nil {
+		return 0, err
+	}
+	return SafeWireTag(x)
+}
+
+func TryReadAnyTag(r io.ByteScanner) (wt WireTag, err error) {
+	var b byte
+	b, err = r.ReadByte()
+	switch {
+	case err != nil:
+		return 0, err
+	case !IsValidFirstByteOfTag(b):
+		return 0, r.UnreadByte()
+	}
+	return _readTag(b, r)
+}
+
+func MustReadAnyTag(r io.ByteReader) (wt WireTag, err error) {
+	var b byte
+	b, err = r.ReadByte()
+	switch {
+	case err != nil:
+		return 0, err
+	case !IsValidFirstByteOfTag(b):
+		return 0, fmt.Errorf("invalid wire tag, wrong first byte: %x", b)
+	}
+	return _readTag(b, r)
+}
+
+func MustReadAnyTagValue(r io.ByteReader) (rt WireTag, u uint64, err error) {
+	rt, err = MustReadAnyTag(r)
+	if err != nil {
+		return 0, 0, err
+	}
+	u, err = rt.ReadValue(r)
+	return
+}
+
+func TryReadAnyTagValue(r io.ByteScanner) (rt WireTag, u uint64, err error) {
+	rt, err = TryReadAnyTag(r)
+	if err != nil || rt.IsZero() {
+		return 0, 0, err
+	}
+	u, err = rt.ReadValue(r)
+	return
+}
+
+func (v WireTag) TryReadTag(r io.ByteScanner) (WireTag, error) {
+	b, err := r.ReadByte()
+	switch {
+	case err != nil:
+		return 0, err
+	case !v.IsValidFirstByte(b):
+		return 0, r.UnreadByte()
+	}
+	var rt WireTag
+	rt, err = _readTag(b, r)
+	if err != nil {
+		return 0, err
+	}
+	return rt, rt.CheckTag(v)
+}
+
+func (v WireType) TryReadTag(r io.ByteScanner) (WireTag, error) {
+	b, err := r.ReadByte()
+	switch {
+	case err != nil:
+		return 0, err
+	case !v.IsValidFirstByte(b):
+		return 0, r.UnreadByte()
+	}
+	var rt WireTag
+	rt, err = _readTag(b, r)
+	if err != nil {
+		return 0, err
+	}
+	return rt, rt.CheckType(v)
+}
+
+func (v WireTag) ReadTag(r io.ByteReader) error {
+	rt, err := MustReadAnyTag(r)
+	if err != nil {
+		return err
+	}
+	return rt.CheckTag(v)
+}
+
+func (v WireType) ReadTag(r io.ByteReader) (WireTag, error) {
+	rt, err := MustReadAnyTag(r)
+	if err != nil {
+		return rt, err
+	}
+	return rt, rt.CheckType(v)
+}
+
+func (v WireTag) ReadTagValue(r io.ByteReader) (uint64, error) {
+	err := v.ReadTag(r)
+	if err != nil {
+		return 0, err
+	}
+	return v.ReadValue(r)
+}
+
+func (v WireType) ReadTagValue(r io.ByteReader) (WireTag, uint64, error) {
+	rt, err := v.ReadTag(r)
+	if err != nil {
+		return rt, 0, err
+	}
+	var u uint64
+	u, err = rt.ReadValue(r)
+	return rt, u, err
 }
