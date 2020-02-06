@@ -238,7 +238,7 @@ message ServiceData {
     uint32 Polymorph = 16;
 
     string LogTraceID = 20;
-    uint32 LogLevel = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.LogLevel", (gogoproto.nullable) = false];
+    uint32 LogLevel = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/log.Level", (gogoproto.nullable) = false];
     bytes TraceSpanData = 22;
 }
 

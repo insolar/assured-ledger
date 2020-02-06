@@ -86,13 +86,13 @@ func (p *StorageFileV1Writer) WritePrelude(b []byte, tailMaxPayloadLength int) (
 	p.totalCrc = crc32.New(p.CrcTable)
 
 	return p.writeField(headField, func(w *bytes.Buffer, _ int) error {
-		if err := magicStringField.EncodeTo(w, uint64(len(magicStrHead))); err != nil {
+		if err := magicStringField.WriteTagValue(w, uint64(len(magicStrHead))); err != nil {
 			return err
 		}
 		if _, err := w.Write(([]byte)(magicStrHead)); err != nil {
 			return err
 		}
-		if err := declaredTailLenField.EncodeTo(w, p.tailLength); err != nil {
+		if err := declaredTailLenField.WriteTagValue(w, p.tailLength); err != nil {
 			return err
 		}
 		p.nextChapter++
@@ -137,13 +137,13 @@ func (p *StorageFileV1Writer) WriteConclude(b []byte) (dbcommon.StorageEntryPosi
 	}
 
 	return p.writeField(tailField, func(w *bytes.Buffer, knownLength int) error {
-		if err := magicStringField.EncodeTo(w, uint64(len(magicStrTail))); err != nil {
+		if err := magicStringField.WriteTagValue(w, uint64(len(magicStrTail))); err != nil {
 			return err
 		}
 		if _, err := w.Write(([]byte)(magicStrTail)); err != nil {
 			return err
 		}
-		if err := totalCountAndCrcField.EncodeTo(w, totalCount|uint64(p.totalCrc.Sum32())<<32); err != nil {
+		if err := totalCountAndCrcField.WriteTagValue(w, totalCount|uint64(p.totalCrc.Sum32())<<32); err != nil {
 			return err
 		}
 
@@ -178,7 +178,7 @@ func (p *StorageFileV1Writer) WriteChapter(b []byte, details dbcommon.ChapterDet
 	hasSelfLen := p.StorageOptions&ChapterWithoutSelfCheckOption != 0
 
 	return p.writeField(chapterField, func(w *bytes.Buffer, _ int) error {
-		if err := chapterOptionsField.EncodeTo(w, chapterOptions); err != nil {
+		if err := chapterOptionsField.WriteTagValue(w, chapterOptions); err != nil {
 			return err
 		}
 		p.nextChapter++
@@ -214,7 +214,7 @@ func (p *StorageFileV1Writer) writeField(fieldTag protokit.WireTag, prefixFn fun
 			return fmt.Errorf("internal length limit error: entry=%v length=%d limit=%d", entryNo, entryLength, maxFieldSize)
 		}
 
-		if err := fieldTag.EncodeTo(p.w, uint64(entryLength)); err != nil {
+		if err := fieldTag.WriteTagValue(p.w, uint64(entryLength)); err != nil {
 			return err
 		}
 
@@ -230,7 +230,7 @@ func (p *StorageFileV1Writer) writeField(fieldTag protokit.WireTag, prefixFn fun
 			}
 
 			postBuf.Grow(selfChkFieldLength)
-			if err := selfChkField.EncodeTo(&postBuf, uint64(entryLength)|uint64(dataStartPos)<<bitsSelfCheckLength); err != nil {
+			if err := selfChkField.WriteTagValue(&postBuf, uint64(entryLength)|uint64(dataStartPos)<<bitsSelfCheckLength); err != nil {
 				return err
 			}
 			if postBuf.Len() != selfChkFieldLength {
@@ -251,7 +251,7 @@ func (p *StorageFileV1Writer) writeField(fieldTag protokit.WireTag, prefixFn fun
 			addCrc32(p.totalCrc, crcValue)
 		}
 
-		if err := magicCrcField.EncodeTo(p.w, uint64(magic)|uint64(crcValue)<<32); err != nil {
+		if err := magicCrcField.WriteTagValue(p.w, uint64(magic)|uint64(crcValue)<<32); err != nil {
 			return err
 		}
 
@@ -283,7 +283,7 @@ type byteWriter interface {
 }
 
 func (p *StorageFileV1Writer) writePadding(w byteWriter, fieldTag protokit.WireTag, paddingLength uint64) error {
-	switch err := fieldTag.EncodeTo(w, paddingLength); {
+	switch err := fieldTag.WriteTagValue(w, paddingLength); {
 	case err != nil:
 		return err
 	case paddingLength == 0:

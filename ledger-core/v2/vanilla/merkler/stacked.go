@@ -55,6 +55,7 @@ type StackedCalculator struct {
 	count          uint
 	treeLevels     []treeLevel
 	finished       bool
+	//sequenceFn     func (longbits.FoldableReader)
 }
 
 type treeLevel struct {
@@ -90,6 +91,11 @@ func (p *StackedCalculator) AddNext(addDigest longbits.FoldableReader) {
 		// Level -1 (leafs) is special - it only stores a previous value
 		bottomDigest = p.digester.DigestPair(p.prevAdded, addDigest)
 		p.prevAdded = nil
+
+		//if p.sequenceFn != nil {
+		//	p.sequenceFn(addDigest)
+		//	p.sequenceFn(bottomDigest)
+		//}
 	} else {
 		if p.prevAdded != nil {
 			panic("illegal state")
@@ -102,6 +108,11 @@ func (p *StackedCalculator) AddNext(addDigest longbits.FoldableReader) {
 		pairLevel := &p.treeLevels[pairPosition-1]
 		bottomDigest = p.digester.DigestPair(pairLevel.digest0, pairLevel.digest1)
 		pairLevel.digest0, pairLevel.digest1 = cryptkit.Digest{}, cryptkit.Digest{}
+
+		//if p.sequenceFn != nil {
+		//	p.sequenceFn(bottomDigest)
+		//	p.sequenceFn(addDigest)
+		//}
 	}
 
 	if int(pairPosition) == len(p.treeLevels) {

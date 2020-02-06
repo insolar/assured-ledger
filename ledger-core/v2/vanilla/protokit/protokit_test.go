@@ -18,9 +18,8 @@ type testCase struct {
 }
 
 func (tc *testCase) getTypeByte() byte {
-	return byte(math.Pow(2, lenWireType) + tc.FieldId)
+	return byte(math.Pow(2, WireTypeBits) + tc.FieldId)
 }
-
 
 // TODO this cases cause panics - WireStartGroup, WireEndGroup
 var testCases = []testCase{
@@ -61,31 +60,32 @@ func TestSafeWireTag(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, WireTag(0), wireTag)
 
-	test = uint64(math.Pow(2, lenWireType-1))
+	test = uint64(math.Pow(2, WireTypeBits-1))
 	wireTag, err = SafeWireTag(test)
 	require.Error(t, err)
 	require.Equal(t, WireTag(0), wireTag)
 
-	test = uint64(math.Pow(2, lenWireType))
+	test = uint64(math.Pow(2, WireTypeBits))
 	wireTag, err = SafeWireTag(test)
 	require.NoError(t, err)
 	require.Equal(t, WireTag(test), wireTag)
+	require.Equal(t, WireVarint, wireTag.Type())
 }
 
 func TestWireTypeDecodeFromAnotherType(t *testing.T) {
 	buf := bytes.Buffer{}
-	buf.Write([]byte{byte(math.Pow(2, lenWireType)), 123})
+	buf.Write([]byte{byte(math.Pow(2, WireTypeBits)), 123})
 
 	// try to decode WireVariant to WireBytes
-	_, _, err := WireBytes.DecodeFrom(&buf)
+	_, _, err := WireBytes.ReadTagValue(&buf)
 	require.Error(t, err)
 
 	// try to decode WireVariant to WireFixed64
-	_, _, err = WireFixed64.DecodeFrom(&buf)
+	_, _, err = WireFixed64.ReadTagValue(&buf)
 	require.Error(t, err)
 
 	// try to decode WireVariant to WireFixed32
-	_, _, err = WireFixed32.DecodeFrom(&buf)
+	_, _, err = WireFixed32.ReadTagValue(&buf)
 	require.Error(t, err)
 }
 
@@ -97,7 +97,7 @@ func TestWireTypeDecodeFrom(t *testing.T) {
 			buf.Reset()
 			buf.Write(append([]byte{test.getTypeByte()}, test.Data...))
 
-			wireTag, data, err := test.WireType.DecodeFrom(&buf)
+			wireTag, data, err := test.WireType.ReadTagValue(&buf)
 			require.NoError(t, err)
 			require.Equal(t, test.Result, data)
 			require.Equal(t, test.WireType, wireTag.Type())
@@ -107,18 +107,18 @@ func TestWireTypeDecodeFrom(t *testing.T) {
 
 func TestWireTagDecodeFromAnotherType(t *testing.T) {
 	buf := bytes.Buffer{}
-	buf.Write([]byte{byte(math.Pow(2, lenWireType)), 123})
+	buf.Write([]byte{byte(math.Pow(2, WireTypeBits)), 123})
 
 	// try to decode WireVariant to WireBytes
-	_, err := WireBytes.Tag(1).DecodeFrom(&buf)
+	_, err := WireBytes.Tag(1).ReadTagValue(&buf)
 	require.Error(t, err)
 
 	// try to decode WireVariant to WireFixed64
-	_, err = WireFixed64.Tag(1).DecodeFrom(&buf)
+	_, err = WireFixed64.Tag(1).ReadTagValue(&buf)
 	require.Error(t, err)
 
 	// try to decode WireVariant to WireFixed32
-	_, err = WireFixed32.Tag(1).DecodeFrom(&buf)
+	_, err = WireFixed32.Tag(1).ReadTagValue(&buf)
 	require.Error(t, err)
 }
 
@@ -131,7 +131,7 @@ func TestWireTagDecodeFrom(t *testing.T) {
 			buf.Write(append([]byte{test.getTypeByte()}, test.Data...))
 
 			tag := test.WireType.Tag(1)
-			data, err := tag.DecodeFrom(&buf)
+			data, err := tag.ReadTagValue(&buf)
 			require.NoError(t, err)
 			require.Equal(t, test.Result, data)
 		})
@@ -179,7 +179,7 @@ func TestWireTagMustEncodeTo(t *testing.T) {
 			buf.Write(append([]byte{test.getTypeByte()}, test.Data...))
 
 			tag := test.WireType.Tag(1)
-			tag.MustEncodeTo(&buf, 1234)
+			tag.MustWrite(&buf, 1234)
 		})
 	}
 

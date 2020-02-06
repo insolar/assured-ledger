@@ -67,11 +67,13 @@ func BenchmarkCodeOf(t *testing.B) {
 	}
 
 	count := t.N * 100000000
-	for i := count; i > 0; i-- {
-		if v := samples[i%len(samples)]; v == nil {
-			runtime.KeepAlive(i)
+	t.Run("baseline", func(b *testing.B) {
+		for i := count; i > 0; i-- {
+			if v := samples[i%len(samples)]; v == nil {
+				runtime.KeepAlive(i)
+			}
 		}
-	}
+	})
 
 	t.Run("reflect", func(b *testing.B) {
 		for i := count; i > 0; i-- {

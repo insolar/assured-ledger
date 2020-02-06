@@ -88,13 +88,13 @@ func (p pbufEncoder) appendKey(dst []byte, key string, fk reflect.Kind, wt proto
 		if id > ValueFieldId && id <= protokit.MaxFieldId {
 			return b, wt.Tag(id)
 		}
-		fieldKeyId.MustEncodeTo(b, uint64(id))
+		fieldKeyId.MustWrite(b, uint64(id))
 	} else {
 		if fk != reflect.Invalid && p.encodeType {
-			fieldType.MustEncodeTo(b, uint64(fk))
+			fieldType.MustWrite(b, uint64(fk))
 		}
 		kb := []byte(key)
-		fieldKeyName.MustEncodeTo(b, uint64(len(kb)))
+		fieldKeyName.MustWrite(b, uint64(len(kb)))
 		if _, err := b.Write(kb); err != nil {
 			panic(err)
 		}
@@ -111,7 +111,7 @@ func (p pbufEncoder) PrepareBuffer(dst []byte, _ string, level log.Level) []byte
 	if !level.IsValid() {
 		level = logcommon.NoLevel
 	}
-	fieldLevel.MustEncodeTo(b, uint64(level))
+	fieldLevel.MustWrite(b, uint64(level))
 	return b.dst
 }
 
@@ -132,7 +132,7 @@ func (p pbufEncoder) FinalizeBuffer(dst []byte, metricTime time.Time) []byte {
 		panic("message is too long")
 	}
 	b := &encodeBuf{dst[headStart:headStart:prependSize]}
-	fieldLogEntry.MustEncodeTo(b, n)
+	fieldLogEntry.MustWrite(b, n)
 	if len(b.dst) != headSize {
 		panic("unexpected")
 	}
@@ -153,19 +153,19 @@ func (p pbufEncoder) FinalizeBuffer(dst []byte, metricTime time.Time) []byte {
 
 func (p pbufEncoder) appendUint64(dst []byte, key string, ft reflect.Kind, val uint64) []byte {
 	b, wt := p.appendKey(dst, key, ft, protokit.WireFixed64)
-	wt.MustEncodeTo(b, val)
+	wt.MustWrite(b, val)
 	return b.dst
 }
 
 func (p pbufEncoder) appendUint32(dst []byte, key string, ft reflect.Kind, val uint32) []byte {
 	b, wt := p.appendKey(dst, key, ft, protokit.WireFixed32)
-	wt.MustEncodeTo(b, uint64(val))
+	wt.MustWrite(b, uint64(val))
 	return b.dst
 }
 
 func (p pbufEncoder) appendVarint(dst []byte, key string, ft reflect.Kind, val uint64) []byte {
 	b, wt := p.appendKey(dst, key, ft, protokit.WireVarint)
-	wt.MustEncodeTo(b, val)
+	wt.MustWrite(b, val)
 	return b.dst
 }
 
@@ -190,7 +190,7 @@ func (p pbufEncoder) appendBytes(dst []byte, key string, val []byte) []byte {
 
 func (p pbufEncoder) _appendBytes(dst []byte, key string, ft reflect.Kind, val []byte) []byte {
 	b, wt := p.appendKey(dst, key, ft, protokit.WireBytes)
-	wt.MustEncodeTo(b, uint64(len(val)))
+	wt.MustWrite(b, uint64(len(val)))
 	if _, err := b.Write(val); err != nil {
 		panic(err)
 	}

@@ -7,14 +7,15 @@ MsgRequest_Received --> fork_state : Request was received\nfor the first time
 fork_state --> Send_MsgReceiveAck : Is Ack required?
 Send_MsgReceiveAck -> [*]
 fork_state --> MsgResponse_Preparing
-MsgResponse_Preparing --> MsgResponse_Prepared
+MsgResponse_Preparing ---> MsgResponse_Prepared
 MsgRequest_Received -> MsgRequest_Duplicate : Same request\nwas received\nbefore
 MsgResponse_Prepared ---> Send_MsgContent : Full (head+content)\nis requested
 Send_MsgContent: may include MsgHead for full send
 Send_MsgContent --> Msg_Sent
 Msg_Sent : Wait for ACK
 Msg_Sent -> Send_MsgContent : Triggered from\n **Resend** state
-Msg_Sent --> Msg_Done : Received\nMsgReceiveAck
+Msg_Sent --> Msg_Done : MsgReceiveAck
+Msg_Sent --> Msg_Done : MsgCancel
 Msg_Done -> [*]
 
 MsgRequest_Duplicate --> Send_MsgReceiveAck : Is preparing?
@@ -26,11 +27,14 @@ Resend --> [*]
 MsgRequest_Duplicate --> [*] : Is done? \n Then ignore
 
 MsgResponse_Prepared -left-> Send_MsgHead
-Send_MsgHead --> MsgHead_Sent
+Send_MsgHead --> MsgHead_Sent : \t
 MsgHead_Sent -> Send_MsgHead : Triggered from\n **Resend** state
 MsgHead_Sent --> Send_MsgContent : Received\nPullMsgContent
 MsgHead_Sent -> MsgHead_AckOrRetry : Is retry\nby sender?
 MsgHead_AckOrRetry -> Send_MsgHead : timeout
 MsgHead_AckOrRetry --> Send_MsgContent : Received\nPullMsgContent
+MsgHead_AckOrRetry -----> Msg_Done : MsgCancel
+
+' TODO cancellation
 
 @enduml

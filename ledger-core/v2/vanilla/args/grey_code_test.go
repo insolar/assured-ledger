@@ -1,51 +1,17 @@
 //
-// Modified BSD 3-Clause Clear License
+// Copyright 2019 Insolar Technologies GmbH
 //
-// Copyright (c) 2019 Insolar Technologies GmbH
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// All rights reserved.
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted (subject to the limitations in the disclaimer below) provided that
-// the following conditions are met:
-//  * Redistributions of source code must retain the above copyright notice, this list
-//    of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above copyright notice, this list
-//    of conditions and the following disclaimer in the documentation and/or other materials
-//    provided with the distribution.
-//  * Neither the name of Insolar Technologies GmbH nor the names of its contributors
-//    may be used to endorse or promote products derived from this software without
-//    specific prior written permission.
-//
-// NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED
-// BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
-// AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
-// INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-// AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-// OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Notwithstanding any other provisions of this license, it is prohibited to:
-//    (a) use this software,
-//
-//    (b) prepare modifications and derivative works of this software,
-//
-//    (c) distribute this software (including without limitation in source code, binary or
-//        object code form), and
-//
-//    (d) reproduce copies of this software
-//
-//    for any commercial purposes, and/or
-//
-//    for the purposes of making available this software to third parties as a service,
-//    including, without limitation, any software-as-a-service, platform-as-a-service,
-//    infrastructure-as-a-service or other similar online service, irrespective of
-//    whether it competes with the products or services of Insolar Technologies GmbH.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 //
 
 package args
@@ -53,6 +19,7 @@ package args
 import (
 	"math"
 	"math/bits"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -88,4 +55,54 @@ func TestGreyIncBit(t *testing.T) {
 	for i := uint(math.MaxUint32); i <= math.MaxUint32-math.MaxUint16<<1; i++ {
 		require.Equal(t, GreyInc(i), uint(1)<<GreyIncBit(i), i)
 	}
+}
+
+func BenchmarkGreyIncBit(t *testing.B) {
+	count := uint(t.N * 4)
+	const K = uint(100000000)
+
+	t.Run("optimized", func(b *testing.B) {
+		j := uint8(0)
+		for i := count; i > 0; i-- {
+			for k := K; k > 0; k-- {
+				j += GreyIncBit(i)
+			}
+		}
+		runtime.KeepAlive(j)
+	})
+
+	t.Run("calc", func(b *testing.B) {
+		j := uint8(0)
+		for i := count; i > 0; i-- {
+			for k := K; k > 0; k-- {
+				j += greyIncBitCalc(i)
+			}
+		}
+		runtime.KeepAlive(j)
+	})
+
+	t.Run("lookup", func(b *testing.B) {
+		j := uint8(0)
+		for i := count; i > 0; i-- {
+			for k := K; k > 0; k-- {
+				j += greyIncBitLookup(i)
+			}
+		}
+		runtime.KeepAlive(j)
+	})
+}
+
+// Grey code has a periodic reflect symmetry, so we can do a shortcut for the most cases.
+// Use of a bigger table is questionable, as the only varying value is at the end.
+var greyDeltaBit = [...]uint8{
+	0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0, needsCalc,
+}
+
+const needsCalc = 8
+
+func greyIncBitLookup(v uint) uint8 {
+	if r := greyDeltaBit[v&0xF]; r < needsCalc { // quick path
+		return r
+	}
+	return greyIncBitCalc(v)
 }
