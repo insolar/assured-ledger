@@ -153,14 +153,12 @@ func TestEnsureFixedFieldSize(t *testing.T) {
 	require.Equal(t, tag, newTag)
 }
 
-func TestEnsureFixedFieldSizeFailedForWireVarint(t *testing.T) {
+func TestEnsureFixedFieldSizeFailed(t *testing.T) {
 	tag := WireVarint.Tag(1)
-	require.Panics(t, func(){tag.EnsureFixedFieldSize(12)})
-}
+	require.PanicsWithValue(t, "illegal state - not fixed size", func(){tag.EnsureFixedFieldSize(12)})
 
-func TestEnsureFixedFieldSizeFailedForWireBytes(t *testing.T) {
-	tag := WireBytes.Tag(1)
-	require.Panics(t, func(){tag.EnsureFixedFieldSize(12)})
+	tag = WireBytes.Tag(1)
+	require.PanicsWithValue(t, "illegal state - not fixed size", func(){tag.EnsureFixedFieldSize(12)})
 }
 
 func TestWireTagMustEncodeTo(t *testing.T) {
