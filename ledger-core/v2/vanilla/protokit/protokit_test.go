@@ -154,25 +154,13 @@ func TestEnsureFixedFieldSize(t *testing.T) {
 }
 
 func TestEnsureFixedFieldSizeFailedForWireVarint(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("EnsureFixedFieldSize did not panic for WireVarint")
-		}
-	}()
-
 	tag := WireVarint.Tag(1)
-	tag.EnsureFixedFieldSize(12)
+	require.Panics(t, func(){tag.EnsureFixedFieldSize(12)})
 }
 
 func TestEnsureFixedFieldSizeFailedForWireBytes(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("EnsureFixedFieldSize did not panic for WireBytes")
-		}
-	}()
-
 	tag := WireBytes.Tag(1)
-	tag.EnsureFixedFieldSize(12)
+	require.Panics(t, func(){tag.EnsureFixedFieldSize(12)})
 }
 
 func TestWireTagMustEncodeTo(t *testing.T) {
