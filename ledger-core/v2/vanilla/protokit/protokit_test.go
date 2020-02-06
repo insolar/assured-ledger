@@ -15,6 +15,7 @@ type testCase struct {
 	TypeByte byte
 	Data     []byte
 	Result   uint64
+	Size     uint64
 }
 
 func (tc *testCase) getTypeByte() byte {
@@ -29,6 +30,7 @@ var testCases = []testCase{
 		FieldId:  0,
 		Data:     []byte{123},
 		Result:   uint64(123),
+		Size:     2,
 	},
 	{
 		Name:     "WireFixed64",
@@ -36,6 +38,7 @@ var testCases = []testCase{
 		FieldId:  1,
 		Data:     []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
 		Result:   uint64(0x101010101010101),
+		Size:     9,
 	},
 	{
 		Name:     "WireBytes",
@@ -43,6 +46,7 @@ var testCases = []testCase{
 		FieldId:  2,
 		Data:     []byte{123},
 		Result:   uint64(123),
+		Size:     2,
 	},
 	{
 		Name:     "WireFixed32",
@@ -50,6 +54,7 @@ var testCases = []testCase{
 		FieldId:  5,
 		Data:     []byte{1, 1, 1, 1, 1,},
 		Result:   uint64(0x1010101),
+		Size:     5,
 	},
 }
 
@@ -182,5 +187,19 @@ func TestWireTagMustEncodeTo(t *testing.T) {
 			tag.MustWrite(&buf, 1234)
 		})
 	}
+}
 
+func TestWireTagFieldSize(t *testing.T) {
+	buf := bytes.Buffer{}
+
+	for _, test := range testCases {
+		t.Run(test.Name, func(t *testing.T) {
+			buf.Reset()
+			buf.Write(append([]byte{test.getTypeByte()}, test.Data...))
+
+			tag := test.WireType.Tag(1)
+			size := tag.FieldSize(0)
+			require.Equal(t, test.Size, size)
+		})
+	}
 }
