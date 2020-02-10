@@ -76,10 +76,10 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 
 func (p *PulseDataManager) Init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8, pulseDataFn PulseDataServicePrepareFunc) {
 	if minCachePulseAge == 0 || minCachePulseAge > pulse.MaxTimePulse {
-		panic("illegal value")
+		panic(fmt.Sprintf("illegal value: minCachePulseAge %v", minCachePulseAge))
 	}
 	if maxPastPulseAge < minCachePulseAge || maxPastPulseAge > pulse.MaxTimePulse {
-		panic("illegal value")
+		panic(fmt.Sprintf("illegal value: maxPastPulseAge %v", maxPastPulseAge))
 	}
 	p.pulseDataAdapterFn = pulseDataFn
 	p.maxPastPulseAge = maxPastPulseAge
@@ -107,7 +107,7 @@ func (p *PulseDataManager) setPresentPulse(pd pulse.Data) {
 
 	if epd, ok := p.cache.Check(presentPN); ok {
 		if epd != pd {
-			panic("illegal state")
+			panic("illegal state: pulse data in cache != pulse data provided")
 		}
 	}
 
@@ -163,7 +163,7 @@ func (p *PulseDataManager) TouchPulseData(pn pulse.Number) bool {
 	return p.cache.Touch(pn)
 }
 
-// Returns true when the given PN can be accepted into Future pulse slot, otherwise must be rejected
+// IsAllowedFutureSpan Returns true when the given PN can be accepted into Future pulse slot, otherwise must be rejected
 func (p *PulseDataManager) IsAllowedFutureSpan(futurePN pulse.Number) bool {
 	presentPN, expectedPN := p.GetPresentPulse()
 	return p.isAllowedFutureSpan(presentPN, expectedPN, futurePN)
@@ -190,7 +190,7 @@ func (p *PulseDataManager) IsRecentPastRange(pastPN pulse.Number) bool {
 	return p.isRecentPastRange(presentPN, pastPN)
 }
 
-//Returns true when the given PN is within a mandatory retention interval for the cache. So we don't need to populate it
+// isRecentPastRange returns true when the given PN is within a mandatory retention interval for the cache. So we don't need to populate it
 func (p *PulseDataManager) isRecentPastRange(presentPN pulse.Number, pastPN pulse.Number) bool {
 	return pastPN < presentPN &&
 		(pastPN+pulse.Number(p.cache.GetMinRange())) >= presentPN &&
@@ -203,9 +203,9 @@ func (p *PulseDataManager) PreparePulseDataRequest(ctx smachine.ExecutionContext
 ) smachine.AsyncCallRequester {
 	switch {
 	case resultFn == nil:
-		panic("illegal value")
+		panic("illegal value: empty resultFn")
 	case p.pulseDataAdapterFn == nil:
-		panic("illegal state")
+		panic("illegal state: PulseDataServicePrepareFunc")
 	}
 	if pd, ok := p.GetPulseData(pn); ok {
 		resultFn(ok, pd)
