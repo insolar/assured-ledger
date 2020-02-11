@@ -17,16 +17,21 @@
 package conveyor
 
 import (
+	"context"
 	"fmt"
+	"math"
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
+
+type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester
 
 type PulseDataManager struct {
 	// set at construction, immutable
-	execPulseDataService smachine.ExecutionAdapter // for PulseDataService
+	pulseDataAdapterFn PulseDataServicePrepareFunc
 
 	cache PulseDataCache
 
@@ -44,13 +49,39 @@ type PulseDataService interface {
 	LoadPulseData(pulse.Number) (pulse.Data, bool)
 }
 
-func (p *PulseDataManager) Init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8) {
+func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax, parallelReaders int) PulseDataServicePrepareFunc {
+	if pds == nil {
+		panic("illegal value")
+	}
+	n := parallelReaders
+	switch {
+	case n <= 0 || n == math.MaxInt16:
+		n = 64
+	case n > math.MaxInt16:
+		panic("illegal value")
+	}
+
+	executor, callChan := smachine.NewCallChannelExecutor(ctx, bufMax, false, n)
+	pulseDataAdapter := smachine.NewExecutionAdapter(smachine.AdapterId(injector.GetDefaultInjectionId(pds)), executor)
+
+	smachine.StartChannelWorkerParallelCalls(ctx, uint16(parallelReaders), callChan, pds)
+
+	return func(ctx smachine.ExecutionContext, fn func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+		return pulseDataAdapter.PrepareAsync(ctx, func(svc interface{}) smachine.AsyncResultFunc {
+			fn(svc.(PulseDataService))
+			return nil
+		})
+	}
+}
+
+func (p *PulseDataManager) Init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8, pulseDataFn PulseDataServicePrepareFunc) {
 	if minCachePulseAge == 0 || minCachePulseAge > pulse.MaxTimePulse {
 		panic("illegal value")
 	}
 	if maxPastPulseAge < minCachePulseAge || maxPastPulseAge > pulse.MaxTimePulse {
 		panic("illegal value")
 	}
+	p.pulseDataAdapterFn = pulseDataFn
 	p.maxPastPulseAge = maxPastPulseAge
 	p.futureCycles = maxFutureCycles
 	p.cache.Init(p, minCachePulseAge, 2) // any pulse data stays in cache for at least 2 pulse cycles
@@ -107,7 +138,7 @@ func (p *PulseDataManager) isPreparingPulse() bool {
 	return atomic.LoadUint32(&p.preparingPulseFlag) != 0
 }
 
-func (p *PulseDataManager) setPreparingPulse(out PreparePulseChangeChannel) {
+func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeChannel) {
 	atomic.StoreUint32(&p.preparingPulseFlag, 1)
 }
 
@@ -166,25 +197,21 @@ func (p *PulseDataManager) isRecentPastRange(presentPN pulse.Number, pastPN puls
 		pastPN >= p.getEarliestCacheBound() // this interval can be much narrower for a recently started node
 }
 
-func (p *PulseDataManager) prepareAsync(ctx smachine.ExecutionContext, fn func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-	return p.execPulseDataService.PrepareAsync(ctx, func(svc interface{}) smachine.AsyncResultFunc {
-		fn(svc.(PulseDataService))
-		return nil
-	})
-}
-
 func (p *PulseDataManager) PreparePulseDataRequest(ctx smachine.ExecutionContext,
 	pn pulse.Number,
 	resultFn func(isAvailable bool, pd pulse.Data),
 ) smachine.AsyncCallRequester {
-	if resultFn == nil {
+	switch {
+	case resultFn == nil:
 		panic("illegal value")
+	case p.pulseDataAdapterFn == nil:
+		panic("illegal state")
 	}
 	if pd, ok := p.GetPulseData(pn); ok {
 		resultFn(ok, pd)
 	}
 
-	return p.prepareAsync(ctx, func(svc PulseDataService) smachine.AsyncResultFunc {
+	return p.pulseDataAdapterFn(ctx, func(svc PulseDataService) smachine.AsyncResultFunc {
 		pd, ok := svc.LoadPulseData(pn)
 
 		return func(ctx smachine.AsyncResultContext) {

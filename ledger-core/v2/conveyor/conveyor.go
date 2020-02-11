@@ -50,6 +50,7 @@ type PulseConveyorConfig struct {
 	SlotMachineConfig                 smachine.SlotMachineConfig
 	EventlessSleep                    time.Duration
 	MinCachePulseAge, MaxPastPulseAge uint32
+	PulseDataService                  PulseDataServicePrepareFunc
 }
 
 func NewPulseConveyor(
@@ -79,7 +80,7 @@ func NewPulseConveyor(
 	// shared SlotId sequence
 	r.slotConfig.config.SlotIdGenerateFn = r.slotMachine.CopyConfig().SlotIdGenerateFn
 
-	r.pdm.Init(config.MinCachePulseAge, config.MaxPastPulseAge, 1)
+	r.pdm.Init(config.MinCachePulseAge, config.MaxPastPulseAge, 1, config.PulseDataService)
 
 	return r
 }
@@ -379,7 +380,7 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range) error {
 	})
 }
 
-func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr pulse.Range, prevPresentPN, prevFuturePN pulse.Number) {
+func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr pulse.Range, _ /* prevPresentPN */, prevFuturePN pulse.Number) {
 	if p.unpublishPulse.IsTimePulse() {
 		// we know what we do - right!?
 		p.slotMachine.TryUnsafeUnpublish(p.unpublishPulse)
