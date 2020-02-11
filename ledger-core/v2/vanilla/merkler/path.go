@@ -23,74 +23,195 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
-func NewPathBuilder(count uint, stubbed bool) PathBuilder {
-	if count == 0 {
-		panic("illegal value")
-	}
-
-	depth := uint8(bits.Len(count - 1))
-
-	balancedCount := count
-	if !args.IsPowerOfTwo(count) {
-		balancedCount = 1 << (depth - 1)
-	}
-
-	return PathBuilder{count, balancedCount, depth, stubbed}
-}
-
 type PathBuilder struct {
-	count         uint
-	balancedCount uint
-	depth         uint8
-	stubbed       bool
+	count   uint
+	levels  []pathLevel
+	stubbed bool
 }
 
-func (v PathBuilder) WalkFor(index uint, siblingFn func(traceIndex uint)) {
-	if index >= v.count {
+type pathLevel struct {
+	bitMask    uint
+	nodeValueL uint
+	nodeValueR uint
+}
+
+func NewPathBuilder(leafCount uint, stubbed bool) PathBuilder {
+	switch leafCount {
+	case 0:
 		panic("illegal value")
+	case 1, 2:
+		return PathBuilder{leafCount, nil, stubbed}
 	}
-	for level := uint8(0); level < v.depth; level++ {
-		tIndex := prefixToAbsIndex(index^1, level)
-		switch {
-		case tIndex < v.count<<1:
-			tIndex = indexSkip(tIndex)
-		case v.stubbed:
-			// TODO stubbed pos
-		default:
+
+	depth := uint8(bits.Len(leafCount - 1))
+	levels := make([]pathLevel, depth-1)
+
+	for i := range levels {
+		bitMask := uint(2) << uint8(i)
+		levels[i].bitMask = bitMask
+	}
+
+	switch {
+	case args.IsPowerOfTwo(leafCount):
+		perfectPath(leafCount, levels)
+	case stubbed:
+		stubbedPath(leafCount, levels)
+	default:
+		unstubbedPath(leafCount, levels)
+	}
+
+	return PathBuilder{leafCount, levels, stubbed}
+}
+
+func perfectPath(leafCount uint, levels []pathLevel) {
+	nodeCount := leafCount
+	for i := 1; i < len(levels); i++ {
+		levels[i].nodeValueR = nodeCount
+		nodeCount++
+	}
+}
+
+func unstubbedPath(leafCount uint, levels []pathLevel) {
+	lastLeafIndex := leafCount - 1
+
+	invertMask := ^(uint(math.MaxUint64&^1) << UnbalancedBitCount(lastLeafIndex, uint8(len(levels)+1)))
+	invertedLastBalanced := lastLeafIndex ^ invertMask // | invertMask>>1
+	//if invertedLastBalanced >= leafCount {
+	//	panic("illegal state")
+	//}
+
+	lastRightmost := lastLeafIndex
+	nodeIndex := leafCount
+
+	for i, level := range levels {
+		if lastLeafIndex&level.bitMask == 0 {
+			levels[i].nodeValueL = lastRightmost
+
+			leftGapSibling := invertedLastBalanced ^ level.bitMask
+			//if leftGapSibling >= leafCount {
+			//	panic("illegal state")
+			//}
+			if indexR := siblingIndex(leftGapSibling, level.bitMask); indexR >= leafCount {
+				levels[i].nodeValueR = nodeIndex
+				nodeIndex++
+			}
 			continue
 		}
-		siblingFn(tIndex)
-		index >>= 1
+
+		indexL := siblingIndex(lastLeafIndex, level.bitMask)
+		if indexL >= leafCount {
+			levels[i].nodeValueL = nodeIndex
+			nodeIndex++
+		}
+
+		levels[i].nodeValueR = lastRightmost
+		lastRightmost = nodeIndex
+		nodeIndex++
+	}
+
+	if nodeCount := leafCount + uint(StackSequenceUnused(leafCount)) - 1; nodeCount != nodeIndex {
+		panic("illegal state")
 	}
 }
 
-func prefixToAbsIndex(prefix uint, level uint8) uint {
-	switch level {
-	case 0:
-		return prefix << 1
-	case 1:
-		return prefix<<2 | 3
+func stubbedPath(leafCount uint, levels []pathLevel) {
+	lastLeafIndex := leafCount - 1
+
+	invertMask := ^(uint(math.MaxUint64&^1) << UnbalancedBitCount(lastLeafIndex, uint8(len(levels)+1)))
+	invertedLastBalanced := lastLeafIndex ^ invertMask // | invertMask>>1
+	//if invertedLastBalanced >= leafCount {
+	//	panic("illegal state")
+	//}
+
+	nodeIndex := leafCount
+
+	for i, level := range levels {
+		if i == 0 && leafCount&1 == 0 {
+			continue
+		}
+
+		if lastLeafIndex&level.bitMask == 0 {
+			leftGapSibling := invertedLastBalanced ^ level.bitMask
+			//if leftGapSibling >= leafCount {
+			//	panic("illegal state")
+			//}
+			if indexR := siblingIndex(leftGapSibling, level.bitMask); indexR >= leafCount {
+				levels[i].nodeValueR = nodeIndex
+				nodeIndex++
+			}
+
+			levels[i].nodeValueL = nodeIndex
+			nodeIndex++
+			continue
+		}
+
+		indexL := siblingIndex(lastLeafIndex, level.bitMask)
+		if indexL >= leafCount {
+			levels[i].nodeValueL = nodeIndex
+			nodeIndex++
+		}
+
+		levels[i].nodeValueR = nodeIndex
+		nodeIndex++
 	}
-	index := ^(math.MaxUint64 << level) | prefix<<level
-	index <<= 1
-	index += 1<<level - 1
-	return index
+
+	// TODO check count
 }
 
-func indexSkip(index uint) uint {
-	switch index {
-	case 0:
-		return 0
-	case 1:
+const StubNodeIndex = 0
+
+type PathEntryFunc func(index uint, isLeaf, isRight bool)
+
+func (v PathBuilder) WalkFor(index uint, nodeFn PathEntryFunc) {
+	if v.count <= index {
 		panic("illegal value")
 	}
-	b := uint(bits.Len(index))
-	switch skip := uint(1)<<b - 3; {
-	case index < skip:
-		index++
-	case index == skip:
-		panic("illegal value")
+
+	// sibling leaf
+	switch sibling := index ^ 1; {
+	case sibling < v.count:
+		nodeFn(sibling, true, index&1 == 0)
+	case v.stubbed:
+		nodeFn(StubNodeIndex, false, true)
 	}
-	index -= b - 1
-	return index
+
+	for _, level := range v.levels {
+		tIndex := siblingIndex(index, level.bitMask)
+
+		isRightSibling := index&level.bitMask == 0
+
+		switch {
+		case tIndex < v.count:
+			// the tree node was calculated as a part of the normal flow
+			nodeFn(tIndex, false, isRightSibling)
+			continue
+		case isRightSibling:
+			lastOfLeftBranch := index | (level.bitMask - 1)
+			if lastOfLeftBranch >= v.count-1 {
+				// right branch doesn't exist
+				if v.stubbed {
+					nodeFn(StubNodeIndex, false, true)
+				}
+				continue
+			}
+			// right branch is delayed
+			tIndex = level.nodeValueR
+		default:
+			// left branch is delayed
+			tIndex = level.nodeValueL
+		}
+
+		if tIndex == 0 {
+			panic("illegal state")
+		}
+		nodeFn(tIndex, tIndex == v.count-1 && v.count&1 != 0, isRightSibling)
+	}
+}
+
+func siblingIndex(index uint, bitMask uint) uint {
+	tIndex := index ^ bitMask
+	bitMask--
+	tIndex |= bitMask
+	tIndex += bitMask >> 1
+	return tIndex
 }

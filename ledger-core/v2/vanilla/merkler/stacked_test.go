@@ -29,7 +29,7 @@ import (
 )
 
 func TestStackedCalculator_Unbalanced_AllEntries(t *testing.T) {
-	md := NewStackedCalculator(xorPairDigester{}, cryptkit.Digest{})
+	md := NewForkingCalculator(xorPairDigester{}, cryptkit.Digest{})
 
 	for bit := uint64(1); bit != 0; bit <<= 1 {
 		md.AddNext(newBits64(bit))
@@ -66,11 +66,11 @@ func TestStackedCalculator_EntryPos(t *testing.T) {
 	for balanced := 0; balanced <= 1; balanced++ {
 		t.Run(fmt.Sprintf("balanced=%v", balanced != 0), func(t *testing.T) {
 			for markBit := uint64(1); markBit < uint64(1)<<uint8(len(expectedPos)); /* to avoid overflow in this test */ markBit <<= 1 {
-				var md StackedCalculator
+				var md ForkingCalculator
 				if balanced != 0 {
-					md = NewStackedCalculator(xorShiftPairDigester{}, cryptkit.NewDigest(newBits64(0), "uint64"))
+					md = NewForkingCalculator(xorShiftPairDigester{}, cryptkit.NewDigest(newBits64(0), "uint64"))
 				} else {
-					md = NewStackedCalculator(xorShiftPairDigester{}, cryptkit.Digest{})
+					md = NewForkingCalculator(xorShiftPairDigester{}, cryptkit.Digest{})
 				}
 
 				for bit := uint64(1); bit != markBit; bit <<= 1 {
@@ -99,10 +99,10 @@ func TestStackedCalculator_EntryPos(t *testing.T) {
 func TestStackedCalculator_Balanced_AllEntries(t *testing.T) {
 	const unbalanced = uint64(1 << 56)
 	expectedUnbalanced := [32]byte{
-		1, 1, 1, 0, 2, 1, 1, 0, 3, 2, 2, 1, 2, 1, 1, 0,
+		1, 0, 1, 0, 2, 1, 1, 0, 3, 2, 2, 1, 2, 1, 1, 0,
 		4, 3, 3, 2, 3, 2, 2, 1, 3, 2, 2, 1, 2, 1, 1, 0}
 
-	md := NewStackedCalculator(xorCountPairDigester{}, cryptkit.NewDigest(newBits64(unbalanced), "uint64"))
+	md := NewForkingCalculator(xorCountPairDigester{}, cryptkit.NewDigest(newBits64(unbalanced), "uint64"))
 
 	require.Equal(t, unbalanced, md.ForkSequence().FinishSequence().FoldToUint64())
 
@@ -110,8 +110,8 @@ func TestStackedCalculator_Balanced_AllEntries(t *testing.T) {
 		md.AddNext(newBits64(bit))
 		v := md.ForkSequence().FinishSequence().FoldToUint64()
 
-		require.Equal(t, uint64(expectedUnbalanced[bits.Len64(bit)-1]), v>>56)
-		require.Equal(t, bit<<1-1, v&math.MaxUint32)
+		require.Equal(t, uint64(expectedUnbalanced[bits.Len64(bit)-1]), v>>56, bits.Len64(bit))
+		require.Equal(t, bit<<1-1, v&math.MaxUint32, bits.Len64(bit))
 	}
 	require.Equal(t, 32, md.Count())
 	require.Equal(t, uint64(math.MaxUint32), md.ForkSequence().FinishSequence().FoldToUint64())
