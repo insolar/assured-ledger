@@ -16,14 +16,6 @@
 
 package smachine
 
-type IExecutionAdapter interface {
-	IsEmpty() bool
-	GetAdapterID() AdapterId
-	PrepareSync(ctx ExecutionContext, fn AdapterCallFunc) SyncCallRequester
-	PrepareAsync(ctx ExecutionContext, fn AdapterCallFunc) AsyncCallRequester
-	PrepareNotify(ctx ExecutionContext, fn AdapterNotifyFunc) NotifyRequester
-}
-
 func NewExecutionAdapter(adapterID AdapterId, executor AdapterExecutor) ExecutionAdapter {
 	if adapterID.IsEmpty() {
 		panic("illegal value")

@@ -76,10 +76,10 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 
 func (p *PulseDataManager) Init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8, pulseDataFn PulseDataServicePrepareFunc) {
 	if minCachePulseAge == 0 || minCachePulseAge > pulse.MaxTimePulse {
-		panic(fmt.Sprintf("illegal value: minCachePulseAge %v", minCachePulseAge))
+		panic("illegal value")
 	}
 	if maxPastPulseAge < minCachePulseAge || maxPastPulseAge > pulse.MaxTimePulse {
-		panic(fmt.Sprintf("illegal value: maxPastPulseAge %v", maxPastPulseAge))
+		panic("illegal value")
 	}
 	p.pulseDataAdapterFn = pulseDataFn
 	p.maxPastPulseAge = maxPastPulseAge
@@ -107,7 +107,7 @@ func (p *PulseDataManager) setPresentPulse(pd pulse.Data) {
 
 	if epd, ok := p.cache.Check(presentPN); ok {
 		if epd != pd {
-			panic("illegal state: pulse data in cache != pulse data provided")
+			panic("illegal state")
 		}
 	}
 
@@ -203,9 +203,9 @@ func (p *PulseDataManager) PreparePulseDataRequest(ctx smachine.ExecutionContext
 ) smachine.AsyncCallRequester {
 	switch {
 	case resultFn == nil:
-		panic("illegal value: empty resultFn")
+		panic("illegal value")
 	case p.pulseDataAdapterFn == nil:
-		panic("illegal state: PulseDataServicePrepareFunc")
+		panic("illegal state")
 	}
 	if pd, ok := p.GetPulseData(pn); ok {
 		resultFn(ok, pd)
