@@ -183,7 +183,7 @@ func (p *PulseConveyor) mapToPulseSlotMachine(pn pulse.Number) (*PulseSlotMachin
 	switch {
 	case presentPN.IsUnknown():
 		// when no present pulse - all pulses go to future
-		return p.getFuturePulseSlotMachine(presentPN, futurePN), pn, Future, nil
+		return p.getFuturePulseSlotMachine(presentPN, pn), pn, Future, nil
 	case pn.IsUnknownOrEqualTo(presentPN):
 		if psm := p.getPulseSlotMachine(presentPN); psm != nil {
 			return psm, presentPN, Present, nil
