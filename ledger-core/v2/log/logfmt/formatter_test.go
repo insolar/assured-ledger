@@ -50,7 +50,10 @@ func (p *stringerRefStruct) String() string {
 type stubStruct struct {
 }
 
-const sampleStructAsString = "f0:  99:int,f1:999:int,f2:test_raw,f3:test2:string,f4:nil,f5:stringer_test:ptr,f6:func_result:func,f7:stringerVal:struct,f8:stringerRef:ptr,f9:nil,f10:{}:logfmt.stubStruct,msg:message title"
+const sampleStructAsString = `f0:  99:int,f1:999:int,f2:test_raw,f3:test2:string,f4:nil,f5:stringer_test:ptr,` +
+	`f6:func_result:func,f7:stringerVal:struct,f8:stringerRef:ptr,f9:nil,f10:{}:logfmt.stubStruct,` +
+	`f11:logfmt.createSampleStruct.func2:func,` +
+	`msg:message title`
 
 func createSampleStruct() interface{} {
 	s := "test2"
@@ -67,6 +70,7 @@ func createSampleStruct() interface{} {
 		f8  *stringerRefStruct
 		f9  *stringerRefStruct
 		f10 stubStruct // no special handling
+		f11 func()
 	}{
 		"message title",
 		99, 999, "test_raw", &s, nil,
@@ -76,6 +80,7 @@ func createSampleStruct() interface{} {
 		&stringerRefStruct{"stringerRef"},
 		nil,
 		stubStruct{},
+		func() { /* something else */ },
 	}
 }
 
@@ -371,10 +376,13 @@ func (p *output) AddRawJSONField(k string, v interface{}, fFmt LogFieldFormat) {
 	p.buf.WriteString(fmt.Sprintf("%s:%s,", k, fmt.Sprintf(fFmt.Fmt, v)))
 }
 
-func (p *output) AddTimeField(key string, v time.Time, fFmt LogFieldFormat) {
-	if fFmt.HasFmt {
-		p.buf.WriteString(fmt.Sprintf("%s:time", v.Format(fFmt.Fmt)))
-	} else {
-		p.buf.WriteString(fmt.Sprintf("%s:time", v.String()))
+func (p *output) AddTimeField(k string, v time.Time, fFmt LogFieldFormat) {
+	switch {
+	case v.IsZero():
+		p.buf.WriteString(fmt.Sprintf("%s:0:time,", k))
+	case fFmt.HasFmt:
+		p.buf.WriteString(fmt.Sprintf("%s:%s:time", k, v.Format(fFmt.Fmt)))
+	default:
+		p.buf.WriteString(fmt.Sprintf("%s:%s:time", k, v.String()))
 	}
 }

@@ -2,6 +2,8 @@ package logfmt
 
 import (
 	"reflect"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
@@ -120,12 +122,26 @@ func (f fieldFmtReceiver) ReceiveIface(t reflect.Kind, v interface{}) {
 }
 
 func (f fieldFmtReceiver) ReceiveElse(t reflect.Kind, v interface{}, isZero bool) {
-	switch {
-	case f.def(t) || f.receiver.fmtTag.IsOpt() && isZero:
+	if f.def(t) || f.receiver.fmtTag.IsOpt() && isZero {
 		return
-	case f.receiver.fmtTag.IsRaw():
+	}
+
+	if t == reflect.Func {
+		fn := runtime.FuncForPC(reflectkit.CodeOf(v))
+		s := "<nil>"
+		if fn != nil {
+			s = fn.Name()
+			s = s[strings.LastIndex(s, "/")+1:]
+		}
+		if !f.receiver.fmtTag.IsRaw() {
+			f.w.AddStrField(f.receiver.key, s, f.fmt(t))
+			return
+		}
+	}
+
+	if f.receiver.fmtTag.IsRaw() {
 		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
-	default:
+	} else {
 		f.w.AddIntfField(f.receiver.key, v, f.fmt(t))
 	}
 }
