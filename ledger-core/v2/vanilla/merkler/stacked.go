@@ -26,6 +26,13 @@ var _ cryptkit.SequenceDigester = &StackedCalculator{}
 
 type TraceFunc func(v longbits.FoldableReader, isLeaf bool)
 
+// Creates a sequence digester that does merkle tree calculation.
+// When (unbalancedStub) is empty, then the resulting merkle-tree will be closed without stubbing, otherwise with per-level stubbing with (unbalancedStub) on the right side.
+// When (traceFn) is not nil, then StackedCalculator will call it each time when a leaf or node is added.
+//
+// NB! For every AddNext() call the (traceFn) is always called twice - first time with (leafX, true) value, and then (nodeX, false), where nodeX can be nil.
+// And during FinishSequence() - the (traceFn) can be called N < 2*log(leafCount) times with (nodeX, false), where nodeX can not be nil.
+//
 func NewStackedCalculator(digester cryptkit.PairDigester, unbalancedStub cryptkit.Digest, traceFn TraceFunc) StackedCalculator {
 	if digester == nil {
 		panic("illegal value")

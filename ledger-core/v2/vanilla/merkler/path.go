@@ -171,11 +171,20 @@ func stubbedPath(leafCount uint, levels []pathLevel) {
 
 const StubNodeIndex = 0
 
+// Is called in a sequence of merkle-proof items, starting from leafs.
+// (index) is an index of a relevant entry of StackCalculator hashing log.
+// (isLeaf) indicates is this should be a leaf value or a node value.
+// (isRight) indicates position of this entry for a hashing operation. Either left or right.
+//
+// NB! Leaf index is [0, leafCount-1], node index is [1, leafCount+N], node index = 0 means stub value.
+//
 type PathEntryFunc func(index uint, isLeaf, isRight bool)
 
 // For the given (index) WalkFor will call (nodeFn) for each level of tree that has to be included into a merkle-proof, starting from leafs.
 // The (nodeFn) is called with a relevant index of a hash value in the merkler log, and with flags about the value - leaf-or-node and right-or-left.
+//
 // NB! When stub is used, then (nodeFn) is called as (StubNodeIndex, false, _) as StackCalculator can't produce a node value at index StubNodeIndex.
+// NB! The (nodeFn) is not called for the requested leaf itself.
 func (v PathBuilder) WalkFor(index uint, nodeFn PathEntryFunc) {
 	if v.count <= index {
 		panic("illegal value")
