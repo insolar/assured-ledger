@@ -23,6 +23,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
+// PathBuilder allows to build a merkle-proof by a linear hashing log produced by StackedCalculator.
+// PathBuilder should be initialized by NewPathBuilder, then use WalkFor to get positions of the hashing log entries
+// required to be included into a merkle-proof.
+//
+// Complexity (n - a number of hashes/leafs):
+//  - NewPathBuilder(leafCount, stubbed) is O(k * log(leafCount)), k ~ 1 when !stubbed and k ~ 2 otherwise
+//  - WalkFor(index) is O(log(leafCount))
+//  - Memory is O(log(leafCount))
+
 type PathBuilder struct {
 	count   uint
 	levels  []pathLevel
@@ -164,6 +173,9 @@ const StubNodeIndex = 0
 
 type PathEntryFunc func(index uint, isLeaf, isRight bool)
 
+// For the given (index) WalkFor will call (nodeFn) for each level of tree that has to be included into a merkle-proof, starting from leafs.
+// The (nodeFn) is called with a relevant index of a hash value in the merkler log, and with flags about the value - leaf-or-node and right-or-left.
+// NB! When stub is used, then (nodeFn) is called as (StubNodeIndex, false, _) as StackCalculator can't produce a node value at index StubNodeIndex.
 func (v PathBuilder) WalkFor(index uint, nodeFn PathEntryFunc) {
 	if v.count <= index {
 		panic("illegal value")
