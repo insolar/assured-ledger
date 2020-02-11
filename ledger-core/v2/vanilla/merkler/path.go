@@ -36,10 +36,12 @@ type pathLevel struct {
 }
 
 func NewPathBuilder(leafCount uint, stubbed bool) PathBuilder {
-	switch leafCount {
-	case 0:
+	switch {
+	case leafCount > 2:
+		// jump to the below
+	case leafCount == 0:
 		panic("illegal value")
-	case 1, 2:
+	default:
 		return PathBuilder{leafCount, nil, stubbed}
 	}
 
