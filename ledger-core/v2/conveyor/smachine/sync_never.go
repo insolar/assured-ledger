@@ -33,13 +33,6 @@ func (p *infiniteLock) CheckState() BoolDecision {
 	return false
 }
 
-func (p *infiniteLock) CheckDependency(dep SlotDependency) Decision {
-	if entry, ok := dep.(*infiniteLockEntry); ok && entry.ctl == p {
-		return NotPassed
-	}
-	return Impossible
-}
-
 func (p *infiniteLock) UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision {
 	if entry, ok := dep.(*infiniteLockEntry); ok {
 		switch {
@@ -52,7 +45,7 @@ func (p *infiniteLock) UseDependency(dep SlotDependency, flags SlotDependencyFla
 	return Impossible
 }
 
-func (p *infiniteLock) CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency) {
+func (p *infiniteLock) CreateDependency(_ SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency) {
 	atomic.AddInt32(&p.count, 1)
 	return false, &infiniteLockEntry{p, flags}
 }
@@ -61,7 +54,7 @@ func (p *infiniteLock) GetLimit() (limit int, isAdjustable bool) {
 	return 0, false
 }
 
-func (p *infiniteLock) AdjustLimit(limit int, absolute bool) ([]StepLink, bool) {
+func (p *infiniteLock) AdjustLimit(int, bool) ([]StepLink, bool) {
 	panic("illegal state")
 }
 
@@ -73,7 +66,7 @@ func (p *infiniteLock) GetName() string {
 	return p.name
 }
 
-func (p *infiniteLock) EnumQueues(fn EnumQueueFunc) bool {
+func (p *infiniteLock) EnumQueues(EnumQueueFunc) bool {
 	return false
 }
 

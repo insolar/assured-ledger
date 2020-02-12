@@ -74,10 +74,14 @@ func (v SemaphoreLink) NewValue(value int) SyncAdjustment {
 }
 
 func (v SemaphoreLink) NewChild(childValue int, name string) SyncLink {
+	return v.NewChildEx(childValue, name, 0)
+}
+
+func (v SemaphoreLink) NewChildEx(childValue int, name string, flags SemaphoreChildFlags) SyncLink {
 	if childValue <= 0 {
 		return NewInfiniteLock(name)
 	}
-	return NewSyncLink(newSemaphoreChild(v.ctl, childValue, name))
+	return NewSyncLink(newSemaphoreChild(v.ctl, flags, childValue, name))
 }
 
 func (v SemaphoreLink) SyncLink() SyncLink {
@@ -114,19 +118,11 @@ func (p *semaphoreSync) checkState() BoolDecision {
 	return BoolDecision(p.controller.canPassThrough())
 }
 
-func (p *semaphoreSync) CheckDependency(dep SlotDependency) Decision {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
-	if entry, ok := dep.(*dependencyQueueEntry); ok {
-		return p.checkDependency(entry)
-	}
-	return Impossible
-}
-
-func (p *semaphoreSync) checkDependency(entry *dependencyQueueEntry) Decision {
+func (p *semaphoreSync) checkDependency(entry *dependencyQueueEntry, flags SlotDependencyFlags) Decision {
 	switch {
 	case !entry.link.IsValid(): // just to make sure
+		return Impossible
+	case !entry.IsCompatibleWith(flags):
 		return Impossible
 	case p.controller.contains(entry):
 		return Passed
@@ -137,22 +133,20 @@ func (p *semaphoreSync) checkDependency(entry *dependencyQueueEntry) Decision {
 }
 
 func (p *semaphoreSync) UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
 	if entry, ok := dep.(*dependencyQueueEntry); ok {
-		if d := p.checkDependency(entry); d.IsValid() && entry.IsCompatibleWith(flags) {
-			return d
-		}
+		p.mutex.RLock()
+		defer p.mutex.RUnlock()
+
+		return p.checkDependency(entry, flags)
 	}
 	return Impossible
 }
 
 func (p *semaphoreSync) createDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, *dependencyQueueEntry) {
 	if p.controller.canPassThrough() {
-		return true, p.controller.queue.AddSlot(holder, flags)
+		return true, p.controller.queue.AddSlot(holder, flags, nil)
 	}
-	return false, p.controller.awaiters.queue.AddSlot(holder, flags)
+	return false, p.controller.awaiters.queue.AddSlot(holder, flags, nil)
 }
 
 func (p *semaphoreSync) CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency) {
@@ -249,15 +243,15 @@ func (p *waitingQueueController) IsOpen(SlotDependency) bool {
 	return false
 }
 
-func (p *waitingQueueController) Release(link SlotLink, flags SlotDependencyFlags, removeFn func()) ([]PostponedDependency, []StepLink) {
+func (p *waitingQueueController) Release(_ SlotLink, _ SlotDependencyFlags, chkAndRemoveFn func() bool) ([]PostponedDependency, []StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	removeFn()
+	chkAndRemoveFn()
 	return nil, nil
 }
 
-func (p *waitingQueueController) moveToInactive(n int, q *DependencyQueueHead, stacker *dependencyStackEntry) int {
+func (p *waitingQueueController) moveToInactive(n int, q *DependencyQueueHead, stacker *dependencyStack) int {
 	if n <= 0 {
 		return 0
 	}
@@ -296,7 +290,7 @@ func (p *waitingQueueController) moveToActive(n int, q *DependencyQueueHead) ([]
 		} else {
 			f.removeFromQueue()
 			q.AddLast(f)
-			if pp := f.stacker.ActivateStack(f, step); pp != nil {
+			if pp := f.stacker.PushStack(f, step); pp != nil {
 				postponed = append(postponed, pp)
 			} else {
 				links = append(links, step)
@@ -318,19 +312,18 @@ func (p *workingQueueController) Init(name string, mutex *sync.RWMutex, controll
 	p.awaiters.Init(name, mutex, &p.awaiters)
 }
 
-func (p *workingQueueController) IsOpen(SlotDependency) bool {
-	return true
-}
-
 func (p *workingQueueController) canPassThrough() bool {
 	return p.queue.Count() < p.workerLimit
 }
 
-func (p *workingQueueController) Release(link SlotLink, flags SlotDependencyFlags, removeFn func()) ([]PostponedDependency, []StepLink) {
+func (p *workingQueueController) Release(_ SlotLink, _ SlotDependencyFlags, chkAndRemoveFn func() bool) ([]PostponedDependency, []StepLink) {
 	p.awaiters.mutex.Lock()
 	defer p.awaiters.mutex.Unlock()
 
-	removeFn()
+	if !chkAndRemoveFn() {
+		return nil, nil
+	}
+
 	// p.queue.FirstValid() // check for stale items
 	return p.awaiters.moveToActive(p.workerLimit-p.queue.Count(), &p.queue)
 }

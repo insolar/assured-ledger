@@ -41,36 +41,17 @@ func (p *exclusiveSync) CheckState() BoolDecision {
 	return BoolDecision(p.awaiters.isEmpty())
 }
 
-func (p *exclusiveSync) CheckDependency(dep SlotDependency) Decision {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
-	if entry, ok := dep.(*dependencyQueueEntry); ok {
-		switch {
-		case !entry.link.IsValid(): // just to make sure
-			return Impossible
-		case !p.awaiters.contains(entry):
-			return Impossible
-		case p.awaiters.isEmptyOrFirst(entry.link):
-			return Passed
-		default:
-			return NotPassed
-		}
-	}
-	return Impossible
-}
-
 func (p *exclusiveSync) UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
 	if entry, ok := dep.(*dependencyQueueEntry); ok {
+		p.mutex.RLock()
+		defer p.mutex.RUnlock()
+
 		switch {
 		case !entry.link.IsValid(): // just to make sure
-			return Impossible
-		case !p.awaiters.contains(entry):
 			return Impossible
 		case !entry.IsCompatibleWith(flags):
+			return Impossible
+		case !p.awaiters.contains(entry):
 			return Impossible
 		case p.awaiters.isEmptyOrFirst(entry.link):
 			return Passed
@@ -111,7 +92,7 @@ func (p *exclusiveSync) GetLimit() (limit int, isAdjustable bool) {
 	return 1, false
 }
 
-func (p *exclusiveSync) AdjustLimit(limit int, absolute bool) (deps []StepLink, activate bool) {
+func (p *exclusiveSync) AdjustLimit(int, bool) (deps []StepLink, activate bool) {
 	panic("illegal state")
 }
 
@@ -134,28 +115,24 @@ func (p *exclusiveQueueController) Init(name string, mutex *sync.RWMutex, contro
 	p.mutex = mutex
 }
 
-func (p *exclusiveQueueController) IsOpen(sd SlotDependency) bool {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
-	return p.queue.First() == sd
-}
-
-func (p *exclusiveQueueController) Release(link SlotLink, flags SlotDependencyFlags, removeFn func()) ([]PostponedDependency, []StepLink) {
+func (p *exclusiveQueueController) Release(link SlotLink, _ SlotDependencyFlags, chkAndRemoveFn func() bool) ([]PostponedDependency, []StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	if f := p.queue.First(); f == nil || f.link != link {
-		removeFn()
+		chkAndRemoveFn()
 		return nil, nil
 	}
 
-	removeFn()
+	if !chkAndRemoveFn() {
+		return nil, nil
+	}
+
 	switch f, step := p.queue.FirstValid(); {
 	case f == nil:
 		return nil, nil
 	case f.stacker != nil:
-		if postponed := f.stacker.ActivateStack(f, step); postponed != nil {
+		if postponed := f.stacker.PushStack(f, step); postponed != nil {
 			return []PostponedDependency{postponed}, nil
 		}
 		fallthrough
@@ -170,14 +147,14 @@ func (p *exclusiveQueueController) enum(qId int, fn EnumQueueFunc) bool {
 		return false
 	}
 
-	_, flags := item.getFlags()
+	flags := item.getFlags()
 	if fn(qId, item.link, flags) {
 		return true
 	}
 	qId--
 
 	for item = item.QueueNext(); item != nil; item = item.QueueNext() {
-		_, flags := item.getFlags()
+		flags := item.getFlags()
 		if fn(qId, item.link, flags) {
 			return true
 		}

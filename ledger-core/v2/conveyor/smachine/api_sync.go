@@ -61,7 +61,7 @@ type SynchronizationContext interface {
 	// Returns true when a holder of a sync object was released.
 	// NB! Some sync objects (e.g. conditionals) may release a passed holder automatically, hence this function will return false as well.
 	// Panics on zero or incorrectly initialized value.
-	ReleaseLast() bool
+	ReleaseAll() bool
 
 	//ReleaseAll() bool
 
@@ -168,6 +168,7 @@ const (
 	syncPriorityBoosted SlotDependencyFlags = 1 << iota
 	syncPriorityHigh
 	syncForOneStep
+	syncIgnoreFlags
 )
 
 const syncPriorityMask = syncPriorityBoosted | syncPriorityHigh
@@ -177,6 +178,10 @@ func (v SlotDependencyFlags) hasLessPriorityThan(o SlotDependencyFlags) bool {
 }
 
 func (v SlotDependencyFlags) isCompatibleWith(requiredFlags SlotDependencyFlags) bool {
+	if requiredFlags == syncIgnoreFlags {
+		return true
+	}
+
 	if v&requiredFlags&^syncPriorityMask != requiredFlags&^syncPriorityMask {
 		return false
 	}
@@ -188,7 +193,6 @@ type EnumQueueFunc func(qId int, link SlotLink, flags SlotDependencyFlags) bool
 // Internals of a sync object
 type DependencyController interface {
 	CheckState() BoolDecision // reduce down to BoolDecision
-	CheckDependency(dep SlotDependency) Decision
 	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
 	CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency)
 

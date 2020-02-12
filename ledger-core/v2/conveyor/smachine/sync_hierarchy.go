@@ -18,7 +18,14 @@ package smachine
 
 import "sync"
 
-func newSemaphoreChild(parent *semaphoreSync, value int, name string) DependencyController {
+type SemaphoreChildFlags uint8
+
+const (
+	CanReleaseParent SemaphoreChildFlags = 1 << iota
+	ParentReacquireBoost
+)
+
+func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value int, name string) DependencyController {
 	if parent == nil {
 		panic("illegal value")
 	}
@@ -54,33 +61,20 @@ func (p *hierarchySync) CheckState() BoolDecision {
 	return p.parentCtl.checkState()
 }
 
-func (p *hierarchySync) CheckDependency(dep SlotDependency) Decision {
-	p.controller.mutex.RLock()
-	defer p.controller.mutex.RUnlock()
-
-	if entry, ok := dep.(*dependencyQueueEntry); ok {
-		return p.checkDependency(entry)
-	}
-	return Impossible
-}
-
-func (p *hierarchySync) checkDependency(entry *dependencyQueueEntry) Decision {
-	switch {
-	case p.controller.contains(entry):
-		return NotPassed
-	case p.controller.stackedOn(entry):
-		return p.parentCtl.checkDependency(entry)
-	}
-	return Impossible
-}
-
 func (p *hierarchySync) UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision {
-	p.controller.mutex.RLock()
-	defer p.controller.mutex.RUnlock()
-
 	if entry, ok := dep.(*dependencyQueueEntry); ok {
-		if d := p.checkDependency(entry); d.IsValid() && entry.IsCompatibleWith(flags) {
-			return d
+		p.controller.mutex.RLock()
+		defer p.controller.mutex.RUnlock()
+
+		switch {
+		case !entry.link.IsValid(): // just to make sure
+			return Impossible
+		case !entry.IsCompatibleWith(flags):
+			return Impossible
+		case p.controller.contains(entry):
+			return NotPassed
+		case p.controller.owns(entry):
+			return p.parentCtl.checkDependency(entry, syncIgnoreFlags)
 		}
 	}
 	return Impossible
@@ -96,7 +90,7 @@ func (p *hierarchySync) CreateDependency(holder SlotLink, flags SlotDependencyFl
 		p.controller.workerCount++
 		return d, entry
 	}
-	return false, p.controller.queue.AddSlot(holder, flags)
+	return false, p.controller.queue.AddSlot(holder, flags, nil)
 }
 
 func (p *hierarchySync) GetLimit() (limit int, isAdjustable bool) {
@@ -130,28 +124,33 @@ var _ dependencyStackController = &subQueueController{}
 
 type subQueueController struct {
 	parent      *DependencyQueueHead
-	stacker     dependencyStackEntry
+	stacker     dependencyStack
 	workerLimit int
 	workerCount int
 	waitingQueueController
 }
 
-func (p *subQueueController) Init(name string, mutex *sync.RWMutex, controller DependencyQueueController) {
+type dependencyStackQueueController interface {
+	DependencyQueueController
+	dependencyStackController
+}
+
+func (p *subQueueController) Init(name string, mutex *sync.RWMutex, controller dependencyStackQueueController) {
 	p.waitingQueueController.Init(name, mutex, controller)
 	p.mutex = mutex
-	p.stacker.controller = controller.(dependencyStackController)
+	p.stacker.controller = controller
 }
 
 func (p *subQueueController) canPassThrough() bool {
 	return p.workerCount < p.workerLimit
 }
 
-func (p *subQueueController) stackedOn(entry *dependencyQueueEntry) bool {
+func (p *subQueueController) owns(entry *dependencyQueueEntry) bool {
 	return entry.stacker == &p.stacker
 }
 
 // MUST be under the same lock as the parent
-func (p *subQueueController) ReleaseStacked(releasedBy *dependencyQueueEntry, flags SlotDependencyFlags) {
+func (p *subQueueController) ReleaseStacked(*dependencyQueueEntry) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
