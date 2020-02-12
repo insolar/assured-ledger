@@ -70,9 +70,9 @@ func (p *defaultLogObjectMarshallerFactory) getFieldReporter(t reflect.Type) Fie
 
 func (p *defaultLogObjectMarshallerFactory) getTypeMarshaller(t reflect.Type) *typeMarshaller {
 	p.mutex.RLock()
-	tm := p.marshallers[t]
+	tm, ok := p.marshallers[t]
 	p.mutex.RUnlock()
-	if tm != nil {
+	if ok {
 		return tm
 	}
 
@@ -83,11 +83,8 @@ func (p *defaultLogObjectMarshallerFactory) getTypeMarshaller(t reflect.Type) *t
 
 	if p.marshallers == nil {
 		p.marshallers = make(map[reflect.Type]*typeMarshaller)
-	} else {
-		tm2 := p.marshallers[t]
-		if tm2 != nil {
-			return tm2
-		}
+	} else if tm2, ok := p.marshallers[t]; ok {
+		return tm2
 	}
 	p.marshallers[t] = tm
 	return tm
@@ -161,12 +158,17 @@ type fieldDesc struct {
 
 func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getReporterFn func(reflect.Type) FieldReporterFunc) bool {
 	n := t.NumField()
-	var msgGetter fieldDesc
+	var msgGetter, errGetter fieldDesc
 	valueGetters := make([]fieldDesc, 0, n)
 
 	for i := 0; i < n; i++ {
 		tf := t.Field(i)
 		fieldName := tf.Name
+
+		if tf.Type.Kind() == reflect.Struct && tf.Type.NumField() == 0 && fieldName == "_logignore" {
+			// struct with _logignore struct{} field must be ignored
+			return false
+		}
 
 		k := tf.Type.Kind()
 		valueGetterFactory := reflectkit.ValueToReceiverFactory(k, marshallerSpecialTypes)
@@ -183,7 +185,7 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 			fmtStr = ""
 		}
 
-		msgField := false
+		msgField, errField := false, false
 		switch {
 		case tagType == fmtTagText && fieldName == "_":
 			msgField = true
@@ -201,6 +203,13 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 			switch k := fd.Type.Kind(); {
 			case k == reflect.String:
 				msgField = fieldName == "string"
+			case k == reflect.Interface:
+				if fieldName == "error" {
+					msgField = true
+					errField = true
+					break
+				}
+				continue
 			case k > reflect.Array: // any other non-literals
 				continue
 			}
@@ -210,6 +219,13 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 			switch fieldName {
 			case "msg", "Msg", "message", "Message":
 				msgField = true
+				errField = fd.Type.Implements(errorType)
+			}
+		}
+		if !msgField && !errField {
+			switch fieldName {
+			case "err", "Err", "error", "Error":
+				errField = fd.Type.Implements(errorType)
 			}
 		}
 
@@ -227,10 +243,16 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 
 		fd.outputRecv = logFieldReceiver{fd.StructField.Name, fmtStr, tagType}
 
+		if errField && errGetter.getterFn == nil {
+			errGetter = fd
+		}
+
 		switch {
-		case msgField && msgGetter.getterFn == nil:
+		case !msgField:
+			valueGetters = append(valueGetters, fd)
+		case msgGetter.getterFn == nil:
 			msgGetter = fd
-		case msgField && fieldName == "_":
+		case fieldName == "_":
 			fd.outputRecv.key = fmt.Sprintf("_txtTag%d", i)
 			fallthrough
 		default:
@@ -270,6 +292,10 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 			p.metricFields = append(p.metricFields, reportField{
 				reportFieldGetter, fd.reportFn, fd.Name})
 		}
+	}
+
+	if errGetter.getterFn != nil {
+		// TODO get and add stack
 	}
 
 	switch {

@@ -39,8 +39,7 @@ type MarshallerFactory interface {
 }
 
 func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogObjectMarshaller, *string) {
-	switch vv := a.(type) {
-	case LogObject:
+	if vv, ok := a.(LogObject); ok {
 		m := vv.GetLogObjectMarshaller()
 		if m != nil {
 			return m, nil
@@ -49,7 +48,13 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogOb
 		if vr.Kind() == reflect.Ptr {
 			vr = vr.Elem()
 		}
-		return v.MFactory.CreateLogObjectMarshaller(vr), nil
+		m = v.MFactory.CreateLogObjectMarshaller(vr)
+		if m != nil {
+			return m, nil
+		}
+	}
+
+	switch vv := a.(type) {
 	case LogObjectMarshaller:
 		return vv, nil
 	case string: // the most obvious case
