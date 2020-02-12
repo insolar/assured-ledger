@@ -163,7 +163,7 @@ func (p *PulseDataManager) TouchPulseData(pn pulse.Number) bool {
 	return p.cache.Touch(pn)
 }
 
-// Returns true when the given PN can be accepted into Future pulse slot, otherwise must be rejected
+// IsAllowedFutureSpan Returns true when the given PN can be accepted into Future pulse slot, otherwise must be rejected
 func (p *PulseDataManager) IsAllowedFutureSpan(futurePN pulse.Number) bool {
 	presentPN, expectedPN := p.GetPresentPulse()
 	return p.isAllowedFutureSpan(presentPN, expectedPN, futurePN)
@@ -190,7 +190,7 @@ func (p *PulseDataManager) IsRecentPastRange(pastPN pulse.Number) bool {
 	return p.isRecentPastRange(presentPN, pastPN)
 }
 
-//Returns true when the given PN is within a mandatory retention interval for the cache. So we don't need to populate it
+// isRecentPastRange returns true when the given PN is within a mandatory retention interval for the cache. So we don't need to populate it
 func (p *PulseDataManager) isRecentPastRange(presentPN pulse.Number, pastPN pulse.Number) bool {
 	return pastPN < presentPN &&
 		(pastPN+pulse.Number(p.cache.GetMinRange())) >= presentPN &&
