@@ -29,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/bpbuffer"
 )
 
+// NewBuilderWithTemplate returns new LoggerBuilder from given template
 func NewBuilderWithTemplate(template logcommon.Template, level Level) LoggerBuilder {
 	config := template.GetTemplateConfig()
 	return LoggerBuilder{
@@ -39,6 +40,7 @@ func NewBuilderWithTemplate(template logcommon.Template, level Level) LoggerBuil
 	}
 }
 
+// NewBuilder returns new LoggerBuilder with given factory
 func NewBuilder(factory logcommon.Factory, config logcommon.Config, level Level) LoggerBuilder {
 	return LoggerBuilder{
 		factory: factory,
@@ -47,6 +49,8 @@ func NewBuilder(factory logcommon.Factory, config logcommon.Config, level Level)
 	}
 }
 
+// LoggerBuilder is used to build new Logger with extra persistent and dynamic fields.
+// It ensures layer of abstraction between logger itself, extra fields storage and writer
 type LoggerBuilder struct {
 	factory     logcommon.Factory
 	hasTemplate bool
@@ -62,21 +66,22 @@ type LoggerBuilder struct {
 	cfg logcommon.Config
 }
 
+// IsZero returns true if logger has valid factory
 func (z LoggerBuilder) IsZero() bool {
 	return z.factory == nil
 }
 
-// Returns the current output destination/writer
+// GetOutput returns the current output destination/writer
 func (z LoggerBuilder) GetOutput() io.Writer {
 	return z.cfg.BareOutput.Writer
 }
 
-// Returns the current log level
+// GetLogLevel returns the current log level
 func (z LoggerBuilder) GetLogLevel() Level {
 	return z.level
 }
 
-// Sets the output destination/writer for the logger.
+// WithOutput sets the output destination/writer for the logger.
 // Argument of LoggerOutput type will allow fine-grain control of events, but it may ignore WithFormat (depends on adapter).
 func (z LoggerBuilder) WithOutput(w io.Writer) LoggerBuilder {
 
@@ -91,7 +96,7 @@ func (z LoggerBuilder) WithOutput(w io.Writer) LoggerBuilder {
 	return z
 }
 
-// Set buffer size and applicability of the buffer. Will be IGNORED when a reused output is already buffered.
+// WithBuffer sets buffer size and applicability of the buffer. Will be IGNORED when a reused output is already buffered.
 func (z LoggerBuilder) WithBuffer(bufferSize int, bufferForAll bool) LoggerBuilder {
 	z.cfg.Output.BufferSize = bufferSize
 	z.cfg.Output.EnableRegularBuffer = bufferForAll
@@ -119,7 +124,7 @@ func (z LoggerBuilder) WithCaller(mode logcommon.CallerFieldMode) LoggerBuilder 
 	return z
 }
 
-// Allows customization of skip frames for 'func' and 'caller' fields.
+// WithSkipFrameCount allows customization of skip frames for 'func' and 'caller' fields.
 func (z LoggerBuilder) WithSkipFrameCount(skipFrameCount int) LoggerBuilder {
 	if skipFrameCount < math.MinInt8 || skipFrameCount > math.MaxInt8 {
 		panic("illegal value")
@@ -138,20 +143,20 @@ func (z LoggerBuilder) WithMetrics(mode logcommon.LogMetricsMode) LoggerBuilder 
 	return z
 }
 
-//Sets an custom recorder for metric collection.
+// WithMetricsRecorder sets an custom recorder for metric collection.
 func (z LoggerBuilder) WithMetricsRecorder(recorder logcommon.LogMetricsRecorder) LoggerBuilder {
 	z.cfg.Instruments.Recorder = recorder
 	return z
 }
 
-// Clears out inherited fields (dynamic or not)
+// WithoutInheritedFields clears out inherited fields (dynamic or not)
 func (z LoggerBuilder) WithoutInheritedFields() LoggerBuilder {
 	z.noFields = true
 	z.noDynFields = true
 	return z
 }
 
-// Clears out inherited dynamic fields only
+// WithoutInheritedDynFields clears out inherited dynamic fields only
 func (z LoggerBuilder) WithoutInheritedDynFields() LoggerBuilder {
 	z.noDynFields = true
 	return z
@@ -192,7 +197,7 @@ func (z LoggerBuilder) WithDynamicField(k string, fn logcommon.DynFieldFunc) Log
 	return z
 }
 
-// Creates a logger. Panics on error.
+// MustBuild creates a logger. Panics on error.
 func (z LoggerBuilder) MustBuild() Logger {
 	if l, err := z.build(false); err != nil {
 		panic(err)
@@ -201,12 +206,12 @@ func (z LoggerBuilder) MustBuild() Logger {
 	}
 }
 
-// Creates a logger.
+// Build creates a logger.
 func (z LoggerBuilder) Build() (Logger, error) {
 	return z.build(false)
 }
 
-// Creates a logger with no write delays.
+// BuildLowLatency creates a logger with no write delays.
 func (z LoggerBuilder) BuildLowLatency() (Logger, error) {
 	return z.build(true)
 }
