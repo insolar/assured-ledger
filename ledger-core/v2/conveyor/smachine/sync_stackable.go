@@ -7,20 +7,20 @@ package smachine
 
 // methods of this interfaces can be protected by mutex
 type dependencyStackController interface {
-	ReleaseStacked(releasedBy *dependencyQueueEntry, flags SlotDependencyFlags)
+	ReleaseStacked(releasedBy *dependencyQueueEntry)
 }
 
-type dependencyStackEntry struct {
+type dependencyStack struct {
 	controller dependencyStackController
 }
 
-func (p *dependencyStackEntry) ActivateStack(activateBy *dependencyQueueEntry, link StepLink) PostponedDependency {
+func (p *dependencyStack) PushStack(entry *dependencyQueueEntry, link StepLink) PostponedDependency {
 	return nil
 }
 
-func (p *dependencyStackEntry) ReleasedBy(entry *dependencyQueueEntry, flags SlotDependencyFlags) {
+func (p *dependencyStack) PopStack(entry *dependencyQueueEntry) {
 	if p == nil {
 		return
 	}
-	p.controller.ReleaseStacked(entry, flags)
+	p.controller.ReleaseStacked(entry)
 }

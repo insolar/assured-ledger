@@ -356,7 +356,7 @@ func (p *slotContext) Check(link SyncLink) BoolDecision {
 
 	dep := p.s.dependency
 	if dep != nil {
-		if d, ok := link.controller.CheckDependency(dep).AsValid(); ok {
+		if d, ok := link.controller.UseDependency(dep, syncIgnoreFlags).AsValid(); ok {
 			return d
 		}
 	}
@@ -376,7 +376,7 @@ func (p *slotContext) AcquireAndRelease(link SyncLink) BoolDecision {
 }
 
 func (p *slotContext) AcquireForThisStepAndRelease(link SyncLink) BoolDecision {
-	return p.acquire(link, true, 0)
+	return p.acquire(link, true, syncForOneStep)
 }
 
 func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDependencyFlags) (d BoolDecision) {
@@ -414,9 +414,9 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 	return d
 }
 
-func (p *slotContext) ReleaseLast() bool {
+func (p *slotContext) ReleaseAll() bool {
 	p.ensureAtLeast(updCtxInit)
-	return p.release(nil)
+	return p.releaseAll()
 }
 
 func (p *slotContext) Release(link SyncLink) bool {
@@ -428,9 +428,7 @@ func (p *slotContext) Release(link SyncLink) bool {
 	return p.release(link.controller)
 }
 
-func (p *slotContext) ReleaseAll() bool {
-	p.ensureAtLeast(updCtxInit)
-
+func (p *slotContext) releaseAll() bool {
 	dep := p.s.dependency
 	if dep == nil {
 		return false
@@ -449,7 +447,7 @@ func (p *slotContext) release(controller DependencyController) bool {
 	if dep == nil {
 		return false
 	}
-	if controller != nil && !controller.CheckDependency(dep).IsValid() {
+	if !controller.UseDependency(dep, syncIgnoreFlags).IsValid() {
 		// mismatched sync object
 		return false
 	}
