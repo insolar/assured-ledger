@@ -178,12 +178,37 @@ func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event Inp
 }
 
 func (p *PulseConveyor) mapToPulseSlotMachine(pn pulse.Number) (*PulseSlotMachine, pulse.Number, PulseSlotState, error) {
-	presentPN, futurePN := p.pdm.GetPresentPulse()
+
+	var presentPN, futurePN pulse.Number
+	for {
+		presentPN, futurePN = p.pdm.GetPresentPulse()
+
+		if !presentPN.IsUnknown() {
+			break
+		}
+		// when no present pulse - all pulses go to future
+		switch {
+		case futurePN != uninitializedFuture:
+			// there should be only one futureSlot, so we won't create a new future slot even when futurePN != pn
+			if pn.IsTimePulse() {
+				break
+			} else if pn.IsUnknown() {
+				pn = futurePN
+				break
+			}
+			fallthrough
+		case !pn.IsTimePulse():
+			return nil, 0, 0, fmt.Errorf("pulse number is invalid: pn=%v", pn)
+		case p.pdm.setUninitializedFuturePulse(pn):
+			futurePN = pn
+		default:
+			// get the updated pulse
+			continue
+		}
+		return p.getFuturePulseSlotMachine(presentPN, futurePN), pn, Future, nil
+	}
 
 	switch {
-	case presentPN.IsUnknown():
-		// when no present pulse - all pulses go to future
-		return p.getFuturePulseSlotMachine(presentPN, pn), pn, Future, nil
 	case pn.IsUnknownOrEqualTo(presentPN):
 		if psm := p.getPulseSlotMachine(presentPN); psm != nil {
 			return psm, presentPN, Present, nil
@@ -242,6 +267,7 @@ func (p *PulseConveyor) getFuturePulseSlotMachine(presentPN, futurePN pulse.Numb
 	if psm := p.getPulseSlotMachine(futurePN); psm != nil {
 		return psm
 	}
+
 	psm := p.newPulseSlotMachine()
 
 	prevDelta := futurePN - presentPN
@@ -347,9 +373,11 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range) error {
 
 		if p.presentMachine == nil {
 			switch {
-			case prevFuturePN != uninitializedFuture:
-				panic("illegal state")
 			case p.getPulseSlotMachine(prevPresentPN) != nil:
+				panic("illegal state")
+			case prevFuturePN == uninitializedFuture:
+				// ok
+			case p.getPulseSlotMachine(prevFuturePN) == nil:
 				panic("illegal state")
 			}
 		} else {

@@ -68,20 +68,22 @@ func main() {
 
 	conveyor.StartWorker(nil, nil)
 
-	noError(conveyor.CommitPulseChange(pd.AsRange()))
 	eventCount := 0
+	noError(conveyor.AddInput(context.Background(), pd.PulseNumber, fmt.Sprintf("event-%d-pre", eventCount)))
 
 	time.Sleep(10 * time.Millisecond)
 
 	for i := 0; i < 100; i++ {
-		pd = pd.CreateNextPulsarPulse(10, func() longbits.Bits256 {
-			return longbits.Bits256{}
-		})
 		fmt.Println(">>>================================== ", pd, " ====================================")
-		noError(conveyor.PreparePulseChange(nil))
+		if i != 0 {
+			noError(conveyor.PreparePulseChange(nil))
+		}
 		time.Sleep(100 * time.Millisecond)
 		noError(conveyor.CommitPulseChange(pd.AsRange()))
 		fmt.Println("<<<================================== ", pd, " ====================================")
+		pd = pd.CreateNextPulsarPulse(10, func() longbits.Bits256 {
+			return longbits.Bits256{}
+		})
 		time.Sleep(10 * time.Millisecond)
 
 		eventToCall := ""

@@ -97,6 +97,10 @@ func (p *PulseDataManager) GetPresentPulse() (present pulse.Number, nearestFutur
 	return p._split(v)
 }
 
+func (p *PulseDataManager) setUninitializedFuturePulse(futurePN pulse.Number) bool {
+	return atomic.CompareAndSwapUint64(&p.presentAndFuturePulse, 0, uint64(futurePN)<<32)
+}
+
 func (*PulseDataManager) _split(v uint64) (present pulse.Number, nearestFuture pulse.Number) {
 	return pulse.Number(v), pulse.Number(v >> 32)
 }

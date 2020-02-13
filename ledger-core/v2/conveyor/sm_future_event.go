@@ -67,7 +67,7 @@ func (sm *futureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.S
 	case !isAccepted:
 		return ctx.Jump(sm.stepTerminate)
 	case isFuture: // make sure that this slot isn't late
-		panic(fmt.Errorf("impossible state for future pulse number: pn=%v", sm.pn))
+		return ctx.Errorf("impossible state for future pulse number: pn=%v", sm.pn)
 	default:
 		return ctx.WakeUp()
 	}
