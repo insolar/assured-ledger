@@ -40,6 +40,10 @@ func NotImplemented() error {
 	return newMsg("not implemented")
 }
 
+func FailHere(msg string) error {
+	return newMsg(msg)
+}
+
 func newMsg(msg string) msgWrap {
 	return msgWrap{st: CaptureStackTop(2), msg: msg}
 }
