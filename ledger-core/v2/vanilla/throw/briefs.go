@@ -16,6 +16,10 @@
 
 package throw
 
-//func E(description interface{}) error {
-//	return Wrap
-//}
+func E(description interface{}) error {
+	return Wrap(description)
+}
+
+func EM(msg string, description interface{}) error {
+	return WrapMsg(msg, description)
+}

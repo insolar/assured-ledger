@@ -23,7 +23,7 @@ import (
 
 var panicFmtFn atomic.Value
 
-type FormatterFunc func(interface{}) (string, interface{})
+type FormatterFunc func(string, interface{}) (string, interface{})
 
 func GetFormatter() FormatterFunc {
 	return panicFmtFn.Load().(FormatterFunc)
@@ -36,41 +36,63 @@ func SetFormatter(fn FormatterFunc) {
 	panicFmtFn.Store(fn)
 }
 
-func Wrap(errorDescription interface{}) error {
-	if errorDescription == nil {
-		return nil
-	}
-	fmtFn := GetFormatter()
-	if fmtFn != nil {
-		return _wrapFmt(fmtFn(errorDescription))
-	}
-	if err, ok := errorDescription.(error); ok {
-		return err
-	}
-	msg := defaultFmt(errorDescription)
-	if _, ok := errorDescription.(logStringer); !ok {
-		errorDescription = nil
-	}
-	return _wrapFmt(msg, errorDescription)
-}
-
-func WrapFmt(errorDescription interface{}, fmtFn FormatterFunc) error {
+func WrapFmt(msg string, errorDescription interface{}, fmtFn FormatterFunc) error {
 	if errorDescription == nil {
 		return nil
 	}
 	if fmtFn == nil {
 		panic(IllegalValue())
 	}
-	return _wrapFmt(fmtFn(errorDescription))
+	return _wrapFmt(fmtFn(msg, errorDescription))
 }
 
-func _wrapFmt(msg string, extra interface{}) errWithFmt {
-	return errWithFmt{msg: msg, extra: extra}
+func Wrap(errorDescription interface{}) error {
+	return WrapMsg("", errorDescription)
+}
+
+func WrapMsg(msg string, errorDescription interface{}) error {
+	if errorDescription == nil {
+		return nil
+	}
+	if fmtFn := GetFormatter(); fmtFn != nil {
+		return _wrapFmt(fmtFn(msg, errorDescription))
+	}
+	if msg == "" {
+		if err, ok := errorDescription.(error); ok {
+			return err
+		}
+	}
+
+	s := defaultFmt(errorDescription, msg == "")
+	switch {
+	case s == "":
+		s = msg
+	case msg != "":
+		s = msg + "\t" + s
+	}
+	return _wrapFmt(s, errorDescription)
+}
+
+func wrap(msg string, details interface{}) fmtWrap {
+	if fmtFn := GetFormatter(); fmtFn != nil {
+		msg, details = fmtFn(msg, details)
+	} else {
+		if err, ok := details.(error); ok {
+			msg = err.Error()
+		} else {
+			msg = defaultFmt(details, msg == "")
+		}
+	}
+	return _wrapFmt(msg, details)
+}
+
+func _wrapFmt(msg string, extra interface{}) fmtWrap {
+	return fmtWrap{msg: msg, extra: extra}
 }
 
 func UnwrapExtraInfo(err error) (string, interface{}, bool) {
 	switch vv := err.(type) {
-	case errWithFmt:
+	case fmtWrap:
 		return vv.msg, vv.extra, true
 	case panicWrap:
 		return vv.msg, vv.extra, true
@@ -80,7 +102,7 @@ func UnwrapExtraInfo(err error) (string, interface{}, bool) {
 
 type logStringer interface{ LogString() string }
 
-func defaultFmt(v interface{}) string {
+func defaultFmt(v interface{}, force bool) string {
 	switch vv := v.(type) {
 	case fmt.Stringer:
 		return vv.String()
@@ -95,6 +117,9 @@ func defaultFmt(v interface{}) string {
 	case nil:
 		//
 	default:
+		if !force {
+			return ""
+		}
 		s := fmt.Sprint(vv)
 		if len(s) == 0 {
 			s = fmt.Sprintf("%T(%[1]p)", vv)
@@ -102,34 +127,4 @@ func defaultFmt(v interface{}) string {
 		return s
 	}
 	return "<nil>"
-}
-
-type errWithFmt struct {
-	_logignore struct{} // will be ignored by struct-logger
-	msg        string
-	extra      interface{}
-}
-
-func (v errWithFmt) LogString() string {
-	s := ""
-	switch vv := v.extra.(type) {
-	case nil:
-		return v.msg
-	case logStringer:
-		s = vv.LogString()
-	default:
-		s = fmt.Sprint(vv)
-	}
-	if v.msg == "" {
-		return s
-	}
-	return v.msg + " " + s
-}
-
-func (v errWithFmt) Error() string {
-	return v.msg
-}
-
-func (v errWithFmt) ExtraInfo() interface{} {
-	return v.extra
 }

@@ -34,22 +34,89 @@ type StackTrace interface {
 // CaptureStack captures whole stack
 // When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStack(skipFrames int) StackTrace {
-	return byteStackTrace(captureStackByDebug(skipFrames, false))
+	return stackTrace{captureStackByDebug(skipFrames, false), false}
 }
 
 // CaptureStackTop is an optimized version to capture a limited info about top-level stack entry only
 // When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStackTop(skipFrames int) StackTrace {
-	return byteStackTrace(captureStackByDebug(skipFrames, true))
+	return stackTrace{captureStackByDebug(skipFrames, true), true}
 }
 
-func equalStackTrace(st0, st1 StackTrace) bool {
-	if bst0, ok := st0.(byteStackTrace); ok {
-		if bst1, ok := st1.(byteStackTrace); ok {
-			return bytes.Equal(bst0, bst1)
+type StackTraceRelation int8
+
+const (
+	SubsetTrace StackTraceRelation = iota - 2
+	TopTrace
+	EqualTrace
+	FullTrace
+	SupersetTrace
+	DifferentTrace
+)
+
+func CompareStackTrace(st0, st1 StackTrace) StackTraceRelation {
+	if bst0, ok := st0.(stackTrace); ok {
+		if bst1, ok := st1.(stackTrace); ok {
+			switch {
+			case bst0.limit == bst1.limit:
+				switch n := len(bst0.data) - len(bst1.data); {
+				case n == 0:
+					if bytes.Equal(bst0.data, bst1.data) {
+						return EqualTrace
+					}
+				case n > 0:
+					if bytes.HasSuffix(bst0.data, bst1.data) {
+						return SupersetTrace
+					}
+				case bytes.HasSuffix(bst1.data, bst0.data):
+					return SubsetTrace
+				}
+			case bst0.limit:
+				if isStackTraceTop(bst0.data, bst1.data) {
+					return TopTrace
+				}
+			default:
+				if isStackTraceTop(bst1.data, bst0.data) {
+					return FullTrace
+				}
+			}
 		}
 	}
+	return DifferentTrace
+}
+
+func isStackTraceTop(bstTop, bstFull []byte) bool {
+	n := len(bstTop)
+	if len(bstFull) <= n {
+		return false
+	}
+
+	i := _cmpTillEol(bstTop, bstFull)
+	switch {
+	case i < 0:
+		return false
+	case i == n:
+		return true
+	}
+
+	if j := bytes.IndexByte(bstFull[i:], '\n'); j >= 0 {
+		return _cmpTillEol(bstTop[i:], bstFull[i+j+1:]) >= 0
+	}
 	return false
+}
+
+func _cmpTillEol(bstTop, bstFull []byte) int {
+	i := 0
+	for n := len(bstTop); i < n; i++ {
+		if bstTop[i] == bstFull[i] {
+			continue
+		}
+		if bstTop[i] == '\n' {
+			return i + 1
+		}
+		return -1
+	}
+	return i
 }
 
 func IsInSystemPanic(skipFrames int) bool {
@@ -61,19 +128,26 @@ func IsInSystemPanic(skipFrames int) bool {
 	return n == "runtime.preprintpanics"
 }
 
-type byteStackTrace []byte
+type stackTrace struct {
+	data  []byte
+	limit bool
+}
 
-func (v byteStackTrace) WriteStackTraceTo(w io.Writer) error {
-	_, err := w.Write(v)
+func (v stackTrace) WriteStackTraceTo(w io.Writer) error {
+	_, err := w.Write(v.data)
 	return err
 }
 
-func (v byteStackTrace) StackTraceAsText() string {
-	return string(v)
+func (v stackTrace) StackTraceAsText() string {
+	return string(v.data)
 }
 
-func (v byteStackTrace) LogString() string {
-	return StackTracePrefix + string(v)
+func (v stackTrace) LogString() string {
+	return string(v.data)
+}
+
+func (v stackTrace) String() string {
+	return StackTracePrefix + string(v.data)
 }
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
@@ -159,8 +233,10 @@ func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
 		}
 		fName := fn.Name()
 		if i == len(pcs)-1 && fName == "runtime.goexit" {
-			continue
+			break
 		}
+
+		// imitation of debug.Stack() format
 
 		if len(result) > 0 {
 			result = append(result, '\n')

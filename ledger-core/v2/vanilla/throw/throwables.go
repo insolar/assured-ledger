@@ -19,56 +19,32 @@ package throw
 // IllegalValue is to indicate that an argument provided to a calling function is incorrect
 // This error captures the topmost entry of caller's stack.
 func IllegalValue() error {
-	return newMsg("illegal value")
+	return newMsg("illegal value", 0)
 }
 
 // IllegalState is to indicate that an internal state of a function/object is incorrect or unexpected
 // This error captures the topmost entry of caller's stack.
 func IllegalState() error {
-	return newMsg("illegal state")
+	return newMsg("illegal state", 0)
 }
 
 // Unsupported is to indicate that a calling function is unsupported intentionally and will remain so for awhile
 // This error captures the topmost entry of caller's stack.
 func Unsupported() error {
-	return newMsg("unsupported")
+	return newMsg("unsupported", 0)
 }
 
 // NotImplemented is to indicate that a calling function was not yet implemented, but it is expected to be completed soon
 // This error captures the topmost entry of caller's stack.
 func NotImplemented() error {
-	return newMsg("not implemented")
+	return newMsg("not implemented", 0)
 }
 
-func FailHere(msg string) error {
-	return newMsg(msg)
+// FailsHere creates an error that captures the topmost entry of caller's stack.
+func FailsHere(msg string, skipFrames int) error {
+	return newMsg(msg, skipFrames)
 }
 
-func newMsg(msg string) msgWrap {
-	return msgWrap{st: CaptureStackTop(2), msg: msg}
-}
-
-type msgWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	msg        string
-}
-
-func (v msgWrap) Reason() error {
-	return v
-}
-
-func (v msgWrap) StackTrace() StackTrace {
-	return v.st
-}
-
-func (v msgWrap) LogString() string {
-	return v.msg
-}
-
-func (v msgWrap) Error() string {
-	if v.st == nil {
-		return v.msg
-	}
-	return v.msg + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+func newMsg(msg string, skipFrames int) msgWrap {
+	return msgWrap{st: CaptureStackTop(skipFrames + 2), msg: msg}
 }

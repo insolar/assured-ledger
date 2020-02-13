@@ -23,6 +23,11 @@ import (
 
 const NoStackTrace int = math.MaxInt32
 
+type PanicHolder interface {
+	StackTraceHolder
+	Recovered() interface{}
+}
+
 func WrapPanic(recovered interface{}) error {
 	return WrapPanicExt(recovered, 2) // Wrap*() + defer
 }
@@ -43,31 +48,18 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 
 	switch vv := recovered.(type) {
 	case panicWrap:
-		if st == nil || equalStackTrace(vv.StackTrace(), st) {
+		if st == nil {
 			return vv
 		}
-	case errWithFmt:
-		return panicWrap{errWithFmt: vv}
+		switch CompareStackTrace(vv.st, st) {
+		case EqualTrace, SupersetTrace:
+			return vv
+		}
+	case fmtWrap:
+		return panicWrap{st: st, fmtWrap: vv}
 	}
 
-	var (
-		msg   string
-		extra interface{}
-	)
-
-	if fmtFn := GetFormatter(); fmtFn != nil {
-		msg, extra = fmtFn(recovered)
-	} else {
-		if err, ok := recovered.(error); ok {
-			msg = err.Error()
-		} else {
-			msg = defaultFmt(recovered)
-		}
-		if _, ok := recovered.(logStringer); ok {
-			extra = recovered
-		}
-	}
-	return panicWrap{st: st, recovered: recovered, errWithFmt: _wrapFmt(msg, extra)}
+	return panicWrap{st: st, recovered: recovered, fmtWrap: wrap("", recovered)}
 }
 
 func UnwrapPanic(err error) (interface{}, StackTrace, bool) {
@@ -77,11 +69,11 @@ func UnwrapPanic(err error) (interface{}, StackTrace, bool) {
 	return err, nil, false
 }
 
-func InnermostPanicWithStack(recovered interface{}) StackTraceHolder {
+func InnermostPanicWithStack(recovered interface{}) PanicHolder {
 	switch vv := recovered.(type) {
 	case error:
 		return innermostWithStack(vv)
-	case StackTraceHolder:
+	case PanicHolder:
 		st := vv.StackTrace()
 		if st != nil {
 			return vv
@@ -92,7 +84,7 @@ func InnermostPanicWithStack(recovered interface{}) StackTraceHolder {
 	}
 }
 
-func innermostWithStack(errChain error) StackTraceHolder {
+func innermostWithStack(errChain error) PanicHolder {
 	for errChain != nil {
 		if sw, ok := errChain.(panicWrap); ok {
 			nextErr := sw.Unwrap()
@@ -105,40 +97,4 @@ func innermostWithStack(errChain error) StackTraceHolder {
 		errChain = errors.Unwrap(errChain)
 	}
 	return nil
-}
-
-type panicWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	recovered  interface{}
-	errWithFmt
-}
-
-func (v panicWrap) Reason() error {
-	return v.Unwrap()
-}
-
-func (v panicWrap) StackTrace() StackTrace {
-	return v.st
-}
-
-func (v panicWrap) Recovered() interface{} {
-	if v.recovered == nil {
-		return v.errWithFmt
-	}
-	return v.recovered
-}
-
-func (v panicWrap) Unwrap() error {
-	if err, ok := v.recovered.(error); ok {
-		return err
-	}
-	return nil
-}
-
-func (v panicWrap) LogString() string {
-	if v.st == nil {
-		return v.errWithFmt.LogString()
-	}
-	return v.errWithFmt.LogString() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
 }

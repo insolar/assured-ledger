@@ -48,35 +48,35 @@ func WithStackTopExt(err error, skipFrames int) error {
 	return stackWrap{st: CaptureStackTop(skipFrames + 1), err: err}
 }
 
-type stackWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	err        error
+func WithDetails(predecessor error, details interface{}) error {
+	switch {
+	case details == nil:
+		return predecessor
+	case predecessor == nil:
+		return Wrap(details)
+	default:
+		return withDetails(predecessor, details)
+	}
 }
 
-func (v stackWrap) StackTrace() StackTrace {
-	return v.st
-}
-
-func (v stackWrap) Reason() error {
-	return v.Unwrap()
-}
-
-func (v stackWrap) Unwrap() error {
-	return v.err
-}
-
-func (v stackWrap) LogString() string {
-	if vv, ok := v.err.(logStringer); ok {
-		return vv.LogString()
+func withDetails(predecessor error, details interface{}) error {
+	switch vv := details.(type) {
+	case fmtWrap:
+		return detailsWrap{err: predecessor, details: vv}
+	case panicWrap:
+		return detailsWrap{err: predecessor, details: vv.fmtWrap}
+	case msgWrap:
+		return detailsWrap{err: predecessor, details: fmtWrap{msg: vv.msg}}
+	case stackWrap:
+		if vv.err == nil {
+			return predecessor
+		}
+		return withDetails(predecessor, vv.err)
 	}
 
-	return v.err.Error()
+	return detailsWrap{err: predecessor, details: wrap("", details)}
 }
 
-func (v stackWrap) Error() string {
-	if v.st == nil {
-		return v.err.Error()
-	}
-	return v.err.Error() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+func WithStackAndDetails(predecessor error, details interface{}) error {
+	return WithStack(WithDetails(predecessor, details))
 }

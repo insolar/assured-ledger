@@ -153,14 +153,16 @@ func Equal(err0, err1 error) bool {
 	return equalErr(reflect.TypeOf(err1).Comparable(), err0, err1)
 }
 
+type iser interface{ Is(error) bool }
+
 func equalErr(isComparable bool, err0, err1 error) bool {
 	if isComparable && err0 == err1 {
 		return true
 	}
-	if x, ok := err0.(interface{ Is(error) bool }); ok && x.Is(err1) {
+	if x, ok := err0.(iser); ok && x.Is(err1) {
 		return true
 	}
-	if x, ok := err1.(interface{ Is(error) bool }); ok && x.Is(err0) {
+	if x, ok := err1.(iser); ok && x.Is(err0) {
 		return true
 	}
 	return false
