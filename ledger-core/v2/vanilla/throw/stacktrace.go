@@ -21,6 +21,7 @@ import (
 	"io"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 )
 
 type StackTrace interface {
@@ -28,12 +29,16 @@ type StackTrace interface {
 	WriteStackTraceTo(writer io.Writer) error
 }
 
+// CaptureStack captures whole stack
+// When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStack(skipFrames int) StackTrace {
-	return byteStackTrace(captureStack(skipFrames, false))
+	return byteStackTrace(captureStackByDebug(skipFrames, false))
 }
 
+// CaptureStackTop is an optimized version to capture a limited info about top-level stack entry only
+// When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStackTop(skipFrames int) StackTrace {
-	return byteStackTrace(captureStack(skipFrames, true))
+	return byteStackTrace(captureStackByDebug(skipFrames, true))
 }
 
 func equalStackTrace(st0, st1 StackTrace) bool {
@@ -66,6 +71,18 @@ func (v byteStackTrace) StackTraceAsText() string {
 }
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
+	if limitFrames {
+		// provides a bit less info, but is 10x times faster
+		result := captureStackByCallers(skipFrames+1, true)
+		if len(result) > 0 {
+			return result
+		}
+		// result will be empty at stack top that we can't capture by runtime.Callers() so we will fallback
+	}
+	return captureStackByDebug(skipFrames, limitFrames)
+}
+
+func captureStackByDebug(skipFrames int, limitFrames bool) []byte {
 	stackBytes := debug.Stack()
 	capacity := cap(stackBytes)
 	if i := bytes.IndexByte(stackBytes, '\n'); i > 0 {
@@ -86,27 +103,71 @@ func captureStack(skipFrames int, limitFrames bool) []byte {
 	}
 
 	stackBytes = bytes.TrimSpace(stackBytes)
-
-	if capacity > len(stackBytes)<<1 {
-		return append(make([]byte, 0, len(stackBytes)), stackBytes...)
-	}
-
-	return stackBytes
+	return trimCapacity(capacity, stackBytes)
 }
 
-var frameSep = []byte("\n\t")
+func trimCapacity(actualCapacity int, b []byte) []byte {
+	n := len(b) << 1
+	if actualCapacity > n || cap(b) > n {
+		return append(make([]byte, 0, n), b...)
+	}
+	return b
+}
+
+var frameFileSep = []byte("\n\t")
 
 func indexOfFrame(stackBytes []byte, skipFrames int) int {
 	offset := 0
 	for ; skipFrames > 0; skipFrames-- {
-		if i := bytes.Index(stackBytes[offset:], frameSep); i > 0 {
-			offset += i + len(frameSep)
+		prevOffset := offset
+		if i := bytes.Index(stackBytes[offset:], frameFileSep); i > 0 {
+			offset += i + len(frameFileSep)
 			if j := bytes.IndexByte(stackBytes[offset:], '\n'); j > 0 {
 				offset += j + 1
+				if offset == len(stackBytes) {
+					return prevOffset
+				}
 				continue
 			}
+			return prevOffset
 		}
 		return -1
 	}
 	return offset
+}
+
+func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
+	var pcs []uintptr
+	if limitFrames {
+		pcs = make([]uintptr, 1)
+	} else {
+		pcs = make([]uintptr, 50) // maxStackDepth
+	}
+	pcs = pcs[:runtime.Callers(skipFrames+2, pcs)]
+
+	result := make([]byte, 0, len(pcs)<<7)
+	for i, pc := range pcs {
+		fn := runtime.FuncForPC(pc)
+		if fn == nil {
+			continue
+		}
+		fName := fn.Name()
+		if i == len(pcs)-1 && fName == "runtime.goexit" {
+			continue
+		}
+
+		if len(result) > 0 {
+			result = append(result, '\n')
+		}
+
+		result = append(result, fName...)
+		result = append(result, "\n\t"...)
+
+		fName, line := fn.FileLine(pc)
+		result = append(result, fName...)
+		result = append(result, ':')
+		result = strconv.AppendInt(result, int64(line), 10)
+	}
+
+	return trimCapacity(0, result)
 }

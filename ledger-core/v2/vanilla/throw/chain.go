@@ -22,6 +22,8 @@ import (
 	"strings"
 )
 
+// StackOf goes throw error chain and looks for a target that is wrapped by WithStack()
+// Returns (_, true) if the given target was found. Please note that stack trace can be nil for the given target.
 func StackOf(errChain, target error) (StackTrace, bool) {
 	isComparable := target == nil || reflect.TypeOf(target).Comparable()
 
@@ -72,6 +74,7 @@ func Innermost(errChain error) (err error, lst StackTrace) {
 	return
 }
 
+// Walks through the given error chain and call (fn) for each entry, does unwrapping for stack trace data.
 func Walk(errChain error, fn func(error, StackTrace) bool) bool {
 	if fn == nil {
 		panic(IllegalValue())
@@ -97,17 +100,18 @@ func Walk(errChain error, fn func(error, StackTrace) bool) bool {
 
 const StackTracePrefix = "Stack trace: "
 
-func PrintTo(errChain error, b *strings.Builder) {
+// PrintTo calls Walk() and builds a full list of errors and corresponding stacks in the chain.
+func PrintTo(errChain error, includeStack bool, b *strings.Builder) {
 	Walk(errChain, func(err error, trace StackTrace) bool {
 		switch {
 		case err != nil:
 			b.WriteString(err.Error())
 			b.WriteByte('\n')
-			if trace == nil {
+			if trace == nil || !includeStack {
 				return false
 			}
 			b.WriteString(StackTracePrefix)
-		case trace != nil:
+		case trace != nil && includeStack:
 			b.WriteString("<nil>\n" + StackTracePrefix)
 		default:
 			b.WriteString("<nil>\n")
@@ -122,15 +126,18 @@ func PrintTo(errChain error, b *strings.Builder) {
 	})
 }
 
+// Print is a convenience wrapper for PrintTo()
 func Print(errChain error) string {
 	if errChain == nil {
 		return ""
 	}
 	b := strings.Builder{}
-	PrintTo(errChain, &b)
+	PrintTo(errChain, true, &b)
 	return b.String()
 }
 
+// Equal does panic-safe comparison of error values. Incomparable values will always return false.
+// It does NOT use Is()
 func Equal(err0, err1 error) bool {
 	if err0 == nil || err1 == nil {
 		return err0 == err1
