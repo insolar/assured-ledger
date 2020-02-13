@@ -50,15 +50,19 @@ type msgWrap struct {
 	msg        string
 }
 
+func (v msgWrap) Reason() error {
+	return v
+}
+
 func (v msgWrap) StackTrace() StackTrace {
 	return v.st
 }
 
-func (v msgWrap) Error() string {
+func (v msgWrap) LogString() string {
 	return v.msg
 }
 
-func (v msgWrap) String() string {
+func (v msgWrap) Error() string {
 	if v.st == nil {
 		return v.msg
 	}

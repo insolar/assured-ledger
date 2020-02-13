@@ -18,25 +18,10 @@ package throw
 
 import (
 	"errors"
-	"fmt"
 	"math"
-	"sync/atomic"
 )
 
 const NoStackTrace int = math.MaxInt32
-
-var panicFmtFn atomic.Value
-
-func GetPanicFmt() func(interface{}) string {
-	return panicFmtFn.Load().(func(interface{}) string)
-}
-
-func SetPanicFmt(fn func(interface{}) string) {
-	if fn == nil {
-		panic(IllegalValue())
-	}
-	panicFmtFn.Store(fn)
-}
 
 func WrapPanic(recovered interface{}) error {
 	return WrapPanicExt(recovered, 2) // Wrap*() + defer
@@ -47,67 +32,67 @@ func WrapPanicNoStack(recovered interface{}) error {
 }
 
 func WrapPanicExt(recovered interface{}, skipFrames int) error {
-	return WrapPanicFmt(recovered, skipFrames, GetPanicFmt())
-}
-
-func WrapPanicFmt(recovered interface{}, skipFrames int, strFn func(interface{}) string) error {
 	if recovered == nil {
 		return nil
 	}
 
-	if skipFrames >= NoStackTrace {
-		if pw, ok := recovered.(panicWrap); ok {
-			if strFn != nil {
-				pw.strFn = strFn
-			}
-			return pw
-		}
-		return panicWrap{recovered: recovered, strFn: strFn}
+	var st StackTrace
+	if skipFrames < NoStackTrace {
+		st = CaptureStack(skipFrames + 1)
 	}
 
-	st := CaptureStack(skipFrames + 1)
-	if pw, ok := recovered.(panicWrap); ok {
-		if equalStackTrace(pw.StackTrace(), st) {
-			if strFn != nil {
-				pw.strFn = strFn
-			}
-			return pw
+	switch vv := recovered.(type) {
+	case panicWrap:
+		if st == nil || equalStackTrace(vv.StackTrace(), st) {
+			return vv
 		}
+	case errWithFmt:
+		return panicWrap{errWithFmt: vv}
 	}
 
-	return panicWrap{st: st, recovered: recovered, strFn: strFn}
+	var (
+		msg   string
+		extra interface{}
+	)
+
+	if fmtFn := GetFormatter(); fmtFn != nil {
+		msg, extra = fmtFn(recovered)
+	} else {
+		if err, ok := recovered.(error); ok {
+			msg = err.Error()
+		} else {
+			msg = defaultFmt(recovered)
+		}
+		if _, ok := recovered.(logStringer); ok {
+			extra = recovered
+		}
+	}
+	return panicWrap{st: st, recovered: recovered, errWithFmt: _wrapFmt(msg, extra)}
 }
 
-func IsPanicWrap(err error) bool {
-	_, ok := err.(panicWrap)
-	return ok
+func UnwrapPanic(err error) (interface{}, StackTrace, bool) {
+	if vv, ok := err.(panicWrap); ok {
+		return vv.recovered, vv.st, true
+	}
+	return err, nil, false
 }
 
-type ErrorWithStackTrace interface {
-	error
-	StackTraceHolder
-}
-
-func InnermostPanicWithStack(recovered interface{}) ErrorWithStackTrace {
+func InnermostPanicWithStack(recovered interface{}) StackTraceHolder {
 	switch vv := recovered.(type) {
 	case error:
 		return innermostWithStack(vv)
 	case StackTraceHolder:
 		st := vv.StackTrace()
-		if st == nil {
-			return nil
+		if st != nil {
+			return vv
 		}
-		if err := innermostWithStack(vv.Unwrap()); err != nil {
-			return err
-		}
-		return panicWrap{st: st, recovered: recovered}
-
+		return innermostWithStack(vv.Reason())
 	default:
 		return nil
 	}
 }
 
-func innermostWithStack(errChain error) ErrorWithStackTrace {
+func innermostWithStack(errChain error) StackTraceHolder {
 	for errChain != nil {
 		if sw, ok := errChain.(panicWrap); ok {
 			nextErr := sw.Unwrap()
@@ -126,11 +111,22 @@ type panicWrap struct {
 	_logignore struct{} // will be ignored by struct-logger
 	st         StackTrace
 	recovered  interface{}
-	strFn      func(interface{}) string
+	errWithFmt
+}
+
+func (v panicWrap) Reason() error {
+	return v.Unwrap()
 }
 
 func (v panicWrap) StackTrace() StackTrace {
 	return v.st
+}
+
+func (v panicWrap) Recovered() interface{} {
+	if v.recovered == nil {
+		return v.errWithFmt
+	}
+	return v.recovered
 }
 
 func (v panicWrap) Unwrap() error {
@@ -140,31 +136,9 @@ func (v panicWrap) Unwrap() error {
 	return nil
 }
 
-func (v panicWrap) Error() string {
-	if v.strFn != nil {
-		return v.strFn(v.recovered)
-	}
-
-	switch vv := v.recovered.(type) {
-	case error:
-		return vv.Error()
-	case fmt.Stringer:
-		return vv.String()
-	case string:
-		return vv
-	case *string:
-		if vv != nil {
-			return *vv
-		}
-		return "<nil>"
-	default:
-		return fmt.Sprint(vv)
-	}
-}
-
-func (v panicWrap) String() string {
+func (v panicWrap) LogString() string {
 	if v.st == nil {
-		return v.Error()
+		return v.errWithFmt.LogString()
 	}
-	return v.Error() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+	return v.errWithFmt.LogString() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
 }

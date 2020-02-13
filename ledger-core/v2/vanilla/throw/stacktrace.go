@@ -23,6 +23,8 @@ import (
 	"runtime/debug"
 )
 
+const StackTracePrefix = "Stack trace: "
+
 type StackTrace interface {
 	StackTraceAsText() string
 	WriteStackTraceTo(writer io.Writer) error
@@ -63,6 +65,10 @@ func (v byteStackTrace) WriteStackTraceTo(w io.Writer) error {
 
 func (v byteStackTrace) StackTraceAsText() string {
 	return string(v)
+}
+
+func (v byteStackTrace) LogString() string {
+	return StackTracePrefix + string(v)
 }
 
 func captureStack(skipFrames int, limitFrames bool) []byte {

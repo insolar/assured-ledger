@@ -22,19 +22,22 @@ import (
 	"strings"
 )
 
+type StackTraceHolder interface {
+	// Reason returns a reason for the stack trace. It can NOT be used like Unwrap() as it may return self.
+	Reason() error
+	StackTrace() StackTrace
+}
+
 func StackOf(errChain, target error) (StackTrace, bool) {
 	isComparable := target == nil || reflect.TypeOf(target).Comparable()
 
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			nextErr := sw.Unwrap()
-			if equalErr(isComparable, nextErr, target) {
+			reason := sw.Reason()
+			if equalErr(isComparable, reason, target) {
 				return sw.StackTrace(), true
 			}
-			errChain = nextErr
-			continue
-		}
-		if equalErr(isComparable, errChain, target) {
+		} else if equalErr(isComparable, errChain, target) {
 			return nil, true
 		}
 		errChain = errors.Unwrap(errChain)
@@ -43,31 +46,43 @@ func StackOf(errChain, target error) (StackTrace, bool) {
 	return nil, false
 }
 
-func Outermost(errChain error) (error, StackTrace) {
+func OutermostStack(errChain error) (error, StackTrace) {
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			errChain = sw.Unwrap()
 			if st := sw.StackTrace(); st != nil {
-				return errChain, st
+				return sw.Reason(), st
 			}
-			continue
 		}
 		errChain = errors.Unwrap(errChain)
 	}
 	return nil, nil
 }
 
-func Innermost(errChain error) (err error, lst StackTrace) {
+func InnermostStack(errChain error) (err error, lst StackTrace) {
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			errChain = sw.Unwrap()
-			if st := sw.StackTrace(); st != nil && errChain != nil {
-				err = errChain
+			if st := sw.StackTrace(); st != nil {
+				err = sw.Reason()
 				lst = st
 			}
-			continue
 		}
 		errChain = errors.Unwrap(errChain)
+	}
+	return
+}
+
+func InnermostError(errChain error) (err error, lst StackTrace) {
+	for errChain != nil {
+		if sw, ok := errChain.(StackTraceHolder); ok {
+			if e := sw.Reason(); e != nil {
+				err = e
+				lst = sw.StackTrace()
+			}
+		}
+		nextErr := errors.Unwrap(errChain)
+		if nextErr == nil {
+			return errChain, nil
+		}
 	}
 	return
 }
@@ -79,23 +94,16 @@ func Walk(errChain error, fn func(error, StackTrace) bool) bool {
 
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			nextErr := sw.Unwrap()
-			if fn(nextErr, sw.StackTrace()) {
+			if fn(sw.Reason(), sw.StackTrace()) {
 				return true
 			}
-			errChain = nextErr
-			continue
-		}
-
-		if fn(errChain, nil) {
+		} else if fn(errChain, nil) {
 			return true
 		}
 		errChain = errors.Unwrap(errChain)
 	}
 	return false
 }
-
-const StackTracePrefix = "Stack trace: "
 
 func PrintTo(errChain error, b *strings.Builder) {
 	Walk(errChain, func(err error, trace StackTrace) bool {

@@ -16,11 +16,6 @@
 
 package throw
 
-type StackTraceHolder interface {
-	Unwrap() error
-	StackTrace() StackTrace
-}
-
 func WithStack(err error) error {
 	return WithStackEx(err, 1)
 }
@@ -45,17 +40,25 @@ func (v stackWrap) StackTrace() StackTrace {
 	return v.st
 }
 
+func (v stackWrap) Reason() error {
+	return v.Unwrap()
+}
+
 func (v stackWrap) Unwrap() error {
 	return v.err
 }
 
-func (v stackWrap) Error() string {
+func (v stackWrap) LogString() string {
+	if vv, ok := v.err.(logStringer); ok {
+		return vv.LogString()
+	}
+
 	return v.err.Error()
 }
 
-func (v stackWrap) String() string {
+func (v stackWrap) Error() string {
 	if v.st == nil {
-		return v.Error()
+		return v.err.Error()
 	}
-	return v.Error() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+	return v.err.Error() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
 }
