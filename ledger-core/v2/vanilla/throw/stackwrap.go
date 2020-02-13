@@ -17,10 +17,17 @@
 package throw
 
 func WithStack(err error) error {
-	return WithStackEx(err, 1)
+	return WithStackExt(err, 1)
 }
 
-func WithStackEx(err error, skipFrames int) error {
+// WithStackTop wraps the error with stack's topmost entry only. Nil value will return nil.
+// Use this method to augment an error specific to a code location.
+func WithStackTop(err error) error {
+	return WithStackTopExt(err, 1)
+}
+
+// WithStack wraps the error with stack with the given number of frames skipped. Nil value will return nil.
+func WithStackExt(err error, skipFrames int) error {
 	if err == nil {
 		return nil
 	}
@@ -28,6 +35,17 @@ func WithStackEx(err error, skipFrames int) error {
 		skipFrames = 0
 	}
 	return stackWrap{st: CaptureStack(skipFrames + 1), err: err}
+}
+
+// WithStack wraps the error with stack's topmost entry after skipping the given number of frames. Nil value will return nil.
+func WithStackTopExt(err error, skipFrames int) error {
+	if err == nil {
+		return nil
+	}
+	if skipFrames < 0 {
+		skipFrames = 0
+	}
+	return stackWrap{st: CaptureStackTop(skipFrames + 1), err: err}
 }
 
 type stackWrap struct {
