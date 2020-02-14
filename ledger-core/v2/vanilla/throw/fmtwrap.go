@@ -84,14 +84,11 @@ func _wrap(msg string, extra interface{}, useExtra bool) fmtWrap {
 	return fmtWrap{msg: msg, extra: extra, useExtra: useExtra}
 }
 
-func UnwrapExtraInfo(err error) (string, interface{}, bool) {
-	switch vv := err.(type) {
-	case fmtWrap:
-		return vv.msg, vv.extra, true
-	case panicWrap:
-		return vv.msg, vv.extra, true
+func UnwrapExtraInfo(err error) (interface{}, bool) {
+	if e, ok := err.(interface{ ExtraInfo() interface{} }); ok {
+		return e.ExtraInfo(), true
 	}
-	return "", nil, false
+	return nil, false
 }
 
 type logStringer interface{ LogString() string }
