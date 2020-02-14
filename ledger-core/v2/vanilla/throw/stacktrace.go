@@ -88,11 +88,11 @@ func CompareStackTraceExt(st0, st1 StackTrace, mode StackTraceCompareTolerance) 
 				}
 				return compareDebugStackTrace(bst0.data, bst1.data, mode)
 			case bst0.limit:
-				if isStackTraceTop(bst0.data, bst1.data, mode) {
+				if _, _, b := isStackTraceTop(bst0.data, bst1.data, mode); b {
 					return TopTrace
 				}
 			default:
-				if isStackTraceTop(bst1.data, bst0.data, mode) {
+				if _, _, b := isStackTraceTop(bst1.data, bst0.data, mode); b {
 					return FullTrace
 				}
 			}
@@ -119,7 +119,7 @@ func compareDebugStackTrace(bst0, bst1 []byte, mode StackTraceCompareTolerance) 
 	bst0I := indexOfFrame(bst0, 1)
 	if bst0I < 0 {
 		// this is the only frame of bst0
-		switch _, bst1P, b := isStackTraceTopExt(bst0, bst1, mode); {
+		switch _, bst1P, b := isStackTraceTop(bst0, bst1, mode); {
 		case !b:
 			return DifferentTrace
 		case bst1P == len(bst1):
@@ -131,7 +131,7 @@ func compareDebugStackTrace(bst0, bst1 []byte, mode StackTraceCompareTolerance) 
 		}
 	}
 
-	bst0P, bst1P, b := isStackTraceTopExt(bst0[:bst0I], bst1, mode)
+	bst0P, bst1P, b := isStackTraceTop(bst0[:bst0I], bst1, mode)
 
 	if b {
 		if bytes.Equal(bst0[bst0P:], bst1[bst1P:]) {
@@ -150,12 +150,7 @@ func compareDebugStackTrace(bst0, bst1 []byte, mode StackTraceCompareTolerance) 
 	}
 }
 
-func isStackTraceTop(bstTop, bstFull []byte, mode StackTraceCompareTolerance) bool {
-	_, _, b := isStackTraceTopExt(bstTop, bstFull, mode)
-	return b
-}
-
-func isStackTraceTopExt(bstTop, bstFull []byte, mode StackTraceCompareTolerance) (int, int, bool) {
+func isStackTraceTop(bstTop, bstFull []byte, mode StackTraceCompareTolerance) (int, int, bool) {
 	n := len(bstTop)
 	if len(bstFull) <= n {
 		return 0, 0, false
