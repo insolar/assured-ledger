@@ -16,6 +16,8 @@
 
 package throw
 
+import "reflect"
+
 func WithStack(err error) error {
 	return WithStackExt(err, 1)
 }
@@ -60,21 +62,26 @@ func WithDetails(predecessor error, details interface{}) error {
 }
 
 func withDetails(predecessor error, details interface{}) error {
+	var d fmtWrap
 	switch vv := details.(type) {
 	case fmtWrap:
-		return detailsWrap{err: predecessor, details: vv}
+		d = vv
 	case panicWrap:
-		return detailsWrap{err: predecessor, details: vv.fmtWrap}
+		d = vv.fmtWrap
 	case msgWrap:
-		return detailsWrap{err: predecessor, details: fmtWrap{msg: vv.msg}}
+		d.msg = vv.msg
 	case stackWrap:
 		if vv.err == nil {
 			return predecessor
 		}
 		return withDetails(predecessor, vv.err)
+	case nil:
+		// nil is handled by caller
+		panic("illegal value")
 	}
 
-	return detailsWrap{err: predecessor, details: wrap("", details)}
+	return detailsWrap{err: predecessor, details: wrap(d),
+		isComparable: reflect.TypeOf(details).Comparable()}
 }
 
 func WithStackAndDetails(predecessor error, details interface{}) error {

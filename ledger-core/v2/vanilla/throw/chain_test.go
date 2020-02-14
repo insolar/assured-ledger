@@ -23,11 +23,11 @@ func (errType2) Error() string {
 }
 
 func TestEqual(t *testing.T) {
-	require.True(t, Equal(errType1{}, errType1{}))
-	require.False(t, Equal(errType1{"A"}, errType1{"B"}))
+	require.True(t, IsEqual(errType1{}, errType1{}))
+	require.False(t, IsEqual(errType1{"A"}, errType1{"B"}))
 
-	require.False(t, Equal(errType2{}, errType2{}))
+	require.False(t, IsEqual(errType2{}, errType2{}))
 
-	require.False(t, Equal(errType1{}, errType2{}))
-	require.False(t, Equal(errType2{}, errType1{}))
+	require.False(t, IsEqual(errType1{}, errType2{}))
+	require.False(t, IsEqual(errType2{}, errType1{}))
 }

@@ -16,6 +16,7 @@
 
 package throw
 
+// TODO Work in progress
 func CleanWalk(errChain error, fn func(error, string, StackTrace) bool) bool {
 	if fn == nil {
 		panic(IllegalValue())

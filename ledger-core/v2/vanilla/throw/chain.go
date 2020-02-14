@@ -36,10 +36,10 @@ func StackOf(errChain, target error) (StackTrace, bool) {
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
 			reason := sw.Reason()
-			if equalErr(isComparable, reason, target) {
+			if isThis(isComparable, reason, target) {
 				return sw.StackTrace(), true
 			}
-		} else if equalErr(isComparable, errChain, target) {
+		} else if isThis(isComparable, errChain, target) {
 			return nil, true
 		}
 		errChain = errors.Unwrap(errChain)
@@ -73,20 +73,21 @@ func InnermostStack(errChain error) (err error, lst StackTrace) {
 	return
 }
 
-func InnermostError(errChain error) (err error, lst StackTrace) {
+func InnermostError(errChain error) (error, StackTrace) {
 	for errChain != nil {
-		if sw, ok := errChain.(StackTraceHolder); ok {
+		nextErr := errors.Unwrap(errChain)
+
+		if sw, ok := errChain.(StackTraceHolder); ok && errors.Unwrap(nextErr) == nil {
 			if e := sw.Reason(); e != nil {
-				err = e
-				lst = sw.StackTrace()
+				return e, sw.StackTrace()
 			}
 		}
-		nextErr := errors.Unwrap(errChain)
 		if nextErr == nil {
 			return errChain, nil
 		}
+		errChain = nextErr
 	}
-	return
+	return nil, nil
 }
 
 // Walks through the given error chain and call (fn) for each entry, does unwrapping for stack trace data.
@@ -100,6 +101,7 @@ func Walk(errChain error, fn func(error, StackTrace) bool) bool {
 			if fn(sw.Reason(), sw.StackTrace()) {
 				return true
 			}
+			errChain = errors.Unwrap(errChain)
 		} else if fn(errChain, nil) {
 			return true
 		}
@@ -144,25 +146,29 @@ func Print(errChain error) string {
 	return b.String()
 }
 
-// Equal does panic-safe comparison of error values. Incomparable values will always return false.
-// It does NOT use Is()
-func Equal(err0, err1 error) bool {
+// IsEqual does panic-safe comparison of error values. Incomparable values will always return false.
+// It uses Is() on both sides
+func IsEqual(err0, err1 error) bool {
 	if err0 == nil || err1 == nil {
 		return err0 == err1
 	}
-	return equalErr(reflect.TypeOf(err1).Comparable(), err0, err1)
+	if reflect.TypeOf(err1).Comparable() && err0 == err1 {
+		return true
+	}
+	if x, ok := err0.(interface{ Is(error) bool }); ok && x.Is(err1) {
+		return true
+	}
+	if x, ok := err1.(interface{ Is(error) bool }); ok && x.Is(err0) {
+		return true
+	}
+	return false
 }
 
-type iser interface{ Is(error) bool }
-
-func equalErr(isComparable bool, err0, err1 error) bool {
-	if isComparable && err0 == err1 {
+func isThis(isComparable bool, err, target error) bool {
+	if isComparable && err == target {
 		return true
 	}
-	if x, ok := err0.(iser); ok && x.Is(err1) {
-		return true
-	}
-	if x, ok := err1.(iser); ok && x.Is(err0) {
+	if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
 		return true
 	}
 	return false

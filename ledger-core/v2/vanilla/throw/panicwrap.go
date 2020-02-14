@@ -59,7 +59,7 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 		return panicWrap{st: st, fmtWrap: vv}
 	}
 
-	return panicWrap{st: st, recovered: recovered, fmtWrap: wrap("", recovered)}
+	return panicWrap{st: st, recovered: recovered, fmtWrap: wrap(recovered)}
 }
 
 func UnwrapPanic(err error) (interface{}, StackTrace, bool) {

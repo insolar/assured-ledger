@@ -23,7 +23,7 @@ import (
 
 var panicFmtFn atomic.Value
 
-type FormatterFunc func(string, interface{}) (string, interface{})
+type FormatterFunc func(string, interface{}) (msg string, extra interface{}, includeExtra bool)
 
 func GetFormatter() FormatterFunc {
 	return panicFmtFn.Load().(FormatterFunc)
@@ -37,57 +37,51 @@ func SetFormatter(fn FormatterFunc) {
 }
 
 func WrapFmt(msg string, errorDescription interface{}, fmtFn FormatterFunc) error {
-	if errorDescription == nil {
-		return nil
-	}
 	if fmtFn == nil {
 		panic(IllegalValue())
 	}
-	return _wrapFmt(fmtFn(msg, errorDescription))
+	if errorDescription == nil && msg == "" {
+		return nil
+	}
+	return _wrap(fmtFn(msg, errorDescription))
 }
 
 func Wrap(errorDescription interface{}) error {
-	return WrapMsg("", errorDescription)
-}
-
-func WrapMsg(msg string, errorDescription interface{}) error {
 	if errorDescription == nil {
 		return nil
 	}
 	if fmtFn := GetFormatter(); fmtFn != nil {
-		return _wrapFmt(fmtFn(msg, errorDescription))
+		return _wrap(fmtFn("", errorDescription))
 	}
-	if msg == "" {
-		if err, ok := errorDescription.(error); ok {
-			return err
-		}
+	if err, ok := errorDescription.(error); ok {
+		return err
 	}
 
-	s := defaultFmt(errorDescription, msg == "")
-	switch {
-	case s == "":
-		s = msg
-	case msg != "":
-		s = msg + "\t" + s
-	}
-	return _wrapFmt(s, errorDescription)
+	msg := defaultFmt(errorDescription, true)
+	return fmtWrap{msg: msg, extra: errorDescription}
 }
 
-func wrap(msg string, details interface{}) fmtWrap {
+func WrapMsg(msg string, errorDescription interface{}) error {
+	if errorDescription == nil && msg == "" {
+		return nil
+	}
 	if fmtFn := GetFormatter(); fmtFn != nil {
-		msg, details = fmtFn(msg, details)
-	} else {
-		if err, ok := details.(error); ok {
-			msg = err.Error()
-		} else {
-			msg = defaultFmt(details, msg == "")
-		}
+		return _wrap(fmtFn(msg, errorDescription))
 	}
-	return _wrapFmt(msg, details)
+	s := defaultFmt(errorDescription, false)
+	return fmtWrap{msg: msg, extra: errorDescription, useExtra: msg != s}
 }
 
-func _wrapFmt(msg string, extra interface{}) fmtWrap {
-	return fmtWrap{msg: msg, extra: extra}
+func wrap(errorDescription interface{}) fmtWrap {
+	if fmtFn := GetFormatter(); fmtFn != nil {
+		return _wrap(fmtFn("", errorDescription))
+	}
+	msg := defaultFmt(errorDescription, true)
+	return fmtWrap{msg: msg, extra: errorDescription}
+}
+
+func _wrap(msg string, extra interface{}, useExtra bool) fmtWrap {
+	return fmtWrap{msg: msg, extra: extra, useExtra: useExtra}
 }
 
 func UnwrapExtraInfo(err error) (string, interface{}, bool) {

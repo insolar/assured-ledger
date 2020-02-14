@@ -46,10 +46,25 @@ func (v msgWrap) LogString() string {
 }
 
 func (v msgWrap) Error() string {
-	if v.st == nil {
-		return v.msg
+	return joinStack(v.msg, v.st)
+}
+
+func joinOpt(s0, s1 string) string {
+	switch {
+	case s0 == "":
+		return s1
+	case s1 == "":
+		return s0
+	default:
+		return s0 + "\t" + s1
 	}
-	return v.msg + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+}
+
+func joinStack(s0 string, s1 StackTrace) string {
+	if s1 == nil {
+		return s0
+	}
+	return s0 + "\t" + StackTracePrefix + s1.StackTraceAsText()
 }
 
 /*******************************************************************/
@@ -82,10 +97,7 @@ func (v stackWrap) LogString() string {
 }
 
 func (v stackWrap) Error() string {
-	if v.st == nil {
-		return v.LogString()
-	}
-	return v.LogString() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+	return joinStack(v.LogString(), v.st)
 }
 
 /*******************************************************************/
@@ -125,10 +137,7 @@ func (v panicWrap) Unwrap() error {
 }
 
 func (v panicWrap) Error() string {
-	if v.st == nil {
-		return v.LogString()
-	}
-	return v.LogString() + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+	return joinStack(v.LogString(), v.st)
 }
 
 /*******************************************************************/
@@ -137,24 +146,21 @@ type fmtWrap struct {
 	_logignore struct{} // will be ignored by struct-logger
 	msg        string
 	extra      interface{}
+	useExtra   bool
 }
 
 func (v fmtWrap) extraString() string {
+	if !v.useExtra {
+		return ""
+	}
 	if vv, ok := v.extra.(logStringer); ok {
 		return vv.LogString()
 	}
-	return ""
+	return defaultFmt(v.extra, false)
 }
 
 func (v fmtWrap) LogString() string {
-	switch s := v.extraString(); {
-	case s == "":
-		return v.msg
-	case v.msg == "":
-		return s
-	default:
-		return v.msg + "\t" + s
-	}
+	return joinOpt(v.msg, v.extraString())
 }
 
 func (v fmtWrap) Error() string {
@@ -168,9 +174,10 @@ func (v fmtWrap) ExtraInfo() interface{} {
 /*******************************************************************/
 
 type detailsWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	err        error
-	details    fmtWrap
+	_logignore   struct{} // will be ignored by struct-logger
+	err          error
+	details      fmtWrap
+	isComparable bool
 }
 
 func (v detailsWrap) Unwrap() error {
@@ -185,32 +192,20 @@ func (v detailsWrap) LogString() string {
 		s = v.err.Error()
 	}
 
-	switch m := v.details.LogString(); {
-	case s == "":
-		return m
-	case m == "":
-		return s
-	default:
-		return m + "\t" + s
-	}
+	return joinOpt(v.details.LogString(), s)
 }
 
 func (v detailsWrap) Is(target error) bool {
-	value := v.details.extra
-	if x, ok := value.(iser); ok && x.Is(target) {
-		return true
-	}
-	if e, ok := value.(error); ok {
-		if x, ok := target.(iser); ok && x.Is(e) {
-			return true
-		}
+	if e, ok := v.details.extra.(error); ok {
+		return isThis(v.isComparable, e, target)
 	}
 	return false
 }
 
 func (v detailsWrap) As(target interface{}) bool {
-	if x, ok := v.details.extra.(interface{ As(interface{}) bool }); ok && x.As(target) {
-		return true
+	if e, ok := v.details.extra.(error); ok {
+		fnAs := errors.As // to avoid GoLang warning on use of errors.As
+		return fnAs(e, target)
 	}
 	return false
 }
