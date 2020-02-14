@@ -41,6 +41,10 @@ func (v msgWrap) StackTrace() StackTrace {
 	return v.st
 }
 
+func (v msgWrap) DeepestStackTrace() StackTrace {
+	return v.st
+}
+
 func (v msgWrap) LogString() string {
 	return v.msg
 }
@@ -49,14 +53,14 @@ func (v msgWrap) Error() string {
 	return joinStack(v.msg, v.st)
 }
 
-func joinOpt(s0, s1 string) string {
+func joinErrString(s0, s1 string) string {
 	switch {
 	case s0 == "":
 		return s1
 	case s1 == "":
 		return s0
 	default:
-		return s0 + "\t" + s1
+		return s0 + ";\t" + s1
 	}
 }
 
@@ -64,7 +68,7 @@ func joinStack(s0 string, s1 StackTrace) string {
 	if s1 == nil {
 		return s0
 	}
-	return s0 + "\t" + StackTracePrefix + s1.StackTraceAsText()
+	return s0 + "\n" + StackTracePrefix + "\n" + s1.StackTraceAsText()
 }
 
 /*******************************************************************/
@@ -72,6 +76,7 @@ func joinStack(s0 string, s1 StackTrace) string {
 type stackWrap struct {
 	_logignore struct{} // will be ignored by struct-logger
 	st         StackTrace
+	stDeepest  StackTrace
 	err        error
 }
 
@@ -79,6 +84,13 @@ func (v stackWrap) bypassWrapper() {}
 
 func (v stackWrap) StackTrace() StackTrace {
 	return v.st
+}
+
+func (v stackWrap) DeepestStackTrace() StackTrace {
+	if v.stDeepest == nil {
+		return v.st
+	}
+	return v.stDeepest
 }
 
 func (v stackWrap) Reason() error {
@@ -97,7 +109,7 @@ func (v stackWrap) LogString() string {
 }
 
 func (v stackWrap) Error() string {
-	return joinStack(v.LogString(), v.st)
+	return joinStack(v.LogString(), v.DeepestStackTrace())
 }
 
 /*******************************************************************/
@@ -105,6 +117,7 @@ func (v stackWrap) Error() string {
 type panicWrap struct {
 	_logignore struct{} // will be ignored by struct-logger
 	st         StackTrace
+	stDeepest  StackTrace
 	recovered  interface{}
 	fmtWrap
 }
@@ -122,6 +135,13 @@ func (v panicWrap) StackTrace() StackTrace {
 	return v.st
 }
 
+func (v panicWrap) DeepestStackTrace() StackTrace {
+	if v.stDeepest == nil {
+		return v.st
+	}
+	return v.stDeepest
+}
+
 func (v panicWrap) Recovered() interface{} {
 	if v.recovered != nil {
 		return v.recovered
@@ -137,7 +157,7 @@ func (v panicWrap) Unwrap() error {
 }
 
 func (v panicWrap) Error() string {
-	return joinStack(v.LogString(), v.st)
+	return joinStack(v.LogString(), v.DeepestStackTrace())
 }
 
 /*******************************************************************/
@@ -160,7 +180,7 @@ func (v fmtWrap) extraString() string {
 }
 
 func (v fmtWrap) LogString() string {
-	return joinOpt(v.msg, v.extraString())
+	return joinErrString(v.msg, v.extraString())
 }
 
 func (v fmtWrap) Error() string {
@@ -192,7 +212,7 @@ func (v detailsWrap) LogString() string {
 		s = v.err.Error()
 	}
 
-	return joinOpt(v.details.LogString(), s)
+	return joinErrString(v.details.LogString(), s)
 }
 
 func (v detailsWrap) Is(target error) bool {
@@ -211,7 +231,7 @@ func (v detailsWrap) As(target interface{}) bool {
 }
 
 func (v detailsWrap) Error() string {
-	return v.LogString()
+	return joinErrString(v.details.LogString(), v.err.Error())
 }
 
 func (v detailsWrap) ExtraInfo() interface{} {

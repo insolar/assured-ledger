@@ -18,6 +18,7 @@ package throw
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 )
 
@@ -26,7 +27,10 @@ var panicFmtFn atomic.Value
 type FormatterFunc func(string, interface{}) (msg string, extra interface{}, includeExtra bool)
 
 func GetFormatter() FormatterFunc {
-	return panicFmtFn.Load().(FormatterFunc)
+	if vv, ok := panicFmtFn.Load().(FormatterFunc); ok {
+		return vv
+	}
+	return nil
 }
 
 func SetFormatter(fn FormatterFunc) {
@@ -56,9 +60,7 @@ func Wrap(errorDescription interface{}) error {
 	if err, ok := errorDescription.(error); ok {
 		return err
 	}
-
-	msg := defaultFmt(errorDescription, true)
-	return fmtWrap{msg: msg, extra: errorDescription}
+	return _wrapDesc(errorDescription)
 }
 
 func WrapMsg(msg string, errorDescription interface{}) error {
@@ -68,13 +70,26 @@ func WrapMsg(msg string, errorDescription interface{}) error {
 	if fmtFn := GetFormatter(); fmtFn != nil {
 		return _wrap(fmtFn(msg, errorDescription))
 	}
-	s := defaultFmt(errorDescription, false)
+	s := ""
+	if vv, ok := errorDescription.(logStringer); ok {
+		s = vv.LogString()
+	} else {
+		s = defaultFmt(errorDescription, false)
+	}
 	return fmtWrap{msg: msg, extra: errorDescription, useExtra: msg != s}
 }
 
-func wrap(errorDescription interface{}) fmtWrap {
+func wrapInternal(errorDescription interface{}) fmtWrap {
 	if fmtFn := GetFormatter(); fmtFn != nil {
 		return _wrap(fmtFn("", errorDescription))
+	}
+	return _wrapDesc(errorDescription)
+}
+
+func _wrapDesc(errorDescription interface{}) fmtWrap {
+	if vv, ok := errorDescription.(logStringer); ok {
+		msg := vv.LogString()
+		return fmtWrap{msg: msg, extra: errorDescription}
 	}
 	msg := defaultFmt(errorDescription, true)
 	return fmtWrap{msg: msg, extra: errorDescription}
@@ -108,10 +123,14 @@ func defaultFmt(v interface{}, force bool) string {
 	case nil:
 		//
 	default:
-		if !force {
+		s := ""
+		if t := reflect.TypeOf(v); t.Kind() == reflect.Struct && t.PkgPath() == "" {
+			return fmt.Sprintf("%+v", vv)
+		} else if force {
+			s = fmt.Sprint(vv)
+		} else {
 			return ""
 		}
-		s := fmt.Sprint(vv)
 		if len(s) == 0 {
 			s = fmt.Sprintf("%T(%[1]p)", vv)
 		}

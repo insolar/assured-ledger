@@ -36,7 +36,7 @@ func WithStackExt(err error, skipFrames int) error {
 	if skipFrames < 0 {
 		skipFrames = 0
 	}
-	return stackWrap{st: CaptureStack(skipFrames + 1), err: err}
+	return withStack(err, CaptureStack(skipFrames+1))
 }
 
 // WithStack wraps the error with stack's topmost entry after skipping the given number of frames. Nil value will return nil.
@@ -47,7 +47,29 @@ func WithStackTopExt(err error, skipFrames int) error {
 	if skipFrames < 0 {
 		skipFrames = 0
 	}
-	return stackWrap{st: CaptureStackTop(skipFrames + 1), err: err}
+	return withStack(err, CaptureStackTop(skipFrames+1))
+}
+
+func reuseSupersetTrace(current, wrapped StackTrace) StackTrace {
+	switch {
+	case current == nil:
+		return wrapped
+	case wrapped == nil:
+		return current
+	}
+	switch CompareStackTrace(current, wrapped) {
+	case SubsetTrace, TopTrace:
+		return wrapped
+	default:
+		return current
+	}
+}
+
+func withStack(err error, st StackTrace) stackWrap {
+	if sth := OutermostStack(err); sth != nil {
+		return stackWrap{st: st, stDeepest: reuseSupersetTrace(st, sth.DeepestStackTrace()), err: err}
+	}
+	return stackWrap{st: st, err: err}
 }
 
 func WithDetails(predecessor error, details interface{}) error {
@@ -78,12 +100,13 @@ func withDetails(predecessor error, details interface{}) error {
 	case nil:
 		// nil is handled by caller
 		panic("illegal value")
+	default:
+		d = wrapInternal(details)
 	}
 
-	return detailsWrap{err: predecessor, details: wrap(d),
-		isComparable: reflect.TypeOf(details).Comparable()}
+	return detailsWrap{err: predecessor, details: d, isComparable: reflect.TypeOf(details).Comparable()}
 }
 
 func WithStackAndDetails(predecessor error, details interface{}) error {
-	return WithStack(WithDetails(predecessor, details))
+	return WithStackExt(WithDetails(predecessor, details), 1)
 }

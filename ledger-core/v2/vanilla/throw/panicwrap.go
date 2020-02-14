@@ -28,8 +28,10 @@ type PanicHolder interface {
 	Recovered() interface{}
 }
 
+const recoverSkipFrames = 2 // defer() + runtime.panic()
+
 func WrapPanic(recovered interface{}) error {
-	return WrapPanicExt(recovered, 2) // Wrap*() + defer
+	return WrapPanicExt(recovered, recoverSkipFrames+1) // WrapPanic() + defer
 }
 
 func WrapPanicNoStack(recovered interface{}) error {
@@ -45,6 +47,7 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 	if skipFrames < NoStackTrace {
 		st = CaptureStack(skipFrames + 1)
 	}
+	stDeepest := st
 
 	switch vv := recovered.(type) {
 	case panicWrap:
@@ -55,11 +58,17 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 		case EqualTrace, SupersetTrace:
 			return vv
 		}
+	case stackWrap:
+		stDeepest = reuseSupersetTrace(stDeepest, vv.stDeepest)
 	case fmtWrap:
-		return panicWrap{st: st, fmtWrap: vv}
+		return panicWrap{st: st, stDeepest: stDeepest, fmtWrap: vv}
+	case error:
+		sth := OutermostStack(vv)
+		if sth != nil {
+			stDeepest = reuseSupersetTrace(stDeepest, sth.DeepestStackTrace())
+		}
 	}
-
-	return panicWrap{st: st, recovered: recovered, fmtWrap: wrap(recovered)}
+	return panicWrap{st: st, stDeepest: stDeepest, recovered: recovered, fmtWrap: wrapInternal(recovered)}
 }
 
 func UnwrapPanic(err error) (interface{}, StackTrace, bool) {

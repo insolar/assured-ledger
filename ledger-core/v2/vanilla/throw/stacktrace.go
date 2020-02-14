@@ -34,13 +34,13 @@ type StackTrace interface {
 // CaptureStack captures whole stack
 // When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStack(skipFrames int) StackTrace {
-	return stackTrace{captureStackByDebug(skipFrames, false), false}
+	return stackTrace{captureStack(skipFrames+1, false), false}
 }
 
 // CaptureStackTop is an optimized version to capture a limited info about top-level stack entry only
 // When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStackTop(skipFrames int) StackTrace {
-	return stackTrace{captureStackByDebug(skipFrames, true), true}
+	return stackTrace{captureStack(skipFrames+1, true), true}
 }
 
 type StackTraceRelation int8
@@ -55,28 +55,44 @@ const (
 )
 
 func CompareStackTrace(st0, st1 StackTrace) StackTraceRelation {
+	return CompareStackTraceExt(st0, st1, StrictMatch)
+}
+
+type StackTraceCompareTolerance uint8
+
+const (
+	StrictMatch StackTraceCompareTolerance = iota
+	CodeOffsetIgnoredOnTop
+	LineIgnoredOnTop
+)
+
+func CompareStackTraceExt(st0, st1 StackTrace, mode StackTraceCompareTolerance) StackTraceRelation {
 	if bst0, ok := st0.(stackTrace); ok {
 		if bst1, ok := st1.(stackTrace); ok {
 			switch {
 			case bst0.limit == bst1.limit:
-				switch n := len(bst0.data) - len(bst1.data); {
-				case n == 0:
-					if bytes.Equal(bst0.data, bst1.data) {
-						return EqualTrace
+				if mode == StrictMatch {
+					switch n := len(bst0.data) - len(bst1.data); {
+					case n == 0:
+						if bytes.Equal(bst0.data, bst1.data) {
+							return EqualTrace
+						}
+					case n > 0:
+						if bytes.HasSuffix(bst0.data, bst1.data) {
+							return SupersetTrace
+						}
+					case bytes.HasSuffix(bst1.data, bst0.data):
+						return SubsetTrace
 					}
-				case n > 0:
-					if bytes.HasSuffix(bst0.data, bst1.data) {
-						return SupersetTrace
-					}
-				case bytes.HasSuffix(bst1.data, bst0.data):
-					return SubsetTrace
+					return DifferentTrace
 				}
+				return compareDebugStackTrace(bst0.data, bst1.data, mode)
 			case bst0.limit:
-				if isStackTraceTop(bst0.data, bst1.data) {
+				if isStackTraceTop(bst0.data, bst1.data, mode) {
 					return TopTrace
 				}
 			default:
-				if isStackTraceTop(bst1.data, bst0.data) {
+				if isStackTraceTop(bst1.data, bst0.data, mode) {
 					return FullTrace
 				}
 			}
@@ -85,36 +101,135 @@ func CompareStackTrace(st0, st1 StackTrace) StackTraceRelation {
 	return DifferentTrace
 }
 
-func isStackTraceTop(bstTop, bstFull []byte) bool {
-	n := len(bstTop)
-	if len(bstFull) <= n {
-		return false
+func compareDebugStackTrace(bst0, bst1 []byte, mode StackTraceCompareTolerance) StackTraceRelation {
+	// Here is the problem - the topmost entry may differ by line number or code offset within the same method
+	// E.g.:
+	//	github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.errBuilder._err2(0x895980, 0xc00003a040, 0x0, 0x0)
+	//		/github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw/chain_test.go:57 +0x66
+	// vs
+	// github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.errBuilder._err2(0x895980, 0xc00003a040, 0x0, 0x0)
+	//		/github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw/chain_test.go:57 +0x44
+	//
+	swapped := false
+	if len(bst0) > len(bst1) {
+		swapped = true
+		bst0, bst1 = bst1, bst0
 	}
 
-	i := _cmpTillEol(bstTop, bstFull)
+	bst0I := indexOfFrame(bst0, 1)
+	if bst0I < 0 {
+		// this is the only frame of bst0
+		switch _, bst1P, b := isStackTraceTopExt(bst0, bst1, mode); {
+		case !b:
+			return DifferentTrace
+		case bst1P == len(bst1):
+			return EqualTrace
+		case swapped:
+			return FullTrace
+		default:
+			return TopTrace
+		}
+	}
+
+	bst0P, bst1P, b := isStackTraceTopExt(bst0[:bst0I], bst1, mode)
+
+	if b {
+		if bytes.Equal(bst0[bst0P:], bst1[bst1P:]) {
+			return EqualTrace
+		}
+		return DifferentTrace
+	}
+
 	switch {
-	case i < 0:
-		return false
-	case i == n:
-		return true
+	case !bytes.HasSuffix(bst1, bst0):
+		return DifferentTrace
+	case swapped:
+		return SupersetTrace
+	default:
+		return SubsetTrace
 	}
-
-	if j := bytes.IndexByte(bstFull[i:], '\n'); j >= 0 {
-		return _cmpTillEol(bstTop[i:], bstFull[i+j+1:]) >= 0
-	}
-	return false
 }
 
-func _cmpTillEol(bstTop, bstFull []byte) int {
+func isStackTraceTop(bstTop, bstFull []byte, mode StackTraceCompareTolerance) bool {
+	_, _, b := isStackTraceTopExt(bstTop, bstFull, mode)
+	return b
+}
+
+func isStackTraceTopExt(bstTop, bstFull []byte, mode StackTraceCompareTolerance) (int, int, bool) {
+	n := len(bstTop)
+	if len(bstFull) <= n {
+		return 0, 0, false
+	}
+
+	i, j := cmpLongestTillEol(bstTop, bstFull), 0
+	switch {
+	case i == n:
+		return i, i, true
+	case bstTop[i] != '\n':
+		return 0, 0, false
+	case bstFull[i] == '(':
+		j = bytes.IndexByte(bstFull[i:], '\n')
+		if j < 0 {
+			return 0, 0, false
+		}
+	case bstFull[i] != '\n':
+		return 0, 0, false
+	}
+
+	i++
+	k := cmpLongestTillEol(bstTop[i:], bstFull[i+j:])
+	j += k
+	k += i
+
+	switch {
+	case k == n:
+		return k, j, true
+	case bstTop[k] == '\n':
+		return k, j, true
+	}
+
+	var sep byte
+	switch mode {
+	case CodeOffsetIgnoredOnTop:
+		sep = '+'
+	case LineIgnoredOnTop:
+		sep = ':'
+	default:
+		return 0, 0, false
+	}
+
+	z := bytes.IndexByte(bstTop[k:], '\n')
+	if z < 0 {
+		z = len(bstTop) - 1
+	} else {
+		z += k
+	}
+	m := bytes.LastIndexByte(bstTop[i:z], sep)
+	if m >= 0 && i+m < k {
+		z++
+		jj := bytes.IndexByte(bstFull[j:], '\n')
+		if jj < 0 {
+			jj = len(bstFull)
+		} else {
+			jj += j
+			jj++
+		}
+		return z, jj, true
+	}
+
+	return 0, 0, false
+}
+
+func cmpLongestTillEol(shortest, s []byte) int {
 	i := 0
-	for n := len(bstTop); i < n; i++ {
-		if bstTop[i] == bstFull[i] {
+	for n := len(shortest); i < n; i++ {
+		switch shortest[i] {
+		case '\n':
+			return i
+		case s[i]:
 			continue
 		}
-		if bstTop[i] == '\n' {
-			return i + 1
-		}
-		return -1
+		break
 	}
 	return i
 }
@@ -151,9 +266,10 @@ func (v stackTrace) String() string {
 }
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
+	skipFrames++
 	if limitFrames {
 		// provides a bit less info, but is 10x times faster
-		result := captureStackByCallers(skipFrames+1, true)
+		result := captureStackByCallers(skipFrames, true)
 		if len(result) > 0 {
 			return result
 		}
@@ -161,6 +277,8 @@ func captureStack(skipFrames int, limitFrames bool) []byte {
 	}
 	return captureStackByDebug(skipFrames, limitFrames)
 }
+
+const topFrameLimit = 1 // MUST be 1, otherwise comparison of stack vs stack top may not work properly
 
 func captureStackByDebug(skipFrames int, limitFrames bool) []byte {
 	stackBytes := debug.Stack()
@@ -172,11 +290,12 @@ func captureStackByDebug(skipFrames int, limitFrames bool) []byte {
 		return stackBytes
 	}
 
-	if i := indexOfFrame(stackBytes, skipFrames+2); i > 0 {
+	const serviceFrames = 2 //  debug.Stack() + captureStackByDebug()
+	if i := indexOfFrame(stackBytes, skipFrames+serviceFrames); i > 0 {
 		stackBytes = stackBytes[i:]
 
 		if limitFrames {
-			if i := indexOfFrame(stackBytes, 1); i > 0 {
+			if i := indexOfFrame(stackBytes, topFrameLimit); i > 0 {
 				stackBytes = stackBytes[:i]
 			}
 		}
@@ -193,8 +312,6 @@ func trimCapacity(actualCapacity int, b []byte) []byte {
 	}
 	return b
 }
-
-var frameFileSep = []byte("\n\t")
 
 func indexOfFrame(stackBytes []byte, skipFrames int) int {
 	offset := 0
@@ -216,14 +333,19 @@ func indexOfFrame(stackBytes []byte, skipFrames int) int {
 	return offset
 }
 
+const frameFileSeparator = "\n\t"
+
+var frameFileSep = []byte(frameFileSeparator)
+
 func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
 	var pcs []uintptr
 	if limitFrames {
-		pcs = make([]uintptr, 1)
+		pcs = make([]uintptr, topFrameLimit)
 	} else {
 		pcs = make([]uintptr, 50) // maxStackDepth
 	}
-	pcs = pcs[:runtime.Callers(skipFrames+2, pcs)]
+	const serviceFrames = 2 //  runtime.Callers() + captureStackByCallers()
+	pcs = pcs[:runtime.Callers(skipFrames+serviceFrames, pcs)]
 
 	result := make([]byte, 0, len(pcs)<<7)
 	for i, pc := range pcs {
@@ -243,7 +365,7 @@ func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
 		}
 
 		result = append(result, fName...)
-		result = append(result, "\n\t"...)
+		result = append(result, frameFileSeparator...)
 
 		fName, line := fn.FileLine(pc)
 		result = append(result, fName...)

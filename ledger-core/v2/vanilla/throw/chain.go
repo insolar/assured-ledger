@@ -26,6 +26,7 @@ type StackTraceHolder interface {
 	// Reason returns a reason for the stack trace. It can NOT be used like Unwrap() as it may return self.
 	Reason() error
 	StackTrace() StackTrace
+	DeepestStackTrace() StackTrace
 }
 
 // StackOf goes throw error chain and looks for a target that is wrapped by WithStack()
@@ -48,25 +49,20 @@ func StackOf(errChain, target error) (StackTrace, bool) {
 	return nil, false
 }
 
-func OutermostStack(errChain error) (error, StackTrace) {
+func OutermostStack(errChain error) StackTraceHolder {
 	for errChain != nil {
-		if sw, ok := errChain.(StackTraceHolder); ok {
-			if st := sw.StackTrace(); st != nil {
-				return sw.Reason(), st
-			}
+		if sw, ok := errChain.(StackTraceHolder); ok && sw.StackTrace() != nil {
+			return sw
 		}
 		errChain = errors.Unwrap(errChain)
 	}
-	return nil, nil
+	return nil
 }
 
-func InnermostStack(errChain error) (err error, lst StackTrace) {
+func InnermostStack(errChain error) (sth StackTraceHolder) {
 	for errChain != nil {
-		if sw, ok := errChain.(StackTraceHolder); ok {
-			if st := sw.StackTrace(); st != nil {
-				err = sw.Reason()
-				lst = st
-			}
+		if sw, ok := errChain.(StackTraceHolder); ok && sw.StackTrace() != nil {
+			sth = sw
 		}
 		errChain = errors.Unwrap(errChain)
 	}
