@@ -6,6 +6,7 @@
 package zlog
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"os"
 	"time"
 
@@ -89,6 +90,15 @@ func (m zerologMarshaller) AddTimeField(key string, v time.Time, fFmt logfmt.Log
 
 func (m zerologMarshaller) AddRawJSONField(key string, v interface{}, fFmt logfmt.LogFieldFormat) {
 	m.event.RawJSON(key, []byte(m.Sformatf(fFmt.Fmt, v)))
+}
+
+func (m zerologMarshaller) AddErrorField(msg string, stack throw.StackTrace, _ bool) {
+	if msg != "" {
+		m.event.Str(zerolog.ErrorFieldName, msg)
+	}
+	if stack != nil {
+		m.event.Str(zerolog.ErrorStackFieldName, stack.StackTraceAsText())
+	}
 }
 
 /* ============================ */

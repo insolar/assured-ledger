@@ -23,7 +23,8 @@ type MsgFormatConfig struct {
 type FieldReporterFunc func(collector LogObjectMetricCollector, fieldName string, v interface{})
 
 type MarshallerFactory interface {
-	CreateLogObjectMarshaller(o reflect.Value) LogObjectMarshaller
+	CreateErrorMarshaller(error) LogObjectMarshaller
+	CreateLogObjectMarshaller(reflect.Value) LogObjectMarshaller
 	RegisterFieldReporter(fieldType reflect.Type, fn FieldReporterFunc)
 }
 
@@ -52,29 +53,34 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogOb
 		return nil, vv
 	case nil:
 		return nil, nil
-	default:
-		if s, t, isNil := prepareValue(vv); t != reflect.Invalid {
-			if isNil {
-				return nil, nil
-			}
-			return nil, &s
+	case error:
+		// use marshalling before prepareValue() for errors
+		m := v.MFactory.CreateErrorMarshaller(vv)
+		if m != nil {
+			return m, nil
 		}
+	}
 
-		vr := reflect.ValueOf(vv)
-		switch vr.Kind() {
-		case reflect.Ptr:
-			if vr.IsNil() {
-				break
-			}
-			vr = vr.Elem()
-			if vr.Kind() != reflect.Struct {
-				break
-			}
-			fallthrough
-		case reflect.Struct:
-			if !optionalStruct || len(vr.Type().PkgPath()) == 0 {
-				return v.MFactory.CreateLogObjectMarshaller(vr), nil
-			}
+	if s, t, isNil := prepareValue(a); t != reflect.Invalid {
+		if isNil {
+			return nil, nil
+		}
+		return nil, &s
+	}
+
+	switch vr := reflect.ValueOf(a); vr.Kind() {
+	case reflect.Ptr:
+		if vr.IsNil() {
+			break
+		}
+		vr = vr.Elem()
+		if vr.Kind() != reflect.Struct {
+			break
+		}
+		fallthrough
+	case reflect.Struct:
+		if !optionalStruct || len(vr.Type().PkgPath()) == 0 {
+			return v.MFactory.CreateLogObjectMarshaller(vr), nil
 		}
 	}
 	return nil, nil
@@ -122,22 +128,26 @@ func (v MsgFormatConfig) PrepareMutedLogObject(a ...interface{}) LogObjectMarsha
 		return vv
 	case string, *string, nil: // the most obvious case(s) - avoid reflect
 		return nil
-	default:
-		vr := reflect.ValueOf(vv)
-		switch vr.Kind() {
-		case reflect.Ptr:
-			if vr.IsNil() {
-				return nil
-			}
-			vr = vr.Elem()
-			if vr.Kind() != reflect.Struct {
-				return nil
-			}
-			fallthrough
-		case reflect.Struct:
-			if len(vr.Type().Name()) == 0 { // only unnamed objects are handled by default
-				return v.MFactory.CreateLogObjectMarshaller(vr)
-			}
+	case error:
+		m := v.MFactory.CreateErrorMarshaller(vv)
+		if m != nil {
+			return m
+		}
+	}
+
+	switch vr := reflect.ValueOf(a[0]); vr.Kind() {
+	case reflect.Ptr:
+		if vr.IsNil() {
+			return nil
+		}
+		vr = vr.Elem()
+		if vr.Kind() != reflect.Struct {
+			return nil
+		}
+		fallthrough
+	case reflect.Struct:
+		if len(vr.Type().Name()) == 0 { // only unnamed objects are handled by default
+			return v.MFactory.CreateLogObjectMarshaller(vr)
 		}
 	}
 	return nil

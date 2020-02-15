@@ -15,19 +15,19 @@ func CleanWalk(errChain error, fn func(error, string, StackTrace) bool) bool {
 	}
 
 	last := cleanWalk{fn: fn}
-	hadFirst := false
-	if Walk(errChain, func(err error, trace StackTrace) bool {
-		if !hadFirst {
-			hadFirst = true
-			return last.firstStep(err, trace)
-		}
-		return last.nextStep(err, trace)
-	}) {
-		return true
-	}
-	if !hadFirst {
-		return false
-	}
+	//hadFirst := false
+	//if Walk(errChain, func(err error, trace StackTrace) bool {
+	//	if !hadFirst {
+	//		hadFirst = true
+	//		return last.firstStep(err, trace)
+	//	}
+	//	return last.nextStep(err, trace)
+	//}) {
+	//	return true
+	//}
+	//if !hadFirst {
+	//	return false
+	//}
 	return last.lastStep()
 }
 
