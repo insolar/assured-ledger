@@ -61,13 +61,62 @@ func BenchmarkCaptureStack(b *testing.B) {
 	})
 }
 
-func Test_compareStackTrace(t *testing.T) {
-	others := []StackTrace{
+func tracesLines() []StackTrace {
+	return []StackTrace{
 		stackTrace{captureStackByDebug(0, false), false},
 		stackTrace{captureStackByDebug(0, true), true},
 		stackTrace{captureStackByCallers(0, false), false},
 		stackTrace{captureStackByCallers(0, true), true},
 	}
+}
+
+func tracesCodesAndLines() []StackTrace {
+	return []StackTrace{
+		// first 2 entries MUST BE on the same line
+		stackTrace{captureStackByDebug(0, false), false}, stackTrace{captureStackByDebug(0, false), false},
+		stackTrace{captureStackByDebug(0, false), false},
+		stackTrace{captureStackByDebug(0, false), false},
+		stackTrace{captureStackByDebug(1, false), false},
+	}
+}
+
+func TestCompareStackTraceExt(t *testing.T) {
+	others := tracesCodesAndLines()
+	shorter := others[len(others)-1]
+	others = others[:len(others)-1]
+
+	for i, o := range others {
+		for j := i + 1; j < len(others)-1; j++ {
+			assert.Equal(t, DifferentTrace, CompareStackTraceExt(o, others[j], StrictMatch), i)
+			assert.Equal(t, DifferentTrace, CompareStackTraceExt(others[j], o, StrictMatch), i)
+		}
+		assert.Equal(t, SubsetTrace, CompareStackTraceExt(shorter, o, StrictMatch), i)
+		assert.Equal(t, SupersetTrace, CompareStackTraceExt(o, shorter, StrictMatch), i)
+	}
+
+	for i, o := range others {
+		assert.Equal(t, SubsetTrace, CompareStackTraceExt(shorter, o, SameLine), i)
+		assert.Equal(t, SupersetTrace, CompareStackTraceExt(o, shorter, SameLine), i)
+	}
+
+	for i, o := range others {
+		assert.Equal(t, SubsetTrace, CompareStackTraceExt(shorter, o, SameMethod), i)
+		assert.Equal(t, SupersetTrace, CompareStackTraceExt(o, shorter, SameMethod), i)
+	}
+
+	assert.Equal(t, SupersetTrace, CompareStackTraceExt(others[0], others[1], SameLine))
+	assert.Equal(t, SubsetTrace, CompareStackTraceExt(others[1], others[0], SameLine))
+	assert.Equal(t, DifferentTrace, CompareStackTraceExt(others[2], others[3], SameLine))
+	assert.Equal(t, DifferentTrace, CompareStackTraceExt(others[3], others[2], SameLine))
+
+	assert.Equal(t, SupersetTrace, CompareStackTraceExt(others[0], others[1], SameMethod))
+	assert.Equal(t, SubsetTrace, CompareStackTraceExt(others[1], others[0], SameMethod))
+	assert.Equal(t, SupersetTrace, CompareStackTraceExt(others[2], others[3], SameMethod))
+	assert.Equal(t, SubsetTrace, CompareStackTraceExt(others[3], others[2], SameMethod))
+}
+
+func TestCompareStackTrace(t *testing.T) {
+	others := tracesLines()
 
 	for i, o := range others {
 		for j := i + 1; j < len(others); j++ {
