@@ -22,11 +22,11 @@ type msgWrap struct {
 
 func (v msgWrap) bypassWrapper() {}
 
-func (v msgWrap) Reason() error {
+func (v msgWrap) Cause() error {
 	return v
 }
 
-func (v msgWrap) StackTrace() StackTrace {
+func (v msgWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
@@ -57,7 +57,7 @@ func joinStack(s0 string, s1 StackTrace) string {
 	if s1 == nil {
 		return s0
 	}
-	return s0 + "\n" + StackTracePrefix + "\n" + s1.StackTraceAsText()
+	return s0 + "\n" + stackTracePrintPrefix + s1.StackTraceAsText()
 }
 
 /*******************************************************************/
@@ -71,7 +71,7 @@ type stackWrap struct {
 
 func (v stackWrap) bypassWrapper() {}
 
-func (v stackWrap) StackTrace() StackTrace {
+func (v stackWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
@@ -82,7 +82,7 @@ func (v stackWrap) DeepestStackTrace() StackTrace {
 	return v.stDeepest
 }
 
-func (v stackWrap) Reason() error {
+func (v stackWrap) Cause() error {
 	return v.Unwrap()
 }
 
@@ -113,14 +113,14 @@ type panicWrap struct {
 
 func (v fmtWrap) bypassWrapper() {}
 
-func (v panicWrap) Reason() error {
+func (v panicWrap) Cause() error {
 	if err := v.Unwrap(); err != nil {
 		return err
 	}
 	return errors.New(v.LogString())
 }
 
-func (v panicWrap) StackTrace() StackTrace {
+func (v panicWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 

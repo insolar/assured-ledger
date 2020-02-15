@@ -89,7 +89,7 @@ func newChain(bottom error) error {
 
 func TestWrapPanicExt(t *testing.T) {
 	err := WrapPanicExt("test", 0)
-	st := OutermostStack(err).StackTrace()
+	st := OutermostStack(err).ShallowStackTrace()
 	s := st.StackTraceAsText()
 	methodName := "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.TestWrapPanicExt"
 	require.True(t, strings.HasPrefix(st.StackTraceAsText(), methodName), "missing method: %s", s)

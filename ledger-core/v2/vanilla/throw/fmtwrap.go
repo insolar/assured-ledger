@@ -22,6 +22,7 @@ func GetFormatter() FormatterFunc {
 	return nil
 }
 
+// SetFormatter sets a formatter to be applied by New and NewMsg
 func SetFormatter(fn FormatterFunc) {
 	if fn == nil {
 		panic(IllegalValue())
@@ -29,7 +30,38 @@ func SetFormatter(fn FormatterFunc) {
 	panicFmtFn.Store(fn)
 }
 
-func WrapFmt(msg string, errorDescription interface{}, fmtFn FormatterFunc) error {
+// New creates an error with the given description. Log structs can be used
+func New(description interface{}) error {
+	if description == nil {
+		return nil
+	}
+	if fmtFn := GetFormatter(); fmtFn != nil {
+		return _wrap(fmtFn("", description))
+	}
+	if err, ok := description.(error); ok {
+		return err
+	}
+	return _wrapDesc(description)
+}
+
+// NewMsg creates an error with the given message text and description. Log structs can be used
+func NewMsg(msg string, description interface{}) error {
+	if description == nil && msg == "" {
+		return nil
+	}
+	if fmtFn := GetFormatter(); fmtFn != nil {
+		return _wrap(fmtFn(msg, description))
+	}
+	s := ""
+	if vv, ok := description.(logStringer); ok {
+		s = vv.LogString()
+	} else {
+		s = defaultFmt(description, false)
+	}
+	return fmtWrap{msg: msg, extra: description, useExtra: msg != s}
+}
+
+func NewFmt(msg string, errorDescription interface{}, fmtFn FormatterFunc) error {
 	if fmtFn == nil {
 		panic(IllegalValue())
 	}
@@ -37,35 +69,6 @@ func WrapFmt(msg string, errorDescription interface{}, fmtFn FormatterFunc) erro
 		return nil
 	}
 	return _wrap(fmtFn(msg, errorDescription))
-}
-
-func Wrap(errorDescription interface{}) error {
-	if errorDescription == nil {
-		return nil
-	}
-	if fmtFn := GetFormatter(); fmtFn != nil {
-		return _wrap(fmtFn("", errorDescription))
-	}
-	if err, ok := errorDescription.(error); ok {
-		return err
-	}
-	return _wrapDesc(errorDescription)
-}
-
-func WrapMsg(msg string, errorDescription interface{}) error {
-	if errorDescription == nil && msg == "" {
-		return nil
-	}
-	if fmtFn := GetFormatter(); fmtFn != nil {
-		return _wrap(fmtFn(msg, errorDescription))
-	}
-	s := ""
-	if vv, ok := errorDescription.(logStringer); ok {
-		s = vv.LogString()
-	} else {
-		s = defaultFmt(errorDescription, false)
-	}
-	return fmtWrap{msg: msg, extra: errorDescription, useExtra: msg != s}
 }
 
 func wrapInternal(errorDescription interface{}) fmtWrap {
@@ -88,7 +91,7 @@ func _wrap(msg string, extra interface{}, useExtra bool) fmtWrap {
 	return fmtWrap{msg: msg, extra: extra, useExtra: useExtra}
 }
 
-func UnwrapExtraInfo(err error) (interface{}, bool) {
+func UnwrapExtraInfo(err interface{}) (interface{}, bool) {
 	if e, ok := err.(interface{ ExtraInfo() interface{} }); ok {
 		return e.ExtraInfo(), true
 	}

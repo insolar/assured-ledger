@@ -11,13 +11,17 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"strings"
 )
 
-const StackTracePrefix = "Stack trace: "
+const StackTracePrefix = "Stack trace:"
+const stackTracePrintPrefix = StackTracePrefix + "\n"
 
 type StackTrace interface {
 	StackTraceAsText() string
 	WriteStackTraceTo(writer io.Writer) error
+	IsFullStack() bool
+	//ParseStackTrace() errors.StackTrace
 }
 
 // CaptureStack captures whole stack
@@ -41,9 +45,16 @@ func IsInSystemPanic(skipFrames int) bool {
 	return n == "runtime.preprintpanics"
 }
 
+//var _ fmt.Formatter = stackTrace{}
+
 type stackTrace struct {
-	data  []byte
+	data []byte
+	//parsed errors.StackTrace
 	limit bool
+}
+
+func (v stackTrace) IsFullStack() bool {
+	return !v.limit
 }
 
 func (v stackTrace) WriteStackTraceTo(w io.Writer) error {
@@ -60,8 +71,30 @@ func (v stackTrace) LogString() string {
 }
 
 func (v stackTrace) String() string {
-	return StackTracePrefix + string(v.data)
+	return stackTracePrintPrefix + string(v.data)
 }
+
+//func (v stackTrace) ParseStackTrace() errors.StackTrace {
+//
+//}
+//
+//func (v stackTrace) Format(s fmt.State, verb rune) {
+//	switch verb {
+//	case 'v':
+//		switch {
+//		case s.Flag('+'):
+//			//for _, f := range st {
+//			//	fmt.Fprintf(s, "\n%+v", f)
+//			//}
+//		case s.Flag('#'):
+//			//fmt.Fprintf(s, "%#v", []Frame(st))
+//		default:
+//			//fmt.Fprintf(s, "%v", []Frame(st))
+//		}
+//	case 's':
+//		fmt.Fprintf(s, "%s", []Frame(st))
+//	}
+//}
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
 	skipFrames++
@@ -172,4 +205,11 @@ func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
 	}
 
 	return trimCapacity(0, result)
+}
+
+func TrimStackTrace(s string) string {
+	if i := strings.Index(s, "\n"+stackTracePrintPrefix); i >= 0 {
+		return s[:i]
+	}
+	return s
 }

@@ -7,6 +7,7 @@ package throw
 
 import "bytes"
 
+// StackRelation shows relevance of 2 stacks
 type StackRelation int8
 
 const (
@@ -18,10 +19,13 @@ const (
 	DifferentStack
 )
 
+// CompareStackTrace returns a relation between the given stacks.
+// Only supports StackTrace instances created by this module, otherwise will return DifferentStack
 func CompareStackTrace(st0, st1 StackTrace) StackRelation {
 	return CompareStackTraceExt(st0, st1, StrictMatch)
 }
 
+// StackCompareMode defines precision of stack trace comparison
 type StackCompareMode uint8
 
 const (
@@ -30,6 +34,8 @@ const (
 	SameMethod
 )
 
+// CompareStackTraceExt returns a relation between the given stacks with the given mode/precision.
+// Only supports StackTrace instances created by this module, otherwise will return DifferentStack
 func CompareStackTraceExt(st0, st1 StackTrace, mode StackCompareMode) StackRelation {
 	if bst0, ok := st0.(stackTrace); ok {
 		if bst1, ok := st1.(stackTrace); ok {
@@ -50,6 +56,7 @@ func CompareStackTraceExt(st0, st1 StackTrace, mode StackCompareMode) StackRelat
 	return DifferentStack
 }
 
+// CompareDebugStackTrace returns a relation between the stacks produced by debug.Stack() with the given mode/precision.
 func CompareDebugStackTrace(bst0, bst1 []byte, mode StackCompareMode) StackRelation {
 	// TODO This method will break on 100+ frames and then debug.Stack may output "...additional frames elided..."
 	// see runtime.traceback1 in runtime/traceback.go

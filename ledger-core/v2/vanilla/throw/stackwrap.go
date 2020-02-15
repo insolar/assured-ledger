@@ -7,8 +7,13 @@ package throw
 
 import "reflect"
 
+// WithStackExt wraps the error with stack of caller. Nil value will return nil.
 func WithStack(err error) error {
 	return WithStackExt(err, 1)
+}
+
+func WithStackAndDetails(predecessor error, details interface{}) error {
+	return WithStackExt(WithDetails(predecessor, details), 1)
 }
 
 // WithStackTop wraps the error with stack's topmost entry only. Nil value will return nil.
@@ -17,7 +22,7 @@ func WithStackTop(err error) error {
 	return WithStackTopExt(err, 1)
 }
 
-// WithStack wraps the error with stack with the given number of frames skipped. Nil value will return nil.
+// WithStackExt wraps the error with stack with the given number of frames skipped. Nil value will return nil.
 func WithStackExt(err error, skipFrames int) error {
 	if err == nil {
 		return nil
@@ -28,7 +33,7 @@ func WithStackExt(err error, skipFrames int) error {
 	return withStack(err, CaptureStack(skipFrames+1))
 }
 
-// WithStack wraps the error with stack's topmost entry after skipping the given number of frames. Nil value will return nil.
+// WithStackTopExt wraps the error with stack's topmost entry after skipping the given number of frames. Nil value will return nil.
 func WithStackTopExt(err error, skipFrames int) error {
 	if err == nil {
 		return nil
@@ -66,7 +71,7 @@ func WithDetails(predecessor error, details interface{}) error {
 	case details == nil:
 		return predecessor
 	case predecessor == nil:
-		return Wrap(details)
+		return New(details)
 	default:
 		return withDetails(predecessor, details)
 	}
@@ -94,8 +99,4 @@ func withDetails(predecessor error, details interface{}) error {
 	}
 
 	return detailsWrap{err: predecessor, details: d, isComparable: reflect.TypeOf(details).Comparable()}
-}
-
-func WithStackAndDetails(predecessor error, details interface{}) error {
-	return WithStackExt(WithDetails(predecessor, details), 1)
 }

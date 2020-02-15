@@ -115,9 +115,9 @@ func (w *cleanWalk) nextStep(err error, trace StackTrace) bool {
 	//	if trace == nil || !includeStack {
 	//		return false
 	//	}
-	//	b.WriteString(StackTracePrefix)
+	//	b.WriteString(stackTracePrintPrefix)
 	//case trace != nil && includeStack:
-	//	b.WriteString("<nil>\n" + StackTracePrefix)
+	//	b.WriteString("<nil>\n" + stackTracePrintPrefix)
 	//default:
 	//	b.WriteString("<nil>\n")
 	//	return false
