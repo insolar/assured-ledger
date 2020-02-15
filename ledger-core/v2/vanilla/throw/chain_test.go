@@ -52,7 +52,7 @@ type errBuilder struct {
 
 func (v errBuilder) _err0() error {
 	err := WithDetails(v.bottomErr, Unsupported())
-	fmt.Println("0>>>> ", err)
+	//fmt.Println("0>>>> ", err)
 	return err
 }
 
@@ -61,13 +61,13 @@ func (v errBuilder) _err1() error {
 		msg string
 		v0  int
 	}{"err1Txt", 1})
-	fmt.Println("1>>>> ", err)
+	//fmt.Println("1>>>> ", err)
 	return err
 }
 
 func (v errBuilder) _err2() error {
 	err := WithStack(v._err1())
-	fmt.Println("2>>>> ", err)
+	//fmt.Println("2>>>> ", err)
 	return err
 }
 
@@ -78,7 +78,7 @@ func (v errBuilder) _err3() error {
 func (v errBuilder) _err4() (err error) {
 	defer func() {
 		err = RM(recover(), err, "panicCatch", struct{ position int }{7})
-		fmt.Println("4>>>> ", err)
+		//fmt.Println("4>>>> ", err)
 	}()
 	return v._err3()
 }

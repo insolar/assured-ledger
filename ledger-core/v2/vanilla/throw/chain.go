@@ -20,14 +20,14 @@ type StackTraceHolder interface {
 
 // StackOf goes throw error chain and looks for a target that is wrapped by WithStack()
 // Returns (_, true) if the given target was found. Please note that stack trace can be nil for the given target.
-func StackOf(errChain, target error) (StackTrace, bool) {
+func StackOf(errChain, target error) (StackTraceHolder, bool) {
 	isComparable := target == nil || reflect.TypeOf(target).Comparable()
 
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
 			reason := sw.Reason()
 			if isThis(isComparable, reason, target) {
-				return sw.StackTrace(), true
+				return sw, true
 			}
 		} else if isThis(isComparable, errChain, target) {
 			return nil, true
@@ -58,13 +58,13 @@ func InnermostStack(errChain error) (sth StackTraceHolder) {
 	return
 }
 
-func InnermostError(errChain error) (error, StackTrace) {
+func InnermostError(errChain error) (error, StackTraceHolder) {
 	for errChain != nil {
 		nextErr := errors.Unwrap(errChain)
 
 		if sw, ok := errChain.(StackTraceHolder); ok && errors.Unwrap(nextErr) == nil {
 			if e := sw.Reason(); e != nil {
-				return e, sw.StackTrace()
+				return e, sw
 			}
 		}
 		if nextErr == nil {
@@ -76,14 +76,14 @@ func InnermostError(errChain error) (error, StackTrace) {
 }
 
 // Walks through the given error chain and call (fn) for each entry, does unwrapping for stack trace data.
-func Walk(errChain error, fn func(error, StackTrace) bool) bool {
+func Walk(errChain error, fn func(error, StackTraceHolder) bool) bool {
 	if fn == nil {
 		panic(IllegalValue())
 	}
 
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			if fn(sw.Reason(), sw.StackTrace()) {
+			if fn(sw.Reason(), sw) {
 				return true
 			}
 			errChain = errors.Unwrap(errChain)
@@ -97,7 +97,11 @@ func Walk(errChain error, fn func(error, StackTrace) bool) bool {
 
 // PrintTo calls Walk() and builds a full list of errors and corresponding stacks in the chain.
 func PrintTo(errChain error, includeStack bool, b *strings.Builder) {
-	Walk(errChain, func(err error, trace StackTrace) bool {
+	Walk(errChain, func(err error, traceHolder StackTraceHolder) bool {
+		var trace StackTrace
+		if traceHolder != nil {
+			trace = traceHolder.StackTrace()
+		}
 		switch {
 		case err != nil:
 			b.WriteString(err.Error())

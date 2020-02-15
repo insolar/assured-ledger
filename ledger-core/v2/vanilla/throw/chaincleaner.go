@@ -145,11 +145,11 @@ func (w *cleanWalk) checkTrace(trace StackTrace) bool {
 		w.lastTrace = trace
 	default:
 		switch CompareStackTrace(trace, w.lastTrace) {
-		case DifferentTrace:
+		case DifferentStack:
 			prevTrace := w.lastTrace
 			w.lastTrace = trace
 			return w.fn(nil, "", prevTrace)
-		case EqualTrace, SupersetTrace, FullTrace:
+		case EqualStack, SupersetStack, FullStack:
 			w.lastTrace = trace
 		}
 	}

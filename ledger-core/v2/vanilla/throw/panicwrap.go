@@ -44,7 +44,7 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 			return vv
 		}
 		switch CompareStackTrace(vv.st, st) {
-		case EqualTrace, SupersetTrace:
+		case EqualStack, SupersetStack:
 			return vv
 		}
 	case stackWrap:

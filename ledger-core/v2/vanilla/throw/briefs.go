@@ -5,8 +5,6 @@
 
 package throw
 
-import "fmt"
-
 // E creates an error by the provided description
 func E(description interface{}) error {
 	return Wrap(description)
@@ -38,9 +36,7 @@ func RM(recovered interface{}, prevErr error, msg string, details interface{}) e
 	if recovered == nil {
 		return prevErr
 	}
-	fmt.Println("Re>>>> ", recovered)
 	err := WrapPanicExt(recovered, recoverSkipFrames+1)
-	fmt.Println("RM>>>> ", err)
 	d := WrapMsg(msg, details)
 	return WithDetails(err, WithDetails(prevErr, d))
 }

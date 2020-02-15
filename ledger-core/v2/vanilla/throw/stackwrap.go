@@ -47,7 +47,7 @@ func reuseSupersetTrace(current, wrapped StackTrace) StackTrace {
 		return current
 	}
 	switch CompareStackTraceExt(current, wrapped, SameMethod) {
-	case SubsetTrace, TopTrace:
+	case SubsetStack, StackTop:
 		return wrapped
 	default:
 		return current
