@@ -171,23 +171,25 @@ func (v *errorMarshaller) cleanupMessages() {
 
 	for i := lastMsgIdx - 1; i >= 0; i-- {
 		thisMsg := v.errors[i].strValue
-		if thisMsg == "" {
+		switch {
+		case thisMsg == "":
 			continue
-		}
-		if s, ok := cutOut(thisMsg, lastMsg); ok {
-			if v.stack != nil {
-				s = throw.TrimStackTrace(s)
-			}
-			v.errors[i].strValue = s
-			if s != "" {
-				lastMsgIdx = i
-			}
-		} else {
-			if v.stack != nil {
+		case !v.errors[i].pureError:
+			if s, ok := cutOut(thisMsg, lastMsg); ok {
+				if v.stack != nil {
+					s = throw.TrimStackTrace(s)
+				}
+				v.errors[i].strValue = s
+				if s != "" {
+					lastMsgIdx = i
+				}
+				lastMsg = thisMsg
+				continue
+			} else if v.stack != nil {
 				v.errors[i].strValue = throw.TrimStackTrace(thisMsg)
 			}
-			lastMsgIdx = i
 		}
+		lastMsgIdx = i
 		lastMsg = thisMsg
 	}
 	v.msg = v.errors[lastMsgIdx].strValue

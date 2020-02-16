@@ -73,12 +73,11 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 		f0 int
 		f1 string
 	}{"main", 1, "ABC"})
-	err = throw.WithDetails(err, throw.E(struct {
+	err = throw.WithDetails(err, throw.EM("wrapper", struct { // same message "wrapper" here must not be deduplicated with "wrapper" of fmt.Errorf
 		string
 		f2 int
 	}{"ext", 2}))
 	err = throw.WithStack(err)
-	err = throw.WithDetails(err, io.EOF)
 
 	err = fmt.Errorf("wrapper %w", err) // mess up the chain - get stack and other parts to be blended-in
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
@@ -88,7 +87,7 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 
 	s, o := fmtError(t, err)
 	assert.Equal(t, "panicMsg", s)
-	assert.Contains(t, o, "f3:3:uint,errorMsg:wrapper,errorMsg:EOF,f2:2:int,errorMsg:ext,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
+	assert.Contains(t, o, "f3:3:uint,errorMsg:wrapper,f2:2:int,errorMsg:ext,errorMsg:wrapper,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
 	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_mixed")
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
 }
