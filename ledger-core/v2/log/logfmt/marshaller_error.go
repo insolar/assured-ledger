@@ -153,7 +153,7 @@ func cutOut(s, substr string) (string, bool) {
 	if substr == "" {
 		return s, false
 	}
-	if i := strings.Index(s, substr); i >= 0 {
+	if i := strings.LastIndex(s, substr); i >= 0 {
 		s0 := s[:i]
 		s1 := s[i+len(substr):]
 		if s0t := strings.TrimSpace(s0); s0t != "" {
