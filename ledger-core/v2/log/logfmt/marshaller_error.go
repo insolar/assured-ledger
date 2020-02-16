@@ -119,7 +119,13 @@ func (v *errorMarshaller) fillLevels(errChain error, mf MarshallerFactory) bool 
 
 	switch {
 	case len(v.errors) > 1:
-		v.cleanupMessages()
+		for i, e := range v.errors {
+			if e.strValue != "" {
+				v.msg = e.strValue
+				v.errors[i].strValue = ""
+				break
+			}
+		}
 	case len(v.errors) == 0:
 		// very strange ...
 		if ls, ok := errChain.(LogStringer); ok {
@@ -148,52 +154,17 @@ func cutOut(s, substr string) (string, bool) {
 		return s, false
 	}
 	if i := strings.Index(s, substr); i >= 0 {
-		s0 := strings.TrimSpace(s[:i])
-		switch s1 := strings.TrimSpace(s[i+len(substr):]); {
-		case s1 == "":
-			//
-		case s0 == "":
-			s0 = s1
-		default:
-			s0 += " " + s1
+		s0 := s[:i]
+		s1 := s[i+len(substr):]
+		if s0t := strings.TrimSpace(s0); s0t != "" {
+			return s0 + "%w" + s1, true
 		}
-		return s0, true
+		if s1t := strings.TrimSpace(s1); s1t != "" {
+			return "%w" + s1, true
+		}
+		return "", true
 	}
 	return s, false
-}
-
-func (v *errorMarshaller) cleanupMessages() {
-	lastMsgIdx := len(v.errors) - 1
-	lastMsg := v.errors[lastMsgIdx].strValue
-	//if v.stack != nil {
-	//	v.errors[lastMsgIdx].strValue = throw.TrimStackTrace(lastMsg)
-	//}
-
-	for i := lastMsgIdx - 1; i >= 0; i-- {
-		thisMsg := v.errors[i].strValue
-		switch {
-		case thisMsg == "":
-			continue
-		case !v.errors[i].pureError:
-			if s, ok := cutOut(thisMsg, lastMsg); ok {
-				if v.stack != nil {
-					s = throw.TrimStackTrace(s)
-				}
-				v.errors[i].strValue = s
-				if s != "" {
-					lastMsgIdx = i
-				}
-				lastMsg = thisMsg
-				continue
-			} else if v.stack != nil {
-				v.errors[i].strValue = throw.TrimStackTrace(thisMsg)
-			}
-		}
-		lastMsgIdx = i
-		lastMsg = thisMsg
-	}
-	v.msg = v.errors[lastMsgIdx].strValue
-	v.errors[lastMsgIdx].strValue = ""
 }
 
 func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) string {

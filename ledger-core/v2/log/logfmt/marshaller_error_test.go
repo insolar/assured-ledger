@@ -54,16 +54,16 @@ func TestErrorMarshaller_MarshalLogObject_simple(t *testing.T) {
 
 	err := fmt.Errorf("wrapper %w", io.EOF)
 	s, o = fmtError(t, err)
-	assert.Equal(t, "wrapper", s)
+	assert.Equal(t, "wrapper %w", s)
 	assert.Equal(t, "errorMsg:EOF,", o)
 
 	s, o = fmtError(t, throw.WithStack(err))
-	assert.Equal(t, "wrapper", s)
+	assert.Equal(t, "wrapper %w", s)
 	assert.Contains(t, o, "errorMsg:EOF,errorStack:")
 	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_simple")
 
 	s, o = fmtError(t, throw.WithDetails(err, struct{ x int }{99}))
-	assert.Equal(t, "wrapper", s)
+	assert.Equal(t, "wrapper %w", s)
 	assert.Equal(t, "x:99:int,errorMsg:EOF,", o)
 }
 
@@ -73,7 +73,7 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 		f0 int
 		f1 string
 	}{"main", 1, "ABC"})
-	err = throw.WithDetails(err, throw.EM("wrapper", struct { // same message "wrapper" here must not be deduplicated with "wrapper" of fmt.Errorf
+	err = throw.WithDetails(err, throw.E(struct { // same message "wrapper" here must not be deduplicated with "wrapper" of fmt.Errorf
 		string
 		f2 int
 	}{"ext", 2}))
@@ -87,7 +87,26 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 
 	s, o := fmtError(t, err)
 	assert.Equal(t, "panicMsg", s)
-	assert.Contains(t, o, "f3:3:uint,errorMsg:wrapper,f2:2:int,errorMsg:ext,errorMsg:wrapper,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
+	assert.Contains(t, o, "f3:3:uint,errorMsg:wrapper %w,f2:2:int,errorMsg:ext,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
 	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_mixed")
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
+}
+
+func TestErrorMarshaller_MarshalLogObject_repeated(t *testing.T) {
+	err := throw.EM("m", struct{}{})
+	err = throw.WithDetails(err, struct{ string }{"mm"})
+	err = throw.WithDetails(err, struct{ string }{"mm"})
+	err = throw.WithDetails(err, throw.EM("mm", struct{ string }{"mm"}))
+	err = throw.WithDetails(err, throw.EM("mm", struct{ string }{"mm"}))
+	err = throw.WithStack(err)
+	err = fmt.Errorf("mmm %w", err)
+	err = throw.WithDetails(err, struct{ string }{"mm"})
+	err = throw.WithStack(err)
+	err = fmt.Errorf("mmmm %w", err)
+	err = fmt.Errorf("mmmm %w", err)
+	s, o := fmtError(t, err)
+	assert.Equal(t, "mmmm %w", s)
+	assert.Contains(t, o, "errorMsg:mmmm %w,errorMsg:mm,errorMsg:mmm %w,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:m,errorStack:")
+	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_repeated")
+	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_repeated"))
 }
