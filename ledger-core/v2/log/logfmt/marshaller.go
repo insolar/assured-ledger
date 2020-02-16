@@ -37,7 +37,8 @@ func (p *cachingMarshallerFactory) RegisterFieldReporter(fieldType reflect.Type,
 }
 
 func (p *cachingMarshallerFactory) CreateErrorMarshaller(e error) LogObjectMarshaller {
-	if em, ok := newErrorMarshaller(e, p); ok {
+	em := errorMarshaller{}
+	if em.fillLevels(e, p) {
 		return em
 	}
 	return nil

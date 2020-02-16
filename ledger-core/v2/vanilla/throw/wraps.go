@@ -15,9 +15,8 @@ type bypassWrapper interface {
 }
 
 type msgWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	msg        string
+	st  StackTrace
+	msg string
 }
 
 func (v msgWrap) bypassWrapper() {}
@@ -98,16 +97,18 @@ func (v stackWrap) LogString() string {
 }
 
 func (v stackWrap) Error() string {
-	return joinStack(v.LogString(), v.DeepestStackTrace())
+	if v.st == nil || v.stDeepest != nil {
+		return v.LogString()
+	}
+	return joinStack(v.LogString(), v.st)
 }
 
 /*******************************************************************/
 
 type panicWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	stDeepest  StackTrace
-	recovered  interface{}
+	st        StackTrace
+	stDeepest StackTrace
+	recovered interface{}
 	fmtWrap
 }
 
@@ -152,10 +153,9 @@ func (v panicWrap) Error() string {
 /*******************************************************************/
 
 type fmtWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	msg        string
-	extra      interface{}
-	useExtra   bool
+	msg      string
+	extra    interface{}
+	useExtra bool // indicates that extra part is included into msg
 }
 
 func (v fmtWrap) extraString() string {
@@ -176,8 +176,11 @@ func (v fmtWrap) Error() string {
 	return v.LogString()
 }
 
-func (v fmtWrap) ExtraInfo() interface{} {
-	return v.extra
+func (v fmtWrap) ExtraInfo() (string, interface{}) {
+	if !v.useExtra {
+		return "", v.extra
+	}
+	return v.msg, v.extra
 }
 
 /*******************************************************************/
@@ -223,6 +226,6 @@ func (v detailsWrap) Error() string {
 	return joinErrString(v.details.LogString(), v.err.Error())
 }
 
-func (v detailsWrap) ExtraInfo() interface{} {
+func (v detailsWrap) ExtraInfo() (string, interface{}) {
 	return v.details.ExtraInfo()
 }

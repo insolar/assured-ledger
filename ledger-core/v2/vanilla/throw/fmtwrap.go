@@ -91,11 +91,12 @@ func _wrap(msg string, extra interface{}, useExtra bool) fmtWrap {
 	return fmtWrap{msg: msg, extra: extra, useExtra: useExtra}
 }
 
-func UnwrapExtraInfo(err interface{}) (interface{}, bool) {
-	if e, ok := err.(interface{ ExtraInfo() interface{} }); ok {
-		return e.ExtraInfo(), true
+func UnwrapExtraInfo(err interface{}) (string, interface{}, bool) {
+	if e, ok := err.(interface{ ExtraInfo() (string, interface{}) }); ok {
+		s, ei := e.ExtraInfo()
+		return s, ei, true
 	}
-	return nil, false
+	return "", nil, false
 }
 
 type logStringer interface{ LogString() string }

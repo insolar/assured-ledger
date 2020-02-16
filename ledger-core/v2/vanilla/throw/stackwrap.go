@@ -49,13 +49,13 @@ func reuseSupersetTrace(current, wrapped StackTrace) StackTrace {
 	case current == nil:
 		return wrapped
 	case wrapped == nil:
-		return current
+		return nil
 	}
 	switch CompareStackTraceExt(current, wrapped, SameMethod) {
 	case SubsetStack, StackTop:
 		return wrapped
 	default:
-		return current
+		return nil
 	}
 }
 

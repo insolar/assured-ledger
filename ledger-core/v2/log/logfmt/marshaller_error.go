@@ -6,8 +6,9 @@
 package logfmt
 
 import (
+	"errors"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"reflect"
+	"strings"
 )
 
 type errorMarshaller struct {
@@ -19,88 +20,189 @@ type errorMarshaller struct {
 
 type errorLevel struct {
 	marshaller LogObjectMarshaller
-	//stack throw.StackTrace
+	strValue   string
+	pureError  bool
 }
 
-func newErrorMarshaller(errChain error, mf MarshallerFactory) (errorMarshaller, bool) {
+func (v *errorMarshaller) appendErrorLevel(m LogObjectMarshaller, s string, ps *string) bool {
+	switch {
+	case ps == nil:
+		//
+	case s == "":
+		s = *ps
+	case s != "":
+		s2 := *ps
+		if s2 != "" {
+			s += "\t" + s2
+		}
+	}
+	if m != nil || s != "" {
+		v.errors = append(v.errors, errorLevel{m, s, false})
+		return true
+	}
+	return false
+}
+
+func (v *errorMarshaller) appendError(mf MarshallerFactory, isHolder bool, x interface{}) bool {
+	m, ps := fmtLogStruct(x, mf, true, true)
+	if isHolder {
+		ps = nil
+	}
+	return v.appendErrorLevel(m, "", ps)
+}
+
+func (v *errorMarshaller) appendExtraInfo(mf MarshallerFactory, x interface{}) bool {
+	if extras, extra, ok := throw.UnwrapExtraInfo(x); ok {
+		m, ps := fmtLogStruct(extra, mf, true, true)
+		if v.appendErrorLevel(m, extras, ps) {
+			return true
+		}
+		if err, ok := extra.(error); ok {
+			return v.appendErrorLevel(nil, err.Error(), nil)
+		}
+	}
+	return false
+}
+
+func (v *errorMarshaller) fillLevels(errChain error, mf MarshallerFactory) bool {
 	if errChain == nil {
-		return errorMarshaller{}, false
+		return false
 	}
 
-	var errs []errorLevel
-	var fullStack, anyStack throw.StackTrace
-	hasPanic := false
+	var (
+		anyStack throw.StackTrace
+	)
 
 	throw.Walk(errChain, func(err error, holder throw.StackTraceHolder) bool {
-		el := errorLevel{}
-		cause := err
-		var extra interface{}
-
-		switch {
-		case err == nil:
-			return false
-		case holder == nil:
-			extra = err
-		default:
+		if holder != nil {
 			if st := holder.ShallowStackTrace(); st != nil {
 				anyStack = st
-				if fullStack == nil || st.IsFullStack() {
-					fullStack = st
+				if st.IsFullStack() {
+					v.stack = st
 				}
 			}
-			//el.stack = st
-			cause = holder.Cause()
-			extra = holder
-		}
 
-		if cause != nil {
-			el.marshaller = mf.CreateLogObjectMarshaller(reflect.ValueOf(cause))
-		}
+			v.appendError(mf, true, holder)
+			v.appendExtraInfo(mf, holder)
 
-		if vv, ok := extra.(throw.PanicHolder); ok {
-			hasPanic = true
-			r := vv.Recovered()
-			if _, ok := r.(error); ok {
-				extra = nil
-			} else {
-				extra = r
+			if vv, ok := holder.(throw.PanicHolder); ok {
+				v.hasPanic = true
+				r := vv.Recovered()
+				if _, ok := r.(error); !ok {
+					v.appendError(mf, false, r)
+				}
 			}
-		} else if el.marshaller == nil {
-			extra, _ = throw.UnwrapExtraInfo(extra)
+
+			err = holder.Cause()
 		}
 
-		if el.marshaller == nil {
-			el.marshaller = mf.CreateLogObjectMarshaller(reflect.ValueOf(extra))
+		if err == nil {
+			return false
 		}
 
-		if el.marshaller != nil {
-			errs = append(errs, el)
+		hasLevel := v.appendError(mf, false, err)
+		if !v.appendExtraInfo(mf, err) && !hasLevel {
+			if s := err.Error(); s != "" {
+				if wrapped := errors.Unwrap(err); wrapped != nil {
+					s, _ = cutOut(s, wrapped.Error())
+				}
+				v.errors = append(v.errors, errorLevel{nil, s, true})
+			}
 		}
 
 		return false
 	})
 
-	msg := ""
-	if ls, ok := errChain.(LogStringer); ok {
-		msg = ls.LogString()
-	} else {
-		msg = errChain.Error()
-		if anyStack != nil {
-			msg = throw.TrimStackTrace(msg)
-		}
-	}
-	if fullStack == nil {
-		fullStack = anyStack
+	if v.stack == nil {
+		v.stack = anyStack
 	}
 
-	return errorMarshaller{errs, fullStack, msg, hasPanic}, true
+	switch {
+	case len(v.errors) > 1:
+		v.cleanupMessages()
+	case len(v.errors) == 0:
+		// very strange ...
+		if ls, ok := errChain.(LogStringer); ok {
+			v.msg = ls.LogString()
+		} else {
+			v.msg = errChain.Error()
+		}
+	default:
+		v.msg = v.errors[0].strValue
+		if v.errors[0].marshaller == nil {
+			v.errors = nil
+		} else {
+			v.errors[0].strValue = ""
+		}
+	}
+
+	if v.stack != nil {
+		v.msg = throw.TrimStackTrace(v.msg)
+	}
+
+	return true
+}
+
+func cutOut(s, substr string) (string, bool) {
+	if substr == "" {
+		return s, false
+	}
+	if i := strings.Index(s, substr); i >= 0 {
+		s0 := strings.TrimSpace(s[:i])
+		switch s1 := strings.TrimSpace(s[i+len(substr):]); {
+		case s1 == "":
+			//
+		case s0 == "":
+			s0 = s1
+		default:
+			s0 += " " + s1
+		}
+		return s0, true
+	}
+	return s, false
+}
+
+func (v *errorMarshaller) cleanupMessages() {
+	lastMsgIdx := len(v.errors) - 1
+	lastMsg := v.errors[lastMsgIdx].strValue
+	//if v.stack != nil {
+	//	v.errors[lastMsgIdx].strValue = throw.TrimStackTrace(lastMsg)
+	//}
+
+	for i := lastMsgIdx - 1; i >= 0; i-- {
+		thisMsg := v.errors[i].strValue
+		if thisMsg == "" {
+			continue
+		}
+		if s, ok := cutOut(thisMsg, lastMsg); ok {
+			if v.stack != nil {
+				s = throw.TrimStackTrace(s)
+			}
+			v.errors[i].strValue = s
+			if s != "" {
+				lastMsgIdx = i
+			}
+		} else {
+			if v.stack != nil {
+				v.errors[i].strValue = throw.TrimStackTrace(thisMsg)
+			}
+			lastMsgIdx = i
+		}
+		lastMsg = thisMsg
+	}
+	v.msg = v.errors[lastMsgIdx].strValue
+	v.errors[lastMsgIdx].strValue = ""
 }
 
 func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) string {
 	for _, el := range v.errors {
-		msg := el.marshaller.MarshalLogObject(output, collector)
-		if msg != "" {
-			output.AddErrorField(msg, nil, false)
+		if el.marshaller != nil {
+			if s := el.marshaller.MarshalLogObject(output, collector); s != "" {
+				output.AddErrorField(s, nil, false)
+			}
+		}
+		if s := el.strValue; s != "" {
+			output.AddErrorField(s, nil, false)
 		}
 	}
 	if v.stack != nil {

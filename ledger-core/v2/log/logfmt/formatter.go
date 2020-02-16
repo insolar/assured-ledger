@@ -6,6 +6,7 @@
 package logfmt
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 )
 
@@ -25,10 +26,14 @@ type FieldReporterFunc func(collector LogObjectMetricCollector, fieldName string
 type MarshallerFactory interface {
 	CreateErrorMarshaller(error) LogObjectMarshaller
 	CreateLogObjectMarshaller(reflect.Value) LogObjectMarshaller
-	RegisterFieldReporter(fieldType reflect.Type, fn FieldReporterFunc)
+	//RegisterFieldReporter(fieldType reflect.Type, fn FieldReporterFunc)
 }
 
-func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogObjectMarshaller, *string) {
+func fmtLogStruct(a interface{}, mFactory MarshallerFactory, optionalStruct bool, ignoreError bool) (LogObjectMarshaller, *string) {
+	if mFactory == nil {
+		panic(throw.IllegalValue())
+	}
+
 	if vv, ok := a.(LogObject); ok {
 		m := vv.GetLogObjectMarshaller()
 		if m != nil {
@@ -38,7 +43,7 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogOb
 		if vr.Kind() == reflect.Ptr {
 			vr = vr.Elem()
 		}
-		m = v.MFactory.CreateLogObjectMarshaller(vr)
+		m = mFactory.CreateLogObjectMarshaller(vr)
 		if m != nil {
 			return m, nil
 		}
@@ -54,18 +59,21 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogOb
 	case nil:
 		return nil, nil
 	case error:
+		if ignoreError {
+			break
+		}
 		// use marshalling before prepareValue() for errors
-		m := v.MFactory.CreateErrorMarshaller(vv)
+		m := mFactory.CreateErrorMarshaller(vv)
 		if m != nil {
 			return m, nil
 		}
-	}
-
-	if s, t, isNil := prepareValue(a); t != reflect.Invalid {
-		if isNil {
-			return nil, nil
+	default:
+		if s, t, isNil := prepareValue(a); t != reflect.Invalid {
+			if isNil {
+				return nil, nil
+			}
+			return nil, &s
 		}
-		return nil, &s
 	}
 
 	switch vr := reflect.ValueOf(a); vr.Kind() {
@@ -80,10 +88,14 @@ func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogOb
 		fallthrough
 	case reflect.Struct:
 		if !optionalStruct || len(vr.Type().PkgPath()) == 0 {
-			return v.MFactory.CreateLogObjectMarshaller(vr), nil
+			return mFactory.CreateLogObjectMarshaller(vr), nil
 		}
 	}
 	return nil, nil
+}
+
+func (v MsgFormatConfig) fmtLogStruct(a interface{}, optionalStruct bool) (LogObjectMarshaller, *string) {
+	return fmtLogStruct(a, v.MFactory, optionalStruct, false)
 }
 
 func (v MsgFormatConfig) FmtLogStruct(a interface{}) (LogObjectMarshaller, string) {

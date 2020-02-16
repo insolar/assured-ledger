@@ -379,7 +379,7 @@ func (p *output) AddTimeField(k string, v time.Time, fFmt LogFieldFormat) {
 
 func (p *output) AddErrorField(msg string, stack throw.StackTrace, hasPanic bool) {
 	if msg != "" {
-		p.buf.WriteString(fmt.Sprintf("%s:%s", "errorMsg", msg))
+		p.buf.WriteString(fmt.Sprintf("%s:%s,", "errorMsg", msg))
 	}
 	if stack == nil {
 		return
@@ -389,5 +389,5 @@ func (p *output) AddErrorField(msg string, stack throw.StackTrace, hasPanic bool
 		pn = "panic:"
 	}
 	st := stack.StackTraceAsText()
-	p.buf.WriteString(fmt.Sprintf("%s:%s%s", "errorStack", pn, st))
+	p.buf.WriteString(fmt.Sprintf("%s:%s%s,", "errorStack", pn, st))
 }
