@@ -185,11 +185,15 @@ func IsEqual(err0, err1 error) bool {
 	return false
 }
 
+type iser interface {
+	Is(error) bool
+}
+
 func isThis(isComparable bool, err, target error) bool {
 	if isComparable && err == target {
 		return true
 	}
-	if x, ok := err.(interface{ Is(error) bool }); ok && x.Is(target) {
+	if x, ok := err.(iser); ok && x.Is(target) {
 		return true
 	}
 	return false
