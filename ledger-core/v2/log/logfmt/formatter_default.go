@@ -14,7 +14,7 @@ func GetDefaultLogMsgFormatter() MsgFormatConfig {
 	return MsgFormatConfig{
 		Sformat:  fmt.Sprint,
 		Sformatf: fmt.Sprintf,
-		MFactory: GetDefaultLogMsgMarshallerFactory(),
+		MFactory: GetMarshallerFactory(),
 		TimeFmt:  time.RFC3339,
 	}
 }

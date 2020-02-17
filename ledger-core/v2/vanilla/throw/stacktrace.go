@@ -1,18 +1,7 @@
-//
-// Copyright 2019 Insolar Technologies GmbH
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package throw
 
@@ -22,13 +11,17 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"strings"
 )
 
-const StackTracePrefix = "Stack trace: "
+const StackTracePrefix = "Stack trace:"
+const stackTracePrintPrefix = StackTracePrefix + "\n"
 
 type StackTrace interface {
 	StackTraceAsText() string
 	WriteStackTraceTo(writer io.Writer) error
+	IsFullStack() bool
+	//ParseStackTrace() errors.StackTrace
 }
 
 // CaptureStack captures whole stack
@@ -43,192 +36,6 @@ func CaptureStackTop(skipFrames int) StackTrace {
 	return stackTrace{captureStack(skipFrames+1, true), true}
 }
 
-type StackTraceRelation int8
-
-const (
-	SubsetTrace StackTraceRelation = iota - 2
-	TopTrace
-	EqualTrace
-	FullTrace
-	SupersetTrace
-	DifferentTrace
-)
-
-func CompareStackTrace(st0, st1 StackTrace) StackTraceRelation {
-	return CompareStackTraceExt(st0, st1, StrictMatch)
-}
-
-type StackTraceCompareTolerance uint8
-
-const (
-	StrictMatch StackTraceCompareTolerance = iota
-	CodeOffsetIgnoredOnTop
-	LineIgnoredOnTop
-)
-
-func CompareStackTraceExt(st0, st1 StackTrace, mode StackTraceCompareTolerance) StackTraceRelation {
-	if bst0, ok := st0.(stackTrace); ok {
-		if bst1, ok := st1.(stackTrace); ok {
-			switch {
-			case bst0.limit == bst1.limit:
-				if mode == StrictMatch {
-					switch n := len(bst0.data) - len(bst1.data); {
-					case n == 0:
-						if bytes.Equal(bst0.data, bst1.data) {
-							return EqualTrace
-						}
-					case n > 0:
-						if bytes.HasSuffix(bst0.data, bst1.data) {
-							return SupersetTrace
-						}
-					case bytes.HasSuffix(bst1.data, bst0.data):
-						return SubsetTrace
-					}
-					return DifferentTrace
-				}
-				return compareDebugStackTrace(bst0.data, bst1.data, mode)
-			case bst0.limit:
-				if _, _, b := isStackTraceTop(bst0.data, bst1.data, mode); b {
-					return TopTrace
-				}
-			default:
-				if _, _, b := isStackTraceTop(bst1.data, bst0.data, mode); b {
-					return FullTrace
-				}
-			}
-		}
-	}
-	return DifferentTrace
-}
-
-func compareDebugStackTrace(bst0, bst1 []byte, mode StackTraceCompareTolerance) StackTraceRelation {
-	// Here is the problem - the topmost entry may differ by line number or code offset within the same method
-	// E.g.:
-	//	github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.errBuilder._err2(0x895980, 0xc00003a040, 0x0, 0x0)
-	//		/github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw/chain_test.go:57 +0x66
-	// vs
-	// github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.errBuilder._err2(0x895980, 0xc00003a040, 0x0, 0x0)
-	//		/github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw/chain_test.go:57 +0x44
-	//
-	swapped := false
-	if len(bst0) > len(bst1) {
-		swapped = true
-		bst0, bst1 = bst1, bst0
-	}
-
-	bst0I := indexOfFrame(bst0, 1)
-	if bst0I < 0 {
-		// this is the only frame of bst0
-		switch _, bst1P, b := isStackTraceTop(bst0, bst1, mode); {
-		case !b:
-			return DifferentTrace
-		case bst1P == len(bst1):
-			return EqualTrace
-		case swapped:
-			return FullTrace
-		default:
-			return TopTrace
-		}
-	}
-
-	bst0P, bst1P, b := isStackTraceTop(bst0[:bst0I], bst1, mode)
-
-	if b {
-		if bytes.Equal(bst0[bst0P:], bst1[bst1P:]) {
-			return EqualTrace
-		}
-		return DifferentTrace
-	}
-
-	switch {
-	case !bytes.HasSuffix(bst1, bst0):
-		return DifferentTrace
-	case swapped:
-		return SupersetTrace
-	default:
-		return SubsetTrace
-	}
-}
-
-func isStackTraceTop(bstTop, bstFull []byte, mode StackTraceCompareTolerance) (int, int, bool) {
-	n := len(bstTop)
-	if len(bstFull) <= n {
-		return 0, 0, false
-	}
-
-	i, j := cmpLongestTillEol(bstTop, bstFull), 0
-	switch {
-	case i == n:
-		return i, i, true
-	case bstTop[i] != '\n':
-		return 0, 0, false
-	case bstFull[i] == '(':
-		j = bytes.IndexByte(bstFull[i:], '\n')
-		if j < 0 {
-			return 0, 0, false
-		}
-	case bstFull[i] != '\n':
-		return 0, 0, false
-	}
-
-	i++
-	k := cmpLongestTillEol(bstTop[i:], bstFull[i+j:])
-	j += k
-	k += i
-
-	switch {
-	case k == n:
-		return k, j, true
-	case bstTop[k] == '\n':
-		return k, j, true
-	}
-
-	var sep byte
-	switch mode {
-	case CodeOffsetIgnoredOnTop:
-		sep = '+'
-	case LineIgnoredOnTop:
-		sep = ':'
-	default:
-		return 0, 0, false
-	}
-
-	z := bytes.IndexByte(bstTop[k:], '\n')
-	if z < 0 {
-		z = len(bstTop) - 1
-	} else {
-		z += k
-	}
-	m := bytes.LastIndexByte(bstTop[i:z], sep)
-	if m >= 0 && i+m < k {
-		z++
-		jj := bytes.IndexByte(bstFull[j:], '\n')
-		if jj < 0 {
-			jj = len(bstFull)
-		} else {
-			jj += j
-			jj++
-		}
-		return z, jj, true
-	}
-
-	return 0, 0, false
-}
-
-func cmpLongestTillEol(shortest, s []byte) int {
-	i := 0
-	for n := len(shortest); i < n; i++ {
-		switch shortest[i] {
-		case '\n':
-			return i
-		case s[i]:
-			continue
-		}
-		break
-	}
-	return i
-}
-
 func IsInSystemPanic(skipFrames int) bool {
 	pc := make([]uintptr, 1)
 	if runtime.Callers(skipFrames+2, pc) != 1 {
@@ -238,9 +45,16 @@ func IsInSystemPanic(skipFrames int) bool {
 	return n == "runtime.preprintpanics"
 }
 
+//var _ fmt.Formatter = stackTrace{}
+
 type stackTrace struct {
-	data  []byte
+	data []byte
+	//parsed errors.StackTrace
 	limit bool
+}
+
+func (v stackTrace) IsFullStack() bool {
+	return !v.limit
 }
 
 func (v stackTrace) WriteStackTraceTo(w io.Writer) error {
@@ -257,8 +71,30 @@ func (v stackTrace) LogString() string {
 }
 
 func (v stackTrace) String() string {
-	return StackTracePrefix + string(v.data)
+	return stackTracePrintPrefix + string(v.data)
 }
+
+//func (v stackTrace) ParseStackTrace() errors.StackTrace {
+//
+//}
+//
+//func (v stackTrace) Format(s fmt.State, verb rune) {
+//	switch verb {
+//	case 'v':
+//		switch {
+//		case s.Flag('+'):
+//			//for _, f := range st {
+//			//	fmt.Fprintf(s, "\n%+v", f)
+//			//}
+//		case s.Flag('#'):
+//			//fmt.Fprintf(s, "%#v", []Frame(st))
+//		default:
+//			//fmt.Fprintf(s, "%v", []Frame(st))
+//		}
+//	case 's':
+//		fmt.Fprintf(s, "%s", []Frame(st))
+//	}
+//}
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
 	skipFrames++
@@ -369,4 +205,11 @@ func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
 	}
 
 	return trimCapacity(0, result)
+}
+
+func TrimStackTrace(s string) string {
+	if i := strings.Index(s, "\n"+stackTracePrintPrefix); i >= 0 {
+		return s[:i]
+	}
+	return s
 }

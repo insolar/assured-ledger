@@ -7,6 +7,7 @@ package logfmt
 
 import (
 	"fmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"strings"
 	"testing"
 	"time"
@@ -374,4 +375,19 @@ func (p *output) AddTimeField(k string, v time.Time, fFmt LogFieldFormat) {
 	default:
 		p.buf.WriteString(fmt.Sprintf("%s:%s:time", k, v.String()))
 	}
+}
+
+func (p *output) AddErrorField(msg string, stack throw.StackTrace, hasPanic bool) {
+	if msg != "" {
+		p.buf.WriteString(fmt.Sprintf("%s:%s,", "errorMsg", msg))
+	}
+	if stack == nil {
+		return
+	}
+	pn := ""
+	if hasPanic {
+		pn = "panic:"
+	}
+	st := stack.StackTraceAsText()
+	p.buf.WriteString(fmt.Sprintf("%s:%s%s,", "errorStack", pn, st))
 }

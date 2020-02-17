@@ -1,18 +1,7 @@
-//
-// Copyright 2019 Insolar Technologies GmbH
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package throw
 
@@ -26,19 +15,19 @@ func CleanWalk(errChain error, fn func(error, string, StackTrace) bool) bool {
 	}
 
 	last := cleanWalk{fn: fn}
-	hadFirst := false
-	if Walk(errChain, func(err error, trace StackTrace) bool {
-		if !hadFirst {
-			hadFirst = true
-			return last.firstStep(err, trace)
-		}
-		return last.nextStep(err, trace)
-	}) {
-		return true
-	}
-	if !hadFirst {
-		return false
-	}
+	//hadFirst := false
+	//if Walk(errChain, func(err error, trace StackTrace) bool {
+	//	if !hadFirst {
+	//		hadFirst = true
+	//		return last.firstStep(err, trace)
+	//	}
+	//	return last.nextStep(err, trace)
+	//}) {
+	//	return true
+	//}
+	//if !hadFirst {
+	//	return false
+	//}
 	return last.lastStep()
 }
 
@@ -126,9 +115,9 @@ func (w *cleanWalk) nextStep(err error, trace StackTrace) bool {
 	//	if trace == nil || !includeStack {
 	//		return false
 	//	}
-	//	b.WriteString(StackTracePrefix)
+	//	b.WriteString(stackTracePrintPrefix)
 	//case trace != nil && includeStack:
-	//	b.WriteString("<nil>\n" + StackTracePrefix)
+	//	b.WriteString("<nil>\n" + stackTracePrintPrefix)
 	//default:
 	//	b.WriteString("<nil>\n")
 	//	return false
@@ -156,11 +145,11 @@ func (w *cleanWalk) checkTrace(trace StackTrace) bool {
 		w.lastTrace = trace
 	default:
 		switch CompareStackTrace(trace, w.lastTrace) {
-		case DifferentTrace:
+		case DifferentStack:
 			prevTrace := w.lastTrace
 			w.lastTrace = trace
 			return w.fn(nil, "", prevTrace)
-		case EqualTrace, SupersetTrace, FullTrace:
+		case EqualStack, SupersetStack, FullStack:
 			w.lastTrace = trace
 		}
 	}

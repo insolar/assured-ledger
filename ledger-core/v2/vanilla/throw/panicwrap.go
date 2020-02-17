@@ -1,18 +1,7 @@
-//
-// Copyright 2019 Insolar Technologies GmbH
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package throw
 
@@ -23,6 +12,7 @@ import (
 
 const NoStackTrace int = math.MaxInt32
 
+// PanicHolder is a marker interface for a recovered panic
 type PanicHolder interface {
 	StackTraceHolder
 	Recovered() interface{}
@@ -30,14 +20,23 @@ type PanicHolder interface {
 
 const recoverSkipFrames = 2 // defer() + runtime.panic()
 
+// WrapPanic returns an error for the given recovered panic with a stack trace.
+// The error is also marked as recovered panic. Will return nil for a nil value
+// NB! Should be used inside a defer.
 func WrapPanic(recovered interface{}) error {
 	return WrapPanicExt(recovered, recoverSkipFrames+1) // WrapPanic() + defer
 }
 
+// WrapPanicNoStack returns an error for the given recovered panic without a stack trace.
+// The error is also marked as recovered panic. Will return nil for a nil value
+// NB! Should be used inside a defer.
 func WrapPanicNoStack(recovered interface{}) error {
 	return WrapPanicExt(recovered, NoStackTrace)
 }
 
+// WrapPanicNoStack returns an error for the given recovered panic with or without a stack trace.
+// When (skipFrames) = NoStackTrace then no stack trace is included.
+// The error is also marked as recovered panic. Will return nil for a nil value
 func WrapPanicExt(recovered interface{}, skipFrames int) error {
 	if recovered == nil {
 		return nil
@@ -47,7 +46,9 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 	if skipFrames < NoStackTrace {
 		st = CaptureStack(skipFrames + 1)
 	}
-	stDeepest := st
+
+	var stDeepest StackTrace
+	var stDeepMod DeepestStackMode
 
 	switch vv := recovered.(type) {
 	case panicWrap:
@@ -55,39 +56,35 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 			return vv
 		}
 		switch CompareStackTrace(vv.st, st) {
-		case EqualTrace, SupersetTrace:
+		case EqualStack, SupersetStack:
 			return vv
 		}
 	case stackWrap:
-		stDeepest = reuseSupersetTrace(stDeepest, vv.stDeepest)
+		stDeepest, stDeepMod = reuseSupersetTrace(st, vv.stDeepest)
 	case fmtWrap:
 		return panicWrap{st: st, stDeepest: stDeepest, fmtWrap: vv}
 	case error:
 		sth := OutermostStack(vv)
 		if sth != nil {
-			stDeepest = reuseSupersetTrace(stDeepest, sth.DeepestStackTrace())
+			stDeep, _ := sth.DeepestStackTrace()
+			stDeepest, stDeepMod = reuseSupersetTrace(st, stDeep)
 		}
 	}
-	return panicWrap{st: st, stDeepest: stDeepest, recovered: recovered, fmtWrap: wrapInternal(recovered)}
+	return panicWrap{st, recovered, stDeepest, wrapInternal(recovered), stDeepMod}
 }
 
-func UnwrapPanic(err error) (interface{}, StackTrace, bool) {
-	if vv, ok := err.(panicWrap); ok {
-		return vv.recovered, vv.st, true
-	}
-	return err, nil, false
-}
-
-func InnermostPanicWithStack(recovered interface{}) PanicHolder {
-	switch vv := recovered.(type) {
-	case error:
-		return innermostWithStack(vv)
+// InnermostPanicWithStack returns the most distant panic holder from the chain.
+// The value can be either error or PanicHolder. Otherwise will return nil.
+func InnermostPanicWithStack(errorOrHolder interface{}) PanicHolder {
+	switch vv := errorOrHolder.(type) {
 	case PanicHolder:
-		st := vv.StackTrace()
+		st := vv.ShallowStackTrace()
 		if st != nil {
 			return vv
 		}
-		return innermostWithStack(vv.Reason())
+		return innermostWithStack(vv.Cause())
+	case error:
+		return innermostWithStack(vv)
 	default:
 		return nil
 	}
@@ -97,7 +94,7 @@ func innermostWithStack(errChain error) PanicHolder {
 	for errChain != nil {
 		if sw, ok := errChain.(panicWrap); ok {
 			nextErr := sw.Unwrap()
-			if sw.StackTrace() != nil && nextErr != nil {
+			if sw.ShallowStackTrace() != nil && nextErr != nil {
 				return sw
 			}
 			errChain = nextErr

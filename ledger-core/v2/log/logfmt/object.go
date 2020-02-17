@@ -6,6 +6,7 @@
 package logfmt
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 	"time"
 )
@@ -57,6 +58,7 @@ type LogObjectWriter interface {
 	AddIntfField(key string, v interface{}, fmt LogFieldFormat)
 	AddTimeField(key string, v time.Time, fmt LogFieldFormat)
 	AddRawJSONField(key string, v interface{}, fmt LogFieldFormat)
+	AddErrorField(msg string, stack throw.StackTrace, hasPanic bool)
 }
 
 type LogObjectFields struct {

@@ -1,3 +1,8 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
 package throw
 
 import (
@@ -46,18 +51,24 @@ type errBuilder struct {
 }
 
 func (v errBuilder) _err0() error {
-	return WithDetails(v.bottomErr, Unsupported())
+	err := WithDetails(v.bottomErr, Unsupported())
+	//fmt.Println("0>>>> ", err)
+	return err
 }
 
 func (v errBuilder) _err1() error {
-	return WithStackAndDetails(v._err0(), struct {
+	err := WithStackAndDetails(v._err0(), struct {
 		msg string
 		v0  int
 	}{"err1Txt", 1})
+	//fmt.Println("1>>>> ", err)
+	return err
 }
 
 func (v errBuilder) _err2() error {
-	return WithStack(v._err1())
+	err := WithStack(v._err1())
+	//fmt.Println("2>>>> ", err)
+	return err
 }
 
 func (v errBuilder) _err3() error {
@@ -67,6 +78,7 @@ func (v errBuilder) _err3() error {
 func (v errBuilder) _err4() (err error) {
 	defer func() {
 		err = RM(recover(), err, "panicCatch", struct{ position int }{7})
+		//fmt.Println("4>>>> ", err)
 	}()
 	return v._err3()
 }
@@ -77,7 +89,7 @@ func newChain(bottom error) error {
 
 func TestWrapPanicExt(t *testing.T) {
 	err := WrapPanicExt("test", 0)
-	st := OutermostStack(err).StackTrace()
+	st := OutermostStack(err).ShallowStackTrace()
 	s := st.StackTraceAsText()
 	methodName := "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.TestWrapPanicExt"
 	require.True(t, strings.HasPrefix(st.StackTraceAsText(), methodName), "missing method: %s", s)

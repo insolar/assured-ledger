@@ -5,17 +5,10 @@
 
 package args
 
-import "reflect"
+import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 
 func IsNil(v interface{}) bool {
-	if v == nil {
-		return true
-	}
-	switch rv := reflect.ValueOf(v); rv.Kind() {
-	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		return rv.IsNil()
-	}
-	return false
+	return reflectkit.IsNil(v)
 }
 
 type ShuffleFunc func(n int, swap func(i, j int))
