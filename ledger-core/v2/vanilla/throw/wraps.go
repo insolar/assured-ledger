@@ -22,15 +22,19 @@ type msgWrap struct {
 func (v msgWrap) bypassWrapper() {}
 
 func (v msgWrap) Cause() error {
-	return v
+	return errString(v.msg)
 }
 
 func (v msgWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
-func (v msgWrap) DeepestStackTrace() (StackTrace, bool) {
-	return v.st, false
+func (v msgWrap) DeepestStackTrace() (StackTrace, DeepestStackMode) {
+	return v.st, 0
+}
+
+func (v msgWrap) ExtraInfo() (string, interface{}) {
+	return v.msg, nil
 }
 
 func (v msgWrap) LogString() string {
@@ -39,6 +43,12 @@ func (v msgWrap) LogString() string {
 
 func (v msgWrap) Error() string {
 	return joinStack(v.msg, v.st)
+}
+
+type errString string
+
+func (v errString) Error() string {
+	return string(v)
 }
 
 func joinErrString(s0, s1 string) string {
@@ -62,10 +72,10 @@ func joinStack(s0 string, s1 StackTrace) string {
 /*******************************************************************/
 
 type stackWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	stDeepest  StackTrace
-	err        error
+	st        StackTrace
+	stDeepest StackTrace
+	stDeepMod DeepestStackMode
+	err       error
 }
 
 func (v stackWrap) bypassWrapper() {}
@@ -74,11 +84,11 @@ func (v stackWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
-func (v stackWrap) DeepestStackTrace() (StackTrace, bool) {
+func (v stackWrap) DeepestStackTrace() (StackTrace, DeepestStackMode) {
 	if v.stDeepest == nil {
-		return v.st, false
+		return v.st, v.stDeepMod
 	}
-	return v.stDeepest, true
+	return v.stDeepest, v.stDeepMod
 }
 
 func (v stackWrap) Cause() error {
@@ -107,9 +117,10 @@ func (v stackWrap) Error() string {
 
 type panicWrap struct {
 	st        StackTrace
-	stDeepest StackTrace
 	recovered interface{}
+	stDeepest StackTrace
 	fmtWrap
+	stDeepMod DeepestStackMode
 }
 
 func (v fmtWrap) bypassWrapper() {}
@@ -125,11 +136,11 @@ func (v panicWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
-func (v panicWrap) DeepestStackTrace() (StackTrace, bool) {
+func (v panicWrap) DeepestStackTrace() (StackTrace, DeepestStackMode) {
 	if v.stDeepest == nil {
-		return v.st, false
+		return v.st, v.stDeepMod
 	}
-	return v.stDeepest, true
+	return v.stDeepest, v.stDeepMod
 }
 
 func (v panicWrap) Recovered() interface{} {

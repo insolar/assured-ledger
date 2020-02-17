@@ -12,19 +12,19 @@ import (
 )
 
 type errorMarshaller struct {
-	errors   []errorLevel
+	reports  []errorReport
 	stack    throw.StackTrace
 	msg      string
 	hasPanic bool
 }
 
-type errorLevel struct {
+type errorReport struct {
 	marshaller LogObjectMarshaller
 	strValue   string
-	pureError  bool
+	stack      throw.StackTrace
 }
 
-func (v *errorMarshaller) appendErrorLevel(m LogObjectMarshaller, s string, ps *string) bool {
+func (v *errorMarshaller) appendReport(m LogObjectMarshaller, s string, ps *string, st throw.StackTrace) bool {
 	switch {
 	case ps == nil:
 		//
@@ -37,28 +37,28 @@ func (v *errorMarshaller) appendErrorLevel(m LogObjectMarshaller, s string, ps *
 		}
 	}
 	if m != nil || s != "" {
-		v.errors = append(v.errors, errorLevel{m, s, false})
+		v.reports = append(v.reports, errorReport{m, s, st})
 		return true
+	}
+	if st != nil {
+		v.reports = append(v.reports, errorReport{m, s, st})
 	}
 	return false
 }
 
-func (v *errorMarshaller) appendError(mf MarshallerFactory, isHolder bool, x interface{}) bool {
+func (v *errorMarshaller) appendError(mf MarshallerFactory, x interface{}, st throw.StackTrace) bool {
 	m, ps := fmtLogStruct(x, mf, true, true)
-	if isHolder {
-		ps = nil
-	}
-	return v.appendErrorLevel(m, "", ps)
+	return v.appendReport(m, "", ps, st)
 }
 
 func (v *errorMarshaller) appendExtraInfo(mf MarshallerFactory, x interface{}) bool {
 	if extras, extra, ok := throw.UnwrapExtraInfo(x); ok {
 		m, ps := fmtLogStruct(extra, mf, true, true)
-		if v.appendErrorLevel(m, extras, ps) {
+		if v.appendReport(m, extras, ps, nil) {
 			return true
 		}
 		if err, ok := extra.(error); ok {
-			return v.appendErrorLevel(nil, err.Error(), nil)
+			return v.appendReport(nil, err.Error(), nil, nil)
 		}
 	}
 	return false
@@ -69,30 +69,34 @@ func (v *errorMarshaller) fillLevels(errChain error, mf MarshallerFactory) bool 
 		return false
 	}
 
-	var (
-		anyStack throw.StackTrace
-	)
-
+	hasStacks := false
+	isSupersededTrace := false
 	throw.Walk(errChain, func(err error, holder throw.StackTraceHolder) bool {
+		var localSt throw.StackTrace
 		if holder != nil {
-			if st := holder.ShallowStackTrace(); st != nil {
-				anyStack = st
-				if st.IsFullStack() {
-					v.stack = st
+			if st, stMode := holder.DeepestStackTrace(); st != nil {
+				if !isSupersededTrace {
+					hasStacks = true
+					localSt = st
+				}
+				switch {
+				case stMode == throw.SupersededTrace:
+					isSupersededTrace = true
+				case stMode == throw.InheritedTrace:
+					localSt = nil
+				default:
+					isSupersededTrace = false
 				}
 			}
-
-			v.appendError(mf, true, holder)
-			v.appendExtraInfo(mf, holder)
-
+			//v.appendError(mf, true, holder)
+			//v.appendExtraInfo(mf, holder)
 			if vv, ok := holder.(throw.PanicHolder); ok {
 				v.hasPanic = true
 				r := vv.Recovered()
 				if _, ok := r.(error); !ok {
-					v.appendError(mf, false, r)
+					v.appendError(mf, r, nil)
 				}
 			}
-
 			err = holder.Cause()
 		}
 
@@ -100,50 +104,56 @@ func (v *errorMarshaller) fillLevels(errChain error, mf MarshallerFactory) bool 
 			return false
 		}
 
-		hasLevel := v.appendError(mf, false, err)
-		if !v.appendExtraInfo(mf, err) && !hasLevel {
+		hasReport := v.appendError(mf, err, localSt)
+		if !v.appendExtraInfo(mf, err) && !hasReport {
 			if s := err.Error(); s != "" {
 				if wrapped := errors.Unwrap(err); wrapped != nil {
 					s, _ = cutOut(s, wrapped.Error())
 				}
-				v.errors = append(v.errors, errorLevel{nil, s, true})
+				v.reports = append(v.reports, errorReport{nil, s, nil})
 			}
 		}
 
 		return false
 	})
 
-	if v.stack == nil {
-		v.stack = anyStack
-	}
-
 	switch {
-	case len(v.errors) > 1:
-		for i, e := range v.errors {
-			if e.strValue != "" {
+	case len(v.reports) > 1:
+		for i, e := range v.reports {
+			if v.msg == "" && e.strValue != "" {
 				v.msg = e.strValue
-				v.errors[i].strValue = ""
-				break
+				v.reports[i].strValue = ""
+				if v.stack != nil {
+					break
+				}
+			}
+			if v.stack == nil && e.stack != nil && e.stack.IsFullStack() {
+				v.stack = e.stack
+				v.reports[i].stack = nil
+				if v.msg != "" {
+					break
+				}
 			}
 		}
-	case len(v.errors) == 0:
+	case len(v.reports) == 0:
 		// very strange ...
 		if ls, ok := errChain.(LogStringer); ok {
 			v.msg = ls.LogString()
 		} else {
 			v.msg = errChain.Error()
 		}
-	default:
-		v.msg = v.errors[0].strValue
-		if v.errors[0].marshaller == nil {
-			v.errors = nil
-		} else {
-			v.errors[0].strValue = ""
+		if hasStacks {
+			v.msg = throw.TrimStackTrace(v.msg)
 		}
-	}
-
-	if v.stack != nil {
-		v.msg = throw.TrimStackTrace(v.msg)
+	default:
+		v.msg = v.reports[0].strValue
+		v.stack = v.reports[0].stack
+		if v.reports[0].marshaller == nil {
+			v.reports = nil
+		} else {
+			v.reports[0].stack = nil
+			v.reports[0].strValue = ""
+		}
 	}
 
 	return true
@@ -168,14 +178,16 @@ func cutOut(s, substr string) (string, bool) {
 }
 
 func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) string {
-	for _, el := range v.errors {
+	for _, el := range v.reports {
+		st := el.stack
 		if el.marshaller != nil {
 			if s := el.marshaller.MarshalLogObject(output, collector); s != "" {
-				output.AddErrorField(s, nil, false)
+				output.AddErrorField(s, st, false)
+				st = nil
 			}
 		}
-		if s := el.strValue; s != "" {
-			output.AddErrorField(s, nil, false)
+		if s := el.strValue; s != "" || st != nil {
+			output.AddErrorField(s, st, false)
 		}
 	}
 	if v.stack != nil {
@@ -188,7 +200,7 @@ func (v errorMarshaller) MarshalMutedLogObject(collector LogObjectMetricCollecto
 	if collector == nil {
 		return
 	}
-	for _, el := range v.errors {
+	for _, el := range v.reports {
 		if mm, ok := el.marshaller.(MutedLogObjectMarshaller); ok {
 			mm.MarshalMutedLogObject(collector)
 		}
@@ -196,5 +208,5 @@ func (v errorMarshaller) MarshalMutedLogObject(collector LogObjectMetricCollecto
 }
 
 func (v errorMarshaller) IsEmpty() bool {
-	return len(v.errors) == 0
+	return len(v.reports) == 0
 }

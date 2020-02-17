@@ -11,6 +11,14 @@ import (
 	"strings"
 )
 
+type DeepestStackMode uint8
+
+const (
+	_ DeepestStackMode = iota
+	InheritedTrace
+	SupersededTrace
+)
+
 type StackTraceHolder interface {
 	// Cause returns a cause for this stack trace. It can NOT be used like Unwrap() as it may return self.
 	Cause() error
@@ -18,7 +26,7 @@ type StackTraceHolder interface {
 	ShallowStackTrace() StackTrace
 	// DeepestStackTrace returns this or the deepest stack trace from cause's error chain that embeds ShallowStackTrace.
 	// Bool value is true when the stack trace was inherited from the cause.
-	DeepestStackTrace() (StackTrace, bool)
+	DeepestStackTrace() (StackTrace, DeepestStackMode)
 }
 
 // StackOf returns a target-matched entry with a wrapping StackTraceHolder (optional)

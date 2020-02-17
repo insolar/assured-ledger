@@ -46,7 +46,9 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 	if skipFrames < NoStackTrace {
 		st = CaptureStack(skipFrames + 1)
 	}
-	stDeepest := st
+
+	var stDeepest StackTrace
+	var stDeepMod DeepestStackMode
 
 	switch vv := recovered.(type) {
 	case panicWrap:
@@ -58,17 +60,17 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 			return vv
 		}
 	case stackWrap:
-		stDeepest = reuseSupersetTrace(stDeepest, vv.stDeepest)
+		stDeepest, stDeepMod = reuseSupersetTrace(st, vv.stDeepest)
 	case fmtWrap:
 		return panicWrap{st: st, stDeepest: stDeepest, fmtWrap: vv}
 	case error:
 		sth := OutermostStack(vv)
 		if sth != nil {
 			stDeep, _ := sth.DeepestStackTrace()
-			stDeepest = reuseSupersetTrace(stDeepest, stDeep)
+			stDeepest, stDeepMod = reuseSupersetTrace(st, stDeep)
 		}
 	}
-	return panicWrap{st: st, stDeepest: stDeepest, recovered: recovered, fmtWrap: wrapInternal(recovered)}
+	return panicWrap{st, recovered, stDeepest, wrapInternal(recovered), stDeepMod}
 }
 
 // InnermostPanicWithStack returns the most distant panic holder from the chain.

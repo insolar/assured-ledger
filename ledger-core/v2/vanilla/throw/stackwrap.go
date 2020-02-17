@@ -44,25 +44,28 @@ func WithStackTopExt(err error, skipFrames int) error {
 	return withStack(err, CaptureStackTop(skipFrames+1))
 }
 
-func reuseSupersetTrace(current, wrapped StackTrace) StackTrace {
+func reuseSupersetTrace(current, wrapped StackTrace) (StackTrace, DeepestStackMode) {
 	switch {
 	case current == nil:
-		return wrapped
+		return wrapped, InheritedTrace
 	case wrapped == nil:
-		return nil
+		return nil, 0
 	}
 	switch CompareStackTraceExt(current, wrapped, SameMethod) {
 	case SubsetStack, StackTop:
-		return wrapped
+		return wrapped, InheritedTrace
+	case FullStack:
+		return nil, SupersededTrace
 	default:
-		return nil
+		return nil, 0
 	}
 }
 
 func withStack(err error, st StackTrace) stackWrap {
 	if sth := OutermostStack(err); sth != nil {
 		stDeep, _ := sth.DeepestStackTrace()
-		return stackWrap{st: st, stDeepest: reuseSupersetTrace(st, stDeep), err: err}
+		stDeepest, stDeepMod := reuseSupersetTrace(st, stDeep)
+		return stackWrap{st, stDeepest, stDeepMod, err}
 	}
 	return stackWrap{st: st, err: err}
 }

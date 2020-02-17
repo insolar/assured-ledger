@@ -60,7 +60,7 @@ func TestErrorMarshaller_MarshalLogObject_simple(t *testing.T) {
 	s, o = fmtError(t, throw.WithStack(err))
 	assert.Equal(t, "wrapper %w", s)
 	assert.Contains(t, o, "errorMsg:EOF,errorStack:")
-	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_simple")
+	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_simple"))
 
 	s, o = fmtError(t, throw.WithDetails(err, struct{ x int }{99}))
 	assert.Equal(t, "wrapper %w", s)
@@ -88,7 +88,7 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 	s, o := fmtError(t, err)
 	assert.Equal(t, "panicMsg", s)
 	assert.Contains(t, o, "f3:3:uint,errorMsg:wrapper %w,f2:2:int,errorMsg:ext,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
-	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_mixed")
+	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_mixed"))
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
 }
 
@@ -107,6 +107,34 @@ func TestErrorMarshaller_MarshalLogObject_repeated(t *testing.T) {
 	s, o := fmtError(t, err)
 	assert.Equal(t, "mmmm %w", s)
 	assert.Contains(t, o, "errorMsg:mmmm %w,errorMsg:mm,errorMsg:mmm %w,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:m,errorStack:")
-	assert.Contains(t, o, "TestErrorMarshaller_MarshalLogObject_repeated")
+	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_repeated"))
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_repeated"))
+}
+
+func TestErrorMarshaller_MarshalLogObject_skipTop(t *testing.T) {
+	err := throw.IllegalState()
+	err = throw.WithStack(err)
+	s, o := fmtError(t, err)
+	assert.Equal(t, "illegal state", s)
+	assert.True(t, strings.HasPrefix(o, "errorStack:"))
+	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_skipTop"))
+	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_skipTop"))
+}
+
+func TestErrorMarshaller_MarshalLogObject_stackTop(t *testing.T) {
+	err := throw.IllegalState()
+	s, o := fmtError(t, err)
+	assert.Equal(t, "illegal state", s)
+	assert.True(t, strings.HasPrefix(o, "errorStack:"))
+	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_stackTop"))
+	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_stackTop"))
+
+	err = throw.WithDetails(err, struct{ string }{"mm"})
+	err = throw.WithStack(err)
+	s, o = fmtError(t, err)
+	assert.Equal(t, "illegal state", s)
+	assert.Contains(t, o, "errorMsg:mm,errorStack:")
+	//fmt.Println(o)
+	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_stackTop"))
+	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_stackTop"))
 }
