@@ -22,7 +22,7 @@ func GetFormatter() FormatterFunc {
 	return nil
 }
 
-// SetFormatter sets a formatter to be applied by New and NewMsg
+// SetFormatter sets a formatter to be applied by NewDescription and New
 func SetFormatter(fn FormatterFunc) {
 	if fn == nil {
 		panic(IllegalValue())
@@ -30,8 +30,8 @@ func SetFormatter(fn FormatterFunc) {
 	panicFmtFn.Store(fn)
 }
 
-// New creates an error with the given description. Log structs can be used
-func New(description interface{}) error {
+// NewDescription creates an error with the given description. Log structs can be used
+func NewDescription(description interface{}) error {
 	if description == nil {
 		return nil
 	}
@@ -44,8 +44,8 @@ func New(description interface{}) error {
 	return _wrapDesc(description)
 }
 
-// NewMsg creates an error with the given message text and description. Log structs can be used
-func NewMsg(msg string, description interface{}) error {
+// New creates an error with the given message text and description. Log structs can be used
+func New(msg string, description interface{}) error {
 	if description == nil && msg == "" {
 		return nil
 	}

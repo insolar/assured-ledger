@@ -75,7 +75,7 @@ func WithDetails(predecessor error, details interface{}) error {
 	case details == nil:
 		return predecessor
 	case predecessor == nil:
-		return New(details)
+		return NewDescription(details)
 	default:
 		return withDetails(predecessor, details)
 	}

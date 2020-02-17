@@ -77,7 +77,7 @@ func (v errBuilder) _err3() error {
 
 func (v errBuilder) _err4() (err error) {
 	defer func() {
-		err = RM(recover(), err, "panicCatch", struct{ position int }{7})
+		err = RW(recover(), err, "panicCatch", struct{ position int }{7})
 		//fmt.Println("4>>>> ", err)
 	}()
 	return v._err3()

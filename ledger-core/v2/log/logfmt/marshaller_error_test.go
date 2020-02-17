@@ -7,28 +7,30 @@ package logfmt
 
 import (
 	"fmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 func TestErrorMarshaller_MarshalLogObject_struct(t *testing.T) {
 	reportMsg := "report"
-	err := throw.EM("start", struct {
+	err := throw.E("start", struct {
 		string
 		f0 int
 		f1 string
 	}{"main", 1, "ABC"})
-	err = throw.WithDetails(err, throw.E(struct {
+	err = throw.WithDetails(err, struct {
 		string
 		f2 int
-	}{"ext", 2}))
+	}{"ext", 2})
 	err = throw.WithStack(err)
 	err = throw.WithDetails(err, io.EOF)
-	err = throw.WithDetails(err, throw.EM(reportMsg, struct{ f3 uint }{3}))
+	err = throw.WithDetails(err, throw.E(reportMsg, struct{ f3 uint }{3}))
 	err = throw.WithStack(err) // repeated stack trace capture should not pollute the output
 
 	s, o := fmtError(t, err)
@@ -68,21 +70,21 @@ func TestErrorMarshaller_MarshalLogObject_simple(t *testing.T) {
 }
 
 func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
-	err := throw.EM("start", struct {
+	err := throw.E("start", struct {
 		string
 		f0 int
 		f1 string
 	}{"main", 1, "ABC"})
-	err = throw.WithDetails(err, throw.E(struct { // same message "wrapper" here must not be deduplicated with "wrapper" of fmt.Errorf
+	err = throw.WithDetails(err, struct { // same message "wrapper" here must not be deduplicated with "wrapper" of fmt.Errorf
 		string
 		f2 int
-	}{"ext", 2}))
+	}{"ext", 2})
 	err = throw.WithStack(err)
 
 	err = fmt.Errorf("wrapper %w", err) // mess up the chain - get stack and other parts to be blended-in
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
 
-	err = throw.WithDetails(err, throw.EM("panicMsg", struct{ f3 uint }{3}))
+	err = throw.WithDetails(err, throw.E("panicMsg", struct{ f3 uint }{3}))
 	err = throw.WithStack(err) // repeated stack trace capture should not pollute the output
 
 	s, o := fmtError(t, err)
@@ -93,11 +95,11 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 }
 
 func TestErrorMarshaller_MarshalLogObject_repeated(t *testing.T) {
-	err := throw.EM("m", struct{}{})
+	err := throw.E("m", struct{}{})
 	err = throw.WithDetails(err, struct{ string }{"mm"})
 	err = throw.WithDetails(err, struct{ string }{"mm"})
-	err = throw.WithDetails(err, throw.EM("mm", struct{ string }{"mm"}))
-	err = throw.WithDetails(err, throw.EM("mm", struct{ string }{"mm"}))
+	err = throw.WithDetails(err, throw.E("mm", struct{ string }{"mm"}))
+	err = throw.WithDetails(err, throw.E("mm", struct{ string }{"mm"}))
 	err = throw.WithStack(err)
 	err = fmt.Errorf("mmm %w", err)
 	err = throw.WithDetails(err, struct{ string }{"mm"})
