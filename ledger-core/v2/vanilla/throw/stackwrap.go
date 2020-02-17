@@ -61,7 +61,8 @@ func reuseSupersetTrace(current, wrapped StackTrace) StackTrace {
 
 func withStack(err error, st StackTrace) stackWrap {
 	if sth := OutermostStack(err); sth != nil {
-		return stackWrap{st: st, stDeepest: reuseSupersetTrace(st, sth.DeepestStackTrace()), err: err}
+		stDeep, _ := sth.DeepestStackTrace()
+		return stackWrap{st: st, stDeepest: reuseSupersetTrace(st, stDeep), err: err}
 	}
 	return stackWrap{st: st, err: err}
 }

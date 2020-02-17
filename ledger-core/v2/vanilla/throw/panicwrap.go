@@ -64,7 +64,8 @@ func WrapPanicExt(recovered interface{}, skipFrames int) error {
 	case error:
 		sth := OutermostStack(vv)
 		if sth != nil {
-			stDeepest = reuseSupersetTrace(stDeepest, sth.DeepestStackTrace())
+			stDeep, _ := sth.DeepestStackTrace()
+			stDeepest = reuseSupersetTrace(stDeepest, stDeep)
 		}
 	}
 	return panicWrap{st: st, stDeepest: stDeepest, recovered: recovered, fmtWrap: wrapInternal(recovered)}

@@ -16,8 +16,9 @@ type StackTraceHolder interface {
 	Cause() error
 	// ShallowStackTrace returns a stack trace registered for this cause
 	ShallowStackTrace() StackTrace
-	// DeepestStackTrace returns a deepest stack trace from cause's error chain that embeds ShallowStackTrace
-	DeepestStackTrace() StackTrace
+	// DeepestStackTrace returns this or the deepest stack trace from cause's error chain that embeds ShallowStackTrace.
+	// Bool value is true when the stack trace was inherited from the cause.
+	DeepestStackTrace() (StackTrace, bool)
 }
 
 // StackOf returns a target-matched entry with a wrapping StackTraceHolder (optional)
@@ -50,7 +51,7 @@ func NearestStackOf(errChain, target error) (error, StackTraceHolder, bool) {
 	for errChain != nil {
 		nextErr := errors.Unwrap(errChain)
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			if sw.ShallowStackTrace() != nil || sw.DeepestStackTrace() != nil {
+			if st, _ := sw.DeepestStackTrace(); st != nil {
 				sth = sw
 			}
 			if target == nil && nextErr == nil || isThis(isComparable, sw.Cause(), target) {

@@ -29,8 +29,8 @@ func (v msgWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
-func (v msgWrap) DeepestStackTrace() StackTrace {
-	return v.st
+func (v msgWrap) DeepestStackTrace() (StackTrace, bool) {
+	return v.st, false
 }
 
 func (v msgWrap) LogString() string {
@@ -74,11 +74,11 @@ func (v stackWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
-func (v stackWrap) DeepestStackTrace() StackTrace {
+func (v stackWrap) DeepestStackTrace() (StackTrace, bool) {
 	if v.stDeepest == nil {
-		return v.st
+		return v.st, false
 	}
-	return v.stDeepest
+	return v.stDeepest, true
 }
 
 func (v stackWrap) Cause() error {
@@ -125,11 +125,11 @@ func (v panicWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
 
-func (v panicWrap) DeepestStackTrace() StackTrace {
+func (v panicWrap) DeepestStackTrace() (StackTrace, bool) {
 	if v.stDeepest == nil {
-		return v.st
+		return v.st, false
 	}
-	return v.stDeepest
+	return v.stDeepest, true
 }
 
 func (v panicWrap) Recovered() interface{} {
@@ -147,7 +147,10 @@ func (v panicWrap) Unwrap() error {
 }
 
 func (v panicWrap) Error() string {
-	return joinStack(v.LogString(), v.DeepestStackTrace())
+	if v.stDeepest == nil {
+		return joinStack(v.LogString(), v.st)
+	}
+	return v.LogString()
 }
 
 /*******************************************************************/
