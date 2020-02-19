@@ -226,7 +226,7 @@ func (z *zerologAdapter) fmtEventStruct(event *zerolog.Event, arg interface{}, f
 	obj, msgStr := z.config.MsgFormat.FmtLogStruct(arg)
 	if obj != nil {
 		collector := z.config.Metrics.GetMetricsCollector()
-		msgStr = obj.MarshalLogObject(zerologMarshaller{event, &z.config.MsgFormat}, collector)
+		msgStr, _ = obj.MarshalLogObject(zerologMarshaller{event, &z.config.MsgFormat}, collector)
 	}
 	return msgStr
 }
@@ -238,7 +238,7 @@ func (z *zerologAdapter) fmtEventArgs(event *zerolog.Event, args []interface{}) 
 	obj, msgStr := z.config.MsgFormat.FmtLogStructOrObject(args[0])
 	if obj != nil {
 		collector := z.config.Metrics.GetMetricsCollector()
-		msgStr = obj.MarshalLogObject(zerologMarshaller{event, &z.config.MsgFormat}, collector)
+		msgStr, _ = obj.MarshalLogObject(zerologMarshaller{event, &z.config.MsgFormat}, collector)
 	}
 	return msgStr
 }

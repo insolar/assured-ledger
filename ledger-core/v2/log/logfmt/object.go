@@ -18,7 +18,7 @@ type LogObject interface {
 }
 
 type LogObjectMarshaller interface {
-	MarshalLogObject(LogObjectWriter, LogObjectMetricCollector) string
+	MarshalLogObject(LogObjectWriter, LogObjectMetricCollector) (msg string, defMsg bool)
 }
 
 type LogFieldMarshaller interface {
@@ -66,11 +66,11 @@ type LogObjectFields struct {
 	Fields map[string]interface{}
 }
 
-func (v LogObjectFields) MarshalLogObject(w LogObjectWriter, _ LogObjectMetricCollector) string {
+func (v LogObjectFields) MarshalLogObject(w LogObjectWriter, _ LogObjectMetricCollector) (string, bool) {
 	for k, v := range v.Fields {
 		w.AddIntfField(k, v, LogFieldFormat{})
 	}
-	return v.Msg
+	return v.Msg, false
 }
 
 func (v LogObjectFields) MarshalLogFields(w LogObjectWriter) {

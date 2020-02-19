@@ -53,7 +53,7 @@ func (v *errorMarshaller) appendError(mf MarshallerFactory, x interface{}, st th
 
 func (v *errorMarshaller) appendExtraInfo(mf MarshallerFactory, x interface{}) bool {
 	if extras, extra, ok := throw.UnwrapExtraInfo(x); ok {
-		m, ps := fmtLogStruct(extra, mf, true, true)
+		m, ps := fmtLogStruct(extra, mf, false, true)
 		if v.appendReport(m, extras, ps, nil) {
 			return true
 		}
@@ -177,11 +177,11 @@ func cutOut(s, substr string) (string, bool) {
 	return s, false
 }
 
-func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) string {
+func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) (string, bool) {
 	for _, el := range v.reports {
 		st := el.stack
 		if el.marshaller != nil {
-			if s := el.marshaller.MarshalLogObject(output, collector); s != "" {
+			if s, defMessage := el.marshaller.MarshalLogObject(output, collector); !defMessage && s != "" {
 				output.AddErrorField(s, st, false)
 				st = nil
 			}
@@ -193,7 +193,7 @@ func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogO
 	if v.stack != nil {
 		output.AddErrorField("", v.stack, v.hasPanic)
 	}
-	return v.msg
+	return v.msg, false
 }
 
 func (v errorMarshaller) MarshalMutedLogObject(collector LogObjectMetricCollector) {

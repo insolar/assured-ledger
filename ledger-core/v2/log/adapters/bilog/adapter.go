@@ -191,7 +191,7 @@ func (v binLogAdapter) NewEventStruct(level log.Level) func(interface{}, []logfm
 		obj, msgStr := v.config.MsgFormat.FmtLogStruct(arg)
 		if obj != nil {
 			collector := v.config.Metrics.GetMetricsCollector()
-			msgStr = obj.MarshalLogObject(&event, collector)
+			msgStr, _ = obj.MarshalLogObject(&event, collector)
 		}
 		v.sendEvent(level, event, msgStr, &completed)
 	}
@@ -221,7 +221,7 @@ func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 		event := v.prepareEncoder(level, v.expectedEventLen)
 		if obj != nil {
 			collector := v.config.Metrics.GetMetricsCollector()
-			msgStr = obj.MarshalLogObject(&event, collector)
+			msgStr, _ = obj.MarshalLogObject(&event, collector)
 		}
 		v.sendEvent(level, event, msgStr, &completed)
 	}

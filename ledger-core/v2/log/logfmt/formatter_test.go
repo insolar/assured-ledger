@@ -302,7 +302,7 @@ func (v MsgFormatConfig) _logObject(m LogObjectMarshaller, s string) string {
 		return s
 	}
 	o := output{}
-	msg := m.MarshalLogObject(&o, nil)
+	msg, _ := m.MarshalLogObject(&o, nil)
 	o.buf.WriteString("msg:")
 	o.buf.WriteString(msg)
 	return o.buf.String()

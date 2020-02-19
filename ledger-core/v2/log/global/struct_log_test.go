@@ -37,8 +37,8 @@ type mar struct {
 	x *logRecord
 }
 
-func (m mar) MarshalLogObject(lw logfmt.LogObjectWriter, lmc logfmt.LogObjectMetricCollector) string {
-	return m.x.s
+func (m mar) MarshalLogObject(lw logfmt.LogObjectWriter, lmc logfmt.LogObjectMetricCollector) (string, bool) {
+	return m.x.s, false
 }
 
 type LogObject struct {

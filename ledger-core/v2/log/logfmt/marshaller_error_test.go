@@ -45,7 +45,7 @@ func fmtError(t *testing.T, err error) (string, string) {
 	require.NotNil(t, m)
 
 	o := output{}
-	s := m.MarshalLogObject(&o, nil)
+	s, _ := m.MarshalLogObject(&o, nil)
 	return s, o.buf.String()
 }
 
@@ -139,4 +139,19 @@ func TestErrorMarshaller_MarshalLogObject_stackTop(t *testing.T) {
 	//fmt.Println(o)
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_stackTop"))
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_stackTop"))
+}
+
+func TestErrorMarshaller_MarshalLogObject_namedStruct(t *testing.T) {
+	type s1 struct {
+		x int
+	}
+	type s2 struct {
+		y int
+	}
+
+	err := throw.E("m", s1{1})
+	err = throw.WithDetails(err, s2{2})
+	s, o := fmtError(t, err)
+	assert.Equal(t, "m", s)
+	assert.Equal(t, "y:2:int,x:1:int,", o)
 }

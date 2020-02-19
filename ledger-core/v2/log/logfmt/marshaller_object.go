@@ -16,7 +16,7 @@ type objectMarshaller struct {
 	v reflect.Value
 }
 
-func (v objectMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) string {
+func (v objectMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) (string, bool) {
 	return v.t.printFields(v.v, output, collector)
 }
 
@@ -34,6 +34,7 @@ type typeMarshaller struct {
 	printNeedsAddr  bool
 	reportNeedsAddr bool
 	hasReports      bool
+	defMessage      bool
 }
 
 type reportField struct {
@@ -183,9 +184,10 @@ func (p *typeMarshaller) getFieldsOf(t reflect.Type, baseOffset uintptr, getRepo
 		}
 	}
 
+	p.defMessage = true
 	switch {
 	case msgGetter.getterFn != nil:
-		//
+		p.defMessage = false
 	case len(t.PkgPath()) != 0:
 		if s := t.String(); len(s) > 0 {
 			p.msgField = logField{
@@ -236,7 +238,7 @@ func printField(v reflect.Value, receiver fieldFmtReceiver) {
 	receiver.getterFn(fieldValue, receiver)
 }
 
-func (p *typeMarshaller) printFields(value reflect.Value, writer LogObjectWriter, collector LogObjectMetricCollector) string {
+func (p *typeMarshaller) printFields(value reflect.Value, writer LogObjectWriter, collector LogObjectMetricCollector) (string, bool) {
 	value = p._prepareValue(value, p.printNeedsAddr) // double check
 
 	receiver := fieldFmtReceiver{w: writer}
@@ -255,7 +257,7 @@ func (p *typeMarshaller) printFields(value reflect.Value, writer LogObjectWriter
 	}
 
 	if p.msgField.getterFn == nil {
-		return ""
+		return "", true
 	}
 
 	sc := stringCapturer{}
@@ -266,7 +268,7 @@ func (p *typeMarshaller) printFields(value reflect.Value, writer LogObjectWriter
 	} else {
 		printField(value, receiver)
 	}
-	return sc.v
+	return sc.v, p.defMessage
 }
 
 func (p *typeMarshaller) reportFields(value reflect.Value, collector LogObjectMetricCollector) {

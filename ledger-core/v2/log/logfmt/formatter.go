@@ -29,7 +29,7 @@ type MarshallerFactory interface {
 	//RegisterFieldReporter(fieldType reflect.Type, fn FieldReporterFunc)
 }
 
-func fmtLogStruct(a interface{}, mFactory MarshallerFactory, optionalStruct bool, ignoreError bool) (LogObjectMarshaller, *string) {
+func fmtLogStruct(a interface{}, mFactory MarshallerFactory, optionalStruct bool, treatErrorAsStruct bool) (LogObjectMarshaller, *string) {
 	if mFactory == nil {
 		panic(throw.IllegalValue())
 	}
@@ -59,7 +59,7 @@ func fmtLogStruct(a interface{}, mFactory MarshallerFactory, optionalStruct bool
 	case nil:
 		return nil, nil
 	case error:
-		if ignoreError {
+		if treatErrorAsStruct {
 			break
 		}
 		// use marshalling before prepareValue() for errors
