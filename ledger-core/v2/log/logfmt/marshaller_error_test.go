@@ -35,7 +35,7 @@ func TestErrorMarshaller_MarshalLogObject_struct(t *testing.T) {
 
 	s, o := fmtError(t, err)
 	assert.Equal(t, reportMsg, s)
-	assert.Contains(t, o, "f3:3:uint,errorMsg:EOF,f2:2:int,errorMsg:ext,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
+	assert.Contains(t, o, "f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,f2:2:int,errorMsg:ext,s:EOF:string,f3:3:uint,errorStack:")
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject"))
 }
 
@@ -66,7 +66,7 @@ func TestErrorMarshaller_MarshalLogObject_simple(t *testing.T) {
 
 	s, o = fmtError(t, throw.WithDetails(err, struct{ x int }{99}))
 	assert.Equal(t, "wrapper %w", s)
-	assert.Equal(t, "x:99:int,errorMsg:EOF,", o)
+	assert.Equal(t, "errorMsg:EOF,x:99:int,", o)
 }
 
 func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
@@ -89,7 +89,7 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 
 	s, o := fmtError(t, err)
 	assert.Equal(t, "panicMsg", s)
-	assert.Contains(t, o, "f3:3:uint,errorMsg:wrapper %w,f2:2:int,errorMsg:ext,f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,errorStack:")
+	assert.Contains(t, o, "f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,f2:2:int,errorMsg:ext,errorMsg:wrapper %w,f3:3:uint,errorStack:")
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_mixed"))
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
 }
@@ -108,7 +108,7 @@ func TestErrorMarshaller_MarshalLogObject_repeated(t *testing.T) {
 	err = fmt.Errorf("mmmm %w", err)
 	s, o := fmtError(t, err)
 	assert.Equal(t, "mmmm %w", s)
-	assert.Contains(t, o, "errorMsg:mmmm %w,errorMsg:mm,errorMsg:mmm %w,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:m,errorStack:")
+	assert.Contains(t, o, "errorMsg:m,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mmm %w,errorMsg:mm,errorMsg:mmmm %w,errorStack:")
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_repeated"))
 	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_repeated"))
 }
@@ -153,5 +153,5 @@ func TestErrorMarshaller_MarshalLogObject_namedStruct(t *testing.T) {
 	err = throw.WithDetails(err, s2{2})
 	s, o := fmtError(t, err)
 	assert.Equal(t, "m", s)
-	assert.Equal(t, "y:2:int,x:1:int,", o)
+	assert.Equal(t, "x:1:int,y:2:int,", o)
 }

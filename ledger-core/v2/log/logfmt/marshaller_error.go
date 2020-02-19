@@ -178,16 +178,16 @@ func cutOut(s, substr string) (string, bool) {
 }
 
 func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogObjectMetricCollector) (string, bool) {
-	for _, el := range v.reports {
-		st := el.stack
+	for i := len(v.reports) - 1; i >= 0; i-- {
+		el := v.reports[i]
 		if el.marshaller != nil {
 			if s, defMessage := el.marshaller.MarshalLogObject(output, collector); !defMessage && s != "" {
-				output.AddErrorField(s, st, false)
-				st = nil
+				output.AddErrorField(s, el.stack, false)
+				el.stack = nil
 			}
 		}
-		if s := el.strValue; s != "" || st != nil {
-			output.AddErrorField(s, st, false)
+		if s := el.strValue; s != "" || el.stack != nil {
+			output.AddErrorField(s, el.stack, false)
 		}
 	}
 	if v.stack != nil {
@@ -200,8 +200,8 @@ func (v errorMarshaller) MarshalMutedLogObject(collector LogObjectMetricCollecto
 	if collector == nil {
 		return
 	}
-	for _, el := range v.reports {
-		if mm, ok := el.marshaller.(MutedLogObjectMarshaller); ok {
+	for i := len(v.reports) - 1; i >= 0; i-- {
+		if mm, ok := v.reports[i].marshaller.(MutedLogObjectMarshaller); ok {
 			mm.MarshalMutedLogObject(collector)
 		}
 	}
