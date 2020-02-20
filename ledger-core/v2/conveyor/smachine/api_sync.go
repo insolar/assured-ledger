@@ -193,7 +193,7 @@ type DependencyController interface {
 	// UseDependency also handles partial acquire of hierarchical syncs
 	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
 	// ReleaseDependency does partial release of hierarchical syncs. MUST be called only after UseDependency check
-	ReleaseDependency(dep SlotDependency) (SlotDependency, []PostponedDependency, []StepLink)
+	ReleaseDependency(dep SlotDependency) (bool, SlotDependency, []PostponedDependency, []StepLink)
 
 	GetLimit() (limit int, isAdjustable bool)
 	AdjustLimit(limit int, absolute bool) (deps []StepLink, activate bool)

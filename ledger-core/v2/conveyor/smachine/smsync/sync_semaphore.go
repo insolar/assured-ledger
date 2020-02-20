@@ -104,7 +104,7 @@ func (p *semaphoreSync) checkState() smachine.BoolDecision {
 
 func (p *semaphoreSync) checkDependency(entry *dependencyQueueEntry, flags smachine.SlotDependencyFlags) (d smachine.Decision, passedStack bool) {
 	if d, notFound := p.checkDependencyHere(entry, flags); notFound {
-		d = entry.stacker.containsInStack(&p.controller.awaiters.queue, entry)
+		d = entry.stacker.contains(&p.controller.awaiters.queue, entry)
 		if d == smachine.Passed {
 			return smachine.NotPassed, true
 		}
@@ -132,31 +132,37 @@ func (p *semaphoreSync) checkDependencyHere(entry *dependencyQueueEntry, flags s
 
 func (p *semaphoreSync) UseDependency(dep smachine.SlotDependency, flags smachine.SlotDependencyFlags) smachine.Decision {
 	if entry, ok := dep.(*dependencyQueueEntry); ok {
-		p.mutex.RLock()
-		defer p.mutex.RUnlock()
-
-		d, stackPassed := p.checkDependency(entry, flags)
-		if flags == smachine.SyncIgnoreFlags || !stackPassed {
+		if d, stackPassed := func() (smachine.Decision, bool) {
+			p.mutex.RLock()
+			defer p.mutex.RUnlock()
+			return p.checkDependency(entry, flags)
+		}(); flags == smachine.SyncIgnoreFlags || !stackPassed {
 			return d
 		}
 
-		if entry.isInQueue() {
-			entry.removeFromQueue()
-		}
+		p.mutex.Lock()
+		defer p.mutex.Unlock()
 
-		if p.controller.canPassThrough() {
-			p.controller.queue.AddLast(entry)
-			return smachine.Passed
-		}
-		p.controller.awaiters.queue.addSlotWithPriority(entry)
-		return smachine.NotPassed
+		return entry.stacker.tryPartialAcquire(entry, p.controller.canPassThrough())
 	}
 	return smachine.Impossible
 }
 
-func (p *semaphoreSync) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+func (p *semaphoreSync) ReleaseDependency(dep smachine.SlotDependency) (bool, smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+	if entry, ok := dep.(*dependencyQueueEntry); ok && entry.stacker != nil {
+		if func() bool {
+			p.mutex.Lock()
+			defer p.mutex.Unlock()
+
+			return entry.stacker.tryPartialRelease(entry)
+		}() {
+			pd, sl := p.controller.updateQueue()
+			return true, dep, pd, sl
+		}
+		return false, dep, nil, nil
+	}
 	pd, sl := dep.ReleaseAll()
-	return nil, pd, sl
+	return true, nil, pd, sl
 }
 
 func (p *semaphoreSync) createDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, *dependencyQueueEntry) {
@@ -235,11 +241,16 @@ func (p *waitingQueueController) IsOpen(smachine.SlotDependency) bool {
 	return false
 }
 
-func (p *waitingQueueController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *waitingQueueController) SafeRelease(entry *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	chkAndRemoveFn()
+	q := entry.queue
+	if !chkAndRemoveFn() {
+		return nil, nil
+	}
+	entry.stacker.updateAfterRelease(entry, q)
+
 	return nil, nil
 }
 
@@ -296,19 +307,27 @@ func (p *workingQueueController) canPassThrough() bool {
 	return p.queue.Count() < p.workerLimit
 }
 
-func (p *workingQueueController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *workingQueueController) SafeRelease(entry *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.awaiters.mutex.Lock()
 	defer p.awaiters.mutex.Unlock()
 
+	q := entry.queue
 	if !chkAndRemoveFn() {
 		return nil, nil
 	}
-	pd, sl := p.awaiters.moveToActive(p.workerLimit-p.queue.Count(), &p.queue)
-	return pd, sl
+	entry.stacker.updateAfterRelease(entry, q)
+	return p.updateQueue()
 }
 
+func (p *workingQueueController) updateQueue() ([]smachine.PostponedDependency, []smachine.StepLink) {
+	return p.awaiters.moveToActive(p.workerLimit-p.queue.Count(), &p.queue)
+}
 func (p *workingQueueController) containsInAwaiters(entry *dependencyQueueEntry) bool {
 	return p.awaiters.contains(entry)
+}
+
+func (p *workingQueueController) isQueueOfAwaiters(q *dependencyQueueHead) bool {
+	return p.awaiters.isQueue(q)
 }
 
 func (p *workingQueueController) enum(qId int, fn smachine.EnumQueueFunc) bool {

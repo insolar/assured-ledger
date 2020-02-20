@@ -7,6 +7,7 @@ package smsync
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"math"
 	"sync"
 )
@@ -14,11 +15,11 @@ import (
 type SemaphoreChildFlags uint8
 
 const (
-	CanReleaseParent SemaphoreChildFlags = 1 << iota
-	ParentReacquireBoost
+	AllowPartialRelease SemaphoreChildFlags = 1 << iota
+	BoostPartialAcquire
 )
 
-func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value int, name string) smachine.DependencyController {
+func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value int, name string) *hierarchySync {
 	if parent == nil {
 		panic("illegal value")
 	}
@@ -29,8 +30,14 @@ func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value i
 	sema := &hierarchySync{}
 
 	sema.controller.parentSync = parent
-	sema.controller.queue.flags = parent.controller.awaiters.queue.flags
+	parentFlags := parent.controller.awaiters.queue.flags
+	sema.controller.queue.flags = parentFlags
 
+	if parentFlags&QueueAllowsPriority == 0 {
+		flags &^= BoostPartialAcquire
+	}
+
+	sema.controller.flags = flags
 	sema.controller.workerLimit = value
 	sema.controller.Init(name, &parent.mutex, &sema.controller)
 	return sema
@@ -39,7 +46,7 @@ func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value i
 var _ smachine.DependencyController = &hierarchySync{}
 
 type hierarchySync struct {
-	controller   subSemaphoreController
+	controller   subSemaQueueController
 	isAdjustable bool
 }
 
@@ -68,7 +75,11 @@ func (p *hierarchySync) UseDependency(dep smachine.SlotDependency, flags smachin
 		case p.controller.containsInAwaiters(entry):
 			return smachine.NotPassed
 		case p.controller.contains(entry):
-			return smachine.Impossible // this is a special case - if caller has released the parent sema, then it has to acquire the parent sema
+			if flags == smachine.SyncIgnoreFlags {
+				return smachine.NotPassed
+			}
+			// this is a special case - if caller has released the parent sema, then it has to acquire the parent sema, not this sema
+			return smachine.Impossible
 		default:
 			d, _ := p.controller.parentSync.checkDependencyHere(entry, smachine.SyncIgnoreFlags)
 			return d
@@ -77,9 +88,9 @@ func (p *hierarchySync) UseDependency(dep smachine.SlotDependency, flags smachin
 	return smachine.Impossible
 }
 
-func (p *hierarchySync) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+func (p *hierarchySync) ReleaseDependency(dep smachine.SlotDependency) (bool, smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
 	pd, sl := dep.ReleaseAll()
-	return nil, pd, sl
+	return true, nil, pd, sl
 }
 
 func (p *hierarchySync) CreateDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
@@ -92,7 +103,7 @@ func (p *hierarchySync) CreateDependency(holder smachine.SlotLink, flags smachin
 		p.controller.workerAtParentCount++
 		return d, entry
 	}
-	return false, p.controller.queue.AddSlot(holder, flags, nil)
+	return false, p.controller.awaiters.queue.AddSlot(holder, flags, &p.controller.stacker)
 }
 
 func (p *hierarchySync) GetLimit() (limit int, isAdjustable bool) {
@@ -145,55 +156,56 @@ type dependencyStackQueueController interface {
 	dependencyStackController
 }
 
-var _ dependencyStackController = &subSemaphoreController{}
+var _ dependencyStackController = &subSemaQueueController{}
 
-type subSemaphoreController struct {
+type subSemaQueueController struct {
 	parentSync *semaphoreSync
 	stacker    dependencyStack
+	flags      SemaphoreChildFlags
 
 	workerAtParentCount int
 
 	workingQueueController
 }
 
-func (p *subSemaphoreController) getParentAwaitQueue() *dependencyQueueHead {
+func (p *subSemaQueueController) getParentAwaitQueue() *dependencyQueueHead {
 	return &p.parentSync.controller.awaiters.queue
 }
 
-func (p *subSemaphoreController) getParentActiveQueue() *dependencyQueueHead {
+func (p *subSemaQueueController) getParentActiveQueue() *dependencyQueueHead {
 	return &p.parentSync.controller.queue
 }
 
-func (p *subSemaphoreController) Init(name string, mutex *sync.RWMutex, controller dependencyStackQueueController) {
+func (p *subSemaQueueController) Init(name string, mutex *sync.RWMutex, controller dependencyStackQueueController) {
 	p.workingQueueController.Init(name, mutex, controller)
 	p.stacker.controller = controller
 }
 
-func (p *subSemaphoreController) canPassThrough() bool {
+func (p *subSemaQueueController) canPassThrough() bool {
 	return p.queue.Count()+p.workerAtParentCount < p.workerLimit
 }
 
-func (p *subSemaphoreController) owns(entry *dependencyQueueEntry) bool {
+func (p *subSemaQueueController) owns(entry *dependencyQueueEntry) bool {
 	return entry.stacker == &p.stacker
 }
 
-func (p *subSemaphoreController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *subSemaQueueController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.awaiters.mutex.Lock()
 	defer p.awaiters.mutex.Unlock()
 
 	if !chkAndRemoveFn() {
 		return nil, nil
 	}
+	p.updateQueue()
+	return nil, nil
+}
 
-	// TODO how to detect release of a queue item by parent? pass slot dependency!?
-	//	p.workerAtParentCount--
-	pd, sl := p.awaiters.moveToActive(p.workerLimit-p.queue.Count()-p.workerAtParentCount, p.getParentAwaitQueue())
-	p.workerAtParentCount += len(sl)
-	return pd, sl
+func (p *subSemaQueueController) updateQueue() {
+	p.workerAtParentCount += p.awaiters.moveToInactive(p.workerLimit-p.queue.Count()-p.workerAtParentCount, p.getParentAwaitQueue())
 }
 
 //// MUST be under the same lock as the parent
-//func (p *subSemaphoreController) ReleaseStacked(*dependencyQueueEntry) {
+//func (p *subSemaQueueController) ReleaseStacked(*dependencyQueueEntry) {
 //	p.mutex.Lock()
 //	defer p.mutex.Unlock()
 //
@@ -201,10 +213,12 @@ func (p *subSemaphoreController) SafeRelease(_ *dependencyQueueEntry, chkAndRemo
 //	p.workerCount += p.moveToInactive(p.workerLimit-p.workerCount, p.parent, &p.stacker)
 //}
 
-func (p *subSemaphoreController) containsInStack(q *dependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision {
+func (p *subSemaQueueController) containsInStack(q *dependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision {
 	switch {
+	case q != p.getParentAwaitQueue():
+		// wrong parent
 	case !p.owns(entry):
-		//
+		panic(throw.IllegalState())
 	case p.containsInAwaiters(entry):
 		return smachine.NotPassed
 	case p.contains(entry):
@@ -213,7 +227,48 @@ func (p *subSemaphoreController) containsInStack(q *dependencyQueueHead, entry *
 	return smachine.Impossible
 }
 
-func (p *subSemaphoreController) popStack(q *dependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry) {
-	panic("implement me")
-	//p.queue.AddLast(entry)
+func (p *subSemaQueueController) afterRelease(q *dependencyQueueHead, entry *dependencyQueueEntry) {
+	switch {
+	case !p.owns(entry):
+		//
+	case p.getParentAwaitQueue() == q || p.getParentActiveQueue() == q:
+		p.workerAtParentCount--
+		p.updateQueue()
+	}
+}
+
+func (p *subSemaQueueController) tryPartialRelease(entry *dependencyQueueEntry) bool {
+	if p.flags&AllowPartialRelease == 0 || !p.owns(entry) {
+		return false
+	}
+	if q := entry.getQueue(); p.getParentAwaitQueue() != q && p.getParentActiveQueue() != q {
+		return false
+	}
+	entry.removeFromQueue()
+	p.workerAtParentCount--
+	p.queue.AddLast(entry)
+	return true
+}
+
+func (p *subSemaQueueController) tryPartialAcquire(entry *dependencyQueueEntry, hasActiveCapacity bool) smachine.Decision {
+	if p.flags&AllowPartialRelease == 0 || !p.owns(entry) {
+		return smachine.Impossible
+	}
+	if q := entry.getQueue(); !p.isQueue(q) && !p.isQueueOfAwaiters(q) {
+		return smachine.Impossible
+	}
+
+	entry.removeFromQueue()
+	p.workerAtParentCount++
+
+	if hasActiveCapacity {
+		p.getParentActiveQueue().AddLast(entry)
+		return smachine.Passed
+	}
+
+	if p.flags&BoostPartialAcquire != 0 {
+		// TODO support boosting
+	}
+	p.getParentAwaitQueue().AddLast(entry)
+	return smachine.NotPassed
 }

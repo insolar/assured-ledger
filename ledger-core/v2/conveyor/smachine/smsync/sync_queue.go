@@ -43,7 +43,11 @@ func (p *queueControllerTemplate) isEmptyOrFirst(link smachine.SlotLink) bool {
 }
 
 func (p *queueControllerTemplate) contains(entry *dependencyQueueEntry) bool {
-	return entry.getQueue() == &p.queue
+	return p.isQueue(entry.getQueue())
+}
+
+func (p *queueControllerTemplate) isQueue(q *dependencyQueueHead) bool {
+	return q == &p.queue
 }
 
 func (p *queueControllerTemplate) HasToReleaseOn(_ smachine.SlotLink, _ smachine.SlotDependencyFlags, dblCheckFn func() bool) bool {

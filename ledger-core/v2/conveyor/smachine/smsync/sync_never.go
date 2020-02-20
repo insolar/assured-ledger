@@ -35,9 +35,9 @@ func (p *infiniteLock) UseDependency(dep smachine.SlotDependency, flags smachine
 	return smachine.Impossible
 }
 
-func (p *infiniteLock) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+func (p *infiniteLock) ReleaseDependency(dep smachine.SlotDependency) (bool, smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
 	pd, sl := dep.ReleaseAll()
-	return nil, pd, sl
+	return true, nil, pd, sl
 }
 
 func (p *infiniteLock) CreateDependency(_ smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
