@@ -93,7 +93,7 @@ type SlotDependency interface {
 	IsReleaseOnWorking() bool
 	IsReleaseOnStepping() bool
 
-	Release() (SlotDependency, []PostponedDependency, []StepLink)
+	Release(DependencyController) (SlotDependency, []PostponedDependency, []StepLink)
 	ReleaseAll() ([]PostponedDependency, []StepLink)
 }
 

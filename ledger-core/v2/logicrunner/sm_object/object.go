@@ -6,6 +6,7 @@
 package sm_object
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -41,7 +42,7 @@ type SharedObjectState struct {
 	SemaphorePreviousResultSaved smachine.SyncLink
 
 	SemaphorePreviousExecutorFinished smachine.SyncLink
-	PreviousExecutorFinished          smachine.BoolConditionalLink
+	PreviousExecutorFinished          smsync.BoolConditionalLink
 
 	ObjectInfo
 }
@@ -60,8 +61,8 @@ type SMObject struct {
 
 	SharedObjectState
 
-	readyToWorkCtl      smachine.BoolConditionalLink
-	previousResultSaved smachine.BoolConditionalLink
+	readyToWorkCtl      smsync.BoolConditionalLink
+	previousResultSaved smsync.BoolConditionalLink
 
 	oldObject bool
 }
@@ -109,17 +110,17 @@ func (sm *SMObject) sendPayloadToVirtual(ctx smachine.ExecutionContext, pl paylo
 func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(sm.migrateSendStateBeforeExecution)
 
-	sm.readyToWorkCtl = smachine.NewConditionalBool(false, "readyToWork")
+	sm.readyToWorkCtl = smsync.NewConditionalBool(false, "readyToWork")
 	sm.ReadyToWork = sm.readyToWorkCtl.SyncLink()
 
-	sm.PreviousExecutorFinished = smachine.NewConditionalBool(false, "PreviousExecutorFinished")
+	sm.PreviousExecutorFinished = smsync.NewConditionalBool(false, "PreviousExecutorFinished")
 	sm.SemaphorePreviousExecutorFinished = sm.readyToWorkCtl.SyncLink()
 
-	sm.previousResultSaved = smachine.NewConditionalBool(false, "previousResultSaved")
+	sm.previousResultSaved = smsync.NewConditionalBool(false, "previousResultSaved")
 	sm.SemaphorePreviousResultSaved = sm.previousResultSaved.SyncLink()
 
-	sm.ImmutableExecute = smachine.NewSemaphore(30, "immutable calls").SyncLink()
-	sm.MutableExecute = smachine.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
+	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
+	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
 	sdl := ctx.Share(&sm.SharedObjectState, 0)
 	if !ctx.Publish(sm.ObjectReference, sdl) {

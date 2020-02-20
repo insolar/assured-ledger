@@ -6,6 +6,7 @@
 package example
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"math"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -23,7 +24,7 @@ func (StateMachine2) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc
 }
 
 var IterationCount uint64
-var Limiter = smachine.NewFixedSemaphore(1000, "global")
+var Limiter = smsync.NewFixedSemaphore(1000, "global")
 
 /* -------- Instance ------------- */
 

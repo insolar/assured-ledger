@@ -7,6 +7,7 @@ package example
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -19,7 +20,7 @@ type vmObjectSM struct {
 	smachine.StateMachineDeclTemplate
 
 	SharedObjectState
-	readyToWorkCtl smachine.BoolConditionalLink
+	readyToWorkCtl smsync.BoolConditionalLink
 }
 
 type ObjectInfo struct {
@@ -59,10 +60,10 @@ func (sm *vmObjectSM) GetStateMachineDeclaration() smachine.StateMachineDeclarat
 func (sm *vmObjectSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(sm.migrateStop)
 
-	sm.readyToWorkCtl = smachine.NewConditionalBool(false, "readyToWork")
+	sm.readyToWorkCtl = smsync.NewConditionalBool(false, "readyToWork")
 	sm.SemaReadyToWork = sm.readyToWorkCtl.SyncLink()
-	sm.ImmutableExecute = smachine.NewFixedSemaphore(5, "immutable calls")
-	sm.MutableExecute = smachine.NewFixedSemaphore(1, "mutable calls") // TODO here we need an ORDERED queue
+	sm.ImmutableExecute = smsync.NewFixedSemaphore(5, "immutable calls")
+	sm.MutableExecute = smsync.NewFixedSemaphore(1, "mutable calls") // TODO here we need an ORDERED queue
 
 	sdl := ctx.Share(&sm.SharedObjectState, 0)
 	if !ctx.Publish(sm.ObjKey, sdl) {

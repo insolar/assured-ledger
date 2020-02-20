@@ -3,7 +3,9 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package smachine
+package smsync
+
+import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 
 // ConditionalBool allows Acquire() call to pass through when current value is true
 func NewConditionalBool(isOpen bool, name string) BoolConditionalLink {
@@ -34,31 +36,31 @@ func (v BoolConditionalLink) IsZero() bool {
 
 // Creates an adjustment that sets the given value when applied with SynchronizationContext.ApplyAdjustment()
 // Can be applied multiple times.
-func (v BoolConditionalLink) NewValue(isOpen bool) SyncAdjustment {
+func (v BoolConditionalLink) NewValue(isOpen bool) smachine.SyncAdjustment {
 	if v.ctl == nil {
 		panic("illegal state")
 	}
-	return SyncAdjustment{controller: v.ctl, adjustment: boolToConditional(isOpen), isAbsolute: true}
+	return smachine.NewSyncAdjustment(v.ctl, boolToConditional(isOpen), true)
 }
 
 // Creates an adjustment that toggles the conditional when the adjustment is applied with SynchronizationContext.ApplyAdjustment()
 // Can be applied multiple times.
-func (v BoolConditionalLink) NewToggle() SyncAdjustment {
+func (v BoolConditionalLink) NewToggle() smachine.SyncAdjustment {
 	if v.ctl == nil {
 		panic("illegal state")
 	}
-	return SyncAdjustment{controller: v.ctl, adjustment: 1, isAbsolute: false}
+	return smachine.NewSyncAdjustment(v.ctl, 1, false)
 }
 
-func (v BoolConditionalLink) SyncLink() SyncLink {
-	return NewSyncLink(v.ctl)
+func (v BoolConditionalLink) SyncLink() smachine.SyncLink {
+	return smachine.NewSyncLink(v.ctl)
 }
 
 type boolConditionalSync struct {
 	conditionalSync
 }
 
-func (p *boolConditionalSync) AdjustLimit(limit int, absolute bool) ([]StepLink, bool) {
+func (p *boolConditionalSync) AdjustLimit(limit int, absolute bool) ([]smachine.StepLink, bool) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
