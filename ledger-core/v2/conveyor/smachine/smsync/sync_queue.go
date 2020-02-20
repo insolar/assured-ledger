@@ -12,19 +12,20 @@ import (
 	"unsafe"
 )
 
-type DependencyQueueController interface {
+type dependencyQueueController interface {
 	GetName() string
 
 	HasToReleaseOn(link smachine.SlotLink, flags smachine.SlotDependencyFlags, dblCheckFn func() bool) bool
-	Release(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink)
+	//SafeRelease(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink)
+	SafeRelease(entry *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink)
 }
 
 type queueControllerTemplate struct {
 	name  string
-	queue DependencyQueueHead
+	queue dependencyQueueHead
 }
 
-func (p *queueControllerTemplate) Init(name string, _ *sync.RWMutex, controller DependencyQueueController) {
+func (p *queueControllerTemplate) Init(name string, _ *sync.RWMutex, controller dependencyQueueController) {
 	if p.queue.controller != nil {
 		panic("illegal state")
 	}
@@ -70,20 +71,20 @@ const (
 	QueueAllowsPriority DependencyQueueFlags = 1 << iota
 )
 
-type DependencyQueueHead struct {
-	controller DependencyQueueController
+type dependencyQueueHead struct {
+	controller dependencyQueueController
 	head       dependencyQueueEntry
 	count      int
 	flags      DependencyQueueFlags
 }
 
-func (p *DependencyQueueHead) AddSlot(link smachine.SlotLink, flags smachine.SlotDependencyFlags, stacker *dependencyStack) *dependencyQueueEntry {
+func (p *dependencyQueueHead) AddSlot(link smachine.SlotLink, flags smachine.SlotDependencyFlags, stacker *dependencyStack) *dependencyQueueEntry {
 	entry := &dependencyQueueEntry{link: link, slotFlags: flags, stacker: stacker}
 	p.addSlotWithPriority(entry)
 	return entry
 }
 
-func (p *DependencyQueueHead) addSlotForExclusive(link smachine.SlotLink, flags smachine.SlotDependencyFlags) *dependencyQueueEntry {
+func (p *dependencyQueueHead) addSlotForExclusive(link smachine.SlotLink, flags smachine.SlotDependencyFlags) *dependencyQueueEntry {
 	entry := &dependencyQueueEntry{link: link, slotFlags: flags}
 	p._addSlot(entry, func() *dependencyQueueEntry {
 		if first := p.First(); first != nil {
@@ -94,11 +95,11 @@ func (p *DependencyQueueHead) addSlotForExclusive(link smachine.SlotLink, flags 
 	return entry
 }
 
-func (p *DependencyQueueHead) addSlotWithPriority(entry *dependencyQueueEntry) {
+func (p *dependencyQueueHead) addSlotWithPriority(entry *dependencyQueueEntry) {
 	p._addSlot(entry, p.First)
 }
 
-func (p *DependencyQueueHead) _addSlot(entry *dependencyQueueEntry, firstFn func() *dependencyQueueEntry) {
+func (p *dependencyQueueHead) _addSlot(entry *dependencyQueueEntry, firstFn func() *dependencyQueueEntry) {
 	switch {
 	case !entry.link.IsValid():
 		panic("illegal value")
@@ -122,7 +123,7 @@ func (p *DependencyQueueHead) _addSlot(entry *dependencyQueueEntry, firstFn func
 	return
 }
 
-func (p *DependencyQueueHead) _addBefore(position, entry *dependencyQueueEntry) {
+func (p *dependencyQueueHead) _addBefore(position, entry *dependencyQueueEntry) {
 	p.initEmpty() // TODO PLAT-27 move to controller's Init
 	entry.ensureNotInQueue()
 
@@ -131,19 +132,19 @@ func (p *DependencyQueueHead) _addBefore(position, entry *dependencyQueueEntry) 
 	p.count++
 }
 
-func (p *DependencyQueueHead) AddFirst(entry *dependencyQueueEntry) {
+func (p *dependencyQueueHead) AddFirst(entry *dependencyQueueEntry) {
 	p._addBefore(p.head.nextInQueue, entry)
 }
 
-func (p *DependencyQueueHead) AddLast(entry *dependencyQueueEntry) {
+func (p *dependencyQueueHead) AddLast(entry *dependencyQueueEntry) {
 	p._addBefore(&p.head, entry)
 }
 
-func (p *DependencyQueueHead) Count() int {
+func (p *dependencyQueueHead) Count() int {
 	return p.count
 }
 
-func (p *DependencyQueueHead) FirstValid() (*dependencyQueueEntry, smachine.StepLink) {
+func (p *dependencyQueueHead) FirstValid() (*dependencyQueueEntry, smachine.StepLink) {
 	for {
 		f := p.head.QueueNext()
 		if f == nil {
@@ -156,23 +157,23 @@ func (p *DependencyQueueHead) FirstValid() (*dependencyQueueEntry, smachine.Step
 	}
 }
 
-func (p *DependencyQueueHead) First() *dependencyQueueEntry {
+func (p *dependencyQueueHead) First() *dependencyQueueEntry {
 	return p.head.QueueNext()
 }
 
-func (p *DependencyQueueHead) Last() *dependencyQueueEntry {
+func (p *dependencyQueueHead) Last() *dependencyQueueEntry {
 	return p.head.QueuePrev()
 }
 
-func (p *DependencyQueueHead) IsZero() bool {
+func (p *dependencyQueueHead) IsZero() bool {
 	return p.head.nextInQueue == nil
 }
 
-func (p *DependencyQueueHead) IsEmpty() bool {
+func (p *dependencyQueueHead) IsEmpty() bool {
 	return p.head.nextInQueue == nil || p.head.nextInQueue.isQueueHead()
 }
 
-func (p *DependencyQueueHead) initEmpty() {
+func (p *dependencyQueueHead) initEmpty() {
 	if p.head.queue == nil {
 		p.head.nextInQueue = &p.head
 		p.head.prevInQueue = &p.head
@@ -180,7 +181,7 @@ func (p *DependencyQueueHead) initEmpty() {
 	}
 }
 
-func (p *DependencyQueueHead) CutHeadOut(fn func(*dependencyQueueEntry) bool) {
+func (p *dependencyQueueHead) CutHeadOut(fn func(*dependencyQueueEntry) bool) {
 	for {
 		entry := p.First()
 		if entry == nil {
@@ -194,7 +195,7 @@ func (p *DependencyQueueHead) CutHeadOut(fn func(*dependencyQueueEntry) bool) {
 	}
 }
 
-func (p *DependencyQueueHead) CutTailOut(fn func(*dependencyQueueEntry) bool) {
+func (p *dependencyQueueHead) CutTailOut(fn func(*dependencyQueueEntry) bool) {
 	for {
 		entry := p.Last()
 		if entry == nil {
@@ -208,7 +209,7 @@ func (p *DependencyQueueHead) CutTailOut(fn func(*dependencyQueueEntry) bool) {
 	}
 }
 
-func (p *DependencyQueueHead) FlushAllAsLinks() []smachine.StepLink {
+func (p *dependencyQueueHead) FlushAllAsLinks() []smachine.StepLink {
 	if p.count == 0 {
 		return nil
 	}
@@ -231,7 +232,7 @@ func (p *DependencyQueueHead) FlushAllAsLinks() []smachine.StepLink {
 var _ smachine.SlotDependency = &dependencyQueueEntry{}
 
 type dependencyQueueEntry struct {
-	queue       *DependencyQueueHead  // atomic read when outside queue's lock
+	queue       *dependencyQueueHead  // atomic read when outside queue's lock
 	nextInQueue *dependencyQueueEntry // access under queue's lock
 	prevInQueue *dependencyQueueEntry // access under queue's lock
 	stacker     *dependencyStack      // immutable
@@ -264,12 +265,12 @@ func (p *dependencyQueueEntry) IsReleaseOnWorking() bool {
 	}
 }
 
-//func (p *dependencyQueueEntry) Release(c smachine.DependencyController) (sd smachine.SlotDependency, pd []smachine.PostponedDependency, sl []smachine.StepLink) {
+//func (p *dependencyQueueEntry) SafeRelease(c smachine.DependencyController) (sd smachine.SlotDependency, pd []smachine.PostponedDependency, sl []smachine.StepLink) {
 //	if c == nil {
 //		panic(throw.IllegalValue())
 //	}
 //	var pd0 smachine.PostponedDependency
-//	pd, sl = p._release(func(queue *DependencyQueueHead) bool {
+//	pd, sl = p._release(func(queue *dependencyQueueHead) bool {
 //		if queue != p.getQueue() {
 //			return false
 //		}
@@ -286,7 +287,7 @@ func (p *dependencyQueueEntry) IsReleaseOnWorking() bool {
 //}
 //
 func (p *dependencyQueueEntry) ReleaseAll() ([]smachine.PostponedDependency, []smachine.StepLink) {
-	return p._release(func(queue *DependencyQueueHead) bool {
+	return p._release(func(queue *dependencyQueueHead) bool {
 		if queue != p.getQueue() {
 			return false
 		}
@@ -297,13 +298,13 @@ func (p *dependencyQueueEntry) ReleaseAll() ([]smachine.PostponedDependency, []s
 	})
 }
 
-func (p *dependencyQueueEntry) _release(chkAndRemoveFn func(*DependencyQueueHead) bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *dependencyQueueEntry) _release(chkAndRemoveFn func(*dependencyQueueHead) bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	for done := false; ; {
 		queue := p.getQueue()
 		if queue == nil {
 			return nil, nil
 		}
-		pd, sl := queue.controller.Release(p.link, p.slotFlags, func() bool {
+		pd, sl := queue.controller.SafeRelease(p, func() bool {
 			done = chkAndRemoveFn(queue)
 			return done
 		})
@@ -379,11 +380,11 @@ func (p *dependencyQueueEntry) isInQueue() bool {
 	return p.queue != nil || p.nextInQueue != nil || p.prevInQueue != nil
 }
 
-func (p *dependencyQueueEntry) getQueue() *DependencyQueueHead {
-	return (*DependencyQueueHead)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&p.queue))))
+func (p *dependencyQueueEntry) getQueue() *dependencyQueueHead {
+	return (*dependencyQueueHead)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&p.queue))))
 }
 
-func (p *dependencyQueueEntry) setQueue(head *DependencyQueueHead) {
+func (p *dependencyQueueEntry) setQueue(head *dependencyQueueHead) {
 	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&p.queue)), unsafe.Pointer(head))
 }
 

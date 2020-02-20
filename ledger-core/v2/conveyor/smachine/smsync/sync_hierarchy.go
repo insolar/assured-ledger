@@ -141,7 +141,7 @@ func (p *hierarchySync) EnumQueues(fn smachine.EnumQueueFunc) bool {
 }
 
 type dependencyStackQueueController interface {
-	DependencyQueueController
+	dependencyQueueController
 	dependencyStackController
 }
 
@@ -156,11 +156,11 @@ type subSemaphoreController struct {
 	workingQueueController
 }
 
-func (p *subSemaphoreController) getParentAwaitQueue() *DependencyQueueHead {
+func (p *subSemaphoreController) getParentAwaitQueue() *dependencyQueueHead {
 	return &p.parentSync.controller.awaiters.queue
 }
 
-func (p *subSemaphoreController) getParentActiveQueue() *DependencyQueueHead {
+func (p *subSemaphoreController) getParentActiveQueue() *dependencyQueueHead {
 	return &p.parentSync.controller.queue
 }
 
@@ -177,7 +177,7 @@ func (p *subSemaphoreController) owns(entry *dependencyQueueEntry) bool {
 	return entry.stacker == &p.stacker
 }
 
-func (p *subSemaphoreController) Release(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *subSemaphoreController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.awaiters.mutex.Lock()
 	defer p.awaiters.mutex.Unlock()
 
@@ -201,7 +201,7 @@ func (p *subSemaphoreController) Release(link smachine.SlotLink, flags smachine.
 //	p.workerCount += p.moveToInactive(p.workerLimit-p.workerCount, p.parent, &p.stacker)
 //}
 
-func (p *subSemaphoreController) containsInStack(q *DependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision {
+func (p *subSemaphoreController) containsInStack(q *dependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision {
 	switch {
 	case !p.owns(entry):
 		//
@@ -213,7 +213,7 @@ func (p *subSemaphoreController) containsInStack(q *DependencyQueueHead, entry *
 	return smachine.Impossible
 }
 
-func (p *subSemaphoreController) popStack(q *DependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry) {
+func (p *subSemaphoreController) popStack(q *dependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry) {
 	panic("implement me")
 	//p.queue.AddLast(entry)
 }

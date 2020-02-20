@@ -9,22 +9,22 @@ import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 
 // methods of this interfaces can be protected by mutex
 type dependencyStackController interface {
-	containsInStack(q *DependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision
-	popStack(q *DependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry)
+	containsInStack(q *dependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision
+	popStack(q *dependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry)
 }
 
 type dependencyStack struct {
 	controller dependencyStackController
 }
 
-func (p *dependencyStack) popStack(q *DependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry) {
+func (p *dependencyStack) popStack(q *dependencyQueueHead, entry *dependencyQueueEntry) (smachine.PostponedDependency, *dependencyQueueEntry) {
 	if p == nil || p.controller == nil {
 		return nil, nil
 	}
 	return p.controller.popStack(q, entry)
 }
 
-func (p *dependencyStack) containsInStack(q *DependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision {
+func (p *dependencyStack) containsInStack(q *dependencyQueueHead, entry *dependencyQueueEntry) smachine.Decision {
 	if p == nil || p.controller == nil {
 		return smachine.Impossible
 	}

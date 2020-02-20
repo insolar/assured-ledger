@@ -100,24 +100,24 @@ func (p *exclusiveSync) EnumQueues(fn smachine.EnumQueueFunc) bool {
 	return p.awaiters.enum(1, fn)
 }
 
-var _ DependencyQueueController = &exclusiveQueueController{}
+var _ dependencyQueueController = &exclusiveQueueController{}
 
 type exclusiveQueueController struct {
 	mutex *sync.RWMutex
 	queueControllerTemplate
 }
 
-func (p *exclusiveQueueController) Init(name string, mutex *sync.RWMutex, controller DependencyQueueController) {
+func (p *exclusiveQueueController) Init(name string, mutex *sync.RWMutex, controller dependencyQueueController) {
 	p.queueControllerTemplate.Init(name, mutex, controller)
 	p.mutex = mutex
 }
 
-func (p *exclusiveQueueController) Release(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *exclusiveQueueController) SafeRelease(entry *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	// p.queue.First() must happen before chkAndRemoveFn()
-	if f := p.queue.First(); f == nil || f.link != link {
+	if f := p.queue.First(); f == nil || f != entry {
 		chkAndRemoveFn()
 		return nil, nil
 	}
