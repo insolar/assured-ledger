@@ -226,7 +226,7 @@ type waitingQueueController struct {
 	queueControllerTemplate
 }
 
-func (p *waitingQueueController) Init(name string, mutex *sync.RWMutex, controller DependencyQueueController) {
+func (p *waitingQueueController) Init(name string, mutex *sync.RWMutex, controller dependencyQueueController) {
 	p.queueControllerTemplate.Init(name, mutex, controller)
 	p.mutex = mutex
 }
@@ -235,7 +235,7 @@ func (p *waitingQueueController) IsOpen(smachine.SlotDependency) bool {
 	return false
 }
 
-func (p *waitingQueueController) Release(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *waitingQueueController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -243,7 +243,7 @@ func (p *waitingQueueController) Release(link smachine.SlotLink, flags smachine.
 	return nil, nil
 }
 
-func (p *waitingQueueController) moveToInactive(n int, q *DependencyQueueHead) int {
+func (p *waitingQueueController) moveToInactive(n int, q *dependencyQueueHead) int {
 	if n <= 0 {
 		return 0
 	}
@@ -262,7 +262,7 @@ func (p *waitingQueueController) moveToInactive(n int, q *DependencyQueueHead) i
 	return count
 }
 
-func (p *waitingQueueController) moveToActive(n int, q *DependencyQueueHead) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *waitingQueueController) moveToActive(n int, q *dependencyQueueHead) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	if n <= 0 {
 		return nil, nil
 	}
@@ -287,7 +287,7 @@ type workingQueueController struct {
 	awaiters    waitingQueueController
 }
 
-func (p *workingQueueController) Init(name string, mutex *sync.RWMutex, controller DependencyQueueController) {
+func (p *workingQueueController) Init(name string, mutex *sync.RWMutex, controller dependencyQueueController) {
 	p.queueControllerTemplate.Init(name, mutex, controller)
 	p.awaiters.Init(name, mutex, &p.awaiters)
 }
@@ -296,7 +296,7 @@ func (p *workingQueueController) canPassThrough() bool {
 	return p.queue.Count() < p.workerLimit
 }
 
-func (p *workingQueueController) Release(_ smachine.SlotLink, _ smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *workingQueueController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.awaiters.mutex.Lock()
 	defer p.awaiters.mutex.Unlock()
 
@@ -318,7 +318,7 @@ func (p *workingQueueController) enum(qId int, fn smachine.EnumQueueFunc) bool {
 	return p.awaiters.enum(qId-1, fn)
 }
 
-func (p *workingQueueController) adjustLimit(delta int, activeQ *DependencyQueueHead) ([]smachine.StepLink, bool) {
+func (p *workingQueueController) adjustLimit(delta int, activeQ *dependencyQueueHead) ([]smachine.StepLink, bool) {
 	if delta > 0 {
 		links := make([]smachine.StepLink, 0, delta)
 		p.awaiters.queue.CutHeadOut(func(entry *dependencyQueueEntry) bool {

@@ -143,7 +143,7 @@ type holdingQueueController struct {
 	state int
 }
 
-func (p *holdingQueueController) Init(name string, mutex *sync.RWMutex, controller DependencyQueueController) {
+func (p *holdingQueueController) Init(name string, mutex *sync.RWMutex, controller dependencyQueueController) {
 	p.queueControllerTemplate.Init(name, mutex, controller)
 	p.mutex = mutex
 }
@@ -156,7 +156,7 @@ func (p *holdingQueueController) IsOpen(smachine.SlotDependency) bool {
 	return false // is still in queue ...
 }
 
-func (p *holdingQueueController) Release(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
+func (p *holdingQueueController) SafeRelease(_ *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
