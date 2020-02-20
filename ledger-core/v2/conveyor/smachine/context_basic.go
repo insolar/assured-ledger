@@ -448,9 +448,9 @@ func (p *slotContext) release(controller DependencyController) bool {
 		return false
 	}
 
-	released := p.s._releaseDependency(controller)
+	released, wasReleased := p.s._releaseDependency(controller)
 	p.s.machine.activateDependantByDetachable(released, p.s.NewLink(), p.w)
-	return true
+	return wasReleased
 }
 
 func (p *slotContext) ApplyAdjustment(adj SyncAdjustment) bool {

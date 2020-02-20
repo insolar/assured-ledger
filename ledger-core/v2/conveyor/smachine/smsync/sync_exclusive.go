@@ -54,9 +54,9 @@ func (p *exclusiveSync) UseDependency(dep smachine.SlotDependency, flags smachin
 	return smachine.Impossible
 }
 
-func (p *exclusiveSync) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+func (p *exclusiveSync) ReleaseDependency(dep smachine.SlotDependency) (bool, smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
 	pd, sl := dep.ReleaseAll()
-	return nil, pd, sl
+	return true, nil, pd, sl
 }
 
 func (p *exclusiveSync) CreateDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
