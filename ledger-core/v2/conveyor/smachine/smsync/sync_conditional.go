@@ -79,6 +79,11 @@ func (p *conditionalSync) UseDependency(dep smachine.SlotDependency, flags smach
 	return smachine.Impossible
 }
 
+func (p *conditionalSync) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+	pd, sl := dep.ReleaseAll()
+	return nil, pd, sl
+}
+
 func (p *conditionalSync) CreateDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()

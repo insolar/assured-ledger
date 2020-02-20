@@ -96,7 +96,7 @@ func (s *Slot) _releaseDependency(controller DependencyController) []StepLink {
 	}
 	dep := s.dependency
 	s.dependency = nil
-	replace, postponed, released := dep.Release(controller)
+	replace, postponed, released := controller.ReleaseDependency(dep)
 	s.dependency = replace
 
 	released = PostponedList(postponed).PostponedActivate(released)
