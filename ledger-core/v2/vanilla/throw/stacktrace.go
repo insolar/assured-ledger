@@ -1,18 +1,7 @@
-//
-// Copyright 2019 Insolar Technologies GmbH
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package throw
 
@@ -21,28 +10,30 @@ import (
 	"io"
 	"runtime"
 	"runtime/debug"
+	"strconv"
+	"strings"
 )
+
+const StackTracePrefix = "Stack trace:"
+const stackTracePrintPrefix = StackTracePrefix + "\n"
 
 type StackTrace interface {
 	StackTraceAsText() string
 	WriteStackTraceTo(writer io.Writer) error
+	IsFullStack() bool
+	//ParseStackTrace() errors.StackTrace
 }
 
+// CaptureStack captures whole stack
+// When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStack(skipFrames int) StackTrace {
-	return byteStackTrace(captureStack(skipFrames, false))
+	return stackTrace{captureStack(skipFrames+1, false), false}
 }
 
+// CaptureStackTop is an optimized version to capture a limited info about top-level stack entry only
+// When (skipFrames) are more than stack depth then only "created by" entry will be returned
 func CaptureStackTop(skipFrames int) StackTrace {
-	return byteStackTrace(captureStack(skipFrames, true))
-}
-
-func equalStackTrace(st0, st1 StackTrace) bool {
-	if bst0, ok := st0.(byteStackTrace); ok {
-		if bst1, ok := st1.(byteStackTrace); ok {
-			return bytes.Equal(bst0, bst1)
-		}
-	}
-	return false
+	return stackTrace{captureStack(skipFrames+1, true), true}
 }
 
 func IsInSystemPanic(skipFrames int) bool {
@@ -54,18 +45,73 @@ func IsInSystemPanic(skipFrames int) bool {
 	return n == "runtime.preprintpanics"
 }
 
-type byteStackTrace []byte
+//var _ fmt.Formatter = stackTrace{}
 
-func (v byteStackTrace) WriteStackTraceTo(w io.Writer) error {
-	_, err := w.Write(v)
+type stackTrace struct {
+	data []byte
+	//parsed errors.StackTrace
+	limit bool
+}
+
+func (v stackTrace) IsFullStack() bool {
+	return !v.limit
+}
+
+func (v stackTrace) WriteStackTraceTo(w io.Writer) error {
+	_, err := w.Write(v.data)
 	return err
 }
 
-func (v byteStackTrace) StackTraceAsText() string {
-	return string(v)
+func (v stackTrace) StackTraceAsText() string {
+	return string(v.data)
 }
 
+func (v stackTrace) LogString() string {
+	return string(v.data)
+}
+
+func (v stackTrace) String() string {
+	return stackTracePrintPrefix + string(v.data)
+}
+
+//func (v stackTrace) ParseStackTrace() errors.StackTrace {
+//
+//}
+//
+//func (v stackTrace) Format(s fmt.State, verb rune) {
+//	switch verb {
+//	case 'v':
+//		switch {
+//		case s.Flag('+'):
+//			//for _, f := range st {
+//			//	fmt.Fprintf(s, "\n%+v", f)
+//			//}
+//		case s.Flag('#'):
+//			//fmt.Fprintf(s, "%#v", []Frame(st))
+//		default:
+//			//fmt.Fprintf(s, "%v", []Frame(st))
+//		}
+//	case 's':
+//		fmt.Fprintf(s, "%s", []Frame(st))
+//	}
+//}
+
 func captureStack(skipFrames int, limitFrames bool) []byte {
+	skipFrames++
+	if limitFrames {
+		// provides a bit less info, but is 10x times faster
+		result := captureStackByCallers(skipFrames, true)
+		if len(result) > 0 {
+			return result
+		}
+		// result will be empty at stack top that we can't capture by runtime.Callers() so we will fallback
+	}
+	return captureStackByDebug(skipFrames, limitFrames)
+}
+
+const topFrameLimit = 1 // MUST be 1, otherwise comparison of stack vs stack top may not work properly
+
+func captureStackByDebug(skipFrames int, limitFrames bool) []byte {
 	stackBytes := debug.Stack()
 	capacity := cap(stackBytes)
 	if i := bytes.IndexByte(stackBytes, '\n'); i > 0 {
@@ -75,38 +121,95 @@ func captureStack(skipFrames int, limitFrames bool) []byte {
 		return stackBytes
 	}
 
-	if i := indexOfFrame(stackBytes, skipFrames+2); i > 0 {
+	const serviceFrames = 2 //  debug.Stack() + captureStackByDebug()
+	if i := indexOfFrame(stackBytes, skipFrames+serviceFrames); i > 0 {
 		stackBytes = stackBytes[i:]
 
 		if limitFrames {
-			if i := indexOfFrame(stackBytes, 1); i > 0 {
+			if i := indexOfFrame(stackBytes, topFrameLimit); i > 0 {
 				stackBytes = stackBytes[:i]
 			}
 		}
 	}
 
 	stackBytes = bytes.TrimSpace(stackBytes)
-
-	if capacity > len(stackBytes)<<1 {
-		return append(make([]byte, 0, len(stackBytes)), stackBytes...)
-	}
-
-	return stackBytes
+	return trimCapacity(capacity, stackBytes)
 }
 
-var frameSep = []byte("\n\t")
+func trimCapacity(actualCapacity int, b []byte) []byte {
+	n := len(b) << 1
+	if actualCapacity > n || cap(b) > n {
+		return append(make([]byte, 0, n), b...)
+	}
+	return b
+}
 
 func indexOfFrame(stackBytes []byte, skipFrames int) int {
 	offset := 0
 	for ; skipFrames > 0; skipFrames-- {
-		if i := bytes.Index(stackBytes[offset:], frameSep); i > 0 {
-			offset += i + len(frameSep)
+		prevOffset := offset
+		if i := bytes.Index(stackBytes[offset:], frameFileSep); i > 0 {
+			offset += i + len(frameFileSep)
 			if j := bytes.IndexByte(stackBytes[offset:], '\n'); j > 0 {
 				offset += j + 1
+				if offset == len(stackBytes) {
+					return prevOffset
+				}
 				continue
 			}
+			return prevOffset
 		}
 		return -1
 	}
 	return offset
+}
+
+const frameFileSeparator = "\n\t"
+
+var frameFileSep = []byte(frameFileSeparator)
+
+func captureStackByCallers(skipFrames int, limitFrames bool) []byte {
+	var pcs []uintptr
+	if limitFrames {
+		pcs = make([]uintptr, topFrameLimit)
+	} else {
+		pcs = make([]uintptr, 50) // maxStackDepth
+	}
+	const serviceFrames = 2 //  runtime.Callers() + captureStackByCallers()
+	pcs = pcs[:runtime.Callers(skipFrames+serviceFrames, pcs)]
+
+	result := make([]byte, 0, len(pcs)<<7)
+	for i, pc := range pcs {
+		fn := runtime.FuncForPC(pc)
+		if fn == nil {
+			continue
+		}
+		fName := fn.Name()
+		if i == len(pcs)-1 && fName == "runtime.goexit" {
+			break
+		}
+
+		// imitation of debug.Stack() format
+
+		if len(result) > 0 {
+			result = append(result, '\n')
+		}
+
+		result = append(result, fName...)
+		result = append(result, frameFileSeparator...)
+
+		fName, line := fn.FileLine(pc)
+		result = append(result, fName...)
+		result = append(result, ':')
+		result = strconv.AppendInt(result, int64(line), 10)
+	}
+
+	return trimCapacity(0, result)
+}
+
+func TrimStackTrace(s string) string {
+	if i := strings.Index(s, "\n"+stackTracePrintPrefix); i >= 0 {
+		return s[:i]
+	}
+	return s
 }

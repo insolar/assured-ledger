@@ -6,6 +6,7 @@
 package logfmt
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 	"runtime"
 	"strings"
@@ -210,4 +211,8 @@ func (p *stringCapturer) AddTimeField(key string, v time.Time, fFmt LogFieldForm
 	} else {
 		p.v = v.Format(p.TimeFmt)
 	}
+}
+
+func (p *stringCapturer) AddErrorField(string, throw.StackTrace, bool) {
+	// ignore
 }

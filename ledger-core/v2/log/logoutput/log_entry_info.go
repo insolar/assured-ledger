@@ -19,6 +19,8 @@ const (
 	CallerFieldName        = "caller"
 	FuncFieldName          = "func"
 	WriteDurationFieldName = "writeDuration"
+	StackTraceFieldName    = "errorStack"
+	ErrorMsgFieldName      = "errorMsg"
 	LogFatalExitCode       = 1
 )
 

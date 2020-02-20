@@ -6,6 +6,7 @@
 package logfmt
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 	"time"
 )
@@ -17,7 +18,7 @@ type LogObject interface {
 }
 
 type LogObjectMarshaller interface {
-	MarshalLogObject(LogObjectWriter, LogObjectMetricCollector) string
+	MarshalLogObject(LogObjectWriter, LogObjectMetricCollector) (msg string, defMsg bool)
 }
 
 type LogFieldMarshaller interface {
@@ -57,6 +58,7 @@ type LogObjectWriter interface {
 	AddIntfField(key string, v interface{}, fmt LogFieldFormat)
 	AddTimeField(key string, v time.Time, fmt LogFieldFormat)
 	AddRawJSONField(key string, v interface{}, fmt LogFieldFormat)
+	AddErrorField(msg string, stack throw.StackTrace, hasPanic bool)
 }
 
 type LogObjectFields struct {
@@ -64,11 +66,11 @@ type LogObjectFields struct {
 	Fields map[string]interface{}
 }
 
-func (v LogObjectFields) MarshalLogObject(w LogObjectWriter, _ LogObjectMetricCollector) string {
+func (v LogObjectFields) MarshalLogObject(w LogObjectWriter, _ LogObjectMetricCollector) (string, bool) {
 	for k, v := range v.Fields {
 		w.AddIntfField(k, v, LogFieldFormat{})
 	}
-	return v.Msg
+	return v.Msg, false
 }
 
 func (v LogObjectFields) MarshalLogFields(w LogObjectWriter) {

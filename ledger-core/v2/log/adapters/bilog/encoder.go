@@ -6,6 +6,8 @@
 package bilog
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"sort"
 	"time"
 
@@ -19,6 +21,7 @@ type objectEncoder struct {
 	fieldEncoder msgencoder.Encoder
 	content      []byte
 	reportedAt   time.Time
+	allowTrace   bool
 }
 
 func (p *objectEncoder) AddIntField(key string, v int64, fmt logfmt.LogFieldFormat) {
@@ -55,6 +58,17 @@ func (p *objectEncoder) AddRawJSONField(key string, v interface{}, fmt logfmt.Lo
 
 func (p *objectEncoder) AddTimeField(key string, v time.Time, fmt logfmt.LogFieldFormat) {
 	p.content = p.fieldEncoder.AppendTimeField(p.content, key, v, fmt)
+}
+
+func (p *objectEncoder) AddErrorField(msg string, stack throw.StackTrace, hasPanic bool) {
+	if msg != "" {
+		p.content = p.fieldEncoder.AppendStrField(p.content, logoutput.ErrorMsgFieldName, msg, logfmt.LogFieldFormat{})
+	}
+	if !p.allowTrace || stack == nil {
+		return
+	}
+	s := stack.StackTraceAsText()
+	p.content = p.fieldEncoder.AppendStrField(p.content, logoutput.StackTraceFieldName, s, logfmt.LogFieldFormat{})
 }
 
 func (p *objectEncoder) addIntfFields(fields map[string]interface{}) {

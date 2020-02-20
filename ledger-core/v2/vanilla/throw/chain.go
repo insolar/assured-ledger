@@ -1,18 +1,7 @@
-//
-// Copyright 2019 Insolar Technologies GmbH
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package throw
 
@@ -22,72 +11,115 @@ import (
 	"strings"
 )
 
-func StackOf(errChain, target error) (StackTrace, bool) {
+type DeepestStackMode uint8
+
+const (
+	_ DeepestStackMode = iota
+	InheritedTrace
+	SupersededTrace
+)
+
+type StackTraceHolder interface {
+	// Cause returns a cause for this stack trace. It can NOT be used like Unwrap() as it may return self.
+	Cause() error
+	// ShallowStackTrace returns a stack trace registered for this cause
+	ShallowStackTrace() StackTrace
+	// DeepestStackTrace returns this or the deepest stack trace from cause's error chain that embeds ShallowStackTrace.
+	// Bool value is true when the stack trace was inherited from the cause.
+	DeepestStackTrace() (StackTrace, DeepestStackMode)
+}
+
+// StackOf returns a target-matched entry with a wrapping StackTraceHolder (optional)
+// When (target) is nil - returns the last error of the chain
+func StackOf(errChain, target error) (error, StackTraceHolder, bool) {
 	isComparable := target == nil || reflect.TypeOf(target).Comparable()
 
 	for errChain != nil {
+		nextErr := errors.Unwrap(errChain)
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			nextErr := sw.Unwrap()
-			if equalErr(isComparable, nextErr, target) {
-				return sw.StackTrace(), true
+			if target == nil && nextErr == nil || isThis(isComparable, sw.Cause(), target) {
+				return errChain, sw, true
 			}
-			errChain = nextErr
-			continue
+		} else if target == nil && nextErr == nil || isThis(isComparable, errChain, target) {
+			return errChain, nil, true
 		}
-		if equalErr(isComparable, errChain, target) {
-			return nil, true
+		errChain = nextErr
+	}
+
+	return nil, nil, false
+}
+
+// NearestStackOf returns a target-matched entry with a last encountered StackTraceHolder with a either shallow or deep non-nil stack (optional)
+// When (target) is nil - returns the last error of the chain
+// When (target) is not found, returns only the last StackTraceHolder.
+func NearestStackOf(errChain, target error) (error, StackTraceHolder, bool) {
+	isComparable := target == nil || reflect.TypeOf(target).Comparable()
+
+	var sth StackTraceHolder
+	for errChain != nil {
+		nextErr := errors.Unwrap(errChain)
+		if sw, ok := errChain.(StackTraceHolder); ok {
+			if st, _ := sw.DeepestStackTrace(); st != nil {
+				sth = sw
+			}
+			if target == nil && nextErr == nil || isThis(isComparable, sw.Cause(), target) {
+				return errChain, sth, true
+			}
+		} else if target == nil && nextErr == nil || isThis(isComparable, errChain, target) {
+			return errChain, sth, true
+		}
+		errChain = nextErr
+	}
+
+	return nil, sth, false
+}
+
+// OutermostStack returns the closest StackTraceHolder with non-nil ShallowStackTrace from errChain
+func OutermostStack(errChain error) StackTraceHolder {
+	for errChain != nil {
+		if sw, ok := errChain.(StackTraceHolder); ok && sw.ShallowStackTrace() != nil {
+			return sw
 		}
 		errChain = errors.Unwrap(errChain)
 	}
-
-	return nil, false
+	return nil
 }
 
-func Outermost(errChain error) (error, StackTrace) {
+// InnermostStack returns the most distant StackTraceHolder with non-nil StackTrace from errChain
+func InnermostStack(errChain error) (sth StackTraceHolder) {
 	for errChain != nil {
-		if sw, ok := errChain.(StackTraceHolder); ok {
-			errChain = sw.Unwrap()
-			if st := sw.StackTrace(); st != nil {
-				return errChain, st
-			}
-			continue
-		}
-		errChain = errors.Unwrap(errChain)
-	}
-	return nil, nil
-}
-
-func Innermost(errChain error) (err error, lst StackTrace) {
-	for errChain != nil {
-		if sw, ok := errChain.(StackTraceHolder); ok {
-			errChain = sw.Unwrap()
-			if st := sw.StackTrace(); st != nil && errChain != nil {
-				err = errChain
-				lst = st
-			}
-			continue
+		if sw, ok := errChain.(StackTraceHolder); ok && sw.ShallowStackTrace() != nil {
+			sth = sw
 		}
 		errChain = errors.Unwrap(errChain)
 	}
 	return
 }
 
-func Walk(errChain error, fn func(error, StackTrace) bool) bool {
+// InnermostFullStack returns the most distant StackTraceHolder with non-nil StackTrace and IsFullStack from errChain
+func InnermostFullStack(errChain error) (sth StackTraceHolder) {
+	for errChain != nil {
+		if sw, ok := errChain.(StackTraceHolder); ok && sw.ShallowStackTrace() != nil && sw.ShallowStackTrace().IsFullStack() {
+			sth = sw
+		}
+		errChain = errors.Unwrap(errChain)
+	}
+	return
+}
+
+// Walks through the given error chain and call (fn) for each entry, does unwrapping for stack trace data.
+func Walk(errChain error, fn func(error, StackTraceHolder) bool) bool {
 	if fn == nil {
 		panic(IllegalValue())
 	}
 
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok {
-			nextErr := sw.Unwrap()
-			if fn(nextErr, sw.StackTrace()) {
+			if fn(sw.Cause(), sw) {
 				return true
 			}
-			errChain = nextErr
-			continue
-		}
-
-		if fn(errChain, nil) {
+			errChain = errors.Unwrap(errChain)
+		} else if fn(errChain, nil) {
 			return true
 		}
 		errChain = errors.Unwrap(errChain)
@@ -95,20 +127,23 @@ func Walk(errChain error, fn func(error, StackTrace) bool) bool {
 	return false
 }
 
-const StackTracePrefix = "Stack trace: "
-
-func PrintTo(errChain error, b *strings.Builder) {
-	Walk(errChain, func(err error, trace StackTrace) bool {
+// PrintTo calls Walk() and builds a full list of errors and corresponding stacks in the chain.
+func PrintTo(errChain error, includeStack bool, b *strings.Builder) {
+	Walk(errChain, func(err error, traceHolder StackTraceHolder) bool {
+		var trace StackTrace
+		if traceHolder != nil {
+			trace = traceHolder.ShallowStackTrace()
+		}
 		switch {
 		case err != nil:
 			b.WriteString(err.Error())
 			b.WriteByte('\n')
-			if trace == nil {
+			if trace == nil || !includeStack {
 				return false
 			}
-			b.WriteString(StackTracePrefix)
-		case trace != nil:
-			b.WriteString("<nil>\n" + StackTracePrefix)
+			b.WriteString(stackTracePrintPrefix)
+		case trace != nil && includeStack:
+			b.WriteString("<nil>\n" + stackTracePrintPrefix)
 		default:
 			b.WriteString("<nil>\n")
 			return false
@@ -122,30 +157,43 @@ func PrintTo(errChain error, b *strings.Builder) {
 	})
 }
 
+// Print is a convenience wrapper for PrintTo()
 func Print(errChain error) string {
 	if errChain == nil {
 		return ""
 	}
 	b := strings.Builder{}
-	PrintTo(errChain, &b)
+	PrintTo(errChain, true, &b)
 	return b.String()
 }
 
-func Equal(err0, err1 error) bool {
+// IsEqual does panic-safe comparison of error values. Incomparable values will always return false.
+// It uses Is() on both sides
+func IsEqual(err0, err1 error) bool {
 	if err0 == nil || err1 == nil {
 		return err0 == err1
 	}
-	return equalErr(reflect.TypeOf(err1).Comparable(), err0, err1)
-}
-
-func equalErr(isComparable bool, err0, err1 error) bool {
-	if isComparable && err0 == err1 {
+	if reflect.TypeOf(err1).Comparable() && err0 == err1 {
 		return true
 	}
 	if x, ok := err0.(interface{ Is(error) bool }); ok && x.Is(err1) {
 		return true
 	}
 	if x, ok := err1.(interface{ Is(error) bool }); ok && x.Is(err0) {
+		return true
+	}
+	return false
+}
+
+type iser interface {
+	Is(error) bool
+}
+
+func isThis(isComparable bool, err, target error) bool {
+	if isComparable && err == target {
+		return true
+	}
+	if x, ok := err.(iser); ok && x.Is(target) {
 		return true
 	}
 	return false

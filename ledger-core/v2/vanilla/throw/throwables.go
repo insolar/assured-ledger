@@ -1,66 +1,45 @@
-//
-// Copyright 2019 Insolar Technologies GmbH
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package throw
 
 // IllegalValue is to indicate that an argument provided to a calling function is incorrect
 // This error captures the topmost entry of caller's stack.
 func IllegalValue() error {
-	return newMsg("illegal value")
+	return newMsg("illegal value", 0)
 }
 
 // IllegalState is to indicate that an internal state of a function/object is incorrect or unexpected
 // This error captures the topmost entry of caller's stack.
 func IllegalState() error {
-	return newMsg("illegal state")
+	return newMsg("illegal state", 0)
 }
 
 // Unsupported is to indicate that a calling function is unsupported intentionally and will remain so for awhile
 // This error captures the topmost entry of caller's stack.
 func Unsupported() error {
-	return newMsg("unsupported")
+	return newMsg("unsupported", 0)
 }
 
 // NotImplemented is to indicate that a calling function was not yet implemented, but it is expected to be completed soon
 // This error captures the topmost entry of caller's stack.
 func NotImplemented() error {
-	return newMsg("not implemented")
+	return newMsg("not implemented", 0)
 }
 
-func newMsg(msg string) msgWrap {
-	return msgWrap{st: CaptureStackTop(2), msg: msg}
+// Impossible is to indicate that the point can never be reached.
+// This error captures the topmost entry of caller's stack.
+func Impossible() error {
+	return newMsg("not implemented", 0)
 }
 
-type msgWrap struct {
-	_logignore struct{} // will be ignored by struct-logger
-	st         StackTrace
-	msg        string
+// FailsHere creates an error that captures the topmost entry of caller's stack.
+func FailsHere(msg string, skipFrames int) error {
+	return newMsg(msg, skipFrames)
 }
 
-func (v msgWrap) StackTrace() StackTrace {
-	return v.st
-}
-
-func (v msgWrap) Error() string {
-	return v.msg
-}
-
-func (v msgWrap) String() string {
-	if v.st == nil {
-		return v.msg
-	}
-	return v.msg + "\n" + StackTracePrefix + v.st.StackTraceAsText()
+func newMsg(msg string, skipFrames int) msgWrap {
+	return msgWrap{st: CaptureStackTop(skipFrames + 2), msg: msg}
 }

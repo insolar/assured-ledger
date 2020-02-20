@@ -80,3 +80,48 @@ func BenchmarkCodeOf(t *testing.B) {
 		}
 	})
 }
+
+func TestIsNil(t *testing.T) {
+	require.True(t, IsNil(nil))
+	require.False(t, IsNil(""))
+	require.False(t, IsNil(uintptr(0)))
+	require.False(t, IsNil(0))
+	require.False(t, IsNil(1))
+	require.False(t, IsNil(struct{}{}))
+	require.False(t, IsNil(&struct{}{}))
+
+	var p *string
+	require.True(t, IsNil(p))
+	s := "x"
+	p = &s
+	var i interface{} = p
+	require.False(t, IsNil(&s))
+	require.False(t, IsNil(p))
+	require.False(t, IsNil(i))
+
+	p = nil
+	i = p
+	require.True(t, IsNil(p))
+	require.True(t, IsNil(i))
+}
+
+func BenchmarkTestNil(t *testing.B) {
+	var pn *string
+	var n interface{} = pn
+
+	t.Run("reflect", func(b *testing.B) {
+		for i := b.N; i > 0; i-- {
+			if !reflectIsNil(n) {
+				b.Fail()
+			}
+		}
+	})
+
+	t.Run("direct", func(b *testing.B) {
+		for i := b.N; i > 0; i-- {
+			if !IsNil(n) {
+				b.Fail()
+			}
+		}
+	})
+}
