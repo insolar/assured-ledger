@@ -266,9 +266,6 @@ func (p *subSemaQueueController) tryPartialAcquire(entry *dependencyQueueEntry, 
 		return smachine.Passed
 	}
 
-	if p.flags&BoostPartialAcquire != 0 {
-		// TODO support boosting
-	}
-	p.getParentAwaitQueue().AddLast(entry)
+	p.getParentAwaitQueue().addSlotWithPriority(entry, p.flags&BoostPartialAcquire != 0)
 	return smachine.NotPassed
 }
