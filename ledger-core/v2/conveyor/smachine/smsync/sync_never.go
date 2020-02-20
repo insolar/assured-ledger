@@ -35,6 +35,11 @@ func (p *infiniteLock) UseDependency(dep smachine.SlotDependency, flags smachine
 	return smachine.Impossible
 }
 
+func (p *infiniteLock) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+	pd, sl := dep.ReleaseAll()
+	return nil, pd, sl
+}
+
 func (p *infiniteLock) CreateDependency(_ smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
 	atomic.AddInt32(&p.count, 1)
 	return false, &infiniteLockEntry{p, flags}
@@ -73,11 +78,6 @@ func (v infiniteLockEntry) IsReleaseOnStepping() bool {
 
 func (infiniteLockEntry) IsReleaseOnWorking() bool {
 	return false
-}
-
-func (v infiniteLockEntry) Release(smachine.DependencyController) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
-	v.ReleaseAll()
-	return nil, nil, nil
 }
 
 func (v infiniteLockEntry) ReleaseAll() ([]smachine.PostponedDependency, []smachine.StepLink) {

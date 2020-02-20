@@ -188,9 +188,12 @@ type EnumQueueFunc func(qId int, link SlotLink, flags SlotDependencyFlags) bool
 
 // Internals of a sync object
 type DependencyController interface {
-	CheckState() BoolDecision // reduce down to BoolDecision
-	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
+	CheckState() BoolDecision
 	CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency)
+	// UseDependency also handles partial acquire of hierarchical syncs
+	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
+	// ReleaseDependency does partial release of hierarchical syncs. MUST be called only after UseDependency check
+	ReleaseDependency(dep SlotDependency) (SlotDependency, []PostponedDependency, []StepLink)
 
 	GetLimit() (limit int, isAdjustable bool)
 	AdjustLimit(limit int, absolute bool) (deps []StepLink, activate bool)

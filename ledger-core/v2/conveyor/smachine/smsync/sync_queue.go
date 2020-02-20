@@ -7,7 +7,6 @@ package smsync
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -265,27 +264,27 @@ func (p *dependencyQueueEntry) IsReleaseOnWorking() bool {
 	}
 }
 
-func (p *dependencyQueueEntry) Release(c smachine.DependencyController) (sd smachine.SlotDependency, pd []smachine.PostponedDependency, sl []smachine.StepLink) {
-	if c == nil {
-		panic(throw.IllegalValue())
-	}
-	var pd0 smachine.PostponedDependency
-	pd, sl = p._release(func(queue *DependencyQueueHead) bool {
-		if queue != p.getQueue() {
-			return false
-		}
-		if p.isInQueue() {
-			p.removeFromQueue()
-			pd0, sd = p.stacker.popStack(queue, p)
-		}
-		return true
-	})
-	if pd0 != nil {
-		pd = append(pd, pd0)
-	}
-	return
-}
-
+//func (p *dependencyQueueEntry) Release(c smachine.DependencyController) (sd smachine.SlotDependency, pd []smachine.PostponedDependency, sl []smachine.StepLink) {
+//	if c == nil {
+//		panic(throw.IllegalValue())
+//	}
+//	var pd0 smachine.PostponedDependency
+//	pd, sl = p._release(func(queue *DependencyQueueHead) bool {
+//		if queue != p.getQueue() {
+//			return false
+//		}
+//		if p.isInQueue() {
+//			p.removeFromQueue()
+//			pd0, sd = p.stacker.popStack(queue, p)
+//		}
+//		return true
+//	})
+//	if pd0 != nil {
+//		pd = append(pd, pd0)
+//	}
+//	return
+//}
+//
 func (p *dependencyQueueEntry) ReleaseAll() ([]smachine.PostponedDependency, []smachine.StepLink) {
 	return p._release(func(queue *DependencyQueueHead) bool {
 		if queue != p.getQueue() {

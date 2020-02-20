@@ -154,6 +154,11 @@ func (p *semaphoreSync) UseDependency(dep smachine.SlotDependency, flags smachin
 	return smachine.Impossible
 }
 
+func (p *semaphoreSync) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+	pd, sl := dep.ReleaseAll()
+	return nil, pd, sl
+}
+
 func (p *semaphoreSync) createDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, *dependencyQueueEntry) {
 	if p.controller.canPassThrough() {
 		return true, p.controller.queue.AddSlot(holder, flags, nil)

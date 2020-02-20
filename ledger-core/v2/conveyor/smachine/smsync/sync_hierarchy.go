@@ -77,6 +77,11 @@ func (p *hierarchySync) UseDependency(dep smachine.SlotDependency, flags smachin
 	return smachine.Impossible
 }
 
+func (p *hierarchySync) ReleaseDependency(dep smachine.SlotDependency) (smachine.SlotDependency, []smachine.PostponedDependency, []smachine.StepLink) {
+	pd, sl := dep.ReleaseAll()
+	return nil, pd, sl
+}
+
 func (p *hierarchySync) CreateDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
 	p.controller.awaiters.mutex.Lock()
 	defer p.controller.awaiters.mutex.Unlock()
