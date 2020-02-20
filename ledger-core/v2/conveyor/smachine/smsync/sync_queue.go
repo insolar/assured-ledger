@@ -16,7 +16,6 @@ type dependencyQueueController interface {
 	GetName() string
 
 	HasToReleaseOn(link smachine.SlotLink, flags smachine.SlotDependencyFlags, dblCheckFn func() bool) bool
-	//SafeRelease(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink)
 	SafeRelease(entry *dependencyQueueEntry, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink)
 }
 
@@ -78,53 +77,61 @@ const (
 type dependencyQueueHead struct {
 	controller dependencyQueueController
 	head       dependencyQueueEntry
+	boostHead  *dependencyQueueEntry
 	count      int
 	flags      DependencyQueueFlags
 }
 
 func (p *dependencyQueueHead) AddSlot(link smachine.SlotLink, flags smachine.SlotDependencyFlags, stacker *dependencyStack) *dependencyQueueEntry {
 	entry := &dependencyQueueEntry{link: link, slotFlags: flags, stacker: stacker}
-	p.addSlotWithPriority(entry)
+	p.addSlotWithPriority(entry, false)
 	return entry
 }
 
 func (p *dependencyQueueHead) addSlotForExclusive(link smachine.SlotLink, flags smachine.SlotDependencyFlags) *dependencyQueueEntry {
 	entry := &dependencyQueueEntry{link: link, slotFlags: flags}
-	p._addSlot(entry, func() *dependencyQueueEntry {
-		if first := p.First(); first != nil {
-			return first.QueueNext()
-		}
-		return nil
-	})
+	p._addSlot(entry, true, false)
 	return entry
 }
 
-func (p *dependencyQueueHead) addSlotWithPriority(entry *dependencyQueueEntry) {
-	p._addSlot(entry, p.First)
+func (p *dependencyQueueHead) addSlotWithPriority(entry *dependencyQueueEntry, addFirst bool) {
+	p._addSlot(entry, false, addFirst)
 }
 
-func (p *dependencyQueueHead) _addSlot(entry *dependencyQueueEntry, firstFn func() *dependencyQueueEntry) {
+func (p *dependencyQueueHead) _addSlot(entry *dependencyQueueEntry, skipFirst, addFirst bool) {
 	switch {
 	case !entry.link.IsValid():
 		panic("illegal value")
-	case entry.slotFlags&smachine.SyncIgnoreFlags != 0:
+	case entry.slotFlags&smachine.SyncIgnoreFlags == smachine.SyncIgnoreFlags:
 		panic("illegal value")
+
 	case p.flags&QueueAllowsPriority == 0:
 		entry.slotFlags &^= smachine.SyncPriorityMask
-	}
-
-	if entry.slotFlags&smachine.SyncPriorityMask != 0 {
-		if check := firstFn(); check != nil {
-			f := check.getFlags()
-			if f.HasLessPriorityThan(entry.slotFlags) {
-				p._addBefore(check, entry)
-				return
+		// p.boostHead is not needed when there are no priorities
+	case entry.slotFlags&smachine.SyncPriorityHigh != 0 || addFirst:
+		if first := p.First(); first != nil {
+			if skipFirst {
+				if first = first.QueueNext(); first == nil {
+					break
+				}
 			}
+			p._addBefore(first, entry)
+			return
+		}
+	case entry.slotFlags&smachine.SyncPriorityBoosted != 0:
+		if first := p.boostHead; first != nil {
+			if skipFirst && first == p.head.nextInQueue {
+				break
+			}
+			p._addBefore(first, entry)
+			return
+		}
+	default: // no priority
+		if p.boostHead == nil {
+			p.boostHead = entry
 		}
 	}
-
 	p.AddLast(entry)
-	return
 }
 
 func (p *dependencyQueueHead) _addBefore(position, entry *dependencyQueueEntry) {
@@ -269,27 +276,6 @@ func (p *dependencyQueueEntry) IsReleaseOnWorking() bool {
 	}
 }
 
-//func (p *dependencyQueueEntry) SafeRelease(c smachine.DependencyController) (sd smachine.SlotDependency, pd []smachine.PostponedDependency, sl []smachine.StepLink) {
-//	if c == nil {
-//		panic(throw.IllegalValue())
-//	}
-//	var pd0 smachine.PostponedDependency
-//	pd, sl = p._release(func(queue *dependencyQueueHead) bool {
-//		if queue != p.getQueue() {
-//			return false
-//		}
-//		if p.isInQueue() {
-//			p.removeFromQueue()
-//			pd0, sd = p.stacker.popStack(queue, p)
-//		}
-//		return true
-//	})
-//	if pd0 != nil {
-//		pd = append(pd, pd0)
-//	}
-//	return
-//}
-//
 func (p *dependencyQueueEntry) ReleaseAll() ([]smachine.PostponedDependency, []smachine.StepLink) {
 	return p._release(func(queue *dependencyQueueHead) bool {
 		if queue != p.getQueue() {
@@ -351,6 +337,10 @@ func (p *dependencyQueueEntry) removeFromQueue() {
 		panic("illegal state")
 	}
 	p.ensureInQueue()
+
+	if p.queue.boostHead == p {
+		p.queue.boostHead = p.QueueNext()
+	}
 
 	next := p.nextInQueue
 	prev := p.prevInQueue
