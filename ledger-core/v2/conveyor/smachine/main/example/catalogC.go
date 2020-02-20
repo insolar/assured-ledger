@@ -7,6 +7,7 @@ package example
 
 import (
 	"fmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -67,7 +68,7 @@ func (p *catalogC) GetOrCreate(ctx smachine.ExecutionContext, key longbits.ByteS
 		return &catalogEntryCSM{sharedState: CustomSharedState{
 			key: key,
 			//Mutex: smachine.NewExclusiveWithFlags("", 0), //smachine.QueueAllowsPriority),
-			Mutex: smachine.NewSemaphoreWithFlags(2, "", smachine.QueueAllowsPriority).SyncLink(),
+			Mutex: smsync.NewSemaphoreWithFlags(2, "", smsync.QueueAllowsPriority).SyncLink(),
 		}}
 	})
 

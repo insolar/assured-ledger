@@ -5,6 +5,8 @@
 
 package smachine
 
+import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
 func (s *Slot) activateSlot(worker FixedSlotWorker) {
 	s.machine.updateSlotQueue(s, worker, activateSlot)
 }
@@ -88,11 +90,23 @@ func buildShadowMigrator(localInjects []interface{}, defFn ShadowMigrateFunc) Sh
 	}
 }
 
-func (s *Slot) _releaseDependency() []StepLink {
+func (s *Slot) _releaseDependency(controller DependencyController) []StepLink {
+	if controller == nil {
+		panic(throw.IllegalValue())
+	}
 	dep := s.dependency
 	s.dependency = nil
-	replace, postponed, released := dep.Release()
+	replace, postponed, released := dep.Release(controller)
 	s.dependency = replace
+
+	released = PostponedList(postponed).PostponedActivate(released)
+	return released
+}
+
+func (s *Slot) _releaseAllDependency() []StepLink {
+	dep := s.dependency
+	s.dependency = nil
+	postponed, released := dep.ReleaseAll()
 
 	released = PostponedList(postponed).PostponedActivate(released)
 	return released

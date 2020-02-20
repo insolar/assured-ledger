@@ -135,6 +135,13 @@ func (v SyncLink) String() string {
 
 /* ============================================== */
 
+func NewSyncAdjustment(controller DependencyController, adjustment int, isAbsolute bool) SyncAdjustment {
+	if controller == nil {
+		panic("illegal value")
+	}
+	return SyncAdjustment{controller, adjustment, isAbsolute}
+}
+
 type SyncAdjustment struct {
 	controller DependencyController
 	adjustment int
@@ -154,27 +161,27 @@ func (v SyncAdjustment) IsEmpty() bool {
 type SlotDependencyFlags uint8
 
 const (
-	syncPriorityBoosted SlotDependencyFlags = 1 << iota
-	syncPriorityHigh
-	syncForOneStep
-	syncIgnoreFlags
+	SyncPriorityBoosted SlotDependencyFlags = 1 << iota
+	SyncPriorityHigh
+	SyncForOneStep
+	SyncIgnoreFlags
 )
 
-const syncPriorityMask = syncPriorityBoosted | syncPriorityHigh
+const SyncPriorityMask = SyncPriorityBoosted | SyncPriorityHigh
 
-func (v SlotDependencyFlags) hasLessPriorityThan(o SlotDependencyFlags) bool {
-	return v&syncPriorityMask < o&syncPriorityMask
+func (v SlotDependencyFlags) HasLessPriorityThan(o SlotDependencyFlags) bool {
+	return v&SyncPriorityMask < o&SyncPriorityMask
 }
 
-func (v SlotDependencyFlags) isCompatibleWith(requiredFlags SlotDependencyFlags) bool {
-	if requiredFlags == syncIgnoreFlags {
+func (v SlotDependencyFlags) IsCompatibleWith(requiredFlags SlotDependencyFlags) bool {
+	if requiredFlags == SyncIgnoreFlags {
 		return true
 	}
 
-	if v&requiredFlags&^syncPriorityMask != requiredFlags&^syncPriorityMask {
+	if v&requiredFlags&^SyncPriorityMask != requiredFlags&^SyncPriorityMask {
 		return false
 	}
-	return !v.hasLessPriorityThan(requiredFlags)
+	return !v.HasLessPriorityThan(requiredFlags)
 }
 
 type EnumQueueFunc func(qId int, link SlotLink, flags SlotDependencyFlags) bool

@@ -356,7 +356,7 @@ func (p *slotContext) Check(link SyncLink) BoolDecision {
 
 	dep := p.s.dependency
 	if dep != nil {
-		if d, ok := link.controller.UseDependency(dep, syncIgnoreFlags).AsValid(); ok {
+		if d, ok := link.controller.UseDependency(dep, SyncIgnoreFlags).AsValid(); ok {
 			return d
 		}
 	}
@@ -364,7 +364,7 @@ func (p *slotContext) Check(link SyncLink) BoolDecision {
 }
 
 func (p *slotContext) AcquireForThisStep(link SyncLink) BoolDecision {
-	return p.acquire(link, false, syncForOneStep)
+	return p.acquire(link, false, SyncForOneStep)
 }
 
 func (p *slotContext) Acquire(link SyncLink) BoolDecision {
@@ -376,7 +376,7 @@ func (p *slotContext) AcquireAndRelease(link SyncLink) BoolDecision {
 }
 
 func (p *slotContext) AcquireForThisStepAndRelease(link SyncLink) BoolDecision {
-	return p.acquire(link, true, syncForOneStep)
+	return p.acquire(link, true, SyncForOneStep)
 }
 
 func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDependencyFlags) (d BoolDecision) {
@@ -384,9 +384,9 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 
 	switch {
 	case p.s.isPriority():
-		flags |= syncPriorityHigh
+		flags |= SyncPriorityHigh
 	case p.s.isBoosted():
-		flags |= syncPriorityBoosted
+		flags |= SyncPriorityBoosted
 	}
 
 	dep := p.s.dependency
@@ -429,15 +429,11 @@ func (p *slotContext) Release(link SyncLink) bool {
 }
 
 func (p *slotContext) releaseAll() bool {
-	dep := p.s.dependency
-	if dep == nil {
+	if p.s.dependency == nil {
 		return false
 	}
 
-	p.s.dependency = nil
-	postponed, released := dep.ReleaseAll()
-	released = PostponedList(postponed).PostponedActivate(released)
-
+	released := p.s._releaseAllDependency()
 	p.s.machine.activateDependantByDetachable(released, p.s.NewLink(), p.w)
 	return true
 }
@@ -447,12 +443,12 @@ func (p *slotContext) release(controller DependencyController) bool {
 	if dep == nil {
 		return false
 	}
-	if !controller.UseDependency(dep, syncIgnoreFlags).IsValid() {
+	if !controller.UseDependency(dep, SyncIgnoreFlags).IsValid() {
 		// mismatched sync object
 		return false
 	}
 
-	released := p.s._releaseDependency()
+	released := p.s._releaseDependency(controller)
 	p.s.machine.activateDependantByDetachable(released, p.s.NewLink(), p.w)
 	return true
 }

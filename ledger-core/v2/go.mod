@@ -53,6 +53,7 @@ require (
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.19.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
+	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
 	go.opencensus.io v0.22.0
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
@@ -66,3 +67,5 @@ require (
 )
 
 replace github.com/insolar/assured-ledger/ledger-core/v2 => ./
+
+replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43

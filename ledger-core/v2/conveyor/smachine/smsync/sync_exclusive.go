@@ -3,19 +3,22 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package smachine
+package smsync
 
-import "sync"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"sync"
+)
 
-func NewExclusive(name string) SyncLink {
+func NewExclusive(name string) smachine.SyncLink {
 	return NewExclusiveWithFlags(name, 0)
 }
 
-func NewExclusiveWithFlags(name string, flags DependencyQueueFlags) SyncLink {
+func NewExclusiveWithFlags(name string, flags DependencyQueueFlags) smachine.SyncLink {
 	ctl := &exclusiveSync{}
 	ctl.awaiters.queue.flags = flags
 	ctl.awaiters.Init(name, &ctl.mutex, &ctl.awaiters)
-	return NewSyncLink(ctl)
+	return smachine.NewSyncLink(ctl)
 }
 
 type exclusiveSync struct {
@@ -23,35 +26,35 @@ type exclusiveSync struct {
 	awaiters exclusiveQueueController
 }
 
-func (p *exclusiveSync) CheckState() BoolDecision {
+func (p *exclusiveSync) CheckState() smachine.BoolDecision {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	return BoolDecision(p.awaiters.isEmpty())
+	return smachine.BoolDecision(p.awaiters.isEmpty())
 }
 
-func (p *exclusiveSync) UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision {
+func (p *exclusiveSync) UseDependency(dep smachine.SlotDependency, flags smachine.SlotDependencyFlags) smachine.Decision {
 	if entry, ok := dep.(*dependencyQueueEntry); ok {
 		p.mutex.RLock()
 		defer p.mutex.RUnlock()
 
 		switch {
 		case !entry.link.IsValid(): // just to make sure
-			return Impossible
+			return smachine.Impossible
 		case !entry.IsCompatibleWith(flags):
-			return Impossible
+			return smachine.Impossible
 		case !p.awaiters.contains(entry):
-			return Impossible
+			return smachine.Impossible
 		case p.awaiters.isEmptyOrFirst(entry.link):
-			return Passed
+			return smachine.Passed
 		default:
-			return NotPassed
+			return smachine.NotPassed
 		}
 	}
-	return Impossible
+	return smachine.Impossible
 }
 
-func (p *exclusiveSync) CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency) {
+func (p *exclusiveSync) CreateDependency(holder smachine.SlotLink, flags smachine.SlotDependencyFlags) (smachine.BoolDecision, smachine.SlotDependency) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -81,11 +84,11 @@ func (p *exclusiveSync) GetLimit() (limit int, isAdjustable bool) {
 	return 1, false
 }
 
-func (p *exclusiveSync) AdjustLimit(int, bool) (deps []StepLink, activate bool) {
+func (p *exclusiveSync) AdjustLimit(int, bool) (deps []smachine.StepLink, activate bool) {
 	panic("illegal state")
 }
 
-func (p *exclusiveSync) EnumQueues(fn EnumQueueFunc) bool {
+func (p *exclusiveSync) EnumQueues(fn smachine.EnumQueueFunc) bool {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
@@ -104,10 +107,11 @@ func (p *exclusiveQueueController) Init(name string, mutex *sync.RWMutex, contro
 	p.mutex = mutex
 }
 
-func (p *exclusiveQueueController) Release(link SlotLink, _ SlotDependencyFlags, chkAndRemoveFn func() bool) ([]PostponedDependency, []StepLink) {
+func (p *exclusiveQueueController) Release(link smachine.SlotLink, flags smachine.SlotDependencyFlags, chkAndRemoveFn func() bool) ([]smachine.PostponedDependency, []smachine.StepLink) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	// p.queue.First() must happen before chkAndRemoveFn()
 	if f := p.queue.First(); f == nil || f.link != link {
 		chkAndRemoveFn()
 		return nil, nil
@@ -120,17 +124,17 @@ func (p *exclusiveQueueController) Release(link SlotLink, _ SlotDependencyFlags,
 	switch f, step := p.queue.FirstValid(); {
 	case f == nil:
 		return nil, nil
-	case f.stacker != nil:
-		if postponed := f.stacker.PushStack(f, step); postponed != nil {
-			return []PostponedDependency{postponed}, nil
-		}
-		fallthrough
+	//case f.stacker != nil:
+	//	if postponed := f.stacker.popStack(&p.queue, f, step); postponed != nil {
+	//		return nil, []PostponedDependency{postponed}, nil
+	//	}
+	//	fallthrough
 	default:
-		return nil, []StepLink{step}
+		return nil, []smachine.StepLink{step}
 	}
 }
 
-func (p *exclusiveQueueController) enum(qId int, fn EnumQueueFunc) bool {
+func (p *exclusiveQueueController) enum(qId int, fn smachine.EnumQueueFunc) bool {
 	item := p.queue.head.QueueNext()
 	if item == nil {
 		return false
