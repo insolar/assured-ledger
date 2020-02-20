@@ -16,7 +16,7 @@ type SemaphoreChildFlags uint8
 
 const (
 	AllowPartialRelease SemaphoreChildFlags = 1 << iota
-	BoostPartialAcquire
+	PrioritizePartialAcquire
 )
 
 func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value int, name string) *hierarchySync {
@@ -34,7 +34,7 @@ func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value i
 	sema.controller.queue.flags = parentFlags
 
 	if parentFlags&QueueAllowsPriority == 0 {
-		flags &^= BoostPartialAcquire
+		flags &^= PrioritizePartialAcquire
 	}
 
 	sema.controller.flags = flags
@@ -266,6 +266,6 @@ func (p *subSemaQueueController) tryPartialAcquire(entry *dependencyQueueEntry, 
 		return smachine.Passed
 	}
 
-	p.getParentAwaitQueue().addSlotWithPriority(entry, p.flags&BoostPartialAcquire != 0)
+	p.getParentAwaitQueue().addSlotWithPriority(entry, p.flags&PrioritizePartialAcquire != 0)
 	return smachine.NotPassed
 }
