@@ -16,11 +16,16 @@ type LogStringer interface {
 
 type valuePrepareFn func(interface{}) (string, reflect.Kind, bool)
 
+var stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
+var logStringerType = reflect.TypeOf((*LogStringer)(nil)).Elem()
+var strFuncType = reflect.TypeOf((func() string)(nil))
+
 // WARNING! Sequence of types must match in both findValuePrepareFn() and prepareValue()
 // this is a bit slower vs array scan, but may help the compiler with escape analysis
 func findPrepareValueFn(t reflect.Type) valuePrepareFn {
 	switch {
-	case t.AssignableTo(reflect.TypeOf((*LogStringer)(nil)).Elem()):
+	case t.AssignableTo(logStringerType):
 		return func(value interface{}) (string, reflect.Kind, bool) {
 			switch vv := value.(LogStringer); {
 			case vv != nil:
@@ -30,7 +35,7 @@ func findPrepareValueFn(t reflect.Type) valuePrepareFn {
 				return "", reflect.Interface, true
 			}
 		}
-	case t.AssignableTo(reflect.TypeOf((func() string)(nil))):
+	case t.AssignableTo(strFuncType):
 		return func(value interface{}) (string, reflect.Kind, bool) {
 			switch vv := value.(func() string); {
 			case vv != nil:
@@ -40,7 +45,17 @@ func findPrepareValueFn(t reflect.Type) valuePrepareFn {
 				return "", reflect.Func, true
 			}
 		}
-	case t.AssignableTo(reflect.TypeOf((*fmt.Stringer)(nil)).Elem()):
+	case t.AssignableTo(errorType):
+		return func(value interface{}) (string, reflect.Kind, bool) {
+			switch vv := value.(error); {
+			case vv != nil:
+				v := vv.Error()
+				return v, reflect.Interface, false
+			default:
+				return "", reflect.Interface, true
+			}
+		}
+	case t.AssignableTo(stringerType):
 		return func(value interface{}) (string, reflect.Kind, bool) {
 			switch vv := value.(fmt.Stringer); {
 			case vv != nil:
@@ -67,6 +82,8 @@ func prepareValue(iv interface{}) (string, reflect.Kind, bool) {
 			return "", reflect.Func, true
 		}
 		return vv(), reflect.Func, false
+	case error:
+		return vv.Error(), reflect.Interface, false
 	case fmt.Stringer:
 		return vv.String(), reflect.Interface, false
 	}

@@ -18,9 +18,6 @@ func CodeOf(v interface{}) uintptr {
 		panic("illegal value")
 	}
 
-	//const kindMask        = (1 << 5) - 1
-	const kindDirectIface = 1 << 5
-
 	ptr, kind := unwrapIface(v)
 	if kind != uint8(reflect.Func)|kindDirectIface {
 		panic("illegal value")
@@ -33,6 +30,9 @@ func CodeOf(v interface{}) uintptr {
 	// First word of data block is actual code.
 	return *(*uintptr)(ptr)
 }
+
+const kindMask = (1 << 5) - 1
+const kindDirectIface = 1 << 5
 
 func unwrapIface(v interface{}) (word unsafe.Pointer, kind uint8) {
 	type rtype struct {
@@ -49,4 +49,24 @@ func unwrapIface(v interface{}) (word unsafe.Pointer, kind uint8) {
 
 	iface := (*emptyInterface)(unsafe.Pointer(&v))
 	return iface.word, iface.typ.kind
+}
+
+// A faster version (25-35%) to check for interface nil
+func IsNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	ptr, kind := unwrapIface(v)
+	return ptr == nil && kind&kindDirectIface != 0
+}
+
+func reflectIsNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return rv.IsNil()
+	}
+	return false
 }

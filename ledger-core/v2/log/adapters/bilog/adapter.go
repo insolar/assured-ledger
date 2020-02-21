@@ -55,7 +55,7 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 		preallocate += maxEventBufferIncrement
 	}
 
-	encoder := objectEncoder{v.encoder, nil, time.Now()}
+	encoder := objectEncoder{v.encoder, nil, time.Now(), level == logcommon.DebugLevel}
 	if v.recycleBuf {
 		encoder.content = allocateBuffer(preallocate)
 	} else {
@@ -191,7 +191,7 @@ func (v binLogAdapter) NewEventStruct(level log.Level) func(interface{}, []logfm
 		obj, msgStr := v.config.MsgFormat.FmtLogStruct(arg)
 		if obj != nil {
 			collector := v.config.Metrics.GetMetricsCollector()
-			msgStr = obj.MarshalLogObject(&event, collector)
+			msgStr, _ = obj.MarshalLogObject(&event, collector)
 		}
 		v.sendEvent(level, event, msgStr, &completed)
 	}
@@ -221,7 +221,7 @@ func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 		event := v.prepareEncoder(level, v.expectedEventLen)
 		if obj != nil {
 			collector := v.config.Metrics.GetMetricsCollector()
-			msgStr = obj.MarshalLogObject(&event, collector)
+			msgStr, _ = obj.MarshalLogObject(&event, collector)
 		}
 		v.sendEvent(level, event, msgStr, &completed)
 	}
@@ -286,7 +286,7 @@ func (v binLogAdapter) _prepareAppendFields(nExpected int) objectEncoder {
 		buf = make([]byte, 0, len(v.staticFields)+required)
 	}
 	buf = append(buf, v.staticFields...)
-	return objectEncoder{v.encoder, buf, time.Time{}}
+	return objectEncoder{v.encoder, buf, time.Time{}, false}
 }
 
 // NB! Reference receiver allows return of the existing instance when nothing was changed, otherwise it will make a copy
@@ -335,7 +335,7 @@ func (v *binLogAdapter) _addFieldsByBuilder(fields map[string]interface{}) {
 		newFields = &v.staticFields
 	}
 
-	objEncoder := objectEncoder{v.encoder, *newFields, time.Time{}}
+	objEncoder := objectEncoder{v.encoder, *newFields, time.Time{}, false}
 	objEncoder.addIntfFields(fields)
 	*newFields = objEncoder.content
 }

@@ -6,11 +6,9 @@
 package logfmt
 
 import (
-	"fmt"
 	"reflect"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -25,8 +23,25 @@ func TestLookupOrder(t *testing.T) {
 }
 
 func TestTypeLookup(t *testing.T) {
+	sampleValues, _, sampleFns := dataTypeLookup()
 
-	sampleValues := make([]interface{}, 1, 9)
+	for i, fn := range sampleFns {
+		if i&3 != 3 {
+			require.NotNil(t, fn, i)
+			v := sampleValues[i]
+			s, vt, b := prepareValue(v)
+			sf, st, bf := fn(v)
+			require.Equal(t, s, sf, i)
+			require.Equal(t, b, bf, i)
+			require.Equal(t, vt, st, i)
+		} else {
+			require.Nil(t, fn, i)
+		}
+	}
+}
+
+func dataTypeLookup() (sampleValues []interface{}, sampleTypes []reflect.Type, sampleFns []valuePrepareFn) {
+	sampleValues = make([]interface{}, 1, 9)
 	sampleValues[0] = newMixedType(func() string { return "funcString" })
 
 	for len(sampleValues) < cap(sampleValues) {
@@ -46,63 +61,51 @@ func TestTypeLookup(t *testing.T) {
 
 		sampleValues = append(sampleValues, v)
 	}
-	sampleTypes := make([]reflect.Type, len(sampleValues))
+	sampleTypes = make([]reflect.Type, len(sampleValues))
 	for i, v := range sampleValues {
 		sampleTypes[i] = reflect.TypeOf(v)
 	}
 
-	sampleFns := make([]valuePrepareFn, len(sampleValues))
+	sampleFns = make([]valuePrepareFn, len(sampleValues))
 	for i, vt := range sampleTypes {
-		fn := findPrepareValueFn(vt)
-		if i&3 != 3 {
-			require.NotNil(t, fn, i)
-			v := sampleValues[i]
-			s, vt, b := prepareValue(v)
-			sf, st, bf := fn(v)
-			require.Equal(t, s, sf, i)
-			require.Equal(t, b, bf, i)
-			require.Equal(t, vt, st, i)
-		} else {
-			require.Nil(t, fn, i)
-		}
-		sampleFns[i] = fn
+		sampleFns[i] = findPrepareValueFn(vt)
 	}
 
-	startedAt := time.Time{}
+	return
+}
 
-	const loopCount = 1e6
-	divisor := loopCount * time.Duration(len(sampleValues))
+func BenchmarkTypeLookup(b *testing.B) {
+	sampleValues, sampleTypes, sampleFns := dataTypeLookup()
 
-	startedAt = time.Now()
-	for j := loopCount; j > 0; j-- {
-		for _, s := range sampleTypes {
-			runtime.KeepAlive(findPrepareValueFn(s))
-		}
-	}
-	fmt.Printf(" byType %v", time.Now().Sub(startedAt)/divisor)
-
-	startedAt = time.Now()
-	for j := loopCount; j > 0; j-- {
-		for i, fn := range sampleFns {
-			if fn == nil {
-				continue
+	b.Run("byType", func(b *testing.B) {
+		for j := b.N; j > 0; j-- {
+			for _, s := range sampleTypes {
+				fn := findPrepareValueFn(s)
+				runtime.KeepAlive(fn)
 			}
-			r, _, _ := fn(sampleValues[i])
-			runtime.KeepAlive(r)
 		}
-	}
-	fmt.Printf(" byFn %v", time.Now().Sub(startedAt)/divisor)
+	})
 
-	startedAt = time.Now()
-	for j := loopCount; j > 0; j-- {
-		for _, s := range sampleValues {
-			r, _, _ := prepareValue(s)
-			runtime.KeepAlive(r)
+	b.Run("byFn", func(b *testing.B) {
+		for j := b.N; j > 0; j-- {
+			for i, fn := range sampleFns {
+				if fn == nil {
+					continue
+				}
+				r, _, _ := fn(sampleValues[i])
+				runtime.KeepAlive(r)
+			}
 		}
-	}
-	fmt.Printf(" byValue %v", time.Now().Sub(startedAt)/divisor)
+	})
 
-	fmt.Println()
+	b.Run("byValue", func(b *testing.B) {
+		for j := b.N; j > 0; j-- {
+			for _, s := range sampleValues {
+				r, _, _ := prepareValue(s)
+				runtime.KeepAlive(r)
+			}
+		}
+	})
 }
 
 type mixedType func() string

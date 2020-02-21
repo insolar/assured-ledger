@@ -16,7 +16,7 @@ import (
 // PathBuilder should be initialized by NewPathBuilder, then use WalkFor to get positions of the hashing log entries
 // required to be included into a merkle-proof.
 //
-// Complexity (n - a number of hashes/leafs):
+// Complexity (by a number of hashes/leafs):
 //  - NewPathBuilder(leafCount, stubbed) is O(k * log(leafCount)), k ~ 1 when !stubbed and k ~ 2 otherwise
 //  - WalkFor(index) is O(log(leafCount))
 //  - Memory is O(log(leafCount))
