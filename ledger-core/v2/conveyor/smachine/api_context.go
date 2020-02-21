@@ -39,22 +39,22 @@ type BasicContext interface {
 type DependencyInheritanceMode uint8
 
 const (
-	// Only local overrides and dependencies provided by SlotMachine will be used for injections.
+	// IgnoreInheritedDependencies allows only local overrides and dependencies provided by SlotMachine to be used for injections.
 	// And only factually injected dependencies will be inherited by children.
 	IgnoreInheritedDependencies DependencyInheritanceMode = 0
 
 	// for internal use
 	copyAllDependencies DependencyInheritanceMode = 1
 
-	// Injection will also use resolved dependencies from creator (NB! not from parent)
-	// And only factually injected dependencies will be inherited by children.
+	// InheritResolvedDependencies makes injection to use resolved dependencies from creator (NB! not from parent)
+	// And only immediately injected dependencies will be inherited by children.
 	InheritResolvedDependencies DependencyInheritanceMode = 2
 
-	// Injection will also use resolved dependencies from creator (NB! not from parent)
+	// InheritAllDependencies makes injection to use resolved dependencies from creator (NB! not from parent)
 	// And all injected dependencies will be inherited by children.
 	InheritAllDependencies DependencyInheritanceMode = 3
 
-	// Can be combined with other modes to prevent inheritance by immediate children.
+	// DiscardResolvedDependencies can be combined with other modes to prevent inheritance by immediate children.
 	// This does NOT affect dependencies provided by SlotMachine.
 	DiscardResolvedDependencies DependencyInheritanceMode = 4
 )
@@ -63,8 +63,9 @@ const (
 type ConstructionContext interface {
 	BasicContext
 
-	// Puts a dependency for injector. Value can be nil
+	// OverrideDependency puts a dependency for injector. Value can be nil
 	OverrideDependency(id string, v interface{})
+	// SetDependencyInheritanceMode sets dependency inheritance mode
 	// Precedence of dependencies (from the highest):
 	// 1) overrides in this context
 	// 2) provided via CreateDefaultValues
@@ -76,19 +77,19 @@ type ConstructionContext interface {
 	SetContext(context.Context)
 	SetParentLink(SlotLink)
 
-	// Sets a special termination handler that will be invoked AFTER termination of SM.
+	// SetTerminationHandler sets a special termination handler that will be invoked AFTER termination of SM.
 	// This handler is invoked with either (1) GetDefaultTerminationResult() after Stop() or (2) with error after Error() or panic.
 	// Behavior for error can be modified with a custom ErrorHandlerFunc.
 	// This handler is not directly accessible to SM.
 	// WARNING! This handler is UNSAFE to access another SM. Use BargeIn() to create a necessary handler.
 	SetTerminationHandler(TerminationHandlerFunc)
-	// Sets a default value to be passed to TerminationHandlerFunc when the slot stops.
+	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
 	SetDefaultTerminationResult(interface{})
 
-	// Sets tracing mode for the slot. Actual impact depends on implementation of a logger.
+	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
 	SetLogTracing(bool)
 
-	// Sets tracer id for the slot. This can't be directly changed after construction. See UpdateDefaultStepLogger()
+	// SetTracerId sets tracer id for the slot. This can't be directly changed after construction. See UpdateDefaultStepLogger()
 	SetTracerId(TracerId)
 }
 
@@ -99,37 +100,37 @@ type InOrderStepContext interface {
 	BasicContext
 	SynchronizationContext
 
-	// Handler for migrations. Is applied when current SlotStep has no migration handler.
+	// SetDefaultMigration sets a handler for migrations. Is applied when current SlotStep has no migration handler.
 	// MUST be fast as it blocks whole SlotMachine and can't be detached.
 	SetDefaultMigration(fn MigrateFunc)
-	// Handler for errors and panics. Is applied when current SlotStep has no error handler.
+	// SetDefaultErrorHandler sets a handler for errors and panics. Is applied when current SlotStep has no error handler.
 	// MUST be fast as it blocks whole SlotMachine and can't be detached.
 	SetDefaultErrorHandler(fn ErrorHandlerFunc)
-	// Default flags are merged when SlotStep is set.
+	// SetDefaultFlags sets default flags that are merged when SlotStep is set.
 	SetDefaultFlags(StepFlags)
-	// Sets a default value to be passed to TerminationHandlerFunc when the slot stops.
+	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
 	SetDefaultTerminationResult(interface{})
-	// Gets a value from the last SetDefaultTerminationResult().
+	// GetDefaultTerminationResult returns a value from the last SetDefaultTerminationResult().
 	GetDefaultTerminationResult() interface{}
 
-	// Marks this slot for priority on scheduling and sync queues. Overrides automatic boost.
+	// SetDynamicBoost marks this slot for priority on scheduling and sync queues. Overrides automatic boost.
 	SetDynamicBoost(bool)
 
-	// Returns a slot logger for this context. It is only valid while this context is valid.
+	// Log returns a slot logger for this context. It is only valid while this context is valid.
 	Log() Logger
-	// Sets tracing mode for the slot. Actual impact depends on implementation of a logger.
+	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
 	SetLogTracing(bool)
-	// Overrides default step logger. Current logger is provided as argument. Update func can return nil.
+	// UpdateDefaultStepLogger overrides default step logger. Current logger is provided as argument. Update func can return nil.
 	UpdateDefaultStepLogger(updateFn StepLoggerUpdateFunc)
 
-	// Go to the next step. Flags, migrate and error handlers are provided by SetDefaultXXX()
+	// Jump creates an update to go to the next step. Flags, migrate and error handlers are provided by SetDefaultXXX()
 	Jump(StateFunc) StateUpdate
-	// Go to the next step with flags, migrate and error handlers.
+	// JumpExt creates an update to the next step with flags, migrate and error handlers.
 	// Flags are merged with SetDefaultFlags() unless StepResetAllFlags is included.
 	// Transition must not be nil, other handlers will use SetDefaultXXX() when nil
 	JumpExt(SlotStep) StateUpdate
 
-	// Creates a lazy link to the provided data. Link is invalidated when this SM is stopped.
+	// Share creates a lazy link to the provided data. Link is invalidated when this SM is stopped.
 	// This SM is always has a safe access when active. The shared data is guaranteed to be accessed by only one SM.
 	// Access to the data is via ExecutionContext.UseShared().
 	// Can be used across different SlotMachines.
@@ -138,7 +139,7 @@ type InOrderStepContext interface {
 	// It is recommended to use typed wrappers to access the data.
 	Share(data interface{}, flags ShareDataFlags) SharedDataLink
 
-	// Makes the data to be directly accessible via GetPublished().
+	// Publish makes the data to be directly accessible via GetPublished().
 	// Data is unpublished when this SM is stopped.
 	// Visibility of key/data is limited by the SlotMachine running this SM.
 	//
@@ -146,60 +147,63 @@ type InOrderStepContext interface {
 	// Returns false when key is in use.
 	// It is recommended to use typed wrappers to access the data.
 	Publish(key, data interface{}) bool
-	// Returns false when key is not in use or the key was published by a different SM.
+	// Unpublish returns false when key is not in use or the key was published by a different SM.
 	// Is always able to unpublish link with ShareDataUnbound flag.
 	Unpublish(key interface{}) bool
-	// Removes all keys published by this SM.
+	// UnpublishAll removes all keys published by this SM.
 	UnpublishAll()
 
-	// Gets data shared by Publish().
+	// GetPublished reads data shared by Publish().
 	// Visibility of key/data is limited by the SlotMachine running this SM.
 	// Returns nil when key is unknown or data is invalidated.
 	// It is recommended to use typed wrappers to access the data.
 	GetPublished(key interface{}) interface{}
-	// Convenience wrapper for GetPublished(). Use SharedDataLink.IsXXX() to check availability.
+	// GetPublishedLink is a convenience wrapper for GetPublished(). Use SharedDataLink.IsXXX() to check availability.
 	// It is recommended to use typed wrappers to access the data.
 	GetPublishedLink(key interface{}) SharedDataLink
 
-	// Publish this Slot globally under the given (key).
+	// PublishGlobalAlias publishes this Slot globally under the given (key).
 	// Published aliases will be unpublished on terminations of SM.
 	// Returns false when key is in use.
 	PublishGlobalAlias(key interface{}) bool
-	// Unpublish the given (key)
+	// UnpublishGlobalAlias unpublishes the given (key)
 	// Returns false when (key) is not published or is published by another slot.
 	UnpublishGlobalAlias(key interface{}) bool
-	// Get SlotLink for the given alias (key).
+	// GetPublishedGlobalAlias reads SlotLink for the given alias (key).
 	// When (key) is unknown, then zero/empty SlotLink is returned.
 	GetPublishedGlobalAlias(key interface{}) SlotLink
 
-	// Slot will be terminated by calling an error handler.
+	// Error stops SM by calling an error handler.
 	Error(error) StateUpdate
+	// Errorf stops SM by calling an error handler.
 	Errorf(msg string, a ...interface{}) StateUpdate
-	// Slot will be terminated.
+	// Stop creates an update to stop the current SM.
 	Stop() StateUpdate
 
-	// Creates a barge-in function that can be used to signal or interrupt SM from outside.
+	// BargeInWithParam creates a barge-in function that can be used to signal or interrupt SM from outside.
 	//
 	// Provided BargeInParamFunc sends an async signal to the SM and will be ignored when SM has stopped.
 	// When the signal is received by SM the BargeInApplyFunc is invoked. BargeInApplyFunc is safe to access SM.
 	// BargeInParamFunc returns false when SM was stopped at the moment of the call.
 	BargeInWithParam(BargeInApplyFunc) BargeInParamFunc
 
-	// Provides a builder for a simple barge-in.
+	// BargeIn provides a builder for a simple barge-in.
 	BargeIn() BargeInBuilder
 }
 
 type ShareDataFlags uint32
 
 const (
-	// SM that called Share() will be woken up after each use of the shared data.
+	// ShareDataWakesUpAfterUse requires that SM called Share() to be woken up after each use of the shared data.
 	ShareDataWakesUpAfterUse = 1 << iota
 
+	// ShareDataUnbound marks the shared data as immediately accessible and unbound.
 	// WARNING! Can ONLY be used for concurrency-safe data. Must NOT keep references to SM or its fields.
-	// Data is immediately accessible. Data is not bound to SM and will never be invalidated.
+	// Data is not bound to SM and will never be invalidated.
 	// Keeping such SharedDataLink will retain the data in memory.
 	ShareDataUnbound
 
+	// ShareDataDirect marks the shared data as immediately accessible.
 	// WARNING! Must NOT keep references to SM or its fields.
 	// Data is bound to SM and will invalidated after stop.
 	// But keeping such SharedDataLink will retain the data in memory even when invalidated.
@@ -213,7 +217,7 @@ type InitializationContext interface {
 type PostInitStepContext interface {
 	InOrderStepContext
 
-	// Provides a builder for a simple barge-in. The barge-in function will be ignored if the step has changed.
+	// BargeInThisStepOnly provides a builder for a simple barge-in. The barge-in function will be ignored if the step has changed.
 	BargeInThisStepOnly() BargeInBuilder
 }
 
@@ -223,8 +227,8 @@ type ExecutionContext interface {
 	StepLink() StepLink
 	GetPendingCallCount() int
 
+	// InitiateLongRun forces detachment of this slot from SlotMachine's worker to allow slow processing and/or multiple sync calls.
 	// WARNING! AVOID this method unless really needed.
-	// The method forces detachment of this slot from SlotMachine's worker to allow slow processing and/or multiple sync calls.
 	// Can only be called once per step. Detachment remains until end of the step.
 	// Detached step will PREVENT access to any bound data shared by this SM.
 	// To avoid doubt - detached step, like a normal step, will NOT receive async results, it can only receive result of sync calls.
@@ -235,23 +239,23 @@ type ExecutionContext interface {
 	// Will panic when: (1) not supported by current worker, (2) detachment limit exceeded, (3) called repeatedly.
 	InitiateLongRun(LongRunFlags)
 
-	// Returns slot logger usable in async calls on adapter side. It will be able to report until the slot is invalidated.
+	// LogAsync returns slot logger usable in async calls on adapter side. It will be able to report until the slot is invalidated.
 	// This logger reports all events as at the step the logger was created at.
 	LogAsync() Logger
 
-	// Immediately allocates a new slot and constructs SM. And schedules initialization.
+	// NewChild immediately allocates a new slot and constructs SM. And schedules initialization.
 	// It is guaranteed that:
 	// 1) the child will start at the same migration state as the creator (caller of this function)
 	// 2) initialization of the new slot will happen before any migration
 	NewChild(CreateFunc) SlotLink
 	NewChildExt(CreateFunc, CreateDefaultValues) SlotLink
 
-	// Same as NewChild, but also grantees that child's initialization will be completed before return.
+	// InitChild is same as NewChild, but also grantees that child's initialization will be completed before return.
 	// Please prefer NewChild() to avoid unnecessary dependency.
 	InitChild(CreateFunc) SlotLink
 	InitChildExt(CreateFunc, CreateDefaultValues) SlotLink
 
-	// After completion of the current step, SM will be stopped and the new SM created/started.
+	// Replace creates an update that after completion of the current step, will stop this SM and will create/start the new SM.
 	// The new SM will by default inherit from this SM: parent, context, termination handler/result and injected dependencies.
 	// When Replace() is successful, then stopping of this SM will not fire the termination handler.
 	// WARNING! Use of SetTerminationHandler() inside CreateFunc will replace the current handler, so it will never fire then.
@@ -260,31 +264,33 @@ type ExecutionContext interface {
 	// See Replace()
 	ReplaceWith(StateMachine) StateUpdate
 
-	// Applies the accessor produced by a SharedDataLink.
+	//	EnterSubroutine(SubStateMachine, SubroutineExitFunc) StateUpdate
+
+	// UseShared applies the accessor produced by a SharedDataLink.
 	// SharedDataLink can be used across different SlotMachines.
 	UseShared(SharedDataAccessor) SharedAccessReport
 
-	// Repeats current step (it is not considered as change of step).
+	// Repeat repeats the current step (it is not considered as change of step).
 	// The param limitPerCycle defines how many times this step will be repeated without switching to other slots unless interrupted.
 	Repeat(limitPerCycle int) StateUpdate
 
-	// SM will apply an action chosen by the builder and wait till next work cycle.
+	// Yield will apply an action chosen by the builder and wait till next work cycle.
 	Yield() StateConditionalBuilder
-	// SM will apply an action chosen by the builder and wait for a poll interval (configured on SlotMachine).
+	// Poll will apply an action chosen by the builder and wait for a poll interval (configured on SlotMachine).
 	Poll() StateConditionalBuilder
 
 	// EXPERIMENTAL! SM will apply an action chosen by the builder and wait for activation or stop of the given slot.
 	// TODO PLAT-42 WaitActivation(SlotLink) StateConditionalBuilder
 	// TODO PLAT-42 WaitStepChange(StepLink, tolerance uint32) StateConditionalBuilder
 
-	// SM will apply an action chosen by the builder and wait for availability of the SharedDataLink.
+	// WaitShared will apply an action chosen by the builder and wait for availability of the SharedDataLink.
 	WaitShared(SharedDataLink) StateConditionalBuilder
-	// SM will apply an action chosen by the builder and wait for any event (even for one irrelevant to this SM).
+	// WaitAny will apply an action chosen by the builder and wait for any event (even for one irrelevant to this SM).
 	WaitAny() StateConditionalBuilder
-	// SM will apply an action chosen by the builder and wait for any event (even for one irrelevant to this SM), but not later than the given time.
+	// WaitAnyUntil will apply an action chosen by the builder and wait for any event (even for one irrelevant to this SM), but not later than the given time.
 	WaitAnyUntil(time.Time) StateConditionalBuilder
 
-	// SM will apply an action chosen by the builder and wait for an explicit activation of this slot, e.g. any WakeUp() action.
+	// Sleep will apply an action chosen by the builder and wait for an explicit activation of this slot, e.g. any WakeUp() action.
 	Sleep() StateConditionalBuilder
 }
 
@@ -298,27 +304,27 @@ const (
 type MigrationContext interface {
 	PostInitStepContext
 
-	/* A step this SM is at during migration */
+	/* AffectedStep is a step this SM is at during migration */
 	AffectedStep() SlotStep
 
-	// Indicates that multiple pending migrations can be skipped / do not need to be applied individually
+	// SkipMultipleMigrations indicates that multiple pending migrations can be skipped / do not need to be applied individually
 	SkipMultipleMigrations()
 
-	/* Keeps the last state */
+	/* Stay keeps the last state */
 	Stay() StateUpdate
-	/* Makes SM active if it was waiting or polling */
+	/* WakeUp makes SM active if it was waiting or polling */
 	WakeUp() StateUpdate
 }
 
 type StateConditionalBuilder interface {
 	ConditionalBuilder
-	/* Returns information if the condition is already met */
+	// Returns information about the condition being already satisfied
 	Decider
-	// When the conditional requires wait, then return (Repeat(), true), otherwise returns ({}, false)
+	// ThenRepeatOrElse - when the conditional requires wait, then return (Repeat(), true), otherwise returns ({}, false)
 	ThenRepeatOrElse() (StateUpdate, bool)
-	// When the conditional requires wait, then returns Repeat(), otherwise Jump()
+	// ThenRepeatOrJump - when the conditional requires wait, then returns Repeat(), otherwise Jump()
 	ThenRepeatOrJump(StateFunc) StateUpdate
-	// When the conditional requires wait, then returns Repeat(), otherwise JumpExt()
+	// ThenRepeatOrJumpExt - when the conditional requires wait, then returns Repeat(), otherwise JumpExt()
 	ThenRepeatOrJumpExt(SlotStep) StateUpdate
 }
 
@@ -352,40 +358,40 @@ type BargeInParamFunc func(interface{}) bool
 type BargeInFunc func() bool
 
 type BargeInBuilder interface {
-	// BargeIn will change SM's step and wake it up
+	// WithJumpExt creates a BargeIn that will change SM's step and wake it up
 	WithJumpExt(SlotStep) BargeInFunc
-	// BargeIn will change SM's step and wake it up
+	// WithJump creates a BargeIn that will change SM's step and wake it up
 	WithJump(StateFunc) BargeInFunc
-	// BargeIn will wake up SM at its current step
+	// WithWakeUp creates a BargeIn that will wake up SM at its current step
 	WithWakeUp() BargeInFunc
-	// BargeIn will stop SM
+	// WithStop creates a BargeIn that will stop SM
 	WithStop() BargeInFunc
-	// BargeIn will stop SM with the given error
+	// WithError creates a BargeIn that will stop SM with the given error
 	WithError(error) BargeInFunc
 }
 
 type BargeInContext interface {
 	BasicContext
 
-	// Returns a slot logger for this context. It is only valid while this context is valid.
+	// Log returns a slot logger for this context. It is only valid while this context is valid.
 	Log() Logger
 
 	AffectedStep() SlotStep
 
 	BargeInParam() interface{}
 
-	// Returns true when SM step didn't change since barge-in creation
+	// IsAtOriginalStep returns true when SM step wasn't change since barge-in creation
 	IsAtOriginalStep() bool
 
 	JumpExt(SlotStep) StateUpdate
 	Jump(StateFunc) StateUpdate
 
-	// Slot will be terminated by calling an error handler.
+	// Error will stop SM by calling an error handler.
 	Error(error) StateUpdate
 
-	/* Keeps the last state */
+	// Stay keeps the last state
 	Stay() StateUpdate
-	/* Makes active if was waiting or polling */
+	// Makes SM active if it was waiting or polling
 	WakeUp() StateUpdate
 
 	Stop() StateUpdate
@@ -394,32 +400,32 @@ type BargeInContext interface {
 type FailureContext interface {
 	BasicContext
 
-	/* A step the slot is at */
+	// AffectedStep is a step the slot is at
 	AffectedStep() SlotStep
 
-	// Reason of the failure
+	// GetError resturns a reason of the failure
 	GetError() error
 
-	// False when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
+	// IsPanic is false when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
 	IsPanic() bool
 
-	// True when this error can be recovered by SetAction(ErrorHandlerRecover).
+	// CanRecover is true when this error can be recovered by SetAction(ErrorHandlerRecover).
 	// A panic inside async call / callback can be recovered.
 	CanRecover() bool
 
-	// Gets a last value set by SetDefaultTerminationResult()
+	// GetDefaultTerminationResult returns a last value set by SetDefaultTerminationResult()
 	GetDefaultTerminationResult() interface{}
 
-	// Sets a value to be passed to TerminationHandlerFunc.
+	// SetTerminationResult sets a value to be passed to TerminationHandlerFunc.
 	// By default - termination result on error will be GetError()
 	SetTerminationResult(interface{})
 
-	// Choose an action to be applied.
+	// SetAction chooses an action to be applied.
 	// Recovery actions will be ignored when CanRecover() is false.
 	SetAction(action ErrorHandlerAction)
 
-	// See ExecutionContext
+	// NewChild - See ExecutionContext.NewChild
 	NewChild(CreateFunc) SlotLink
-	// See ExecutionContext
+	// InitChild - See ExecutionContext.InitChild
 	InitChild(CreateFunc) SlotLink
 }
