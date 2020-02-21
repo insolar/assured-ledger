@@ -111,7 +111,7 @@ func (p *machineCallContext) Check(link SyncLink) BoolDecision {
 func (p *machineCallContext) executeCall(fn MachineCallFunc) (err error) {
 	p.setMode(updCtxMachineCall)
 	defer func() {
-		p.discardAndCapture("machine call", recover(), &err)
+		p.discardAndCapture("machine call", recover(), &err, 0)
 	}()
 
 	fn(p)

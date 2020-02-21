@@ -79,17 +79,17 @@ func (p *contextTemplate) setDiscarded() {
 	p.mode = updCtxDiscarded
 }
 
-func (p *contextTemplate) discardAndCapture(msg string, recovered interface{}, err *error) {
+func (p *contextTemplate) discardAndCapture(msg string, recovered interface{}, err *error, area SlotPanicArea) {
 	p.mode = updCtxDiscarded
 	if recovered == nil {
 		return
 	}
-	*err = RecoverSlotPanic(msg, recovered, *err)
+	*err = RecoverSlotPanic(msg, recovered, *err, area)
 }
 
-func (p *contextTemplate) discardAndUpdate(msg string, recovered interface{}, update *StateUpdate) {
+func (p *contextTemplate) discardAndUpdate(msg string, recovered interface{}, update *StateUpdate, area SlotPanicArea) {
 	p.mode = updCtxDiscarded
-	recoverSlotPanicAsUpdate(update, msg, recovered, nil)
+	recoverSlotPanicAsUpdate(update, msg, recovered, nil, area)
 }
 
 /* ========================================================================= */

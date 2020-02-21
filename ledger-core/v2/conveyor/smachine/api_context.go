@@ -16,6 +16,8 @@ type CreateFunc func(ctx ConstructionContext) StateMachine
 type MigrateFunc func(ctx MigrationContext) StateUpdate
 type AsyncResultFunc func(ctx AsyncResultContext)
 type ErrorHandlerFunc func(ctx FailureContext)
+type SubroutineExitFunc func(ctx ExecutionContext, data TerminationData) StateUpdate
+
 type ErrorHandlerAction uint8
 
 const (
@@ -264,7 +266,7 @@ type ExecutionContext interface {
 	// See Replace()
 	ReplaceWith(StateMachine) StateUpdate
 
-	//	EnterSubroutine(SubStateMachine, SubroutineExitFunc) StateUpdate
+	CallSubroutine(SubroutineStateMachine, SubroutineExitFunc) StateUpdate
 
 	// UseShared applies the accessor produced by a SharedDataLink.
 	// SharedDataLink can be used across different SlotMachines.
@@ -408,6 +410,8 @@ type FailureContext interface {
 
 	// IsPanic is false when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
 	IsPanic() bool
+
+	GetArea() SlotPanicArea
 
 	// CanRecover is true when this error can be recovered by SetAction(ErrorHandlerRecover).
 	// A panic inside async call / callback can be recovered.

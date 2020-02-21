@@ -34,16 +34,25 @@ type Slot struct {
 }
 
 type slotDeclarationData struct {
-	declaration StateMachineDeclaration
-
-	shadowMigrate   ShadowMigrateFunc
+	declaration     StateMachineHelper
+	shadowMigrate   ShadowMigrateFunc // runs for all subroutines
 	stepLogger      StepLogger
 	defMigrate      MigrateFunc
 	defErrorHandler ErrorHandlerFunc
-	defTerminate    TerminationHandlerFunc
+	defTerminate    TerminationHandlerFunc // stacked
 	defResult       interface{}
 
 	slotReplaceData
+
+	subroutineStack *slotStackedDeclarationData
+}
+
+type slotStackedDeclarationData struct {
+	slotDeclarationData
+	stackMigrate MigrateFunc
+	returnFn     SubroutineExitFunc
+	childMarker  *subroutineMarker
+	hasMigrates  bool
 }
 
 // transferred with Replace()
@@ -488,7 +497,7 @@ func (s *Slot) logInternal(link StepLink, updateType string, err error) {
 	}()
 }
 
-func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, wasAsync bool, err error) {
+func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, area SlotPanicArea, err error) {
 	flags := StepLoggerUpdateErrorDefault
 	switch action {
 	case ErrorHandlerMute:
@@ -499,7 +508,7 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 		flags = StepLoggerUpdateErrorRecoveryDenied
 	}
 
-	if wasAsync {
+	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
 	s._logStepUpdate(StepLoggerUpdate, 0, durationUnknownNano, durationUnknownNano, stateUpdate, flags, err)
@@ -627,4 +636,16 @@ func (s *Slot) touch(touchAt int64) time.Duration {
 		return durationUnknownNano
 	}
 	return inactivityNano
+}
+
+func (s *Slot) runShadowMigrate(migrationDelta uint32) {
+	if s.shadowMigrate != nil {
+		s.shadowMigrate(s.migrationCount, migrationDelta)
+	}
+
+	for ms := s.subroutineStack; ms != nil && ms.hasMigrates; ms = ms.subroutineStack {
+		if ms.shadowMigrate != nil {
+			ms.shadowMigrate(s.migrationCount, migrationDelta)
+		}
+	}
 }

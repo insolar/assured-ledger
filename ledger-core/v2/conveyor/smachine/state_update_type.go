@@ -55,9 +55,9 @@ func newPanicStateUpdate(err error) StateUpdate {
 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdPanic]}.newError(err)
 }
 
-func recoverSlotPanicAsUpdate(update *StateUpdate, msg string, recovered interface{}, prev error) {
+func recoverSlotPanicAsUpdate(update *StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) {
 	if recovered != nil {
-		*update = newPanicStateUpdate(RecoverSlotPanicWithStack(msg, recovered, prev))
+		*update = newPanicStateUpdate(RecoverSlotPanicWithStack(msg, recovered, prev, area))
 	} else if prev != nil {
 		*update = newPanicStateUpdate(prev)
 	}
@@ -82,11 +82,13 @@ type StateUpdateType struct {
 	/* Runs inside the Machine / non-detachable */
 	apply SlotUpdateFunc
 
-	filter    updCtxMode
-	params    stateUpdParam
 	varVerify func(interface{})
 
 	name string
+
+	filter             updCtxMode
+	params             stateUpdParam
+	safeWithSubroutine bool
 }
 
 type StateUpdateTemplate struct {
@@ -203,6 +205,10 @@ func (v StateUpdateType) Apply(slot *Slot, stateUpdate StateUpdate, worker Fixed
 	return v.apply(slot, stateUpdate, worker)
 }
 
+func (v StateUpdateType) IsSubroutineSafe() bool {
+	return v.safeWithSubroutine
+}
+
 func (v StateUpdateTemplate) ensureTemplate(params stateUpdParam) {
 	if v.t == nil {
 		panic("illegal state")
@@ -232,6 +238,15 @@ func (v StateUpdateTemplate) newStep(slotStep SlotStep, prepare StepPrepareFunc)
 		updKind: stateUpdBaseType(v.t.updKind),
 		step:    slotStep,
 		param1:  prepare,
+	}
+}
+
+func (v StateUpdateTemplate) newStepOnly(slotStep SlotStep) StateUpdate {
+	v.ensureTemplate(updParamStep)
+	return StateUpdate{
+		marker:  v.marker,
+		updKind: stateUpdBaseType(v.t.updKind),
+		step:    slotStep,
 	}
 }
 

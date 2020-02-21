@@ -36,6 +36,11 @@ func (p *executionContext) Jump(fn StateFunc) StateUpdate {
 	return p.template(stateUpdNextLoop).newStepUint(SlotStep{Transition: fn}, math.MaxUint32)
 }
 
+func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, exitFn SubroutineExitFunc) StateUpdate {
+	nextStep := p.s.prepareSubroutineStart(ssm, exitFn)
+	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
+}
+
 func (p *executionContext) Yield() StateConditionalBuilder {
 	ncu := p.newConditionalUpdate(stateUpdNext)
 	return &ncu
@@ -120,7 +125,7 @@ func (p *executionContext) UseShared(a SharedDataAccessor) SharedAccessReport {
 func (p *executionContext) executeNextStep() (stateUpdate StateUpdate, sut StateUpdateType, asyncCallCount uint16) {
 	p.setMode(updCtxExec)
 	defer func() {
-		p.discardAndUpdate("execution", recover(), &stateUpdate)
+		p.discardAndUpdate("execution", recover(), &stateUpdate, StateArea)
 	}()
 
 	current := p.s.step

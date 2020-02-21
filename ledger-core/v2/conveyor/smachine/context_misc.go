@@ -99,7 +99,7 @@ type initializationContext struct {
 func (p *initializationContext) executeInitialization(fn InitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxInit)
 	defer func() {
-		p.discardAndUpdate("initialization", recover(), &stateUpdate)
+		p.discardAndUpdate("initialization", recover(), &stateUpdate, StateArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
@@ -123,7 +123,7 @@ func (p *migrationContext) SkipMultipleMigrations() {
 func (p *migrationContext) executeMigration(fn MigrateFunc) (stateUpdate StateUpdate, skipMultiple bool) {
 	p.setMode(updCtxMigrate)
 	defer func() {
-		p.discardAndUpdate("migration", recover(), &stateUpdate)
+		p.discardAndUpdate("migration", recover(), &stateUpdate, StateArea)
 	}()
 
 	su := p.ensureAndPrepare(p.s, fn(p))
@@ -137,7 +137,7 @@ var _ FailureContext = &failureContext{}
 type failureContext struct {
 	slotContext
 	isPanic    bool
-	isAsync    bool
+	area       SlotPanicArea
 	canRecover bool
 	err        error
 	result     interface{}
@@ -164,6 +164,11 @@ func (p *failureContext) IsPanic() bool {
 	return p.isPanic
 }
 
+func (p *failureContext) GetArea() SlotPanicArea {
+	p.ensure(updCtxFail)
+	return p.area
+}
+
 func (p *failureContext) CanRecover() bool {
 	p.ensure(updCtxFail)
 	return p.canRecover
@@ -177,7 +182,7 @@ func (p *failureContext) SetAction(action ErrorHandlerAction) {
 func (p *failureContext) executeFailure(fn ErrorHandlerFunc) (ok bool, result ErrorHandlerAction, err error) {
 	p.setMode(updCtxFail)
 	defer func() {
-		p.discardAndCapture("failure handler", recover(), &err)
+		p.discardAndCapture("failure handler", recover(), &err, ErrorHandlerArea)
 	}()
 	err = p.err // ensure it will be included on panic
 	fn(p)

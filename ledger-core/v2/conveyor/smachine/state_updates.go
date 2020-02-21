@@ -19,6 +19,7 @@ const (
 	stateUpdPanic
 	stateUpdReplace
 	stateUpdReplaceWith
+	stateUpdSubroutineStart
 
 	stateUpdInternalRepeatNow // this is a special op. MUST NOT be used anywhere else.
 
@@ -45,6 +46,8 @@ func init() {
 			name:   "noChange",
 			filter: updCtxMigrate | updCtxBargeIn | updCtxAsyncCallback,
 
+			safeWithSubroutine: true,
+
 			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
 				//if !slot.isInQueue() {
 				//	return false, errors.New("unexpected state update")
@@ -56,6 +59,7 @@ func init() {
 		stateUpdInternalRepeatNow: {
 			name:   "repeatNow",
 			filter: updCtxInternal, // can't be created by a template
+
 			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
 				if slot.isInQueue() {
 					return false, errors.New("unexpected internal repeat")
@@ -128,10 +132,26 @@ func init() {
 			apply:   stateUpdateDefaultReplace,
 		},
 
+		stateUpdSubroutineStart: {
+			name:   "subroutineStart",
+			filter: updCtxExec,
+			params: updParamStep,
+
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+				// can't use stateUpdateDefaultJump here as have to provide stepDecl
+				m := slot.machine
+				slot.setNextStep(stateUpdate.step, &defaultSubroutineStartDecl)
+				m.updateSlotQueue(slot, worker, activateSlot)
+				return true, nil
+			},
+		},
+
 		stateUpdRepeat: {
 			name:   "repeat",
 			filter: updCtxExec,
 			params: updParamUint,
+
+			safeWithSubroutine: true,
 
 			shortLoop: func(slot *Slot, stateUpdate StateUpdate, loopCount uint32) bool {
 				return loopCount < stateUpdate.param0
@@ -176,6 +196,8 @@ func init() {
 		stateUpdWakeup: {
 			name:   "wakeUp",
 			filter: updCtxExec | updCtxBargeIn | updCtxAsyncCallback | updCtxMigrate,
+
+			safeWithSubroutine: true,
 
 			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
 				slot.activateSlot(worker)
@@ -373,8 +395,14 @@ func stateUpdateDefaultJump(slot *Slot, stateUpdate StateUpdate, worker FixedSlo
 }
 
 func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
-	// recycleSlot can handle both in-place and off-place updates
 	m := slot.machine
+	if slot.hasSubroutine() {
+		slot.prepareSubroutineExit(nil, worker)
+		m.updateSlotQueue(slot, worker, activateSlot)
+		return true, nil
+	}
+
+	// recycleSlot can handle both in-place and off-place updates
 	m.recycleSlot(slot, worker)
 	return false, nil
 }
@@ -388,6 +416,10 @@ type prepareReplaceData struct {
 func statePrepareDefaultReplace(creator *Slot, stateUpdate *StateUpdate) {
 	m := creator.machine
 	rep := stateUpdate.param1.(prepareReplaceData)
+
+	//if creator.hasSubroutine() {
+	//	panic(errors.New("replace is not allowed for subroutine SM"))
+	//}
 
 	if link, ok := m.prepareNewSlot(creator, rep.fn, rep.sm, rep.def); ok {
 		// handover the termination handler

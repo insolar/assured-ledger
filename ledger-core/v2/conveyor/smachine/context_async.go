@@ -68,7 +68,7 @@ func (p *bargingInContext) Log() Logger {
 func (p *bargingInContext) executeBargeIn(fn BargeInApplyFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxBargeIn)
 	defer func() {
-		p.discardAndUpdate("barge in", recover(), &stateUpdate)
+		p.discardAndUpdate("barge in", recover(), &stateUpdate, BargeInArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))

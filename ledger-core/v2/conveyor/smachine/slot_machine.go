@@ -497,7 +497,7 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 		var stateUpdate StateUpdate
 		func() {
 			defer func() {
-				recoverSlotPanicAsUpdate(&stateUpdate, "async callback panic", recover(), prevErr)
+				recoverSlotPanicAsUpdate(&stateUpdate, "async callback panic", recover(), prevErr, AsyncCallArea)
 			}()
 			if callbackFn != nil {
 				stateUpdate = callbackFn(slot, worker, prevErr)
@@ -607,32 +607,49 @@ func (m *SlotMachine) migrateSlot(migrateCount uint32, slot *Slot, w FixedSlotWo
 	return isEmptyOrWeak, isAvailable
 }
 
-func (m *SlotMachine) _migrateSlot(migrateCount uint32, slot *Slot, prevStepNo uint32, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
+func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevStepNo uint32, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
 
 	inactivityNano := slot.touch(time.Now().UnixNano())
 
-	for delta := migrateCount - slot.migrationCount; delta > 0; {
-		migrateFn := slot.getMigration()
+	for delta := lastMigrationCount - slot.migrationCount; delta > 0; {
+		if migrateFn, ms := slot.getMigration(), slot.subroutineStack; migrateFn != nil || ms != nil && ms.hasMigrates {
+			slot.runShadowMigrate(1)
 
-		if migrateFn != nil {
-			if slot.shadowMigrate != nil {
-				slot.shadowMigrate(slot.migrationCount, 1)
+			skipMultiple := true
+
+			for level := 0; ; level++ {
+				if migrateFn != nil {
+					mc := migrationContext{
+						slotContext: slotContext{s: slot, w: migrateWorkerWrapper{worker}},
+						fixedWorker: worker,
+					}
+					stateUpdate, skipAll := mc.executeMigration(migrateFn)
+					activityNano := slot.touch(time.Now().UnixNano())
+					slot.logStepMigrate(prevStepNo, stateUpdate, inactivityNano, activityNano)
+
+					if level != 0 && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
+						var sm *subroutineMarker
+						if ms != nil {
+							sm = ms.childMarker
+						}
+						stateUpdate = m.handleUnsafeSubroutineUpdate(stateUpdate, sm)
+					}
+
+					if !m.applyStateUpdate(slot, stateUpdate, worker) {
+						return true, false
+					}
+					if !skipAll {
+						skipMultiple = false
+					}
+					inactivityNano = durationUnknownNano
+				}
+				if ms == nil || !ms.hasMigrates {
+					break
+				}
+				migrateFn = ms.stackMigrate
+				ms = ms.subroutineStack
 			}
 
-			mc := migrationContext{
-				slotContext: slotContext{s: slot, w: migrateWorkerWrapper{worker}},
-				fixedWorker: worker,
-			}
-
-			stateUpdate, skipMultiple := mc.executeMigration(migrateFn)
-
-			activityNano := slot.touch(time.Now().UnixNano())
-			slot.logStepMigrate(prevStepNo, stateUpdate, inactivityNano, activityNano)
-			inactivityNano = durationUnknownNano
-
-			if !m.applyStateUpdate(slot, stateUpdate, worker) {
-				return true, false
-			}
 			slot.migrationCount++
 			delta--
 			if delta == 0 {
@@ -643,10 +660,10 @@ func (m *SlotMachine) _migrateSlot(migrateCount uint32, slot *Slot, prevStepNo u
 			}
 		}
 
-		if slot.shadowMigrate != nil {
-			slot.shadowMigrate(slot.migrationCount, delta)
+		if delta > 0 {
+			slot.runShadowMigrate(delta)
 		}
-		slot.migrationCount = migrateCount
+		slot.migrationCount = lastMigrationCount
 		break
 	}
 
@@ -735,7 +752,7 @@ func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, e
 		defer func() {
 			recovered := recover()
 			hasPanic = recovered != nil
-			err = RecoverSlotPanicWithStack("internal panic - recycleSlot", recovered, err)
+			err = RecoverSlotPanicWithStack("internal panic - recycleSlot", recovered, err, InternalArea)
 		}()
 
 		link = slot.NewStepLink()
@@ -855,7 +872,7 @@ func (m *SlotMachine) runTerminationHandler(ctx context.Context, th TerminationH
 	m.syncQueue.AddAsyncCallback(td.Slot.SlotLink, func(_ SlotLink, _ DetachableSlotWorker) bool {
 		err := func() (err error) {
 			defer func() {
-				err = RecoverSlotPanicWithStack("termination handler", recover(), nil)
+				err = RecoverSlotPanicWithStack("termination handler", recover(), nil, ErrorHandlerArea)
 			}()
 			th(ctx, td)
 			return nil
@@ -1007,6 +1024,7 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 		panic(fmt.Errorf("illegal state - declaration is missing: %v", sm))
 	}
 	slot.declaration = decl
+	slot.setTracing(cc.isTracing)
 
 	link := slot.NewLink()
 
@@ -1016,23 +1034,10 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 		cc.injects, defValues.inheritable)
 
 	// Step Logger
-	var stepLoggerFactory StepLoggerFactoryFunc
-	if m.config.SlotMachineLogger != nil {
-		stepLoggerFactory = m.config.SlotMachineLogger.CreateStepLogger
-	}
-	if stepLogger, ok := decl.GetStepLogger(slot.ctx, sm, cc.tracerId, stepLoggerFactory); ok {
-		slot.stepLogger = stepLogger
-	} else if stepLoggerFactory != nil {
-		slot.stepLogger = stepLoggerFactory(slot.ctx, sm, cc.tracerId)
-	}
-	if slot.stepLogger == nil && len(cc.tracerId) > 0 {
-		slot.stepLogger = StepLoggerStub{cc.tracerId}
-	}
-
-	slot.setTracing(cc.isTracing)
+	m.prepareStepLogger(slot, sm, cc.tracerId)
 
 	// get Init step
-	initFn := slot.declaration.GetInitStateFor(sm)
+	initFn := decl.GetInitStateFor(sm)
 	if initFn == nil {
 		panic(fmt.Errorf("illegal state - initialization is missing: %v", sm))
 	}
@@ -1069,6 +1074,22 @@ func (v InitFunc) defaultInit(ctx ExecutionContext) StateUpdate {
 	su := ic.executeInitialization(v)
 	su.marker = ec.getMarker()
 	return su
+}
+
+func (m *SlotMachine) prepareStepLogger(slot *Slot, sm StateMachine, tracerId TracerId) {
+	var stepLoggerFactory StepLoggerFactoryFunc
+	if m.config.SlotMachineLogger != nil {
+		stepLoggerFactory = m.config.SlotMachineLogger.CreateStepLogger
+	}
+
+	if stepLogger, ok := slot.declaration.GetStepLogger(slot.ctx, sm, tracerId, stepLoggerFactory); ok {
+		slot.stepLogger = stepLogger
+	} else if slot.stepLogger == nil && stepLoggerFactory != nil {
+		slot.stepLogger = stepLoggerFactory(slot.ctx, sm, tracerId)
+	}
+	if slot.stepLogger == nil && len(tracerId) > 0 {
+		slot.stepLogger = StepLoggerStub{tracerId}
+	}
 }
 
 func (m *SlotMachine) prepareInjects(creator *Slot, link SlotLink, sm StateMachine, mode DependencyInheritanceMode, isReplacement bool,
@@ -1290,7 +1311,7 @@ func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w Fi
 		defer func() {
 			recovered := recover()
 			isPanic = recovered != nil
-			err = RecoverSlotPanicWithStack("apply state update panic", recovered, err)
+			err = RecoverSlotPanicWithStack("apply state update panic", recovered, err, InternalArea)
 		}()
 		isAvailable, err = typeOfStateUpdate(stateUpdate).Apply(slot, stateUpdate, w)
 	}()
@@ -1305,17 +1326,17 @@ func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w Fi
 func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, stateUpdate StateUpdate, isPanic bool, err error) bool {
 
 	canRecover := false
-	isAsync := false
-	if se, ok := err.(SlotPanicError); ok {
-		isAsync = se.IsAsync
+	area := StateArea
+	if se, ok := err.(SlotPanicError); ok && se.Area != 0 {
+		area = se.Area
 	}
-	canRecover = isAsync // || !isPanic
 
+	canRecover = area.CanRecoverByHandler()
 	action := ErrorHandlerDefault
 
 	eh := slot.getErrorHandler()
 	if eh != nil {
-		fc := failureContext{isPanic: isPanic, isAsync: isAsync, canRecover: canRecover, err: err, result: slot.defResult}
+		fc := failureContext{isPanic: isPanic, area: area, canRecover: canRecover, err: err, result: slot.defResult}
 
 		ok := false
 		if ok, action, err = fc.executeFailure(eh); ok {
@@ -1330,18 +1351,23 @@ func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, 
 	case ErrorHandlerRecover, ErrorHandlerRecoverAndWakeUp:
 		switch {
 		case !canRecover:
-			slot.logStepError(errorHandlerRecoverDenied, stateUpdate, isAsync, err)
+			slot.logStepError(errorHandlerRecoverDenied, stateUpdate, area, err)
 		case action == ErrorHandlerRecoverAndWakeUp:
 			slot.activateSlot(worker)
 			fallthrough
 		default:
-			slot.logStepError(ErrorHandlerRecover, stateUpdate, isAsync, err)
+			slot.logStepError(ErrorHandlerRecover, stateUpdate, area, err)
 			return true
 		}
 	case ErrorHandlerMute:
-		slot.logStepError(ErrorHandlerMute, stateUpdate, isAsync, err)
+		slot.logStepError(ErrorHandlerMute, stateUpdate, area, err)
 	default:
-		slot.logStepError(ErrorHandlerDefault, stateUpdate, isAsync, err)
+		slot.logStepError(ErrorHandlerDefault, stateUpdate, area, err)
+	}
+
+	if area.CanRecoverBySubroutine() && slot.hasSubroutine() {
+		slot.prepareSubroutineExit(err, worker)
+		return true
 	}
 
 	m.recycleSlotWithError(slot, worker, err)
@@ -1364,7 +1390,9 @@ func (m *SlotMachine) logInternal(link StepLink, msg string, err error) {
 
 func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) BargeInParamFunc {
 
+	link.s.ensureNoSubroutine()
 	link.s.slotFlags |= slotHasBargeIn
+
 	return func(param interface{}) bool {
 		if !link.IsValid() {
 			return false
@@ -1372,7 +1400,13 @@ func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) Bar
 		m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
 			_, atExactStep := link.isValidAndAtExactStep()
 			bc := bargingInContext{slotContext{s: slot}, param, atExactStep}
-			return bc.executeBargeIn(applyFn)
+			stateUpdate := bc.executeBargeIn(applyFn)
+
+			if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
+				return m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
+			}
+
+			return stateUpdate
 		}, nil)
 		return true
 	}
@@ -1394,8 +1428,13 @@ func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn Barge
 			slot.stopWorking()
 		}
 	}()
+
 	bc := bargingInContext{slotContext{s: link.s}, param, false}
 	stateUpdate := bc.executeBargeInNow(applyFn)
+
+	if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
+		stateUpdate = m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
+	}
 
 	releaseOnPanic = false
 	m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
@@ -1404,7 +1443,9 @@ func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn Barge
 
 func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate) BargeInFunc {
 
+	link.s.ensureNoSubroutine()
 	link.s.slotFlags |= slotHasBargeIn
+
 	return func() bool {
 		if !link.IsValid() {
 			return false
@@ -1415,15 +1456,23 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 			}
 			// Plan A - faster one
 			if slot, isStarted, prevStepNo := link.tryStartWorking(); isStarted {
+				stateUpdate := stateUpdate
+				if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
+					stateUpdate = m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
+				}
+
 				m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, durationNotApplicableNano)
 				return
 			}
 			// Plan B
 			m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
-				if link.IsAtStep() {
-					return stateUpdate
+				if !link.IsAtStep() {
+					return StateUpdate{} // no change
 				}
-				return StateUpdate{} // no change
+				if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
+					return m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
+				}
+				return stateUpdate
 			}, nil)
 		})
 		return true
