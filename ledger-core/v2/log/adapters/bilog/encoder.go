@@ -6,10 +6,11 @@
 package bilog
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"sort"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
