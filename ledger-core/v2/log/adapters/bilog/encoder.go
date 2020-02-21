@@ -6,8 +6,6 @@
 package bilog
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"sort"
 	"time"
 
