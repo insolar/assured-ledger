@@ -23,7 +23,7 @@ func CutAndUpdateMetricTimeMark(dst *[]byte, now time.Time) (bool, time.Duration
 		if len(buf) < int(fieldLogEntry.FieldSize(0))+metricTimeMarkFullSize {
 			return 0
 		}
-		switch entryLen, err := fieldLogEntry.DecodeFrom(bytes.NewBuffer(buf)); {
+		switch entryLen, err := fieldLogEntry.ReadTagValue(bytes.NewBuffer(buf)); {
 		case err != nil:
 			return 0
 		case uint64(len(buf)) <= entryLen:
