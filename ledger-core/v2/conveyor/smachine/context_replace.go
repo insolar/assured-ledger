@@ -7,55 +7,40 @@
 
 package smachine
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-
-func (p *slotContext) _prepareReplacementData() prepareSlotValue {
-	return prepareSlotValue{
-		slotReplaceData: p.s.slotReplaceData.takeOutForReplace(),
-		isReplacement:   true,
-		tracerId:        p.s.getTracerId(),
-	}
-}
+import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
 
 func (p *slotContext) Replace(fn CreateFunc) StateUpdate {
-	tmpl := p.template(stateUpdReplace) // ensures state of this context
-
-	if fn == nil {
-		panic(throw.IllegalValue())
-	}
-
-	def := prepareReplaceData{fn: fn,
-		def: p._prepareReplacementData(),
-	}
-	return tmpl.newVar(def)
+	return p.replaceExt(fn, CreateDefaultValues{})
 }
 
 func (p *slotContext) ReplaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
-	tmpl := p.template(stateUpdReplace) // ensures state of this context
+	return p.replaceExt(fn, defValues)
+}
 
+func (p *slotContext) replaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
+	tmpl := p.template(stateUpdReplace) // ensures state of this context
 	if fn == nil {
 		panic(throw.IllegalValue())
 	}
-
-	def := prepareReplaceData{fn: fn,
-		def: p._prepareReplacementData(),
-	}
-	mergeDefaultValues(&def.def, defValues)
-
-	return tmpl.newVar(def)
+	return tmpl.newStepOnly(p.s.prepareReplaceWith(nil, fn, defValues))
 }
 
 func (p *slotContext) ReplaceWith(sm StateMachine) StateUpdate {
-	tmpl := p.template(stateUpdReplaceWith) // ensures state of this context
+	tmpl := p.template(stateUpdReplace) // ensures state of this context
 
 	if sm == nil {
 		panic(throw.IllegalValue())
 	}
+	return tmpl.newStepOnly(p.s.prepareReplaceWith(sm, nil, CreateDefaultValues{}))
+}
 
-	def := prepareReplaceData{sm: sm,
-		def: p._prepareReplacementData(),
+func (s *Slot) prepareReplaceWith(sm StateMachine, fn CreateFunc, defValues CreateDefaultValues) SlotStep {
+	if initFn := s.prepareSlotInit(s, fn, sm, defValues); initFn != nil {
+		return SlotStep{Transition: initFn.defaultInit}
 	}
-	return tmpl.newVar(def)
+	panic("replacing SM didn't initialize")
 }
 
 func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {

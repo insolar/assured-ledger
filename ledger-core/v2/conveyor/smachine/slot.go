@@ -40,7 +40,8 @@ type Slot struct {
 	slotData
 }
 
-type slotDeclarationData struct {
+// stateMachineData contains details about specific StateMachine instance
+type stateMachineData struct {
 	declaration     StateMachineHelper
 	shadowMigrate   ShadowMigrateFunc // runs for all subroutines
 	stepLogger      StepLogger
@@ -48,50 +49,39 @@ type slotDeclarationData struct {
 	defErrorHandler ErrorHandlerFunc
 	defTerminate    internalTerminationHandlerFunc
 	defResult       interface{}
+	defFlags        StepFlags
 
-	slotReplaceData
+	// DO NOT modify content of this map
+	inheritable map[string]interface{}
 
-	subroutineStack *slotStackedDeclarationData
+	stateStack *stackedStateMachineData
 }
 
-type slotStackedDeclarationData struct {
-	slotDeclarationData
+type stackedStateMachineData struct {
+	stateMachineData
 	stackMigrate MigrateFunc
 	returnFn     SubroutineExitFunc
 	childMarker  *subroutineMarker
 	hasMigrates  bool
 }
 
-// transferred with Replace()
-type slotReplaceData struct {
+type slotData struct {
 	parent SlotLink
 	ctx    context.Context
 
-	// DO NOT modify content of this map
-	inheritable map[string]interface{}
-
-	defFlags StepFlags
-}
-
-func (v slotReplaceData) takeOutForReplace() slotReplaceData {
-	return v
-}
-
-type slotData struct {
-	slotDeclarationData
-
-	slotFlags      slotFlags
-	lastWorkScan   uint8  // to check if a slot was executed in this cycle
-	asyncCallCount uint16 // pending calls, overflow panics
-	migrationCount uint32 // can be wrapped by overflow
-
-	lastTouchNano int64
+	stateMachineData
 
 	boost    *boostPermit
 	step     SlotStep
 	stepDecl *StepDeclaration
 
 	dependency SlotDependency
+
+	lastTouchNano  int64
+	migrationCount uint32 // can be wrapped by overflow
+	asyncCallCount uint16 // pending calls, overflow panics
+	lastWorkScan   uint8  // to check if a slot was executed in this cycle
+	slotFlags      slotFlags
 }
 
 type slotFlags uint8
@@ -658,7 +648,7 @@ func (s *Slot) runShadowMigrate(migrationDelta uint32) {
 		s.shadowMigrate(s.migrationCount, migrationDelta)
 	}
 
-	for ms := s.subroutineStack; ms != nil && ms.hasMigrates; ms = ms.subroutineStack {
+	for ms := s.stateStack; ms != nil && ms.hasMigrates; ms = ms.stateStack {
 		if ms.shadowMigrate != nil {
 			ms.shadowMigrate(s.migrationCount, migrationDelta)
 		}

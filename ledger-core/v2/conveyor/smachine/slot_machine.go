@@ -625,7 +625,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 	var pendingUpdate StateUpdate
 
 	for delta := lastMigrationCount - slot.migrationCount; delta > 0; {
-		if migrateFn, ms := slot.getMigration(), slot.subroutineStack; migrateFn != nil || ms != nil && ms.hasMigrates {
+		if migrateFn, ms := slot.getMigration(), slot.stateStack; migrateFn != nil || ms != nil && ms.hasMigrates {
 			slot.runShadowMigrate(1)
 
 			skipMultiple := true
@@ -664,7 +664,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 					break
 				}
 				migrateFn = ms.stackMigrate
-				ms = ms.subroutineStack
+				ms = ms.stateStack
 			}
 			slot.migrationCount++
 			delta--
@@ -927,8 +927,7 @@ func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (Sl
 	}
 	// TODO PLAT-25 pass adapterId into injections?
 
-	link, ok := m.prepareNewSlot(nil, cf, nil,
-		prepareSlotValue{slotReplaceData: slotReplaceData{parent: parent}})
+	link, ok := m.prepareNewSlot(nil, cf, nil, CreateDefaultValues{Parent: parent})
 
 	if ok {
 		m.syncQueue.AddAsyncUpdate(link, m._startAddedSlot)
@@ -936,67 +935,12 @@ func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (Sl
 	return link, ok
 }
 
-type prepareSlotValue struct {
-	slotReplaceData
-	overrides     map[string]interface{}
-	terminate     internalTerminationHandlerFunc
-	defResult     interface{}
-	tracerId      TracerId
-	isReplacement bool
-}
-
 func (m *SlotMachine) prepareNewSlotWithDefaults(creator *Slot, fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) (SlotLink, bool) {
-	psv := prepareSlotValue{
-		slotReplaceData: slotReplaceData{
-			parent: defValues.Parent,
-			ctx:    defValues.Context,
-		},
-		defResult: defValues.TerminationResult,
-		overrides: defValues.OverriddenDependencies,
-		tracerId:  defValues.TracerId,
-	}
-
-	if tfn := defValues.TerminationHandler; tfn != nil {
-		psv.terminate = func(data TerminationData, _ FixedSlotWorker) {
-			tfn(data)
-		}
-	}
-
-	return m.prepareNewSlot(creator, fn, sm, psv)
-}
-
-func mergeDefaultValues(target *prepareSlotValue, source CreateDefaultValues) {
-	if source.Context != nil {
-		target.ctx = source.Context
-	}
-	if !source.Parent.IsEmpty() {
-		target.parent = source.Parent
-	}
-	if source.TerminationResult != nil {
-		target.defResult = source.TerminationResult
-	}
-	if tfn := source.TerminationHandler; tfn != nil {
-		target.terminate = func(data TerminationData, _ FixedSlotWorker) {
-			tfn(data)
-		}
-	}
-	if len(source.TracerId) > 0 {
-		target.tracerId = source.TracerId
-	}
-
-	switch {
-	case source.OverriddenDependencies == nil:
-	case target.overrides == nil:
-		target.overrides = source.OverriddenDependencies
-	default:
-		for k, v := range source.OverriddenDependencies {
-			target.overrides[k] = v
-		}
-	}
+	return m.prepareNewSlot(creator, fn, sm, defValues)
 }
 
 // caller MUST be busy-holder of both creator and slot, then this method is SAFE for concurrent use
-func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachine, defValues prepareSlotValue) (SlotLink, bool) {
+func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) (SlotLink, bool) {
 	switch {
 	case (fn == nil) == (sm == nil):
 		panic("illegal value")
@@ -1011,94 +955,44 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 		}
 	}()
 
-	slot.slotReplaceData = defValues.slotReplaceData
+	slot.parent = defValues.Parent
+	slot.ctx = defValues.Context
 
 	// terminate handler must be executed even if construction has failed
-	slot.defResult = defValues.defResult
-	slot.defTerminate = defValues.terminate
+	slot.defResult = defValues.TerminationResult
+	if tfn := defValues.TerminationHandler; tfn != nil {
+		slot.defTerminate = func(data TerminationData, _ FixedSlotWorker) {
+			tfn(data)
+		}
+	}
 
 	switch {
 	case slot.ctx != nil:
+		//
 	case creator != nil:
 		slot.ctx = creator.ctx
 	case slot.parent.IsValid():
-		// TODO PLAT-26 this can be racy when the parent is from another SlotMachine running under a different worker ...
+		// TODO PLAT-26 this can be racy, but under very awkward conditions:
+		// 1. SM1 is from another SlotMachine running under a different worker
+		// 2. SM1 has not finished its construction
+		// 3. SM1 has provided its SlotLink to another party
+		// 4. the other party has created a new SM2 with SM1 as parent, but didn't provide context.Context
+		// 5. SM1 has called ConstructionContext.SetContext() while SM2 is being created
 		slot.ctx = slot.parent.s.ctx
 	}
 	if slot.ctx == nil {
 		slot.ctx = context.Background() // TODO PLAT-24 provide SlotMachine context?
 	}
 
-	cc := constructionContext{s: slot, injects: defValues.overrides, tracerId: defValues.tracerId}
-	if defValues.isReplacement {
-		cc.inherit = InheritResolvedDependencies
-	}
-
-	if fn != nil {
-		sm = cc.executeCreate(fn)
-
-		slot._addTerminationCallback(cc.callbackLink, cc.callbackFn)
-
-		if sm == nil {
-			return slot.NewLink(), false // slot will be released by defer
-		}
-	}
-
-	decl := sm.GetStateMachineDeclaration()
-	if decl == nil {
-		panic(fmt.Errorf("illegal state - declaration is missing: %v", sm))
-	}
-	slot.declaration = decl
-	slot.setTracing(cc.isTracing)
-
 	link := slot.NewLink()
-
-	// get injects sorted out
-	var localInjects []interface{}
-	slot.inheritable, localInjects = m.prepareInjects(creator, link, sm, cc.inherit, defValues.isReplacement,
-		cc.injects, defValues.inheritable)
-
-	// Step Logger
-	m.prepareStepLogger(slot, sm, cc.tracerId)
-
-	// get Init step
-	initFn := decl.GetInitStateFor(sm)
-	if initFn == nil {
-		panic(fmt.Errorf("illegal state - initialization is missing: %v", sm))
+	if initFn := slot.prepareSlotInit(creator, fn, sm, defValues); initFn != nil {
+		// final touch
+		slot.step = SlotStep{Transition: initFn.defaultInit}
+		slot.stepDecl = &defaultInitDecl
+		slot = nil //protect from defer
+		return link, true
 	}
-
-	// Setup Slot counters
-	if creator != nil {
-		slot.migrationCount = creator.migrationCount
-		slot.lastWorkScan = creator.lastWorkScan
-	} else {
-		scanCount, migrateCount := m.getScanAndMigrateCounts()
-		slot.migrationCount = migrateCount
-		slot.lastWorkScan = uint8(scanCount)
-	}
-
-	// shadow migrate for injected dependencies
-	slot.shadowMigrate = buildShadowMigrator(localInjects, slot.declaration.GetShadowMigrateFor(sm))
-
-	// final touch
-	slot.step = SlotStep{Transition: initFn.defaultInit}
-	slot.stepDecl = &defaultInitDecl
-
-	slot = nil //protect from defer
-	return link, true
-}
-
-var defaultInitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<init>"}}
-
-func (v InitFunc) defaultInit(ctx ExecutionContext) StateUpdate {
-	ec := ctx.(*executionContext)
-	if ec.s.shadowMigrate != nil {
-		ec.s.shadowMigrate(ec.s.migrationCount, 0)
-	}
-	ic := initializationContext{ec.clone(updCtxInactive)}
-	su := ic.executeInitialization(v)
-	su.marker = ec.getMarker()
-	return su
+	return link, false // slot will be released by defer
 }
 
 func (m *SlotMachine) prepareStepLogger(slot *Slot, sm StateMachine, tracerId TracerId) {
@@ -1109,7 +1003,7 @@ func (m *SlotMachine) prepareStepLogger(slot *Slot, sm StateMachine, tracerId Tr
 
 	if stepLogger, ok := slot.declaration.GetStepLogger(slot.ctx, sm, tracerId, stepLoggerFactory); ok {
 		slot.stepLogger = stepLogger
-	} else if slot.stepLogger == nil && stepLoggerFactory != nil {
+	} else if stepLoggerFactory != nil {
 		slot.stepLogger = stepLoggerFactory(slot.ctx, sm, tracerId)
 	}
 	if slot.stepLogger == nil && len(tracerId) > 0 {
@@ -1117,19 +1011,16 @@ func (m *SlotMachine) prepareStepLogger(slot *Slot, sm StateMachine, tracerId Tr
 	}
 }
 
-func (m *SlotMachine) prepareInjects(creator *Slot, link SlotLink, sm StateMachine, mode DependencyInheritanceMode, isReplacement bool,
-	constructorOverrides, defValuesInjects map[string]interface{},
+func (m *SlotMachine) prepareInjects(link SlotLink, sm StateMachine, mode DependencyInheritanceMode, isReplacement bool,
+	creatorInheritable, constructorOverrides map[string]interface{},
 ) (map[string]interface{}, []interface{}) {
 
 	var overrides []map[string]interface{}
 	if len(constructorOverrides) > 0 {
 		overrides = append(overrides, constructorOverrides)
 	}
-	if len(defValuesInjects) > 0 {
-		overrides = append(overrides, defValuesInjects)
-	}
-	if mode&InheritResolvedDependencies != 0 && creator != nil && len(creator.inheritable) > 0 {
-		overrides = append(overrides, creator.inheritable)
+	if mode&InheritResolvedDependencies != 0 && len(creatorInheritable) > 0 {
+		overrides = append(overrides, creatorInheritable)
 	}
 
 	var localDeps injector.DependencyRegistryFunc
@@ -1359,7 +1250,7 @@ func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, 
 	canRecover = area.CanRecoverByHandler()
 
 	eh := slot.getErrorHandler()
-	for repeated, ms := false, slot.subroutineStack; ; ms = ms.subroutineStack {
+	for repeated, ms := false, slot.stateStack; ; ms = ms.stateStack {
 		action := ErrorHandlerDefault
 		if eh != nil {
 			fc := failureContext{isPanic: isPanic, area: area, canRecover: canRecover, err: err, result: slot.defResult}

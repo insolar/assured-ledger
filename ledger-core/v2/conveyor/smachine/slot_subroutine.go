@@ -23,8 +23,8 @@ func (s *Slot) newSubroutineMarker() *subroutineMarker {
 }
 
 func (s *Slot) getSubroutineMarker() *subroutineMarker {
-	if s.subroutineStack != nil {
-		return s.subroutineStack.childMarker
+	if s.stateStack != nil {
+		return s.stateStack.childMarker
 	}
 	return nil
 }
@@ -50,7 +50,7 @@ func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy *subroutineMarke
 var errTerminatedByCaller = errors.New("subroutine SM is terminated by caller")
 
 func (s *Slot) _popTillSubroutine(producedBy *subroutineMarker) {
-	for ms := s.subroutineStack; ms != nil; ms = ms.subroutineStack {
+	for ms := s.stateStack; ms != nil; ms = ms.stateStack {
 		if ms.childMarker == producedBy {
 			return
 		}
@@ -62,7 +62,7 @@ func (s *Slot) _popTillSubroutine(producedBy *subroutineMarker) {
 }
 
 func (s *Slot) hasSubroutine() bool {
-	return s.subroutineStack != nil
+	return s.stateStack != nil
 }
 
 func wrapUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
@@ -84,15 +84,15 @@ func wrapUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) St
 func (s *Slot) checkSubroutineMarker(marker *subroutineMarker) (isCurrent, isValid bool) {
 	switch {
 	case marker == nil:
-		return s.subroutineStack == nil, true
-	case s.subroutineStack == nil:
+		return s.stateStack == nil, true
+	case s.stateStack == nil:
 		//
 	case s.GetSlotID() != marker.slotId:
 		//
-	case s.subroutineStack.childMarker == marker:
+	case s.stateStack.childMarker == marker:
 		return true, true
 	default:
-		for sbs := s.subroutineStack.subroutineStack; sbs != nil; sbs = sbs.subroutineStack {
+		for sbs := s.stateStack.stateStack; sbs != nil; sbs = sbs.stateStack {
 			if sbs.childMarker == marker {
 				return false, true
 			}
@@ -112,44 +112,29 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 	if decl == nil {
 		panic(throw.IllegalValue())
 	}
-	initFn := ssm.GetSubroutineInitState()
-	if initFn == nil {
-		panic(throw.IllegalValue())
-	}
 
 	return SlotStep{Migration: migrateFn, Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
 		slot := ec.s
-		m := slot.machine
 
-		prev := slot.slotDeclarationData
+		prev := slot.stateMachineData
 		if migrateFn == nil {
 			migrateFn = prev.defMigrate
 		}
-		stackedSdd := &slotStackedDeclarationData{prev, migrateFn,
+		stackedSdd := &stackedStateMachineData{prev, migrateFn,
 			exitFn, slot.newSubroutineMarker(),
-			prev.subroutineStack != nil && prev.subroutineStack.hasMigrates,
+			prev.stateStack != nil && prev.stateStack.hasMigrates,
 		}
 		if stackedSdd.stackMigrate != nil {
 			stackedSdd.hasMigrates = true
 		}
 
-		inheritable := slot.inheritable
-		slot.slotDeclarationData.subroutineStack = stackedSdd
-		slot.slotDeclarationData.declaration = decl
-		slot.slotDeclarationData.shadowMigrate = nil
-		slot.slotDeclarationData.defTerminate = nil
+		slot.stateMachineData.stateStack = stackedSdd
+		slot.stateMachineData.declaration = decl
+		slot.stateMachineData.shadowMigrate = nil
+		slot.stateMachineData.defTerminate = nil
 
-		// get injects sorted out
-		var localInjects []interface{}
-		slot.inheritable, localInjects = m.prepareInjects(nil, slot.NewLink(), ssm, InheritResolvedDependencies,
-			true, nil, inheritable)
-
-		// Step Logger
-		m.prepareStepLogger(slot, ssm, ctx.Log().GetTracerId())
-
-		// shadow migrate for injected dependencies
-		slot.shadowMigrate = buildShadowMigrator(localInjects, slot.declaration.GetShadowMigrateFor(ssm))
+		initFn := slot.prepareSubroutineInit(ssm, ctx.Log().GetTracerId())
 
 		return initFn.defaultInit(ctx)
 	}}
@@ -161,7 +146,7 @@ var defaultSubroutineExitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "
 
 func (s *Slot) prepareSubroutineExit(lastError error) {
 	// TODO logging?
-	prev := s.subroutineStack
+	prev := s.stateStack
 	if prev == nil {
 		panic(throw.IllegalState())
 	}
@@ -169,7 +154,7 @@ func (s *Slot) prepareSubroutineExit(lastError error) {
 	lastResult := s.defResult
 	returnFn := prev.returnFn
 
-	s.slotDeclarationData = prev.slotDeclarationData
+	s.stateMachineData = prev.stateMachineData
 	s.step = SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
 		bc := subroutineExitContext{bargingInContext{ec.clone(updCtxInactive),

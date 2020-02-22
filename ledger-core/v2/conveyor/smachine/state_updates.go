@@ -17,7 +17,6 @@ const (
 	stateUpdError
 	stateUpdPanic
 	stateUpdReplace
-	stateUpdReplaceWith
 	stateUpdSubroutineStart
 	stateUpdSubroutineAbort
 
@@ -104,32 +103,18 @@ func init() {
 			},
 		},
 
-		stateUpdReplaceWith: {
-			name:   "replaceWith",
-			filter: updCtxExec,
-			params: updParamVar,
-			varVerify: func(v interface{}) {
-				if v.(prepareReplaceData).sm == nil {
-					panic("illegal value")
-				}
-			},
-
-			prepare: statePrepareDefaultReplace,
-			apply:   stateUpdateDefaultReplace,
-		},
-
 		stateUpdReplace: {
 			name:   "replace",
 			filter: updCtxExec,
-			params: updParamVar,
-			varVerify: func(v interface{}) {
-				if v.(prepareReplaceData).fn == nil {
-					panic("illegal value")
-				}
-			},
+			params: updParamStep,
 
-			prepare: statePrepareDefaultReplace,
-			apply:   stateUpdateDefaultReplace,
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+				// can't use stateUpdateDefaultJump here as have to provide stepDecl
+				m := slot.machine
+				slot.setNextStep(stateUpdate.step, &replaceInitDecl)
+				m.updateSlotQueue(slot, worker, activateSlot)
+				return true, nil
+			},
 		},
 
 		stateUpdSubroutineStart: {
@@ -419,46 +404,4 @@ func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker) (
 	// recycleSlot can handle both in-place and off-place updates
 	m.recycleSlot(slot, worker)
 	return false, nil
-}
-
-type prepareReplaceData struct {
-	fn  CreateFunc
-	sm  StateMachine
-	def prepareSlotValue
-}
-
-func statePrepareDefaultReplace(creator *Slot, stateUpdate *StateUpdate) {
-	m := creator.machine
-	rep := stateUpdate.param1.(prepareReplaceData)
-
-	//if creator.hasSubroutine() {
-	//	panic(errors.New("replace is not allowed for subroutine SM"))
-	//}
-
-	if link, ok := m.prepareNewSlot(creator, rep.fn, rep.sm, rep.def); ok {
-		// handover the termination handler
-		link.s.defResult = creator.defResult
-		link.s.defTerminate = creator.defTerminate
-		creator.defTerminate = nil
-		creator.defResult = nil
-
-		stateUpdate.param1 = nil
-		stateUpdate.link = link.s
-	} else {
-		panic(errors.New("replacement SM was not created"))
-	}
-}
-
-func stateUpdateDefaultReplace(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
-	replacementSlot := stateUpdate.link
-	if replacementSlot == nil {
-		return false, errors.New("replacement SM is missing")
-	}
-	m := replacementSlot.machine
-	if slot.machine != m {
-		return false, errors.New("replacement SM belongs to a different SlotMachine")
-	}
-
-	defer m.startNewSlot(replacementSlot, worker)
-	return stateUpdateDefaultStop(slot, stateUpdate, worker)
 }
