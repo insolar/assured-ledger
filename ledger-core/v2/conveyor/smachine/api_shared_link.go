@@ -44,7 +44,7 @@ func (v SharedDataLink) getData() interface{} {
 		if v.IsUnbound() || v.flags&ShareDataDirect != 0 { // shouldn't happen
 			panic("impossible")
 		}
-		if data, ok := v.link.s.machine.localRegistry.Load(v.data); ok {
+		if data, ok := v.link.getMachine().localRegistry.Load(v.data); ok {
 			return data
 		} else {
 			return nil

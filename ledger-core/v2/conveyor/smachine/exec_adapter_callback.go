@@ -101,12 +101,16 @@ func (c *AdapterCallback) callback(isCancel bool, resultFn AsyncResultFunc, err 
 		}
 	}
 
-	c.caller.s.machine.queueAsyncResultCallback(c.caller, c.flags, c.cancel, resultFn, err)
+	c.caller.s.getMachine().queueAsyncResultCallback(c.caller, c.flags, c.cancel, resultFn, err)
 }
 
 func (m *SlotMachine) queueAsyncResultCallback(callerLink StepLink, flags AsyncCallFlags, cancel *synckit.ChainedCancel,
 	resultFn AsyncResultFunc, err error,
 ) bool {
+	if m == nil {
+		return false
+	}
+
 	return m.queueAsyncCallback(callerLink.SlotLink, func(slot *Slot, worker DetachableSlotWorker, err error) StateUpdate {
 		slot.decAsyncCount()
 

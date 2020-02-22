@@ -7,6 +7,8 @@ package smachine
 
 import (
 	"sync"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // SlotPool by default recycles deallocated pages to mitigate possible memory leak through SlotLink references
@@ -76,9 +78,7 @@ func (p *SlotPool) AllocateSlot(m *SlotMachine, id SlotID) (slot *Slot) {
 	case !p.unusedSlots.IsEmpty():
 		slot = p.unusedSlots.First()
 		slot.removeFromQueue()
-		if slot.machine != m {
-			panic("illegal state")
-		}
+		m.ensureLocal(slot)
 	case p.slotPages == nil:
 		panic("illegal state")
 	default:
@@ -201,5 +201,24 @@ func (p *SlotPool) allocatePage(lenSlots int) []Slot {
 func (p *SlotPool) recyclePage(pg []Slot) {
 	if !p.deallocate {
 		p.emptyPages = append(p.emptyPages, pg)
+	}
+}
+
+func (p *SlotPool) _cleanupEmpty() {
+	if !p.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+	p.unusedSlots.RemoveAll()
+	p.slotPages = nil
+
+	pages := p.emptyPages
+	p.emptyPages = nil
+
+	for _, page := range pages {
+		for i := range page {
+			if !page[i].unsetMachine() {
+				break
+			}
+		}
 	}
 }

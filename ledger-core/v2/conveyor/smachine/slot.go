@@ -9,11 +9,18 @@ import (
 	"context"
 	"sync/atomic"
 	"time"
+	"unsafe"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Slot struct {
-	idAndStep uint64       //atomic access
-	machine   *SlotMachine // set only once
+	idAndStep uint64 // atomic access
+
+	// machine can ONLY be accessed directly while is a part of active context / fixed worker
+	// if any doubt - use getMachine() instead
+	// atomic access, set on first use, unset only after SlotMachine termination
+	machine *SlotMachine
 
 	/* -----------------------------------
 	   Slot fields to support processing queues
@@ -175,6 +182,14 @@ func (s *Slot) GetSlotID() SlotID {
 		panic("illegal state")
 	}
 	return SlotID(v)
+}
+
+func (s *Slot) getMachine() *SlotMachine {
+	return (*SlotMachine)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.machine))))
+}
+
+func (s *Slot) unsetMachine() bool {
+	return atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&s.machine)), nil) != nil
 }
 
 func (s *Slot) invalidateSlotId() {
@@ -416,11 +431,11 @@ func (s *Slot) removeHeadedQueue() *Slot {
 }
 
 func (s *Slot) ensureLocal(link SlotLink) {
-	if s.machine == nil {
-		panic("illegal state")
-	}
-	if s.machine != link.s.machine {
-		panic("illegal state")
+	switch m := s.getMachine(); {
+	case m == nil:
+		panic(throw.IllegalState())
+	case m != link.getMachine():
+		panic(throw.IllegalState())
 	}
 }
 
@@ -474,7 +489,7 @@ func stepToDecl(step SlotStep, stepDecl *StepDeclaration) StepDeclaration {
 
 func (s *Slot) newStepLoggerData(eventType StepLoggerEvent, link StepLink) StepLoggerData {
 	return StepLoggerData{
-		CycleNo:     s.machine.getScanCount(),
+		CycleNo:     s.getMachine().getScanCount(),
 		StepNo:      link,
 		CurrentStep: stepToDecl(s.step, s.stepDecl),
 		Declaration: s.declaration,
@@ -567,7 +582,7 @@ func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, prevStepNo uint32, inac
 }
 
 func (s *Slot) setStepLoggerAfterInit(updateFn StepLoggerUpdateFunc) {
-	newStepLogger := updateFn(s.stepLogger, s.machine.config.SlotMachineLogger.CreateStepLogger)
+	newStepLogger := updateFn(s.stepLogger, s.getMachine().config.SlotMachineLogger.CreateStepLogger)
 
 	if newStepLogger == nil && s.stepLogger != nil {
 		tracerId := s.stepLogger.GetTracerId()
@@ -590,7 +605,7 @@ func (s *Slot) getStepLogLevel() StepLogLevel {
 }
 
 func (s *Slot) getAdapterLogging() bool {
-	return s.getStepLogLevel() != StepLogLevelDefault || s.machine.getAdapterLogging()
+	return s.getStepLogLevel() != StepLogLevelDefault || s.getMachine().getAdapterLogging()
 }
 
 func (s *Slot) isTracing() bool {

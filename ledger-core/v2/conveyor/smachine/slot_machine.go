@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type MigrationFunc func(migrationCount uint32)
@@ -326,6 +327,10 @@ func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
 	}
 
 	m.syncQueue.SetInactive()
+
+	// unsets Slots' reference to SlotMachine to stop retention of SlotMachine by SlotLinks
+	m.slotPool._cleanupEmpty()
+
 	return false
 }
 
@@ -516,10 +521,16 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 	})
 }
 
-func (m *SlotMachine) _canCallback(link SlotLink) bool {
-	if link.s.machine != m {
-		panic("illegal state")
+func (m *SlotMachine) ensureLocal(s *Slot) {
+	// this is safe when s belongs to this m
+	// otherwise it shouldn't be here
+	if s == nil || s.machine != m {
+		panic(throw.IllegalState())
 	}
+}
+
+func (m *SlotMachine) _canCallback(link SlotLink) bool {
+	m.ensureLocal(link.s)
 	if link.IsValid() {
 		return true
 	}
@@ -1220,9 +1231,7 @@ const (
 )
 
 func (m *SlotMachine) updateSlotQueue(slot *Slot, w FixedSlotWorker, activation slotActivationMode) {
-	if slot.machine != m {
-		panic("illegal state")
-	}
+	m.ensureLocal(slot)
 
 	s := m._updateSlotQueue(slot, slot.isInQueue(), activation)
 	m._activateDependantChain(s, w)
@@ -1305,9 +1314,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 /* ---- slot state updates and error handling ---------------------------- */
 
 func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w FixedSlotWorker) bool {
-	if slot.machine != m {
-		panic("illegal state")
-	}
+	m.ensureLocal(slot)
 
 	var err error
 	isAvailable := false
@@ -1534,9 +1541,10 @@ func (m *SlotMachine) wakeupOnDeactivationOf(slot *Slot, waitOn SlotLink, worker
 		return
 	}
 
-	wakeupLink := slot.NewLink()
-	waitOnMachine := waitOn.s.machine
-	waitOnMachine._wakeupOnDeactivateAsync(wakeupLink, waitOn)
+	if waitOnM := waitOn.getActiveMachine(); waitOnM != nil {
+		wakeupLink := slot.NewLink()
+		waitOnM._wakeupOnDeactivateAsync(wakeupLink, waitOn)
+	}
 }
 
 // waitOn MUST belong to this machine!
@@ -1551,19 +1559,22 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 			return false
 		}
 
+		wakeUpM := wakeUp.getActiveMachine()
 		switch {
+		case wakeUpM == nil:
+			return true
 		case worker == nil:
 			break
-		case wakeUp.isMachine(waitOn.s.machine):
+		case waitOn.isMachine(wakeUpM):
 			if worker.NonDetachableCall(wakeUp.activateSlot) {
 				return true
 			}
 		default:
-			if worker.NonDetachableOuterCall(wakeUp.s.machine, wakeUp.activateSlot) {
+			if worker.NonDetachableOuterCall(wakeUpM, wakeUp.activateSlot) {
 				return true
 			}
 		}
-		wakeUp.s.machine.syncQueue.AddAsyncUpdate(wakeUp, SlotLink.activateSlot)
+		wakeUpM.syncQueue.AddAsyncUpdate(wakeUp, SlotLink.activateSlot)
 		return true
 	})
 }
@@ -1639,14 +1650,16 @@ func (m *SlotMachine) _activateDependantChain(chain *Slot, worker FixedSlotWorke
 		// we MUST cut the slot out of chain before any actions on the slot
 		chain = chain._cutNext()
 
-		switch {
-		case m == s.machine:
+		switch slotM := s.getMachine(); {
+		case m == slotM:
 			s.activateSlot(worker)
-		case worker.OuterCall(s.machine, s.activateSlot):
+		case slotM == nil:
+			// the other machine is has stopped ungracefully?
+		case worker.OuterCall(slotM, s.activateSlot):
 			//
 		default:
 			link := s.NewStepLink() // remember the current step to avoid "back-fire" activation
-			s.machine.syncQueue.AddAsyncUpdate(link.SlotLink, link.activateSlotStepWithSlotLink)
+			slotM.syncQueue.AddAsyncUpdate(link.SlotLink, link.activateSlotStepWithSlotLink)
 		}
 	}
 }
@@ -1659,10 +1672,15 @@ func (m *SlotMachine) activateDependants(links []StepLink, ignore SlotLink, work
 		case link.isMachine(m):
 			// slot will be activated if it is at the same step as it was when we've decided to activate it
 			link.activateSlotStep(worker)
-		case worker.OuterCall(link.s.machine, link.activateSlotStep):
-			//
 		default:
-			link.s.machine.syncQueue.AddAsyncUpdate(link.SlotLink, link.activateSlotStepWithSlotLink)
+			switch linkM := link.getActiveMachine(); {
+			case linkM == nil:
+				//
+			case worker.OuterCall(linkM, link.activateSlotStep):
+				//
+			default:
+				linkM.syncQueue.AddAsyncUpdate(link.SlotLink, link.activateSlotStepWithSlotLink)
+			}
 		}
 	}
 }
