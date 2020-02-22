@@ -472,13 +472,13 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 }
 
 func (m *SlotMachine) queueAsyncCallback(link SlotLink,
-	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error) {
+	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error) bool {
 
 	if callbackFn == nil && prevErr == nil || !m._canCallback(link) {
-		return
+		return false
 	}
 
-	m.syncQueue.AddAsyncCallback(link, func(link SlotLink, worker DetachableSlotWorker) (isDone bool) {
+	return m.syncQueue.AddAsyncCallback(link, func(link SlotLink, worker DetachableSlotWorker) (isDone bool) {
 		if !m._canCallback(link) {
 			return true
 		}
@@ -632,7 +632,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 						if ms != nil {
 							sm = ms.childMarker
 						}
-						stateUpdate = m.handleUnsafeSubroutineUpdate(stateUpdate, sm)
+						stateUpdate = slot.handleUnsafeSubroutineUpdate(stateUpdate, sm)
 					}
 
 					if !m.applyStateUpdate(slot, stateUpdate, worker) {
@@ -761,13 +761,8 @@ func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, e
 		th := slot.defTerminate
 		if th != nil {
 			slot.defTerminate = nil // avoid self-loops
-			m.runTerminationHandler(slot.ctx, th, TerminationData{
-				Slot:   link,
-				Parent: slot.parent,
-				Result: slot.defResult,
-				Error:  err,
-				worker: worker,
-			})
+			m.runTerminationHandler(th, TerminationData{link, slot.parent, slot.ctx,
+				slot.defResult, err})
 		}
 
 		if slot.slotFlags&(slotHadAsync|slotHasBargeIn|slotHasAliases) != 0 {
@@ -816,13 +811,8 @@ func (m *SlotMachine) recycleEmptySlot(slot *Slot, err error) {
 	th := slot.defTerminate
 	if th != nil { // it can be already set by construction - we must invoke it
 		slot.defTerminate = nil // avoid self-loops
-		m.runTerminationHandler(slot.ctx, th, TerminationData{
-			Slot:   slot.NewStepLink(),
-			Parent: slot.parent,
-			Result: slot.defResult,
-			Error:  err,
-			worker: nil,
-		})
+		m.runTerminationHandler(th, TerminationData{slot.NewStepLink(), slot.parent, slot.ctx,
+			slot.defResult, err})
 	}
 
 	// slot.invalidateSlotId() // empty slot doesn't need early invalidation
@@ -864,17 +854,13 @@ func (m *SlotMachine) ScheduleCall(fn MachineCallFunc, isSignal bool) bool {
 }
 
 // SAFE for concurrent use
-func (m *SlotMachine) runTerminationHandler(ctx context.Context, th TerminationHandlerFunc, td TerminationData) {
-	if ctx == nil {
-		ctx = context.Background() // TODO PLAT-24 provide a default context for SlotMachine?
-	}
-
+func (m *SlotMachine) runTerminationHandler(th internalTerminationHandlerFunc, td TerminationData) {
 	m.syncQueue.AddAsyncCallback(td.Slot.SlotLink, func(_ SlotLink, _ DetachableSlotWorker) bool {
 		err := func() (err error) {
 			defer func() {
 				err = RecoverSlotPanicWithStack("termination handler", recover(), nil, ErrorHandlerArea)
 			}()
-			th(ctx, td)
+			th(td, nil)
 			return nil
 		}()
 		if err != nil {
@@ -934,21 +920,30 @@ func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (Sl
 type prepareSlotValue struct {
 	slotReplaceData
 	overrides     map[string]interface{}
-	terminate     TerminationHandlerFunc
+	terminate     internalTerminationHandlerFunc
+	defResult     interface{}
 	tracerId      TracerId
 	isReplacement bool
 }
 
 func (m *SlotMachine) prepareNewSlotWithDefaults(creator *Slot, fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) (SlotLink, bool) {
-	return m.prepareNewSlot(creator, fn, sm, prepareSlotValue{
+	psv := prepareSlotValue{
 		slotReplaceData: slotReplaceData{
 			parent: defValues.Parent,
 			ctx:    defValues.Context,
 		},
+		defResult: defValues.TerminationResult,
 		overrides: defValues.OverriddenDependencies,
 		tracerId:  defValues.TracerId,
-		terminate: defValues.TerminationHandler,
-	})
+	}
+
+	if tfn := defValues.TerminationHandler; tfn != nil {
+		psv.terminate = func(data TerminationData, _ FixedSlotWorker) {
+			tfn(data)
+		}
+	}
+
+	return m.prepareNewSlot(creator, fn, sm, psv)
 }
 
 func mergeDefaultValues(target *prepareSlotValue, source CreateDefaultValues) {
@@ -958,8 +953,13 @@ func mergeDefaultValues(target *prepareSlotValue, source CreateDefaultValues) {
 	if !source.Parent.IsEmpty() {
 		target.parent = source.Parent
 	}
-	if source.TerminationHandler != nil {
-		target.terminate = source.TerminationHandler
+	if source.TerminationResult != nil {
+		target.defResult = source.TerminationResult
+	}
+	if tfn := source.TerminationHandler; tfn != nil {
+		target.terminate = func(data TerminationData, _ FixedSlotWorker) {
+			tfn(data)
+		}
 	}
 	if len(source.TracerId) > 0 {
 		target.tracerId = source.TracerId
@@ -993,7 +993,10 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 	}()
 
 	slot.slotReplaceData = defValues.slotReplaceData
-	slot.defTerminate = defValues.terminate // terminate handler must be executed even if construction has failed
+
+	// terminate handler must be executed even if construction has failed
+	slot.defResult = defValues.defResult
+	slot.defTerminate = defValues.terminate
 
 	switch {
 	case slot.ctx != nil:
@@ -1014,6 +1017,9 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 
 	if fn != nil {
 		sm = cc.executeCreate(fn)
+
+		slot._addTerminationCallback(cc.callbackLink, cc.callbackFn)
+
 		if sm == nil {
 			return slot.NewLink(), false // slot will be released by defer
 		}
@@ -1332,42 +1338,54 @@ func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, 
 	}
 
 	canRecover = area.CanRecoverByHandler()
-	action := ErrorHandlerDefault
 
 	eh := slot.getErrorHandler()
-	if eh != nil {
-		fc := failureContext{isPanic: isPanic, area: area, canRecover: canRecover, err: err, result: slot.defResult}
+	for repeated, ms := false, slot.subroutineStack; ; ms = ms.subroutineStack {
+		action := ErrorHandlerDefault
+		if eh != nil {
+			fc := failureContext{isPanic: isPanic, area: area, canRecover: canRecover, err: err, result: slot.defResult}
 
-		ok := false
-		if ok, action, err = fc.executeFailure(eh); ok {
-			// do not change result on failure of the error handler
-			slot.defResult = fc.result
-		} else {
-			action = ErrorHandlerDefault
+			ok := false
+			if ok, action, err = fc.executeFailure(eh); ok {
+				// only change result on success of the handler
+				slot.defResult = fc.result
+			} else {
+				action = ErrorHandlerDefault
+			}
 		}
-	}
 
-	switch action {
-	case ErrorHandlerRecover, ErrorHandlerRecoverAndWakeUp:
 		switch {
-		case !canRecover:
-			slot.logStepError(errorHandlerRecoverDenied, stateUpdate, area, err)
-		case action == ErrorHandlerRecoverAndWakeUp:
-			slot.activateSlot(worker)
-			fallthrough
-		default:
-			slot.logStepError(ErrorHandlerRecover, stateUpdate, area, err)
-			return true
-		}
-	case ErrorHandlerMute:
-		slot.logStepError(ErrorHandlerMute, stateUpdate, area, err)
-	default:
-		slot.logStepError(ErrorHandlerDefault, stateUpdate, area, err)
-	}
+		case !repeated:
+			switch action {
+			case ErrorHandlerRecover, ErrorHandlerRecoverAndWakeUp:
+				switch {
+				case !canRecover:
+					slot.logStepError(errorHandlerRecoverDenied, stateUpdate, area, err)
+				case action == ErrorHandlerRecoverAndWakeUp:
+					slot.activateSlot(worker)
+					fallthrough
+				default:
+					slot.logStepError(ErrorHandlerRecover, stateUpdate, area, err)
+					return true
+				}
+			case ErrorHandlerMute:
+				slot.logStepError(ErrorHandlerMute, stateUpdate, area, err)
+			default:
+				slot.logStepError(ErrorHandlerDefault, stateUpdate, area, err)
+			}
 
-	if area.CanRecoverBySubroutine() && slot.hasSubroutine() {
-		slot.prepareSubroutineExit(err, worker)
-		return true
+			if slot.hasSubroutine() && area.CanRecoverBySubroutine() {
+				slot.prepareSubroutineExit(err)
+				return true
+			}
+		case action == ErrorHandlerRecover || action == ErrorHandlerRecoverAndWakeUp:
+			slot.logStepError(errorHandlerRecoverDenied, stateUpdate, area, err)
+		}
+		if ms == nil {
+			break
+		}
+		eh = ms.defErrorHandler
+		repeated = true
 	}
 
 	m.recycleSlotWithError(slot, worker, err)
@@ -1402,11 +1420,7 @@ func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) Bar
 			bc := bargingInContext{slotContext{s: slot}, param, atExactStep}
 			stateUpdate := bc.executeBargeIn(applyFn)
 
-			if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
-				return m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
-			}
-
-			return stateUpdate
+			return slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
 		}, nil)
 		return true
 	}
@@ -1431,10 +1445,7 @@ func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn Barge
 
 	bc := bargingInContext{slotContext{s: link.s}, param, false}
 	stateUpdate := bc.executeBargeInNow(applyFn)
-
-	if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
-		stateUpdate = m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
-	}
+	stateUpdate = slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
 
 	releaseOnPanic = false
 	m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
@@ -1456,12 +1467,8 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 			}
 			// Plan A - faster one
 			if slot, isStarted, prevStepNo := link.tryStartWorking(); isStarted {
-				stateUpdate := stateUpdate
-				if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
-					stateUpdate = m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
-				}
-
-				m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, durationNotApplicableNano)
+				stateUpdateCopy := slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
+				m.slotPostExecution(slot, stateUpdateCopy, worker, prevStepNo, true, durationNotApplicableNano)
 				return
 			}
 			// Plan B
@@ -1469,10 +1476,7 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 				if !link.IsAtStep() {
 					return StateUpdate{} // no change
 				}
-				if slot.hasSubroutine() && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
-					return m.handleUnsafeSubroutineUpdate(stateUpdate, nil)
-				}
-				return stateUpdate
+				return slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
 			}, nil)
 		})
 		return true

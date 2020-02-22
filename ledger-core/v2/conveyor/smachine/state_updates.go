@@ -72,13 +72,13 @@ func init() {
 
 		stateUpdStop: {
 			name:   "stop",
-			filter: updCtxExec | updCtxInit | updCtxMigrate | updCtxBargeIn,
+			filter: updCtxExec | updCtxInit | updCtxMigrate | updCtxBargeIn | updCtxSubrExit,
 			apply:  stateUpdateDefaultStop,
 		},
 
 		stateUpdError: {
 			name:      "error",
-			filter:    updCtxExec | updCtxInit | updCtxMigrate | updCtxBargeIn,
+			filter:    updCtxExec | updCtxInit | updCtxMigrate | updCtxBargeIn | updCtxSubrExit,
 			params:    updParamVar,
 			varVerify: stateUpdateDefaultVerifyError,
 			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
@@ -207,7 +207,7 @@ func init() {
 
 		stateUpdNext: {
 			name:      "jump",
-			filter:    updCtxExec | updCtxInit | updCtxBargeIn | updCtxMigrate,
+			filter:    updCtxExec | updCtxInit | updCtxBargeIn | updCtxMigrate | updCtxSubrExit,
 			params:    updParamStep | updParamVar,
 			prepare:   stateUpdateDefaultNoArgPrepare,
 			varVerify: stateUpdateDefaultVerifyNoArgFn,
@@ -397,7 +397,7 @@ func stateUpdateDefaultJump(slot *Slot, stateUpdate StateUpdate, worker FixedSlo
 func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
 	m := slot.machine
 	if slot.hasSubroutine() {
-		slot.prepareSubroutineExit(nil, worker)
+		slot.prepareSubroutineExit(nil)
 		m.updateSlotQueue(slot, worker, activateSlot)
 		return true, nil
 	}

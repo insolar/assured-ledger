@@ -7,17 +7,21 @@ package smachine
 
 import (
 	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var _ ConstructionContext = &constructionContext{}
 
 type constructionContext struct {
 	contextTemplate
-	s         *Slot
-	injects   map[string]interface{}
-	inherit   DependencyInheritanceMode
-	isTracing bool
-	tracerId  TracerId
+	s            *Slot
+	injects      map[string]interface{}
+	inherit      DependencyInheritanceMode
+	tracerId     TracerId
+	callbackFn   ParentSlotCallbackFunc
+	callbackLink SlotLink
+	isTracing    bool
 }
 
 func (p *constructionContext) SetDependencyInheritanceMode(mode DependencyInheritanceMode) {
@@ -61,9 +65,21 @@ func (p *constructionContext) SetParentLink(parent SlotLink) {
 	p.s.parent = parent
 }
 
-func (p *constructionContext) SetTerminationHandler(tf TerminationHandlerFunc) {
+func (p *constructionContext) SetParentCallback(parentCtx ExecutionContext, callbackFn ParentSlotCallbackFunc) {
 	p.ensure(updCtxConstruction)
-	p.s.defTerminate = tf
+	switch {
+	case callbackFn == nil:
+		if parentCtx != nil {
+			parentCtx.SlotLink() // to validate
+		}
+		p.callbackFn = nil
+		p.callbackLink = SlotLink{}
+		return
+	case parentCtx == nil:
+		panic(throw.IllegalValue())
+	}
+	p.callbackLink = parentCtx.SlotLink()
+	p.callbackFn = callbackFn
 }
 
 func (p *constructionContext) SetDefaultTerminationResult(v interface{}) {

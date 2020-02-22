@@ -8,6 +8,8 @@
 package smachine
 
 import (
+	"errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -33,9 +35,26 @@ func (s *Slot) ensureNoSubroutine() {
 	}
 }
 
-func (m *SlotMachine) handleUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
-	panic(throw.NotImplemented())
-	// TODO handleUnsafeSubroutineUpdate
+func (s *Slot) tryHandleUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
+	if !s.hasSubroutine() || typeOfStateUpdate(su).IsSubroutineSafe() {
+		return su
+	}
+	return s.handleUnsafeSubroutineUpdate(su, producedBy)
+}
+
+var errTerminatedByCaller = errors.New("subroutine SM is terminated by caller")
+
+func (s *Slot) handleUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
+	for ms := s.subroutineStack; ms != nil; ms = ms.subroutineStack {
+		if ms.childMarker == producedBy {
+			return su
+		}
+		s.prepareSubroutineExit(errTerminatedByCaller)
+	}
+	if producedBy != nil {
+		panic(throw.IllegalState())
+	}
+	return su
 }
 
 func (s *Slot) hasSubroutine() bool {
@@ -116,24 +135,25 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 var defaultSubroutineStartDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineStart>"}}
 var defaultSubroutineExitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineExit>"}}
 
-func (s *Slot) prepareSubroutineExit(err error, _ FixedSlotWorker) {
+func (s *Slot) prepareSubroutineExit(lastError error) {
+	// TODO logging?
 	prev := s.subroutineStack
 	if prev == nil {
 		panic(throw.IllegalState())
 	}
 
-	td := TerminationData{
-		Slot:   s.NewStepLink(),
-		Parent: s.parent,
-		Result: s.defResult,
-		Error:  err,
-		worker: nil, // not applicable for subroutine exit
-	}
-
+	lastResult := s.defResult
 	returnFn := prev.returnFn
+
 	s.slotDeclarationData = prev.slotDeclarationData
 	s.step = SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
-		return returnFn(ctx, td)
+		ec := ctx.(*executionContext)
+		slot := ec.s
+
+		bc := subroutineExitContext{bargingInContext{slotContext{s: slot},
+			lastResult, false}, lastError}
+
+		return bc.executeSubroutineExit(returnFn)
 	}}
 	s.stepDecl = &defaultSubroutineExitDecl
 }

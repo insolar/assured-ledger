@@ -39,7 +39,7 @@ type slotDeclarationData struct {
 	stepLogger      StepLogger
 	defMigrate      MigrateFunc
 	defErrorHandler ErrorHandlerFunc
-	defTerminate    TerminationHandlerFunc // stacked
+	defTerminate    internalTerminationHandlerFunc
 	defResult       interface{}
 
 	slotReplaceData
@@ -646,6 +646,25 @@ func (s *Slot) runShadowMigrate(migrationDelta uint32) {
 	for ms := s.subroutineStack; ms != nil && ms.hasMigrates; ms = ms.subroutineStack {
 		if ms.shadowMigrate != nil {
 			ms.shadowMigrate(s.migrationCount, migrationDelta)
+		}
+	}
+}
+
+func (s *Slot) _addTerminationCallback(link SlotLink, fn ParentSlotCallbackFunc) {
+	if fn == nil || !link.IsValid() {
+		return
+	}
+	prevTermFn := s.defTerminate
+	s.defTerminate = func(data TerminationData, worker FixedSlotWorker) {
+		if link.IsValid() {
+			if m := link.getActiveMachine(); m != nil {
+				resultFn := fn(data.Result, data.Error)
+				m.queueAsyncResultCallback(link.GetAnyStepLink(), AutoWakeUp, nil, resultFn, nil)
+			}
+		}
+
+		if prevTermFn != nil {
+			prevTermFn(data, worker)
 		}
 	}
 }

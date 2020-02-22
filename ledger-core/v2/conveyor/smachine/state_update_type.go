@@ -111,6 +111,7 @@ const (
 	updCtxMachineCall
 	updCtxFail
 	updCtxBargeIn
+	updCtxSubrExit
 	updCtxAsyncCallback
 
 	updCtxConstruction

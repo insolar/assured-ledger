@@ -16,7 +16,7 @@ type CreateFunc func(ctx ConstructionContext) StateMachine
 type MigrateFunc func(ctx MigrationContext) StateUpdate
 type AsyncResultFunc func(ctx AsyncResultContext)
 type ErrorHandlerFunc func(ctx FailureContext)
-type SubroutineExitFunc func(ctx ExecutionContext, data TerminationData) StateUpdate
+type SubroutineExitFunc func(ctx SubroutineExitContext) StateUpdate
 
 type ErrorHandlerAction uint8
 
@@ -61,6 +61,8 @@ const (
 	DiscardResolvedDependencies DependencyInheritanceMode = 4
 )
 
+type ParentSlotCallbackFunc func(result interface{}, err error) AsyncResultFunc
+
 /* During construction SlotLink() will have correct SlotID, but MAY have INVALID status, as slot was not yet created */
 type ConstructionContext interface {
 	BasicContext
@@ -79,14 +81,12 @@ type ConstructionContext interface {
 	SetContext(context.Context)
 	SetParentLink(SlotLink)
 
-	// SetTerminationHandler sets a special termination handler that will be invoked AFTER termination of SM.
-	// This handler is invoked with either (1) GetDefaultTerminationResult() after Stop() or (2) with error after Error() or panic.
-	// Behavior for error can be modified with a custom ErrorHandlerFunc.
-	// This handler is not directly accessible to SM.
-	// WARNING! This handler is UNSAFE to access another SM. Use BargeIn() to create a necessary handler.
-	SetTerminationHandler(TerminationHandlerFunc)
 	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
 	SetDefaultTerminationResult(interface{})
+
+	// The given function will be called after SM termination and will have access to SM residual state and to the
+	// termination result or error
+	SetParentCallback(parentCtx ExecutionContext, getResultFn ParentSlotCallbackFunc)
 
 	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
 	SetLogTracing(bool)
@@ -372,7 +372,7 @@ type BargeInBuilder interface {
 	WithError(error) BargeInFunc
 }
 
-type BargeInContext interface {
+type interruptContext interface {
 	BasicContext
 
 	// Log returns a slot logger for this context. It is only valid while this context is valid.
@@ -380,10 +380,7 @@ type BargeInContext interface {
 
 	AffectedStep() SlotStep
 
-	BargeInParam() interface{}
-
-	// IsAtOriginalStep returns true when SM step wasn't change since barge-in creation
-	IsAtOriginalStep() bool
+	EventParam() interface{}
 
 	JumpExt(SlotStep) StateUpdate
 	Jump(StateFunc) StateUpdate
@@ -391,12 +388,26 @@ type BargeInContext interface {
 	// Error will stop SM by calling an error handler.
 	Error(error) StateUpdate
 
+	Stop() StateUpdate
+}
+
+type BargeInContext interface {
+	interruptContext
+
+	// IsAtOriginalStep returns true when SM step wasn't change since barge-in creation
+	IsAtOriginalStep() bool
+
 	// Stay keeps the last state
 	Stay() StateUpdate
 	// Makes SM active if it was waiting or polling
 	WakeUp() StateUpdate
+}
 
-	Stop() StateUpdate
+type SubroutineExitContext interface {
+	interruptContext
+
+	// GetError returns an error when subroutine was stopped by an error
+	GetError() error
 }
 
 type FailureContext interface {
@@ -405,12 +416,13 @@ type FailureContext interface {
 	// AffectedStep is a step the slot is at
 	AffectedStep() SlotStep
 
-	// GetError resturns a reason of the failure
+	// GetError returns a reason of the failure
 	GetError() error
 
 	// IsPanic is false when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
 	IsPanic() bool
 
+	// GetArea provides information about area type where the error/panic has appeared
 	GetArea() SlotPanicArea
 
 	// CanRecover is true when this error can be recovered by SetAction(ErrorHandlerRecover).

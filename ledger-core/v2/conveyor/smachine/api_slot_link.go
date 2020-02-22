@@ -79,6 +79,13 @@ func (p SlotLink) GetStepLink() (stepLink StepLink, isValid bool) {
 	return StepLink{p, 0}, false
 }
 
+func (p SlotLink) GetAnyStepLink() StepLink {
+	if p.s == nil {
+		return StepLink{}
+	}
+	return StepLink{p, 0}
+}
+
 func (p SlotLink) isValidAndBusy() bool {
 	if p.s == nil {
 		return false

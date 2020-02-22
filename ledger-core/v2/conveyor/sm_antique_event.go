@@ -52,6 +52,5 @@ func (sm *antiqueEventSM) stepGotAnswer(ctx smachine.ExecutionContext) smachine.
 		return ctx.ReplaceExt(sm.createFn, createDefaults)
 	}
 
-	ctx.SetDefaultTerminationResult(fmt.Errorf("unable to find pulse data: pn=%v", sm.pn))
-	return sm.stepTerminateEvent(ctx)
+	return ctx.Error(fmt.Errorf("unable to find pulse data: pn=%v", sm.pn))
 }

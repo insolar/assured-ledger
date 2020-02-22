@@ -170,7 +170,7 @@ func (p *PulseSlotMachine) stepStop(ctx smachine.ExecutionContext) smachine.Stat
 func (p *PulseSlotMachine) errorHandler(ctx smachine.FailureContext) {
 }
 
-func (p *PulseSlotMachine) onTerminate(context.Context, smachine.TerminationData) {
+func (p *PulseSlotMachine) onTerminate(smachine.TerminationData) {
 	p.innerMachine.RunToStop(p.innerWorker, synckit.NewNeverSignal())
 	if p.finalizeFn != nil {
 		p.finalizeFn()
@@ -218,7 +218,7 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 
 // Conveyor direct barge-in
 func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext) smachine.StateUpdate {
-	//out := ctx.BargeInParam().(PreparePulseChangeChannel)
+	//out := ctx.EventParam().(PreparePulseChangeChannel)
 
 	// =================
 	// HERE - initiate state calculations
