@@ -22,6 +22,11 @@ func (u StateUpdate) IsZero() bool {
 	return u.marker == 0 && u.updKind == 0
 }
 
+// IsEmpty returns true when StateUpdate is zero or has "no-op" action
+func (u StateUpdate) IsEmpty() bool {
+	return u.updKind == 0 || u.marker == 0
+}
+
 func (u StateUpdate) getLink() SlotLink {
 	if u.link == nil {
 		return NoLink()

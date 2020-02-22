@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	_ stateUpdKind = iota
+	stateUpdNoChange stateUpdKind = iota // must be zero to match StateUpdate.IsEmpty()
 
-	stateUpdNoChange
 	stateUpdStop
 	stateUpdError
 	stateUpdPanic
 	stateUpdReplace
 	stateUpdReplaceWith
 	stateUpdSubroutineStart
+	stateUpdSubroutineAbort
 
 	stateUpdInternalRepeatNow // this is a special op. MUST NOT be used anywhere else.
 
@@ -141,6 +141,20 @@ func init() {
 				// can't use stateUpdateDefaultJump here as have to provide stepDecl
 				m := slot.machine
 				slot.setNextStep(stateUpdate.step, &defaultSubroutineStartDecl)
+				m.updateSlotQueue(slot, worker, activateSlot)
+				return true, nil
+			},
+		},
+
+		stateUpdSubroutineAbort: {
+			name:   "subroutineAbort",
+			filter: updCtxInternal,
+			params: updParamStep,
+
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+				// can't use stateUpdateDefaultJump here as have to provide stepDecl
+				m := slot.machine
+				slot.setNextStep(stateUpdate.step, &defaultSubroutineAbortDecl)
 				m.updateSlotQueue(slot, worker, activateSlot)
 				return true, nil
 			},

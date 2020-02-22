@@ -622,6 +622,10 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 
 	inactivityNano := slot.touch(time.Now().UnixNano())
 
+	var pendingUpdate StateUpdate
+	var pendingMarker *subroutineMarker
+	pendingLevel := 0
+
 	for delta := lastMigrationCount - slot.migrationCount; delta > 0; {
 		if migrateFn, ms := slot.getMigration(), slot.subroutineStack; migrateFn != nil || ms != nil && ms.hasMigrates {
 			slot.runShadowMigrate(1)
@@ -637,22 +641,23 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
 					activityNano := slot.touch(time.Now().UnixNano())
 					slot.logStepMigrate(prevStepNo, stateUpdate, inactivityNano, activityNano)
+					inactivityNano = durationUnknownNano
 
-					if level != 0 && !typeOfStateUpdate(stateUpdate).IsSubroutineSafe() {
-						var sm *subroutineMarker
-						if ms != nil {
-							sm = ms.childMarker
+					switch {
+					case !typeOfStateUpdate(stateUpdate).IsSubroutineSafe():
+						skipMultiple = true
+						if pendingLevel > level {
+							break
 						}
-						stateUpdate = slot.handleUnsafeSubroutineUpdate(stateUpdate, sm)
-					}
-
-					if !m.applyStateUpdate(slot, stateUpdate, worker) {
-						return true, false
-					}
-					if !skipAll {
+						pendingUpdate = stateUpdate
+						pendingLevel = level
+						pendingMarker = slot.getSubroutineMarker()
+					case !m.applyStateUpdate(slot, stateUpdate, worker):
+						panic(throw.IllegalState())
+						//return true, false
+					case !skipAll:
 						skipMultiple = false
 					}
-					inactivityNano = durationUnknownNano
 				}
 				if ms == nil || !ms.hasMigrates {
 					break
@@ -660,7 +665,6 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 				migrateFn = ms.stackMigrate
 				ms = ms.subroutineStack
 			}
-
 			slot.migrationCount++
 			delta--
 			if delta == 0 {
@@ -670,12 +674,24 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 				continue
 			}
 		}
-
 		if delta > 0 {
 			slot.runShadowMigrate(delta)
 		}
 		slot.migrationCount = lastMigrationCount
 		break
+	}
+
+	switch {
+	case pendingUpdate.IsZero():
+		if pendingLevel != 0 {
+			panic(throw.Impossible())
+		}
+		return slot.step.Flags&StepWeak != 0, true
+	case pendingLevel > 0:
+		pendingUpdate = wrapUnsafeSubroutineUpdate(pendingUpdate, pendingMarker)
+	}
+	if !m.applyStateUpdate(slot, pendingUpdate, worker) {
+		return true, false
 	}
 
 	return slot.step.Flags&StepWeak != 0, true
@@ -1315,6 +1331,10 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 
 func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w FixedSlotWorker) bool {
 	m.ensureLocal(slot)
+
+	if stateUpdate.IsEmpty() {
+		return true
+	}
 
 	var err error
 	isAvailable := false

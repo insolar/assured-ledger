@@ -61,6 +61,21 @@ func (s *Slot) hasSubroutine() bool {
 	return s.subroutineStack != nil
 }
 
+func wrapUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
+	return newSubroutineAbortStateUpdate(SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
+		ec := ctx.(*executionContext)
+		slot := ec.s
+		switch isCurrent, isValid := slot.checkSubroutineMarker(producedBy); {
+		case isCurrent:
+			return su
+		case !isValid:
+			ctx.Log().Warn("aborting routine has expired")
+			return su
+		}
+		return slot.handleUnsafeSubroutineUpdate(su, producedBy)
+	}})
+}
+
 func (s *Slot) checkSubroutineMarker(marker *subroutineMarker) (isCurrent, isValid bool) {
 	switch {
 	case marker == nil:
@@ -133,6 +148,7 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 }
 
 var defaultSubroutineStartDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineStart>"}}
+var defaultSubroutineAbortDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineAbort>"}}
 var defaultSubroutineExitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineExit>"}}
 
 func (s *Slot) prepareSubroutineExit(lastError error) {

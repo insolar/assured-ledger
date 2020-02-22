@@ -8,6 +8,8 @@ package smachine
 import (
 	"errors"
 	"fmt"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 func newStateUpdateTemplate(contextType updCtxMode, marker ContextMarker, updKind stateUpdKind) StateUpdateTemplate {
@@ -30,17 +32,16 @@ func getStateUpdateType(stateUpdate StateUpdate) (StateUpdateType, bool) {
 }
 
 func getStateUpdateTypeName(stateUpdate StateUpdate) (string, bool) {
-	switch sut, ok := _getStateUpdateType(stateUpdKind(stateUpdate.updKind)); ok {
-	case ok:
+	if stateUpdate.IsZero() {
+		return "zero", false
+	}
+	if sut, ok := _getStateUpdateType(stateUpdKind(stateUpdate.updKind)); ok {
 		if len(sut.name) > 0 {
 			return sut.name, true
 		}
 		return fmt.Sprintf("noname(%d)", stateUpdate.updKind), true
-	case stateUpdate.IsZero():
-		return "zero", false
-	default:
-		return fmt.Sprintf("unknown(%d)", stateUpdate.updKind), false
 	}
+	return fmt.Sprintf("unknown(%d)", stateUpdate.updKind), false
 }
 
 func typeOfStateUpdate(stateUpdate StateUpdate) StateUpdateType {
@@ -53,6 +54,10 @@ func typeOfStateUpdateForPrepare(contextMode updCtxMode, stateUpdate StateUpdate
 
 func newPanicStateUpdate(err error) StateUpdate {
 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdPanic]}.newError(err)
+}
+
+func newSubroutineAbortStateUpdate(step SlotStep) StateUpdate {
+	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdSubroutineAbort]}.newStepOnly(step)
 }
 
 func recoverSlotPanicAsUpdate(update *StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) {
@@ -244,6 +249,9 @@ func (v StateUpdateTemplate) newStep(slotStep SlotStep, prepare StepPrepareFunc)
 
 func (v StateUpdateTemplate) newStepOnly(slotStep SlotStep) StateUpdate {
 	v.ensureTemplate(updParamStep)
+	if slotStep.Transition == nil {
+		panic(throw.IllegalValue())
+	}
 	return StateUpdate{
 		marker:  v.marker,
 		updKind: stateUpdBaseType(v.t.updKind),
