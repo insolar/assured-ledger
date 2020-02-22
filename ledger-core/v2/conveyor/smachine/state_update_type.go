@@ -60,12 +60,14 @@ func newSubroutineAbortStateUpdate(step SlotStep) StateUpdate {
 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdSubroutineAbort]}.newStepOnly(step)
 }
 
-func recoverSlotPanicAsUpdate(update *StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) {
-	if recovered != nil {
-		*update = newPanicStateUpdate(RecoverSlotPanicWithStack(msg, recovered, prev, area))
-	} else if prev != nil {
-		*update = newPanicStateUpdate(prev)
+func recoverSlotPanicAsUpdate(update StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) StateUpdate {
+	switch {
+	case recovered != nil:
+		return newPanicStateUpdate(RecoverSlotPanicWithStack(msg, recovered, prev, area))
+	case prev != nil:
+		return newPanicStateUpdate(prev)
 	}
+	return update
 }
 
 func getStateUpdateKind(stateUpdate StateUpdate) stateUpdKind {
@@ -136,8 +138,6 @@ func (v StateUpdateType) verify(ctxType updCtxMode, allowInternal bool) {
 	switch {
 	case ctxType <= updCtxDiscarded:
 		panic(v.panicText(ctxType, "illegal value"))
-	case v.updKind == 0:
-		panic(v.panicText(ctxType, "unknown type"))
 	case v.apply == nil:
 		panic(v.panicText(ctxType, "not implemented"))
 
@@ -222,7 +222,7 @@ func (v StateUpdateTemplate) ensureTemplate(params stateUpdParam) {
 	if v.t.params&params != params {
 		panic("illegal value")
 	}
-	if v.t.updKind == 0 {
+	if v.t.apply == nil {
 		panic("illegal kind")
 	}
 }

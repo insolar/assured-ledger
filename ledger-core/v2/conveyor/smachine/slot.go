@@ -674,7 +674,7 @@ func (s *Slot) _addTerminationCallback(link SlotLink, fn ParentSlotCallbackFunc)
 		if link.IsValid() {
 			if m := link.getActiveMachine(); m != nil {
 				resultFn := fn(data.Result, data.Error)
-				m.queueAsyncResultCallback(link.GetAnyStepLink(), AutoWakeUp, nil, resultFn, nil)
+				m.queueAsyncResultCallback(link.GetAnyStepLink(), 0, nil, resultFn, nil, true)
 			}
 		}
 

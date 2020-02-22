@@ -90,6 +90,7 @@ func main() {
 			time.Sleep(time.Until(nextPollTime))
 		} else {
 			wakeupSignal.Wait()
+			//runtime.KeepAlive(wakeupSignal)
 			//time.Sleep(3 * time.Second)
 		}
 	}

@@ -164,12 +164,12 @@ func (s *Slot) prepareSubroutineExit(lastError error) {
 	s.slotDeclarationData = prev.slotDeclarationData
 	s.step = SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
-		slot := ec.s
-
-		bc := subroutineExitContext{bargingInContext{slotContext{s: slot},
+		bc := subroutineExitContext{bargingInContext{ec.clone(updCtxInactive),
 			lastResult, false}, lastError}
 
-		return bc.executeSubroutineExit(returnFn)
+		su := bc.executeSubroutineExit(returnFn)
+		su.marker = ec.getMarker()
+		return su
 	}}
 	s.stepDecl = &defaultSubroutineExitDecl
 }

@@ -87,9 +87,9 @@ func (p *contextTemplate) discardAndCapture(msg string, recovered interface{}, e
 	*err = RecoverSlotPanic(msg, recovered, *err, area)
 }
 
-func (p *contextTemplate) discardAndUpdate(msg string, recovered interface{}, update *StateUpdate, area SlotPanicArea) {
+func (p *contextTemplate) discardAndUpdate(msg string, recovered interface{}, update StateUpdate, area SlotPanicArea) StateUpdate {
 	p.mode = updCtxDiscarded
-	recoverSlotPanicAsUpdate(update, msg, recovered, nil, area)
+	return recoverSlotPanicAsUpdate(update, msg, recovered, nil, area)
 }
 
 /* ========================================================================= */

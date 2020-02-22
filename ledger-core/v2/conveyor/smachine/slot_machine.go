@@ -502,7 +502,7 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 		var stateUpdate StateUpdate
 		func() {
 			defer func() {
-				recoverSlotPanicAsUpdate(&stateUpdate, "async callback panic", recover(), prevErr, AsyncCallArea)
+				stateUpdate = recoverSlotPanicAsUpdate(stateUpdate, "async callback panic", recover(), prevErr, AsyncCallArea)
 			}()
 			if callbackFn != nil {
 				stateUpdate = callbackFn(slot, worker, prevErr)
@@ -635,7 +635,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 			for level := 0; ; level++ {
 				if migrateFn != nil {
 					mc := migrationContext{
-						slotContext: slotContext{s: slot, w: migrateWorkerWrapper{worker}},
+						slotContext: slotContext{s: slot, w: fixedWorkerWrapper{worker}},
 						fixedWorker: worker,
 					}
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
@@ -1403,6 +1403,7 @@ func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, 
 
 			if slot.hasSubroutine() && area.CanRecoverBySubroutine() {
 				slot.prepareSubroutineExit(err)
+				m.updateSlotQueue(slot, worker, activateSlot)
 				return true
 			}
 		case action == ErrorHandlerRecover || action == ErrorHandlerRecoverAndWakeUp:
@@ -1444,7 +1445,7 @@ func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) Bar
 		}
 		m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
 			_, atExactStep := link.isValidAndAtExactStep()
-			bc := bargingInContext{slotContext{s: slot}, param, atExactStep}
+			bc := bargingInContext{slotContext{s: slot, w: worker}, param, atExactStep}
 			stateUpdate := bc.executeBargeIn(applyFn)
 
 			return slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
@@ -1470,7 +1471,7 @@ func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn Barge
 		}
 	}()
 
-	bc := bargingInContext{slotContext{s: link.s}, param, false}
+	bc := bargingInContext{slotContext{s: link.s, w: fixedWorkerWrapper{worker}}, param, false}
 	stateUpdate := bc.executeBargeInNow(applyFn)
 	stateUpdate = slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
 

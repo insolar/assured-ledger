@@ -68,7 +68,7 @@ func (p *bargingInContext) Log() Logger {
 func (p *bargingInContext) executeBargeIn(fn BargeInApplyFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxBargeIn)
 	defer func() {
-		p.discardAndUpdate("barge in", recover(), &stateUpdate, BargeInArea)
+		stateUpdate = p.discardAndUpdate("barge in", recover(), stateUpdate, BargeInArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
@@ -96,7 +96,7 @@ func (p *subroutineExitContext) GetError() error {
 func (p *subroutineExitContext) executeSubroutineExit(fn SubroutineExitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxSubrExit)
 	defer func() {
-		p.discardAndUpdate("subroutine exit", recover(), &stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("subroutine exit", recover(), stateUpdate, StateArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))

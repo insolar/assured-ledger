@@ -101,18 +101,20 @@ func (c *AdapterCallback) callback(isCancel bool, resultFn AsyncResultFunc, err 
 		}
 	}
 
-	c.caller.s.getMachine().queueAsyncResultCallback(c.caller, c.flags, c.cancel, resultFn, err)
+	c.caller.s.getMachine().queueAsyncResultCallback(c.caller, c.flags, c.cancel, resultFn, err, false)
 }
 
 func (m *SlotMachine) queueAsyncResultCallback(callerLink StepLink, flags AsyncCallFlags, cancel *synckit.ChainedCancel,
-	resultFn AsyncResultFunc, err error,
+	resultFn AsyncResultFunc, err error, ignoreAsyncCount bool,
 ) bool {
 	if m == nil {
 		return false
 	}
 
 	return m.queueAsyncCallback(callerLink.SlotLink, func(slot *Slot, worker DetachableSlotWorker, err error) StateUpdate {
-		slot.decAsyncCount()
+		if !ignoreAsyncCount {
+			slot.decAsyncCount()
+		}
 
 		wakeupAllowed := flags&WakeUpBoundToStep == 0 || callerLink.IsNearStep(stepBondTolerance)
 		wakeup := false

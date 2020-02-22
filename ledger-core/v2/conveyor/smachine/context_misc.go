@@ -115,7 +115,7 @@ type initializationContext struct {
 func (p *initializationContext) executeInitialization(fn InitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxInit)
 	defer func() {
-		p.discardAndUpdate("initialization", recover(), &stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("initialization", recover(), stateUpdate, StateArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
@@ -139,7 +139,7 @@ func (p *migrationContext) SkipMultipleMigrations() {
 func (p *migrationContext) executeMigration(fn MigrateFunc) (stateUpdate StateUpdate, skipMultiple bool) {
 	p.setMode(updCtxMigrate)
 	defer func() {
-		p.discardAndUpdate("migration", recover(), &stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("migration", recover(), stateUpdate, StateArea)
 	}()
 
 	su := p.ensureAndPrepare(p.s, fn(p))
