@@ -414,7 +414,7 @@ func (s *Slot) setNextStep(step SlotStep, stepDecl *StepDeclaration) {
 	}
 
 	if step.Flags&StepResetAllFlags == 0 {
-		step.Flags |= s.defFlags
+		step.Flags |= defFlags
 	} else {
 		step.Flags &^= StepResetAllFlags
 	}

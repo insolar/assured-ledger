@@ -35,26 +35,30 @@ func (s *Slot) ensureNoSubroutine() {
 	}
 }
 
-func (s *Slot) tryHandleUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
-	if !s.hasSubroutine() || typeOfStateUpdate(su).IsSubroutineSafe() {
-		return su
+func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
+	switch isCurrent, isValid := s.checkSubroutineMarker(producedBy); {
+	case isCurrent:
+		//
+	case !isValid:
+		s.machine.logInternal(s.NewStepLink(), "aborting routine has expired", nil)
+	case !typeOfStateUpdate(su).IsSubroutineSafe():
+		s._popTillSubroutine(producedBy)
 	}
-	return s.handleUnsafeSubroutineUpdate(su, producedBy)
+	return su
 }
 
 var errTerminatedByCaller = errors.New("subroutine SM is terminated by caller")
 
-func (s *Slot) handleUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
+func (s *Slot) _popTillSubroutine(producedBy *subroutineMarker) {
 	for ms := s.subroutineStack; ms != nil; ms = ms.subroutineStack {
 		if ms.childMarker == producedBy {
-			return su
+			return
 		}
 		s.prepareSubroutineExit(errTerminatedByCaller)
 	}
 	if producedBy != nil {
 		panic(throw.IllegalState())
 	}
-	return su
 }
 
 func (s *Slot) hasSubroutine() bool {
@@ -72,7 +76,8 @@ func wrapUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) St
 			ctx.Log().Warn("aborting routine has expired")
 			return su
 		}
-		return slot.handleUnsafeSubroutineUpdate(su, producedBy)
+		slot._popTillSubroutine(producedBy)
+		return su
 	}})
 }
 

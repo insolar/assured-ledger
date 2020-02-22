@@ -623,8 +623,6 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 	inactivityNano := slot.touch(time.Now().UnixNano())
 
 	var pendingUpdate StateUpdate
-	var pendingMarker *subroutineMarker
-	pendingLevel := 0
 
 	for delta := lastMigrationCount - slot.migrationCount; delta > 0; {
 		if migrateFn, ms := slot.getMigration(), slot.subroutineStack; migrateFn != nil || ms != nil && ms.hasMigrates {
@@ -645,13 +643,16 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 
 					switch {
 					case !typeOfStateUpdate(stateUpdate).IsSubroutineSafe():
-						skipMultiple = true
-						if pendingLevel > level {
-							break
-						}
 						pendingUpdate = stateUpdate
-						pendingLevel = level
-						pendingMarker = slot.getSubroutineMarker()
+						skipMultiple = skipAll
+						switch {
+						case level == 0:
+							break
+						case ms != nil:
+							slot._popTillSubroutine(ms.childMarker)
+						default:
+							slot._popTillSubroutine(nil)
+						}
 					case !m.applyStateUpdate(slot, stateUpdate, worker):
 						panic(throw.IllegalState())
 						//return true, false
@@ -681,15 +682,6 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 		break
 	}
 
-	switch {
-	case pendingUpdate.IsZero():
-		if pendingLevel != 0 {
-			panic(throw.Impossible())
-		}
-		return slot.step.Flags&StepWeak != 0, true
-	case pendingLevel > 0:
-		pendingUpdate = wrapUnsafeSubroutineUpdate(pendingUpdate, pendingMarker)
-	}
 	if !m.applyStateUpdate(slot, pendingUpdate, worker) {
 		return true, false
 	}
@@ -1448,7 +1440,7 @@ func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) Bar
 			bc := bargingInContext{slotContext{s: slot, w: worker}, param, atExactStep}
 			stateUpdate := bc.executeBargeIn(applyFn)
 
-			return slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
+			return slot.forceSubroutineUpdate(stateUpdate, nil)
 		}, nil)
 		return true
 	}
@@ -1473,7 +1465,7 @@ func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn Barge
 
 	bc := bargingInContext{slotContext{s: link.s, w: fixedWorkerWrapper{worker}}, param, false}
 	stateUpdate := bc.executeBargeInNow(applyFn)
-	stateUpdate = slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
+	stateUpdate = slot.forceSubroutineUpdate(stateUpdate, nil)
 
 	releaseOnPanic = false
 	m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
@@ -1495,7 +1487,7 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 			}
 			// Plan A - faster one
 			if slot, isStarted, prevStepNo := link.tryStartWorking(); isStarted {
-				stateUpdateCopy := slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
+				stateUpdateCopy := slot.forceSubroutineUpdate(stateUpdate, nil)
 				m.slotPostExecution(slot, stateUpdateCopy, worker, prevStepNo, true, durationNotApplicableNano)
 				return
 			}
@@ -1504,7 +1496,7 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 				if !link.IsAtStep() {
 					return StateUpdate{} // no change
 				}
-				return slot.tryHandleUnsafeSubroutineUpdate(stateUpdate, nil)
+				return slot.forceSubroutineUpdate(stateUpdate, nil)
 			}, nil)
 		})
 		return true
