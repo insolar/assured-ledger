@@ -665,7 +665,7 @@ func (s *Slot) runShadowMigrate(migrationDelta uint32) {
 	}
 }
 
-func (s *Slot) _addTerminationCallback(link SlotLink, fn ParentSlotCallbackFunc) {
+func (s *Slot) _addTerminationCallback(link SlotLink, fn TerminationCallbackFunc) {
 	if fn == nil || !link.IsValid() {
 		return
 	}

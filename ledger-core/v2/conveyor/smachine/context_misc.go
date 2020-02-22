@@ -19,7 +19,7 @@ type constructionContext struct {
 	injects      map[string]interface{}
 	inherit      DependencyInheritanceMode
 	tracerId     TracerId
-	callbackFn   ParentSlotCallbackFunc
+	callbackFn   TerminationCallbackFunc
 	callbackLink SlotLink
 	isTracing    bool
 }
@@ -65,7 +65,7 @@ func (p *constructionContext) SetParentLink(parent SlotLink) {
 	p.s.parent = parent
 }
 
-func (p *constructionContext) SetParentCallback(parentCtx ExecutionContext, callbackFn ParentSlotCallbackFunc) {
+func (p *constructionContext) SetTerminationCallback(parentCtx ExecutionContext, callbackFn TerminationCallbackFunc) {
 	p.ensure(updCtxConstruction)
 	switch {
 	case callbackFn == nil:

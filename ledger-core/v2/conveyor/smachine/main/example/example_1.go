@@ -170,7 +170,7 @@ func (s *StateMachine1) State5(ctx smachine.ExecutionContext) smachine.StateUpda
 
 	ctx.NewChild(func(ctx2 smachine.ConstructionContext) smachine.StateMachine {
 		subroutineSM := &StateMachine3{count: id}
-		ctx2.SetParentCallback(ctx, func(param interface{}, err error) smachine.AsyncResultFunc {
+		ctx2.SetTerminationCallback(ctx, func(param interface{}, err error) smachine.AsyncResultFunc {
 			direct := subroutineSM.count
 			return func(ctx smachine.AsyncResultContext) {
 				fmt.Printf("return: %d %v '%v'\n", ctx.SlotLink().SlotID(), direct, param)

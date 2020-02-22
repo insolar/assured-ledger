@@ -61,7 +61,7 @@ const (
 	DiscardResolvedDependencies DependencyInheritanceMode = 4
 )
 
-type ParentSlotCallbackFunc func(result interface{}, err error) AsyncResultFunc
+type TerminationCallbackFunc func(result interface{}, err error) AsyncResultFunc
 
 /* During construction SlotLink() will have correct SlotID, but MAY have INVALID status, as slot was not yet created */
 type ConstructionContext interface {
@@ -86,7 +86,7 @@ type ConstructionContext interface {
 
 	// The given function will be called after SM termination and will have access to SM residual state and to the
 	// termination result or error
-	SetParentCallback(parentCtx ExecutionContext, getResultFn ParentSlotCallbackFunc)
+	SetTerminationCallback(receiver ExecutionContext, getResultFn TerminationCallbackFunc)
 
 	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
 	SetLogTracing(bool)
