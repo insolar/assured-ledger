@@ -165,9 +165,6 @@ func (v StateUpdateType) getForPrepare(ctxType updCtxMode) StateUpdateType {
 }
 
 func (v StateUpdateType) get() StateUpdateType {
-	if v.updKind == 0 {
-		panic("unknown type")
-	}
 	if v.apply == nil {
 		panic("not implemented")
 	}
@@ -175,9 +172,6 @@ func (v StateUpdateType) get() StateUpdateType {
 }
 
 func (v StateUpdateType) canGet() bool {
-	if v.updKind == 0 {
-		return false
-	}
 	if v.apply == nil {
 		return false
 	}
