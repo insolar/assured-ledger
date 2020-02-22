@@ -47,7 +47,7 @@ func init() {
 
 			safeWithSubroutine: true,
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				//if !slot.isInQueue() {
 				//	return false, errors.New("unexpected state update")
 				//}
@@ -59,7 +59,7 @@ func init() {
 			name:   "repeatNow",
 			filter: updCtxInternal, // can't be created by a template
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				if slot.isInQueue() {
 					return false, errors.New("unexpected internal repeat")
 				}
@@ -80,7 +80,7 @@ func init() {
 			filter:    updCtxExec | updCtxInit | updCtxMigrate | updCtxBargeIn | updCtxSubrExit,
 			params:    updParamVar,
 			varVerify: stateUpdateDefaultVerifyError,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				err = stateUpdate.param1.(error)
 				if err == nil {
 					err = errors.New("error argument is missing")
@@ -94,7 +94,7 @@ func init() {
 			filter:    updCtxInternal, // can't be created by a template
 			params:    updParamVar,
 			varVerify: stateUpdateDefaultVerifyError,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				err = stateUpdate.param1.(error)
 				if err == nil {
 					err = errors.New("error argument is missing")
@@ -108,12 +108,11 @@ func init() {
 			filter: updCtxExec,
 			params: updParamStep,
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
-				// can't use stateUpdateDefaultJump here as have to provide stepDecl
-				m := slot.machine
-				slot.setNextStep(stateUpdate.step, &replaceInitDecl)
-				m.updateSlotQueue(slot, worker, activateSlot)
-				return true, nil
+			stepDeclaration: &replaceInitDecl,
+
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sut StateUpdateType) (isAvailable bool, err error) {
+				slot.slotFlags |= slotStepCantMigrate
+				return stateUpdateDefaultJump(slot, stateUpdate, worker, sut)
 			},
 		},
 
@@ -122,13 +121,8 @@ func init() {
 			filter: updCtxExec,
 			params: updParamStep,
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
-				// can't use stateUpdateDefaultJump here as have to provide stepDecl
-				m := slot.machine
-				slot.setNextStep(stateUpdate.step, &defaultSubroutineStartDecl)
-				m.updateSlotQueue(slot, worker, activateSlot)
-				return true, nil
-			},
+			stepDeclaration: &defaultSubroutineStartDecl,
+			apply:           stateUpdateDefaultJump,
 		},
 
 		stateUpdSubroutineAbort: {
@@ -136,13 +130,8 @@ func init() {
 			filter: updCtxInternal,
 			params: updParamStep,
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
-				// can't use stateUpdateDefaultJump here as have to provide stepDecl
-				m := slot.machine
-				slot.setNextStep(stateUpdate.step, &defaultSubroutineAbortDecl)
-				m.updateSlotQueue(slot, worker, activateSlot)
-				return true, nil
-			},
+			stepDeclaration: &defaultSubroutineAbortDecl,
+			apply:           stateUpdateDefaultJump,
 		},
 
 		stateUpdRepeat: {
@@ -156,7 +145,7 @@ func init() {
 				return loopCount < stateUpdate.param0
 			},
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				slot.activateSlot(worker)
 				return true, nil
 			},
@@ -198,7 +187,7 @@ func init() {
 
 			safeWithSubroutine: true,
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				slot.activateSlot(worker)
 				return true, nil
 			},
@@ -218,7 +207,7 @@ func init() {
 			filter:  updCtxExec,
 			params:  updParamStep | updParamVar,
 			prepare: stateUpdateDefaultNoArgPrepare,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				m := slot.machine
 				slot.setNextStep(stateUpdate.step, nil)
 				m.updateSlotQueue(slot, worker, deactivateSlot)
@@ -232,7 +221,7 @@ func init() {
 			filter:  updCtxExec,
 			params:  updParamStep | updParamVar,
 			prepare: stateUpdateDefaultNoArgPrepare,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				m := slot.machine
 				slot.setNextStep(stateUpdate.step, nil)
 				m.updateSlotQueue(slot, worker, deactivateSlot)
@@ -245,7 +234,7 @@ func init() {
 			filter:  updCtxExec,
 			params:  updParamStep | updParamUint | updParamVar,
 			prepare: stateUpdateDefaultNoArgPrepare,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				m := slot.machine
 				slot.setNextStep(stateUpdate.step, nil)
 
@@ -276,7 +265,7 @@ func init() {
 			filter: updCtxExec,
 			params: updParamStep | updParamLink,
 			//		prepare: stateUpdateDefaultNoArgPrepare,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				m := slot.machine
 				slot.setNextStep(stateUpdate.step, nil)
 				waitOn := stateUpdate.getLink()
@@ -333,7 +322,7 @@ func init() {
 			filter:  updCtxExec,
 			params:  updParamStep | updParamLink,
 			prepare: stateUpdateDefaultNoArgPrepare,
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 				m := slot.machine
 				slot.setNextStep(stateUpdate.step, nil)
 
@@ -386,14 +375,14 @@ func stateUpdateDefaultVerifyError(u interface{}) {
 	}
 }
 
-func stateUpdateDefaultJump(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+func stateUpdateDefaultJump(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sut StateUpdateType) (isAvailable bool, err error) {
 	m := slot.machine
-	slot.setNextStep(stateUpdate.step, nil)
+	slot.setNextStep(stateUpdate.step, sut.stepDeclaration)
 	m.updateSlotQueue(slot, worker, activateSlot)
 	return true, nil
 }
 
-func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error) {
+func stateUpdateDefaultStop(slot *Slot, _ StateUpdate, worker FixedSlotWorker, _ StateUpdateType) (isAvailable bool, err error) {
 	m := slot.machine
 	if slot.hasSubroutine() {
 		slot.prepareSubroutineExit(nil)

@@ -140,9 +140,9 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 	}}
 }
 
-var defaultSubroutineStartDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineStart>"}}
-var defaultSubroutineAbortDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineAbort>"}}
-var defaultSubroutineExitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<subroutineExit>"}}
+var defaultSubroutineStartDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<init_subroutine>"}}
+var defaultSubroutineAbortDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<abort_subroutine>"}}
+var defaultSubroutineExitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<exit_subroutine>"}}
 
 func (s *Slot) prepareSubroutineExit(lastError error) {
 	// TODO logging?

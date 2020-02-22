@@ -31,17 +31,17 @@ func getStateUpdateType(stateUpdate StateUpdate) (StateUpdateType, bool) {
 	return _getStateUpdateType(stateUpdKind(stateUpdate.updKind))
 }
 
-func getStateUpdateTypeName(stateUpdate StateUpdate) (string, bool) {
+func getStateUpdateTypeAndName(stateUpdate StateUpdate) (StateUpdateType, string, bool) {
 	if stateUpdate.IsZero() {
-		return "zero", false
+		return StateUpdateType{}, "zero", false
 	}
 	if sut, ok := _getStateUpdateType(stateUpdKind(stateUpdate.updKind)); ok {
 		if len(sut.name) > 0 {
-			return sut.name, true
+			return sut, sut.name, true
 		}
-		return fmt.Sprintf("noname(%d)", stateUpdate.updKind), true
+		return sut, fmt.Sprintf("noname(%d)", stateUpdate.updKind), true
 	}
-	return fmt.Sprintf("unknown(%d)", stateUpdate.updKind), false
+	return StateUpdateType{}, fmt.Sprintf("unknown(%d)", stateUpdate.updKind), false
 }
 
 func typeOfStateUpdate(stateUpdate StateUpdate) StateUpdateType {
@@ -74,7 +74,7 @@ func getStateUpdateKind(stateUpdate StateUpdate) stateUpdKind {
 	return stateUpdKind(stateUpdate.updKind)
 }
 
-type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error)
+type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sut StateUpdateType) (isAvailable bool, err error)
 type SlotUpdatePrepareFunc func(slot *Slot, stateUpdate *StateUpdate)
 type SlotUpdateShortLoopFunc func(slot *Slot, stateUpdate StateUpdate, loopCount uint32) bool
 
@@ -95,6 +95,7 @@ type StateUpdateType struct {
 
 	filter             updCtxMode
 	params             stateUpdParam
+	stepDeclaration    *StepDeclaration
 	safeWithSubroutine bool
 }
 
@@ -202,11 +203,15 @@ func (v StateUpdateType) Apply(slot *Slot, stateUpdate StateUpdate, worker Fixed
 	if v.apply == nil {
 		return false, errors.New("not implemented")
 	}
-	return v.apply(slot, stateUpdate, worker)
+	return v.apply(slot, stateUpdate, worker, v)
 }
 
 func (v StateUpdateType) IsSubroutineSafe() bool {
 	return v.safeWithSubroutine
+}
+
+func (v StateUpdateType) GetStepDeclaration() *StepDeclaration {
+	return v.stepDeclaration
 }
 
 func (v StateUpdateTemplate) ensureTemplate(params stateUpdParam) {

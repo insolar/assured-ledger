@@ -93,6 +93,7 @@ const (
 	slotHadAsync
 	slotIsTracing
 	slotIsBoosted
+	slotStepCantMigrate
 )
 
 type SlotDependency interface {
@@ -322,10 +323,16 @@ func (s *Slot) stopWorking() (prevStepNo uint32) {
 }
 
 func (s *Slot) canMigrateWorking(prevStepNo uint32, migrateIsNeeded bool) bool {
-	if prevStepNo > 1 {
+	switch {
+	case s.slotFlags&slotStepCantMigrate != 0:
+		return false
+	case prevStepNo > 1:
 		return migrateIsNeeded
+	case prevStepNo != 1:
+		return false
+	default:
+		return atomic.LoadUint64(&s.idAndStep) >= stepIncrement*numberOfReservedSteps
 	}
-	return prevStepNo == 1 && atomic.LoadUint64(&s.idAndStep) >= stepIncrement*numberOfReservedSteps
 }
 
 func (s *Slot) tryStartMigrate() (isEmpty, isStarted bool, prevStepNo uint32) {
@@ -559,14 +566,18 @@ func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, prevStepNo uint32, inac
 		ActivityNano:   activityNano,
 	}
 
+	sut, sutName, _ := getStateUpdateTypeAndName(stateUpdate)
+	updData.UpdateType = sutName
+
 	if nextStep := stateUpdate.step.Transition; nextStep != nil {
-		nextDecl := s.declaration.GetStepDeclaration(nextStep)
+		nextDecl := sut.GetStepDeclaration()
+		if nextDecl == nil {
+			nextDecl = s.declaration.GetStepDeclaration(nextStep)
+		}
 		updData.NextStep = stepToDecl(stateUpdate.step, nextDecl)
 	} else {
 		updData.NextStep.SlotStep = stateUpdate.step
 	}
-
-	updData.UpdateType, _ = getStateUpdateTypeName(stateUpdate)
 
 	s.stepLogger.LogUpdate(stepData, updData)
 }

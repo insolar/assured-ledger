@@ -105,7 +105,7 @@ func (s *Slot) prepareSubroutineInit(sm SubroutineStateMachine, tracerId TracerI
 	return initFn
 }
 
-var replaceInitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<replace init>"}}
+var replaceInitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<init_replace>"}}
 var defaultInitDecl = StepDeclaration{stepDeclExt: stepDeclExt{Name: "<init>"}}
 
 func (v InitFunc) defaultInit(ctx ExecutionContext) StateUpdate {

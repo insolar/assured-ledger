@@ -11,34 +11,37 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func (p *slotContext) Replace(fn CreateFunc) StateUpdate {
+func (p *executionContext) Replace(fn CreateFunc) StateUpdate {
 	return p.replaceExt(fn, CreateDefaultValues{})
 }
 
-func (p *slotContext) ReplaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
+func (p *executionContext) ReplaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
 	return p.replaceExt(fn, defValues)
 }
 
-func (p *slotContext) replaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
+func (p *executionContext) replaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
 	tmpl := p.template(stateUpdReplace) // ensures state of this context
 	if fn == nil {
 		panic(throw.IllegalValue())
 	}
-	return tmpl.newStepOnly(p.s.prepareReplaceWith(nil, fn, defValues))
+
+	setupFn := p.s.prepareReplaceWith(nil, fn, defValues)
+	return tmpl.newStepOnly(SlotStep{Transition: setupFn})
 }
 
-func (p *slotContext) ReplaceWith(sm StateMachine) StateUpdate {
+func (p *executionContext) ReplaceWith(sm StateMachine) StateUpdate {
 	tmpl := p.template(stateUpdReplace) // ensures state of this context
-
 	if sm == nil {
 		panic(throw.IllegalValue())
 	}
-	return tmpl.newStepOnly(p.s.prepareReplaceWith(sm, nil, CreateDefaultValues{}))
+
+	setupFn := p.s.prepareReplaceWith(sm, nil, CreateDefaultValues{})
+	return tmpl.newStepOnly(SlotStep{Transition: setupFn})
 }
 
-func (s *Slot) prepareReplaceWith(sm StateMachine, fn CreateFunc, defValues CreateDefaultValues) SlotStep {
+func (s *Slot) prepareReplaceWith(sm StateMachine, fn CreateFunc, defValues CreateDefaultValues) StateFunc {
 	if initFn := s.prepareSlotInit(s, fn, sm, defValues); initFn != nil {
-		return SlotStep{Transition: initFn.defaultInit}
+		return initFn.defaultInit
 	}
 	panic("replacing SM didn't initialize")
 }
