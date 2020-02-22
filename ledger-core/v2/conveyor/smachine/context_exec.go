@@ -36,11 +36,6 @@ func (p *executionContext) Jump(fn StateFunc) StateUpdate {
 	return p.template(stateUpdNextLoop).newStepUint(SlotStep{Transition: fn}, math.MaxUint32)
 }
 
-func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, exitFn SubroutineExitFunc) StateUpdate {
-	nextStep := p.s.prepareSubroutineStart(ssm, exitFn)
-	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
-}
-
 func (p *executionContext) Yield() StateConditionalBuilder {
 	ncu := p.newConditionalUpdate(stateUpdNext)
 	return &ncu

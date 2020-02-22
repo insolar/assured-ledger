@@ -160,7 +160,7 @@ func (s *StateMachine1) State5(ctx smachine.ExecutionContext) smachine.StateUpda
 
 	if id&2 == 0 {
 		subroutineSM := &StateMachine3{count: id}
-		return ctx.CallSubroutine(subroutineSM, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 			param := ctx.EventParam()
 			direct := subroutineSM.count
 			fmt.Printf("return: %d %v '%v'\n", ctx.SlotLink().SlotID(), direct, param)

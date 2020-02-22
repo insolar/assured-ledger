@@ -101,7 +101,7 @@ func (s *Slot) checkSubroutineMarker(marker *subroutineMarker) (isCurrent, isVal
 	return false, false
 }
 
-func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn SubroutineExitFunc) SlotStep {
+func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn SubroutineExitFunc, migrateFn MigrateFunc) SlotStep {
 	if exitFn == nil {
 		panic(throw.IllegalValue())
 	}
@@ -117,13 +117,16 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 		panic(throw.IllegalValue())
 	}
 
-	return SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
+	return SlotStep{Migration: migrateFn, Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
 		slot := ec.s
 		m := slot.machine
 
 		prev := slot.slotDeclarationData
-		stackedSdd := &slotStackedDeclarationData{prev, prev.defMigrate,
+		if migrateFn == nil {
+			migrateFn = prev.defMigrate
+		}
+		stackedSdd := &slotStackedDeclarationData{prev, migrateFn,
 			exitFn, slot.newSubroutineMarker(),
 			prev.subroutineStack != nil && prev.subroutineStack.hasMigrates,
 		}

@@ -266,7 +266,7 @@ type ExecutionContext interface {
 	// See Replace()
 	ReplaceWith(StateMachine) StateUpdate
 
-	CallSubroutine(SubroutineStateMachine, SubroutineExitFunc) StateUpdate
+	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
 
 	// UseShared applies the accessor produced by a SharedDataLink.
 	// SharedDataLink can be used across different SlotMachines.
