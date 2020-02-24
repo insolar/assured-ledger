@@ -12,21 +12,19 @@ import (
 )
 
 func (p *executionContext) Replace(fn CreateFunc) StateUpdate {
-	return p.replaceExt(fn, CreateDefaultValues{})
-}
-
-func (p *executionContext) ReplaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
-	return p.replaceExt(fn, defValues)
-}
-
-func (p *executionContext) replaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
 	tmpl := p.template(stateUpdReplace) // ensures state of this context
 	if fn == nil {
 		panic(throw.IllegalValue())
 	}
+	return tmpl.newStepOnly(p.prepareReplace(nil, fn, CreateDefaultValues{}))
+}
 
-	setupFn := p.s.prepareReplaceWith(nil, fn, defValues)
-	return tmpl.newStepOnly(SlotStep{Transition: setupFn})
+func (p *executionContext) ReplaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
+	tmpl := p.template(stateUpdReplace) // ensures state of this context
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
+	return tmpl.newStepOnly(p.prepareReplace(nil, fn, defValues))
 }
 
 func (p *executionContext) ReplaceWith(sm StateMachine) StateUpdate {
@@ -34,16 +32,11 @@ func (p *executionContext) ReplaceWith(sm StateMachine) StateUpdate {
 	if sm == nil {
 		panic(throw.IllegalValue())
 	}
-
-	setupFn := p.s.prepareReplaceWith(sm, nil, CreateDefaultValues{})
-	return tmpl.newStepOnly(SlotStep{Transition: setupFn})
+	return tmpl.newStepOnly(p.prepareReplace(sm, nil, CreateDefaultValues{}))
 }
 
-func (s *Slot) prepareReplaceWith(sm StateMachine, fn CreateFunc, defValues CreateDefaultValues) StateFunc {
-	if initFn := s.prepareSlotInit(s, fn, sm, defValues); initFn != nil {
-		return initFn.defaultInit
-	}
-	panic("replacing SM didn't initialize")
+func (p *executionContext) prepareReplace(sm StateMachine, fn CreateFunc, defValues CreateDefaultValues) SlotStep {
+	return SlotStep{Transition: p.s.prepareReplace(fn, sm, defValues)}
 }
 
 func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {

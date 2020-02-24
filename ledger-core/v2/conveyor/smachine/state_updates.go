@@ -110,10 +110,11 @@ func init() {
 
 			stepDeclaration: &replaceInitDecl,
 
-			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sut StateUpdateType) (isAvailable bool, err error) {
+			prepare: func(slot *Slot, stateUpdate *StateUpdate) {
 				slot.slotFlags |= slotStepCantMigrate
-				return stateUpdateDefaultJump(slot, stateUpdate, worker, sut)
 			},
+
+			apply: stateUpdateDefaultJump,
 		},
 
 		stateUpdSubroutineStart: {
@@ -122,7 +123,8 @@ func init() {
 			params: updParamStep,
 
 			stepDeclaration: &defaultSubroutineStartDecl,
-			apply:           stateUpdateDefaultJump,
+
+			apply: stateUpdateDefaultJump,
 		},
 
 		stateUpdSubroutineAbort: {
@@ -131,7 +133,8 @@ func init() {
 			params: updParamStep,
 
 			stepDeclaration: &defaultSubroutineAbortDecl,
-			apply:           stateUpdateDefaultJump,
+
+			apply: stateUpdateDefaultJump,
 		},
 
 		stateUpdRepeat: {

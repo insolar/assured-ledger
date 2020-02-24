@@ -15,18 +15,24 @@ import (
 
 type subroutineMarker struct {
 	slotId SlotID
-	_      [0]func() // force incomparable by value
+	step   uint32
 }
 
-func (s *Slot) newSubroutineMarker() *subroutineMarker {
-	return &subroutineMarker{slotId: s.GetSlotID()}
+func (s *Slot) newSubroutineMarker() subroutineMarker {
+	id, step, _ := s.GetState()
+	return subroutineMarker{slotId: id, step: step}
 }
 
-func (s *Slot) getSubroutineMarker() *subroutineMarker {
+func (s *Slot) getSubroutineMarker() subroutineMarker {
 	if s.stateStack != nil {
 		return s.stateStack.childMarker
 	}
-	return nil
+	return s.getTopSubroutineMarker()
+}
+
+func (s *Slot) getTopSubroutineMarker() subroutineMarker {
+	id, _, _ := s.GetState()
+	return subroutineMarker{slotId: id}
 }
 
 func (s *Slot) ensureNoSubroutine() {
@@ -35,7 +41,14 @@ func (s *Slot) ensureNoSubroutine() {
 	}
 }
 
-func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
+func (s *Slot) forceTopSubroutineUpdate(su StateUpdate) StateUpdate {
+	if !typeOfStateUpdate(su).IsSubroutineSafe() {
+		s._popTillSubroutine(subroutineMarker{})
+	}
+	return su
+}
+
+func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy subroutineMarker) StateUpdate {
 	switch isCurrent, isValid := s.checkSubroutineMarker(producedBy); {
 	case isCurrent:
 		//
@@ -49,14 +62,14 @@ func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy *subroutineMarke
 
 var errTerminatedByCaller = errors.New("subroutine SM is terminated by caller")
 
-func (s *Slot) _popTillSubroutine(producedBy *subroutineMarker) {
+func (s *Slot) _popTillSubroutine(producedBy subroutineMarker) {
 	for ms := s.stateStack; ms != nil; ms = ms.stateStack {
 		if ms.childMarker == producedBy {
 			return
 		}
 		s.prepareSubroutineExit(errTerminatedByCaller)
 	}
-	if producedBy != nil {
+	if producedBy.step != 0 {
 		panic(throw.IllegalState())
 	}
 }
@@ -65,29 +78,13 @@ func (s *Slot) hasSubroutine() bool {
 	return s.stateStack != nil
 }
 
-func wrapUnsafeSubroutineUpdate(su StateUpdate, producedBy *subroutineMarker) StateUpdate {
-	return newSubroutineAbortStateUpdate(SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
-		ec := ctx.(*executionContext)
-		slot := ec.s
-		switch isCurrent, isValid := slot.checkSubroutineMarker(producedBy); {
-		case isCurrent:
-			return su
-		case !isValid:
-			ctx.Log().Warn("aborting routine has expired")
-			return su
-		}
-		slot._popTillSubroutine(producedBy)
-		return su
-	}})
-}
-
-func (s *Slot) checkSubroutineMarker(marker *subroutineMarker) (isCurrent, isValid bool) {
-	switch {
-	case marker == nil:
+func (s *Slot) checkSubroutineMarker(marker subroutineMarker) (isCurrent, isValid bool) {
+	switch id := s.GetSlotID(); {
+	case id != marker.slotId:
+		//
+	case marker.step == 0:
 		return s.stateStack == nil, true
 	case s.stateStack == nil:
-		//
-	case s.GetSlotID() != marker.slotId:
 		//
 	case s.stateStack.childMarker == marker:
 		return true, true
@@ -116,6 +113,7 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 	return SlotStep{Migration: migrateFn, Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
 		slot := ec.s
+		tracerId := ctx.Log().GetTracerId()
 
 		prev := slot.stateMachineData
 		if migrateFn == nil {
@@ -129,12 +127,8 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 			stackedSdd.hasMigrates = true
 		}
 
-		slot.stateMachineData.stateStack = stackedSdd
-		slot.stateMachineData.declaration = decl
-		slot.stateMachineData.shadowMigrate = nil
-		slot.stateMachineData.defTerminate = nil
-
-		initFn := slot.prepareSubroutineInit(ssm, ctx.Log().GetTracerId())
+		slot.stateMachineData = stateMachineData{declaration: decl, stateStack: stackedSdd}
+		initFn := slot.prepareSubroutineInit(ssm, tracerId)
 
 		return initFn.defaultInit(ctx)
 	}}

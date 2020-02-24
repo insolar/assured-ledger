@@ -120,7 +120,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 						case ms != nil:
 							slot._popTillSubroutine(ms.childMarker)
 						default:
-							slot._popTillSubroutine(nil)
+							slot._popTillSubroutine(subroutineMarker{})
 						}
 					case !m.applyStateUpdate(slot, stateUpdate, worker):
 						panic(throw.IllegalState())

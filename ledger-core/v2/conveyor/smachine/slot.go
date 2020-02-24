@@ -45,10 +45,10 @@ type stateMachineData struct {
 	declaration     StateMachineHelper
 	shadowMigrate   ShadowMigrateFunc // runs for all subroutines
 	stepLogger      StepLogger
-	defMigrate      MigrateFunc
-	defErrorHandler ErrorHandlerFunc
 	defTerminate    internalTerminationHandlerFunc
 	defResult       interface{}
+	defMigrate      MigrateFunc
+	defErrorHandler ErrorHandlerFunc
 	defFlags        StepFlags
 
 	// DO NOT modify content of this map
@@ -61,7 +61,7 @@ type stackedStateMachineData struct {
 	stateMachineData
 	stackMigrate MigrateFunc
 	returnFn     SubroutineExitFunc
-	childMarker  *subroutineMarker
+	childMarker  subroutineMarker
 	hasMigrates  bool
 }
 

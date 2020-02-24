@@ -839,7 +839,7 @@ func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) Bar
 			bc := bargingInContext{slotContext{s: slot, w: worker}, param, atExactStep}
 			stateUpdate := bc.executeBargeIn(applyFn)
 
-			return slot.forceSubroutineUpdate(stateUpdate, nil)
+			return slot.forceTopSubroutineUpdate(stateUpdate)
 		}, nil)
 		return true
 	}
@@ -864,7 +864,7 @@ func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn Barge
 
 	bc := bargingInContext{slotContext{s: link.s, w: fixedWorkerWrapper{worker}}, param, false}
 	stateUpdate := bc.executeBargeInNow(applyFn)
-	stateUpdate = slot.forceSubroutineUpdate(stateUpdate, nil)
+	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
 
 	releaseOnPanic = false
 	m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
@@ -886,7 +886,7 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 			}
 			// Plan A - faster one
 			if slot, isStarted, prevStepNo := link.tryStartWorking(); isStarted {
-				stateUpdateCopy := slot.forceSubroutineUpdate(stateUpdate, nil)
+				stateUpdateCopy := slot.forceTopSubroutineUpdate(stateUpdate)
 				m.slotPostExecution(slot, stateUpdateCopy, worker, prevStepNo, true, durationNotApplicableNano)
 				return
 			}
@@ -895,7 +895,7 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 				if !link.IsAtStep() {
 					return StateUpdate{} // no change
 				}
-				return slot.forceSubroutineUpdate(stateUpdate, nil)
+				return slot.forceTopSubroutineUpdate(stateUpdate)
 			}, nil)
 		})
 		return true
