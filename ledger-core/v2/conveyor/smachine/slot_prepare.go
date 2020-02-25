@@ -15,7 +15,7 @@ import (
 func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) InitFunc {
 	m := s.machine
 
-	cc := constructionContext{s: s, injects: defValues.OverriddenDependencies, tracerId: defValues.TracerId}
+	cc := constructionContext{creator: creator, s: s, injects: defValues.OverriddenDependencies, tracerId: defValues.TracerId}
 	selfUpdate := s == creator
 	if selfUpdate {
 		cc.inherit = InheritResolvedDependencies

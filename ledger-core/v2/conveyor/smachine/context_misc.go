@@ -16,6 +16,7 @@ var _ ConstructionContext = &constructionContext{}
 type constructionContext struct {
 	contextTemplate
 	s            *Slot
+	creator      *Slot
 	injects      map[string]interface{}
 	inherit      DependencyInheritanceMode
 	tracerId     TracerId
@@ -67,15 +68,15 @@ func (p *constructionContext) SetParentLink(parent SlotLink) {
 
 func (p *constructionContext) SetTerminationCallback(parentCtx ExecutionContext, callbackFn TerminationCallbackFunc) {
 	p.ensure(updCtxConstruction)
-	switch {
-	case callbackFn == nil:
+	if callbackFn == nil {
 		if parentCtx != nil {
 			parentCtx.SlotLink() // to validate
 		}
 		p.callbackFn = nil
 		p.callbackLink = SlotLink{}
 		return
-	case parentCtx == nil:
+	}
+	if ec, ok := parentCtx.(*executionContext); !ok || ec.s != p.creator {
 		panic(throw.IllegalValue())
 	}
 	p.callbackLink = parentCtx.SlotLink()
