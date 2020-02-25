@@ -218,9 +218,9 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			var asyncCnt uint16
 			var sut StateUpdateType
 
+			slot.slotFlags &^= slotStepCantMigrate
 			ec := executionContext{slotContext: slotContext{s: slot, w: worker}}
 			stateUpdate, sut, asyncCnt = ec.executeNextStep()
-			slot.slotFlags &^= slotStepCantMigrate
 
 			slot.addAsyncCount(asyncCnt)
 			if !sut.ShortLoop(slot, stateUpdate, uint32(loopCount)) {
