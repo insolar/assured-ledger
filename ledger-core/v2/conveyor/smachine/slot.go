@@ -46,7 +46,6 @@ type stateMachineData struct {
 	shadowMigrate   ShadowMigrateFunc // runs for all subroutines
 	stepLogger      StepLogger
 	defTerminate    internalTerminationHandlerFunc
-	defResult       interface{}
 	defMigrate      MigrateFunc
 	defErrorHandler ErrorHandlerFunc
 	defFlags        StepFlags
@@ -76,6 +75,7 @@ type slotData struct {
 	stepDecl *StepDeclaration
 
 	dependency SlotDependency
+	defResult  interface{}
 
 	lastTouchNano  int64
 	migrationCount uint32 // can be wrapped by overflow
