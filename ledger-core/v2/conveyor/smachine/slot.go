@@ -92,8 +92,6 @@ const (
 type SlotDependency interface {
 	IsReleaseOnWorking() bool
 	IsReleaseOnStepping() bool
-
-	Release() (SlotDependency, []PostponedDependency, []StepLink)
 	ReleaseAll() ([]PostponedDependency, []StepLink)
 }
 

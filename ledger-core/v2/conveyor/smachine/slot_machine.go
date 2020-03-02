@@ -374,7 +374,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 	inactivityNano := slot.touch(time.Now().UnixNano())
 
 	if dep := slot.dependency; dep != nil && dep.IsReleaseOnWorking() {
-		released := slot._releaseDependency()
+		released := slot._releaseAllDependency()
 		m.activateDependants(released, slot.NewLink(), worker)
 	}
 	slot.slotFlags &^= slotWokenUp
@@ -766,7 +766,7 @@ func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, e
 		{
 			// cleanup synchronization dependency
 			if slot.dependency != nil {
-				released := slot._releaseDependency()
+				released := slot._releaseAllDependency()
 				m.activateDependants(released, link.SlotLink, worker)
 			}
 		}
@@ -1576,7 +1576,7 @@ func (m *SlotMachine) stopSlotWorking(slot *Slot, prevStepNo uint32, worker Fixe
 		return
 	}
 
-	released := slot._releaseDependency()
+	released := slot._releaseAllDependency()
 	m.activateDependants(released, slot.NewLink(), worker)
 }
 

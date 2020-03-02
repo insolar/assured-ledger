@@ -50,7 +50,7 @@ type SynchronizationContext interface {
 	// Returns true when a holder of a sync object was released.
 	// NB! Some sync objects (e.g. conditionals) may release a passed holder automatically, hence this function will return false as well.
 	// Panics on zero or incorrectly initialized value.
-	ReleaseLast() bool
+	ReleaseAll() bool
 
 	//ReleaseAll() bool
 
@@ -135,6 +135,13 @@ func (v SyncLink) String() string {
 
 /* ============================================== */
 
+func NewSyncAdjustment(controller DependencyController, adjustment int, isAbsolute bool) SyncAdjustment {
+	if controller == nil {
+		panic("illegal value")
+	}
+	return SyncAdjustment{controller, adjustment, isAbsolute}
+}
+
 type SyncAdjustment struct {
 	controller DependencyController
 	adjustment int
@@ -154,32 +161,39 @@ func (v SyncAdjustment) IsEmpty() bool {
 type SlotDependencyFlags uint8
 
 const (
-	syncPriorityBoosted SlotDependencyFlags = 1 << iota
-	syncPriorityHigh
-	syncForOneStep
+	SyncPriorityBoosted SlotDependencyFlags = 1 << iota
+	SyncPriorityHigh
+	SyncForOneStep
+	SyncIgnoreFlags
 )
 
-const syncPriorityMask = syncPriorityBoosted | syncPriorityHigh
+const SyncPriorityMask = SyncPriorityBoosted | SyncPriorityHigh
 
-func (v SlotDependencyFlags) hasLessPriorityThan(o SlotDependencyFlags) bool {
-	return v&syncPriorityMask < o&syncPriorityMask
+func (v SlotDependencyFlags) HasLessPriorityThan(o SlotDependencyFlags) bool {
+	return v&SyncPriorityMask < o&SyncPriorityMask
 }
 
-func (v SlotDependencyFlags) isCompatibleWith(requiredFlags SlotDependencyFlags) bool {
-	if v&requiredFlags&^syncPriorityMask != requiredFlags&^syncPriorityMask {
+func (v SlotDependencyFlags) IsCompatibleWith(requiredFlags SlotDependencyFlags) bool {
+	if requiredFlags == SyncIgnoreFlags {
+		return true
+	}
+
+	if v&requiredFlags&^SyncPriorityMask != requiredFlags&^SyncPriorityMask {
 		return false
 	}
-	return !v.hasLessPriorityThan(requiredFlags)
+	return !v.HasLessPriorityThan(requiredFlags)
 }
 
 type EnumQueueFunc func(qId int, link SlotLink, flags SlotDependencyFlags) bool
 
 // Internals of a sync object
 type DependencyController interface {
-	CheckState() BoolDecision // reduce down to BoolDecision
-	CheckDependency(dep SlotDependency) Decision
-	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
+	CheckState() BoolDecision
 	CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency)
+	// UseDependency also handles partial acquire of hierarchical syncs
+	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
+	// ReleaseDependency does partial release of hierarchical syncs. MUST be called only after UseDependency check
+	ReleaseDependency(dep SlotDependency) (bool, SlotDependency, []PostponedDependency, []StepLink)
 
 	GetLimit() (limit int, isAdjustable bool)
 	AdjustLimit(limit int, absolute bool) (deps []StepLink, activate bool)

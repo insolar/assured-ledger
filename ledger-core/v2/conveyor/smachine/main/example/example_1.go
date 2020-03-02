@@ -23,6 +23,7 @@ type StateMachine1 struct {
 	testKey longbits.ByteString
 	result  string
 	count   int
+	start   time.Time
 }
 
 /* -------- Declaration ------------- */
@@ -52,6 +53,7 @@ func (s *StateMachine1) GetStateMachineDeclaration() smachine.StateMachineDeclar
 
 func (s *StateMachine1) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.testKey = longbits.WrapStr("testObjectID")
+	s.start = time.Now()
 
 	//fmt.Printf("init: %v %v\n", ctx.SlotLink(), time.Now())
 	return ctx.Jump(s.State1)
@@ -100,7 +102,14 @@ func (s *StateMachine1) State2(ctx smachine.ExecutionContext) smachine.StateUpda
 
 	fmt.Printf("state1: %v %v\n", ctx.SlotLink(), s.result)
 
-	return ctx.Jump(s.State3)
+	if ctx.SlotLink().SlotID()&1 == 0 {
+		return ctx.Jump(s.State3)
+	}
+	return ctx.Jump(s.State2a)
+}
+
+func (s *StateMachine1) State2a(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.WaitAnyUntil(s.start.Add(200 * time.Millisecond)).ThenRepeatOrJump(s.State3)
 }
 
 func (s *StateMachine1) State3(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -127,12 +136,17 @@ func (s *StateMachine1) State4(ctx smachine.ExecutionContext) smachine.StateUpda
 		return ctx.WaitAny().ThenRepeat()
 	}
 
-	ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &StateMachine1{}
-	})
-	ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &StateMachine1{}
-	})
+	if ctx.SlotLink().SlotID()&1 == 1 {
+		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &StateMachine1{}
+		})
+		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &StateMachine1{}
+		})
+		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &StateMachine1{}
+		})
+	}
 
 	fmt.Printf("wait: %d %v result:%v\n", ctx.SlotLink().SlotID(), time.Now(), s.result)
 	s.count = 0
