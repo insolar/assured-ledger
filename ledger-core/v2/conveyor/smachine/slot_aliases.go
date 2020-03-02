@@ -44,7 +44,7 @@ func (s *Slot) registerBoundAlias(k, v interface{}) bool {
 
 	if sar := s.machine.config.SlotAliasRegistry; sar != nil {
 		if ga, ok := k.(globalAliasKey); ok {
-			return sar.PublishAlias(ga.key, s.NewLink())
+			return sar.PublishAlias(ga.key, v.(SlotAliasValue))
 		}
 	}
 

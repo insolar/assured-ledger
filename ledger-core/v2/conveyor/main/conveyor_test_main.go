@@ -92,7 +92,7 @@ func main() {
 		time.Sleep(time.Second)
 
 		if eventToCall != "" {
-			link := conveyor.GetPublishedGlobalAlias(eventToCall)
+			link, _ := conveyor.GetPublishedGlobalAliasAndBargeIn(eventToCall)
 			//require.False(t, link.IsEmpty())
 			smachine.ScheduleCallTo(link, func(callContext smachine.MachineCallContext) {
 				fmt.Println("Global call: ", callContext.GetMachineId(), link)

@@ -17,12 +17,14 @@ type MachineCallContext interface {
 	AddNew(context.Context, StateMachine, CreateDefaultValues) SlotLink
 	AddNewByFunc(context.Context, CreateFunc, CreateDefaultValues) (SlotLink, bool)
 
-	BargeInNow(SlotLink, interface{}, BargeInApplyFunc) bool
+	CallDirectBargeIn(link StepLink, fn BargeInCallbackFunc) bool
+	CallBargeInWithParam(b BargeInWithParam, param interface{}) bool
+	CallBargeIn(b BargeIn) bool
 
 	GetPublished(key interface{}) interface{}
 	GetPublishedLink(key interface{}) SharedDataLink
 
-	GetPublishedGlobalAlias(key interface{}) SlotLink
+	GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder)
 
 	Migrate(beforeFn func())
 	Cleanup()

@@ -46,7 +46,7 @@ type ExecuteOutgoingRequest struct {
 	// Request                *record.OutgoingRequest
 
 	// input arguments
-	ParentWakeUp           smachine.BargeInFunc
+	ParentWakeUp           smachine.BargeIn
 	ParentRequestReference insolar.Reference
 	Request                *record.OutgoingRequest
 }

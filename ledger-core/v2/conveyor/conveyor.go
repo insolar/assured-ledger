@@ -113,8 +113,8 @@ func (p *PulseConveyor) TryPutDependency(id string, v interface{}) bool {
 	return p.slotMachine.TryPutDependency(id, v)
 }
 
-func (p *PulseConveyor) GetPublishedGlobalAlias(key interface{}) smachine.SlotLink {
-	return p.slotMachine.GetPublishedGlobalAlias(key)
+func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smachine.SlotLink, smachine.BargeInHolder) {
+	return p.slotMachine.GetPublishedGlobalAliasAndBargeIn(key)
 }
 
 func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error {
@@ -332,7 +332,9 @@ func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error 
 			panic("illegal state")
 		}
 		p.pdm.setPreparingPulse(out)
-		if !ctx.BargeInNow(p.presentMachine.SlotLink(), out, p.presentMachine.preparePulseChange) {
+		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink(), func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			return p.presentMachine.preparePulseChange(ctx, out)
+		}) {
 			//p.pdm.unsetPreparingPulse()
 			//close(out)
 			panic("present slot is busy")
@@ -347,7 +349,7 @@ func (p *PulseConveyor) CancelPulseChange() error {
 			panic("illegal state")
 		}
 		p.pdm.unsetPreparingPulse()
-		if !ctx.BargeInNow(p.presentMachine.SlotLink(), nil, p.presentMachine.cancelPulseChange) {
+		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink(), p.presentMachine.cancelPulseChange) {
 			panic("present slot is busy")
 		}
 	})

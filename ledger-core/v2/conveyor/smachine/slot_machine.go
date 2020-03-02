@@ -35,9 +35,14 @@ type SlotMachineConfig struct {
 }
 
 type SlotAliasRegistry interface {
-	PublishAlias(key interface{}, slot SlotLink) bool
+	PublishAlias(key interface{}, slot SlotAliasValue) bool
 	UnpublishAlias(key interface{})
-	GetPublishedAlias(key interface{}) SlotLink
+	GetPublishedAlias(key interface{}) SlotAliasValue
+}
+
+type SlotAliasValue struct {
+	Link    SlotLink
+	BargeIn BargeInHolder
 }
 
 const maxLoopCount = 10000
@@ -193,8 +198,9 @@ func (m *SlotMachine) TryPutDependency(id string, v interface{}) bool {
 	return !loaded
 }
 
-func (m *SlotMachine) GetPublishedGlobalAlias(key interface{}) SlotLink {
-	return m.getGlobalPublished(key)
+func (m *SlotMachine) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder) {
+	av := m.getGlobalPublished(key)
+	return av.Link, av.BargeIn
 }
 
 /* -- Methods to allocate slots ------------------------------ */
@@ -430,13 +436,12 @@ func (m *SlotMachine) AddNewByFunc(ctx context.Context, cf CreateFunc, defValues
 }
 
 func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (SlotLink, bool) {
-	if parent.IsEmpty() {
+	if parent.IsZero() {
 		panic("illegal value")
 	}
 	// TODO PLAT-25 pass adapterId into injections?
 
 	link, ok := m.prepareNewSlot(nil, cf, nil, CreateDefaultValues{Parent: parent})
-
 	if ok {
 		m.syncQueue.AddAsyncUpdate(link, m._startAddedSlot)
 	}
@@ -820,85 +825,6 @@ func (m *SlotMachine) logCritical(link StepLink, msg string, err error) {
 func (m *SlotMachine) logInternal(link StepLink, msg string, err error) {
 	if sml := m.config.SlotMachineLogger; sml != nil {
 		sml.LogMachineInternal(SlotMachineData{m.getScanCount(), link, err}, msg)
-	}
-}
-
-/* ------ BargeIn support -------------------------- */
-
-func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) BargeInParamFunc {
-
-	link.s.ensureNoSubroutine()
-	link.s.slotFlags |= slotHasBargeIn
-
-	return func(param interface{}) bool {
-		if !link.IsValid() {
-			return false
-		}
-		m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
-			_, atExactStep := link.isValidAndAtExactStep()
-			bc := bargingInContext{slotContext{s: slot, w: worker}, param, atExactStep}
-			stateUpdate := bc.executeBargeIn(applyFn)
-
-			return slot.forceTopSubroutineUpdate(stateUpdate)
-		}, nil)
-		return true
-	}
-}
-
-func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn BargeInApplyFunc, worker FixedSlotWorker) bool {
-	if !link.isMachine(m) {
-		return false
-	}
-
-	slot, isStarted, _ := link.tryStartWorking()
-	if !isStarted {
-		return false
-	}
-
-	releaseOnPanic := true
-	defer func() {
-		if releaseOnPanic {
-			slot.stopWorking()
-		}
-	}()
-
-	bc := bargingInContext{slotContext{s: link.s, w: fixedWorkerWrapper{worker}}, param, false}
-	stateUpdate := bc.executeBargeInNow(applyFn)
-	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
-
-	releaseOnPanic = false
-	m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
-	return true
-}
-
-func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate) BargeInFunc {
-
-	link.s.ensureNoSubroutine()
-	link.s.slotFlags |= slotHasBargeIn
-
-	return func() bool {
-		if !link.IsValid() {
-			return false
-		}
-		m.syncQueue.AddAsyncUpdate(link.SlotLink, func(_ SlotLink, worker FixedSlotWorker) {
-			if m._canCallback(link.SlotLink) || !link.IsAtStep() {
-				return
-			}
-			// Plan A - faster one
-			if slot, isStarted, prevStepNo := link.tryStartWorking(); isStarted {
-				stateUpdateCopy := slot.forceTopSubroutineUpdate(stateUpdate)
-				m.slotPostExecution(slot, stateUpdateCopy, worker, prevStepNo, true, durationNotApplicableNano)
-				return
-			}
-			// Plan B
-			m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
-				if !link.IsAtStep() {
-					return StateUpdate{} // no change
-				}
-				return slot.forceTopSubroutineUpdate(stateUpdate)
-			}, nil)
-		})
-		return true
 	}
 }
 

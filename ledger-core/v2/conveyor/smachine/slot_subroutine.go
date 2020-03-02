@@ -54,6 +54,7 @@ func (s *Slot) forceSubroutineUpdate(su StateUpdate, producedBy subroutineMarker
 		//
 	case !isValid:
 		s.machine.logInternal(s.NewStepLink(), "aborting routine has expired", nil)
+		return StateUpdate{}
 	case !typeOfStateUpdate(su).IsSubroutineSafe():
 		s._popTillSubroutine(producedBy)
 	}
@@ -151,8 +152,8 @@ func (s *Slot) prepareSubroutineExit(lastError error) {
 	s.stateMachineData = prev.stateMachineData
 	s.step = SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
-		bc := subroutineExitContext{bargingInContext{ec.clone(updCtxInactive),
-			lastResult, false}, lastError}
+		bc := subroutineExitContext{bargingInContext{ec.clone(updCtxInactive), false},
+			lastResult, lastError}
 
 		su := bc.executeSubroutineExit(returnFn)
 		su.marker = ec.getMarker()

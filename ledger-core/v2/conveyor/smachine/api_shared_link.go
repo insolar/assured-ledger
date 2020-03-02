@@ -46,9 +46,8 @@ func (v SharedDataLink) getData() interface{} {
 		}
 		if data, ok := v.link.getMachine().localRegistry.Load(v.data); ok {
 			return data
-		} else {
-			return nil
 		}
+		return nil
 	}
 	return v.data
 }

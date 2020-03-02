@@ -292,6 +292,45 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 	return hasAsync
 }
 
+func (m *SlotMachine) runAsyncCallback(link SlotLink, worker DetachableSlotWorker,
+	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error,
+) bool {
+	if !m._canCallback(link) {
+		return true
+	}
+	if worker == nil {
+		if m.IsActive() {
+			step, _ := link.GetStepLink()
+			m.logInternal(step, "async detachment retry limit exceeded", nil)
+		}
+		return true
+	}
+
+	slot, isStarted, prevStepNo := link.tryStartWorking()
+	if !isStarted {
+		return false
+	}
+	var stateUpdate StateUpdate
+	func() {
+		defer func() {
+			stateUpdate = recoverSlotPanicAsUpdate(stateUpdate, "async callback panic", recover(), prevErr, AsyncCallArea)
+		}()
+		if callbackFn != nil {
+			stateUpdate = callbackFn(slot, worker, prevErr)
+		}
+	}()
+
+	if worker.NonDetachableCall(func(worker FixedSlotWorker) {
+		m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, durationNotApplicableNano)
+	}) {
+		m.syncQueue.ProcessDetachQueue(link, worker)
+	} else {
+		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, durationNotApplicableNano)
+	}
+
+	return true
+}
+
 func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error) bool {
 
@@ -300,40 +339,7 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 	}
 
 	return m.syncQueue.AddAsyncCallback(link, func(link SlotLink, worker DetachableSlotWorker) (isDone bool) {
-		if !m._canCallback(link) {
-			return true
-		}
-		if worker == nil {
-			if m.IsActive() {
-				step, _ := link.GetStepLink()
-				m.logInternal(step, "async detachment retry limit exceeded", nil)
-			}
-			return true
-		}
-
-		slot, isStarted, prevStepNo := link.tryStartWorking()
-		if !isStarted {
-			return false
-		}
-		var stateUpdate StateUpdate
-		func() {
-			defer func() {
-				stateUpdate = recoverSlotPanicAsUpdate(stateUpdate, "async callback panic", recover(), prevErr, AsyncCallArea)
-			}()
-			if callbackFn != nil {
-				stateUpdate = callbackFn(slot, worker, prevErr)
-			}
-		}()
-
-		if worker.NonDetachableCall(func(worker FixedSlotWorker) {
-			m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, durationNotApplicableNano)
-		}) {
-			m.syncQueue.ProcessDetachQueue(link, worker)
-		} else {
-			m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, durationNotApplicableNano)
-		}
-
-		return true
+		return m.runAsyncCallback(link, worker, callbackFn, prevErr)
 	})
 }
 

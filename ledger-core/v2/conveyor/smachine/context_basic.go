@@ -295,17 +295,17 @@ func (p *slotContext) UpdateDefaultStepLogger(updateFn StepLoggerUpdateFunc) {
 	p.s.setStepLoggerAfterInit(updateFn)
 }
 
-func (p *slotContext) BargeInWithParam(applyFn BargeInApplyFunc) BargeInParamFunc {
+func (p *slotContext) NewBargeInWithParam(applyFn BargeInApplyFunc) BargeInWithParam {
 	p.ensureAtLeast(updCtxInit)
 	return p.s.machine.createBargeIn(p.s.NewStepLink().AnyStep(), applyFn)
 }
 
-func (p *slotContext) BargeIn() BargeInBuilder {
+func (p *slotContext) NewBargeIn() BargeInBuilder {
 	p.ensureAtLeast(updCtxInit)
 	return &bargeInBuilder{p.clone(updCtxBargeIn), p, p.s.NewStepLink().AnyStep()}
 }
 
-func (p *slotContext) BargeInThisStepOnly() BargeInBuilder {
+func (p *slotContext) NewBargeInThisStepOnly() BargeInBuilder {
 	p.ensureAtLeast(updCtxExec)
 	return &bargeInBuilder{p.clone(updCtxBargeIn), p, p.s.NewStepLink()}
 }

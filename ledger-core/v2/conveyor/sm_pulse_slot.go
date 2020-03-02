@@ -62,7 +62,7 @@ type PulseSlotMachine struct {
 }
 
 func (p *PulseSlotMachine) SlotLink() smachine.SlotLink {
-	if p.selfLink.IsEmpty() {
+	if p.selfLink.IsZero() {
 		panic("illegal state")
 	}
 	return p.selfLink
@@ -73,7 +73,7 @@ func (p *PulseSlotMachine) SlotLink() smachine.SlotLink {
 func (p *PulseSlotMachine) activate(workerCtx context.Context,
 	addFn func(context.Context, smachine.StateMachine, smachine.CreateDefaultValues) smachine.SlotLink,
 ) {
-	if !p.selfLink.IsEmpty() {
+	if !p.selfLink.IsZero() {
 		panic("illegal state")
 	}
 	if p.pulseSlot.State() != Antique {
@@ -217,9 +217,7 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 }
 
 // Conveyor direct barge-in
-func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext) smachine.StateUpdate {
-	//out := ctx.EventParam().(PreparePulseChangeChannel)
-
+func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, out PreparePulseChangeChannel) smachine.StateUpdate {
 	// =================
 	// HERE - initiate state calculations
 	// =================

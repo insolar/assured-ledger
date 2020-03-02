@@ -6,9 +6,10 @@
 package smsync
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"math"
 	"sync"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )
 
 // Semaphore allows Acquire() call to pass through for a number of workers within the limit.

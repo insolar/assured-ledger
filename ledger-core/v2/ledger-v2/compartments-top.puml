@@ -1,0 +1,40 @@
+@startuml
+
+() "Population API\nPulseHistory API" as PopulationAPI
+() "Message Delivery API\nBroadcast Delivery API\nCascade Delivery API" as DeliveryAPI
+() "Operation API\n" as OperationAPI
+() "Traffic Throttle API\n" as TrafficAPI
+() ExternalCallAPI
+() NodeNetworkAPI
+() ServiceCallAPI
+() NodeJoinAPI
+() ConsensusProtocolAPI
+
+PopulationAPI -- [Network Compartment]
+OperationAPI -- [Network Compartment]
+DeliveryAPI -- [Network Compartment]
+[Network Compartment]--NodeNetworkAPI
+[Network Compartment]--NodeJoinAPI
+[Network Compartment]--ConsensusProtocolAPI
+
+[Application Compartment] ---> PopulationAPI: get pulse data\nand node lists
+OperationAPI -up--> [Application Compartment]: pulse changes
+OperationAPI <-- [Application Compartment]: node state
+DeliveryAPI <-up--> [Application Compartment]: send\nreceive
+ServiceCallAPI-[Application Compartment]
+
+[Runner Compartment (VN Role)] -- LogicRunnerAPI
+[Application Compartment] <-up-> LogicRunnerAPI: run contracts
+
+[Application Compartment]<-up->LedgerAPI : storage ops
+LedgerAPI-up-[Ledger Compartment (LMN Role)]
+DeliveryAPI<-up-[Ledger Compartment (LMN Role)]:replication\ndata flow
+
+[Border Compartment (VN Role)]->ServiceCallAPI: run\nBorder Contract
+ExternalCallAPI--[Border Compartment (VN Role)]
+
+LogicRunnerAPI<--[Border Compartment (VN Role)]: run verify part of\nBorder Contract
+TrafficAPI-[Network Compartment]
+[Border Compartment (VN Role)]--->TrafficAPI: get throttling level
+
+@enduml

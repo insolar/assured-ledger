@@ -50,7 +50,7 @@ func (p SlotLink) SlotID() SlotID {
 	return p.id
 }
 
-func (p SlotLink) IsEmpty() bool {
+func (p SlotLink) IsZero() bool {
 	return p.s == nil
 }
 
@@ -200,4 +200,24 @@ func (p StepLink) getIsValidBusyAndAtStep() (isValid, isBusy, atExactStep bool) 
 	}
 	id, step, isBusy := p.s._getState()
 	return p.id == id, isBusy, p.step == 0 || p.step == step
+}
+
+type WakeupLink struct {
+	link StepLink
+}
+
+func (p WakeupLink) SlotID() SlotID {
+	return p.link.SlotID()
+}
+
+func (p WakeupLink) SlotLink() SlotLink {
+	return p.link.SlotLink
+}
+
+func (p WakeupLink) IsZero() bool {
+	return p.link.IsZero()
+}
+
+func (p WakeupLink) IsValid() bool {
+	return p.link.IsAtStep()
 }

@@ -74,7 +74,7 @@ func (p *executionContext) newConditionalUpdate(updType stateUpdKind) conditiona
 
 func (p *executionContext) waitFor(link SlotLink, updMode stateUpdKind) StateConditionalBuilder {
 	p.ensure(updCtxExec)
-	if link.IsEmpty() {
+	if link.IsZero() {
 		panic("illegal value")
 		//		return &conditionalUpdate{marker: p.getMarker()}
 	}
@@ -132,6 +132,22 @@ func (p *executionContext) executeNextStep() (stateUpdate StateUpdate, sut State
 	return stateUpdate, sut, p.countAsyncCalls
 }
 
+func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {
+	p.ensure(updCtxExec)
+	nextStep := p.s.prepareSubroutineStart(ssm, exitFn, migrateFn)
+	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
+}
+
+func (p *executionContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
+	p.ensure(updCtxExec)
+	return b.callInline(p.s.machine, param, false, p.w)
+}
+
+func (p *executionContext) CallBargeIn(b BargeIn) bool {
+	p.ensure(updCtxExec)
+	return b.callInline(p.s.machine, p.w)
+}
+
 /* ========================================================================= */
 
 var _ ConditionalBuilder = &conditionalUpdate{}
@@ -187,7 +203,7 @@ func (c *conditionalUpdate) ThenRepeat() StateUpdate {
 }
 
 func (c *conditionalUpdate) then(slotStep SlotStep) StateUpdate {
-	if c.dependency.IsEmpty() {
+	if c.dependency.IsZero() {
 		if c.until == 0 {
 			return c.template.newStep(slotStep, c.kickOff)
 		}

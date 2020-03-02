@@ -140,6 +140,9 @@ type InOrderStepContext interface {
 	// Do NOT share a reference to a field of SM with ShareDataDirect flag to avoid accidental memory leak.
 	// It is recommended to use typed wrappers to access the data.
 	Share(data interface{}, flags ShareDataFlags) SharedDataLink
+	// Unshare invalidates the given link. Returns true when succeeded.
+	// Links created by another slot and links shared with ShareDataUnbound or ShareDataDirect can't be invalidated.
+	Unshare(SharedDataLink) bool
 
 	// Publish makes the data to be directly accessible via GetPublished().
 	// Data is unpublished when this SM is stopped.
@@ -168,29 +171,34 @@ type InOrderStepContext interface {
 	// Published aliases will be unpublished on terminations of SM.
 	// Returns false when key is in use.
 	PublishGlobalAlias(key interface{}) bool
+	// PublishGlobalAlias publishes this Slot and its barge-in globally under the given (key).
+	// Same as PublishGlobalAlias. (handler) can be nil.
+	PublishGlobalAliasAndBargeIn(key interface{}, handler BargeInHolder) bool
+
 	// UnpublishGlobalAlias unpublishes the given (key)
 	// Returns false when (key) is not published or is published by another slot.
 	UnpublishGlobalAlias(key interface{}) bool
-	// GetPublishedGlobalAlias reads SlotLink for the given alias (key).
+	// GetPublishedGlobalAliasAndBargeIn reads SlotLink for the given alias (key).
 	// When (key) is unknown, then zero/empty SlotLink is returned.
+	// Doesn't return handler provided by PublishGlobalAliasAndBargeIn as the handler is intended for external use only.
 	GetPublishedGlobalAlias(key interface{}) SlotLink
 
 	// Error stops SM by calling an error handler.
 	Error(error) StateUpdate
-	// Errorf stops SM by calling an error handler.
+	// deprecated
 	Errorf(msg string, a ...interface{}) StateUpdate
 	// Stop creates an update to stop the current SM.
 	Stop() StateUpdate
 
-	// BargeInWithParam creates a barge-in function that can be used to signal or interrupt SM from outside.
+	// NewBargeInWithParam creates a barge-in function that can be used to signal or interrupt SM from outside.
 	//
-	// Provided BargeInParamFunc sends an async signal to the SM and will be ignored when SM has stopped.
+	// Provided NewBargeInWithParam sends an async signal to the SM and will be ignored when SM has stopped.
 	// When the signal is received by SM the BargeInApplyFunc is invoked. BargeInApplyFunc is safe to access SM.
-	// BargeInParamFunc returns false when SM was stopped at the moment of the call.
-	BargeInWithParam(BargeInApplyFunc) BargeInParamFunc
+	// NewBargeInWithParam returns false when SM was stopped at the moment of the call.
+	NewBargeInWithParam(BargeInApplyFunc) BargeInWithParam
 
-	// BargeIn provides a builder for a simple barge-in.
-	BargeIn() BargeInBuilder
+	// NewBargeIn provides a builder for a simple barge-in.
+	NewBargeIn() BargeInBuilder
 }
 
 type ShareDataFlags uint32
@@ -218,9 +226,6 @@ type InitializationContext interface {
 
 type PostInitStepContext interface {
 	InOrderStepContext
-
-	// BargeInThisStepOnly provides a builder for a simple barge-in. The barge-in function will be ignored if the step has changed.
-	BargeInThisStepOnly() BargeInBuilder
 }
 
 type ExecutionContext interface {
@@ -228,6 +233,9 @@ type ExecutionContext interface {
 
 	StepLink() StepLink
 	GetPendingCallCount() int
+
+	// NewBargeInThisStepOnly provides a builder for a simple barge-in. The barge-in function will be ignored if the step has changed.
+	NewBargeInThisStepOnly() BargeInBuilder
 
 	// InitiateLongRun forces detachment of this slot from SlotMachine's worker to allow slow processing and/or multiple sync calls.
 	// WARNING! AVOID this method unless really needed.
@@ -267,6 +275,9 @@ type ExecutionContext interface {
 	ReplaceWith(StateMachine) StateUpdate
 
 	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
+
+	CallBargeInWithParam(b BargeInWithParam, param interface{}) bool
+	CallBargeIn(b BargeIn) bool
 
 	// UseShared applies the accessor produced by a SharedDataLink.
 	// SharedDataLink can be used across different SlotMachines.
@@ -355,21 +366,20 @@ type AsyncResultContext interface {
 	WakeUp()
 }
 
-type BargeInApplyFunc func(BargeInContext) StateUpdate
-type BargeInParamFunc func(interface{}) bool
-type BargeInFunc func() bool
+type BargeInApplyFunc func(interface{}) BargeInCallbackFunc
+type BargeInCallbackFunc func(ctx BargeInContext) StateUpdate
 
 type BargeInBuilder interface {
 	// WithJumpExt creates a BargeIn that will change SM's step and wake it up
-	WithJumpExt(SlotStep) BargeInFunc
+	WithJumpExt(SlotStep) BargeIn
 	// WithJump creates a BargeIn that will change SM's step and wake it up
-	WithJump(StateFunc) BargeInFunc
+	WithJump(StateFunc) BargeIn
 	// WithWakeUp creates a BargeIn that will wake up SM at its current step
-	WithWakeUp() BargeInFunc
+	WithWakeUp() BargeIn
 	// WithStop creates a BargeIn that will stop SM
-	WithStop() BargeInFunc
+	WithStop() BargeIn
 	// WithError creates a BargeIn that will stop SM with the given error
-	WithError(error) BargeInFunc
+	WithError(error) BargeIn
 }
 
 type interruptContext interface {
@@ -379,8 +389,6 @@ type interruptContext interface {
 	Log() Logger
 
 	AffectedStep() SlotStep
-
-	EventParam() interface{}
 
 	JumpExt(SlotStep) StateUpdate
 	Jump(StateFunc) StateUpdate
@@ -405,6 +413,8 @@ type BargeInContext interface {
 
 type SubroutineExitContext interface {
 	interruptContext
+
+	EventParam() interface{}
 
 	// GetError returns an error when subroutine was stopped by an error
 	GetError() error

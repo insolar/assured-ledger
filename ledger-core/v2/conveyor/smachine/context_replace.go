@@ -38,9 +38,3 @@ func (p *executionContext) ReplaceWith(sm StateMachine) StateUpdate {
 func (p *executionContext) prepareReplace(sm StateMachine, fn CreateFunc, defValues CreateDefaultValues) SlotStep {
 	return SlotStep{Transition: p.s.prepareReplace(fn, sm, defValues)}
 }
-
-func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {
-	p.ensure(updCtxExec)
-	nextStep := p.s.prepareSubroutineStart(ssm, exitFn, migrateFn)
-	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
-}
