@@ -7,17 +7,22 @@ package smachine
 
 import (
 	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var _ ConstructionContext = &constructionContext{}
 
 type constructionContext struct {
 	contextTemplate
-	s         *Slot
-	injects   map[string]interface{}
-	inherit   DependencyInheritanceMode
-	isTracing bool
-	tracerId  TracerId
+	s            *Slot
+	creator      *Slot
+	injects      map[string]interface{}
+	inherit      DependencyInheritanceMode
+	tracerId     TracerId
+	callbackFn   TerminationCallbackFunc
+	callbackLink SlotLink
+	isTracing    bool
 }
 
 func (p *constructionContext) SetDependencyInheritanceMode(mode DependencyInheritanceMode) {
@@ -61,9 +66,21 @@ func (p *constructionContext) SetParentLink(parent SlotLink) {
 	p.s.parent = parent
 }
 
-func (p *constructionContext) SetTerminationHandler(tf TerminationHandlerFunc) {
+func (p *constructionContext) SetTerminationCallback(parentCtx ExecutionContext, callbackFn TerminationCallbackFunc) {
 	p.ensure(updCtxConstruction)
-	p.s.defTerminate = tf
+	if callbackFn == nil {
+		if parentCtx != nil {
+			parentCtx.SlotLink() // to validate
+		}
+		p.callbackFn = nil
+		p.callbackLink = SlotLink{}
+		return
+	}
+	if ec, ok := parentCtx.(*executionContext); !ok || ec.s != p.creator {
+		panic(throw.IllegalValue())
+	}
+	p.callbackLink = parentCtx.SlotLink()
+	p.callbackFn = callbackFn
 }
 
 func (p *constructionContext) SetDefaultTerminationResult(v interface{}) {
@@ -99,7 +116,7 @@ type initializationContext struct {
 func (p *initializationContext) executeInitialization(fn InitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxInit)
 	defer func() {
-		p.discardAndUpdate("initialization", recover(), &stateUpdate)
+		stateUpdate = p.discardAndUpdate("initialization", recover(), stateUpdate, StateArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
@@ -123,7 +140,7 @@ func (p *migrationContext) SkipMultipleMigrations() {
 func (p *migrationContext) executeMigration(fn MigrateFunc) (stateUpdate StateUpdate, skipMultiple bool) {
 	p.setMode(updCtxMigrate)
 	defer func() {
-		p.discardAndUpdate("migration", recover(), &stateUpdate)
+		stateUpdate = p.discardAndUpdate("migration", recover(), stateUpdate, StateArea)
 	}()
 
 	su := p.ensureAndPrepare(p.s, fn(p))
@@ -137,7 +154,7 @@ var _ FailureContext = &failureContext{}
 type failureContext struct {
 	slotContext
 	isPanic    bool
-	isAsync    bool
+	area       SlotPanicArea
 	canRecover bool
 	err        error
 	result     interface{}
@@ -164,6 +181,11 @@ func (p *failureContext) IsPanic() bool {
 	return p.isPanic
 }
 
+func (p *failureContext) GetArea() SlotPanicArea {
+	p.ensure(updCtxFail)
+	return p.area
+}
+
 func (p *failureContext) CanRecover() bool {
 	p.ensure(updCtxFail)
 	return p.canRecover
@@ -177,7 +199,7 @@ func (p *failureContext) SetAction(action ErrorHandlerAction) {
 func (p *failureContext) executeFailure(fn ErrorHandlerFunc) (ok bool, result ErrorHandlerAction, err error) {
 	p.setMode(updCtxFail)
 	defer func() {
-		p.discardAndCapture("failure handler", recover(), &err)
+		p.discardAndCapture("failure handler", recover(), &err, ErrorHandlerArea)
 	}()
 	err = p.err // ensure it will be included on panic
 	fn(p)

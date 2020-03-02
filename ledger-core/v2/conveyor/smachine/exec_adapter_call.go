@@ -42,7 +42,7 @@ func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, de
 
 	result, err := func() (result AsyncResultFunc, err error) {
 		defer func() {
-			err = RecoverAsyncSlotPanicWithStack("async call", recover(), err)
+			err = RecoverSlotPanicWithStack("async call", recover(), err, AsyncCallArea)
 		}()
 		nestedCallFn := c.Callback.getNestedCallHandler(defaultNestedFn)
 		return delegate(c.CallFn, nestedCallFn, c.Callback.ChainedCancel())
@@ -65,7 +65,7 @@ func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, de
 func (c AdapterCall) delegateNotify(delegate AdapterCallDelegateFunc) error {
 	result, err := func() (result AsyncResultFunc, err error) {
 		defer func() {
-			err = RecoverAsyncSlotPanicWithStack("async notify", recover(), err)
+			err = RecoverSlotPanicWithStack("async notify", recover(), err, AsyncCallArea)
 		}()
 		return delegate(c.CallFn, nil, nil)
 	}()

@@ -63,8 +63,8 @@ func (sm *futureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.S
 }
 
 func (sm *futureEventSM) stepTerminate(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.SetDefaultTerminationResult(fmt.Errorf("incorrect future pulse number: pn=%v", sm.pn))
-	return sm.wrapEventSM.stepTerminateEvent(ctx)
+	return ctx.Error(fmt.Errorf("incorrect future pulse number: pn=%v", sm.pn))
+	//return sm.wrapEventSM.stepTerminateEvent(ctx)
 }
 
 func (sm *futureEventSM) IsConsecutive(_, _ smachine.StateFunc) (bool, *smachine.StepDeclaration) {

@@ -5,21 +5,21 @@
 
 package smachine
 
-var _ DetachableSlotWorker = migrateWorkerWrapper{}
+var _ DetachableSlotWorker = fixedWorkerWrapper{}
 
-type migrateWorkerWrapper struct {
+type fixedWorkerWrapper struct {
 	FixedSlotWorker
 }
 
-func (w migrateWorkerWrapper) NonDetachableCall(fn NonDetachableFunc) (wasExecuted bool) {
+func (w fixedWorkerWrapper) NonDetachableCall(fn NonDetachableFunc) (wasExecuted bool) {
 	fn(w)
 	return true
 }
 
-func (w migrateWorkerWrapper) NonDetachableOuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
+func (w fixedWorkerWrapper) NonDetachableOuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
 	return false
 }
 
-func (w migrateWorkerWrapper) TryDetach(flags LongRunFlags) {
+func (w fixedWorkerWrapper) TryDetach(flags LongRunFlags) {
 	panic("unsupported")
 }

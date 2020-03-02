@@ -8,6 +8,8 @@ package smachine
 import (
 	"errors"
 	"fmt"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 func newStateUpdateTemplate(contextType updCtxMode, marker ContextMarker, updKind stateUpdKind) StateUpdateTemplate {
@@ -29,18 +31,17 @@ func getStateUpdateType(stateUpdate StateUpdate) (StateUpdateType, bool) {
 	return _getStateUpdateType(stateUpdKind(stateUpdate.updKind))
 }
 
-func getStateUpdateTypeName(stateUpdate StateUpdate) (string, bool) {
-	switch sut, ok := _getStateUpdateType(stateUpdKind(stateUpdate.updKind)); ok {
-	case ok:
-		if len(sut.name) > 0 {
-			return sut.name, true
-		}
-		return fmt.Sprintf("noname(%d)", stateUpdate.updKind), true
-	case stateUpdate.IsZero():
-		return "zero", false
-	default:
-		return fmt.Sprintf("unknown(%d)", stateUpdate.updKind), false
+func getStateUpdateTypeAndName(stateUpdate StateUpdate) (StateUpdateType, string, bool) {
+	if stateUpdate.IsZero() {
+		return StateUpdateType{}, "zero", false
 	}
+	if sut, ok := _getStateUpdateType(stateUpdKind(stateUpdate.updKind)); ok {
+		if len(sut.name) > 0 {
+			return sut, sut.name, true
+		}
+		return sut, fmt.Sprintf("noname(%d)", stateUpdate.updKind), true
+	}
+	return StateUpdateType{}, fmt.Sprintf("unknown(%d)", stateUpdate.updKind), false
 }
 
 func typeOfStateUpdate(stateUpdate StateUpdate) StateUpdateType {
@@ -55,19 +56,25 @@ func newPanicStateUpdate(err error) StateUpdate {
 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdPanic]}.newError(err)
 }
 
-func recoverSlotPanicAsUpdate(update *StateUpdate, msg string, recovered interface{}, prev error) {
-	if recovered != nil {
-		*update = newPanicStateUpdate(RecoverSlotPanicWithStack(msg, recovered, prev))
-	} else if prev != nil {
-		*update = newPanicStateUpdate(prev)
+func newSubroutineAbortStateUpdate(step SlotStep) StateUpdate {
+	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdSubroutineAbort]}.newStepOnly(step)
+}
+
+func recoverSlotPanicAsUpdate(update StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) StateUpdate {
+	switch {
+	case recovered != nil:
+		return newPanicStateUpdate(RecoverSlotPanicWithStack(msg, recovered, prev, area))
+	case prev != nil:
+		return newPanicStateUpdate(prev)
 	}
+	return update
 }
 
 func getStateUpdateKind(stateUpdate StateUpdate) stateUpdKind {
 	return stateUpdKind(stateUpdate.updKind)
 }
 
-type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker) (isAvailable bool, err error)
+type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sut StateUpdateType) (isAvailable bool, err error)
 type SlotUpdatePrepareFunc func(slot *Slot, stateUpdate *StateUpdate)
 type SlotUpdateShortLoopFunc func(slot *Slot, stateUpdate StateUpdate, loopCount uint32) bool
 
@@ -82,11 +89,14 @@ type StateUpdateType struct {
 	/* Runs inside the Machine / non-detachable */
 	apply SlotUpdateFunc
 
-	filter    updCtxMode
-	params    stateUpdParam
 	varVerify func(interface{})
 
 	name string
+
+	filter             updCtxMode
+	params             stateUpdParam
+	stepDeclaration    *StepDeclaration
+	safeWithSubroutine bool
 }
 
 type StateUpdateTemplate struct {
@@ -109,6 +119,7 @@ const (
 	updCtxMachineCall
 	updCtxFail
 	updCtxBargeIn
+	updCtxSubrExit
 	updCtxAsyncCallback
 
 	updCtxConstruction
@@ -128,8 +139,6 @@ func (v StateUpdateType) verify(ctxType updCtxMode, allowInternal bool) {
 	switch {
 	case ctxType <= updCtxDiscarded:
 		panic(v.panicText(ctxType, "illegal value"))
-	case v.updKind == 0:
-		panic(v.panicText(ctxType, "unknown type"))
 	case v.apply == nil:
 		panic(v.panicText(ctxType, "not implemented"))
 
@@ -157,9 +166,6 @@ func (v StateUpdateType) getForPrepare(ctxType updCtxMode) StateUpdateType {
 }
 
 func (v StateUpdateType) get() StateUpdateType {
-	if v.updKind == 0 {
-		panic("unknown type")
-	}
 	if v.apply == nil {
 		panic("not implemented")
 	}
@@ -167,9 +173,6 @@ func (v StateUpdateType) get() StateUpdateType {
 }
 
 func (v StateUpdateType) canGet() bool {
-	if v.updKind == 0 {
-		return false
-	}
 	if v.apply == nil {
 		return false
 	}
@@ -200,7 +203,15 @@ func (v StateUpdateType) Apply(slot *Slot, stateUpdate StateUpdate, worker Fixed
 	if v.apply == nil {
 		return false, errors.New("not implemented")
 	}
-	return v.apply(slot, stateUpdate, worker)
+	return v.apply(slot, stateUpdate, worker, v)
+}
+
+func (v StateUpdateType) IsSubroutineSafe() bool {
+	return v.safeWithSubroutine
+}
+
+func (v StateUpdateType) GetStepDeclaration() *StepDeclaration {
+	return v.stepDeclaration
 }
 
 func (v StateUpdateTemplate) ensureTemplate(params stateUpdParam) {
@@ -210,7 +221,7 @@ func (v StateUpdateTemplate) ensureTemplate(params stateUpdParam) {
 	if v.t.params&params != params {
 		panic("illegal value")
 	}
-	if v.t.updKind == 0 {
+	if v.t.apply == nil {
 		panic("illegal kind")
 	}
 }
@@ -232,6 +243,18 @@ func (v StateUpdateTemplate) newStep(slotStep SlotStep, prepare StepPrepareFunc)
 		updKind: stateUpdBaseType(v.t.updKind),
 		step:    slotStep,
 		param1:  prepare,
+	}
+}
+
+func (v StateUpdateTemplate) newStepOnly(slotStep SlotStep) StateUpdate {
+	v.ensureTemplate(updParamStep)
+	if slotStep.Transition == nil {
+		panic(throw.IllegalValue())
+	}
+	return StateUpdate{
+		marker:  v.marker,
+		updKind: stateUpdBaseType(v.t.updKind),
+		step:    slotStep,
 	}
 }
 

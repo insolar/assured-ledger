@@ -9,11 +9,18 @@ import (
 	"context"
 	"sync/atomic"
 	"time"
+	"unsafe"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Slot struct {
-	idAndStep uint64       //atomic access
-	machine   *SlotMachine // set only once
+	idAndStep uint64 // atomic access
+
+	// machine can ONLY be accessed directly while is a part of active context / fixed worker
+	// if any doubt - use getMachine() instead
+	// atomic access, set on first use, unset only after SlotMachine termination
+	machine *SlotMachine
 
 	/* -----------------------------------
 	   Slot fields to support processing queues
@@ -33,49 +40,48 @@ type Slot struct {
 	slotData
 }
 
-type slotDeclarationData struct {
-	declaration StateMachineDeclaration
-
-	shadowMigrate   ShadowMigrateFunc
+// stateMachineData contains details about specific StateMachine instance
+type stateMachineData struct {
+	declaration     StateMachineHelper
+	shadowMigrate   ShadowMigrateFunc // runs for all subroutines
 	stepLogger      StepLogger
+	defTerminate    internalTerminationHandlerFunc
 	defMigrate      MigrateFunc
 	defErrorHandler ErrorHandlerFunc
-	defTerminate    TerminationHandlerFunc
-	defResult       interface{}
-
-	slotReplaceData
-}
-
-// transferred with Replace()
-type slotReplaceData struct {
-	parent SlotLink
-	ctx    context.Context
+	defFlags        StepFlags
 
 	// DO NOT modify content of this map
 	inheritable map[string]interface{}
 
-	defFlags StepFlags
+	stateStack *stackedStateMachineData
 }
 
-func (v slotReplaceData) takeOutForReplace() slotReplaceData {
-	return v
+type stackedStateMachineData struct {
+	stateMachineData
+	stackMigrate MigrateFunc
+	returnFn     SubroutineExitFunc
+	childMarker  subroutineMarker
+	hasMigrates  bool
 }
 
 type slotData struct {
-	slotDeclarationData
+	parent SlotLink
+	ctx    context.Context
 
-	slotFlags      slotFlags
-	lastWorkScan   uint8  // to check if a slot was executed in this cycle
-	asyncCallCount uint16 // pending calls, overflow panics
-	migrationCount uint32 // can be wrapped by overflow
-
-	lastTouchNano int64
+	stateMachineData
 
 	boost    *boostPermit
 	step     SlotStep
 	stepDecl *StepDeclaration
 
 	dependency SlotDependency
+	defResult  interface{}
+
+	lastTouchNano  int64
+	migrationCount uint32 // can be wrapped by overflow
+	asyncCallCount uint16 // pending calls, overflow panics
+	lastWorkScan   uint8  // to check if a slot was executed in this cycle
+	slotFlags      slotFlags
 }
 
 type slotFlags uint8
@@ -87,6 +93,7 @@ const (
 	slotHadAsync
 	slotIsTracing
 	slotIsBoosted
+	slotStepCantMigrate
 )
 
 type SlotDependency interface {
@@ -166,6 +173,14 @@ func (s *Slot) GetSlotID() SlotID {
 		panic("illegal state")
 	}
 	return SlotID(v)
+}
+
+func (s *Slot) getMachine() *SlotMachine {
+	return (*SlotMachine)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.machine))))
+}
+
+func (s *Slot) unsetMachine() bool {
+	return atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&s.machine)), nil) != nil
 }
 
 func (s *Slot) invalidateSlotId() {
@@ -308,10 +323,16 @@ func (s *Slot) stopWorking() (prevStepNo uint32) {
 }
 
 func (s *Slot) canMigrateWorking(prevStepNo uint32, migrateIsNeeded bool) bool {
-	if prevStepNo > 1 {
+	switch {
+	case s.slotFlags&slotStepCantMigrate != 0:
+		return false
+	case prevStepNo > 1:
 		return migrateIsNeeded
+	case prevStepNo != 1:
+		return false
+	default:
+		return atomic.LoadUint64(&s.idAndStep) >= stepIncrement*numberOfReservedSteps
 	}
-	return prevStepNo == 1 && atomic.LoadUint64(&s.idAndStep) >= stepIncrement*numberOfReservedSteps
 }
 
 func (s *Slot) tryStartMigrate() (isEmpty, isStarted bool, prevStepNo uint32) {
@@ -390,7 +411,7 @@ func (s *Slot) setNextStep(step SlotStep, stepDecl *StepDeclaration) {
 	}
 
 	if step.Flags&StepResetAllFlags == 0 {
-		step.Flags |= s.defFlags
+		step.Flags |= defFlags
 	} else {
 		step.Flags &^= StepResetAllFlags
 	}
@@ -407,11 +428,11 @@ func (s *Slot) removeHeadedQueue() *Slot {
 }
 
 func (s *Slot) ensureLocal(link SlotLink) {
-	if s.machine == nil {
-		panic("illegal state")
-	}
-	if s.machine != link.s.machine {
-		panic("illegal state")
+	switch m := s.getMachine(); {
+	case m == nil:
+		panic(throw.IllegalState())
+	case m != link.getMachine():
+		panic(throw.IllegalState())
 	}
 }
 
@@ -465,7 +486,7 @@ func stepToDecl(step SlotStep, stepDecl *StepDeclaration) StepDeclaration {
 
 func (s *Slot) newStepLoggerData(eventType StepLoggerEvent, link StepLink) StepLoggerData {
 	return StepLoggerData{
-		CycleNo:     s.machine.getScanCount(),
+		CycleNo:     s.getMachine().getScanCount(),
 		StepNo:      link,
 		CurrentStep: stepToDecl(s.step, s.stepDecl),
 		Declaration: s.declaration,
@@ -488,7 +509,7 @@ func (s *Slot) logInternal(link StepLink, updateType string, err error) {
 	}()
 }
 
-func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, wasAsync bool, err error) {
+func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, area SlotPanicArea, err error) {
 	flags := StepLoggerUpdateErrorDefault
 	switch action {
 	case ErrorHandlerMute:
@@ -499,7 +520,7 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 		flags = StepLoggerUpdateErrorRecoveryDenied
 	}
 
-	if wasAsync {
+	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
 	s._logStepUpdate(StepLoggerUpdate, 0, durationUnknownNano, durationUnknownNano, stateUpdate, flags, err)
@@ -545,20 +566,24 @@ func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, prevStepNo uint32, inac
 		ActivityNano:   activityNano,
 	}
 
+	sut, sutName, _ := getStateUpdateTypeAndName(stateUpdate)
+	updData.UpdateType = sutName
+
 	if nextStep := stateUpdate.step.Transition; nextStep != nil {
-		nextDecl := s.declaration.GetStepDeclaration(nextStep)
+		nextDecl := sut.GetStepDeclaration()
+		if nextDecl == nil {
+			nextDecl = s.declaration.GetStepDeclaration(nextStep)
+		}
 		updData.NextStep = stepToDecl(stateUpdate.step, nextDecl)
 	} else {
 		updData.NextStep.SlotStep = stateUpdate.step
 	}
 
-	updData.UpdateType, _ = getStateUpdateTypeName(stateUpdate)
-
 	s.stepLogger.LogUpdate(stepData, updData)
 }
 
 func (s *Slot) setStepLoggerAfterInit(updateFn StepLoggerUpdateFunc) {
-	newStepLogger := updateFn(s.stepLogger, s.machine.config.SlotMachineLogger.CreateStepLogger)
+	newStepLogger := updateFn(s.stepLogger, s.getMachine().config.SlotMachineLogger.CreateStepLogger)
 
 	if newStepLogger == nil && s.stepLogger != nil {
 		tracerId := s.stepLogger.GetTracerId()
@@ -581,7 +606,7 @@ func (s *Slot) getStepLogLevel() StepLogLevel {
 }
 
 func (s *Slot) getAdapterLogging() bool {
-	return s.getStepLogLevel() != StepLogLevelDefault || s.machine.getAdapterLogging()
+	return s.getStepLogLevel() != StepLogLevelDefault || s.getMachine().getAdapterLogging()
 }
 
 func (s *Slot) isTracing() bool {
@@ -627,4 +652,35 @@ func (s *Slot) touch(touchAt int64) time.Duration {
 		return durationUnknownNano
 	}
 	return inactivityNano
+}
+
+func (s *Slot) runShadowMigrate(migrationDelta uint32) {
+	if s.shadowMigrate != nil {
+		s.shadowMigrate(s.migrationCount, migrationDelta)
+	}
+
+	for ms := s.stateStack; ms != nil && ms.hasMigrates; ms = ms.stateStack {
+		if ms.shadowMigrate != nil {
+			ms.shadowMigrate(s.migrationCount, migrationDelta)
+		}
+	}
+}
+
+func (s *Slot) _addTerminationCallback(link SlotLink, fn TerminationCallbackFunc) {
+	if fn == nil || !link.IsValid() {
+		return
+	}
+	prevTermFn := s.defTerminate
+	s.defTerminate = func(data TerminationData, worker FixedSlotWorker) {
+		if link.IsValid() {
+			if m := link.getActiveMachine(); m != nil {
+				resultFn := fn(data.Result, data.Error)
+				m.queueAsyncResultCallback(link.GetAnyStepLink(), 0, nil, resultFn, nil, true)
+			}
+		}
+
+		if prevTermFn != nil {
+			prevTermFn(data, worker)
+		}
+	}
 }

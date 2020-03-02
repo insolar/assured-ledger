@@ -101,22 +101,34 @@ func (c *AdapterCallback) callback(isCancel bool, resultFn AsyncResultFunc, err 
 		}
 	}
 
-	c.caller.s.machine.queueAsyncCallback(c.caller.SlotLink, func(slot *Slot, worker DetachableSlotWorker, err error) StateUpdate {
-		slot.decAsyncCount()
+	c.caller.s.getMachine().queueAsyncResultCallback(c.caller, c.flags, c.cancel, resultFn, err, false)
+}
 
-		wakeupAllowed := c.flags&WakeUpBoundToStep == 0 || c.caller.IsNearStep(stepBondTolerance)
+func (m *SlotMachine) queueAsyncResultCallback(callerLink StepLink, flags AsyncCallFlags, cancel *synckit.ChainedCancel,
+	resultFn AsyncResultFunc, err error, ignoreAsyncCount bool,
+) bool {
+	if m == nil {
+		return false
+	}
+
+	return m.queueAsyncCallback(callerLink.SlotLink, func(slot *Slot, worker DetachableSlotWorker, err error) StateUpdate {
+		if !ignoreAsyncCount {
+			slot.decAsyncCount()
+		}
+
+		wakeupAllowed := flags&WakeUpBoundToStep == 0 || callerLink.IsNearStep(stepBondTolerance)
 		wakeup := false
 		switch {
 		case err != nil:
 			return StateUpdate{} // result will be replaced by queueAsyncCallback()
 
-		case resultFn == nil /* cancelled by adapter */ || c.cancel.IsCancelled():
-			wakeup = c.flags&WakeUpOnCancel != 0
+		case resultFn == nil /* cancelled by adapter */ || cancel.IsCancelled():
+			wakeup = flags&WakeUpOnCancel != 0
 
 		default:
 			rc := asyncResultContext{s: slot}
 			wakeupResult := rc.executeResult(resultFn)
-			wakeup = wakeupResult || c.flags&WakeUpOnResult != 0
+			wakeup = wakeupResult || flags&WakeUpOnResult != 0
 		}
 
 		if wakeup && wakeupAllowed {

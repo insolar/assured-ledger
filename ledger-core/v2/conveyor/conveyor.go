@@ -317,7 +317,7 @@ func (p *PulseConveyor) sendSignal(fn smachine.MachineCallFunc) error {
 	result := make(chan error, 1)
 	p.slotMachine.ScheduleCall(func(ctx smachine.MachineCallContext) {
 		defer func() {
-			result <- smachine.RecoverSlotPanicWithStack("signal", recover(), nil)
+			result <- smachine.RecoverSlotPanicWithStack("signal", recover(), nil, 0)
 			close(result)
 		}()
 		fn(ctx)

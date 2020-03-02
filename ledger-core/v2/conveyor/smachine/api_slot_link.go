@@ -43,10 +43,7 @@ func (p SlotLink) String() string {
 }
 
 func (p SlotLink) MachineId() string {
-	if p.s == nil {
-		(*SlotMachine)(nil).GetMachineId()
-	}
-	return p.s.machine.GetMachineId()
+	return p.getMachine().GetMachineId()
 }
 
 func (p SlotLink) SlotID() SlotID {
@@ -79,6 +76,13 @@ func (p SlotLink) GetStepLink() (stepLink StepLink, isValid bool) {
 	return StepLink{p, 0}, false
 }
 
+func (p SlotLink) GetAnyStepLink() StepLink {
+	if p.s == nil {
+		return StepLink{}
+	}
+	return StepLink{p, 0}
+}
+
 func (p SlotLink) isValidAndBusy() bool {
 	if p.s == nil {
 		return false
@@ -105,12 +109,19 @@ func (p SlotLink) tryStartWorking() (s *Slot, isStarted bool, prevStepNo uint32)
 }
 
 func (p SlotLink) isMachine(m *SlotMachine) bool {
-	return p.s != nil && p.s.machine == m
+	return m != nil && m == p.getMachine()
 }
 
 func (p SlotLink) getActiveMachine() *SlotMachine {
-	if p.s != nil && p.s.machine.IsActive() {
-		return p.s.machine
+	if m := p.getMachine(); m != nil && m.IsActive() {
+		return m
+	}
+	return nil
+}
+
+func (p SlotLink) getMachine() *SlotMachine {
+	if p.s != nil {
+		return p.s.getMachine()
 	}
 	return nil
 }

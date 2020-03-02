@@ -79,17 +79,17 @@ func (p *contextTemplate) setDiscarded() {
 	p.mode = updCtxDiscarded
 }
 
-func (p *contextTemplate) discardAndCapture(msg string, recovered interface{}, err *error) {
+func (p *contextTemplate) discardAndCapture(msg string, recovered interface{}, err *error, area SlotPanicArea) {
 	p.mode = updCtxDiscarded
 	if recovered == nil {
 		return
 	}
-	*err = RecoverSlotPanic(msg, recovered, *err)
+	*err = RecoverSlotPanic(msg, recovered, *err, area)
 }
 
-func (p *contextTemplate) discardAndUpdate(msg string, recovered interface{}, update *StateUpdate) {
+func (p *contextTemplate) discardAndUpdate(msg string, recovered interface{}, update StateUpdate, area SlotPanicArea) StateUpdate {
 	p.mode = updCtxDiscarded
-	recoverSlotPanicAsUpdate(update, msg, recovered, nil)
+	return recoverSlotPanicAsUpdate(update, msg, recovered, nil, area)
 }
 
 /* ========================================================================= */
@@ -181,43 +181,6 @@ func (p *slotContext) Error(err error) StateUpdate {
 
 func (p *slotContext) Errorf(msg string, a ...interface{}) StateUpdate {
 	return p.Error(fmt.Errorf(msg, a...))
-}
-
-func (p *slotContext) _prepareReplacementData() prepareSlotValue {
-	return prepareSlotValue{
-		slotReplaceData: p.s.slotReplaceData.takeOutForReplace(),
-		isReplacement:   true,
-		tracerId:        p.s.getTracerId(),
-	}
-}
-
-func (p *slotContext) Replace(fn CreateFunc) StateUpdate {
-	tmpl := p.template(stateUpdReplace) // ensures state of this context
-
-	def := prepareReplaceData{fn: fn,
-		def: p._prepareReplacementData(),
-	}
-	return tmpl.newVar(def)
-}
-
-func (p *slotContext) ReplaceExt(fn CreateFunc, defValues CreateDefaultValues) StateUpdate {
-	tmpl := p.template(stateUpdReplace) // ensures state of this context
-
-	def := prepareReplaceData{fn: fn,
-		def: p._prepareReplacementData(),
-	}
-	mergeDefaultValues(&def.def, defValues)
-
-	return tmpl.newVar(def)
-}
-
-func (p *slotContext) ReplaceWith(sm StateMachine) StateUpdate {
-	tmpl := p.template(stateUpdReplaceWith) // ensures state of this context
-
-	def := prepareReplaceData{sm: sm,
-		def: p._prepareReplacementData(),
-	}
-	return tmpl.newVar(def)
 }
 
 func (p *slotContext) Repeat(limit int) StateUpdate {

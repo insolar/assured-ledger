@@ -65,7 +65,7 @@ type StepLoggerData struct {
 	CycleNo     uint32
 	StepNo      StepLink
 	CurrentStep StepDeclaration
-	Declaration StateMachineDeclaration
+	Declaration StateMachineHelper
 	EventType   StepLoggerEvent
 	Error       error
 	Flags       StepLoggerFlags

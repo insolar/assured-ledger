@@ -12,12 +12,36 @@ import (
 
 var _ error = SlotPanicError{}
 
+type SlotPanicArea uint8
+
+const (
+	_ SlotPanicArea = iota
+	InternalArea
+	ErrorHandlerArea
+	StateArea
+	SubroutineArea
+	BargeInArea
+	AsyncCallArea
+)
+
+func (v SlotPanicArea) IsDetached() bool {
+	return v >= BargeInArea
+}
+
+func (v SlotPanicArea) CanRecoverByHandler() bool {
+	return v.IsDetached()
+}
+
+func (v SlotPanicArea) CanRecoverBySubroutine() bool {
+	return v >= ErrorHandlerArea
+}
+
 type SlotPanicError struct {
 	Msg       string
 	Recovered interface{}
 	Prev      error
 	Stack     []byte
-	IsAsync   bool
+	Area      SlotPanicArea
 }
 
 func (e SlotPanicError) Error() string {
@@ -35,23 +59,16 @@ func (e SlotPanicError) String() string {
 	return fmt.Sprintf("%s: %v", e.Msg, e.Recovered)
 }
 
-func RecoverSlotPanic(msg string, recovered interface{}, prev error) error {
+func RecoverSlotPanic(msg string, recovered interface{}, prev error, area SlotPanicArea) error {
 	if recovered == nil {
 		return prev
 	}
-	return SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev}
+	return SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev, Area: area}
 }
 
-func RecoverSlotPanicWithStack(msg string, recovered interface{}, prev error) error {
+func RecoverSlotPanicWithStack(msg string, recovered interface{}, prev error, area SlotPanicArea) error {
 	if recovered == nil {
 		return prev
 	}
-	return SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev, Stack: debug.Stack()}
-}
-
-func RecoverAsyncSlotPanicWithStack(msg string, recovered interface{}, prev error) error {
-	if recovered == nil {
-		return prev
-	}
-	return SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev, Stack: debug.Stack(), IsAsync: true}
+	return SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev, Area: area, Stack: debug.Stack()}
 }

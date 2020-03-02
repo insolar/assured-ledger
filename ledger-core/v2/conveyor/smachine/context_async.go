@@ -50,8 +50,8 @@ type bargingInContext struct {
 	atOriginal bool
 }
 
-func (p *bargingInContext) BargeInParam() interface{} {
-	p.ensure(updCtxBargeIn)
+func (p *bargingInContext) EventParam() interface{} {
+	p.ensureAtLeast(updCtxBargeIn)
 	return p.param
 }
 
@@ -68,7 +68,7 @@ func (p *bargingInContext) Log() Logger {
 func (p *bargingInContext) executeBargeIn(fn BargeInApplyFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxBargeIn)
 	defer func() {
-		p.discardAndUpdate("barge in", recover(), &stateUpdate)
+		stateUpdate = p.discardAndUpdate("barge in", recover(), stateUpdate, BargeInArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
@@ -77,6 +77,27 @@ func (p *bargingInContext) executeBargeIn(fn BargeInApplyFunc) (stateUpdate Stat
 func (p *bargingInContext) executeBargeInNow(fn BargeInApplyFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxBargeIn)
 	defer p.setDiscarded()
+
+	return p.ensureAndPrepare(p.s, fn(p))
+}
+
+/* ========================================================================= */
+
+type subroutineExitContext struct {
+	bargingInContext
+	err error
+}
+
+func (p *subroutineExitContext) GetError() error {
+	p.ensureAtLeast(updCtxSubrExit)
+	return p.err
+}
+
+func (p *subroutineExitContext) executeSubroutineExit(fn SubroutineExitFunc) (stateUpdate StateUpdate) {
+	p.setMode(updCtxSubrExit)
+	defer func() {
+		stateUpdate = p.discardAndUpdate("subroutine exit", recover(), stateUpdate, StateArea)
+	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))
 }

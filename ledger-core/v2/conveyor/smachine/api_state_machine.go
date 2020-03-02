@@ -13,39 +13,47 @@ import (
 )
 
 type StateMachine interface {
-	// Returns a meta-type / declaration of a SM.
+	// GetStateMachineDeclaration returns a meta-type / declaration of a SM.
 	// Must be non-nil.
 	GetStateMachineDeclaration() StateMachineDeclaration
 }
 
 type StateMachineDeclaration interface {
-	// Initialization code that SM doesn't need to know.
+	StateMachineHelper
+	// GetInitStateFor an initialization function for the given SM.
+	// Is called once per SM after InjectDependencies().
+	GetInitStateFor(StateMachine) InitFunc
+}
+
+type StateMachineHelper interface {
+	// InjectDependencies runs initialization code that SM doesn't need to know.
 	// Is called once per SM right after GetStateMachineDeclaration().
 	// Dependencies injected through DependencyInjector and implementing ShadowMigrator will be invoked during migration.
 	InjectDependencies(StateMachine, SlotLink, *injector.DependencyInjector)
 
-	// Provides per-SM logger. Zero implementation must return (nil, false).
+	// GetStepLogger provides per-SM logger. Zero implementation must return (nil, false).
 	// Is called once per SM after InjectDependencies().
 	// When result is (_, false) then StepLoggerFactory will be used.
 	// When result is (nil, true) then any logging will be disabled.
 	GetStepLogger(context.Context, StateMachine, TracerId, StepLoggerFactoryFunc) (StepLogger, bool)
 
-	// Returns an initialization function for the given SM.
-	// Is called once per SM after InjectDependencies().
-	GetInitStateFor(StateMachine) InitFunc
-
-	// Returns a shadow migration handler for the given stateMachine, that will be invoked on every migration. SM has no control over it.
+	// GetShadowMigrateFor returns a shadow migration handler for the given stateMachine, that will be invoked on every migration. SM has no control over it.
 	// Is called once per SM after InjectDependencies().
 	// See ShadowMigrator
 	GetShadowMigrateFor(StateMachine) ShadowMigrateFunc
 
-	// Returns a StepDeclaration for the given step. Return nil when implementation is not available.
+	// GetStepDeclaration returns a StepDeclaration for the given step. Return nil when implementation is not available.
 	GetStepDeclaration(StateFunc) *StepDeclaration
 
-	// This function is only invoked when GetStepDeclaration() is not available for the current step.
+	// IsConsecutive is only invoked when GetStepDeclaration() is not available for the current step.
 	// WARNING! DO NOT EVER return "true" here without CLEAR understanding of internal mechanics.
 	// Returning "true" blindly will LIKELY lead to infinite loops.
 	IsConsecutive(cur, next StateFunc) (bool, *StepDeclaration)
+}
+
+type SubroutineStateMachine interface {
+	StateMachine
+	GetSubroutineInitState() InitFunc
 }
 
 type stepDeclExt struct {
@@ -121,16 +129,17 @@ func (s *StateMachineDeclTemplate) GetStepLogger(context.Context, StateMachine, 
 	return nil, false
 }
 
-type TerminationHandlerFunc func(context.Context, TerminationData)
+type TerminationHandlerFunc func(TerminationData)
+
+// FixedSlotWorker can be nil
+type internalTerminationHandlerFunc func(TerminationData, FixedSlotWorker)
 
 type TerminationData struct {
-	Slot   StepLink
-	Parent SlotLink
-	Result interface{}
-	Error  error
-
-	// ===============
-	worker FixedSlotWorker
+	Slot    StepLink
+	Parent  SlotLink
+	Context context.Context
+	Result  interface{}
+	Error   error
 }
 
 // See mergeDefaultValues() and prepareNewSlotWithDefaults()
@@ -138,8 +147,14 @@ type CreateDefaultValues struct {
 	Context                context.Context
 	Parent                 SlotLink
 	OverriddenDependencies map[string]interface{}
-	TerminationHandler     TerminationHandlerFunc
-	TracerId               TracerId
+
+	// TerminationHandler provides a special termination handler that will be invoked AFTER termination of SM.
+	// This handler is invoked with data from GetDefaultTerminationResult() and error (if any).
+	// This handler is not directly accessible to SM.
+	// WARNING! This handler is UNSAFE to access another SM.
+	TerminationHandler TerminationHandlerFunc
+	TerminationResult  interface{}
+	TracerId           TracerId
 }
 
 func (p *CreateDefaultValues) PutOverride(id string, v interface{}) {

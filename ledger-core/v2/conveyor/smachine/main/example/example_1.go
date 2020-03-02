@@ -156,6 +156,34 @@ func (s *StateMachine1) State4(ctx smachine.ExecutionContext) smachine.StateUpda
 }
 
 func (s *StateMachine1) State5(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	id := int(ctx.SlotLink().SlotID())
+
+	if id&2 == 0 {
+		subroutineSM := &StateMachine3{count: id}
+		return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+			param := ctx.EventParam()
+			direct := subroutineSM.count
+			fmt.Printf("return: %d %v '%v'\n", ctx.SlotLink().SlotID(), direct, param)
+			return ctx.Jump(s.State6)
+		})
+	}
+
+	ctx.NewChild(func(ctx2 smachine.ConstructionContext) smachine.StateMachine {
+		subroutineSM := &StateMachine3{count: id}
+		ctx2.SetTerminationCallback(ctx, func(param interface{}, err error) smachine.AsyncResultFunc {
+			direct := subroutineSM.count
+			return func(ctx smachine.AsyncResultContext) {
+				fmt.Printf("return: %d %v '%v'\n", ctx.SlotLink().SlotID(), direct, param)
+				ctx.WakeUp()
+			}
+		})
+		return subroutineSM
+	})
+
+	return ctx.Sleep().ThenJump(s.State6)
+}
+
+func (s *StateMachine1) State6(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	fmt.Printf("stop: %d %v\n", ctx.SlotLink().SlotID(), time.Now())
 	return ctx.Stop()
 }
