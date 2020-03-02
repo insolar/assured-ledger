@@ -7,7 +7,6 @@ package example
 
 import (
 	"fmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 

@@ -140,7 +140,7 @@ func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn 
 
 func (p *executionContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
 	p.ensure(updCtxExec)
-	return b.callInline(p.s.machine, param, false, p.w)
+	return b.callInline(p.s.machine, param, p.w)
 }
 
 func (p *executionContext) CallBargeIn(b BargeIn) bool {
