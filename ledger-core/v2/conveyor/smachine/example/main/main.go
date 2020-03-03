@@ -48,7 +48,7 @@ func main() {
 		sm.AddNew(context.Background(), &example.PlayerSM{}, smachine.CreateDefaultValues{})
 	}
 
-	/*** Run the SlotMachine (ans all SMs) ***/
+	/*** Run the SlotMachine (and all SMs) ***/
 
 	workerFactory := sworker.NewAttachableSimpleSlotWorker()
 	neverSignal := synckit.NewNeverSignal()
@@ -64,17 +64,24 @@ func main() {
 		})
 		switch {
 		case repeatNow:
+			// there are active SMs, so we can start next cycle immediately
 			continue
 		case !nextPollTime.IsZero():
+			// there are only sleeping SMs or waiting for the specific time
+			//
+			// here it do it simplistically as we also have to look for the (wakeupSignal)
+			// as it can be triggered by async result from adapters etc
 			time.Sleep(time.Until(nextPollTime))
 		case !sm.IsActive():
+			// here we don't really need it as there is no use of SlotMachine.Stop()
 			return
 		case sm.OccupiedSlotCount() < 2:
+			// one player can't play, so we do a hard stop
 			return
 		default:
+			// there are only SMs with WaitAny()
+			// we have to wait for something external to happen
 			wakeupSignal.Wait()
-			//runtime.KeepAlive(wakeupSignal)
-			//time.Sleep(3 * time.Second)
 		}
 	}
 }
