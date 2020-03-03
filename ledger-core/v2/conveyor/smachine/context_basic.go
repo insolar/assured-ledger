@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math"
 	"unsafe"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type contextTemplate struct {
@@ -346,6 +348,8 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 	p.ensureAtLeast(updCtxInit)
 
 	switch {
+	case link.IsZero():
+		panic(throw.IllegalValue())
 	case p.s.isPriority():
 		flags |= SyncPriorityHigh
 	case p.s.isBoosted():
