@@ -8,36 +8,35 @@ package smachine
 import "context"
 
 type bargeInBuilder struct {
-	c      slotContext
 	parent *slotContext
 	link   StepLink
 }
 
 func (b bargeInBuilder) with(stateUpdate StateUpdate) BargeIn {
 	b.parent.ensureValid()
-	defer b.c.setDiscarded()
-	return b.c.s.machine.createLightBargeIn(b.link,
-		b.c.ensureAndPrepare(b.c.s, stateUpdate))
+
+	su := b.parent.ensureAndPrepare(b.parent.s, stateUpdate)
+	return b.parent.s.machine.createLightBargeIn(b.link, su)
 }
 
 func (b bargeInBuilder) WithError(err error) BargeIn {
-	return b.with(b.c.Error(err))
+	return b.with(b.parent.Error(err))
 }
 
 func (b bargeInBuilder) WithStop() BargeIn {
-	return b.with(b.c.Stop())
+	return b.with(b.parent.Stop())
 }
 
 func (b bargeInBuilder) WithWakeUp() BargeIn {
-	return b.with(b.c.WakeUp())
+	return b.with(b.parent.WakeUp())
 }
 
 func (b bargeInBuilder) WithJumpExt(step SlotStep) BargeIn {
-	return b.with(b.c.JumpExt(step))
+	return b.with(b.parent.JumpExt(step))
 }
 
 func (b bargeInBuilder) WithJump(fn StateFunc) BargeIn {
-	return b.with(b.c.Jump(fn))
+	return b.with(b.parent.Jump(fn))
 }
 
 /* ========================================================================= */

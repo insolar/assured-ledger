@@ -302,12 +302,12 @@ func (p *slotContext) NewBargeInWithParam(applyFn BargeInApplyFunc) BargeInWithP
 
 func (p *slotContext) NewBargeIn() BargeInBuilder {
 	p.ensureAtLeast(updCtxInit)
-	return &bargeInBuilder{p.clone(updCtxBargeIn), p, p.s.NewStepLink().AnyStep()}
+	return &bargeInBuilder{p, p.s.NewStepLink().AnyStep()}
 }
 
 func (p *slotContext) NewBargeInThisStepOnly() BargeInBuilder {
 	p.ensureAtLeast(updCtxExec)
-	return &bargeInBuilder{p.clone(updCtxBargeIn), p, p.s.NewStepLink()}
+	return &bargeInBuilder{p, p.s.NewStepLink()}
 }
 
 func (p *slotContext) Check(link SyncLink) BoolDecision {

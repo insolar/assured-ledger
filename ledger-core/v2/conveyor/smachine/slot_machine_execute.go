@@ -93,6 +93,8 @@ func (m *SlotMachine) ScanOnce(scanMode ScanMode, worker AttachedSlotWorker) (re
 		currentScanNo = m.incScanCount()
 
 		m.hotWaitOnly = true
+		m.scanWakeUpAt = time.Time{}
+
 		m.nonPriorityCount = 0
 		m.nonBoostedCount = 0
 		m.workingSlots.AppendAll(&m.prioritySlots)
@@ -129,7 +131,6 @@ func (m *SlotMachine) beforeScan(scanTime time.Time) {
 		m.machineStartedAt = scanTime
 	}
 	m.scanStartedAt = scanTime
-	m.scanWakeUpAt = time.Time{}
 }
 
 func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
