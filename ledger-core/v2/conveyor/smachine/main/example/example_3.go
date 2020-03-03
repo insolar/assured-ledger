@@ -22,7 +22,7 @@ func (StateMachine3) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc
 
 /* -------- Instance ------------- */
 
-func (s *StateMachine3) GetSubroutineInitState() smachine.InitFunc {
+func (s *StateMachine3) GetSubroutineInitState(smachine.SubroutineStartContext) smachine.InitFunc {
 	return s.Init
 }
 

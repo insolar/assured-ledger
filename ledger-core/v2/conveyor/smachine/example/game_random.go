@@ -62,7 +62,8 @@ func (sd *sharedGameRandom) getResult() (GameResult, bool) {
 	return GameResult{}, sd.done
 }
 
-func (g *GameRandom) GetSubroutineInitState() smachine.InitFunc {
+func (g *GameRandom) GetSubroutineInitState(ctx smachine.SubroutineStartContext) smachine.InitFunc {
+	ctx.SetSubroutineCleanupMode(smachine.SubroutineCleanupAliasesAndShares)
 	return g.stepSetup
 }
 
@@ -99,7 +100,6 @@ func (g *GameRandom) stepGetShared(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (g *GameRandom) stepDone(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.Unshare(g.sharedData)
 	return ctx.Stop()
 }
 
