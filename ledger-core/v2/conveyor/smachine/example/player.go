@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -27,6 +28,8 @@ type PlayerSM struct {
 
 	adapter *GameChooseAdapter
 }
+
+var PlayRoomLimiter smachine.SyncLink = smsync.NewConditionalBool(true, "unlimited rooms").SyncLink()
 
 /**** Methods of the State Machine Declaration ****/
 
@@ -61,7 +64,7 @@ func (PlayerSM) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
 // e.g. publish shared data or acquire a sync object.
 func (p *PlayerSM) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 
-	p.gamesToBePlayed = 1 + rand.Intn(16)
+	p.gamesToBePlayed = 1 + rand.Intn(2)
 	// Make this player available from outside, e.g. for player rank table.
 	// ctx.PublishGlobalAlias(ctx.SlotLink().SlotID())
 
@@ -138,6 +141,9 @@ func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpd
 			if pd.gameFactory == nil {
 				return ctx.Sleep().ThenRepeat()
 			}
+			if ctx.Acquire(PlayRoomLimiter).IsNotPassed() {
+				return ctx.Sleep().ThenRepeat()
+			}
 			return ctx.Jump(p.stepStartTheGame)
 		})
 	})
@@ -145,7 +151,6 @@ func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpd
 
 func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var gameSM GameStateMachine
-
 	if ctx.UseShared(p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
 		if pp.gameFactory != nil {
 			playerIndex := -1
@@ -179,6 +184,8 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 }
 
 func (p *PlayerSM) stepNextGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	ctx.ReleaseAll()
+
 	if p.gamesToBePlayed <= 0 {
 		return ctx.Stop()
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/example"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
@@ -38,7 +39,12 @@ func main() {
 
 	/*** Add SMs ***/
 
-	for i := 0; i < 2; i++ {
+	const numberOfPlayers = 5
+	const numberOfRooms = 1
+
+	example.PlayRoomLimiter = smsync.NewFixedSemaphore(numberOfRooms, "rooms")
+
+	for i := 0; i < numberOfPlayers; i++ {
 		sm.AddNew(context.Background(), &example.PlayerSM{}, smachine.CreateDefaultValues{})
 	}
 
@@ -46,10 +52,6 @@ func main() {
 
 	workerFactory := sworker.NewAttachableSimpleSlotWorker()
 	neverSignal := synckit.NewNeverSignal()
-
-	defer func() {
-		sm.OccupiedSlotCount()
-	}()
 
 	for {
 		var (
