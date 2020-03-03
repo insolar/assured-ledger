@@ -13,8 +13,8 @@ import (
 )
 
 type SharedPairData struct {
-	players [2]smachine.SlotLink
-	game    GameFactoryFunc
+	players     [2]smachine.BargeIn
+	gameFactory GameFactoryFunc
 }
 
 type SharedPairDataLink struct {

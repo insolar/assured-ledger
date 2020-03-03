@@ -20,25 +20,36 @@ import (
 func main() {
 	const scanCountLimit = 1e4
 
+	/*** Initialize SlotMachine ***/
 	signal := synckit.NewVersionedSignal()
 	sm := smachine.NewSlotMachine(smachine.SlotMachineConfig{
 		SlotPageSize:         100,
-		PollingPeriod:        10 * time.Millisecond,
+		PollingPeriod:        100 * time.Millisecond,
 		PollingTruncate:      1 * time.Microsecond,
 		BoostNewSlotDuration: 10 * time.Millisecond,
 		ScanCountLimit:       scanCountLimit,
+		LogAdapterCalls:      true,
+		SlotMachineLogger:    example.MachineLogger{},
 	}, signal.NextBroadcast, signal.NextBroadcast, nil)
 
-	for i := 0; i < 1e4; i++ {
+	/*** Add injectables ***/
+
+	sm.AddDependency(example.NewGameAdapter(context.Background(), example.NewGameChooseService()))
+
+	/*** Add SMs ***/
+
+	for i := 0; i < 2; i++ {
 		sm.AddNew(context.Background(), &example.PlayerSM{}, smachine.CreateDefaultValues{})
 	}
 
-	//for i := 0; i < 1; i++ {
-	//	sm.AddNew(context.Background(), &example.StateMachine1{}, smachine.CreateDefaultValues{})
-	//}
+	/*** Run the SlotMachine (ans all SMs) ***/
 
 	workerFactory := sworker.NewAttachableSimpleSlotWorker()
 	neverSignal := synckit.NewNeverSignal()
+
+	defer func() {
+		sm.OccupiedSlotCount()
+	}()
 
 	for {
 		var (
@@ -54,6 +65,10 @@ func main() {
 			continue
 		case !nextPollTime.IsZero():
 			time.Sleep(time.Until(nextPollTime))
+		case !sm.IsActive():
+			return
+		case sm.OccupiedSlotCount() < 2:
+			return
 		default:
 			wakeupSignal.Wait()
 			//runtime.KeepAlive(wakeupSignal)

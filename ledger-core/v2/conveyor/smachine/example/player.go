@@ -8,9 +8,12 @@
 package example
 
 import (
+	"math/rand"
 	"reflect"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -18,8 +21,11 @@ import (
 // PlayerSM looks for a 2nd player, then chooses a game (strategy pattern) and plays the game.
 type PlayerSM struct {
 	smachine.StateMachineDeclTemplate
-	pair    SharedPairDataLink
-	adapter GameChooseAdapter
+	gamesToBePlayed int
+
+	pair SharedPairDataLink
+
+	adapter *GameChooseAdapter
 }
 
 /**** Methods of the State Machine Declaration ****/
@@ -33,10 +39,16 @@ func (p *PlayerSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration
 	return p
 }
 
+func (PlayerSM) InjectDependencies(sm smachine.StateMachine, link smachine.SlotLink, dj *injector.DependencyInjector) {
+	dj.MustInject(&sm.(*PlayerSM).adapter)
+}
+
 // GetInitStateFor is a method of SM declaration that provides an init step for the given SM
 // This method is invoked after injections and can rely on fields of SM.
 // Nil returned by GetInitStateFor will cause an error for a caller.
 func (PlayerSM) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+
+	// Return the step of (sm) to start from.
 	return sm.(*PlayerSM).stepInit
 }
 
@@ -49,8 +61,9 @@ func (PlayerSM) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
 // e.g. publish shared data or acquire a sync object.
 func (p *PlayerSM) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 
+	p.gamesToBePlayed = 1 + rand.Intn(16)
 	// Make this player available from outside, e.g. for player rank table.
-	ctx.PublishGlobalAlias(ctx.SlotLink().SlotID())
+	// ctx.PublishGlobalAlias(ctx.SlotLink().SlotID())
 
 	return ctx.Jump(p.stepFindPair)
 }
@@ -64,51 +77,117 @@ var sharedPlayerPairType = reflect.TypeOf((*SharedPairData)(nil))
 // When there is no player without a pair, this step will publish this player as "freePlayer" and will wait for another player to join.
 func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
+	hasCollision := false
 	// GetPublishedLink checks if there is something is registered under the given key
 	if sd := ctx.GetPublishedLink(freePlayer); sd.IsOfType(sharedPlayerPairType) {
 		p.pair.sharedData = sd
 		// and uses it to create a pair
-		sharedAccessFn := p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
+		if ctx.UseShared(p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
 			switch {
 			case pp.players[0].IsZero():
 				panic(throw.Impossible())
 			case !pp.players[1].IsZero():
-				panic(throw.Impossible())
+				hasCollision = true
+				return false
 			default:
-				pp.players[1] = ctx.SlotLink()
+				pp.players[1] = ctx.NewBargeIn().WithWakeUp()
 			}
-			return false
-		})
-		if ctx.UseShared(sharedAccessFn).IsAvailable() {
-			return ctx.Jump(p.stepChooseGame)
+			return true // wake up the first player
+		})).IsAvailable() {
+			if hasCollision {
+				return ctx.WaitAny().ThenRepeat()
+			}
+			return ctx.Jump(p.stepStartTheGame)
 		}
 	}
 
-	pd := SharedPairData{players: [2]smachine.SlotLink{ctx.SlotLink()}}
-	p.pair.sharedData = ctx.Share(&pd, smachine.ShareDataWakesUpAfterUse)
+	pd := &SharedPairData{}
+	pd.players[0] = ctx.NewBargeIn().WithWakeUp()
+	p.pair.sharedData = ctx.Share(pd, smachine.ShareDataWakesUpAfterUse)
 	if !ctx.Publish(freePlayer, p.pair.sharedData) {
-		return ctx.Repeat(1)
+		return ctx.Yield().ThenRepeat()
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if pd.game == nil {
+		if pd.players[1].IsZero() {
 			return ctx.Sleep().ThenRepeat()
 		}
-		return ctx.Jump(p.stepStartTheGame)
+		ctx.Unpublish(freePlayer) // allow the next pair to connect
+
+		ctx.Log().Trace(struct {
+			string
+			p0, p1 smachine.SlotID
+		}{"pair",
+			pd.players[0].StepLink().SlotID(),
+			pd.players[1].StepLink().SlotID(),
+		})
+
+		p.adapter.PrepareAsync(ctx, func(svc GameChooseService) smachine.AsyncResultFunc {
+			gameFactory := svc.ChooseGame()
+			if gameFactory == nil {
+				panic(throw.IllegalValue())
+			}
+
+			return func(ctx smachine.AsyncResultContext) {
+				pd.gameFactory = gameFactory
+				ctx.WakeUp()
+			}
+		}).Start()
+
+		return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+			if pd.gameFactory == nil {
+				return ctx.Sleep().ThenRepeat()
+			}
+			return ctx.Jump(p.stepStartTheGame)
+		})
 	})
 }
 
-func (p *PlayerSM) stepChooseGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	p.adapter.PrepareAsync(ctx, func(svc GameChooseService) smachine.AsyncResultFunc {
-		game := svc.ChooseGame()
-		return func(ctx smachine.AsyncResultContext) {
+func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var gameSM GameStateMachine
 
-			ctx.WakeUp()
+	if ctx.UseShared(p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
+		if pp.gameFactory != nil {
+			playerIndex := -1
+			thisLink := ctx.SlotLink()
+			for i := range pp.players {
+				if pp.players[i].StepLink().SlotLink == thisLink {
+					playerIndex = i
+					break
+				}
+			}
+			if playerIndex < 0 {
+				panic(throw.IllegalState())
+			}
+			gameSM = pp.gameFactory(GamePlayers{pp.players[:], playerIndex})
+			if gameSM == nil {
+				panic(throw.IllegalState())
+			}
 		}
-	}).Start()
+		return false
+	})).GetDecision() == smachine.Impossible {
+		panic(throw.IllegalState())
+	}
+	if gameSM == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
 
-	return ctx.Sleep().ThenRepeat()
+	return ctx.CallSubroutine(gameSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		gameSM.GetGameResult()
+		return ctx.Jump(p.stepNextGame)
+	})
 }
 
-func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *PlayerSM) stepNextGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.gamesToBePlayed <= 0 {
+		return ctx.Stop()
+	}
+	p.gamesToBePlayed--
+	ctx.Unshare(p.pair.sharedData) // it is safe to try to un-share data from another slot - it will be ignored
+	p.pair = SharedPairDataLink{}
+
+	sleepUntil := time.Now().Add(time.Millisecond * time.Duration(rand.Intn(500)))
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		return ctx.WaitAnyUntil(sleepUntil).ThenRepeatOrJump(p.stepFindPair)
+	})
 }
