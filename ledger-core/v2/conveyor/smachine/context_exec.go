@@ -108,7 +108,7 @@ func (p *executionContext) WaitShared(link SharedDataLink) StateConditionalBuild
 func (p *executionContext) UseShared(a SharedDataAccessor) SharedAccessReport {
 	p.ensure(updCtxExec)
 
-	switch a.accessLocal(p.s) {
+	switch a.accessByOwner(p.s) {
 	case Passed:
 		return SharedSlotAvailableAlways
 	case Impossible:

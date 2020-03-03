@@ -81,7 +81,10 @@ func (g *GameRandom) stepSetup(ctx smachine.InitializationContext) smachine.Stat
 	}
 
 	sd := &sharedGameRandom{}
-	sdl := ctx.Share(sd, 0)
+
+	// ShareDataDirect protects (sd) from invalidation by stop of the subroutine.
+	// So (sd) will remain available while the slot is available and as long as relevant SharedDataLink is retained.
+	sdl := ctx.Share(sd, smachine.ShareDataDirect)
 	if !ctx.Publish(g.gameKey, sdl) {
 		panic(throw.IllegalState())
 	}
@@ -126,13 +129,13 @@ func (g *GameRandom) waitForResult(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (g *GameRandom) accessShared(ctx smachine.ExecutionContext, fn func(*sharedGameRandom) bool) (result bool) {
-	if ctx.UseShared(g.sharedData.PrepareAccess(func(i interface{}) (wakeup bool) {
+	if g.sharedData.PrepareAccess(func(i interface{}) (wakeup bool) {
 		if sd, ok := i.(*sharedGameRandom); ok {
 			result = fn(sd)
 			return false
 		}
 		panic(throw.IllegalState())
-	})).GetDecision().IsValid() {
+	}).TryUse(ctx).GetDecision().IsValid() {
 		return
 	}
 	panic(throw.IllegalState())

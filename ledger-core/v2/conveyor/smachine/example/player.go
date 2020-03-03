@@ -98,7 +98,7 @@ func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpd
 		// now lets try to access the shared data
 		// for this, an access function must be connected to the SharedDataLink with PrepareAccess()
 		// then UseShared is invoked, and it returns information if the function was applied to the data under SharedDataLink
-		if ctx.UseShared(p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
+		if p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
 
 			// this closure will be called only when it is safe access to the shared data
 			// inside this closure both SM and the shared data are safely accessible
@@ -116,7 +116,7 @@ func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpd
 			// by returning true here we can wake up the owner of data
 			// hence it is the first player in the pair
 			return true
-		})).IsAvailable() {
+		}).TryUse(ctx).IsAvailable() {
 			// access to the shared data call has succeeded
 			if hasCollision {
 				// lets try on next cycle
@@ -228,7 +228,7 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 	var gameSM GameStateMachine
 
 	// get access to the shared state for a pair of players this SM is a part of
-	if ctx.UseShared(p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
+	if p.pair.PrepareAccess(func(pp *SharedPairData) (wakeup bool) {
 		if pp.gameFactory != nil {
 			playerIndex := -1
 			thisLink := ctx.SlotLink()
@@ -252,7 +252,7 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 			}
 		}
 		return false
-	})).GetDecision() == smachine.Impossible {
+	}).TryUse(ctx).GetDecision() == smachine.Impossible {
 		panic(throw.IllegalState())
 	}
 

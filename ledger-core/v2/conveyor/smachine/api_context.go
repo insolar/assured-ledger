@@ -216,8 +216,10 @@ const (
 
 	// ShareDataDirect marks the shared data as immediately accessible.
 	// WARNING! Must NOT keep references to SM or its fields.
-	// Data is bound to SM and will invalidated after stop.
+	// Data is bound to SM and will be invalidated after stop.
 	// But keeping such SharedDataLink will retain the data in memory even when invalidated.
+	// Use of ShareDataDirect can be used by a subroutine SM to keep data accessible after termination of subroutine SM.
+	// ShareDataDirect is overridden by ShareDataUnbound.
 	ShareDataDirect
 )
 

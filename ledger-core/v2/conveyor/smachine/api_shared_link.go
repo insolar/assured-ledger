@@ -35,7 +35,7 @@ func (v SharedDataLink) IsUnbound() bool {
 	return v.link.s == nil
 }
 
-func (v SharedDataLink) isLocal(local *Slot) bool {
+func (v SharedDataLink) isOwnedBy(local *Slot) bool {
 	return v.link.s == nil || v.link.s == local
 }
 
@@ -118,11 +118,11 @@ func (v SharedDataAccessor) TryUse(ctx ExecutionContext) SharedAccessReport {
 	return ctx.UseShared(v)
 }
 
-func (v SharedDataAccessor) accessLocal(local *Slot) Decision {
+func (v SharedDataAccessor) accessByOwner(local *Slot) Decision {
 	if v.accessFn == nil || v.link == nil || v.link.IsZero() {
 		return Impossible
 	}
-	if !v.link.isLocal(local) {
+	if !v.link.isOwnedBy(local) {
 		return NotPassed
 	}
 
