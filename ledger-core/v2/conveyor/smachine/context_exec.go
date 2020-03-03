@@ -138,16 +138,6 @@ func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn 
 	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
 }
 
-func (p *executionContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
-	p.ensure(updCtxExec)
-	return b.callInline(p.s.machine, param, p.w)
-}
-
-func (p *executionContext) CallBargeIn(b BargeIn) bool {
-	p.ensure(updCtxExec)
-	return b.callInline(p.s.machine, p.w)
-}
-
 /* ========================================================================= */
 
 var _ ConditionalBuilder = &conditionalUpdate{}

@@ -247,7 +247,7 @@ func (p *slotContext) _newChild(fn CreateFunc, runInit bool, defValues CreateDef
 }
 
 func (p *slotContext) Log() Logger {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureAtLeast(updCtxSubrStart)
 	return p._newLogger()
 }
 
@@ -310,6 +310,16 @@ func (p *slotContext) NewBargeIn() BargeInBuilder {
 func (p *slotContext) NewBargeInThisStepOnly() BargeInBuilder {
 	p.ensureAtLeast(updCtxExec)
 	return &bargeInBuilder{p, p.s.NewStepLink()}
+}
+
+func (p *slotContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
+	p.ensureAny2(updCtxInit, updCtxExec)
+	return b.callInline(p.s.machine, param, p.w)
+}
+
+func (p *slotContext) CallBargeIn(b BargeIn) bool {
+	p.ensureAny2(updCtxInit, updCtxExec)
+	return b.callInline(p.s.machine, p.w)
 }
 
 func (p *slotContext) Check(link SyncLink) BoolDecision {

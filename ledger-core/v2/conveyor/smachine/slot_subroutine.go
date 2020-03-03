@@ -120,8 +120,10 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 		if migrateFn == nil {
 			migrateFn = prev.defMigrate
 		}
+
 		stackedSdd := &stackedStateMachineData{prev, migrateFn,
 			exitFn, slot.newSubroutineMarker(),
+			nil, 0,
 			prev.stateStack != nil && prev.stateStack.hasMigrates,
 		}
 		if stackedSdd.stackMigrate != nil {
@@ -150,6 +152,8 @@ func (s *Slot) prepareSubroutineExit(lastError error) {
 	returnFn := prev.returnFn
 
 	s.stateMachineData = prev.stateMachineData
+	s.restoreSubroutineAliases(prev.copyAliases, prev.cleanupMode)
+
 	s.step = SlotStep{Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
 		bc := subroutineExitContext{bargingInContext{ec.clone(updCtxInactive), false},

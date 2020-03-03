@@ -76,6 +76,28 @@ func (p *bargingInContext) executeBargeInDirect(fn BargeInCallbackFunc) (stateUp
 
 /* ========================================================================= */
 
+var _ SubroutineStartContext = &subroutineStartContext{}
+
+type subroutineStartContext struct {
+	slotContext
+	cleanupMode SubroutineCleanupMode
+}
+
+func (p *subroutineStartContext) SetSubroutineCleanupMode(mode SubroutineCleanupMode) {
+	p.ensure(updCtxSubrStart)
+	p.cleanupMode = mode
+}
+
+func (p *subroutineStartContext) executeSubroutineStart(fn SubroutineStartFunc) InitFunc {
+	p.setMode(updCtxSubrStart)
+	defer func() {
+		p.setDiscarded()
+	}()
+	return fn(p)
+}
+
+/* ========================================================================= */
+
 type subroutineExitContext struct {
 	bargingInContext
 	param interface{}

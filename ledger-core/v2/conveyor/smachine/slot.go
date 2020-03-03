@@ -61,7 +61,10 @@ type stackedStateMachineData struct {
 	stackMigrate MigrateFunc
 	returnFn     SubroutineExitFunc
 	childMarker  subroutineMarker
-	hasMigrates  bool
+	copyAliases  *slotAliases
+
+	cleanupMode SubroutineCleanupMode
+	hasMigrates bool
 }
 
 type slotData struct {

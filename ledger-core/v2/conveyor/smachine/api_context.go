@@ -17,6 +17,7 @@ type MigrateFunc func(ctx MigrationContext) StateUpdate
 type AsyncResultFunc func(ctx AsyncResultContext)
 type ErrorHandlerFunc func(ctx FailureContext)
 type SubroutineExitFunc func(ctx SubroutineExitContext) StateUpdate
+type SubroutineStartFunc func(ctx SubroutineStartContext) InitFunc
 
 type ErrorHandlerAction uint8
 
@@ -54,7 +55,7 @@ const (
 
 	// InheritAllDependencies makes injection to use resolved dependencies from creator (NB! not from parent)
 	// And all injected dependencies will be inherited by children.
-	InheritAllDependencies DependencyInheritanceMode = 3
+	InheritAllDependencies DependencyInheritanceMode = 3 // uses copyAllDependencies
 
 	// DiscardResolvedDependencies can be combined with other modes to prevent inheritance by immediate children.
 	// This does NOT affect dependencies provided by SlotMachine.
@@ -220,8 +221,19 @@ const (
 	ShareDataDirect
 )
 
+type SubroutineCleanupMode uint8
+
+const (
+	SubroutineCleanupNone             SubroutineCleanupMode = 0
+	SubroutineCleanupAliases          SubroutineCleanupMode = 1
+	SubroutineCleanupAliasesAndShares SubroutineCleanupMode = 3
+)
+
 type InitializationContext interface {
 	InOrderStepContext
+
+	CallBargeInWithParam(b BargeInWithParam, param interface{}) bool
+	CallBargeIn(b BargeIn) bool
 }
 
 type PostInitStepContext interface {
@@ -274,10 +286,10 @@ type ExecutionContext interface {
 	// See Replace()
 	ReplaceWith(StateMachine) StateUpdate
 
-	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
-
 	CallBargeInWithParam(b BargeInWithParam, param interface{}) bool
 	CallBargeIn(b BargeIn) bool
+
+	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
 
 	// UseShared applies the accessor produced by a SharedDataLink.
 	// SharedDataLink can be used across different SlotMachines.
@@ -418,6 +430,15 @@ type SubroutineExitContext interface {
 
 	// GetError returns an error when subroutine was stopped by an error
 	GetError() error
+}
+
+type SubroutineStartContext interface {
+	BasicContext
+
+	// Log returns a slot logger for this context. It is only valid while this context is valid.
+	Log() Logger
+
+	SetSubroutineCleanupMode(SubroutineCleanupMode)
 }
 
 type FailureContext interface {

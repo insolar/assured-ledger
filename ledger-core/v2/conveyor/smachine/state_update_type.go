@@ -118,11 +118,13 @@ const (
 	updCtxInternal             // special mode - updates can't be accessed via template() call, but getForXXX() allows any valid context
 	updCtxMachineCall
 	updCtxFail
+
 	updCtxBargeIn
 	updCtxSubrExit
 	updCtxAsyncCallback
 
 	updCtxConstruction
+	updCtxSubrStart
 	updCtxInit
 	updCtxExec
 	updCtxMigrate

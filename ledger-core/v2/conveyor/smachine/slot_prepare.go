@@ -97,13 +97,22 @@ func (s *Slot) prepareSubroutineInit(sm SubroutineStateMachine, tracerId TracerI
 	s.inheritable, localInjects = m.prepareInjects(s.NewLink(), sm, InheritResolvedDependencies,
 		true, prev.inheritable, nil)
 
-	initFn := sm.GetSubroutineInitState()
+	// Step Logger
+	m.prepareStepLogger(s, sm, tracerId)
+
+	sc := subroutineStartContext{slotContext{s: s}, 0}
+	initFn := sc.executeSubroutineStart(sm.GetSubroutineInitState)
+
 	if initFn == nil {
 		panic(fmt.Errorf("illegal state - initialization is missing: %v", sm))
 	}
 
-	// Step Logger
-	m.prepareStepLogger(s, sm, tracerId)
+	var aliases *slotAliases
+	if prev.stateStack != nil {
+		aliases = prev.stateStack.copyAliases
+	}
+	prev.cleanupMode = sc.cleanupMode
+	prev.copyAliases = s.storeSubroutineAliases(aliases, sc.cleanupMode)
 
 	// shadow migrate for injected dependencies
 	s.shadowMigrate = buildShadowMigrator(localInjects, s.declaration.GetShadowMigrateFor(sm))
