@@ -121,13 +121,16 @@ type DetachableSimpleSlotWorker struct {
 	*SimpleSlotWorker
 }
 
-func (p *DetachableSimpleSlotWorker) TryDetach(flags smachine.LongRunFlags) {
+func (p *DetachableSimpleSlotWorker) TryDetach(smachine.LongRunFlags) {
 	panic("unsupported")
 }
 
-func (p *DetachableSimpleSlotWorker) NonDetachableOuterCall(_ *smachine.SlotMachine, fn smachine.NonDetachableFunc) (wasExecuted bool) {
-	//fn(&p.nsw)
+func (p *DetachableSimpleSlotWorker) NonDetachableOuterCall(*smachine.SlotMachine, smachine.NonDetachableFunc) (wasExecuted bool) {
 	return false
+}
+
+func (p *DetachableSimpleSlotWorker) DetachableOuterCall(*smachine.SlotMachine, smachine.DetachableFunc) (wasExecuted, wasDetached bool) {
+	return false, false
 }
 
 func (p *DetachableSimpleSlotWorker) NonDetachableCall(fn smachine.NonDetachableFunc) (wasExecuted bool) {

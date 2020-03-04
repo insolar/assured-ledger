@@ -25,6 +25,7 @@ import (
 // - shared data + publish to connect players into pairs
 // - sync object to handle limited capacity of rooms (PlayRoomLimiter), a pair of players require a room.
 // - async adapter call to get a game to play
+// - barge-in to wake up players
 // - subroutine SM to actually play the game as PlayerSM's code knows no games
 
 type PlayerSM struct {

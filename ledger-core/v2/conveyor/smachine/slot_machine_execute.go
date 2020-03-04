@@ -293,7 +293,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 	return hasAsync
 }
 
-func (m *SlotMachine) runAsyncCallback(link SlotLink, worker DetachableSlotWorker,
+func (m *SlotMachine) applyAsyncCallback(link SlotLink, worker DetachableSlotWorker,
 	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error,
 ) bool {
 	if !m._canCallback(link) {
@@ -340,7 +340,7 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 	}
 
 	return m.syncQueue.AddAsyncCallback(link, func(link SlotLink, worker DetachableSlotWorker) (isDone bool) {
-		return m.runAsyncCallback(link, worker, callbackFn, prevErr)
+		return m.applyAsyncCallback(link, worker, callbackFn, prevErr)
 	})
 }
 

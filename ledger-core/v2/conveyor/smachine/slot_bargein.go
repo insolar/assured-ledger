@@ -172,7 +172,7 @@ func (m *SlotMachine) executeBargeIn(link StepLink, worker DetachableSlotWorker,
 		switch tm := link.getActiveMachine(); {
 		case tm == m:
 			done := false
-			m.runAsyncCallback(link.SlotLink, worker,
+			m.applyAsyncCallback(link.SlotLink, worker,
 				func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
 					done = true
 					return executeFn(slot, worker)
@@ -184,8 +184,8 @@ func (m *SlotMachine) executeBargeIn(link StepLink, worker DetachableSlotWorker,
 			return false
 		default:
 			done := false
-			worker.NonDetachableOuterCall(tm, func(worker FixedSlotWorker) {
-				tm.runAsyncCallback(link.SlotLink, fixedWorkerWrapper{worker},
+			worker.DetachableOuterCall(tm, func(worker DetachableSlotWorker) {
+				tm.applyAsyncCallback(link.SlotLink, worker,
 					func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
 						done = true
 						return executeFn(slot, worker)
