@@ -919,46 +919,72 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 
 func (m *SlotMachine) useSlotAsShared(link *SharedDataLink, accessFn SharedDataFunc, worker DetachableSlotWorker) SharedAccessReport {
 	isValid, isBusy := link.link.getIsValidAndBusy()
-
 	if !isValid {
 		return SharedSlotAbsent
 	}
-
-	if !link.link.isMachine(m) { // isRemote
-		panic("unimplemented") // TODO PLAT-28 access to non-local slot machine
-
-		//if isBusy {
-		//	return SharedSlotRemoteBusy
-		//}
-	}
-
-	if isBusy {
-		return SharedSlotLocalBusy
-	}
-	data := link.getData()
-	if data == nil {
+	tm, data := link.getDataAndMachine()
+	switch {
+	case data == nil:
 		return SharedSlotAbsent
+	case tm == nil:
+		return SharedSlotAbsent
+	case isBusy:
+		if m == tm {
+			return SharedSlotLocalBusy
+		}
+		return SharedSlotRemoteBusy
+	case m == tm:
+		if m._useSlotAsShared(link.link, link.flags, data, accessFn, worker) {
+			return SharedSlotLocalAvailable
+		}
+		return SharedSlotLocalBusy
 	}
 
-	slot, isStarted, _ := link.link.tryStartWorking()
+	ok := false
+	// first we try to access gracefully the slot of another machine
+	switch wasExecuted, wasDetached := worker.DetachableOuterCall(tm, func(tw DetachableSlotWorker) {
+		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, tw)
+	}); {
+	case wasExecuted:
+		//
+	case wasDetached:
+		return SharedSlotRemoteBusy
+	default:
+		// as worker can't help us, then we do it in a hard way
+		// this may be inefficient under high parallelism, but this isn't our case
+		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, nil)
+	}
+	if ok {
+		return SharedSlotRemoteAvailable
+	}
+	return SharedSlotRemoteBusy
+}
+
+func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data interface{}, accessFn SharedDataFunc, worker DetachableSlotWorker) bool {
+	slot, isStarted, _ := link.tryStartWorking()
 	if !isStarted {
-		return SharedSlotLocalBusy
+		return false
 	}
 
 	defer slot.stopWorking()
 	wakeUp := accessFn(data)
 
-	m.syncQueue.ProcessSlotCallbacksByDetachable(link.link, worker)
-	if !wakeUp && link.flags&ShareDataWakesUpAfterUse == 0 || slot.slotFlags&slotWokenUp != 0 {
-		return SharedSlotLocalAvailable
+	if worker != nil {
+		m.syncQueue.ProcessSlotCallbacksByDetachable(link, worker)
+	}
+
+	if !wakeUp && flags&ShareDataWakesUpAfterUse == 0 || slot.slotFlags&slotWokenUp != 0 {
+		return true
 	}
 	slot.slotFlags |= slotWokenUp
 
-	if !worker.NonDetachableCall(slot.activateSlot) {
-		stepLink := slot.NewStepLink() // remember the current step to avoid "back-fire" activation
-		m.syncQueue.AddAsyncUpdate(stepLink.SlotLink, stepLink.activateSlotStepWithSlotLink)
+	if worker != nil && worker.NonDetachableCall(slot.activateSlot) {
+		return true
 	}
-	return SharedSlotLocalAvailable
+
+	stepLink := slot.NewStepLink() // remember the current step to avoid "back-fire" activation
+	m.syncQueue.AddAsyncUpdate(stepLink.SlotLink, stepLink.activateSlotStepWithSlotLink)
+	return true
 }
 
 func (m *SlotMachine) stopSlotWorking(slot *Slot, prevStepNo uint32, worker FixedSlotWorker) {

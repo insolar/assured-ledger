@@ -40,16 +40,24 @@ func (v SharedDataLink) isOwnedBy(local *Slot) bool {
 }
 
 func (v SharedDataLink) getData() interface{} {
+	_, d := v.getDataAndMachine()
+	return d
+}
+
+func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
+	m := v.link.getActiveMachine()
 	if _, ok := v.data.(*uniqueAliasKey); ok {
 		if v.IsUnbound() || v.flags&ShareDataDirect != 0 { // shouldn't happen
 			panic("impossible")
 		}
-		if data, ok := v.link.getMachine().localRegistry.Load(v.data); ok {
-			return data
+		if m != nil {
+			if data, ok := m.localRegistry.Load(v.data); ok {
+				return m, data
+			}
 		}
-		return nil
+		return nil, nil
 	}
-	return v.data
+	return m, v.data
 }
 
 // Returns true when the underlying data is of the given type
@@ -130,7 +138,6 @@ func (v SharedDataAccessor) accessByOwner(local *Slot) Decision {
 	if data == nil {
 		return Impossible
 	}
-
 	v.accessFn(data)
 	return Passed
 }
