@@ -226,8 +226,11 @@ const (
 type SubroutineCleanupMode uint8
 
 const (
-	SubroutineCleanupNone             SubroutineCleanupMode = 0
-	SubroutineCleanupAliases          SubroutineCleanupMode = 1
+	// All shares and publishes made by this SM will be handed over to the calling SM
+	SubroutineCleanupNone SubroutineCleanupMode = 0
+	// Only shares made by this SM will be handed over to the calling SM
+	SubroutineCleanupAliases SubroutineCleanupMode = 1
+	// Neither shares nor publishes made by this SM will be handed over to the calling SM
 	SubroutineCleanupAliasesAndShares SubroutineCleanupMode = 3
 )
 

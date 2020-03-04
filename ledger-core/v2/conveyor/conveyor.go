@@ -332,7 +332,7 @@ func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error 
 			panic("illegal state")
 		}
 		p.pdm.setPreparingPulse(out)
-		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink(), func(ctx smachine.BargeInContext) smachine.StateUpdate {
+		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			return p.presentMachine.preparePulseChange(ctx, out)
 		}) {
 			//p.pdm.unsetPreparingPulse()
@@ -349,7 +349,7 @@ func (p *PulseConveyor) CancelPulseChange() error {
 			panic("illegal state")
 		}
 		p.pdm.unsetPreparingPulse()
-		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink(), p.presentMachine.cancelPulseChange) {
+		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), p.presentMachine.cancelPulseChange) {
 			panic("present slot is busy")
 		}
 	})

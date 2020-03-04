@@ -137,7 +137,7 @@ func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpd
 	pd.players[0] = ctx.NewBargeIn().WithWakeUp()
 
 	// share the data
-	p.pair.sharedData = ctx.Share(pd, smachine.ShareDataWakesUpAfterUse)
+	p.pair.sharedData = ctx.Share(pd, 0)
 	// and publish it to make accessible to other SMs
 	if !ctx.Publish(freePlayer, p.pair.sharedData) {
 		// collision has happen - lets repeat after other SMs

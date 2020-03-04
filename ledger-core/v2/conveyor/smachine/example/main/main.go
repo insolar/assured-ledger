@@ -26,8 +26,8 @@ func main() {
 	sm := smachine.NewSlotMachine(smachine.SlotMachineConfig{
 		SlotPageSize:         100,
 		PollingPeriod:        100 * time.Millisecond,
-		PollingTruncate:      1 * time.Microsecond,
-		BoostNewSlotDuration: 10 * time.Millisecond,
+		PollingTruncate:      1 * time.Millisecond,
+		BoostNewSlotDuration: 0,
 		ScanCountLimit:       scanCountLimit,
 		LogAdapterCalls:      true,
 		SlotMachineLogger:    example.MachineLogger{},
