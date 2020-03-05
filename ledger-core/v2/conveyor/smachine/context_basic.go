@@ -210,7 +210,7 @@ func (p *slotContext) AffectedStep() SlotStep {
 	p.ensureAny3(updCtxMigrate, updCtxBargeIn, updCtxFail)
 	r := p.s.step
 	r.Flags |= StepResetAllFlags
-	return p.s.step
+	return r
 }
 
 func (p *slotContext) NewChild(fn CreateFunc) SlotLink {
