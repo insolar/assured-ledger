@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 )
 
 type StateMachine interface {
@@ -48,7 +49,7 @@ type StateMachineHelper interface {
 	// IsConsecutive is only invoked when GetStepDeclaration() is not available for the current step.
 	// WARNING! DO NOT EVER return "true" here without CLEAR understanding of internal mechanics.
 	// Returning "true" blindly will LIKELY lead to infinite loops.
-	IsConsecutive(cur, next StateFunc) (bool, *StepDeclaration)
+	IsConsecutive(cur, next StateFunc) bool
 }
 
 type SubroutineStateMachine interface {
@@ -114,8 +115,8 @@ func (s *StateMachineDeclTemplate) GetStepDeclaration(StateFunc) *StepDeclaratio
 	return nil
 }
 
-func (s *StateMachineDeclTemplate) IsConsecutive(StateFunc, StateFunc) (bool, *StepDeclaration) {
-	return false, nil
+func (s *StateMachineDeclTemplate) IsConsecutive(cur, next StateFunc) bool {
+	return reflectkit.CodeOf(cur) < reflectkit.CodeOf(next)
 }
 
 func (s *StateMachineDeclTemplate) GetShadowMigrateFor(StateMachine) ShadowMigrateFunc {

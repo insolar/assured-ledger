@@ -74,9 +74,9 @@ func getStateUpdateKind(stateUpdate StateUpdate) stateUpdKind {
 	return stateUpdKind(stateUpdate.updKind)
 }
 
-type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sut StateUpdateType) (isAvailable bool, err error)
+type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sd *StepDeclaration) (isAvailable bool, err error)
 type SlotUpdatePrepareFunc func(slot *Slot, stateUpdate *StateUpdate)
-type SlotUpdateShortLoopFunc func(slot *Slot, stateUpdate StateUpdate, loopCount uint32) bool
+type SlotUpdateShortLoopFunc func(slot *Slot, stateUpdate StateUpdate, loopCount uint32, sd *StepDeclaration) bool
 
 type StateUpdateType struct {
 	updKind stateUpdKind
@@ -192,7 +192,7 @@ func (v StateUpdateType) ShortLoop(slot *Slot, stateUpdate StateUpdate, loopCoun
 	if v.shortLoop == nil {
 		return false
 	}
-	return v.shortLoop(slot, stateUpdate, loopCount)
+	return v.shortLoop(slot, stateUpdate, loopCount, v.stepDeclaration)
 }
 
 func (v StateUpdateType) Prepare(slot *Slot, stateUpdate *StateUpdate) {
@@ -205,7 +205,7 @@ func (v StateUpdateType) Apply(slot *Slot, stateUpdate StateUpdate, worker Fixed
 	if v.apply == nil {
 		return false, errors.New("not implemented")
 	}
-	return v.apply(slot, stateUpdate, worker, v)
+	return v.apply(slot, stateUpdate, worker, v.stepDeclaration)
 }
 
 func (v StateUpdateType) IsSubroutineSafe() bool {

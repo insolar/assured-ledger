@@ -219,7 +219,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			var asyncCnt uint16
 			var sut StateUpdateType
 
-			slot.slotFlags &^= slotStepCantMigrate
+			slot.slotFlags &^= slotStepSuspendMigrate
 			ec := executionContext{slotContext: slotContext{s: slot, w: worker}}
 			stateUpdate, sut, asyncCnt = ec.executeNextStep()
 
@@ -273,7 +273,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 		activityNano = slot.touch(time.Now().UnixNano())
 	}
 
-	slot.logStepUpdate(prevStepNo, stateUpdate, wasAsync, inactivityNano, activityNano)
+	slot.logStepUpdate(stateUpdate, wasAsync, inactivityNano, activityNano)
 
 	slot.updateBoostFlag()
 

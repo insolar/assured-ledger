@@ -73,7 +73,6 @@ type StepLoggerData struct {
 
 type StepLoggerUpdateData struct {
 	UpdateType string
-	PrevStepNo uint32
 	NextStep   StepDeclaration
 
 	InactivityNano time.Duration // zero or negative - means that value is not applicable / not valid
