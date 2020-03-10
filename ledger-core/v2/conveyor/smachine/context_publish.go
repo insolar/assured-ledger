@@ -18,7 +18,7 @@ type globalAliasKey struct {
 
 func isValidPublishValue(data interface{}) bool {
 	switch data.(type) {
-	case nil, dependencyKey, slotIdKey, *slotAliasesValue, *uniqueAliasKey, globalAliasKey:
+	case nil, dependencyKey, slotIdKey, *slotAliases, *uniqueAliasKey, globalAliasKey:
 		return false
 	}
 	return true
@@ -26,7 +26,7 @@ func isValidPublishValue(data interface{}) bool {
 
 func isValidPublishKey(key interface{}) bool {
 	switch key.(type) {
-	case nil, dependencyKey, slotIdKey, *slotAliasesValue, *uniqueAliasKey, globalAliasKey:
+	case nil, dependencyKey, slotIdKey, *slotAliases, *uniqueAliasKey, globalAliasKey:
 		return false
 	case bool, int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, uint, uintptr:
 		return true
@@ -38,16 +38,8 @@ func isValidPublishKey(key interface{}) bool {
 		return true
 	default:
 		// have to go for reflection
-		switch tt := reflect.TypeOf(key).Kind(); {
-		case tt <= reflect.Array: // literals
-			return tt > reflect.Invalid
-		case tt >= reflect.String: // String, Struct, UnsafePointer
-			return tt <= reflect.UnsafePointer
-		case tt == reflect.Ptr:
-			return true
-		default: // Chan, Func, Interface, Map, Slice
-			return false
-		}
+		tt := reflect.TypeOf(key)
+		return tt.Comparable() && tt.Kind() == reflect.Interface
 	}
 }
 

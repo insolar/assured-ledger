@@ -53,7 +53,7 @@ type StateMachineHelper interface {
 
 type SubroutineStateMachine interface {
 	StateMachine
-	GetSubroutineInitState() InitFunc
+	GetSubroutineInitState(SubroutineStartContext) InitFunc
 }
 
 type stepDeclExt struct {

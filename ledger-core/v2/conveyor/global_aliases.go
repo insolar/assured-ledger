@@ -21,16 +21,16 @@ func (p *GlobalAliases) UnpublishAlias(key interface{}) {
 	p.m.Delete(key)
 }
 
-func (p *GlobalAliases) GetPublishedAlias(key interface{}) smachine.SlotLink {
+func (p *GlobalAliases) GetPublishedAlias(key interface{}) smachine.SlotAliasValue {
 	if v, ok := p.m.Load(key); ok {
-		if link, ok := v.(smachine.SlotLink); ok {
+		if link, ok := v.(smachine.SlotAliasValue); ok {
 			return link
 		}
 	}
-	return smachine.SlotLink{}
+	return smachine.SlotAliasValue{}
 }
 
-func (p *GlobalAliases) PublishAlias(key interface{}, slot smachine.SlotLink) bool {
+func (p *GlobalAliases) PublishAlias(key interface{}, slot smachine.SlotAliasValue) bool {
 	_, loaded := p.m.LoadOrStore(key, slot)
 	return !loaded
 }

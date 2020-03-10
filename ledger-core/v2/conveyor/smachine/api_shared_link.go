@@ -35,22 +35,29 @@ func (v SharedDataLink) IsUnbound() bool {
 	return v.link.s == nil
 }
 
-func (v SharedDataLink) isLocal(local *Slot) bool {
+func (v SharedDataLink) isOwnedBy(local *Slot) bool {
 	return v.link.s == nil || v.link.s == local
 }
 
 func (v SharedDataLink) getData() interface{} {
+	_, d := v.getDataAndMachine()
+	return d
+}
+
+func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
+	m := v.link.getActiveMachine()
 	if _, ok := v.data.(*uniqueAliasKey); ok {
 		if v.IsUnbound() || v.flags&ShareDataDirect != 0 { // shouldn't happen
 			panic("impossible")
 		}
-		if data, ok := v.link.getMachine().localRegistry.Load(v.data); ok {
-			return data
-		} else {
-			return nil
+		if m != nil {
+			if data, ok := m.localRegistry.Load(v.data); ok {
+				return m, data
+			}
 		}
+		return nil, nil
 	}
-	return v.data
+	return m, v.data
 }
 
 // Returns true when the underlying data is of the given type
@@ -119,11 +126,11 @@ func (v SharedDataAccessor) TryUse(ctx ExecutionContext) SharedAccessReport {
 	return ctx.UseShared(v)
 }
 
-func (v SharedDataAccessor) accessLocal(local *Slot) Decision {
+func (v SharedDataAccessor) accessByOwner(local *Slot) Decision {
 	if v.accessFn == nil || v.link == nil || v.link.IsZero() {
 		return Impossible
 	}
-	if !v.link.isLocal(local) {
+	if !v.link.isOwnedBy(local) {
 		return NotPassed
 	}
 
@@ -131,7 +138,6 @@ func (v SharedDataAccessor) accessLocal(local *Slot) Decision {
 	if data == nil {
 		return Impossible
 	}
-
 	v.accessFn(data)
 	return Passed
 }

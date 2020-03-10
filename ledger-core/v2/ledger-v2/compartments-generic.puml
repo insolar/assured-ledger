@@ -1,0 +1,96 @@
+@startuml
+
+() "Population API\nPulseHistory API" as PopulationAPI
+() "Message Delivery API\nBroadcast Delivery API\nCascade Delivery API" as DeliveryAPI
+() "Operation API\n" as OperationAPI
+() "Traffic Throttle API\n" as TrafficAPI
+() ExternalCallAPI
+() NodeNetworkAPI
+() ConsensusProtocolAPI
+() ServiceCallAPI
+() NodeJoinAPI
+
+package "Network Compartment" {
+
+[Population & Pulse Manager] <- [Consensus]
+
+[Consensus] --> [Traffic Controller] : throttling
+PopulationAPI -- [Population & Pulse Manager]
+[Population & Pulse Manager] -- [Mandate/NodeList/Pulse Storage]
+
+OperationAPI -- [Node Operation Manager]
+[Node Operation Manager] - [Population & Pulse Manager]
+[Node Operation Manager] -- [Consensus]
+
+DeliveryAPI -- [Delivery Manager]
+[Delivery Manager] <--> [Consensus]: boadcasts
+[Delivery Manager] <---> [Traffic Controller]: send\nreceive
+
+[Traffic Controller] <--> [Network Transports]
+[Population & Pulse Manager] --- [Network Joiner]
+[Network Joiner] <--> [Network Transports]
+[Consensus] <---> [Network Transports]: send\nreceive
+[Network Transports]--NodeNetworkAPI
+[Network Transports]--ConsensusProtocolAPI
+[Network Transports]--NodeJoinAPI
+
+package "Network Transports" {
+    [UDP]
+    [TCP Msg]-[TCP Flow]
+}
+}
+
+package "Application Compartment" {
+    [Conveyor] --> [Pulse Data Service]
+
+    [Role Protocol]-->[Message Mapper]: SM definitions
+    [Role Protocol] -> [Conveyor]: SM definitions
+
+    [Pulse Data Service] --> PopulationAPI: get pulse data\nand node lists
+    [Conveyor] <--> [Node State Controller]: pulse changes\nstate and power
+    OperationAPI -up-> [Node State Controller]: pulse changes
+    OperationAPI <-- [Node State Controller]: node state
+    DeliveryAPI <-up-> [Network Adapters]: send\nreceive
+    [Conveyor] --> [Network Adapters] : send
+    [Message Mapper] <-- [Network Adapters]: receive
+    ServiceCallAPI-up-[Message Mapper]
+    [Conveyor] <- [Message Mapper]: receiving SMs
+    [Conveyor]<->[Artifact Manager Adapter]: blob\ncaching
+    [Runner Adapter] <--> [Conveyor]
+    [Conveyor] <--> [Ledger Adapters]
+'    [Ledger Adapters] -left- [Pulse Data Service]
+}
+
+note left of [Role Protocol] : Per node role, contains\nRecord and Msg types
+
+
+package "Runner Compartment (VN Role)" {
+    [Machine Runner] -left- [Machine Registry]
+    [Machine Runner] - [Security Zone Manager]
+}
+[Machine Runner] -- LogicRunnerAPI
+[Runner Adapter] <-up-> LogicRunnerAPI: run contracts
+
+package "Ledger Compartment (LMN Role)" {
+    [Ledger Adapters]<--->LedgerAPI : storage ops
+    LedgerAPI--[Drop Reader]
+    LedgerAPI-[Drop Builder]
+    [Drop Builder]--[Drop Storage]
+    [Drop Storage] - [Drop Reader]
+    DeliveryAPI<--[Drop Storage]:replication\ndata flow
+}
+
+package "Border Compartment (VN Role)" {
+    [Endpoint & Request Manager]-->ServiceCallAPI: run\nBorder Contract
+    [Seed Controller]--[Request Verification]
+    [Request Verification] -- [Endpoint & Request Manager]
+    [IAAA Integrations]-[Request Verification]
+    [Endpoint & Request Manager]-left-[Rate Limiter]
+    [Rate Limiter]--ExternalCallAPI
+}
+
+LogicRunnerAPI<--[Request Verification]: run verify part of\nBorder Contract
+[Traffic Controller]--TrafficAPI
+[Rate Limiter]--->TrafficAPI: get throttling level
+
+@enduml

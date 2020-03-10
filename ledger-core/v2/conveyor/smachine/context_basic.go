@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math"
 	"unsafe"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type contextTemplate struct {
@@ -208,7 +210,7 @@ func (p *slotContext) AffectedStep() SlotStep {
 	p.ensureAny3(updCtxMigrate, updCtxBargeIn, updCtxFail)
 	r := p.s.step
 	r.Flags |= StepResetAllFlags
-	return p.s.step
+	return r
 }
 
 func (p *slotContext) NewChild(fn CreateFunc) SlotLink {
@@ -245,7 +247,7 @@ func (p *slotContext) _newChild(fn CreateFunc, runInit bool, defValues CreateDef
 }
 
 func (p *slotContext) Log() Logger {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureAtLeast(updCtxSubrStart)
 	return p._newLogger()
 }
 
@@ -295,19 +297,29 @@ func (p *slotContext) UpdateDefaultStepLogger(updateFn StepLoggerUpdateFunc) {
 	p.s.setStepLoggerAfterInit(updateFn)
 }
 
-func (p *slotContext) BargeInWithParam(applyFn BargeInApplyFunc) BargeInParamFunc {
+func (p *slotContext) NewBargeInWithParam(applyFn BargeInApplyFunc) BargeInWithParam {
 	p.ensureAtLeast(updCtxInit)
 	return p.s.machine.createBargeIn(p.s.NewStepLink().AnyStep(), applyFn)
 }
 
-func (p *slotContext) BargeIn() BargeInBuilder {
+func (p *slotContext) NewBargeIn() BargeInBuilder {
 	p.ensureAtLeast(updCtxInit)
-	return &bargeInBuilder{p.clone(updCtxBargeIn), p, p.s.NewStepLink().AnyStep()}
+	return &bargeInBuilder{p, p.s.NewStepLink().AnyStep()}
 }
 
-func (p *slotContext) BargeInThisStepOnly() BargeInBuilder {
+func (p *slotContext) NewBargeInThisStepOnly() BargeInBuilder {
 	p.ensureAtLeast(updCtxExec)
-	return &bargeInBuilder{p.clone(updCtxBargeIn), p, p.s.NewStepLink()}
+	return &bargeInBuilder{p, p.s.NewStepLink()}
+}
+
+func (p *slotContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
+	p.ensureAny2(updCtxInit, updCtxExec)
+	return b.callInline(p.s.machine, param, p.w)
+}
+
+func (p *slotContext) CallBargeIn(b BargeIn) bool {
+	p.ensureAny2(updCtxInit, updCtxExec)
+	return b.callInline(p.s.machine, p.w)
 }
 
 func (p *slotContext) Check(link SyncLink) BoolDecision {
@@ -346,6 +358,8 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 	p.ensureAtLeast(updCtxInit)
 
 	switch {
+	case link.IsZero():
+		panic(throw.IllegalValue())
 	case p.s.isPriority():
 		flags |= SyncPriorityHigh
 	case p.s.isBoosted():

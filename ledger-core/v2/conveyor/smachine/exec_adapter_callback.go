@@ -153,7 +153,7 @@ func (c *AdapterCallback) SendNested(defaultFactoryFn CreateFactoryFunc, payload
 			switch link, ok := m.AddNested(c.adapterId, c.caller.SlotLink, cf); {
 			case ok:
 				return true, nil
-			case link.IsEmpty():
+			case link.IsZero():
 				return true, fmt.Errorf("target SlotMachine is stopping/stopped")
 			default:
 				return true, fmt.Errorf("cancelled by constructor")

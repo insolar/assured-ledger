@@ -16,10 +16,14 @@ func (w fixedWorkerWrapper) NonDetachableCall(fn NonDetachableFunc) (wasExecuted
 	return true
 }
 
-func (w fixedWorkerWrapper) NonDetachableOuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
-	return false
+func (w fixedWorkerWrapper) NonDetachableOuterCall(sm *SlotMachine, fn NonDetachableFunc) (wasExecuted bool) {
+	return w.OuterCall(sm, fn)
 }
 
-func (w fixedWorkerWrapper) TryDetach(flags LongRunFlags) {
+func (w fixedWorkerWrapper) DetachableOuterCall(*SlotMachine, DetachableFunc) (wasExecuted, wasDetached bool) {
+	return false, false
+}
+
+func (w fixedWorkerWrapper) TryDetach(LongRunFlags) {
 	panic("unsupported")
 }

@@ -50,7 +50,7 @@ func (p SlotLink) SlotID() SlotID {
 	return p.id
 }
 
-func (p SlotLink) IsEmpty() bool {
+func (p SlotLink) IsZero() bool {
 	return p.s == nil
 }
 

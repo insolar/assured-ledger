@@ -74,7 +74,7 @@ func (p *executionContext) newConditionalUpdate(updType stateUpdKind) conditiona
 
 func (p *executionContext) waitFor(link SlotLink, updMode stateUpdKind) StateConditionalBuilder {
 	p.ensure(updCtxExec)
-	if link.IsEmpty() {
+	if link.IsZero() {
 		panic("illegal value")
 		//		return &conditionalUpdate{marker: p.getMarker()}
 	}
@@ -108,7 +108,7 @@ func (p *executionContext) WaitShared(link SharedDataLink) StateConditionalBuild
 func (p *executionContext) UseShared(a SharedDataAccessor) SharedAccessReport {
 	p.ensure(updCtxExec)
 
-	switch a.accessLocal(p.s) {
+	switch a.accessByOwner(p.s) {
 	case Passed:
 		return SharedSlotAvailableAlways
 	case Impossible:
@@ -130,6 +130,12 @@ func (p *executionContext) executeNextStep() (stateUpdate StateUpdate, sut State
 	sut.Prepare(p.s, &stateUpdate)
 
 	return stateUpdate, sut, p.countAsyncCalls
+}
+
+func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {
+	p.ensure(updCtxExec)
+	nextStep := p.s.prepareSubroutineStart(ssm, exitFn, migrateFn)
+	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
 }
 
 /* ========================================================================= */
@@ -187,7 +193,7 @@ func (c *conditionalUpdate) ThenRepeat() StateUpdate {
 }
 
 func (c *conditionalUpdate) then(slotStep SlotStep) StateUpdate {
-	if c.dependency.IsEmpty() {
+	if c.dependency.IsZero() {
 		if c.until == 0 {
 			return c.template.newStep(slotStep, c.kickOff)
 		}

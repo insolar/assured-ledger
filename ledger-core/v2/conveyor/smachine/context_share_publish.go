@@ -30,6 +30,19 @@ func (p *slotContext) Share(data interface{}, flags ShareDataFlags) SharedDataLi
 	}
 }
 
+func (p *slotContext) Unshare(link SharedDataLink) bool {
+	p.ensureAtLeast(updCtxInit)
+
+	switch {
+	case link.IsZero():
+		return false
+	case link.link.s != p.s: // covers ShareDataUnbound also
+		return false
+	default:
+		return p.s.unregisterBoundAlias(link.data)
+	}
+}
+
 func (p *slotContext) Publish(key, data interface{}) bool {
 	p.ensureAtLeast(updCtxInit)
 	ensurePublishKey(key)
@@ -56,9 +69,13 @@ func (p *slotContext) GetPublished(key interface{}) interface{} {
 }
 
 func (p *slotContext) PublishGlobalAlias(key interface{}) bool {
+	return p.PublishGlobalAliasAndBargeIn(key, nil)
+}
+
+func (p *slotContext) PublishGlobalAliasAndBargeIn(key interface{}, b BargeInHolder) bool {
 	p.ensureAtLeast(updCtxInit)
 	ensurePublishKey(key)
-	return p.s.registerBoundAlias(globalAliasKey{key}, p.s.NewLink())
+	return p.s.registerBoundAlias(globalAliasKey{key}, SlotAliasValue{Link: p.s.NewLink(), BargeIn: b})
 }
 
 func (p *slotContext) UnpublishGlobalAlias(key interface{}) bool {
@@ -68,7 +85,8 @@ func (p *slotContext) UnpublishGlobalAlias(key interface{}) bool {
 
 func (p *slotContext) GetPublishedGlobalAlias(key interface{}) SlotLink {
 	p.ensureAtLeast(updCtxInit)
-	return p.s.machine.getGlobalPublished(key)
+	av := p.s.machine.getGlobalPublished(key)
+	return av.Link
 }
 
 func (p *machineCallContext) GetPublished(key interface{}) interface{} {
@@ -79,9 +97,10 @@ func (p *machineCallContext) GetPublished(key interface{}) interface{} {
 	return nil
 }
 
-func (p *machineCallContext) GetPublishedGlobalAlias(key interface{}) SlotLink {
+func (p *machineCallContext) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder) {
 	p.ensureValid()
-	return p.m.getGlobalPublished(key)
+	av := p.m.getGlobalPublished(key)
+	return av.Link, av.BargeIn
 }
 
 func (m *SlotMachine) getPublished(key interface{}) (interface{}, bool) {
@@ -91,14 +110,14 @@ func (m *SlotMachine) getPublished(key interface{}) (interface{}, bool) {
 	return m.localRegistry.Load(key)
 }
 
-func (m *SlotMachine) getGlobalPublished(key interface{}) SlotLink {
+func (m *SlotMachine) getGlobalPublished(key interface{}) SlotAliasValue {
 	if v, ok := m.getPublished(globalAliasKey{key}); ok {
-		return v.(SlotLink)
+		return v.(SlotAliasValue)
 	}
 	if sar := m.config.SlotAliasRegistry; sar != nil {
 		return sar.GetPublishedAlias(key)
 	}
-	return SlotLink{}
+	return SlotAliasValue{}
 }
 
 // Provides external access to published data.

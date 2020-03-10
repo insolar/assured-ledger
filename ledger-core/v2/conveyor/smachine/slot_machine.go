@@ -35,9 +35,14 @@ type SlotMachineConfig struct {
 }
 
 type SlotAliasRegistry interface {
-	PublishAlias(key interface{}, slot SlotLink) bool
+	PublishAlias(key interface{}, slot SlotAliasValue) bool
 	UnpublishAlias(key interface{})
-	GetPublishedAlias(key interface{}) SlotLink
+	GetPublishedAlias(key interface{}) SlotAliasValue
+}
+
+type SlotAliasValue struct {
+	Link    SlotLink
+	BargeIn BargeInHolder
 }
 
 const maxLoopCount = 10000
@@ -193,8 +198,9 @@ func (m *SlotMachine) TryPutDependency(id string, v interface{}) bool {
 	return !loaded
 }
 
-func (m *SlotMachine) GetPublishedGlobalAlias(key interface{}) SlotLink {
-	return m.getGlobalPublished(key)
+func (m *SlotMachine) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder) {
+	av := m.getGlobalPublished(key)
+	return av.Link, av.BargeIn
 }
 
 /* -- Methods to allocate slots ------------------------------ */
@@ -430,13 +436,12 @@ func (m *SlotMachine) AddNewByFunc(ctx context.Context, cf CreateFunc, defValues
 }
 
 func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (SlotLink, bool) {
-	if parent.IsEmpty() {
+	if parent.IsZero() {
 		panic("illegal value")
 	}
 	// TODO PLAT-25 pass adapterId into injections?
 
 	link, ok := m.prepareNewSlot(nil, cf, nil, CreateDefaultValues{Parent: parent})
-
 	if ok {
 		m.syncQueue.AddAsyncUpdate(link, m._startAddedSlot)
 	}
@@ -823,85 +828,6 @@ func (m *SlotMachine) logInternal(link StepLink, msg string, err error) {
 	}
 }
 
-/* ------ BargeIn support -------------------------- */
-
-func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) BargeInParamFunc {
-
-	link.s.ensureNoSubroutine()
-	link.s.slotFlags |= slotHasBargeIn
-
-	return func(param interface{}) bool {
-		if !link.IsValid() {
-			return false
-		}
-		m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
-			_, atExactStep := link.isValidAndAtExactStep()
-			bc := bargingInContext{slotContext{s: slot, w: worker}, param, atExactStep}
-			stateUpdate := bc.executeBargeIn(applyFn)
-
-			return slot.forceTopSubroutineUpdate(stateUpdate)
-		}, nil)
-		return true
-	}
-}
-
-func (m *SlotMachine) bargeInNow(link SlotLink, param interface{}, applyFn BargeInApplyFunc, worker FixedSlotWorker) bool {
-	if !link.isMachine(m) {
-		return false
-	}
-
-	slot, isStarted, _ := link.tryStartWorking()
-	if !isStarted {
-		return false
-	}
-
-	releaseOnPanic := true
-	defer func() {
-		if releaseOnPanic {
-			slot.stopWorking()
-		}
-	}()
-
-	bc := bargingInContext{slotContext{s: link.s, w: fixedWorkerWrapper{worker}}, param, false}
-	stateUpdate := bc.executeBargeInNow(applyFn)
-	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
-
-	releaseOnPanic = false
-	m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
-	return true
-}
-
-func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate) BargeInFunc {
-
-	link.s.ensureNoSubroutine()
-	link.s.slotFlags |= slotHasBargeIn
-
-	return func() bool {
-		if !link.IsValid() {
-			return false
-		}
-		m.syncQueue.AddAsyncUpdate(link.SlotLink, func(_ SlotLink, worker FixedSlotWorker) {
-			if m._canCallback(link.SlotLink) || !link.IsAtStep() {
-				return
-			}
-			// Plan A - faster one
-			if slot, isStarted, prevStepNo := link.tryStartWorking(); isStarted {
-				stateUpdateCopy := slot.forceTopSubroutineUpdate(stateUpdate)
-				m.slotPostExecution(slot, stateUpdateCopy, worker, prevStepNo, true, durationNotApplicableNano)
-				return
-			}
-			// Plan B
-			m.queueAsyncCallback(link.SlotLink, func(slot *Slot, worker DetachableSlotWorker, _ error) StateUpdate {
-				if !link.IsAtStep() {
-					return StateUpdate{} // no change
-				}
-				return slot.forceTopSubroutineUpdate(stateUpdate)
-			}, nil)
-		})
-		return true
-	}
-}
-
 /* ----- Time operations --------------------------- */
 
 func minTime(t1, t2 time.Time) time.Time {
@@ -993,46 +919,72 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 
 func (m *SlotMachine) useSlotAsShared(link *SharedDataLink, accessFn SharedDataFunc, worker DetachableSlotWorker) SharedAccessReport {
 	isValid, isBusy := link.link.getIsValidAndBusy()
-
 	if !isValid {
 		return SharedSlotAbsent
 	}
-
-	if !link.link.isMachine(m) { // isRemote
-		panic("unimplemented") // TODO PLAT-28 access to non-local slot machine
-
-		//if isBusy {
-		//	return SharedSlotRemoteBusy
-		//}
-	}
-
-	if isBusy {
-		return SharedSlotLocalBusy
-	}
-	data := link.getData()
-	if data == nil {
+	tm, data := link.getDataAndMachine()
+	switch {
+	case data == nil:
 		return SharedSlotAbsent
+	case tm == nil:
+		return SharedSlotAbsent
+	case isBusy:
+		if m == tm {
+			return SharedSlotLocalBusy
+		}
+		return SharedSlotRemoteBusy
+	case m == tm:
+		if m._useSlotAsShared(link.link, link.flags, data, accessFn, worker) {
+			return SharedSlotLocalAvailable
+		}
+		return SharedSlotLocalBusy
 	}
 
-	slot, isStarted, _ := link.link.tryStartWorking()
+	ok := false
+	// first we try to access gracefully the slot of another machine
+	switch wasExecuted, wasDetached := worker.DetachableOuterCall(tm, func(tw DetachableSlotWorker) {
+		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, tw)
+	}); {
+	case wasExecuted:
+		//
+	case wasDetached:
+		return SharedSlotRemoteBusy
+	default:
+		// as worker can't help us, then we do it in a hard way
+		// this may be inefficient under high parallelism, but this isn't our case
+		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, nil)
+	}
+	if ok {
+		return SharedSlotRemoteAvailable
+	}
+	return SharedSlotRemoteBusy
+}
+
+func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data interface{}, accessFn SharedDataFunc, worker DetachableSlotWorker) bool {
+	slot, isStarted, _ := link.tryStartWorking()
 	if !isStarted {
-		return SharedSlotLocalBusy
+		return false
 	}
 
 	defer slot.stopWorking()
 	wakeUp := accessFn(data)
 
-	m.syncQueue.ProcessSlotCallbacksByDetachable(link.link, worker)
-	if !wakeUp && link.flags&ShareDataWakesUpAfterUse == 0 || slot.slotFlags&slotWokenUp != 0 {
-		return SharedSlotLocalAvailable
+	if worker != nil {
+		m.syncQueue.ProcessSlotCallbacksByDetachable(link, worker)
+	}
+
+	if !wakeUp && flags&ShareDataWakesUpAfterUse == 0 || slot.slotFlags&slotWokenUp != 0 {
+		return true
 	}
 	slot.slotFlags |= slotWokenUp
 
-	if !worker.NonDetachableCall(slot.activateSlot) {
-		stepLink := slot.NewStepLink() // remember the current step to avoid "back-fire" activation
-		m.syncQueue.AddAsyncUpdate(stepLink.SlotLink, stepLink.activateSlotStepWithSlotLink)
+	if worker != nil && worker.NonDetachableCall(slot.activateSlot) {
+		return true
 	}
-	return SharedSlotLocalAvailable
+
+	stepLink := slot.NewStepLink() // remember the current step to avoid "back-fire" activation
+	m.syncQueue.AddAsyncUpdate(stepLink.SlotLink, stepLink.activateSlotStepWithSlotLink)
+	return true
 }
 
 func (m *SlotMachine) stopSlotWorking(slot *Slot, prevStepNo uint32, worker FixedSlotWorker) {

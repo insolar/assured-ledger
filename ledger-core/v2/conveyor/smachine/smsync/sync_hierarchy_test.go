@@ -6,10 +6,12 @@
 package smsync
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"unsafe"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )
 
 func w(a ...int) []int {

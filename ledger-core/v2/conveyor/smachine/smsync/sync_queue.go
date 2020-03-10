@@ -6,10 +6,11 @@
 package smsync
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )
 
 type dependencyQueueController interface {

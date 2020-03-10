@@ -6,9 +6,10 @@
 package smsync
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"math"
 	"sync"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )
 
 // ConditionalBool allows Acquire() call to pass through when current value is >0

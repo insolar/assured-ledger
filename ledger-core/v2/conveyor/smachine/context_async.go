@@ -8,36 +8,35 @@ package smachine
 import "context"
 
 type bargeInBuilder struct {
-	c      slotContext
 	parent *slotContext
 	link   StepLink
 }
 
-func (b bargeInBuilder) with(stateUpdate StateUpdate) BargeInFunc {
+func (b bargeInBuilder) with(stateUpdate StateUpdate) BargeIn {
 	b.parent.ensureValid()
-	defer b.c.setDiscarded()
-	return b.c.s.machine.createLightBargeIn(b.link,
-		b.c.ensureAndPrepare(b.c.s, stateUpdate))
+
+	su := b.parent.ensureAndPrepare(b.parent.s, stateUpdate)
+	return b.parent.s.machine.createLightBargeIn(b.link, su)
 }
 
-func (b bargeInBuilder) WithError(err error) BargeInFunc {
-	return b.with(b.c.Error(err))
+func (b bargeInBuilder) WithError(err error) BargeIn {
+	return b.with(b.parent.Error(err))
 }
 
-func (b bargeInBuilder) WithStop() BargeInFunc {
-	return b.with(b.c.Stop())
+func (b bargeInBuilder) WithStop() BargeIn {
+	return b.with(b.parent.Stop())
 }
 
-func (b bargeInBuilder) WithWakeUp() BargeInFunc {
-	return b.with(b.c.WakeUp())
+func (b bargeInBuilder) WithWakeUp() BargeIn {
+	return b.with(b.parent.WakeUp())
 }
 
-func (b bargeInBuilder) WithJumpExt(step SlotStep) BargeInFunc {
-	return b.with(b.c.JumpExt(step))
+func (b bargeInBuilder) WithJumpExt(step SlotStep) BargeIn {
+	return b.with(b.parent.JumpExt(step))
 }
 
-func (b bargeInBuilder) WithJump(fn StateFunc) BargeInFunc {
-	return b.with(b.c.Jump(fn))
+func (b bargeInBuilder) WithJump(fn StateFunc) BargeIn {
+	return b.with(b.parent.Jump(fn))
 }
 
 /* ========================================================================= */
@@ -46,13 +45,7 @@ var _ BargeInContext = &bargingInContext{}
 
 type bargingInContext struct {
 	slotContext
-	param      interface{}
 	atOriginal bool
-}
-
-func (p *bargingInContext) EventParam() interface{} {
-	p.ensureAtLeast(updCtxBargeIn)
-	return p.param
 }
 
 func (p *bargingInContext) IsAtOriginalStep() bool {
@@ -65,7 +58,7 @@ func (p *bargingInContext) Log() Logger {
 	return p._newLogger()
 }
 
-func (p *bargingInContext) executeBargeIn(fn BargeInApplyFunc) (stateUpdate StateUpdate) {
+func (p *bargingInContext) executeBargeIn(fn BargeInCallbackFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxBargeIn)
 	defer func() {
 		stateUpdate = p.discardAndUpdate("barge in", recover(), stateUpdate, BargeInArea)
@@ -74,7 +67,7 @@ func (p *bargingInContext) executeBargeIn(fn BargeInApplyFunc) (stateUpdate Stat
 	return p.ensureAndPrepare(p.s, fn(p))
 }
 
-func (p *bargingInContext) executeBargeInNow(fn BargeInApplyFunc) (stateUpdate StateUpdate) {
+func (p *bargingInContext) executeBargeInDirect(fn BargeInCallbackFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxBargeIn)
 	defer p.setDiscarded()
 
@@ -83,9 +76,37 @@ func (p *bargingInContext) executeBargeInNow(fn BargeInApplyFunc) (stateUpdate S
 
 /* ========================================================================= */
 
+var _ SubroutineStartContext = &subroutineStartContext{}
+
+type subroutineStartContext struct {
+	slotContext
+	cleanupMode SubroutineCleanupMode
+}
+
+func (p *subroutineStartContext) SetSubroutineCleanupMode(mode SubroutineCleanupMode) {
+	p.ensure(updCtxSubrStart)
+	p.cleanupMode = mode
+}
+
+func (p *subroutineStartContext) executeSubroutineStart(fn SubroutineStartFunc) InitFunc {
+	p.setMode(updCtxSubrStart)
+	defer func() {
+		p.setDiscarded()
+	}()
+	return fn(p)
+}
+
+/* ========================================================================= */
+
 type subroutineExitContext struct {
 	bargingInContext
-	err error
+	param interface{}
+	err   error
+}
+
+func (p *subroutineExitContext) EventParam() interface{} {
+	p.ensureAtLeast(updCtxSubrExit)
+	return p.param
 }
 
 func (p *subroutineExitContext) GetError() error {

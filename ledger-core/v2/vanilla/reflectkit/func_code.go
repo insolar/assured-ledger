@@ -31,7 +31,7 @@ func CodeOf(v interface{}) uintptr {
 	return *(*uintptr)(ptr)
 }
 
-//const kindMask = (1 << 5) - 1
+const kindMask = (1 << 5) - 1
 const kindDirectIface = 1 << 5
 
 func unwrapIface(v interface{}) (word unsafe.Pointer, kind uint8) {

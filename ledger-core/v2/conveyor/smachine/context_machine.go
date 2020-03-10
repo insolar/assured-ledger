@@ -5,7 +5,11 @@
 
 package smachine
 
-import "context"
+import (
+	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
 
 var _ MachineCallContext = &machineCallContext{}
 
@@ -77,9 +81,28 @@ func (p *machineCallContext) GetMachineId() string {
 	return p.m.GetMachineId()
 }
 
-func (p *machineCallContext) BargeInNow(link SlotLink, param interface{}, fn BargeInApplyFunc) bool {
+func (p *machineCallContext) CallDirectBargeIn(link StepLink, fn BargeInCallbackFunc) bool {
 	p.ensureValid()
-	return p.m.bargeInNow(link, param, fn, p.w)
+	switch {
+	case fn == nil:
+		panic(throw.IllegalValue())
+	case !link.IsValid():
+		return false
+	case !link.isMachine(p.m):
+		return false
+	}
+
+	return p.m.executeBargeInDirect(link, fn, p.w)
+}
+
+func (p *machineCallContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
+	p.ensureValid()
+	return b.callInline(p.m, param, fixedWorkerWrapper{p.w})
+}
+
+func (p *machineCallContext) CallBargeIn(b BargeIn) bool {
+	p.ensureValid()
+	return b.callInline(p.m, fixedWorkerWrapper{p.w})
 }
 
 func (p *machineCallContext) ApplyAdjustment(adj SyncAdjustment) bool {
