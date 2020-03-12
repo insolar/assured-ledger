@@ -9,7 +9,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
@@ -47,12 +46,6 @@ type SignatureKeyHolderMock struct {
 	beforeFoldToUint64Counter uint64
 	FoldToUint64Mock          mSignatureKeyHolderMockFoldToUint64
 
-	funcGetSignMethod          func() (s1 SigningMethod)
-	inspectFuncGetSignMethod   func()
-	afterGetSignMethodCounter  uint64
-	beforeGetSignMethodCounter uint64
-	GetSignMethodMock          mSignatureKeyHolderMockGetSignMethod
-
 	funcGetSignatureKeyMethod          func() (s1 SignatureMethod)
 	inspectFuncGetSignatureKeyMethod   func()
 	afterGetSignatureKeyMethodCounter  uint64
@@ -64,6 +57,12 @@ type SignatureKeyHolderMock struct {
 	afterGetSignatureKeyTypeCounter  uint64
 	beforeGetSignatureKeyTypeCounter uint64
 	GetSignatureKeyTypeMock          mSignatureKeyHolderMockGetSignatureKeyType
+
+	funcGetSigningMethod          func() (s1 SigningMethod)
+	inspectFuncGetSigningMethod   func()
+	afterGetSigningMethodCounter  uint64
+	beforeGetSigningMethodCounter uint64
+	GetSigningMethodMock          mSignatureKeyHolderMockGetSigningMethod
 
 	funcRead          func(p []byte) (n int, err error)
 	inspectFuncRead   func(p []byte)
@@ -96,11 +95,11 @@ func NewSignatureKeyHolderMock(t minimock.Tester) *SignatureKeyHolderMock {
 
 	m.FoldToUint64Mock = mSignatureKeyHolderMockFoldToUint64{mock: m}
 
-	m.GetSignMethodMock = mSignatureKeyHolderMockGetSignMethod{mock: m}
-
 	m.GetSignatureKeyMethodMock = mSignatureKeyHolderMockGetSignatureKeyMethod{mock: m}
 
 	m.GetSignatureKeyTypeMock = mSignatureKeyHolderMockGetSignatureKeyType{mock: m}
+
+	m.GetSigningMethodMock = mSignatureKeyHolderMockGetSigningMethod{mock: m}
 
 	m.ReadMock = mSignatureKeyHolderMockRead{mock: m}
 	m.ReadMock.callArgs = []*SignatureKeyHolderMockReadParams{}
@@ -898,149 +897,6 @@ func (m *SignatureKeyHolderMock) MinimockFoldToUint64Inspect() {
 	}
 }
 
-type mSignatureKeyHolderMockGetSignMethod struct {
-	mock               *SignatureKeyHolderMock
-	defaultExpectation *SignatureKeyHolderMockGetSignMethodExpectation
-	expectations       []*SignatureKeyHolderMockGetSignMethodExpectation
-}
-
-// SignatureKeyHolderMockGetSignMethodExpectation specifies expectation struct of the SignatureKeyHolder.GetSigningMethod
-type SignatureKeyHolderMockGetSignMethodExpectation struct {
-	mock *SignatureKeyHolderMock
-
-	results *SignatureKeyHolderMockGetSignMethodResults
-	Counter uint64
-}
-
-// SignatureKeyHolderMockGetSignMethodResults contains results of the SignatureKeyHolder.GetSigningMethod
-type SignatureKeyHolderMockGetSignMethodResults struct {
-	s1 SigningMethod
-}
-
-// Expect sets up expected params for SignatureKeyHolder.GetSigningMethod
-func (mmGetSignMethod *mSignatureKeyHolderMockGetSignMethod) Expect() *mSignatureKeyHolderMockGetSignMethod {
-	if mmGetSignMethod.mock.funcGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("SignatureKeyHolderMock.GetSigningMethod mock is already set by Set")
-	}
-
-	if mmGetSignMethod.defaultExpectation == nil {
-		mmGetSignMethod.defaultExpectation = &SignatureKeyHolderMockGetSignMethodExpectation{}
-	}
-
-	return mmGetSignMethod
-}
-
-// Inspect accepts an inspector function that has same arguments as the SignatureKeyHolder.GetSigningMethod
-func (mmGetSignMethod *mSignatureKeyHolderMockGetSignMethod) Inspect(f func()) *mSignatureKeyHolderMockGetSignMethod {
-	if mmGetSignMethod.mock.inspectFuncGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("Inspect function is already set for SignatureKeyHolderMock.GetSigningMethod")
-	}
-
-	mmGetSignMethod.mock.inspectFuncGetSignMethod = f
-
-	return mmGetSignMethod
-}
-
-// Return sets up results that will be returned by SignatureKeyHolder.GetSigningMethod
-func (mmGetSignMethod *mSignatureKeyHolderMockGetSignMethod) Return(s1 SigningMethod) *SignatureKeyHolderMock {
-	if mmGetSignMethod.mock.funcGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("SignatureKeyHolderMock.GetSigningMethod mock is already set by Set")
-	}
-
-	if mmGetSignMethod.defaultExpectation == nil {
-		mmGetSignMethod.defaultExpectation = &SignatureKeyHolderMockGetSignMethodExpectation{mock: mmGetSignMethod.mock}
-	}
-	mmGetSignMethod.defaultExpectation.results = &SignatureKeyHolderMockGetSignMethodResults{s1}
-	return mmGetSignMethod.mock
-}
-
-//Set uses given function f to mock the SignatureKeyHolder.GetSigningMethod method
-func (mmGetSignMethod *mSignatureKeyHolderMockGetSignMethod) Set(f func() (s1 SigningMethod)) *SignatureKeyHolderMock {
-	if mmGetSignMethod.defaultExpectation != nil {
-		mmGetSignMethod.mock.t.Fatalf("Default expectation is already set for the SignatureKeyHolder.GetSigningMethod method")
-	}
-
-	if len(mmGetSignMethod.expectations) > 0 {
-		mmGetSignMethod.mock.t.Fatalf("Some expectations are already set for the SignatureKeyHolder.GetSigningMethod method")
-	}
-
-	mmGetSignMethod.mock.funcGetSignMethod = f
-	return mmGetSignMethod.mock
-}
-
-// GetSigningMethod implements SignatureKeyHolder
-func (mmGetSignMethod *SignatureKeyHolderMock) GetSigningMethod() (s1 SigningMethod) {
-	mm_atomic.AddUint64(&mmGetSignMethod.beforeGetSignMethodCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetSignMethod.afterGetSignMethodCounter, 1)
-
-	if mmGetSignMethod.inspectFuncGetSignMethod != nil {
-		mmGetSignMethod.inspectFuncGetSignMethod()
-	}
-
-	if mmGetSignMethod.GetSignMethodMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetSignMethod.GetSignMethodMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetSignMethod.GetSignMethodMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetSignMethod.t.Fatal("No results are set for the SignatureKeyHolderMock.GetSigningMethod")
-		}
-		return (*mm_results).s1
-	}
-	if mmGetSignMethod.funcGetSignMethod != nil {
-		return mmGetSignMethod.funcGetSignMethod()
-	}
-	mmGetSignMethod.t.Fatalf("Unexpected call to SignatureKeyHolderMock.GetSigningMethod.")
-	return
-}
-
-// GetSignMethodAfterCounter returns a count of finished SignatureKeyHolderMock.GetSigningMethod invocations
-func (mmGetSignMethod *SignatureKeyHolderMock) GetSignMethodAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetSignMethod.afterGetSignMethodCounter)
-}
-
-// GetSignMethodBeforeCounter returns a count of SignatureKeyHolderMock.GetSigningMethod invocations
-func (mmGetSignMethod *SignatureKeyHolderMock) GetSignMethodBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetSignMethod.beforeGetSignMethodCounter)
-}
-
-// MinimockGetSignMethodDone returns true if the count of the GetSigningMethod invocations corresponds
-// the number of defined expectations
-func (m *SignatureKeyHolderMock) MinimockGetSignMethodDone() bool {
-	for _, e := range m.GetSignMethodMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetSignMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetSignMethod != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetSignMethodInspect logs each unmet expectation
-func (m *SignatureKeyHolderMock) MinimockGetSignMethodInspect() {
-	for _, e := range m.GetSignMethodMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to SignatureKeyHolderMock.GetSigningMethod")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetSignMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
-		m.t.Error("Expected call to SignatureKeyHolderMock.GetSigningMethod")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetSignMethod != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
-		m.t.Error("Expected call to SignatureKeyHolderMock.GetSigningMethod")
-	}
-}
-
 type mSignatureKeyHolderMockGetSignatureKeyMethod struct {
 	mock               *SignatureKeyHolderMock
 	defaultExpectation *SignatureKeyHolderMockGetSignatureKeyMethodExpectation
@@ -1324,6 +1180,149 @@ func (m *SignatureKeyHolderMock) MinimockGetSignatureKeyTypeInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetSignatureKeyType != nil && mm_atomic.LoadUint64(&m.afterGetSignatureKeyTypeCounter) < 1 {
 		m.t.Error("Expected call to SignatureKeyHolderMock.GetSignatureKeyType")
+	}
+}
+
+type mSignatureKeyHolderMockGetSigningMethod struct {
+	mock               *SignatureKeyHolderMock
+	defaultExpectation *SignatureKeyHolderMockGetSigningMethodExpectation
+	expectations       []*SignatureKeyHolderMockGetSigningMethodExpectation
+}
+
+// SignatureKeyHolderMockGetSigningMethodExpectation specifies expectation struct of the SignatureKeyHolder.GetSigningMethod
+type SignatureKeyHolderMockGetSigningMethodExpectation struct {
+	mock *SignatureKeyHolderMock
+
+	results *SignatureKeyHolderMockGetSigningMethodResults
+	Counter uint64
+}
+
+// SignatureKeyHolderMockGetSigningMethodResults contains results of the SignatureKeyHolder.GetSigningMethod
+type SignatureKeyHolderMockGetSigningMethodResults struct {
+	s1 SigningMethod
+}
+
+// Expect sets up expected params for SignatureKeyHolder.GetSigningMethod
+func (mmGetSigningMethod *mSignatureKeyHolderMockGetSigningMethod) Expect() *mSignatureKeyHolderMockGetSigningMethod {
+	if mmGetSigningMethod.mock.funcGetSigningMethod != nil {
+		mmGetSigningMethod.mock.t.Fatalf("SignatureKeyHolderMock.GetSigningMethod mock is already set by Set")
+	}
+
+	if mmGetSigningMethod.defaultExpectation == nil {
+		mmGetSigningMethod.defaultExpectation = &SignatureKeyHolderMockGetSigningMethodExpectation{}
+	}
+
+	return mmGetSigningMethod
+}
+
+// Inspect accepts an inspector function that has same arguments as the SignatureKeyHolder.GetSigningMethod
+func (mmGetSigningMethod *mSignatureKeyHolderMockGetSigningMethod) Inspect(f func()) *mSignatureKeyHolderMockGetSigningMethod {
+	if mmGetSigningMethod.mock.inspectFuncGetSigningMethod != nil {
+		mmGetSigningMethod.mock.t.Fatalf("Inspect function is already set for SignatureKeyHolderMock.GetSigningMethod")
+	}
+
+	mmGetSigningMethod.mock.inspectFuncGetSigningMethod = f
+
+	return mmGetSigningMethod
+}
+
+// Return sets up results that will be returned by SignatureKeyHolder.GetSigningMethod
+func (mmGetSigningMethod *mSignatureKeyHolderMockGetSigningMethod) Return(s1 SigningMethod) *SignatureKeyHolderMock {
+	if mmGetSigningMethod.mock.funcGetSigningMethod != nil {
+		mmGetSigningMethod.mock.t.Fatalf("SignatureKeyHolderMock.GetSigningMethod mock is already set by Set")
+	}
+
+	if mmGetSigningMethod.defaultExpectation == nil {
+		mmGetSigningMethod.defaultExpectation = &SignatureKeyHolderMockGetSigningMethodExpectation{mock: mmGetSigningMethod.mock}
+	}
+	mmGetSigningMethod.defaultExpectation.results = &SignatureKeyHolderMockGetSigningMethodResults{s1}
+	return mmGetSigningMethod.mock
+}
+
+//Set uses given function f to mock the SignatureKeyHolder.GetSigningMethod method
+func (mmGetSigningMethod *mSignatureKeyHolderMockGetSigningMethod) Set(f func() (s1 SigningMethod)) *SignatureKeyHolderMock {
+	if mmGetSigningMethod.defaultExpectation != nil {
+		mmGetSigningMethod.mock.t.Fatalf("Default expectation is already set for the SignatureKeyHolder.GetSigningMethod method")
+	}
+
+	if len(mmGetSigningMethod.expectations) > 0 {
+		mmGetSigningMethod.mock.t.Fatalf("Some expectations are already set for the SignatureKeyHolder.GetSigningMethod method")
+	}
+
+	mmGetSigningMethod.mock.funcGetSigningMethod = f
+	return mmGetSigningMethod.mock
+}
+
+// GetSigningMethod implements SignatureKeyHolder
+func (mmGetSigningMethod *SignatureKeyHolderMock) GetSigningMethod() (s1 SigningMethod) {
+	mm_atomic.AddUint64(&mmGetSigningMethod.beforeGetSigningMethodCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetSigningMethod.afterGetSigningMethodCounter, 1)
+
+	if mmGetSigningMethod.inspectFuncGetSigningMethod != nil {
+		mmGetSigningMethod.inspectFuncGetSigningMethod()
+	}
+
+	if mmGetSigningMethod.GetSigningMethodMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetSigningMethod.GetSigningMethodMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetSigningMethod.GetSigningMethodMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetSigningMethod.t.Fatal("No results are set for the SignatureKeyHolderMock.GetSigningMethod")
+		}
+		return (*mm_results).s1
+	}
+	if mmGetSigningMethod.funcGetSigningMethod != nil {
+		return mmGetSigningMethod.funcGetSigningMethod()
+	}
+	mmGetSigningMethod.t.Fatalf("Unexpected call to SignatureKeyHolderMock.GetSigningMethod.")
+	return
+}
+
+// GetSigningMethodAfterCounter returns a count of finished SignatureKeyHolderMock.GetSigningMethod invocations
+func (mmGetSigningMethod *SignatureKeyHolderMock) GetSigningMethodAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetSigningMethod.afterGetSigningMethodCounter)
+}
+
+// GetSigningMethodBeforeCounter returns a count of SignatureKeyHolderMock.GetSigningMethod invocations
+func (mmGetSigningMethod *SignatureKeyHolderMock) GetSigningMethodBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetSigningMethod.beforeGetSigningMethodCounter)
+}
+
+// MinimockGetSigningMethodDone returns true if the count of the GetSigningMethod invocations corresponds
+// the number of defined expectations
+func (m *SignatureKeyHolderMock) MinimockGetSigningMethodDone() bool {
+	for _, e := range m.GetSigningMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetSigningMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetSigningMethod != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetSigningMethodInspect logs each unmet expectation
+func (m *SignatureKeyHolderMock) MinimockGetSigningMethodInspect() {
+	for _, e := range m.GetSigningMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to SignatureKeyHolderMock.GetSigningMethod")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetSigningMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
+		m.t.Error("Expected call to SignatureKeyHolderMock.GetSigningMethod")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetSigningMethod != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
+		m.t.Error("Expected call to SignatureKeyHolderMock.GetSigningMethod")
 	}
 }
 
@@ -1772,11 +1771,11 @@ func (m *SignatureKeyHolderMock) MinimockFinish() {
 
 		m.MinimockFoldToUint64Inspect()
 
-		m.MinimockGetSignMethodInspect()
-
 		m.MinimockGetSignatureKeyMethodInspect()
 
 		m.MinimockGetSignatureKeyTypeInspect()
+
+		m.MinimockGetSigningMethodInspect()
 
 		m.MinimockReadInspect()
 
@@ -1809,9 +1808,9 @@ func (m *SignatureKeyHolderMock) minimockDone() bool {
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
-		m.MinimockGetSignMethodDone() &&
 		m.MinimockGetSignatureKeyMethodDone() &&
 		m.MinimockGetSignatureKeyTypeDone() &&
+		m.MinimockGetSigningMethodDone() &&
 		m.MinimockReadDone() &&
 		m.MinimockWriteToDone()
 }
