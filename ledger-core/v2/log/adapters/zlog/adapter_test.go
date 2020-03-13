@@ -50,9 +50,10 @@ func TestZeroLogAdapter_CallerInfoWithFunc(t *testing.T) {
 	require.NoError(t, err)
 
 	log.Error("test")
+	fileName, _ := logoutput.GetCallerFileNameWithLine(0, -1)
 
 	s := buf.String()
-	require.Contains(t, s, "adapter_test.go:63")
+	require.Contains(t, s, fileName)
 	require.Contains(t, s, "TestZeroLogAdapter_CallerInfoWithFunc")
 }
 
@@ -67,9 +68,10 @@ func TestZeroLogAdapter_CallerInfo(t *testing.T) {
 	require.NoError(t, err)
 
 	log.Error("test")
+	fileName, _ := logoutput.GetCallerFileNameWithLine(0, -1)
 
 	s := buf.String()
-	require.Contains(t, s, "adapter_test.go:80")
+	require.Contains(t, s, fileName)
 }
 
 func TestZeroLogAdapter_InheritFields(t *testing.T) {

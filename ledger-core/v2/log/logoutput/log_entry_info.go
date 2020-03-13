@@ -25,7 +25,7 @@ const (
 )
 
 func GetCallerInfo(skipCallNumber int) (fileName string, funcName string, line int) {
-	return getCallerInfo2(skipCallNumber) // getCallerInfo2 is 1.5 times faster than getCallerInfo1
+	return getCallerInfo2(skipCallNumber + 1) // getCallerInfo2 is 1.5 times faster than getCallerInfo1
 }
 
 func getCallerInfo1(skipCallNumber int) (fileName string, funcName string, line int) {
@@ -46,7 +46,7 @@ func getCallerInfo2(skipCallNumber int) (fileName string, funcName string, line 
 	pc := make([]uintptr, 1)
 
 	if runtime.Callers(skipCallNumber+2, pc) == 1 {
-		pc := pc[0]
+		pc := pc[0] - 1
 		if fn := runtime.FuncForPC(pc); fn != nil {
 
 			parts := strings.Split(fn.Name(), ".")
