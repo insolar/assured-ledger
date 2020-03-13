@@ -24,19 +24,27 @@ import (
 
 func main() {
 	var (
-		configPath        string
-		genesisConfigPath string
+	// configPath        string
+	// genesisConfigPath string
 	)
 
 	var rootCmd = &cobra.Command{
 		Use: "insolard",
 		Run: func(_ *cobra.Command, _ []string) {
-			runInsolardServer(configPath, genesisConfigPath)
+			// runInsolardServer(configPath, genesisConfigPath)
+			global.Fatal("specify command")
 		},
+		Version: version.GetFullVersion(),
 	}
-	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "path to config file")
-	rootCmd.Flags().StringVarP(&genesisConfigPath, "heavy-genesis", "", "", "path to genesis config for heavy node")
-	rootCmd.AddCommand(version.GetCommand("insolard"))
+	//rootCmd.Flags().StringVarP(&genesisConfigPath, "heavy-genesis", "", "", "path to genesis config for heavy node")
+	rootCmd.AddCommand(
+		fullNodeCommand(),
+		appCommand(),
+		netCommand(),
+		testNetworkCommand(),
+		version.GetCommand("insolard"),
+	)
+
 	err := rootCmd.Execute()
 	if err != nil {
 		global.Fatal("insolard execution failed:", err)
