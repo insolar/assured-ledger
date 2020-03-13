@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// These messages must not be code-generated
+
+message RecordBodyHolder {
+    // is replaced with binary hash
+}
+
+message RecordBody {
+    // MUST be in-sync with InternalRecordBody
+    reserved 1 to 15;
+    string MainContent = 17 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.ByteString", (gogoproto.nullable) = false];
+    repeated string ExtensionHashes = 18 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.ByteString"];
+}

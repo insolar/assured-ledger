@@ -5,7 +5,21 @@
 
 package protokit
 
-import "io"
+import (
+	"io"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
+
+func SizeTag(fieldId int) int {
+	switch {
+	case fieldId <= 0:
+	case fieldId > MaxFieldId:
+	default:
+		return SizeVarint32(uint32(fieldId))
+	}
+	panic(throw.IllegalValue())
+}
 
 func SizeVarint32(x uint32) int {
 	switch {

@@ -8,6 +8,7 @@ package longbits
 import (
 	"io"
 	"math/bits"
+	"strings"
 )
 
 const EmptyByteString = ByteString("")
@@ -210,4 +211,8 @@ func (v ByteString) FoldToBits64() (folded Bits64) {
 
 func (v ByteString) String() string {
 	return bitsToStringDefault(&v)
+}
+
+func (v ByteString) NewIoReader() io.Reader {
+	return strings.NewReader(string(v))
 }

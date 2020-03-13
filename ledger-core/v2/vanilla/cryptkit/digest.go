@@ -24,12 +24,13 @@ func (d DigestMethod) String() string {
 type BasicDigester interface {
 	GetDigestMethod() DigestMethod
 	GetDigestSize() int
+	// NewHasher() hash.Hash // TODO support Hash
 }
 
 type DataDigester interface {
 	BasicDigester
 	DigestData(io.Reader) Digest
-	// DigestBytes([]byte) Digest
+	DigestBytes([]byte) Digest
 }
 
 type PairDigester interface {

@@ -14,8 +14,7 @@ require (
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/getkin/kin-openapi v0.2.1-0.20191211203508-0d9caf80ada6
-	github.com/gogo/protobuf v1.2.1
-	github.com/gojuno/minimock v1.9.2 // indirect
+	github.com/gogo/protobuf v1.3.1
 	github.com/gojuno/minimock/v3 v3.0.5
 	github.com/golang/protobuf v1.3.2
 	github.com/google/gofuzz v1.0.0
@@ -23,7 +22,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.9.6
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/insolar/component-manager v0.2.1-0.20191028200619-751a91771d2f
-	github.com/insolar/go-actors v0.0.0-20190805151516-2fcc7bfc8ff9 // indirect
 	github.com/insolar/rpc v1.2.2-0.20190812143745-c27e1d218f1f
 	github.com/insolar/x-crypto v0.0.0-20191031140942-75fab8a325f6
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
@@ -60,7 +58,6 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
 	golang.org/x/tools v0.0.0-20190827205025-b29f5f60c37a
-	gonum.org/v1/gonum v0.0.0-20191018104224-74cb7b153f2c // indirect
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.21.0
 	gopkg.in/yaml.v2 v2.2.7

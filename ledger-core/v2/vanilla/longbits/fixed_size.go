@@ -43,10 +43,27 @@ func EqualFixedLenWriterTo(t, o FixedReader) bool {
 	return (&writerToComparer{}).compare(t, o)
 }
 
+func EqualFixedLenWriterToBytes(t FixedReader, o []byte) bool {
+	if t == nil {
+		return false
+	}
+	return (&writerToComparer{}).compareBytes(o, t)
+}
+
 type writerToComparer struct {
 	thisValue *[]byte
 	other     io.WriterTo
 	result    bool
+}
+
+func (c *writerToComparer) compareBytes(this []byte, other FixedReader) bool {
+	if other == nil || len(this) != other.FixedByteSize() {
+		return false
+	}
+	c.thisValue = &this
+	c.other = other
+	_, _ = other.WriteTo(c)
+	return c.other == nil && c.result
 }
 
 func (c *writerToComparer) compare(this, other FixedReader) bool {
@@ -64,7 +81,7 @@ func (c *writerToComparer) Write(otherValue []byte) (int, error) {
 		panic("content of FixedReader must be read/written all at once")
 	}
 	if c.thisValue == nil {
-		c.thisValue = &otherValue // result of &var is never nil
+		c.thisValue = &otherValue
 		_, err := c.other.WriteTo(c)
 		if err != nil {
 			return 0, err
@@ -109,7 +126,7 @@ func (c fixedSize) AsBytes() []byte {
 	return c.data
 }
 
-func ReadFixedSize(v FoldableReader) []byte {
+func ReadFixedSize(v FixedReader) []byte {
 	data := make([]byte, v.FixedByteSize())
 	n, err := v.Read(data)
 	if err != nil {
@@ -121,27 +138,23 @@ func ReadFixedSize(v FoldableReader) []byte {
 	return data
 }
 
-func NewFixedReader(data []byte) FixedReader {
-	return fixedSize{data: data}
-}
-
-func NewMutableFixedSize(data []byte) FixedReader {
+func NewMutableFixedSize(data []byte) FoldableReader {
 	return fixedSize{data}
 }
 
-func CopyToMutable(v FoldableReader) FoldableReader {
+func CopyToMutable(v FixedReader) FoldableReader {
 	return fixedSize{ReadFixedSize(v)}
 }
 
-func NewImmutableFixedSize(data []byte) FixedReader {
+func NewImmutableFixedSize(data []byte) FoldableReader {
 	return CopyBytes(data).AsReader()
 }
 
-func CopyToImmutable(v FoldableReader) FoldableReader {
+func CopyToImmutable(v FixedReader) FoldableReader {
 	return CopyBytes(ReadFixedSize(v)).AsReader()
 }
 
-func CopyFixedSize(v FoldableReader) FoldableReader {
+func CopyFixedSize(v FixedReader) FoldableReader {
 	r := fixedSize{}
 	r.data = make([]byte, v.FixedByteSize())
 	switch n, err := v.Read(r.data); {

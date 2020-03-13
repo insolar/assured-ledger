@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+//option (gogoproto.gostring_all) = false;
+//option (gogoproto.equal_all) = false;
+//option (gogoproto.verbose_equal_all) = false;
+//option (gogoproto.description_all) = false;
+//option (gogoproto.compare_all) = false;
+//option (gogoproto.goproto_unrecognized_all) = false;
+//option (gogoproto.stringer_all) = false;
+
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.protosizer_all) = true;
+option (gogoproto.sizer_all) = false;
+option (gogoproto.stable_marshaler_all) = true; // makes deterministic
+
+message InternalRecordEnvelope {
+    reserved 1 to 15;
+    // uint32 Polymorph = 16; not needed as field(17) has same properties and is never empty
+    bytes Head = 17 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    bytes Body = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
+    repeated bytes Extensions = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+}
+
+message InternalMessageEnvelope {
+    reserved 1 to 15;
+    // uint32 Polymorph = 16; not needed as field(17) has same properties and is never empty
+    //* Start of primary RecordEnvelope *//
+    bytes MsgBody = 17 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    bytes RecBody = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
+    repeated bytes RecExtensions = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    //* End of primary RecordEnvelope *//
+    repeated InternalRecordEnvelope BundleRecords = 20 [(gogoproto.nullable) = false];
+}
+
+message InternalRecordBody {
+    // MUST be in-sync with RecordBody
+    reserved 1 to 15;
+    // uint32 Polymorph = 16; not needed as field(17) has same properties and is never empty
+    bytes MainContent = 17 [(gogoproto.customtype) = "GoGoMarshaller", (gogoproto.nullable) = false];
+    repeated bytes ExtensionHashes = 18 [(gogoproto.customtype) = "interceptorHash"];
+}

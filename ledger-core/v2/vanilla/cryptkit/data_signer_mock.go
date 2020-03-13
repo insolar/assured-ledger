@@ -235,6 +235,10 @@ func (mmDigestData *DataSignerMock) DigestData(reader io.Reader) (d1 Digest) {
 	return
 }
 
+func (mmDigestData *DataSignerMock) DigestBytes([]byte) Digest {
+	panic("not implemented")
+}
+
 // DigestDataAfterCounter returns a count of finished DataSignerMock.DigestData invocations
 func (mmDigestData *DataSignerMock) DigestDataAfterCounter() uint64 {
 	return mm_atomic.LoadUint64(&mmDigestData.afterDigestDataCounter)
