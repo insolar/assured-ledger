@@ -142,7 +142,7 @@ func (lr *LogicRunner) Start(ctx context.Context) error {
 		lr.rpc.Start(ctx)
 	}
 
-	if lr.Cfg.BuiltIn != nil {
+	if lr.Cfg.BuiltIn == true {
 		bi := builtin.NewBuiltIn(lr.ArtifactManager, lr.ContractRunner)
 
 		err := lr.MachinesManager.RegisterExecutor(insolar.MachineTypeBuiltin, bi)

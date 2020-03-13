@@ -73,12 +73,9 @@ func runInsolardServer(configPath string, genesisConfigPath string) {
 
 func readRole(path string) (insolar.StaticRole, error) {
 	var err error
-	cfg := configuration.NewHolder()
-	if len(path) != 0 {
-		err = cfg.LoadFromFile(path)
-	} else {
-		err = cfg.Load()
-	}
+	cfg := configuration.NewHolder(path)
+
+	err = cfg.Load()
 	if err != nil {
 		return insolar.StaticRoleUnknown, errors.Wrap(err, "failed to load configuration from file")
 	}

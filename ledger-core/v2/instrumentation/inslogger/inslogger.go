@@ -36,8 +36,7 @@ func init() {
 }
 
 func defaultLogConfig() configuration.Log {
-	holder := configuration.NewHolder().MustInit(false)
-	logCfg := holder.Configuration.Log
+	logCfg := configuration.NewLog()
 
 	// enforce buffer-less for a non-configured logger
 	logCfg.BufferSize = 0
