@@ -192,6 +192,7 @@ func (n Number) String() string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
+// deprecated
 func (n Number) MarshalTo(data []byte) (int, error) {
 	if len(data) < NumberSize {
 		return 0, errors.New("not enough bytes to marshal pulse.Number")
@@ -200,6 +201,7 @@ func (n Number) MarshalTo(data []byte) (int, error) {
 	return NumberSize, nil
 }
 
+// deprecated
 func (n *Number) Unmarshal(data []byte) error {
 	if len(data) < NumberSize {
 		return errors.New("not enough bytes to unmarshal pulse.Number")
@@ -208,10 +210,12 @@ func (n *Number) Unmarshal(data []byte) error {
 	return nil
 }
 
+// deprecated
 func (n Number) Equal(other Number) bool {
 	return n == other
 }
 
+// deprecated
 func (n Number) Size() int {
 	return NumberSize
 }
