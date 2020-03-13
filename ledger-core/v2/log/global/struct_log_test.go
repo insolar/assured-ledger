@@ -416,7 +416,7 @@ func TestLogAwkwardValueGetters(t *testing.T) {
 	c := make(map[string]interface{})
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &c))
 	require.Equal(t, logstring, c["f"])
-	require.Contains(t, c["notf"], "marshaling error: json: unsupported type: func()")
+	require.Equal(t, "global.TestLogAwkwardValueGetters.func2", c["notf"])
 
 	plr2 := struct {
 		msg *string
