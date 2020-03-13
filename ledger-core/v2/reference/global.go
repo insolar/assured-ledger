@@ -23,14 +23,14 @@ const (
 
 /* For LIMITED USE ONLY - can only be used by observer/analytical code */
 func NewRecordRef(recID Local) Global {
-	if recID.getScope() != 0 {
+	if recID.SubScope() != 0 {
 		panic("illegal value")
 	}
 	return Global{addressLocal: recID}
 }
 
 func NewGlobalSelf(localID Local) Global {
-	if localID.getScope() == baseScopeReserved {
+	if localID.SubScope() == baseScopeReserved {
 		panic("illegal value")
 	}
 	return Global{addressLocal: localID, addressBase: localID}
@@ -45,11 +45,11 @@ type Global struct {
 	addressBase  Local
 }
 
-func (v *Global) GetScope() Scope {
-	return Scope(v.addressBase.getScope()<<2 | v.addressLocal.getScope())
+func (v Global) GetScope() Scope {
+	return v.addressBase.SubScope().AsBaseOf(v.addressLocal.SubScope())
 }
 
-func (v *Global) WriteTo(w io.Writer) (int64, error) {
+func (v Global) WriteTo(w io.Writer) (int64, error) {
 	n, err := v.addressLocal.WriteTo(w)
 	if err != nil {
 		return n, err
@@ -58,20 +58,15 @@ func (v *Global) WriteTo(w io.Writer) (int64, error) {
 	return n + n2, err
 }
 
-func (v *Global) Read(p []byte) (int, error) {
-	n, err := v.addressLocal.Read(p)
-	if err != nil || n < v.addressLocal.len() {
-		return n, err
-	}
-	n2, err := v.addressBase.Read(p[n:])
-	return n + n2, err
+func (v Global) Read(b []byte) (int, error) {
+	return ReadTo(v, b)
 }
 
-func (v *Global) AsByteString() longbits.ByteString {
+func (v Global) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
 
-func (v *Global) AsBytes() []byte {
+func (v Global) AsBytes() []byte {
 	prefix := v.addressLocal.len()
 	val := make([]byte, prefix+v.addressBase.len())
 	_, _ = v.addressLocal.Read(val)
@@ -85,27 +80,27 @@ func (v Global) IsEmpty() bool {
 	return v.addressLocal.IsEmpty() && v.addressBase.IsEmpty()
 }
 
-func (v *Global) IsRecordScope() bool {
+func (v Global) IsRecordScope() bool {
 	return IsRecordScope(v)
 }
 
-func (v *Global) IsObjectReference() bool {
+func (v Global) IsObjectReference() bool {
 	return IsObjectReference(v)
 }
 
-func (v *Global) IsSelfScope() bool {
+func (v Global) IsSelfScope() bool {
 	return IsSelfScope(v)
 }
 
-func (v *Global) IsLifelineScope() bool {
+func (v Global) IsLifelineScope() bool {
 	return IsLifelineScope(v)
 }
 
-func (v *Global) IsLocalDomainScope() bool {
+func (v Global) IsLocalDomainScope() bool {
 	return IsLocalDomainScope(v)
 }
 
-func (v *Global) IsGlobalScope() bool {
+func (v Global) IsGlobalScope() bool {
 	return IsGlobalScope(v)
 }
 
@@ -204,22 +199,21 @@ func (v *Global) MarshalJSON() ([]byte, error) {
 	if v == nil {
 		return json.Marshal(nil)
 	}
-	return json.Marshal(v.String())
+	return json.Marshal(v.Encode(DefaultEncoder()))
 }
 
-func (v Global) Marshal() ([]byte, error) {
-	return v.AsBytes(), nil
+// deprecated
+func (v *Global) Marshal() ([]byte, error) {
+	return Marshal(v)
 }
 
-func (v Global) MarshalBinary() ([]byte, error) {
-	return v.Marshal()
+// deprecated
+func (v *Global) MarshalBinary() ([]byte, error) {
+	return Marshal(v)
 }
 
-func (v Global) MarshalTo(data []byte) (int, error) {
-	if len(data) < GlobalBinarySize {
-		return 0, errors.New("not enough bytes to marshal reference.Global")
-	}
-	return copy(data, v.AsBytes()), nil
+func (v *Global) MarshalTo(b []byte) (int, error) {
+	return MarshalTo(v, b)
 }
 
 func (v *Global) UnmarshalJSON(data []byte) error {
@@ -247,31 +241,19 @@ func (v *Global) UnmarshalJSON(data []byte) error {
 }
 
 func (v *Global) Unmarshal(data []byte) error {
-	if len(data) < GlobalBinarySize {
-		return errors.New("not enough bytes to unmarshal reference.Global")
-	}
-
-	{
-		localWriter := v.addressLocal.asWriter()
-		for i := 0; i < LocalBinarySize; i++ {
-			_ = localWriter.WriteByte(data[i])
-		}
-	}
-
-	{
-		baseWriter := v.addressBase.asWriter()
-		for i := 0; i < LocalBinarySize; i++ {
-			_ = baseWriter.WriteByte(data[LocalBinarySize+i])
-		}
-	}
-
-	return nil
+	return Unmarshal(&v.addressLocal, &v.addressBase, data)
 }
 
+// deprecated
 func (v *Global) UnmarshalBinary(data []byte) error {
 	return v.Unmarshal(data)
 }
 
+// deprecated
 func (v Global) Size() int {
-	return GlobalBinarySize
+	return ProtoSize(v)
+}
+
+func (v *Global) ProtoSize() int {
+	return ProtoSize(v)
 }

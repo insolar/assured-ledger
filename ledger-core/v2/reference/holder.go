@@ -5,23 +5,28 @@
 
 package reference
 
-type Holder interface {
-	GetScope() Scope
-
-	// GetBase returns base portion of a full reference
-	GetBase() *Local
+type LocalHolder interface {
 	// GetLocal returns local portion of a full reference
 	GetLocal() *Local
 
 	IsEmpty() bool
 }
 
+type Holder interface {
+	LocalHolder
+
+	GetScope() Scope
+
+	// GetBase returns base portion of a full reference
+	GetBase() *Local
+}
+
 func IsRecordScope(ref Holder) bool {
-	return ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().getScope() == baseScopeLifeline
+	return ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
 }
 
 func IsObjectReference(ref Holder) bool {
-	return !ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().getScope() == baseScopeLifeline
+	return !ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
 }
 
 func IsSelfScope(ref Holder) bool {
@@ -29,22 +34,22 @@ func IsSelfScope(ref Holder) bool {
 }
 
 func IsLifelineScope(ref Holder) bool {
-	return ref.GetBase().getScope() == baseScopeLifeline
+	return ref.GetBase().SubScope() == baseScopeLifeline
 }
 
 func IsLocalDomainScope(ref Holder) bool {
-	return ref.GetBase().getScope() == baseScopeLocalDomain
+	return ref.GetBase().SubScope() == baseScopeLocalDomain
 }
 
 func IsGlobalScope(ref Holder) bool {
-	return ref.GetBase().getScope() == baseScopeGlobal
+	return ref.GetBase().SubScope() == baseScopeGlobal
 }
 
 func Equal(ref0, ref1 Holder) bool {
-	if p := ref1.GetLocal(); p == nil || !ref0.GetLocal().Equal(*p) {
+	if p := ref1.GetLocal(); p == nil || !(*p).EqualPtr(ref0.GetLocal()) {
 		return false
 	}
-	if p := ref1.GetBase(); p == nil || !ref0.GetBase().Equal(*p) {
+	if p := ref1.GetBase(); p == nil || !(*p).EqualPtr(ref0.GetBase()) {
 		return false
 	}
 	return true
@@ -55,4 +60,15 @@ func Compare(ref0, ref1 Holder) int {
 		return cmp
 	}
 	return ref0.GetLocal().Compare(*ref1.GetLocal())
+}
+
+func ReadTo(h Holder, b []byte) (int, error) {
+	n, err := h.GetLocal().Read(b)
+	if err != nil || n < LocalBinarySize {
+		return n, err
+	}
+
+	n2 := 0
+	n2, err = h.GetBase().Read(b[n:])
+	return n + n2, err
 }
