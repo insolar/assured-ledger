@@ -7,7 +7,6 @@ package conveyor
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,24 +18,22 @@ import (
 
 func TestPulseDataManager_Init(t *testing.T) {
 	t.Run("bad input", func(t *testing.T) {
-		require.PanicsWithValue(t, "illegal value: minCachePulseAge 0", func() {
+		assert.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
 			pdm.Init(0, 0, 0, nil)
 		})
-		require.PanicsWithValue(t, fmt.Sprintf("illegal value: minCachePulseAge %d", uint32(pulse.MaxTimePulse)+1),
-			func() {
-				pdm := PulseDataManager{}
-				pdm.Init(uint32(pulse.MaxTimePulse)+1, 0, 0, nil)
-			})
-		require.PanicsWithValue(t, "illegal value: maxPastPulseAge 0", func() {
+		assert.PanicsWithValue(t, "illegal value", func() {
+			pdm := PulseDataManager{}
+			pdm.Init(uint32(pulse.MaxTimePulse)+1, 0, 0, nil)
+		})
+		assert.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
 			pdm.Init(1, 0, 0, nil)
 		})
-		require.PanicsWithValue(t, fmt.Sprintf("illegal value: maxPastPulseAge %d", uint32(pulse.MaxTimePulse)+1),
-			func() {
-				pdm := PulseDataManager{}
-				pdm.Init(uint32(pulse.MaxTimePulse), uint32(pulse.MaxTimePulse)+1, 0, nil)
-			})
+		assert.PanicsWithValue(t, "illegal value", func() {
+			pdm := PulseDataManager{}
+			pdm.Init(uint32(pulse.MaxTimePulse), uint32(pulse.MaxTimePulse)+1, 0, nil)
+		})
 	})
 
 	t.Run("ok", func(t *testing.T) {
@@ -312,7 +309,7 @@ func (dummyAsync) DelayedStart() smachine.CallConditionalBuilder {
 
 func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 	t.Run("bad input", func(t *testing.T) {
-		require.PanicsWithValue(t, "illegal value: empty resultFn", func() {
+		require.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
 			pdm.Init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 				return dummyAsync{}
