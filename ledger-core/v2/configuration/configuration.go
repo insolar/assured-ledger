@@ -7,8 +7,8 @@ package configuration
 
 import (
 	"fmt"
-	"github.com/insolar/insconfig"
 
+	"github.com/insolar/insconfig"
 	yaml "gopkg.in/yaml.v2"
 )
 

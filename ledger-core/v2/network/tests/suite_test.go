@@ -154,7 +154,7 @@ func (s *consensusSuite) Setup() {
 		for _, n := range s.bootstrapNodes {
 			n.serviceNetwork.BaseGateway.ConsensusMode = consensus.ReadyNetwork
 			n.serviceNetwork.NodeKeeper.SetInitialSnapshot(bnodes)
-			err := n.serviceNetwork.PulseAppender.AppendPulse(s.ctx, *insolar.GenesisPulse)
+			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, *insolar.GenesisPulse)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)

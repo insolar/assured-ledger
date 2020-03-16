@@ -247,9 +247,6 @@ var defaultInsloardConf *configuration.Configuration
 
 func newDefaultInsolardConfig() configuration.Configuration {
 	if defaultInsloardConf == nil {
-		//holder := configuration.NewHolder(insolardDefaultsConfig)
-		//holder.MustLoad()
-		//defaultInsloardConf = holder.Configuration
 		cfg := configuration.NewConfiguration()
 		defaultInsloardConf = &cfg
 	}
