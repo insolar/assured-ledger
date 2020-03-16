@@ -247,8 +247,11 @@ var defaultInsloardConf *configuration.Configuration
 
 func newDefaultInsolardConfig() configuration.Configuration {
 	if defaultInsloardConf == nil {
-		holder := configuration.NewHolderWithFilePaths(insolardDefaultsConfig).MustInit(true)
-		defaultInsloardConf = &holder.Configuration
+		//holder := configuration.NewHolder(insolardDefaultsConfig)
+		//holder.MustLoad()
+		//defaultInsloardConf = holder.Configuration
+		cfg := configuration.NewConfiguration()
+		defaultInsloardConf = &cfg
 	}
 	return *defaultInsloardConf
 }

@@ -89,7 +89,7 @@ fi
 for i in `seq 1 $NUM_NODES`
 do
     set -x
-    $INSOLARD_CMD \
+    $INSOLARD_CMD full-node --single-process \
         --config ${NODES_DATA}${i}/insolard.yaml \
         &> ${NODES_LOGS}${i}/output.log &
     { set +x; } 2>/dev/null

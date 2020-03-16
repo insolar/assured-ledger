@@ -22,27 +22,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
 
-func main() {
-	var (
-	// configPath        string
-	// genesisConfigPath string
-	)
+const cmdName = "insolard"
 
+func main() {
 	var rootCmd = &cobra.Command{
-		Use: "insolard",
-		Run: func(_ *cobra.Command, _ []string) {
-			// runInsolardServer(configPath, genesisConfigPath)
-			global.Fatal("specify command")
-		},
+		Use:     cmdName,
 		Version: version.GetFullVersion(),
 	}
-	//rootCmd.Flags().StringVarP(&genesisConfigPath, "heavy-genesis", "", "", "path to genesis config for heavy node")
 	rootCmd.AddCommand(
 		fullNodeCommand(),
 		appCommand(),
 		netCommand(),
 		testNetworkCommand(),
-		version.GetCommand("insolard"),
+		version.GetCommand(cmdName),
 	)
 
 	err := rootCmd.Execute()
