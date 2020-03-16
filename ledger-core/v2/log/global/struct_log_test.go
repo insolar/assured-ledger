@@ -112,11 +112,11 @@ func TestLogFieldsMarshaler(t *testing.T) {
 		require.Contains(t, c["caller"], fileLine, "right caller line")
 		ltime, err := time.Parse(time.RFC3339Nano, c["time"].(string))
 		require.NoError(t, err, "parseable time")
-		ldur := time.Now().Sub(ltime)
-		require.True(t, ldur >= 0, "worktime is not less than zero")
-		require.True(t, ldur < time.Second, "worktime lesser than second")
-		require.Equal(t, 200.200, c["testfield"], "customfield")
-		require.NotNil(t, c["writeDuration"], "duration exists")
+		ldur := time.Since(ltime)
+		assert.True(t, ldur >= 0, "worktime is not less than zero")
+		assert.True(t, ldur < time.Second, "worktime is less than a second")
+		assert.Equal(t, 200.200, c["testfield"], "customfield")
+		assert.NotNil(t, c["writeDuration"], "duration exists")
 	}
 }
 

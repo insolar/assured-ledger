@@ -158,7 +158,7 @@ func testCopyInverse(t *testing.T, ksi *MutableKeySet, bitMask uint) {
 	copy := ksi.Copy()
 	inversed := ksi.InverseCopy()
 
-	require.Equal(t, copy, inversed.Inverse())
+	require.True(t, inversed.Inverse().Equal(copy))
 
 	k := bitToKey(2)
 	copy.Remove(k)
