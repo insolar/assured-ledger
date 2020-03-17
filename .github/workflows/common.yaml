@@ -30,7 +30,7 @@ jobs:
       - name: test_prepare
         run: |
           go mod download
-          make pre-build build
+          make vendor pre-build build
         working-directory: ${{env.GOPATH}}/src/github.com/assured-ledger/assured-ledger/ledger-core/v2
       - name: test_unit
         run: make test_unit
@@ -54,7 +54,7 @@ jobs:
       - name: test_prepare
         run: |
           go mod download
-          make pre-build build
+          make vendor pre-build build
         working-directory: ${{env.GOPATH}}/src/github.com/assured-ledger/assured-ledger/ledger-core/v2
       - name: test_slow
         run: make test_slow
