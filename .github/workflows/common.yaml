@@ -20,7 +20,7 @@ jobs:
       - name: checkout code
         uses: actions/checkout@master
         with:
-          path: go/src/github.com/assured-ledger/assured-ledger
+          path: go/src/github.com/insolar/assured-ledger
       - name: set up go ${{env.GO_VERSION}}
         uses: actions/setup-go@v1
         with:
@@ -31,10 +31,10 @@ jobs:
         run: |
           go mod download
           make vendor pre-build build
-        working-directory: ${{env.GOPATH}}/src/github.com/assured-ledger/assured-ledger/ledger-core/v2
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: test_unit
         run: make test_unit
-        working-directory: ${{env.GOPATH}}/src/github.com/assured-ledger/assured-ledger/ledger-core/v2
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
   slow-tests:
     name: slow-tests
     runs-on: ubuntu-latest
@@ -44,7 +44,7 @@ jobs:
       - name: checkout code
         uses: actions/checkout@master
         with:
-          path: go/src/github.com/assured-ledger/assured-ledger
+          path: go/src/github.com/insolar/assured-ledger
       - name: set up go ${{env.GO_VERSION}}
         uses: actions/setup-go@v1
         with:
@@ -55,7 +55,7 @@ jobs:
         run: |
           go mod download
           make vendor pre-build build
-        working-directory: ${{env.GOPATH}}/src/github.com/assured-ledger/assured-ledger/ledger-core/v2
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: test_slow
         run: make test_slow
-        working-directory: ${{env.GOPATH}}/src/github.com/assured-ledger/assured-ledger/ledger-core/v2
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
