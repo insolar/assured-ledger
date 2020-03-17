@@ -6,9 +6,9 @@
 package pulsenetwork
 
 import (
+	"bytes"
 	"context"
-	"fmt"
-	"net"
+	"crypto/ecdsa"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -18,25 +18,30 @@ import (
 	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/future"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/sequence"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type distributor struct {
-	Factory     transport.Factory `inject:""`
-	transport   transport.StreamTransport
+	Factory  transport.Factory                  `inject:""`
+	Scheme   insolar.PlatformCryptographyScheme `inject:""`
+	KeyStore insolar.KeyStore                   `inject:""`
+
+	digester    cryptkit.DataDigester
+	signer      cryptkit.DigestSigner
+	transport   transport.DatagramTransport
 	idGenerator sequence.Generator
 
 	pulseRequestTimeout time.Duration
@@ -48,9 +53,14 @@ type distributor struct {
 	responseHandler future.PacketHandler
 }
 
+type handlerThatPanics struct{}
+
+func (ph handlerThatPanics) HandleDatagram(ctx context.Context, address string, buf []byte) {
+	panic(throw.Impossible())
+}
+
 // NewDistributor creates a new distributor object of pulses
 func NewDistributor(conf configuration.PulseDistributor) (insolar.PulseDistributor, error) {
-
 	futureManager := future.NewManager()
 
 	result := &distributor{
@@ -67,13 +77,22 @@ func NewDistributor(conf configuration.PulseDistributor) (insolar.PulseDistribut
 }
 
 func (d *distributor) Init(ctx context.Context) error {
-	handler := hostnetwork.NewStreamHandler(func(context.Context, *packet.ReceivedPacket) {}, d.responseHandler)
-
 	var err error
-	d.transport, err = d.Factory.CreateStreamTransport(handler)
+	d.transport, err = d.Factory.CreateDatagramTransport(handlerThatPanics{})
 	if err != nil {
 		return errors.Wrap(err, "Failed to create transport")
 	}
+	transportCryptographyFactory := adapters.NewTransportCryptographyFactory(d.Scheme)
+
+	d.digester = transportCryptographyFactory.GetDigestFactory().CreateDataDigester()
+
+	privateKey, err := d.KeyStore.GetPrivateKey("")
+	if err != nil {
+		return errors.Wrap(err, "failed to get private key")
+	}
+	ecdsaPrivateKey := privateKey.(*ecdsa.PrivateKey)
+
+	d.signer = adapters.NewECDSADigestSigner(ecdsaPrivateKey, d.Scheme)
 
 	return nil
 }
@@ -128,13 +147,7 @@ func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
 		go func(ctx context.Context, pulse insolar.Pulse, nodeAddr string) {
 			defer wg.Done()
 
-			addr, err := net.ResolveTCPAddr("tcp", nodeAddr)
-			if err != nil {
-				logger.Warnf("failed to resolve bootstrap node address %s, %s", nodeAddr, err.Error())
-				return
-			}
-
-			err = d.sendPulseToHost(ctx, &pulse, addr)
+			err := d.sendPulseToHost(ctx, &pulse, nodeAddr)
 			if err != nil {
 				stats.Record(ctx, statSendPulseErrorsCount.M(1))
 				logger.Warnf("Failed to send pulse %d to host: %s %s", pulse.PulseNumber, nodeAddr, err)
@@ -159,7 +172,7 @@ func (d *distributor) generateID() types.RequestID {
 	return types.RequestID(d.idGenerator.Generate())
 }
 
-func (d *distributor) sendPulseToHost(ctx context.Context, p *insolar.Pulse, host *net.TCPAddr) error {
+func (d *distributor) sendPulseToHost(ctx context.Context, p *insolar.Pulse, host string) error {
 	logger := inslogger.FromContext(ctx)
 	defer func() {
 		if x := recover(); x != nil {
@@ -170,54 +183,32 @@ func (d *distributor) sendPulseToHost(ctx context.Context, p *insolar.Pulse, hos
 	ctx, span := instracer.StartSpan(ctx, "distributor.sendPulseToHosts")
 	defer span.Finish()
 
-	pulseRequest := NewPulsePacketWithTrace(ctx, p, d.pulsarHost, host, uint64(d.generateID()))
+	pulsePacket := serialization.BuildPulsarPacket(ctx, adapters.NewPulseData(*p))
 
-	err := d.sendRequestToHost(ctx, pulseRequest, host)
+	err := d.sendRequestToHost(ctx, pulsePacket, host)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *distributor) sendRequestToHost(ctx context.Context, p *packet.Packet, receiver fmt.Stringer) error {
-	rcv := receiver.String()
-	inslogger.FromContext(ctx).Debugf("Send %s request to %s with RequestID = %d",
-		p.GetType(), rcv, p.GetRequestID())
+func (d *distributor) sendRequestToHost(ctx context.Context, p *serialization.Packet, rcv string) error {
+	inslogger.FromContext(ctx).Debugf("Send %s request to %s",
+		p.Header.GetPacketType(), rcv)
 
-	data, err := packet.SerializePacket(p)
+	buffer := &bytes.Buffer{}
+	n, err := p.SerializeTo(ctx, buffer, d.digester, d.signer)
 	if err != nil {
 		return errors.Wrap(err, "Failed to serialize packet")
 	}
 
-	conn, err := d.transport.Dial(ctx, rcv)
+	err = d.transport.SendDatagram(ctx, rcv, buffer.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "Unable to connect")
-	}
-	defer conn.Close() //nolint
-
-	n, err := conn.Write(data)
-	if err != nil {
-		return errors.Wrap(err, "[ SendPacket ] Failed to write data")
+		return errors.Wrap(err, "[SendDatagram] Failed to write data")
 	}
 
 	metrics.NetworkSentSize.Observe(float64(n))
-	metrics.NetworkPacketSentTotal.WithLabelValues(p.GetType().String()).Inc()
+	metrics.NetworkPacketSentTotal.WithLabelValues(p.Header.GetPacketType().String()).Inc()
 
 	return nil
-}
-
-func NewPulsePacket(p *insolar.Pulse, pulsarHost *host.Host, to *net.TCPAddr, id uint64) *packet.Packet {
-	rcv := host.Host{Address: &host.Address{net.UDPAddr{IP: to.IP, Port: to.Port, Zone: to.Zone}}} //nolint
-	pulseRequest := packet.NewPacket(pulsarHost, &rcv, types.Pulse, id)
-	request := &packet.PulseRequest{
-		Pulse: pulse.ToProto(p),
-	}
-	pulseRequest.SetRequest(request)
-	return pulseRequest
-}
-
-func NewPulsePacketWithTrace(ctx context.Context, p *insolar.Pulse, pulsarHost *host.Host, to *net.TCPAddr, id uint64) *packet.Packet {
-	pulsePacket := NewPulsePacket(p, pulsarHost, to, id)
-	pulsePacket.TraceSpanData = instracer.MustSerialize(ctx)
-	return pulsePacket
 }

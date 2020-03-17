@@ -9,16 +9,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"net"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -32,36 +27,6 @@ func TestEmbeddedPulsarData_SerializeTo(t *testing.T) {
 	err := pd.SerializeTo(nil, buf)
 	require.NoError(t, err)
 	require.Equal(t, 12, buf.Len())
-}
-
-func TestEmbeddedPulsarData_DeserializeFrom(t *testing.T) {
-	data := pulse.NewPulsarData(100000, 10, 10, longbits.Bits256{})
-
-	pu := adapters.NewPulse(data)
-	ph, err := host.NewHost("127.0.0.1:1")
-	require.NoError(t, err)
-	th, err := net.ResolveTCPAddr("tcp", "127.0.0.1:2")
-	require.NoError(t, err)
-	pp := pulsenetwork.NewPulsePacketWithTrace(context.Background(), &pu, ph, th, 0)
-
-	bs, err := packet.SerializePacket(pp)
-	require.NoError(t, err)
-
-	buf := bytes.NewBuffer(make([]byte, 0, packetMaxSize))
-
-	pd1 := EmbeddedPulsarData{}
-	pd1.setData(bs)
-	err = pd1.SerializeTo(nil, buf)
-	require.NoError(t, err)
-
-	pd2 := EmbeddedPulsarData{}
-	err = pd2.DeserializeFrom(nil, buf)
-	require.NoError(t, err)
-
-	// require.Equal(t, p.Header, pd.Header)
-	require.Equal(t, pd1.Size, pd2.Size)
-	require.Equal(t, pd1.Data, pd2.Data)
-	// require.Equal(t, p.PacketSignature, pd.PulsarSignature)
 }
 
 func TestCloudIntro_SerializeTo(t *testing.T) {
@@ -256,15 +221,12 @@ func TestGlobulaConsensusPacketBody_Phases(t *testing.T) {
 func TestGlobulaConsensusPacketBody_Phases_Flag0(t *testing.T) {
 	data := pulse.NewPulsarData(100000, 10, 10, longbits.Bits256{})
 
-	pu := adapters.NewPulse(data)
-	ph, err := host.NewHost("127.0.0.1:1")
+	ctx := context.Background()
+	pp := BuildPulsarPacket(ctx, data)
+	buffer := &bytes.Buffer{}
+	_, err := pp.SerializeTo(ctx, buffer, digester, signer)
 	require.NoError(t, err)
-	th, err := net.ResolveTCPAddr("tcp", "127.0.0.1:2")
-	require.NoError(t, err)
-	pp := pulsenetwork.NewPulsePacketWithTrace(context.Background(), &pu, ph, th, 0)
-
-	bs, err := packet.SerializePacket(pp)
-	require.NoError(t, err)
+	bs := buffer.Bytes()
 
 	buf := bytes.NewBuffer(make([]byte, 0, packetMaxSize))
 
@@ -291,13 +253,13 @@ func TestGlobulaConsensusPacketBody_Phases_Flag0(t *testing.T) {
 		{
 			"phase0",
 			phases.PacketPhase0,
-			401,
+			222,
 			phase1p,
 		},
 		{
 			"phase1",
 			phases.PacketPhase1,
-			404,
+			225,
 			phase1p,
 		},
 		{
@@ -338,15 +300,12 @@ func TestGlobulaConsensusPacketBody_Phases_Flag0(t *testing.T) {
 func TestGlobulaConsensusPacketBody_Phases_Flag0Reset(t *testing.T) {
 	data := pulse.NewPulsarData(100000, 10, 10, longbits.Bits256{})
 
-	pu := adapters.NewPulse(data)
-	ph, err := host.NewHost("127.0.0.1:1")
+	ctx := context.Background()
+	pp := BuildPulsarPacket(ctx, data)
+	buffer := &bytes.Buffer{}
+	_, err := pp.SerializeTo(ctx, buffer, digester, signer)
 	require.NoError(t, err)
-	th, err := net.ResolveTCPAddr("tcp", "127.0.0.1:2")
-	require.NoError(t, err)
-	pp := pulsenetwork.NewPulsePacketWithTrace(context.Background(), &pu, ph, th, 0)
-
-	bs, err := packet.SerializePacket(pp)
-	require.NoError(t, err)
+	bs := buffer.Bytes()
 
 	buf := bytes.NewBuffer(make([]byte, 0, packetMaxSize))
 

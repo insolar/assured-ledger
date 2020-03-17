@@ -53,8 +53,6 @@ func TestSwitch(t *testing.T) {
 	})
 	gilreleased := false
 
-	ge.OnPulseFromPulsar(ctx, insolar.Pulse{}, nil)
-
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	require.False(t, gilreleased)
 	cref := gen.Reference()
@@ -71,8 +69,6 @@ func TestSwitch(t *testing.T) {
 
 		_, err = au.ValidateCert(ctx, &certificate.Certificate{})
 		require.Error(t, err)
-
-		ge.OnPulseFromPulsar(ctx, insolar.Pulse{}, nil)
 
 	}
 
@@ -109,8 +105,6 @@ func TestDumbComplete_GetCert(t *testing.T) {
 		ge = ge.NewGateway(ctx, state)
 	})
 	gilreleased := false
-
-	ge.OnPulseFromPulsar(ctx, insolar.Pulse{}, nil)
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	require.False(t, gilreleased)

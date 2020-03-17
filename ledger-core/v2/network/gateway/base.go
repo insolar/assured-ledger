@@ -65,11 +65,10 @@ type Base struct {
 	datagramHandler   *adapters.DatagramHandler
 	datagramTransport transport.DatagramTransport
 
-	ConsensusMode         consensus.Mode
-	consensusInstaller    consensus.Installer
-	ConsensusController   consensus.Controller
-	consensusPulseHandler network.PulseHandler
-	consensusStarted      uint32
+	ConsensusMode       consensus.Mode
+	consensusInstaller  consensus.Installer
+	ConsensusController consensus.Controller
+	consensusStarted    uint32
 
 	Options         *network.Options
 	bootstrapTimer  *time.Timer // nolint
@@ -204,13 +203,11 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
-	pulseHandler := adapters.NewPulseHandler()
-	g.ConsensusController = g.consensusInstaller.ControllerFor(g.ConsensusMode, pulseHandler, g.datagramHandler)
+	g.ConsensusController = g.consensusInstaller.ControllerFor(g.ConsensusMode, g.datagramHandler)
 	g.ConsensusController.RegisterFinishedNotifier(func(ctx context.Context, report network.Report) {
 		g.Gatewayer.Gateway().OnConsensusFinished(ctx, report)
 	})
 
-	g.consensusPulseHandler = pulseHandler
 	atomic.StoreUint32(&g.consensusStarted, 1)
 	return nil
 }
@@ -218,12 +215,6 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 // ChangePulse process pulse from Consensus
 func (g *Base) ChangePulse(ctx context.Context, pulse insolar.Pulse) {
 	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, pulse)
-}
-
-func (g *Base) OnPulseFromPulsar(ctx context.Context, pu insolar.Pulse, originalPacket network.ReceivedPacket) {
-	if atomic.LoadUint32(&g.consensusStarted) == 1 {
-		g.consensusPulseHandler.HandlePulse(ctx, pu, originalPacket)
-	}
 }
 
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu insolar.Pulse) {

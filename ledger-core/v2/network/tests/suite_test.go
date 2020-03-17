@@ -57,7 +57,7 @@ var (
 )
 
 const (
-	UseFakeTransport = true
+	UseFakeTransport = false
 	UseFakeBootstrap = true
 
 	reqTimeoutMs     int32 = 2000
@@ -154,7 +154,7 @@ func (s *consensusSuite) Setup() {
 		for _, n := range s.bootstrapNodes {
 			n.serviceNetwork.BaseGateway.ConsensusMode = consensus.ReadyNetwork
 			n.serviceNetwork.NodeKeeper.SetInitialSnapshot(bnodes)
-			err := n.serviceNetwork.PulseAppender.AppendPulse(s.ctx, *insolar.GenesisPulse)
+			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, *insolar.GenesisPulse)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
@@ -235,7 +235,7 @@ func (s *testSuite) SetupNodesNetwork(nodes []*networkNode) {
 }
 
 func (s *testSuite) StartNodesNetwork(nodes []*networkNode) {
-	suiteLogger.Info("Start nodes")
+	inslogger.FromContext(s.ctx).Info("Start nodes")
 
 	results := make(chan error, len(nodes))
 	startNode := func(node *networkNode) {

@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
@@ -59,23 +60,33 @@ type testPulsar struct {
 }
 
 func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error {
+	var err error
 
 	distributorCfg := configuration.PulseDistributor{
 		BootstrapHosts:      bootstrapHosts,
 		PulseRequestTimeout: tp.reqTimeoutMs,
 	}
 
-	var err error
+	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
+	if err != nil {
+		return err
+	}
+
 	tp.distributor, err = pulsenetwork.NewDistributor(distributorCfg)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create pulse distributor")
 	}
 
 	tp.cm = component.NewManager(nil)
+
+	tp.cm.Register(platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
+
+	cfg := configuration.NewHostNetwork()
+	cfg.Transport.Protocol = "udp"
 	if UseFakeTransport {
-		tp.cm.Register(transport.NewFakeFactory(configuration.NewHostNetwork().Transport))
+		tp.cm.Register(transport.NewFakeFactory(cfg.Transport))
 	} else {
-		tp.cm.Register(transport.NewFactory(configuration.NewHostNetwork().Transport))
+		tp.cm.Register(transport.NewFactory(cfg.Transport))
 	}
 	tp.cm.Inject(tp.distributor)
 
