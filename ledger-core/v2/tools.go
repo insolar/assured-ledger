@@ -7,6 +7,7 @@
 
 package tools
 
+import _ "golang.org/x/tools/cmd/goimports"
 import _ "golang.org/x/tools/cmd/stringer"
 import _ "github.com/gogo/protobuf/protoc-gen-gogoslick"
 import _ "github.com/golang/protobuf/protoc-gen-go"
