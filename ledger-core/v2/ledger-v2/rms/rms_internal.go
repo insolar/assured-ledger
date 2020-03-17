@@ -42,7 +42,8 @@ func (p *interceptor) triggerMarshalTo() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return b[:n], nil
+	p.captured = b[:n]
+	return p.captured, nil
 }
 
 func newInternalRecordEnvelope(head GoGoMarshaller, bi interceptorBody, ignoreExtensions bool) InternalRecordEnvelope {

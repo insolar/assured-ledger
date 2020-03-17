@@ -5,6 +5,8 @@
 
 package args
 
+import "math/bits"
+
 func GreatestCommonDivisor(a, b int) int {
 	if a == b {
 		return a
@@ -20,4 +22,11 @@ func GreatestCommonDivisor(a, b int) int {
 
 func IsPowerOfTwo(x uint) bool {
 	return x&(x-1) == 0
+}
+
+func CeilingPowerOfTwo(x uint) uint {
+	if IsPowerOfTwo(x) {
+		return x
+	}
+	return 1 << uint(bits.Len(x))
 }

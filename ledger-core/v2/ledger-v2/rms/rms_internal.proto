@@ -33,6 +33,11 @@ message InternalMessageEnvelope {
     bytes RecBody = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
     repeated bytes RecExtensions = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
     //* End of primary RecordEnvelope *//
+
+    InternalMessageBundle BundleRecords = 20 [(gogoproto.customtype) = "interceptorBundle", (gogoproto.nullable) = false, (gogoproto.embed) = true];
+}
+
+message InternalMessageBundle {
     repeated InternalRecordEnvelope BundleRecords = 20 [(gogoproto.nullable) = false];
 }
 

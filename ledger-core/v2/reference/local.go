@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -25,8 +26,13 @@ var byteOrder = binary.BigEndian
 
 type LocalHash = longbits.Bits224
 
+var nearestPo2 = int(args.CeilingPowerOfTwo(uint(len(LocalHash{}))))
+
 func AsLocalHash(r longbits.FixedReader) (result LocalHash) {
-	if r == nil || r.FixedByteSize() != len(result) {
+	if r == nil {
+		panic(throw.IllegalValue())
+	}
+	if n := r.FixedByteSize(); n != len(result) && n != nearestPo2 {
 		panic(throw.IllegalValue())
 	}
 	_, _ = r.Read(result[:])
@@ -44,6 +50,10 @@ func NewLocal(pn pulse.Number, scope SubScope, hash LocalHash) Local {
 	return Local{pulseAndScope: pn.WithFlags(byte(scope)), hash: hash}
 }
 
+func NewLocalTemplate(pn pulse.Number, scope SubScope) Local {
+	return Local{pulseAndScope: pn.WithFlags(byte(scope))}
+}
+
 const JetDepthPosition = 0 //
 
 type Local struct {
@@ -51,12 +61,10 @@ type Local struct {
 	hash          LocalHash
 }
 
-// IsEmpty - check for void
 func (v Local) IsEmpty() bool {
 	return v.pulseAndScope == 0
 }
 
-// NotEmpty - check for non void
 func (v Local) NotEmpty() bool {
 	return !v.IsEmpty()
 }
@@ -97,16 +105,12 @@ func (v Local) Read(p []byte) (n int, err error) {
 	return LocalBinaryPulseAndScopeSize + n, nil
 }
 
-func (v Local) len() int {
-	return LocalBinaryPulseAndScopeSize + len(v.hash)
-}
-
 func (v Local) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
 
 func (v Local) AsBytes() []byte {
-	val := make([]byte, v.len())
+	val := make([]byte, LocalBinarySize)
 	byteOrder.PutUint32(val, v.pulseAndScope)
 	_, _ = v.hash.Read(val[LocalBinaryPulseAndScopeSize:])
 	return val
@@ -119,7 +123,7 @@ func (v Local) pulseAndScopeAsBytes() []byte {
 }
 
 func (v Local) AsReader() io.ByteReader {
-	return v.asReader(uint8(v.len()))
+	return v.asReader(LocalBinarySize)
 }
 
 func (v Local) asReader(limit uint8) *byteReader {
@@ -171,7 +175,7 @@ func (p *byteWriter) WriteByte(c byte) error {
 }
 
 func (p *byteWriter) isFull() bool {
-	return int(p.o) >= p.v.len()
+	return int(p.o) >= LocalBinarySize
 }
 
 // Encoder encodes Local to string with chosen encoder.
@@ -183,7 +187,6 @@ func (v Local) Encode(enc Encoder) string {
 	return repr
 }
 
-// String implements stringer on ID and returns base64 encoded value
 func (v Local) String() string {
 	return v.Encode(DefaultEncoder())
 }
@@ -216,12 +219,12 @@ func (v Local) Hash() []byte {
 	return rv
 }
 
-// MarshalJSON serializes ID into JSONFormat
+// deprecated
 func (v *Local) MarshalJSON() ([]byte, error) {
 	if v == nil {
 		return json.Marshal(nil)
 	}
-	return json.Marshal(v.String())
+	return json.Marshal(v.Encode(DefaultEncoder()))
 }
 
 // deprecated
@@ -229,11 +232,17 @@ func (v *Local) MarshalBinary() ([]byte, error) {
 	return v.Marshal()
 }
 
+// deprecated
 func (v *Local) Marshal() ([]byte, error) {
 	return v.AsBytes(), nil
 }
 
+// deprecated
 func (v *Local) UnmarshalJSON(data []byte) error {
+	return v.unmarshalJSON(data)
+}
+
+func (v *Local) unmarshalJSON(data []byte) error {
 	var repr interface{}
 
 	err := json.Unmarshal(data, &repr)
@@ -256,19 +265,32 @@ func (v *Local) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func UnmarshalLocalJSON(b []byte) (v Local, err error) {
+	err = v.unmarshalJSON(b)
+	return
+}
+
+func MarshalLocalJSON(v Local) (b []byte, err error) {
+	//if v == nil {
+	//	return json.Marshal(nil)
+	//}
+	return json.Marshal(v.Encode(DefaultEncoder()))
+}
+
+func MarshalLocalHolderJSON(v LocalHolder) (b []byte, err error) {
+	if v == nil {
+		return json.Marshal(nil)
+	}
+	if l := v.GetLocal(); l == nil {
+		return json.Marshal(nil)
+	} else {
+		return json.Marshal(l.Encode(DefaultEncoder()))
+	}
+}
+
 // deprecated
 func (v *Local) UnmarshalBinary(data []byte) error {
 	return v.Unmarshal(data)
-}
-
-func (v Local) ProtoSize() int {
-	switch pn := v.GetPulseNumber(); {
-	case pn.IsUnknown():
-		return 0
-	case pn.IsTimePulse():
-		return LocalBinarySize
-	}
-	return LocalBinaryPulseAndScopeSize + v.hashLen()
 }
 
 func (v Local) hashLen() int {
@@ -278,7 +300,7 @@ func (v Local) hashLen() int {
 	return i + 1
 }
 
-func (v *Local) MarshalTo(data []byte) (int, error) {
+func (v Local) MarshalTo(data []byte) (int, error) {
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
 		return 0, nil
@@ -296,7 +318,36 @@ func (v *Local) MarshalTo(data []byte) (int, error) {
 	return 0, throw.WithStackTop(io.ErrUnexpectedEOF)
 }
 
+func (v Local) ProtoSize() int {
+	switch pn := v.GetPulseNumber(); {
+	case pn.IsUnknown():
+		return 0
+	case pn.IsTimePulse():
+		return LocalBinarySize
+	}
+	return LocalBinaryPulseAndScopeSize + v.hashLen()
+}
+
+func ProtoSizeLocalHolder(v LocalHolder) int {
+	if v == nil || v.IsEmpty() {
+		return 0
+	}
+	return v.GetLocal().ProtoSize()
+}
+
+func MarshalLocalHolderTo(v LocalHolder, data []byte) (int, error) {
+	if v == nil || v.IsEmpty() {
+		return 0, nil
+	}
+	return v.GetLocal().MarshalTo(data)
+}
+
+// deprecated
 func (v *Local) Unmarshal(data []byte) error {
+	return v.unmarshal(data)
+}
+
+func (v *Local) unmarshal(data []byte) error {
 	switch n := len(data); {
 	case n > LocalBinarySize:
 		return errors.New("too much bytes to unmarshal reference.Local")
@@ -314,14 +365,12 @@ func (v *Local) Unmarshal(data []byte) error {
 	return nil
 }
 
-func (v *Local) FullMarshalTo(data []byte) (int, error) {
-	if len(data) < LocalBinarySize {
-		return 0, errors.New("not enough bytes to marshal reference.Local")
-	}
-	return v.Read(data)
+func UnmarshalLocal(b []byte) (v Local, err error) {
+	err = v.unmarshal(b)
+	return
 }
 
-func (v *Local) FullUnmarshal(b []byte) error {
+func (v *Local) wholeUnmarshalLocal(b []byte) error {
 	if len(b) != LocalBinarySize {
 		return errors.New("not enough bytes to marshal reference.Local")
 	}
@@ -331,6 +380,13 @@ func (v *Local) FullUnmarshal(b []byte) error {
 		_ = writer.WriteByte(b[i])
 	}
 	return nil
+}
+
+func (v Local) wholeMarshalTo(b []byte) (int, error) {
+	if len(b) < LocalBinarySize {
+		return 0, errors.New("not enough bytes to marshal reference.Local")
+	}
+	return v.Read(b)
 }
 
 // deprecated
@@ -375,6 +431,7 @@ func (v Local) canConvertToSelf() bool {
 	return true
 }
 
+// deprecated
 func (v Local) Equal(o Local) bool {
 	return o == v
 }
@@ -384,5 +441,10 @@ func (v Local) EqualHolder(o LocalHolder) bool {
 }
 
 func (v Local) EqualPtr(o *Local) bool {
-	return o != nil && v.Equal(*o)
+	return o != nil && v == *o
+}
+
+func (v Local) WithHash(hash LocalHash) Local {
+	v.hash = hash
+	return v
 }

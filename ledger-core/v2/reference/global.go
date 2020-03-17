@@ -67,15 +67,13 @@ func (v Global) AsByteString() longbits.ByteString {
 }
 
 func (v Global) AsBytes() []byte {
-	prefix := v.addressLocal.len()
-	val := make([]byte, prefix+v.addressBase.len())
+	val := make([]byte, GlobalBinarySize)
 	_, _ = v.addressLocal.Read(val)
-	_, _ = v.addressBase.Read(val[prefix:])
+	_, _ = v.addressBase.Read(val[LocalBinarySize:])
 	return val
 
 }
 
-// IsEmpty - check for void
 func (v Global) IsEmpty() bool {
 	return v.addressLocal.IsEmpty() && v.addressBase.IsEmpty()
 }
@@ -120,6 +118,7 @@ func (v *Global) tryConvertToSelf() bool {
 	return true
 }
 
+/* ONLY for parser */
 func (v *Global) canConvertToSelf() bool {
 	return v.addressBase.IsEmpty() && v.addressLocal.canConvertToSelf()
 }
@@ -155,51 +154,38 @@ func (v *Global) tryApplyBase(base *Global) bool {
 	return true
 }
 
-// GetBase returns base address from Global.
 func (v Global) GetBase() *Local {
 	return &v.addressBase
 }
 
-// GetLocal returns local address from Global.
 func (v Global) GetLocal() *Local {
 	return &v.addressLocal
 }
 
-// Encode encodes Global to string with chosen encoder.
-func (v Global) Encode(enc Encoder) string {
-	repr, err := enc.Encode(&v)
+func (v Global) String() string {
+	s, err := DefaultEncoder().Encode(v)
 	if err != nil {
 		return NilRef
 	}
-	return repr
+	return s
 }
 
-// String outputs base64 Reference representation.
-func (v Global) String() string {
-	return v.Encode(DefaultEncoder())
-}
-
-// Bytes returns byte slice of Reference
 func (v Global) Bytes() []byte {
 	return v.AsBytes()
 }
 
-// Equal checks if reference points to the same record.
+// deprecated
 func (v Global) Equal(other Global) bool {
-	return Equal(&v, &other)
+	return Equal(v, other)
 }
 
-// Compare compares two record references
 func (v Global) Compare(other Global) int {
-	return Compare(&v, &other)
+	return Compare(v, other)
 }
 
-// MarshalJSON serializes reference into JSONFormat.
+// deprecated
 func (v *Global) MarshalJSON() ([]byte, error) {
-	if v == nil {
-		return json.Marshal(nil)
-	}
-	return json.Marshal(v.Encode(DefaultEncoder()))
+	return MarshalJSON(v)
 }
 
 // deprecated
@@ -212,11 +198,17 @@ func (v *Global) MarshalBinary() ([]byte, error) {
 	return Marshal(v)
 }
 
+// deprecated
 func (v *Global) MarshalTo(b []byte) (int, error) {
 	return MarshalTo(v, b)
 }
 
+// deprecated
 func (v *Global) UnmarshalJSON(data []byte) error {
+	return v.unmarshalJSON(data)
+}
+
+func (v *Global) unmarshalJSON(data []byte) error {
 	var repr interface{}
 
 	err := json.Unmarshal(data, &repr)
@@ -240,8 +232,10 @@ func (v *Global) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (v *Global) Unmarshal(data []byte) error {
-	return Unmarshal(&v.addressLocal, &v.addressBase, data)
+// deprecated
+func (v *Global) Unmarshal(data []byte) (err error) {
+	v.addressLocal, v.addressBase, err = Unmarshal(data)
+	return
 }
 
 // deprecated
@@ -254,6 +248,7 @@ func (v Global) Size() int {
 	return ProtoSize(v)
 }
 
+// deprecated
 func (v *Global) ProtoSize() int {
 	return ProtoSize(v)
 }

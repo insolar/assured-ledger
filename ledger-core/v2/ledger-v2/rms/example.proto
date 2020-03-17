@@ -8,27 +8,34 @@ import "rms.proto";
 option (gogoproto.equal_all) = false;
 option (gogoproto.gostring_all) = false;
 option (gogoproto.stringer_all) = false;
+option (gogoproto.protosizer_all) = true;
+option (gogoproto.sizer_all) = false;
+option (gogoproto.stable_marshaler_all) = true;
+option (gogoproto.goproto_getters_all) = false;
 
 message RecExample {
     //*** Start of predefined section ***//
-    option (gogoproto.protosizer) = true;
-    option (gogoproto.sizer) = false;
-    option (gogoproto.stable_marshaler) = true;
-
     reserved 1 to 15, 1792 to max;
     uint32 Polymorph = 16;
     bytes BodyHash = 1791 [(gogoproto.customtype) = "RecordBodyHolder", (gogoproto.nullable) = false];
     //*** End of predefined section ***//
 
-    bytes Ref1 = 20; //[(gogoproto.customtype) = "RecordReference", (gogoproto.nullable) = false];
+    string Str = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.ByteString", (gogoproto.nullable) = false];
+}
+
+message RecExample2 {
+    //*** Start of predefined section ***//
+    reserved 1 to 15, 1792 to max;
+    uint32 Polymorph = 16;
+    bytes BodyHash = 1791 [(gogoproto.customtype) = "RecordBodyHolder", (gogoproto.nullable) = false];
+    //*** End of predefined section ***//
+
+    bytes RefTo = 22 [(gogoproto.customtype) = "LazyReference", (gogoproto.nullable) = false];
     string Str = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.ByteString", (gogoproto.nullable) = false];
 }
 
 message MsgExample {
     //*** Start of predefined section ***//
-    option (gogoproto.protosizer) = true;
-    option (gogoproto.sizer) = false;
-
     reserved 1 to 15, 20 to 1791, 1794 to 1799;
     uint32 MsgPolymorph = 16;
     // put proper Record type here
@@ -42,10 +49,7 @@ message MsgExample {
 
 message MsgHeadExample {
     //*** Start of predefined section ***//
-    option (gogoproto.protosizer) = true;
-    option (gogoproto.sizer) = false;
     option (gogoproto.typedecl) = false;
-    option (gogoproto.goproto_getters) = false;
     option (gogoproto.face) = true;
     //*** End of predefined section ***//
 

@@ -8,7 +8,7 @@
 package rms
 
 import (
-	"fmt"
+	"encoding/hex"
 	"io"
 	"testing"
 
@@ -49,7 +49,7 @@ func (t typeDataDigester) GetDigestMethod() cryptkit.DigestMethod {
 }
 
 func (t typeDataDigester) GetDigestSize() int {
-	return 8
+	return 32
 }
 
 func (t typeDataDigester) DigestData(io.Reader) cryptkit.Digest {
@@ -57,7 +57,7 @@ func (t typeDataDigester) DigestData(io.Reader) cryptkit.Digest {
 }
 
 func (t typeDataDigester) DigestBytes(a []byte) cryptkit.Digest {
-	b := make([]byte, 8)
+	b := make([]byte, t.GetDigestSize())
 	copy(b, a)
 	return cryptkit.NewDigest(longbits.NewMutableFixedSize(b), "test")
 }
@@ -86,19 +86,21 @@ func (v *testPayloadProvider) GetPayloadContainer(CryptographyScheme) GoGoMarsha
 func TestMsgSerialize(t *testing.T) {
 	msg1 := MsgExample{}
 	msg1.MsgParam = 11
-	msg1.MsgPolymorph = 1
-	msg1.Polymorph = 2
-	msg1.Str = "123"
+	msg1.Str = "first"
 	msg1.MsgBytes = []byte{1}
-	msg1.Ref1 = []byte{10, 11, 12}
+	//msg1.Ref1 = []byte{10, 11, 12}
 	msg1.Body().BodyPayload = &testPayloadProvider{[]byte("payload")}
 	msg1.Body().Extensions = []ExtensionProvider{{&testPayloadProvider{[]byte("ext1")}, 1}}
 
-	nvlp1 := NewMessageEnvelope(pcp, &msg1)
+	rec2 := RecExample2{}
+	rec2.Str = "second"
+	rec2.RefTo = NewLazyLocal(65537, msg1.Body().GetHashDispenser())
+
+	nvlp1 := NewMessageEnvelope(pcp, &msg1, &rec2)
 	b, err := nvlp1.Marshal()
 	require.NoError(t, err)
 
-	fmt.Printf("%+x\n", b)
+	println(hex.Dump(b))
 
 	msg2 := MsgExample{}
 	msg2.Body().BodyPayload = &testPayloadProvider{[]byte("")}

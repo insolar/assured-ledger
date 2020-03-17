@@ -7,32 +7,9 @@
 
 package rms
 
-import "github.com/gogo/protobuf/proto"
+type Polymorph uint32
 
-var _ proto.Marshaler = Polymorph(0)
-
-type Polymorph uint
-
-func (p Polymorph) Marshal() ([]byte, error) {
-	panic("implement me")
-}
-
-func (p Polymorph) MarshalTo(data []byte) (n int, err error) {
-	panic("implement me")
-}
-
-func (p Polymorph) Unmarshal(data []byte) error {
-	panic("implement me")
-}
-
-func (p Polymorph) Size() int {
-	panic("implement me")
-}
-
-func (p Polymorph) MarshalJSON() ([]byte, error) {
-	panic("implement me")
-}
-
-func (p Polymorph) UnmarshalJSON(data []byte) error {
-	panic("implement me")
-}
+const (
+	PolymorphNone    Polymorph = 0
+	PolymorphInplace Polymorph = 1
+)

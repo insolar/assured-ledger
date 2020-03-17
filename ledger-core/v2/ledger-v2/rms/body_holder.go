@@ -56,10 +56,14 @@ func (m *RecordBodyHolder) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *RecordBodyHolder) Unmarshal(b []byte) error {
-	if len(b) != m.digester.GetDigestSize() {
-		return throw.IllegalValue()
+	switch len(b) {
+	case m.digester.GetDigestSize():
+		return m.setHash(cryptkit.NewDigest(longbits.NewMutableFixedSize(b), m.digester.GetDigestMethod()))
+	case 0:
+		return m.setHash(cryptkit.NewDigest(longbits.EmptyByteString, ""))
 	}
-	return m.setHash(cryptkit.NewDigest(longbits.NewMutableFixedSize(b), m.digester.GetDigestMethod()))
+	return throw.IllegalValue()
+
 }
 
 func (m *RecordBodyHolder) GetHashDispenser() *HashDispenser {
@@ -105,8 +109,6 @@ func (m *RecordBodyHolder) prepareInterceptor(cryptProvider PlatformCryptography
 	bodyScheme := cryptProvider.GetPlatformCryptographyScheme()
 	if m.BodyPayload != nil {
 		body.bodyMsg.MainContent = m.BodyPayload.GetPayloadContainer(bodyScheme)
-	} else {
-		body.bodyMsg.MainContent = noMessage{}
 	}
 
 	bodySchemeDigester := bodyScheme.GetRecordBodyDigester()
@@ -129,6 +131,9 @@ func (m *RecordBodyHolder) beforeAssistedMarshal(cryptProvider PlatformCryptogra
 }
 
 func (m *RecordBodyHolder) afterAssistedMarshal(head []byte) error {
+	if head == nil {
+		panic(throw.IllegalState())
+	}
 	m.unsetHash(head)
 	m.digester = nil
 	return nil
@@ -208,6 +213,9 @@ type interceptorBody struct {
 }
 
 func (p *interceptorBody) ProtoSize() int {
+	if p.bodyMsg.MainContent == nil {
+		p.bodyMsg.MainContent = noMessage{}
+	}
 	return p.bodyMsg.ProtoSize()
 }
 
@@ -221,9 +229,15 @@ func (p *interceptorBody) MarshalTo(b []byte) (int, error) {
 }
 
 func (p *interceptorBody) Unmarshal(b []byte) error {
+	if p.bodyMsg.MainContent == nil {
+		p.bodyMsg.MainContent = noMessage{}
+	}
 	if err := p.bodyMsg.Unmarshal(b); err == nil {
 		p.captured = b
-		return p.bodyHolder.afterBodyUnmarshalled(p)
+		if p.bodyHolder != nil {
+			return p.bodyHolder.afterBodyUnmarshalled(p)
+		}
+		return nil
 	} else {
 		return err
 	}

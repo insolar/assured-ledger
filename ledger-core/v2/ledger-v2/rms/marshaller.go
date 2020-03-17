@@ -32,3 +32,8 @@ type GoGoMessage interface {
 	proto.Marshaler
 	//Reset()
 }
+
+type PolymorphMessage interface {
+	GoGoMarshaller
+	InitPolymorphField(setup bool) bool
+}

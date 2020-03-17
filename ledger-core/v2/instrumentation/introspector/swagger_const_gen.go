@@ -11,7 +11,7 @@ This code was generated automatically using _swagger-helper
 */
 
 const (
-publisherSwagger = `{
+	publisherSwagger = `{
   "swagger": "2.0",
   "info": {
     "title": "instrumentation/introspector/introproto/publisher.proto",

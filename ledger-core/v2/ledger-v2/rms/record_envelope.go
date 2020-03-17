@@ -12,9 +12,10 @@ import (
 type RecordEntryExtractorFunc func()
 
 type RecordHolder interface {
-	Head() GoGoMessage
+	Head() GoGoMarshaller
 	Body() *RecordBodyHolder
 	EntryExtractor() RecordEntryExtractorFunc
+	PolymorphHack
 }
 
 func NewRecordEnvelope(cryptProvider PlatformCryptographyProvider, record RecordHolder) RecordEnvelope {
@@ -36,6 +37,8 @@ type RecordEnvelope struct {
 
 func (p *RecordEnvelope) preMarshal() (InternalRecordEnvelope, error) {
 	head := p.record.Head()
+	p.record.InitPolymorphField(true)
+
 	body := p.record.Body()
 
 	bi, err := body.beforeAssistedMarshal(p.cryptProvider)
@@ -85,6 +88,9 @@ func (p *RecordEnvelope) Unmarshal(b []byte) error {
 }
 
 func (p *RecordEnvelope) postUnmarshal(re InternalRecordEnvelope) error {
+	if !p.record.InitPolymorphField(false) {
+		return throw.IllegalValue()
+	}
 	body := p.record.Body()
 	return body.afterAssistedUnmarshal(re.Head.captured, re.Body.extensions, re.Extensions, re.Body.bodyMsg.ExtensionHashes)
 }
