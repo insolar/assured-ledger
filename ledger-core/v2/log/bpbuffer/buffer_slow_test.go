@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
@@ -135,7 +134,7 @@ func generateLogs(logger logcommon.LoggerOutput, threads, iterations int, genera
 			for j := 0; j < iterations; j++ {
 				msg := fmt.Sprintf(`{"message":"%d %d %d"}%s`, threadID, j, time.Now().UnixNano(), "\n")
 
-				_, _ = logger.LogLevelWrite(log.InfoLevel, []byte(msg))
+				_, _ = logger.LogLevelWrite(logcommon.InfoLevel, []byte(msg))
 				if generateDelay > 0 {
 					time.Sleep(generateDelay)
 				}
