@@ -127,7 +127,7 @@ func launchnetPath(a ...string) (string, error) {
 	cwdList := strings.Split(cwd, "/")
 	var count int
 	for i := len(cwdList); i >= 0; i-- {
-		if cwdList[i-1] == "insolar" && cwdList[i-2] == "insolar" {
+		if cwdList[i-1] == "v2" && cwdList[i-2] == "ledger-core" {
 			break
 		}
 		count++
@@ -415,7 +415,7 @@ func startNet() error {
 		_ = os.Chdir(cwd)
 	}()
 
-	for cwd[len(cwd)-15:] != "insolar/assured-ledger/ledger-core/v2/" {
+	for cwd[len(cwd)-37:] != "insolar/assured-ledger/ledger-core/v2" {
 		err = os.Chdir("../")
 		if err != nil {
 			return errors.Wrap(err, "[ startNet  ] Can't change dir")
