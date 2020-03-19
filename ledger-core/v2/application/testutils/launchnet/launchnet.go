@@ -64,6 +64,21 @@ var Enterprise [application.GenesisAmountEnterpriseMembers]*User
 var Foundation [application.GenesisAmountFoundationMembers]*User
 var Funds [application.GenesisAmountFundsMembers]*User
 
+var projectRoot string
+var rootOnce sync.Once
+
+// rootPath returns project root folder
+func rootPath() string {
+	rootOnce.Do(func() {
+		path, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+		if err != nil {
+			panic("failed to get project root")
+		}
+		projectRoot = strings.TrimSpace(string(path))
+	})
+	return filepath.Join(projectRoot, "ledger-core", "v2")
+}
+
 // Method starts launchnet before execution of callback function (cb) and stops launchnet after.
 // Returns exit code as a result from calling callback function.
 func Run(cb func() int) int {
@@ -113,35 +128,23 @@ type User struct {
 	MigrationAddress string
 }
 
+// launchnetPath builds a path from either INSOLAR_FUNC_KEYS_PATH or LAUNCHNET_BASE_DIR
 func launchnetPath(a ...string) (string, error) {
+	// Path set in Enviroment
 	keysPath := os.Getenv(keysPathVar)
 	if keysPath != "" {
 		p := []string{keysPath}
 		p = append(p, a[len(a)-1])
 		return filepath.Join(p...), nil
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "[ startNet ] Can't get current working directory")
-	}
-	cwdList := strings.Split(cwd, "/")
-	var count int
-	for i := len(cwdList); i >= 0; i-- {
-		if cwdList[i-1] == "v2" && cwdList[i-2] == "ledger-core" {
-			break
-		}
-		count++
-	}
-	var dirUp []string
-	for i := 0; i < count; i++ {
-		dirUp = append(dirUp, "..")
-	}
-
 	d := defaults.LaunchnetDir()
-	parts := append(dirUp, d)
+	var parts []string
 	if strings.HasPrefix(d, "/") {
 		parts = []string{d}
+	} else {
+		parts = []string{rootPath(), d}
 	}
+
 	parts = append(parts, a...)
 	return filepath.Join(parts...), nil
 }
@@ -406,25 +409,19 @@ func waitForNet() error {
 }
 
 func startNet() error {
-
 	cwd, err := os.Getwd()
 	if err != nil {
-		return errors.Wrap(err, "[ startNet ] Can't get current working directory")
+		return errors.Wrap(err, "failed to get working directory")
+	}
+	rootPath := rootPath()
+
+	err = os.Chdir(rootPath)
+	if err != nil {
+		return errors.Wrap(err, "[ startNet  ] Can't change dir")
 	}
 	defer func() {
 		_ = os.Chdir(cwd)
 	}()
-
-	for cwd[len(cwd)-37:] != "insolar/assured-ledger/ledger-core/v2" {
-		err = os.Chdir("../")
-		if err != nil {
-			return errors.Wrap(err, "[ startNet  ] Can't change dir")
-		}
-		cwd, err = os.Getwd()
-		if err != nil {
-			return errors.Wrap(err, "[ startNet ] Can't get current working directory")
-		}
-	}
 
 	// If you want to add -n flag here please make sure that insgorund will
 	// be eventually started with --log-level=debug. Otherwise someone will spent
