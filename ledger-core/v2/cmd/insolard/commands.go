@@ -10,71 +10,117 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func fullNodeCommand() *cobra.Command {
+func fullNodeIsolatedCommand() *cobra.Command {
 	var (
 		configPath        string
 		genesisConfigPath string
-		isSingleProcess   bool
-		isIsolated        bool
 	)
 	c := &cobra.Command{
-		Use:   "full-node",
-		Short: "description",
+		Use:   "isolated",
+		Short: "start full node in isolated mode",
 		Run: func(cmd *cobra.Command, args []string) {
-			if isSingleProcess && isIsolated {
-				global.Fatal("--single-process and --isolated flags could not be set in the same time")
-			}
+			// todo: implement mode
+			global.Fatal("command isolated is not implemented")
+		},
+	}
+	c.PersistentFlags().StringVarP(
+		&configPath, "config", "c", "", "path to config")
+	c.Flags().StringVar(
+		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
 
-			if isSingleProcess {
-				global.Info("Starting full-node in single-process mode")
-				runInsolardServer(configPath, genesisConfigPath)
-			}
+	c.MarkFlagRequired("config")
+	return c
+}
 
-			if isIsolated {
-				global.Info("Starting full-node in isolated mode")
-				global.Fatal("full-node in isolated mode is not implemented")
-			}
-
-			global.Fatal("--single-process or --isolated flags must be set")
+func fullNodeSingleProcessCommand() *cobra.Command {
+	var (
+		configPath        string
+		genesisConfigPath string
+	)
+	c := &cobra.Command{
+		Use:   "single-process",
+		Short: "start full node in single process mode",
+		Run: func(cmd *cobra.Command, args []string) {
+			global.Info("Starting full-node in single-process mode")
+			runInsolardServer(configPath, genesisConfigPath)
 		},
 	}
 	c.Flags().StringVarP(
 		&configPath, "config", "c", "", "path to config")
-	c.Flags().StringVarP(
-		&genesisConfigPath, "heavy-genesis", "", "", "path to genesis config for heavy node")
-	c.Flags().BoolVarP(
-		&isSingleProcess, "single-process", "", false, "start full node in single process mode")
-	c.Flags().BoolVarP(
-		&isIsolated, "isolated", "", false, "start full node in isolated mode")
+	c.Flags().StringVar(
+		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
 	return c
 }
 
-func appCommand() *cobra.Command {
+func fullNodeCommand() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "full-node",
+		Short: "description",
+	}
+
+	c.AddCommand(fullNodeIsolatedCommand(), fullNodeSingleProcessCommand())
+	return c
+}
+
+func testAppHeavyCommand() *cobra.Command {
 	var (
 		configPath        string
 		genesisConfigPath string
-		networkPort       uint
+		bridgePort        uint
 	)
 	c := &cobra.Command{
-		Use:   "app",
-		Short: "Start only application logic, connect to separated network process",
+		Use:   "heavy",
+		Short: "Start only application logic with Heavy role",
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
-			global.Fatal("command app is not implemented")
+			global.Fatal("command test-network is not implemented")
 		},
 	}
 	c.Flags().StringVarP(
 		&configPath, "config", "c", "", "path to bootstrap config")
+	c.Flags().StringVar(
+		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
+	c.Flags().UintVar(
+		&bridgePort, "bridge-port", 0, "bridge port for Net <-> App connection")
+	return c
+}
+
+func testAppVirtualCommand() *cobra.Command {
+	var (
+		configPath string
+		bridgePort uint
+	)
+	c := &cobra.Command{
+		Use:   "virtual",
+		Short: "Start only application logic with Virtual role",
+		Run: func(cmd *cobra.Command, args []string) {
+			// todo: implement mode
+			global.Fatal("subcommand virtual is not implemented")
+		},
+	}
 	c.Flags().StringVarP(
-		&genesisConfigPath, "heavy-genesis", "", "", "path to genesis config for heavy node")
-	c.Flags().UintVarP(
-		&networkPort, "network-port", "", 0, "path to bootstrap config")
+		&configPath, "config", "c", "", "path to bootstrap config")
+	c.Flags().UintVar(
+		&bridgePort, "bridge-port", 0, "bridge port for Net <-> App connection")
+	return c
+}
+
+func appCommand() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "app",
+		Short: "Start only application logic, connect to separated network process",
+	}
+	c.AddCommand(
+		testAppHeavyCommand(),
+		testAppVirtualCommand(),
+	)
 	return c
 }
 
 func netCommand() *cobra.Command {
 	var (
 		configPath string
+		bridgePort uint
 		isHeadless bool
 	)
 	c := &cobra.Command{
@@ -87,8 +133,10 @@ func netCommand() *cobra.Command {
 	}
 	c.Flags().StringVarP(
 		&configPath, "config", "c", "", "path to bootstrap config")
-	c.Flags().BoolVarP(
-		&isHeadless, "headless", "", false, "dir with certificate files")
+	c.Flags().BoolVar(
+		&isHeadless, "headless", false, "dir with certificate files")
+	c.Flags().UintVar(
+		&bridgePort, "bridge-port", 0, "bridge port for Net <-> App connection")
 	return c
 }
 

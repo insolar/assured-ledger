@@ -14,6 +14,45 @@ import (
 
 const InsolarEnvPrefix = "insolar"
 
+// общий конфиг для Net и App
+// в режиме full-node --single-process запускается один инстанс компонентов
+// проблема идентичности CommonConfig в режиме full-node --independent.
+// Решили дублировать эту секцию для Net и App, в режиме --single-process берется CommonConfig из секции Network
+type CommonConfig struct {
+	Log           Log
+	Metrics       Metrics
+	Tracer        Tracer
+	Introspection Introspection
+	KeysPath      string
+}
+
+type NetworkConfig struct {
+	CommonConfig
+	CertificatePath string
+	Host            HostNetwork
+	Service         ServiceNetwork
+}
+
+type CommonAppConfig struct {
+	CommonConfig
+	Bus Bus
+}
+
+type VirtualNodeConfig struct {
+	CommonAppConfig
+	LogicRunner LogicRunner
+}
+
+type LightNodeConfig struct {
+	CommonAppConfig
+	LogicRunner LogicRunner
+}
+
+type HeavyNodeConfig struct {
+	CommonAppConfig
+	LogicRunner LogicRunner
+}
+
 // Configuration contains configuration params for all Insolar components
 type Configuration struct {
 	Host                HostNetwork
