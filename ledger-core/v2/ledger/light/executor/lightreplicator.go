@@ -9,6 +9,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
@@ -20,8 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/pkg/errors"
-	"go.opencensus.io/stats"
 )
 
 // LightReplicator is a base interface for a sync component

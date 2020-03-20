@@ -6,9 +6,10 @@
 package zlog
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"os"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 

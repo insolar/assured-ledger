@@ -7,10 +7,11 @@ package badgertools
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"math"
 	"os"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // FileLoadingMode specifies how data in LSM table files and value log files should

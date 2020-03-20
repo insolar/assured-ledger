@@ -9,9 +9,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"

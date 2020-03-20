@@ -7,10 +7,11 @@ package logfmt
 
 import (
 	"fmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/stretchr/testify/require"
 

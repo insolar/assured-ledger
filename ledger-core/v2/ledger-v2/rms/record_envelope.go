@@ -50,7 +50,7 @@ func (p *RecordEnvelope) preMarshal() (InternalRecordEnvelope, error) {
 
 func (p *RecordEnvelope) postMarshal(re InternalRecordEnvelope) error {
 	body := p.record.Body()
-	return body.afterAssistedMarshal(re.Head.captured)
+	return body.afterAssistedMarshal(re.Head.captured, re.BodySignature.captured)
 }
 
 func (p *RecordEnvelope) Marshal() ([]byte, error) {
@@ -92,5 +92,6 @@ func (p *RecordEnvelope) postUnmarshal(re InternalRecordEnvelope) error {
 		return throw.IllegalValue()
 	}
 	body := p.record.Body()
-	return body.afterAssistedUnmarshal(re.Head.captured, re.Body.extensions, re.Extensions, re.Body.bodyMsg.ExtensionHashes)
+	return body.afterAssistedUnmarshal(re.Head.captured, re.BodySignature.captured,
+		re.Body.extensions, re.Extensions, re.Body.bodyMsg.ExtensionHashes)
 }

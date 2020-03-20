@@ -90,11 +90,12 @@ func TestMsgSerialize(t *testing.T) {
 	msg1.MsgBytes = []byte{1}
 	//msg1.Ref1 = []byte{10, 11, 12}
 	msg1.Body().BodyPayload = &testPayloadProvider{[]byte("payload")}
-	msg1.Body().Extensions = []ExtensionProvider{{&testPayloadProvider{[]byte("ext1")}, 1}}
+	msg1.Body().Extensions = []ExtensionProvider{{&testPayloadProvider{[]byte("ext1.0")}, 1}}
 
 	rec2 := RecExample2{}
 	rec2.Str = "second"
 	rec2.RefTo = NewLazyLocal(65537, msg1.Body().GetHashDispenser())
+	rec2.Body().BodyPayload = &testPayloadProvider{[]byte("payload2")}
 
 	nvlp1 := NewMessageEnvelope(pcp, &msg1, &rec2)
 	b, err := nvlp1.Marshal()

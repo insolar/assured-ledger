@@ -6,9 +6,10 @@
 package badgertools
 
 import (
-	"github.com/pkg/errors"
 	"os"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // ErrEOF indicates an end of file when trying to read from a memory mapped file

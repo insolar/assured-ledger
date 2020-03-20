@@ -7,8 +7,9 @@ package logfmt
 
 import (
 	"errors"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"strings"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type errorMarshaller struct {

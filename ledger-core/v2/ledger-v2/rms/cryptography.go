@@ -20,7 +20,7 @@ type PlatformCryptographyProvider interface {
 
 type CryptographyScheme interface {
 	CryptographyScheme()
-	GetRecordBodyDigester() cryptkit.DataDigester
+	GetRecordBodySigner() cryptkit.DataSigner
 }
 
 type PayloadProvider interface {

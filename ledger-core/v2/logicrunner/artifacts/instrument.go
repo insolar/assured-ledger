@@ -12,11 +12,12 @@ import (
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/opentracing/opentracing-go"
 )
 
 type methodInstrumenter struct {

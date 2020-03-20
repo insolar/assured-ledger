@@ -6,9 +6,10 @@
 package logoutput
 
 import (
-	"github.com/stretchr/testify/require"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetCallerInfo(t *testing.T) {

@@ -9,8 +9,9 @@ package jetid
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPrefixTree_SerializeCombinations(t *testing.T) {

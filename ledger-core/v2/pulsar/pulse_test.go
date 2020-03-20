@@ -8,10 +8,11 @@ package pulsar
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewPulse(t *testing.T) {

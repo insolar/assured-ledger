@@ -11,6 +11,9 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -23,8 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func getController(t *testing.T) *pulseController {

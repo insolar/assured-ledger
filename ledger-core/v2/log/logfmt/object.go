@@ -6,9 +6,10 @@
 package logfmt
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Presence of this interface indicates that this object can be used as a log event

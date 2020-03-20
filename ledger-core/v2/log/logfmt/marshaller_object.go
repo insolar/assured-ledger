@@ -6,9 +6,10 @@
 package logfmt
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 	"reflect"
 	"strconv"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 )
 
 type objectMarshaller struct {

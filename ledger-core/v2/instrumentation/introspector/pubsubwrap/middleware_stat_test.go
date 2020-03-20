@@ -9,9 +9,10 @@ import (
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 )
 
 func TestMiddlewareStat(t *testing.T) {

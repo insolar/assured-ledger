@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
@@ -23,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/insolar/component-manager"
 )
 
 type calculatorErrorSuite struct {

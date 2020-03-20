@@ -13,11 +13,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBackuper_BadConfig(t *testing.T) {

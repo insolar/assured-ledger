@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"sync"
 
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -17,10 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
-	"go.opencensus.io/stats"
+
+	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/pkg/errors"
 )
 
 const (

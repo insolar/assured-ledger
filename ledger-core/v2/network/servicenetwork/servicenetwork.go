@@ -11,6 +11,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/pkg/errors"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -24,7 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/termination"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
-	"github.com/insolar/component-manager"
 )
 
 // ServiceNetwork is facade for network.

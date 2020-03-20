@@ -8,8 +8,9 @@ package proc
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"

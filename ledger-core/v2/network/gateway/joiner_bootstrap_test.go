@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
@@ -18,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/stretchr/testify/assert"
 )
 
 type fixture struct {

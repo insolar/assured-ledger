@@ -19,22 +19,20 @@ option (gogoproto.stable_marshaler_all) = true; // makes deterministic
 
 message InternalRecordEnvelope {
     reserved 1 to 15;
-    // uint32 Polymorph = 16; not needed as field(17) has same properties and is never empty
     bytes Head = 17 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
     bytes Body = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
-    repeated bytes Extensions = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    bytes BodySignature = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    repeated bytes Extensions = 20 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
 }
 
 message InternalMessageEnvelope {
     reserved 1 to 15;
-    // uint32 Polymorph = 16; not needed as field(17) has same properties and is never empty
-    //* Start of primary RecordEnvelope *//
     bytes MsgBody = 17 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
     bytes RecBody = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
-    repeated bytes RecExtensions = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
-    //* End of primary RecordEnvelope *//
+    bytes RecBodySignature = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    repeated bytes RecExtensions = 20 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
 
-    InternalMessageBundle BundleRecords = 20 [(gogoproto.customtype) = "interceptorBundle", (gogoproto.nullable) = false, (gogoproto.embed) = true];
+    InternalMessageBundle BundleRecords = 21 [(gogoproto.customtype) = "interceptorBundle", (gogoproto.nullable) = false, (gogoproto.embed) = true];
 }
 
 message InternalMessageBundle {

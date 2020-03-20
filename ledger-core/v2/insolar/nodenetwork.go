@@ -7,20 +7,15 @@ package insolar
 
 import (
 	"crypto"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/apinetwork"
 )
 
 const (
 	ShortNodeIDSize = 4
 )
 
-// ShortNodeID is the shortened ID of node that is unique inside the globe
-type ShortNodeID uint32 // ZERO is RESERVED
-
-const AbsentShortNodeID ShortNodeID = 0
-
-func (v ShortNodeID) IsAbsent() bool { return v == AbsentShortNodeID }
-
-func (v ShortNodeID) Equal(other ShortNodeID) bool { return v == other }
+type ShortNodeID = apinetwork.ShortNodeID
 
 // GlobuleID is the ID of the globe
 type GlobuleID uint32

@@ -9,11 +9,12 @@ package internal
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/insolar/component-manager"
+	"golang.org/x/net/context"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/introspector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/introspector/pubsubwrap"
-	"github.com/insolar/component-manager"
-	"golang.org/x/net/context"
 )
 
 // PublisherWrapper setups and returns introspection wrapper for message.Publisher.

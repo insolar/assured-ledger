@@ -9,8 +9,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"go.opencensus.io/stats"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type dropKey struct {

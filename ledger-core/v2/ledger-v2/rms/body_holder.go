@@ -21,9 +21,9 @@ type RecordBodyHolder struct {
 	BodyPayload PayloadProvider
 	Extensions  []ExtensionProvider
 
-	digester cryptkit.DataDigester
-	bodyHash cryptkit.Digest
-	headHash *HashDispenser
+	digester          cryptkit.DataSigner
+	bodyHash          cryptkit.Digest
+	headHashDispenser *HashDispenser
 }
 
 func (m *RecordBodyHolder) ProtoSize() int {
@@ -63,20 +63,21 @@ func (m *RecordBodyHolder) Unmarshal(b []byte) error {
 		return m.setHash(cryptkit.NewDigest(longbits.EmptyByteString, ""))
 	}
 	return throw.IllegalValue()
-
 }
 
 func (m *RecordBodyHolder) GetHashDispenser() *HashDispenser {
-	if m.headHash == nil {
-		m.headHash = &HashDispenser{}
+	if m.headHashDispenser == nil {
+		m.headHashDispenser = &HashDispenser{}
 	}
-	return m.headHash
+	return m.headHashDispenser
 }
 
-func (m *RecordBodyHolder) unsetHash(head []byte) {
-	if hd := m.headHash; hd != nil {
-		m.headHash = nil
-		hd.set(m.digester.DigestBytes(head))
+func (m *RecordBodyHolder) finalizeHash(head, signature []byte) {
+	if hd := m.headHashDispenser; hd != nil {
+		m.headHashDispenser = nil
+		headHash := m.digester.DigestBytes(head)
+		hd.set(headHash)
+		// m.digester.SignDigest(headHash)
 	}
 	m.bodyHash = cryptkit.Digest{}
 }
@@ -111,7 +112,7 @@ func (m *RecordBodyHolder) prepareInterceptor(cryptProvider PlatformCryptography
 		body.bodyMsg.MainContent = m.BodyPayload.GetPayloadContainer(bodyScheme)
 	}
 
-	bodySchemeDigester := bodyScheme.GetRecordBodyDigester()
+	bodySchemeDigester := bodyScheme.GetRecordBodySigner()
 	m.digester = bodySchemeDigester
 
 	for i, ext := range m.Extensions {
@@ -130,11 +131,11 @@ func (m *RecordBodyHolder) beforeAssistedMarshal(cryptProvider PlatformCryptogra
 	return m.prepareInterceptor(cryptProvider, true)
 }
 
-func (m *RecordBodyHolder) afterAssistedMarshal(head []byte) error {
+func (m *RecordBodyHolder) afterAssistedMarshal(head, signature []byte) error {
 	if head == nil {
 		panic(throw.IllegalState())
 	}
-	m.unsetHash(head)
+	m.finalizeHash(head, signature)
 	m.digester = nil
 	return nil
 }
@@ -143,9 +144,11 @@ func (m *RecordBodyHolder) beforeAssistedUnmarshal(cryptProvider PlatformCryptog
 	return m.prepareInterceptor(cryptProvider, false)
 }
 
-func (m *RecordBodyHolder) afterAssistedUnmarshal(head []byte, expectedExtensions, actualExtensions []interceptor, actualHashes []interceptorHash) error {
+func (m *RecordBodyHolder) afterAssistedUnmarshal(head, signature []byte,
+	expectedExtensions, actualExtensions []interceptor, actualHashes []interceptorHash,
+) error {
 	err := m.checkExtensions(expectedExtensions, actualExtensions, actualHashes)
-	m.unsetHash(head)
+	m.finalizeHash(head, signature)
 	m.digester = nil
 	return err
 }
@@ -230,7 +233,7 @@ func (p *interceptorBody) MarshalTo(b []byte) (int, error) {
 
 func (p *interceptorBody) Unmarshal(b []byte) error {
 	if p.bodyMsg.MainContent == nil {
-		p.bodyMsg.MainContent = noMessage{}
+		p.bodyMsg.MainContent = &interceptor{}
 	}
 	if err := p.bodyMsg.Unmarshal(b); err == nil {
 		p.captured = b

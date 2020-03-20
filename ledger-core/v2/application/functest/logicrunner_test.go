@@ -12,8 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"

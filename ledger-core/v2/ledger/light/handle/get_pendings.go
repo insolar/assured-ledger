@@ -9,10 +9,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/proc"
-	"github.com/pkg/errors"
 )
 
 type GetPendings struct {

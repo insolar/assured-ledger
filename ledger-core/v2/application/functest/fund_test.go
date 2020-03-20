@@ -13,9 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFoundationMemberCreate(t *testing.T) {

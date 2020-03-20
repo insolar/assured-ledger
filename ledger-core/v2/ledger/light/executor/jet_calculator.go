@@ -8,9 +8,10 @@ package executor
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
-	"github.com/pkg/errors"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/executor.JetCalculator -o ./ -s _mock.go -g

@@ -9,10 +9,11 @@ import (
 	"context"
 	fmt "fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/pkg/errors"
 )
 
 func (j *JetInfo) updateSplit(split bool) error {

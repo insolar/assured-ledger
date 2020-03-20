@@ -8,9 +8,10 @@ package node
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNode_Version(t *testing.T) {
