@@ -28,6 +28,7 @@ type BasicDigester interface {
 
 type DataDigester interface {
 	BasicDigester
+	// deprecated
 	DigestData(io.Reader) Digest
 	DigestBytes([]byte) Digest
 	NewHasher() DigestHasher

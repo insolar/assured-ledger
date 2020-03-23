@@ -7,6 +7,7 @@ package cryptkit
 
 import (
 	"hash"
+	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -17,6 +18,27 @@ var _ hash.Hash = DigestHasher{}
 type DigestHasher struct {
 	BasicDigester
 	hash.Hash
+}
+
+func (v DigestHasher) DigestReader(r io.Reader) DigestHasher {
+	if _, err := io.Copy(v.Hash, r); err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func (v DigestHasher) DigestOf(w io.WriterTo) DigestHasher {
+	if _, err := w.WriteTo(v.Hash); err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func (v DigestHasher) DigestBytes(b []byte) DigestHasher {
+	if _, err := v.Hash.Write(b); err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func (v DigestHasher) SumToDigest() Digest {

@@ -9,7 +9,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -36,6 +35,12 @@ type NodeStateHashMock struct {
 	beforeCopyOfDigestCounter uint64
 	CopyOfDigestMock          mNodeStateHashMockCopyOfDigest
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mNodeStateHashMockCopyTo
+
 	funcEquals          func(other cryptkit.DigestHolder) (b1 bool)
 	inspectFuncEquals   func(other cryptkit.DigestHolder)
 	afterEqualsCounter  uint64
@@ -59,12 +64,6 @@ type NodeStateHashMock struct {
 	afterGetDigestMethodCounter  uint64
 	beforeGetDigestMethodCounter uint64
 	GetDigestMethodMock          mNodeStateHashMockGetDigestMethod
-
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mNodeStateHashMockRead
 
 	funcSignWith          func(signer cryptkit.DigestSigner) (s1 cryptkit.SignedDigestHolder)
 	inspectFuncSignWith   func(signer cryptkit.DigestSigner)
@@ -92,6 +91,9 @@ func NewNodeStateHashMock(t minimock.Tester) *NodeStateHashMock {
 
 	m.CopyOfDigestMock = mNodeStateHashMockCopyOfDigest{mock: m}
 
+	m.CopyToMock = mNodeStateHashMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*NodeStateHashMockCopyToParams{}
+
 	m.EqualsMock = mNodeStateHashMockEquals{mock: m}
 	m.EqualsMock.callArgs = []*NodeStateHashMockEqualsParams{}
 
@@ -100,9 +102,6 @@ func NewNodeStateHashMock(t minimock.Tester) *NodeStateHashMock {
 	m.FoldToUint64Mock = mNodeStateHashMockFoldToUint64{mock: m}
 
 	m.GetDigestMethodMock = mNodeStateHashMockGetDigestMethod{mock: m}
-
-	m.ReadMock = mNodeStateHashMockRead{mock: m}
-	m.ReadMock.callArgs = []*NodeStateHashMockReadParams{}
 
 	m.SignWithMock = mNodeStateHashMockSignWith{mock: m}
 	m.SignWithMock.callArgs = []*NodeStateHashMockSignWithParams{}
@@ -539,6 +538,221 @@ func (m *NodeStateHashMock) MinimockCopyOfDigestInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
 		m.t.Error("Expected call to NodeStateHashMock.CopyOfDigest")
+	}
+}
+
+type mNodeStateHashMockCopyTo struct {
+	mock               *NodeStateHashMock
+	defaultExpectation *NodeStateHashMockCopyToExpectation
+	expectations       []*NodeStateHashMockCopyToExpectation
+
+	callArgs []*NodeStateHashMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// NodeStateHashMockCopyToExpectation specifies expectation struct of the NodeStateHash.CopyTo
+type NodeStateHashMockCopyToExpectation struct {
+	mock    *NodeStateHashMock
+	params  *NodeStateHashMockCopyToParams
+	results *NodeStateHashMockCopyToResults
+	Counter uint64
+}
+
+// NodeStateHashMockCopyToParams contains parameters of the NodeStateHash.CopyTo
+type NodeStateHashMockCopyToParams struct {
+	p []byte
+}
+
+// NodeStateHashMockCopyToResults contains results of the NodeStateHash.CopyTo
+type NodeStateHashMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for NodeStateHash.CopyTo
+func (mmCopyTo *mNodeStateHashMockCopyTo) Expect(p []byte) *mNodeStateHashMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("NodeStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &NodeStateHashMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &NodeStateHashMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeStateHash.CopyTo
+func (mmCopyTo *mNodeStateHashMockCopyTo) Inspect(f func(p []byte)) *mNodeStateHashMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for NodeStateHashMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by NodeStateHash.CopyTo
+func (mmCopyTo *mNodeStateHashMockCopyTo) Return(i1 int) *NodeStateHashMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("NodeStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &NodeStateHashMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &NodeStateHashMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the NodeStateHash.CopyTo method
+func (mmCopyTo *mNodeStateHashMockCopyTo) Set(f func(p []byte) (i1 int)) *NodeStateHashMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the NodeStateHash.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the NodeStateHash.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the NodeStateHash.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mNodeStateHashMockCopyTo) When(p []byte) *NodeStateHashMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("NodeStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &NodeStateHashMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &NodeStateHashMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up NodeStateHash.CopyTo return parameters for the expectation previously defined by the When method
+func (e *NodeStateHashMockCopyToExpectation) Then(i1 int) *NodeStateHashMock {
+	e.results = &NodeStateHashMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements NodeStateHash
+func (mmCopyTo *NodeStateHashMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &NodeStateHashMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := NodeStateHashMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("NodeStateHashMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the NodeStateHashMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to NodeStateHashMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished NodeStateHashMock.CopyTo invocations
+func (mmCopyTo *NodeStateHashMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of NodeStateHashMock.CopyTo invocations
+func (mmCopyTo *NodeStateHashMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to NodeStateHashMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mNodeStateHashMockCopyTo) Calls() []*NodeStateHashMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*NodeStateHashMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *NodeStateHashMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *NodeStateHashMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to NodeStateHashMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeStateHashMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to NodeStateHashMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to NodeStateHashMock.CopyTo")
 	}
 }
 
@@ -1186,222 +1400,6 @@ func (m *NodeStateHashMock) MinimockGetDigestMethodInspect() {
 	}
 }
 
-type mNodeStateHashMockRead struct {
-	mock               *NodeStateHashMock
-	defaultExpectation *NodeStateHashMockReadExpectation
-	expectations       []*NodeStateHashMockReadExpectation
-
-	callArgs []*NodeStateHashMockReadParams
-	mutex    sync.RWMutex
-}
-
-// NodeStateHashMockReadExpectation specifies expectation struct of the NodeStateHash.Read
-type NodeStateHashMockReadExpectation struct {
-	mock    *NodeStateHashMock
-	params  *NodeStateHashMockReadParams
-	results *NodeStateHashMockReadResults
-	Counter uint64
-}
-
-// NodeStateHashMockReadParams contains parameters of the NodeStateHash.Read
-type NodeStateHashMockReadParams struct {
-	p []byte
-}
-
-// NodeStateHashMockReadResults contains results of the NodeStateHash.Read
-type NodeStateHashMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for NodeStateHash.Read
-func (mmRead *mNodeStateHashMockRead) Expect(p []byte) *mNodeStateHashMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("NodeStateHashMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &NodeStateHashMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &NodeStateHashMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeStateHash.Read
-func (mmRead *mNodeStateHashMockRead) Inspect(f func(p []byte)) *mNodeStateHashMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for NodeStateHashMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by NodeStateHash.Read
-func (mmRead *mNodeStateHashMockRead) Return(n int, err error) *NodeStateHashMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("NodeStateHashMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &NodeStateHashMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &NodeStateHashMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the NodeStateHash.Read method
-func (mmRead *mNodeStateHashMockRead) Set(f func(p []byte) (n int, err error)) *NodeStateHashMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the NodeStateHash.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the NodeStateHash.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the NodeStateHash.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mNodeStateHashMockRead) When(p []byte) *NodeStateHashMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("NodeStateHashMock.Read mock is already set by Set")
-	}
-
-	expectation := &NodeStateHashMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &NodeStateHashMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up NodeStateHash.Read return parameters for the expectation previously defined by the When method
-func (e *NodeStateHashMockReadExpectation) Then(n int, err error) *NodeStateHashMock {
-	e.results = &NodeStateHashMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements NodeStateHash
-func (mmRead *NodeStateHashMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &NodeStateHashMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := NodeStateHashMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("NodeStateHashMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the NodeStateHashMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to NodeStateHashMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished NodeStateHashMock.Read invocations
-func (mmRead *NodeStateHashMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of NodeStateHashMock.Read invocations
-func (mmRead *NodeStateHashMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to NodeStateHashMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mNodeStateHashMockRead) Calls() []*NodeStateHashMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*NodeStateHashMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *NodeStateHashMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *NodeStateHashMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeStateHashMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeStateHashMock.Read")
-		} else {
-			m.t.Errorf("Expected call to NodeStateHashMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashMock.Read")
-	}
-}
-
 type mNodeStateHashMockSignWith struct {
 	mock               *NodeStateHashMock
 	defaultExpectation *NodeStateHashMockSignWithExpectation
@@ -1842,6 +1840,8 @@ func (m *NodeStateHashMock) MinimockFinish() {
 
 		m.MinimockCopyOfDigestInspect()
 
+		m.MinimockCopyToInspect()
+
 		m.MinimockEqualsInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -1849,8 +1849,6 @@ func (m *NodeStateHashMock) MinimockFinish() {
 		m.MinimockFoldToUint64Inspect()
 
 		m.MinimockGetDigestMethodInspect()
-
-		m.MinimockReadInspect()
 
 		m.MinimockSignWithInspect()
 
@@ -1881,11 +1879,11 @@ func (m *NodeStateHashMock) minimockDone() bool {
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
 		m.MinimockGetDigestMethodDone() &&
-		m.MinimockReadDone() &&
 		m.MinimockSignWithDone() &&
 		m.MinimockWriteToDone()
 }
