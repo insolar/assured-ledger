@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 )
 
 var _ MessageDelivery = &messageDelivery{}
@@ -54,7 +55,7 @@ const (
 
 type NodeTransportReceiver interface {
 	//ReceiveOffline()
-	Receive(h apinetwork.Header, r io.Reader)
+	Receive(h apinetwork.Header, r *iokit.LimitedReader)
 	ReceiveConnectionless(apinetwork.Header, []byte)
 }
 
@@ -93,7 +94,7 @@ type nodeDelivery struct {
 	ackBundle    []ParcelId
 }
 
-func (p *nodeDelivery) Receive(h apinetwork.Header, r io.Reader) {
+func (p *nodeDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
 	//b := make([]byte, fullSize)
 	//if _, err := io.ReadFull(r, b); err != nil {
 	//	p.parent.readError(p.sender.ShortNodeID(), err)

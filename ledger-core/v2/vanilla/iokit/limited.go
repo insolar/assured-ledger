@@ -7,11 +7,20 @@ package iokit
 
 import "io"
 
+type LenReader interface {
+	io.Reader
+	Len() int
+}
+
 func LimitWriter(w io.Writer, n int64) *LimitedWriter {
 	return &LimitedWriter{TeeWriter{main: w}, n}
 }
 
 func LimitReader(r io.Reader, n int64) *LimitedReader {
+	return &LimitedReader{TeeReader{main: r}, n}
+}
+
+func NewBufferWith(r io.Reader, n int64) *LimitedReader {
 	return &LimitedReader{TeeReader{main: r}, n}
 }
 
@@ -42,7 +51,7 @@ type LimitedReader struct {
 
 func (l *LimitedReader) Read(p []byte) (n int, err error) {
 	if l.n <= 0 {
-		return 0, io.ErrShortWrite
+		return 0, io.ErrUnexpectedEOF
 	}
 	if int64(len(p)) > l.n {
 		p = p[0:l.n]
@@ -54,6 +63,10 @@ func (l *LimitedReader) Read(p []byte) (n int, err error) {
 
 func (l *LimitedReader) RemainingBytes() int64 {
 	return l.n
+}
+
+func (l *LimitedReader) Len() int {
+	return int(l.n)
 }
 
 /***********************************************/

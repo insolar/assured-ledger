@@ -150,7 +150,7 @@ func (h *Header) SetPacketType(packetType uint8) {
 	h.ProtocolAndPacketType = packetType | h.ProtocolAndPacketType&protocolTypeMask
 }
 
-func (h *Header) GetPayloadLength() (uint64, error) {
+func (h *Header) GetFullLength() (uint64, error) {
 	if h.HeaderAndPayloadLength < payloadLengthFlag {
 		return uint64(h.HeaderAndPayloadLength), nil
 	}
@@ -158,6 +158,18 @@ func (h *Header) GetPayloadLength() (uint64, error) {
 		return 0, throw.IllegalValue()
 	}
 	return CalcExcessivePayloadLength(h.HeaderAndPayloadLength&(payloadLengthFlag-1), h.ExcessiveLength), nil
+}
+
+func (h *Header) GetPayloadLength() (uint64, error) {
+	l, err := h.GetFullLength()
+	if err != nil {
+		return 0, err
+	}
+	if sz := uint64(h.ByteSize()); l < sz {
+		return 0, throw.IllegalValue()
+	} else {
+		return l - sz, nil
+	}
 }
 
 func CalcExcessivePayloadLength(baseLength uint16, excessive uint32) uint64 {
