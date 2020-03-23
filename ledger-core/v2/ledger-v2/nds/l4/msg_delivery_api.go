@@ -5,21 +5,12 @@
 
 package l4
 
-import (
-	"io"
-)
-
 type MessageDelivery interface {
 	ShipTo(to DeliveryAddress, parcel DeliveryParcel, needsTag bool) (DeliveryTag, error)
 	ShipReturn(to ReturnAddress, parcel DeliveryParcel, needsTag bool) (DeliveryTag, error)
 }
 
 type DeliveryTag struct {
-}
-
-type SizerWriterTo interface {
-	io.WriterTo
-	Size() int
 }
 
 type DeliveryPolicies uint8

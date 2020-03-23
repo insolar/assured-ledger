@@ -16,6 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var pcp PlatformCryptographyProvider = testPlatformCryptographyProvider{}
@@ -25,7 +26,7 @@ type testPlatformCryptographyProvider struct{}
 func (t testPlatformCryptographyProvider) PlatformCryptographyProvider() {
 }
 
-func (t testPlatformCryptographyProvider) GetPlatformCryptographyScheme() CryptographyScheme {
+func (t testPlatformCryptographyProvider) GetPlatformCryptographyScheme() PlatformCryptographyScheme {
 	return testCryptographyScheme{}
 }
 
@@ -34,6 +35,10 @@ func (t testPlatformCryptographyProvider) GetExtensionCryptographyScheme(Extensi
 }
 
 type testCryptographyScheme struct{}
+
+func (t testCryptographyScheme) GetRecordBodySigner() cryptkit.DataSigner {
+	panic("implement me")
+}
 
 func (t testCryptographyScheme) CryptographyScheme() {}
 
@@ -60,6 +65,10 @@ func (t typeDataDigester) DigestBytes(a []byte) cryptkit.Digest {
 	b := make([]byte, t.GetDigestSize())
 	copy(b, a)
 	return cryptkit.NewDigest(longbits.NewMutableFixedSize(b), "test")
+}
+
+func (t typeDataDigester) NewHasher() cryptkit.DigestHasher {
+	panic(throw.NotImplemented())
 }
 
 type testPayloadProvider struct {

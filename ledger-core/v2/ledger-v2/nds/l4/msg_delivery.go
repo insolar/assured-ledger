@@ -10,7 +10,6 @@ import (
 	"math"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l2"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/apinetwork"
 )
 
@@ -21,7 +20,8 @@ func NewMessageDelivery() MessageDelivery {
 }
 
 type messageDelivery struct {
-	nodes map[apinetwork.ShortNodeID]*nodeDelivery
+	nodeMapper NodeDeliveryMapper
+	nodes      map[apinetwork.ShortNodeID]*nodeDelivery
 }
 
 func (p *messageDelivery) ShipTo(to DeliveryAddress, parcel DeliveryParcel, needsTag bool) (DeliveryTag, error) {
@@ -32,15 +32,29 @@ func (p *messageDelivery) ShipReturn(to ReturnAddress, parcel DeliveryParcel, ne
 	panic("implement me")
 }
 
+func (p *messageDelivery) readError(id apinetwork.ShortNodeID, err error) {
+
+}
+
 type NodeDeliveryMapper interface {
 	MapAddress(DeliveryAddress) apinetwork.ShortNodeID
 	IsOnlineNode(apinetwork.ShortNodeID) bool
 	ConnectNodeTransport(apinetwork.ShortNodeID, NodeTransportReceiver) (NodeTransportSender, error)
+	SetNodeStatusCallback(func(apinetwork.ShortNodeID, NodeStatusUpdate))
 }
 
+type NodeStatusUpdate uint8
+
+const (
+	NodeAbsent NodeStatusUpdate = iota
+	NodeActive
+	NodeSuspended
+	NodePowerZero
+)
+
 type NodeTransportReceiver interface {
-	ReceiveOffline()
-	Receive(apinetwork.Header, io.Reader)
+	//ReceiveOffline()
+	Receive(h apinetwork.Header, r io.Reader)
 	ReceiveConnectionless(apinetwork.Header, []byte)
 }
 
@@ -61,19 +75,41 @@ type msgParcel struct {
 	//to       DeliveryAddress
 	returnId ParcelId
 
+	// state headSent, headAck, bodySent
+
 	report *DeliveryTag
 }
 
+var _ NodeTransportReceiver = &nodeDelivery{}
+
 type nodeDelivery struct {
-	transportTiny  l2.Transport
-	transportSmall l2.Transport
-	transportLarge l2.Transport
+	parent *messageDelivery
+	sender NodeTransportSender
 
 	suspended map[ParcelId]*msgParcel
 
 	receiveMutex sync.Mutex
 	received     receiveDeduplicator
 	ackBundle    []ParcelId
+}
+
+func (p *nodeDelivery) Receive(h apinetwork.Header, r io.Reader) {
+	//b := make([]byte, fullSize)
+	//if _, err := io.ReadFull(r, b); err != nil {
+	//	p.parent.readError(p.sender.ShortNodeID(), err)
+	//}
+	//p.receive(h, b, false)
+	// check signature
+}
+
+func (p *nodeDelivery) ReceiveConnectionless(h apinetwork.Header, b []byte) {
+	p.receive(h, b, true)
+}
+
+func (p *nodeDelivery) receive(h apinetwork.Header, b []byte, connectionless bool) {
+	p.receiveMutex.Lock()
+	defer p.receiveMutex.Unlock()
+
 }
 
 type msgOut struct {

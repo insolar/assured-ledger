@@ -14,12 +14,16 @@ import (
 type PlatformCryptographyProvider interface {
 	PlatformCryptographyProvider()
 
-	GetPlatformCryptographyScheme() CryptographyScheme
+	GetPlatformCryptographyScheme() PlatformCryptographyScheme
 	GetExtensionCryptographyScheme(ExtensionId) CryptographyScheme
 }
 
 type CryptographyScheme interface {
 	CryptographyScheme()
+}
+
+type PlatformCryptographyScheme interface {
+	CryptographyScheme
 	GetRecordBodySigner() cryptkit.DataSigner
 }
 

@@ -8,16 +8,67 @@ package apinetwork
 import (
 	"encoding/binary"
 	"io"
-	"math"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var _ io.Writer = &Header{}
-var _ io.Reader = &Header{}
+type SerializationContext interface {
+	PrepareHeader(*Header) (pulse.Number, error)
+	GetPayloadSigner() cryptkit.DataSigner
+	GetPayloadEncrypter() cryptkit.Encrypter
+}
+
+type DeserializationContext interface {
+	VerifyHeader(*Header, pulse.Number) error
+	GetPayloadVerifier() cryptkit.DataSignatureVerifier
+	GetPayloadDecrypter() cryptkit.Decrypter
+	GetPayloadFactory() DeserializationFactory
+}
+
+type Serializer interface {
+	SerializeTo(SerializationContext, io.Writer) error
+}
+
+type Deserializer interface {
+	DeserializeFrom(DeserializationContext, io.Reader) error
+}
+
+type SizeAwareSerializer interface {
+	ByteSize() uint
+	SerializeTo(ctx SerializationContext, writer *iokit.LimitedWriter) error
+}
+
+type SizeAwareDeserializer interface {
+	DeserializeFrom(ctx DeserializationContext, reader *iokit.LimitedReader) error
+}
+
+type Serializable interface {
+	SizeAwareSerializer
+	SizeAwareDeserializer
+}
+
+type PayloadCompleteness uint8
+
+const (
+	CompletePayload PayloadCompleteness = iota
+	BodyPayload
+	HeadPayload
+)
+
+type DeserializationFactory interface {
+	DeserializePayloadFrom(ctx DeserializationContext, mode PayloadCompleteness, reader *iokit.LimitedReader) (Serializable, error)
+}
+
+const (
+	HeaderByteSizeMin = 16
+	HeaderByteSizeMax = HeaderByteSizeMin + 4
+)
 
 /*
-	ByteSize=16
+	ByteSize=16-20-24
 */
 type Header struct {
 	/*
@@ -27,25 +78,21 @@ type Header struct {
 
 	ProtocolAndPacketType  uint8  `insolar-transport:"[0:3]=header:Packet;[4:7]=header:Protocol"` // [00-03]PacketType [04-07]ProtocolType
 	PacketFlags            uint8  `insolar-transport:"[0]=IsRelayRestricted;[1]=IsBodyEncrypted;[2:]=flags:PacketFlags"`
-	HeaderAndPayloadLength uint16 // depends on bitsByteLength[ProtocolType], [15]=IsExcessiveLength
+	HeaderAndPayloadLength uint16 `insolar-transport:"[15]=IsExcessiveLength"` // depends on bitsByteLength[ProtocolType], [15]=IsExcessiveLength
 	SourceID               uint32 // may differ from actual sender when relay is in use, MUST NOT =0
 	TargetID               uint32 // indicates final destination, if =0 then there is no relay allowed by sender and receiver MUST decline a packet if actual sender != source
+	ExcessiveLength        uint32 `insolar-transport:"optional=IsExcessiveLength"`
+	//	PulseNumber            pulse.Number `insolar-transport:"send=ignore"` // depends on protocol
 }
 
 type ProtocolType uint8
 
 const (
 	ProtocolUnknown ProtocolType = iota
-	ProtocolTypePulsar
 	ProtocolTypeGlobulaConsensus
+	ProtocolTypePulsar
 	ProtocolTypeNodeMessage
 )
-
-var maskByteLength = []uint16{
-	ProtocolTypePulsar:           1<<11 - 1,
-	ProtocolTypeGlobulaConsensus: 1<<11 - 1,
-	ProtocolTypeNodeMessage:      math.MaxUint16, // can use excessive lengths
-}
 
 const (
 	packetTypeBitSize = 4
@@ -57,8 +104,8 @@ const (
 	ProtocolTypeMax     = 1<<protocolTypeBitSize - 1
 	protocolTypeMask    = ProtocolTypeMax << protocolTypeShift
 
-	payloadLengthBits          = 15
-	payloadExcessiveLengthMask = 1 << payloadLengthBits
+	payloadLengthBits = 15
+	payloadLengthFlag = 1 << payloadLengthBits
 )
 
 type FlagIndex uint8
@@ -103,32 +150,34 @@ func (h *Header) SetPacketType(packetType uint8) {
 	h.ProtocolAndPacketType = packetType | h.ProtocolAndPacketType&protocolTypeMask
 }
 
-func (h *Header) GetPayloadLength() uint16 {
-	if h.HeaderAndPayloadLength < payloadExcessiveLengthMask {
-		return h.HeaderAndPayloadLength // & maskByteLength[h.GetProtocolType()]
+func (h *Header) GetPayloadLength() (uint64, error) {
+	if h.HeaderAndPayloadLength < payloadLengthFlag {
+		return uint64(h.HeaderAndPayloadLength), nil
 	}
-	panic(throw.IllegalState())
+	if h.ExcessiveLength == 0 {
+		return 0, throw.IllegalValue()
+	}
+	return CalcExcessivePayloadLength(h.HeaderAndPayloadLength&(payloadLengthFlag-1), h.ExcessiveLength), nil
 }
 
-func (h *Header) SetPayloadLength(payloadLength uint16) {
-	mask := maskByteLength[h.GetProtocolType()]
-
-	if payloadLength > mask {
-		panic(throw.IllegalValue())
-	}
-	h.HeaderAndPayloadLength = payloadLength
+func CalcExcessivePayloadLength(baseLength uint16, excessive uint32) uint64 {
+	return uint64(baseLength) | uint64(excessive)<<payloadLengthBits
 }
 
-func (h *Header) GetExcessivePayloadLength() (uint16, bool) {
-	return h.HeaderAndPayloadLength &^ payloadExcessiveLengthMask, h.HeaderAndPayloadLength >= payloadExcessiveLengthMask
+func (h *Header) SetPayloadLength(payloadLength uint64) uint64 {
+	payloadLength += HeaderByteSizeMin
+	if payloadLength < payloadLengthFlag {
+		h.HeaderAndPayloadLength = uint16(payloadLength)
+	} else {
+		payloadLength += 4
+		h.HeaderAndPayloadLength = uint16(payloadLength | payloadLengthFlag)
+		h.ExcessiveLength = uint32(payloadLength >> payloadLengthBits)
+	}
+	return payloadLength
 }
 
-func (h *Header) SetExcessivePayloadLength(payloadLength uint) uint {
-	if maskByteLength[h.GetProtocolType()] != math.MaxUint16 {
-		panic(throw.IllegalState())
-	}
-	h.HeaderAndPayloadLength = uint16(payloadLength | payloadExcessiveLengthMask)
-	return payloadLength >> payloadLengthBits
+func (h *Header) IsExcessiveLength() bool {
+	return h.HeaderAndPayloadLength&payloadLengthFlag != 0
 }
 
 func (h *Header) HasFlag(f FlagIndex) bool {
@@ -184,13 +233,33 @@ func (h *Header) hasFlag(f FlagIndex) bool {
 	return h.PacketFlags&(1<<f) != 0
 }
 
-func (h *Header) Write(b []byte) (n int, err error) {
-	if len(b) < 16 {
-		return 0, io.ErrUnexpectedEOF
+func (h *Header) ByteSize() uint {
+	if h.HeaderAndPayloadLength&payloadLengthFlag != 0 {
+		return HeaderByteSizeMax
 	}
+	return HeaderByteSizeMin
+}
 
+func (h *Header) DeserializeFromBytes(b []byte) (uint, error) {
+	if err := h.deserializeMinFromBytes(b); err != nil {
+		return 0, err
+	}
+	switch fullSize := h.ByteSize(); {
+	case fullSize == HeaderByteSizeMin:
+		return fullSize, nil
+	case fullSize != HeaderByteSizeMax:
+		return 0, throw.Impossible()
+	default:
+		if err := h.deserializeExtraFromBytes(b[HeaderByteSizeMin:]); err != nil {
+			return 0, err
+		}
+		return fullSize, nil
+	}
+}
+
+func (h *Header) deserializeMinFromBytes(b []byte) error {
 	byteOrder := binary.LittleEndian
-	_ = b[15]
+	_ = b[HeaderByteSizeMin-1]
 
 	h.ReceiverID = byteOrder.Uint32(b)
 	h.ProtocolAndPacketType = b[4]
@@ -198,27 +267,86 @@ func (h *Header) Write(b []byte) (n int, err error) {
 	h.HeaderAndPayloadLength = byteOrder.Uint16(b[6:])
 	h.SourceID = byteOrder.Uint32(b[8:])
 	h.TargetID = byteOrder.Uint32(b[12:])
-	return 16, nil
+	return nil
 }
 
-func (h *Header) Read(b []byte) (n int, err error) {
-	switch {
-	case !h.IsValid():
-		return 0, throw.IllegalState()
-	case len(b) == 0:
-		return 0, nil
-	case len(b) < 16:
-		return 0, io.ErrShortBuffer
+func (h *Header) deserializeExtraFromBytes(b []byte) error {
+	byteOrder := binary.LittleEndian
+	h.ExcessiveLength = byteOrder.Uint32(b[0:])
+	if h.ExcessiveLength == 0 {
+		return throw.IllegalState()
 	}
+	return nil
+}
+
+func (h *Header) SerializeToBytes(b []byte) (uint, error) {
+	if !h.IsValid() {
+		return 0, throw.IllegalState()
+	}
+	_ = b[HeaderByteSizeMin-1]
 
 	byteOrder := binary.LittleEndian
-	_ = b[15]
-
 	byteOrder.PutUint32(b, h.ReceiverID)
 	b[4] = h.ProtocolAndPacketType
 	b[5] = h.PacketFlags
 	byteOrder.PutUint16(b[6:], h.HeaderAndPayloadLength)
 	byteOrder.PutUint32(b[8:], h.SourceID)
 	byteOrder.PutUint32(b[12:], h.TargetID)
-	return 16, nil
+	size := h.ByteSize()
+	if size > HeaderByteSizeMin {
+		if h.ExcessiveLength == 0 {
+			return 0, throw.IllegalState()
+		}
+		byteOrder.PutUint32(b, h.ExcessiveLength)
+	}
+	return size, nil
+}
+
+func (h *Header) SerializeTo(writer io.Writer) error {
+	if !h.IsValid() {
+		return throw.IllegalState()
+	}
+	b := make([]byte, HeaderByteSizeMax)
+	sz, err := h.SerializeToBytes(b)
+	if err != nil {
+		return err
+	}
+
+	switch n, err := writer.Write(b[:sz]); {
+	case err != nil:
+		return err
+	case uint(n) != sz:
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+func (h *Header) DeserializeFrom(reader io.Reader) error {
+	b := make([]byte, HeaderByteSizeMin)
+	if _, err := io.ReadAtLeast(reader, b, HeaderByteSizeMin); err != nil {
+		return err
+	}
+	if err := h.deserializeMinFromBytes(b); err != nil {
+		return err
+	}
+
+	switch fullSize := h.ByteSize(); {
+	case fullSize == HeaderByteSizeMin:
+		//
+	case fullSize != HeaderByteSizeMax:
+		return throw.Impossible()
+	default:
+		n := int(fullSize - HeaderByteSizeMin)
+		if _, err := io.ReadAtLeast(reader, b, n); err != nil {
+			return err
+		}
+		if err := h.deserializeExtraFromBytes(b[:n]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (Header) GetHashingZeroPrefix() int {
+	return 4
 }

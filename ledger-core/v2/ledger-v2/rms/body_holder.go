@@ -52,7 +52,7 @@ func (m *RecordBodyHolder) MarshalTo(dAtA []byte) (int, error) {
 	case len(dAtA) < n:
 		return 0, io.ErrUnexpectedEOF
 	}
-	return m.bodyHash.Read(dAtA)
+	return m.bodyHash.CopyTo(dAtA), nil
 }
 
 func (m *RecordBodyHolder) Unmarshal(b []byte) error {
@@ -267,7 +267,7 @@ func (p *interceptorHash) MarshalTo(dAtA []byte) (int, error) {
 	if hash.FixedByteSize() > len(dAtA) {
 		return 0, io.ErrUnexpectedEOF
 	}
-	return hash.Read(dAtA)
+	return hash.CopyTo(dAtA), nil
 }
 
 func (p *interceptorHash) Unmarshal(b []byte) error {
