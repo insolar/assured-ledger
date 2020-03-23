@@ -7,6 +7,7 @@ package adapters
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"time"
 
@@ -48,13 +49,14 @@ type LocalNodeConfiguration struct {
 	timings          api.RoundTimings
 	ephemeralTimings api.RoundTimings
 	secretKeyStore   cryptkit.SecretKeyStore
+	pulsarKeys       []crypto.PublicKey
 }
 
 func (c *LocalNodeConfiguration) GetNodeCountHint() int {
 	return 10 // should provide some rough estimate of a size of a network to be joined
 }
 
-func NewLocalNodeConfiguration(ctx context.Context, keyStore insolar.KeyStore) *LocalNodeConfiguration {
+func NewLocalNodeConfiguration(ctx context.Context, keyStore insolar.KeyStore, pulsarKeys []crypto.PublicKey) *LocalNodeConfiguration {
 	privateKey, err := keyStore.GetPrivateKey("")
 	if err != nil {
 		panic(err)
@@ -67,6 +69,7 @@ func NewLocalNodeConfiguration(ctx context.Context, keyStore insolar.KeyStore) *
 		timings:          defaultRoundTimings,
 		ephemeralTimings: defaultEphemeralTimings,
 		secretKeyStore:   NewECDSASecretKeyStore(ecdsaPrivateKey),
+		pulsarKeys:       pulsarKeys,
 	}
 }
 
@@ -90,6 +93,10 @@ func (c *LocalNodeConfiguration) getConsensusTimings(t api.RoundTimings, nextPul
 	t.BeforeInPhase3ChasingDelay *= m
 
 	return t
+}
+
+func (c *LocalNodeConfiguration) GetPulsarPublicKeys() []crypto.PublicKey {
+	return append(c.pulsarKeys[:0:0], c.pulsarKeys...)
 }
 
 func (c *LocalNodeConfiguration) GetConsensusTimings(nextPulseDelta uint16) api.RoundTimings {

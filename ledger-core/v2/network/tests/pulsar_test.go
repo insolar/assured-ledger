@@ -36,11 +36,10 @@ type TestPulsar interface {
 	component.Stopper
 }
 
-func NewTestPulsar(requestsTimeoutMs, pulseDelta int32) (TestPulsar, error) {
+func NewTestPulsar(pulseDelta int32) (TestPulsar, error) {
 
 	return &testPulsar{
 		generator:         &entropygenerator.StandardEntropyGenerator{},
-		reqTimeoutMs:      requestsTimeoutMs,
 		pulseDelta:        pulseDelta,
 		cancellationToken: make(chan struct{}),
 	}, nil
@@ -53,8 +52,7 @@ type testPulsar struct {
 
 	activityMutex sync.Mutex
 
-	reqTimeoutMs int32
-	pulseDelta   int32
+	pulseDelta int32
 
 	cancellationToken chan struct{}
 }
@@ -63,8 +61,7 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 	var err error
 
 	distributorCfg := configuration.PulseDistributor{
-		BootstrapHosts:      bootstrapHosts,
-		PulseRequestTimeout: tp.reqTimeoutMs,
+		BootstrapHosts: bootstrapHosts,
 	}
 
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()

@@ -23,6 +23,8 @@ type Certificate interface {
 	GetRootDomainReference() *Reference
 	GetDiscoveryNodes() []DiscoveryNode
 
+	GetPulsarPublicKeys() []crypto.PublicKey
+
 	GetMajorityRule() int
 	GetMinRoles() (virtual uint, heavyMaterial uint, lightMaterial uint)
 }

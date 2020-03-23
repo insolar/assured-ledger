@@ -16,13 +16,7 @@ type Pulsar struct {
 }
 
 type PulseDistributor struct {
-	BootstrapHosts      []string
-	PulseRequestTimeout int32 // ms
-}
-
-type PulsarNodeAddress struct {
-	Address   string
-	PublicKey string
+	BootstrapHosts []string
 }
 
 // NewPulsar creates new default configuration for pulsar node.
@@ -36,8 +30,7 @@ func NewPulsar() Pulsar {
 			Address:  "0.0.0.0:18091",
 		},
 		PulseDistributor: PulseDistributor{
-			BootstrapHosts:      []string{"localhost:53837"},
-			PulseRequestTimeout: 1000,
+			BootstrapHosts: []string{"localhost:53837"},
 		},
 	}
 }

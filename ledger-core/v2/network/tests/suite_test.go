@@ -60,7 +60,6 @@ const (
 	UseFakeTransport = false
 	UseFakeBootstrap = true
 
-	reqTimeoutMs     int32 = 2000
 	pulseDelta       int32 = 4
 	consensusMin           = 5 // minimum count of participants that can survive when one node leaves
 	maxPulsesForJoin       = 3
@@ -117,7 +116,7 @@ func newConsensusSuite(t *testing.T, bootstrapCount, nodesCount int) *consensusS
 // Setup creates and run network with bootstrap and common nodes once before run all tests in the suite
 func (s *consensusSuite) Setup() {
 	var err error
-	s.pulsar, err = NewTestPulsar(reqTimeoutMs, pulseDelta)
+	s.pulsar, err = NewTestPulsar(pulseDelta)
 	require.NoError(s.t, err)
 
 	suiteLogger.Info("SetupTest")

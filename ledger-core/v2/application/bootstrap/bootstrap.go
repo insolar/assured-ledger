@@ -92,6 +92,11 @@ func (g *Generator) Run(ctx context.Context) error {
 		return errors.Wrap(err, "couldn't get root keys")
 	}
 
+	pulsarPublicKey, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + "pulsar_keys.json")
+	if err != nil {
+		return errors.Wrap(err, "couldn't get pulsar keys")
+	}
+
 	feePublicKey, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + "fee_member_keys.json")
 	if err != nil {
 		return errors.Wrap(err, "couldn't get fees keys")
@@ -178,7 +183,7 @@ func (g *Generator) Run(ctx context.Context) error {
 	}
 
 	inslog.Info("[ bootstrap ] create discovery certificates ...")
-	err = g.makeCertificates(ctx, discoveryNodes, discoveryNodes)
+	err = g.makeCertificates(ctx, discoveryNodes, discoveryNodes, pulsarPublicKey)
 	if err != nil {
 		return errors.Wrap(err, "generate discovery certificates failed")
 	}
@@ -202,7 +207,7 @@ func (g *Generator) Run(ctx context.Context) error {
 		}
 
 		inslog.Info("[ bootstrap ] create not discovery certificates ...", nodes)
-		err = g.makeCertificates(ctx, nodes, discoveryNodes)
+		err = g.makeCertificates(ctx, nodes, discoveryNodes, pulsarPublicKey)
 		if err != nil {
 			return errors.Wrap(err, "generate not discovery certificates failed")
 		}
@@ -247,7 +252,7 @@ func (ni nodeInfo) reference() insolar.Reference {
 	return genesisrefs.GenesisRef(ni.publicKey)
 }
 
-func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, discoveryNodes []nodeInfo) error {
+func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, discoveryNodes []nodeInfo, pulsarPublicKeyStr string) error {
 	certs := make([]certificate.Certificate, 0, len(g.config.DiscoveryNodes))
 	for _, node := range nodesInfo {
 		c := certificate.Certificate{
@@ -264,6 +269,8 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		c.MinRoles.HeavyMaterial = g.config.MinRoles.HeavyMaterial
 		c.MinRoles.LightMaterial = g.config.MinRoles.LightMaterial
 		c.BootstrapNodes = []certificate.BootstrapNode{}
+
+		c.PulsarPublicKeys = []string{pulsarPublicKeyStr}
 
 		for j, n2 := range discoveryNodes {
 			host := g.config.DiscoveryNodes[j].Host

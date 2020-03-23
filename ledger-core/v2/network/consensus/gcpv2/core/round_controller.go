@@ -23,6 +23,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
 
+const defaultOptions = coreapi.DefaultVerify
+
 type RoundStrategyFactory interface {
 	CreateRoundStrategy(online census.OnlinePopulation, config api.LocalNodeConfiguration) (RoundStrategy, PhaseControllersBundle)
 }
@@ -319,9 +321,6 @@ func (r *PhasedRoundController) _handlePacket(ctx context.Context, packet transp
 	pn := packet.GetPulseNumber()
 	/* a separate method with lock is to ensure that further packet processing is not connected to a lock */
 	prep, filterPN, _, ephemeralFeeder := r.beforeHandlePacket()
-
-	// TODO HACK - network doesnt have information about pulsars to validate packets, hackIgnoreVerification must be removed when fixed
-	const defaultOptions = coreapi.SkipVerify // coreapi.DefaultVerify
 
 	if ephemeralFeeder != nil && !packet.GetPacketType().IsEphemeralPacket() { // TODO need fix, too ugly
 		_, err := r.realm.VerifyPacketAuthenticity(ctx, packet, from, nil, coreapi.DefaultVerify, nil, defaultOptions)

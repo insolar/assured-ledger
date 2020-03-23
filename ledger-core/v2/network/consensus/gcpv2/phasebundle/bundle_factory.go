@@ -46,7 +46,6 @@ func CreateDefaultBundleConfig() BundleConfig {
 		EnableFastPhase3:                false,
 		IgnoreVectorHashes:              false,
 		DisableAggressivePhasing:        false,
-		IgnoreHostVerificationForPulses: true,
 		LockOSThreadForWorker:           true,
 		RetrySendPhase3:                 true,
 	}
@@ -62,7 +61,6 @@ type BundleConfig struct {
 	EnableFastPhase3                bool
 	IgnoreVectorHashes              bool
 	DisableAggressivePhasing        bool
-	IgnoreHostVerificationForPulses bool
 	LockOSThreadForWorker           bool
 	RetrySendPhase3                 bool
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
@@ -93,28 +92,6 @@ func (p *Pulsar) Send(ctx context.Context, pulseNumber insolar.PulseNumber) erro
 		OriginID:         [16]byte{206, 41, 229, 190, 7, 240, 162, 155, 121, 245, 207, 56, 161, 67, 189, 0},
 		PulseTimestamp:   time.Now().UnixNano(),
 		Signs:            map[string]insolar.PulseSenderConfirmation{},
-	}
-
-	payload := PulseSenderConfirmationPayload{PulseSenderConfirmation: insolar.PulseSenderConfirmation{
-		ChosenPublicKey: p.PublicKeyRaw,
-		Entropy:         entropy,
-		PulseNumber:     pulseNumber,
-	}}
-	hasher := platformpolicy.NewPlatformCryptographyScheme().IntegrityHasher()
-	hash, err := payload.Hash(hasher)
-	if err != nil {
-		return err
-	}
-	signature, err := p.CryptographyService.Sign(hash)
-	if err != nil {
-		return err
-	}
-
-	pulseForSending.Signs[p.PublicKeyRaw] = insolar.PulseSenderConfirmation{
-		ChosenPublicKey: p.PublicKeyRaw,
-		Signature:       signature.Bytes(),
-		Entropy:         entropy,
-		PulseNumber:     pulseNumber,
 	}
 
 	logger.Debug("Start a process of sending pulse")

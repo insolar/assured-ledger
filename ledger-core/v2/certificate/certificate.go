@@ -186,6 +186,10 @@ func (cert *Certificate) GetRootDomainReference() *insolar.Reference {
 	return ref
 }
 
+func (cert *Certificate) GetPulsarPublicKeys() []crypto.PublicKey {
+	return append(cert.pulsarPublicKey[:0:0], cert.pulsarPublicKey...)
+}
+
 // GetDiscoveryNodes return bootstrap nodes array
 func (cert *Certificate) GetDiscoveryNodes() []insolar.DiscoveryNode {
 	result := make([]insolar.DiscoveryNode, 0)

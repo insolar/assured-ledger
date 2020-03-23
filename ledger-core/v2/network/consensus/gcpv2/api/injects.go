@@ -7,6 +7,7 @@ package api
 
 import (
 	"context"
+	"crypto"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -145,6 +146,7 @@ type LocalNodeConfiguration interface {
 	GetConsensusTimings(nextPulseDelta uint16) RoundTimings
 	GetEphemeralTimings(nextPulseDelta uint16) RoundTimings
 	GetSecretKeyStore() cryptkit.SecretKeyStore
+	GetPulsarPublicKeys() []crypto.PublicKey
 	GetParentContext() context.Context
 	GetNodeCountHint() int
 }

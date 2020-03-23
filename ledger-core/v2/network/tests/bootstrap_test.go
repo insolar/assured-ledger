@@ -25,7 +25,7 @@ type bootstrapSuite struct {
 
 func (s *bootstrapSuite) Setup() {
 	var err error
-	s.pulsar, err = NewTestPulsar(reqTimeoutMs*10, pulseDelta*10)
+	s.pulsar, err = NewTestPulsar(pulseDelta * 10)
 	require.NoError(s.t, err)
 
 	inslogger.FromContext(s.ctx).Info("SetupTest")

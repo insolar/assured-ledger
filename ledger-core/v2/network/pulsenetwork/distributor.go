@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
@@ -44,8 +43,6 @@ type distributor struct {
 	transport   transport.DatagramTransport
 	idGenerator sequence.Generator
 
-	pulseRequestTimeout time.Duration
-
 	publicAddress   string
 	pulsarHost      *host.Host
 	bootstrapHosts  []string
@@ -65,8 +62,6 @@ func NewDistributor(conf configuration.PulseDistributor) (insolar.PulseDistribut
 
 	result := &distributor{
 		idGenerator: sequence.NewGenerator(),
-
-		pulseRequestTimeout: time.Duration(conf.PulseRequestTimeout) * time.Millisecond,
 
 		bootstrapHosts:  conf.BootstrapHosts,
 		futureManager:   futureManager,

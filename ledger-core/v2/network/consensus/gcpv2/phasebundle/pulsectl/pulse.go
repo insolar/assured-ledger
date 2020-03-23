@@ -18,14 +18,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
 )
 
-// TODO HACK - network doesnt have information about pulsars to validate packets, the next line must be removed when fixed
-
-func NewPulsePrepController(s PulseSelectionStrategy, ignoreHostVerificationForPulses bool) *PulsePrepController {
-	return &PulsePrepController{pulseStrategy: s, ignoreHostVerificationForPulses: ignoreHostVerificationForPulses}
+func NewPulsePrepController(s PulseSelectionStrategy) *PulsePrepController {
+	return &PulsePrepController{pulseStrategy: s}
 }
 
-func NewPulseController(ignoreHostVerificationForPulses bool) *PulseController {
-	return &PulseController{ignoreHostVerificationForPulses: ignoreHostVerificationForPulses}
+func NewPulseController() *PulseController {
+	return &PulseController{}
 }
 
 func (p *PulsePrepController) DispatchHostPacket(ctx context.Context, packet transport.PacketParser,
@@ -53,11 +51,11 @@ func (p *PulseController) DispatchHostPacket(ctx context.Context, packet transpo
 }
 
 func (p *PulsePrepController) HasCustomVerifyForHost(from endpoints.Inbound, verifyFlags coreapi.PacketVerifyFlags) bool {
-	return p.ignoreHostVerificationForPulses
+	return false
 }
 
 func (p *PulseController) HasCustomVerifyForHost(from endpoints.Inbound, verifyFlags coreapi.PacketVerifyFlags) bool {
-	return p.ignoreHostVerificationForPulses
+	return false
 }
 
 var _ core.PrepPhaseController = &PulsePrepController{}
@@ -65,9 +63,8 @@ var _ core.PrepPhaseController = &PulsePrepController{}
 type PulsePrepController struct {
 	core.PrepPhaseControllerTemplate
 	core.HostPacketDispatcherTemplate
-	R                               *core.PrepRealm
-	pulseStrategy                   PulseSelectionStrategy
-	ignoreHostVerificationForPulses bool
+	R             *core.PrepRealm
+	pulseStrategy PulseSelectionStrategy
 }
 
 func (p *PulsePrepController) CreatePacketDispatcher(pt phases.PacketType, realm *core.PrepRealm) population.PacketDispatcher {
@@ -84,8 +81,7 @@ var _ core.PhaseController = &PulseController{}
 type PulseController struct {
 	core.PhaseControllerTemplate
 	core.HostPacketDispatcherTemplate
-	R                               *core.FullRealm
-	ignoreHostVerificationForPulses bool
+	R *core.FullRealm
 }
 
 func (p *PulseController) CreatePacketDispatcher(pt phases.PacketType, ctlIndex int, realm *core.FullRealm) (population.PacketDispatcher, core.PerNodePacketDispatcherFactory) {

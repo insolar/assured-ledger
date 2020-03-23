@@ -124,6 +124,7 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 	c.localNodeConfiguration = adapters.NewLocalNodeConfiguration(
 		ctx,
 		dep.KeyStore,
+		dep.CertificateManager.GetCertificate().GetPulsarPublicKeys(),
 	)
 	c.roundStrategyFactory = adapters.NewRoundStrategyFactory()
 	c.transportCryptographyFactory = adapters.NewTransportCryptographyFactory(dep.Scheme)

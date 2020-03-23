@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/misbehavior"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/coreapi"
@@ -206,7 +207,10 @@ func (r *coreRealm) VerifyPacketAuthenticity(ctx context.Context, packet transpo
 		}
 		verifyFlags |= coreapi.SuccessfullyVerified
 	case pd != nil && pd.HasCustomVerifyForHost(from, verifyFlags):
-		// skip default behavior
+	// skip default behavior
+
+	case packet.GetPacketType() == phases.PacketPulsarPulse:
+
 	default:
 		sourceID := packet.GetSourceID()
 

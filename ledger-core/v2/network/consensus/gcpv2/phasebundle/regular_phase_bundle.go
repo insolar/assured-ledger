@@ -39,7 +39,7 @@ func (r *RegularPhaseBundle) CreatePrepPhaseControllers() []core.PrepPhaseContro
 		even if packets arrived while PrepRealm was active.
 	*/
 	return []core.PrepPhaseController{
-		pulsectl.NewPulsePrepController(r.PulseSelectionStrategy, r.IgnoreHostVerificationForPulses),
+		pulsectl.NewPulsePrepController(r.PulseSelectionStrategy),
 		ph01ctl.NewPhase01PrepController(r.PulseSelectionStrategy),
 	}
 }
@@ -51,7 +51,7 @@ func (r *RegularPhaseBundle) CreateFullPhaseControllers(nodeCount int) ([]core.P
 	packetPrepareOptions := r.MemberPacketOptions
 
 	return []core.PhaseController{
-		pulsectl.NewPulseController(r.IgnoreHostVerificationForPulses),
+		pulsectl.NewPulseController(),
 		ph01ctl.NewPhase01Controller(packetPrepareOptions, rcb.qForPhase1),
 		ph2ctl.NewPhase2Controller(r.LoopingMinimalDelay, packetPrepareOptions, rcb.qForPhase2,
 			r.LockOSThreadForWorker),

@@ -76,7 +76,6 @@ type Config struct {
 	Nodes []Node `mapstructure:"nodes" yaml:"nodes"`
 
 	// PulsarPublicKeys is the pulsar's public keys for pulses validation
-	// (not in use, just for future features).
 	PulsarPublicKeys []string `mapstructure:"pulsar_public_keys" yaml:"pulsar_public_keys"`
 }
 
