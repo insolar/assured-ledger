@@ -8,6 +8,7 @@ package smachines
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
@@ -59,7 +60,7 @@ type DropBatch struct {
 	records        *store.RecordStore
 
 	ownedDropBatch sharedDropBatch
-	syncFinished   smachine.BoolConditionalLink
+	syncFinished   smsync.BoolConditionalLink
 }
 
 func NewDropBatch(jetID insolar.JetID) *DropBatch {
@@ -71,7 +72,7 @@ func (s *DropBatch) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 }
 
 func (s *DropBatch) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	s.syncFinished = smachine.NewConditionalBool(false, "syncFinished")
+	s.syncFinished = smsync.NewConditionalBool(false, "syncFinished")
 	s.ownedDropBatch.syncFinished = s.syncFinished.SyncLink()
 
 	link := ctx.Share(&s.ownedDropBatch, smachine.ShareDataWakesUpAfterUse)

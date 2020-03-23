@@ -14,11 +14,11 @@ import (
 type DigestSignerMock struct {
 	t minimock.Tester
 
-	funcGetSignMethod          func() (s1 SigningMethod)
-	inspectFuncGetSignMethod   func()
-	afterGetSignMethodCounter  uint64
-	beforeGetSignMethodCounter uint64
-	GetSignMethodMock          mDigestSignerMockGetSignMethod
+	funcGetSigningMethod          func() (s1 SigningMethod)
+	inspectFuncGetSigningMethod   func()
+	afterGetSigningMethodCounter  uint64
+	beforeGetSigningMethodCounter uint64
+	GetSigningMethodMock          mDigestSignerMockGetSigningMethod
 
 	funcSignDigest          func(digest Digest) (s1 Signature)
 	inspectFuncSignDigest   func(digest Digest)
@@ -34,7 +34,7 @@ func NewDigestSignerMock(t minimock.Tester) *DigestSignerMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.GetSignMethodMock = mDigestSignerMockGetSignMethod{mock: m}
+	m.GetSigningMethodMock = mDigestSignerMockGetSigningMethod{mock: m}
 
 	m.SignDigestMock = mDigestSignerMockSignDigest{mock: m}
 	m.SignDigestMock.callArgs = []*DigestSignerMockSignDigestParams{}
@@ -42,145 +42,145 @@ func NewDigestSignerMock(t minimock.Tester) *DigestSignerMock {
 	return m
 }
 
-type mDigestSignerMockGetSignMethod struct {
+type mDigestSignerMockGetSigningMethod struct {
 	mock               *DigestSignerMock
-	defaultExpectation *DigestSignerMockGetSignMethodExpectation
-	expectations       []*DigestSignerMockGetSignMethodExpectation
+	defaultExpectation *DigestSignerMockGetSigningMethodExpectation
+	expectations       []*DigestSignerMockGetSigningMethodExpectation
 }
 
-// DigestSignerMockGetSignMethodExpectation specifies expectation struct of the DigestSigner.GetSigningMethod
-type DigestSignerMockGetSignMethodExpectation struct {
+// DigestSignerMockGetSigningMethodExpectation specifies expectation struct of the DigestSigner.GetSigningMethod
+type DigestSignerMockGetSigningMethodExpectation struct {
 	mock *DigestSignerMock
 
-	results *DigestSignerMockGetSignMethodResults
+	results *DigestSignerMockGetSigningMethodResults
 	Counter uint64
 }
 
-// DigestSignerMockGetSignMethodResults contains results of the DigestSigner.GetSigningMethod
-type DigestSignerMockGetSignMethodResults struct {
+// DigestSignerMockGetSigningMethodResults contains results of the DigestSigner.GetSigningMethod
+type DigestSignerMockGetSigningMethodResults struct {
 	s1 SigningMethod
 }
 
 // Expect sets up expected params for DigestSigner.GetSigningMethod
-func (mmGetSignMethod *mDigestSignerMockGetSignMethod) Expect() *mDigestSignerMockGetSignMethod {
-	if mmGetSignMethod.mock.funcGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("DigestSignerMock.GetSigningMethod mock is already set by Set")
+func (mmGetSigningMethod *mDigestSignerMockGetSigningMethod) Expect() *mDigestSignerMockGetSigningMethod {
+	if mmGetSigningMethod.mock.funcGetSigningMethod != nil {
+		mmGetSigningMethod.mock.t.Fatalf("DigestSignerMock.GetSigningMethod mock is already set by Set")
 	}
 
-	if mmGetSignMethod.defaultExpectation == nil {
-		mmGetSignMethod.defaultExpectation = &DigestSignerMockGetSignMethodExpectation{}
+	if mmGetSigningMethod.defaultExpectation == nil {
+		mmGetSigningMethod.defaultExpectation = &DigestSignerMockGetSigningMethodExpectation{}
 	}
 
-	return mmGetSignMethod
+	return mmGetSigningMethod
 }
 
 // Inspect accepts an inspector function that has same arguments as the DigestSigner.GetSigningMethod
-func (mmGetSignMethod *mDigestSignerMockGetSignMethod) Inspect(f func()) *mDigestSignerMockGetSignMethod {
-	if mmGetSignMethod.mock.inspectFuncGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("Inspect function is already set for DigestSignerMock.GetSigningMethod")
+func (mmGetSigningMethod *mDigestSignerMockGetSigningMethod) Inspect(f func()) *mDigestSignerMockGetSigningMethod {
+	if mmGetSigningMethod.mock.inspectFuncGetSigningMethod != nil {
+		mmGetSigningMethod.mock.t.Fatalf("Inspect function is already set for DigestSignerMock.GetSigningMethod")
 	}
 
-	mmGetSignMethod.mock.inspectFuncGetSignMethod = f
+	mmGetSigningMethod.mock.inspectFuncGetSigningMethod = f
 
-	return mmGetSignMethod
+	return mmGetSigningMethod
 }
 
 // Return sets up results that will be returned by DigestSigner.GetSigningMethod
-func (mmGetSignMethod *mDigestSignerMockGetSignMethod) Return(s1 SigningMethod) *DigestSignerMock {
-	if mmGetSignMethod.mock.funcGetSignMethod != nil {
-		mmGetSignMethod.mock.t.Fatalf("DigestSignerMock.GetSigningMethod mock is already set by Set")
+func (mmGetSigningMethod *mDigestSignerMockGetSigningMethod) Return(s1 SigningMethod) *DigestSignerMock {
+	if mmGetSigningMethod.mock.funcGetSigningMethod != nil {
+		mmGetSigningMethod.mock.t.Fatalf("DigestSignerMock.GetSigningMethod mock is already set by Set")
 	}
 
-	if mmGetSignMethod.defaultExpectation == nil {
-		mmGetSignMethod.defaultExpectation = &DigestSignerMockGetSignMethodExpectation{mock: mmGetSignMethod.mock}
+	if mmGetSigningMethod.defaultExpectation == nil {
+		mmGetSigningMethod.defaultExpectation = &DigestSignerMockGetSigningMethodExpectation{mock: mmGetSigningMethod.mock}
 	}
-	mmGetSignMethod.defaultExpectation.results = &DigestSignerMockGetSignMethodResults{s1}
-	return mmGetSignMethod.mock
+	mmGetSigningMethod.defaultExpectation.results = &DigestSignerMockGetSigningMethodResults{s1}
+	return mmGetSigningMethod.mock
 }
 
 //Set uses given function f to mock the DigestSigner.GetSigningMethod method
-func (mmGetSignMethod *mDigestSignerMockGetSignMethod) Set(f func() (s1 SigningMethod)) *DigestSignerMock {
-	if mmGetSignMethod.defaultExpectation != nil {
-		mmGetSignMethod.mock.t.Fatalf("Default expectation is already set for the DigestSigner.GetSigningMethod method")
+func (mmGetSigningMethod *mDigestSignerMockGetSigningMethod) Set(f func() (s1 SigningMethod)) *DigestSignerMock {
+	if mmGetSigningMethod.defaultExpectation != nil {
+		mmGetSigningMethod.mock.t.Fatalf("Default expectation is already set for the DigestSigner.GetSigningMethod method")
 	}
 
-	if len(mmGetSignMethod.expectations) > 0 {
-		mmGetSignMethod.mock.t.Fatalf("Some expectations are already set for the DigestSigner.GetSigningMethod method")
+	if len(mmGetSigningMethod.expectations) > 0 {
+		mmGetSigningMethod.mock.t.Fatalf("Some expectations are already set for the DigestSigner.GetSigningMethod method")
 	}
 
-	mmGetSignMethod.mock.funcGetSignMethod = f
-	return mmGetSignMethod.mock
+	mmGetSigningMethod.mock.funcGetSigningMethod = f
+	return mmGetSigningMethod.mock
 }
 
 // GetSigningMethod implements DigestSigner
-func (mmGetSignMethod *DigestSignerMock) GetSigningMethod() (s1 SigningMethod) {
-	mm_atomic.AddUint64(&mmGetSignMethod.beforeGetSignMethodCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetSignMethod.afterGetSignMethodCounter, 1)
+func (mmGetSigningMethod *DigestSignerMock) GetSigningMethod() (s1 SigningMethod) {
+	mm_atomic.AddUint64(&mmGetSigningMethod.beforeGetSigningMethodCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetSigningMethod.afterGetSigningMethodCounter, 1)
 
-	if mmGetSignMethod.inspectFuncGetSignMethod != nil {
-		mmGetSignMethod.inspectFuncGetSignMethod()
+	if mmGetSigningMethod.inspectFuncGetSigningMethod != nil {
+		mmGetSigningMethod.inspectFuncGetSigningMethod()
 	}
 
-	if mmGetSignMethod.GetSignMethodMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetSignMethod.GetSignMethodMock.defaultExpectation.Counter, 1)
+	if mmGetSigningMethod.GetSigningMethodMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetSigningMethod.GetSigningMethodMock.defaultExpectation.Counter, 1)
 
-		mm_results := mmGetSignMethod.GetSignMethodMock.defaultExpectation.results
+		mm_results := mmGetSigningMethod.GetSigningMethodMock.defaultExpectation.results
 		if mm_results == nil {
-			mmGetSignMethod.t.Fatal("No results are set for the DigestSignerMock.GetSigningMethod")
+			mmGetSigningMethod.t.Fatal("No results are set for the DigestSignerMock.GetSigningMethod")
 		}
 		return (*mm_results).s1
 	}
-	if mmGetSignMethod.funcGetSignMethod != nil {
-		return mmGetSignMethod.funcGetSignMethod()
+	if mmGetSigningMethod.funcGetSigningMethod != nil {
+		return mmGetSigningMethod.funcGetSigningMethod()
 	}
-	mmGetSignMethod.t.Fatalf("Unexpected call to DigestSignerMock.GetSigningMethod.")
+	mmGetSigningMethod.t.Fatalf("Unexpected call to DigestSignerMock.GetSigningMethod.")
 	return
 }
 
-// GetSignMethodAfterCounter returns a count of finished DigestSignerMock.GetSigningMethod invocations
-func (mmGetSignMethod *DigestSignerMock) GetSignMethodAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetSignMethod.afterGetSignMethodCounter)
+// GetSigningMethodAfterCounter returns a count of finished DigestSignerMock.GetSigningMethod invocations
+func (mmGetSigningMethod *DigestSignerMock) GetSigningMethodAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetSigningMethod.afterGetSigningMethodCounter)
 }
 
-// GetSignMethodBeforeCounter returns a count of DigestSignerMock.GetSigningMethod invocations
-func (mmGetSignMethod *DigestSignerMock) GetSignMethodBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetSignMethod.beforeGetSignMethodCounter)
+// GetSigningMethodBeforeCounter returns a count of DigestSignerMock.GetSigningMethod invocations
+func (mmGetSigningMethod *DigestSignerMock) GetSigningMethodBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetSigningMethod.beforeGetSigningMethodCounter)
 }
 
-// MinimockGetSignMethodDone returns true if the count of the GetSigningMethod invocations corresponds
+// MinimockGetSigningMethodDone returns true if the count of the GetSigningMethod invocations corresponds
 // the number of defined expectations
-func (m *DigestSignerMock) MinimockGetSignMethodDone() bool {
-	for _, e := range m.GetSignMethodMock.expectations {
+func (m *DigestSignerMock) MinimockGetSigningMethodDone() bool {
+	for _, e := range m.GetSigningMethodMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetSignMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
+	if m.GetSigningMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetSignMethod != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
+	if m.funcGetSigningMethod != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockGetSignMethodInspect logs each unmet expectation
-func (m *DigestSignerMock) MinimockGetSignMethodInspect() {
-	for _, e := range m.GetSignMethodMock.expectations {
+// MinimockGetSigningMethodInspect logs each unmet expectation
+func (m *DigestSignerMock) MinimockGetSigningMethodInspect() {
+	for _, e := range m.GetSigningMethodMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			m.t.Error("Expected call to DigestSignerMock.GetSigningMethod")
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetSignMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
+	if m.GetSigningMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
 		m.t.Error("Expected call to DigestSignerMock.GetSigningMethod")
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetSignMethod != nil && mm_atomic.LoadUint64(&m.afterGetSignMethodCounter) < 1 {
+	if m.funcGetSigningMethod != nil && mm_atomic.LoadUint64(&m.afterGetSigningMethodCounter) < 1 {
 		m.t.Error("Expected call to DigestSignerMock.GetSigningMethod")
 	}
 }
@@ -403,7 +403,7 @@ func (m *DigestSignerMock) MinimockSignDigestInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *DigestSignerMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockGetSignMethodInspect()
+		m.MinimockGetSigningMethodInspect()
 
 		m.MinimockSignDigestInspect()
 		m.t.FailNow()
@@ -429,6 +429,6 @@ func (m *DigestSignerMock) MinimockWait(timeout mm_time.Duration) {
 func (m *DigestSignerMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockGetSignMethodDone() &&
+		m.MinimockGetSigningMethodDone() &&
 		m.MinimockSignDigestDone()
 }

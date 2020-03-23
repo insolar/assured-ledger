@@ -338,7 +338,7 @@ func (c *contractRunnerService) waitForReply(requestReference insolar.Reference)
 func (c *contractRunnerService) executionRecover(ctx context.Context, requestReference insolar.Reference) {
 	if r := recover(); r != nil {
 		// replace with custom error, not RecoverSlotPanicWithStack
-		err := smachine.RecoverSlotPanicWithStack("ContractRunnerService panic", r, nil)
+		err := smachine.RecoverSlotPanicWithStack("ContractRunnerService panic", r, nil, smachine.AsyncCallArea)
 
 		executionContext := c.getExecution(requestReference)
 		if executionContext == nil {

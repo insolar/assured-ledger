@@ -5,7 +5,7 @@
 
 package cryptkit
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.PublicKeyStore -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.PublicKeyStore -o . -s _mock.go -g
 
 type PublicKeyStore interface {
 	PublicKeyStore()
@@ -16,7 +16,7 @@ type SecretKeyStore interface {
 	AsPublicKeyStore() PublicKeyStore
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.KeyStoreFactory -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.KeyStoreFactory -o . -s _mock.go -g
 
 type KeyStoreFactory interface {
 	CreatePublicKeyStore(skh SignatureKeyHolder) PublicKeyStore

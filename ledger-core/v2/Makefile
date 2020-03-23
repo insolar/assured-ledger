@@ -62,7 +62,7 @@ pre-build: install-build-tools generate regen-builtin ## install dependencies, (
 
 .PHONY: generate
 generate: ## run go generate
-	go generate -x $(ALL_PACKAGES)
+	GOFLAGS="" go generate -x $(ALL_PACKAGES)
 
 .PHONY: vendor
 vendor: ## update vendor dependencies
