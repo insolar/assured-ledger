@@ -17,6 +17,8 @@ const (
 
 type ShortNodeID = apinetwork.ShortNodeID
 
+const AbsentShortNodeID = apinetwork.AbsentShortNodeID
+
 // GlobuleID is the ID of the globe
 type GlobuleID uint32
 

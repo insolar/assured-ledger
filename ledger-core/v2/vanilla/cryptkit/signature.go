@@ -40,7 +40,7 @@ func (s SignatureMethod) String() string {
 	return string(s)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.SignatureHolder -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureHolder -o . -s _mock.go -g
 
 type SignatureHolder interface {
 	longbits.FoldableReader
@@ -49,7 +49,7 @@ type SignatureHolder interface {
 	Equals(other SignatureHolder) bool
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.SignatureKeyHolder -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureKeyHolder -o . -s _mock.go -g
 
 type SignatureKeyHolder interface {
 	longbits.FoldableReader
@@ -69,26 +69,25 @@ type SignedDigestHolder interface {
 	VerifyWith(v SignatureVerifier) bool
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.DigestSigner -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.DigestSigner -o . -s _mock.go -g
 
 type DigestSigner interface {
 	SignDigest(digest Digest) Signature
 	GetSigningMethod() SigningMethod
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.DataSigner -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.DataSigner -o . -s _mock.go -g
 
 type DataSigner interface {
 	DigestSigner
 	DataDigester
-	SignData(reader io.Reader) SignedDigest
-	GetSignatureMethod() SignatureMethod
+	//GetSignatureMethod() SignatureMethod
 }
 
 type SequenceSigner interface {
 	DigestSigner
 	NewSequenceDigester() SequenceDigester
-	GetSignatureMethod() SignatureMethod
+	//GetSignatureMethod() SignatureMethod
 }
 
 type SignedEvidenceHolder interface {
@@ -111,7 +110,13 @@ func (v SignatureKeyType) IsSecret() bool {
 	return v != PublicAsymmetricKey
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.SignatureVerifier -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureVerifier -o . -s _mock.go -g
+
+type DataSignatureVerifier interface {
+	DataDigester
+	GetSignatureMethod() SignatureMethod
+	SignatureVerifier
+}
 
 type SignatureVerifier interface {
 	IsDigestMethodSupported(m DigestMethod) bool
@@ -122,7 +127,7 @@ type SignatureVerifier interface {
 	IsValidDataSignature(data io.Reader, signature SignatureHolder) bool
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.SignatureVerifierFactory -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureVerifierFactory -o . -s _mock.go -g
 
 type SignatureVerifierFactory interface {
 	CreateSignatureVerifierWithPKS(pks PublicKeyStore) SignatureVerifier

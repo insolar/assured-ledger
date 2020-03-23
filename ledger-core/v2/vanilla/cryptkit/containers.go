@@ -158,39 +158,40 @@ func (r SignedDigest) AsSignedDigestHolder() SignedDigestHolder {
 
 /*****************************************************************/
 
-func NewSignedData(data io.Reader, digest Digest, signature Signature) SignedData {
+func NewSignedData(data io.WriterTo, digest Digest, signature Signature) SignedData {
 	return SignedData{SignedDigest{digest, signature}, data}
 }
 
-func SignDataByDataSigner(data io.Reader, signer DataSigner) SignedData {
-	sd := signer.SignData(data)
-	return NewSignedData(data, sd.digest, sd.signature)
+func SignDataByDataSigner(data io.WriterTo, signer DataSigner) SignedData {
+	hasher := signer.NewHasher()
+	if _, err := data.WriteTo(hasher); err != nil {
+		panic(err)
+	}
+	digest := hasher.SumToDigest()
+	signature := signer.SignDigest(digest)
+	return NewSignedData(data, digest, signature)
 }
 
-type hReader = io.Reader
+type hWriterTo = io.WriterTo
 type hSignedDigest = SignedDigest
 
 var _ io.WriterTo = SignedData{}
 
 type SignedData struct {
 	hSignedDigest
-	hReader
+	hWriterTo
 }
 
 func (r SignedData) IsEmpty() bool {
-	return r.hReader == nil && r.hSignedDigest.IsEmpty()
+	return r.hWriterTo == nil && r.hSignedDigest.IsEmpty()
 }
 
 func (r SignedData) GetSignedDigest() SignedDigest {
 	return r.hSignedDigest
 }
 
-func (r SignedData) WriteTo(w io.Writer) (int64, error) {
-	return io.Copy(w, r.hReader)
-}
-
 func (r SignedData) String() string {
-	return fmt.Sprintf("[bytes=%v]%v", r.hReader, r.hSignedDigest)
+	return fmt.Sprintf("[bytes=%v]%v", r.hWriterTo, r.hSignedDigest)
 }
 
 /*****************************************************************/

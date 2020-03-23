@@ -24,13 +24,13 @@ func (d DigestMethod) String() string {
 type BasicDigester interface {
 	GetDigestMethod() DigestMethod
 	GetDigestSize() int
-	// NewHasher() hash.Hash // TODO support Hash
 }
 
 type DataDigester interface {
 	BasicDigester
 	DigestData(io.Reader) Digest
 	DigestBytes([]byte) Digest
+	NewHasher() DigestHasher
 }
 
 type PairDigester interface {
@@ -56,7 +56,7 @@ type DigestFactory interface {
 	CreateForkingDigester() ForkingDigester
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/cryptkit.DigestHolder -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.DigestHolder -o . -s _mock.go -g
 
 type DigestHolder interface {
 	longbits.FoldableReader

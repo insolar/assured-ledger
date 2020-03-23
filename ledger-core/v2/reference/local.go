@@ -35,7 +35,7 @@ func AsLocalHash(r longbits.FixedReader) (result LocalHash) {
 	if n := r.FixedByteSize(); n != len(result) && n != nearestPo2 {
 		panic(throw.IllegalValue())
 	}
-	_, _ = r.Read(result[:])
+	r.CopyTo(result[:])
 	return
 }
 
@@ -98,7 +98,7 @@ func (v Local) Read(p []byte) (n int, err error) {
 	}
 
 	byteOrder.PutUint32(p, v.pulseAndScope)
-	n, err = v.hash.Read(p[LocalBinaryPulseAndScopeSize:])
+	n = v.hash.CopyTo(p[LocalBinaryPulseAndScopeSize:])
 	if err != nil {
 		return 0, err
 	}
@@ -112,7 +112,7 @@ func (v Local) AsByteString() longbits.ByteString {
 func (v Local) AsBytes() []byte {
 	val := make([]byte, LocalBinarySize)
 	byteOrder.PutUint32(val, v.pulseAndScope)
-	_, _ = v.hash.Read(val[LocalBinaryPulseAndScopeSize:])
+	_ = v.hash.CopyTo(val[LocalBinaryPulseAndScopeSize:])
 	return val
 }
 

@@ -56,8 +56,8 @@ func (v ByteString) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v ByteString) Read(b []byte) (n int, err error) {
-	return copy(b, v), nil
+func (v ByteString) CopyTo(b []byte) int {
+	return copy(b, v)
 }
 
 func (v ByteString) ReadAt(b []byte, off int64) (n int, err error) {

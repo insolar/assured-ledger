@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Foldable interface {
@@ -18,8 +20,8 @@ type Foldable interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.FixedReader -o . -s _mock.go -g
 type FixedReader interface {
 	io.WriterTo
-	//io.ReaderAt
-	io.Reader
+	CopyTo(p []byte) int
+	// deprecated use longbits.AsBytes() or CopyTo() instead
 	AsBytes() []byte
 	AsByteString() ByteString
 
@@ -106,8 +108,8 @@ func (c fixedSize) WriteTo(w io.Writer) (n int64, err error) {
 	return int64(n32), err
 }
 
-func (c fixedSize) Read(p []byte) (n int, err error) {
-	return copy(p, c.data), nil
+func (c fixedSize) CopyTo(p []byte) (n int) {
+	return copy(p, c.data)
 }
 
 func (c fixedSize) FoldToUint64() uint64 {
@@ -126,14 +128,10 @@ func (c fixedSize) AsBytes() []byte {
 	return c.data
 }
 
-func ReadFixedSize(v FixedReader) []byte {
+func AsBytes(v FixedReader) []byte {
 	data := make([]byte, v.FixedByteSize())
-	n, err := v.Read(data)
-	if err != nil {
-		panic(err)
-	}
-	if n != len(data) {
-		panic("unexpected")
+	if v.CopyTo(data) != len(data) {
+		panic(throw.Impossible())
 	}
 	return data
 }
@@ -143,7 +141,7 @@ func NewMutableFixedSize(data []byte) FoldableReader {
 }
 
 func CopyToMutable(v FixedReader) FoldableReader {
-	return fixedSize{ReadFixedSize(v)}
+	return fixedSize{AsBytes(v)}
 }
 
 func NewImmutableFixedSize(data []byte) FoldableReader {
@@ -151,19 +149,22 @@ func NewImmutableFixedSize(data []byte) FoldableReader {
 }
 
 func CopyToImmutable(v FixedReader) FoldableReader {
-	return CopyBytes(ReadFixedSize(v)).AsReader()
+	return CopyBytes(AsBytes(v)).AsReader()
 }
 
 func CopyFixedSize(v FixedReader) FoldableReader {
-	r := fixedSize{}
-	r.data = make([]byte, v.FixedByteSize())
-	switch n, err := v.Read(r.data); {
-	case err != nil:
-		panic(err)
-	case n != len(r.data):
-		panic("unexpected")
+	return fixedSize{AsBytes(v)}
+}
+
+func CopyAllBytes(v FixedReader, b []byte) error {
+	if n := v.FixedByteSize(); n != len(b) {
+		if n < len(b) {
+			return io.ErrShortBuffer
+		}
+		return io.ErrShortWrite
 	}
-	return r
+	v.CopyTo(b)
+	return nil
 }
 
 func VerifyReadAt(b []byte, off int64, max int) (n int, err error) {

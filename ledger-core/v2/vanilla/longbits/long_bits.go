@@ -32,8 +32,8 @@ func (v Bits64) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v Bits64) Read(p []byte) (n int, err error) {
-	return copy(p, (v)[:]), nil
+func (v Bits64) CopyTo(p []byte) int {
+	return copy(p, (v)[:])
 }
 
 // TODO test for all ReadAt
@@ -122,8 +122,8 @@ func (v Bits128) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v Bits128) Read(p []byte) (n int, err error) {
-	return copy(p, (v)[:]), nil
+func (v Bits128) CopyTo(p []byte) int {
+	return copy(p, (v)[:])
 }
 
 func (v Bits128) ReadAt(b []byte, off int64) (n int, err error) {
@@ -169,8 +169,8 @@ func (v Bits224) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v Bits224) Read(p []byte) (n int, err error) {
-	return copy(p, (v)[:]), nil
+func (v Bits224) CopyTo(p []byte) int {
+	return copy(p, (v)[:])
 }
 
 func (v Bits224) ReadAt(b []byte, off int64) (n int, err error) {
@@ -216,8 +216,8 @@ func (v Bits256) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v Bits256) Read(p []byte) (n int, err error) {
-	return copy(p, (v)[:]), nil
+func (v Bits256) CopyTo(p []byte) int {
+	return copy(p, (v)[:])
 }
 
 func (v Bits256) ReadAt(b []byte, off int64) (n int, err error) {
@@ -281,8 +281,8 @@ func (v Bits512) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v Bits512) Read(p []byte) (n int, err error) {
-	return copy(p, (v)[:]), nil
+func (v Bits512) CopyTo(p []byte) int {
+	return copy(p, (v)[:])
 }
 
 func (v Bits512) ReadAt(b []byte, off int64) (n int, err error) {
