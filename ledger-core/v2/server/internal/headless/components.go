@@ -105,16 +105,13 @@ func initComponents(
 
 	// Watermill.
 	var (
-		wmLogger   *logwatermill.WatermillLogAdapter
-		publisher  message.Publisher
-		// subscriber message.Subscriber
+		wmLogger  *logwatermill.WatermillLogAdapter
+		publisher message.Publisher
 	)
 	{
 		wmLogger = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
 		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
-		// subscriber = pubsub
 		publisher = pubsub
-		// Wrapped watermill Publisher for introspection.
 		publisher = internal.PublisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	}
 
@@ -127,7 +124,6 @@ func initComponents(
 	pulses := pulse.NewStorageMem()
 
 	b := bus.NewBus(cfg.Bus, publisher, pulses, jc, pcs)
-	// cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
 
 	contractRequester, err := contractrequester.New(
 		b,
@@ -139,9 +135,6 @@ func initComponents(
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
 	var logicRunner headlessLR
-
-	// TODO: remove this hack in INS-3341
-	// contractRequester.LR = &logicRunner
 
 	pm := pulsemanager.NewPulseManager()
 
@@ -155,14 +148,11 @@ func initComponents(
 		availabilityChecker,
 		nw,
 		pm,
-		// cachedPulses,
 	)
 
 	components := []interface{}{
-		// b,
 		publisher,
 		contractRequester,
-		// jc,
 		pulses,
 		jet.NewStore(),
 		node.NewStorage(),
@@ -173,11 +163,6 @@ func initComponents(
 		keyProcessor,
 	}...)
 
-	// TODO debug
-	// for _, componentMeta := range components {
-	// 	fmt.Print(componentMeta)
-	// 	reflect.ValueOf(componentMeta).Elem()
-	// }
 	cm.Inject(components...)
 
 	err = cm.Init(ctx)
