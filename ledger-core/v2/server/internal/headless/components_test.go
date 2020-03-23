@@ -48,7 +48,6 @@ func TestComponents(t *testing.T) {
 		cert,
 	)
 	require.NotNil(t, cm)
-	require.NotNil(t, stopWatermill)
 
 	err := cm.Init(ctx)
 	require.NoError(t, err)
