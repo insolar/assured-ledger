@@ -62,12 +62,22 @@ func SizeVarint64(x uint64) int {
 
 func EncodeVarint(w io.ByteWriter, u uint64) error {
 	for u > 0x7F {
-		if err := w.WriteByte(byte(u&0x7F | 0x80)); err != nil {
+		if err := w.WriteByte(byte(u | 0x80)); err != nil {
 			return err
 		}
 		u >>= 7
 	}
 	return w.WriteByte(byte(u))
+}
+
+func EncodeVarintToBytes(b []byte, u uint64) (n int) {
+	for u > 0x7F {
+		b[n] = byte(u | 0x80)
+		n++
+		u >>= 7
+	}
+	b[n] = byte(u)
+	return
 }
 
 func EncodeFixed64(w io.ByteWriter, u uint64) error {
