@@ -70,11 +70,11 @@ func testCase(stopAfter, startCaseAfter time.Duration, test func()) {
 }
 
 type InitializedNodes struct {
+	addresses      []string
 	controllers    []consensus.Controller
 	nodeKeepers    []network.NodeKeeper
 	transports     []transport.DatagramTransport
 	contexts       []context.Context
-	pulseHandlers  []network.PulseHandler
 	staticProfiles []profiles.StaticProfile
 }
 
@@ -106,10 +106,10 @@ func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, disco
 
 func newNodes(size int) InitializedNodes {
 	return InitializedNodes{
+		addresses:      make([]string, size),
 		controllers:    make([]consensus.Controller, size),
 		transports:     make([]transport.DatagramTransport, size),
 		contexts:       make([]context.Context, size),
-		pulseHandlers:  make([]network.PulseHandler, 0, size),
 		staticProfiles: make([]profiles.StaticProfile, size),
 		nodeKeepers:    make([]network.NodeKeeper, size),
 	}
@@ -128,15 +128,13 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 		conf := configuration.NewHostNetwork().Transport
 		conf.Address = n.Address()
+		ns.addresses[i] = n.Address()
 
 		transportFactory := transport.NewFactory(conf)
 		datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
 		if err != nil {
 			return nil, err
 		}
-
-		pulseHandler := adapters.NewPulseHandler()
-		ns.pulseHandlers = append(ns.pulseHandlers, pulseHandler)
 
 		delayTransport := strategy.GetLink(datagramTransport)
 		ns.transports[i] = delayTransport
@@ -160,7 +158,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 			EphemeralController: &ephemeralController{
 				allowed: true,
 			},
-		}).ControllerFor(mode, datagramHandler, pulseHandler)
+		}).ControllerFor(mode, datagramHandler)
 
 		ns.controllers[i] = controller
 		ctx, _ = inslogger.WithFields(ctx, map[string]interface{}{
@@ -180,7 +178,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 }
 
 func initPulsar(ctx context.Context, delta uint16, ns InitializedNodes) {
-	pulsar := NewPulsar(delta, ns.pulseHandlers)
+	pulsar := NewPulsar(delta, ns.addresses, ns.transports)
 	go func() {
 		for {
 			pulsar.Pulse(ctx, 4+len(ns.staticProfiles)/10)
