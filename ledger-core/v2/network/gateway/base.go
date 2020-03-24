@@ -198,9 +198,9 @@ func (g *Base) createOriginCandidate() error {
 
 func (g *Base) StartConsensus(ctx context.Context) error {
 
-	// one of the nodes has to be in consensus.ReadyNetwork state,
-	// all other nodes has to be in consensus.Joiner
 	if g.NodeKeeper.GetOrigin().Role() == insolar.StaticRoleHeavyMaterial {
+		// one of the nodes has to be in consensus.ReadyNetwork state,
+		// all other nodes has to be in consensus.Joiner
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
