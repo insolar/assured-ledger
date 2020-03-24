@@ -11,28 +11,26 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
-
+	"github.com/insolar/component-manager"
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/insolar/component-manager"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
 const (
@@ -200,6 +198,8 @@ func (g *Base) createOriginCandidate() error {
 func (g *Base) StartConsensus(ctx context.Context) error {
 
 	if g.NodeKeeper.GetOrigin().Role() == insolar.StaticRoleHeavyMaterial {
+		// one of the nodes has to be in consensus.ReadyNetwork state,
+		// all other nodes has to be in consensus.Joiner
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
