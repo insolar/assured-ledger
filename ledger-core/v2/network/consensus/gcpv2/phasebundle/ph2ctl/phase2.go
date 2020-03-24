@@ -11,7 +11,10 @@ import (
 	"runtime"
 	"time"
 
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/metrics"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
@@ -218,6 +221,7 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 
 	idleLoop := false
 	softTimeout := false
+	phase2StartedAt := time.Now()
 	for {
 	inner:
 		for {
@@ -227,12 +231,14 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 			np, done := readQueueOrDone(ctx, idleLoop, c.loopingMinimalDelay, c.queueNshReady)
 			switch {
 			case done:
+				stats.Record(ctx, metrics.Phase02Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())/1e6))
 				log.Debug(">>>>workerPhase2: Done")
 				return
 			case np == nil:
 				switch {
 				// there is actually no need for early exit here
 				case softTimeout && idleLoop:
+					stats.Record(ctx, metrics.Phase02Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())/1e6))
 					log.Debug(">>>>workerPhase2: timeout + idle")
 					return
 				case joinQueue.Len() > 0 || nodeQueue.Len() > 0 || !softTimeout:
