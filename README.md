@@ -1,0 +1,2 @@
+# Quick start
+`make vendor`

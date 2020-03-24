@@ -86,9 +86,8 @@ func (s *FuncTestContractService) Upload(r *http.Request, args *UploadArgs, requ
 
 	contractMap := make(map[string]string)
 	contractMap[args.Name] = args.Code
-	buildOptions := goplugintestutils.BuildOptions{PanicIsLogicalError: args.PanicIsLogicalError}
 
-	err := s.cb.Build(ctx, contractMap, buildOptions)
+	err := s.cb.Build(ctx, contractMap)
 	if err != nil {
 		return errors.Wrap(err, "can't build contract")
 	}

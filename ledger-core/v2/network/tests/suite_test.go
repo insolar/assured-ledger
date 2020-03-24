@@ -57,7 +57,7 @@ var (
 )
 
 const (
-	UseFakeTransport = true
+	UseFakeTransport = false
 	UseFakeBootstrap = true
 
 	reqTimeoutMs     int32 = 2000
@@ -235,7 +235,7 @@ func (s *testSuite) SetupNodesNetwork(nodes []*networkNode) {
 }
 
 func (s *testSuite) StartNodesNetwork(nodes []*networkNode) {
-	suiteLogger.Info("Start nodes")
+	inslogger.FromContext(s.ctx).Info("Start nodes")
 
 	results := make(chan error, len(nodes))
 	startNode := func(node *networkNode) {

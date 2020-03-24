@@ -20,7 +20,7 @@ func TestPulsarPacketBody_SerializeTo(t *testing.T) {
 
 	err := b.SerializeTo(nil, buf)
 	require.NoError(t, err)
-	require.Equal(t, 44, buf.Len())
+	require.Equal(t, 48, buf.Len())
 }
 
 func TestPulsarPacketBody_DeserializeFrom(t *testing.T) {
@@ -51,7 +51,7 @@ func TestPulsarPacket_SerializeTo(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 0, packetMaxSize))
 	s, err := p.SerializeTo(context.Background(), buf, digester, signer)
 	require.NoError(t, err)
-	require.EqualValues(t, 128, s)
+	require.EqualValues(t, 132, s)
 
 	require.NotEmpty(t, p.PacketSignature)
 }

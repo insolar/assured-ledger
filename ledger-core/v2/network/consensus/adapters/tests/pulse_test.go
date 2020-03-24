@@ -8,17 +8,19 @@ package tests
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"math/rand"
-	"net"
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
@@ -26,20 +28,36 @@ const (
 	initialPulse = 100000
 )
 
+var digester = func() cryptkit.DataDigester {
+	scheme := platformpolicy.NewPlatformCryptographyScheme()
+	digester := adapters.NewSha3512Digester(scheme)
+	return digester
+}()
+
+var signer = func() cryptkit.DigestSigner {
+	processor := platformpolicy.NewKeyProcessor()
+	key, _ := processor.GeneratePrivateKey()
+	scheme := platformpolicy.NewPlatformCryptographyScheme()
+	signer := adapters.NewECDSADigestSigner(key.(*ecdsa.PrivateKey), scheme)
+	return signer
+}()
+
 type Pulsar struct {
-	pulseDelta    uint16
-	pulseNumber   pulse.Number
-	pulseHandlers []network.PulseHandler
+	pulseDelta  uint16
+	pulseNumber pulse.Number
+	transports  []transport.DatagramTransport
+	addresses   []string
 
 	mu *sync.Mutex
 }
 
-func NewPulsar(pulseDelta uint16, pulseHandlers []network.PulseHandler) Pulsar {
+func NewPulsar(pulseDelta uint16, addresses []string, transports []transport.DatagramTransport) Pulsar {
 	return Pulsar{
-		pulseDelta:    pulseDelta,
-		pulseNumber:   initialPulse,
-		pulseHandlers: pulseHandlers,
-		mu:            &sync.Mutex{},
+		pulseDelta:  pulseDelta,
+		pulseNumber: initialPulse,
+		addresses:   addresses,
+		transports:  transports,
+		mu:          &sync.Mutex{},
 	}
 }
 
@@ -56,19 +74,26 @@ func (p *Pulsar) Pulse(ctx context.Context, attempts int) {
 
 	data := pulse.NewPulsarData(p.pulseNumber, p.pulseDelta, prevDelta, randBits256())
 	p.pulseNumber += pulse.Number(p.pulseDelta)
-
-	pu := adapters.NewPulse(data)
-	ph, _ := host.NewHost("127.0.0.1:1")
-	th, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:2")
-	pp := pulsenetwork.NewPulsePacketWithTrace(ctx, &pu, ph, th, 0)
-
-	bs, _ := packet.SerializePacket(pp)
-	rp, _, _ := packet.DeserializePacketRaw(bytes.NewReader(bs))
+	pp := serialization.BuildPulsarPacket(ctx, data)
 
 	go func() {
 		for i := 0; i < attempts; i++ {
-			handler := p.pulseHandlers[rand.Intn(len(p.pulseHandlers))]
-			go handler.HandlePulse(ctx, pu, rp)
+			nodeID := rand.Intn(len(p.addresses))
+			address := p.addresses[nodeID]
+			transport := p.transports[nodeID]
+			go func() {
+				buffer := &bytes.Buffer{}
+				_, err := pp.SerializeTo(ctx, buffer, digester, signer)
+				if err != nil {
+					panic(errors.Wrap(err, "Failed to serialize packet"))
+				}
+
+				err = transport.SendDatagram(ctx, address, buffer.Bytes())
+				if err != nil {
+					panic(errors.Wrap(err, "[SendDatagram] Failed to write data"))
+				}
+
+			}()
 		}
 	}()
 }

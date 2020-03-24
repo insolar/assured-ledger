@@ -21,7 +21,6 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -137,31 +136,4 @@ func (dh *DatagramHandler) HandleDatagram(ctx context.Context, address string, b
 	stats.Record(ctx, network.ConsensusPacketsRecv.M(int64(len(buf))))
 
 	dh.packetHandler.handlePacket(ctx, packetParser, address)
-}
-
-type PulseHandler struct {
-	packetHandler *packetHandler
-}
-
-func NewPulseHandler() *PulseHandler {
-	return &PulseHandler{}
-}
-
-func (ph *PulseHandler) SetPacketProcessor(packetProcessor PacketProcessor) {
-	ph.packetHandler = newPacketHandler(packetProcessor)
-}
-
-func (ph *PulseHandler) SetPacketParserFactory(PacketParserFactory) {}
-
-func (ph *PulseHandler) HandlePulse(ctx context.Context, pulse insolar.Pulse, packet network.ReceivedPacket) {
-	ctx, logger := PacketEarlyLogger(ctx, "pulsar")
-
-	if ph.packetHandler == nil {
-		logger.Error("Packet handler is not initialized")
-		return
-	}
-
-	pulsePacketParser := NewPulsePacketParser(NewPulseData(pulse))
-
-	ph.packetHandler.handlePacket(ctx, pulsePacketParser, "pulsar")
 }

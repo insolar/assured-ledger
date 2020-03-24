@@ -104,6 +104,7 @@ func (m *IncrementalMap) commitTx(t *Tx) error {
 	}
 
 	for !atomic.CompareAndSwapUint64(&m.updateVersion, nextVersion-1, nextVersion) {
-
 	}
+
+	return nil
 }
