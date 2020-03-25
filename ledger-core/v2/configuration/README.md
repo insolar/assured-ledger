@@ -18,21 +18,7 @@ Each config struct should have constructor which returns instance with default p
 ### Holder
 
 Package also provides [Holder](https://godoc.org/github.com/insolar/assured-ledger/ledger-core/v2/configuration#Holder) to easily manage config resources. 
-It based on [Viper config solution for Golang](https://github.com/spf13/viper) and helps to Marshal\Unmarshal config structs, manage files, ENV and command line variables.
+It based on [insconfig package](https://github.com/insolar/insconfig) and helps to Marshal\Unmarshal config structs, manage files, ENV and command line variables.
 
 Holder provides functionality to merge configuration from different sources.
 
-#### Merge priority
-
-1. command line flags
-2. ENV variables
-3. yaml file
-4. Default config
-
-### Manage configuration from cli
-
-Insolar cli tool helps user to manage configuration.
-
-```
-insolar config --help
-```

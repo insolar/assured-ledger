@@ -37,13 +37,8 @@ func New(cfgPath string, genesisCfgPath string) *Server {
 }
 
 func (s *Server) Serve() {
-	cfgHolder := configuration.NewHolder()
-	var err error
-	if len(s.cfgPath) != 0 {
-		err = cfgHolder.LoadFromFile(s.cfgPath)
-	} else {
-		err = cfgHolder.Load()
-	}
+	cfgHolder := configuration.NewHolder(s.cfgPath)
+	err := cfgHolder.Load()
 	if err != nil {
 		global.Fatalf("failed to load configuration: %v", err.Error())
 	}
@@ -58,7 +53,7 @@ func (s *Server) Serve() {
 		global.Fatalf("failed to pares genesis configuration from file: %v", s.genesisCfgPath)
 	}
 
-	cfg := &cfgHolder.Configuration
+	cfg := cfgHolder.Configuration
 
 	fmt.Println("Version: ", version.GetFullVersion())
 	fmt.Println("Starts with configuration:\n", configuration.ToString(cfgHolder.Configuration))

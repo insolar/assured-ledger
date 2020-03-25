@@ -22,21 +22,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
 
+const cmdName = "insolard"
+
 func main() {
-	var (
-		configPath        string
-		genesisConfigPath string
+	var rootCmd = &cobra.Command{
+		Use:     cmdName,
+		Version: version.GetFullVersion(),
+	}
+	rootCmd.AddCommand(
+		fullNodeCommand(),
+		appCommand(),
+		netCommand(),
+		testNetworkCommand(),
+		version.GetCommand(cmdName),
 	)
 
-	var rootCmd = &cobra.Command{
-		Use: "insolard",
-		Run: func(_ *cobra.Command, _ []string) {
-			runInsolardServer(configPath, genesisConfigPath)
-		},
-	}
-	rootCmd.Flags().StringVarP(&configPath, "config", "c", "", "path to config file")
-	rootCmd.Flags().StringVarP(&genesisConfigPath, "heavy-genesis", "", "", "path to genesis config for heavy node")
-	rootCmd.AddCommand(version.GetCommand("insolard"))
 	err := rootCmd.Execute()
 	if err != nil {
 		global.Fatal("insolard execution failed:", err)
@@ -73,12 +73,9 @@ func runInsolardServer(configPath string, genesisConfigPath string) {
 
 func readRole(path string) (insolar.StaticRole, error) {
 	var err error
-	cfg := configuration.NewHolder()
-	if len(path) != 0 {
-		err = cfg.LoadFromFile(path)
-	} else {
-		err = cfg.Load()
-	}
+	cfg := configuration.NewHolder(path)
+
+	err = cfg.Load()
 	if err != nil {
 		return insolar.StaticRoleUnknown, errors.Wrap(err, "failed to load configuration from file")
 	}
