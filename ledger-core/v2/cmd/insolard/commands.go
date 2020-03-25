@@ -6,8 +6,9 @@
 package main
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/spf13/cobra"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
 
 func fullNodeIsolatedCommand() *cobra.Command {
