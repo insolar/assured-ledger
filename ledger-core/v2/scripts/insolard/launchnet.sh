@@ -480,7 +480,7 @@ trap 'handle_sigchld' SIGCHLD
 
 echo "start heavy node"
 set -x
-$INSOLARD full-node --single-process \
+$INSOLARD full-node single-process \
     --config ${DISCOVERY_NODES_DATA}1/insolard.yaml \
     --heavy-genesis ${HEAVY_GENESIS_CONFIG_FILE} \
     2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}1/output.log > /dev/null &
@@ -492,7 +492,7 @@ echo "start discovery nodes ..."
 for i in `seq 2 $NUM_DISCOVERY_NODES`
 do
     set -x
-    $INSOLARD full-node --single-process \
+    $INSOLARD full-node single-process \
         --config ${DISCOVERY_NODES_DATA}${i}/insolard.yaml \
         2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}${i}/output.log > /dev/null &
     { set +x; } 2>/dev/null
