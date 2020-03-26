@@ -17,11 +17,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
@@ -80,7 +82,11 @@ func TestDistributor_Distribute(t *testing.T) {
 	assert.NotNil(t, d)
 
 	cm := component.NewManager(nil)
-	cm.Inject(d, transport.NewFactory(pulsarCfg.DistributionTransport))
+
+	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
+	require.NoError(t, err)
+
+	cm.Inject(d, transport.NewFactory(pulsarCfg.DistributionTransport), platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
 	err = cm.Init(ctx)
 	require.NoError(t, err)
 	err = cm.Start(ctx)

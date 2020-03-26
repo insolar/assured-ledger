@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package light
+package headless
 
 import (
 	"context"
@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
@@ -37,40 +36,42 @@ func (s *Server) Serve() {
 	if err != nil {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
+
 	cfg := cfgHolder.Configuration
 
 	fmt.Println("Version: ", version.GetFullVersion())
 	fmt.Println("Starts with configuration:\n", configuration.ToString(cfgHolder.Configuration))
 
-	var (
-		ctx         = context.Background()
-		mainTraceID = utils.RandTraceID() + "_main"
-		logger      log.Logger
+	ctx := context.Background()
+	bootstrapComponents := initBootstrapComponents(ctx, *cfg)
+	certManager := initCertificateManager(
+		ctx,
+		*cfg,
+		bootstrapComponents.CryptographyService,
+		bootstrapComponents.KeyProcessor,
 	)
-	{
-		var (
-			nodeRole      = "light_material"
-			nodeReference = ""
-		)
-		certManager, err := initTemporaryCertificateManager(ctx, cfg)
-		if err != nil {
-			global.Warn("Failed to initialize nodeRef, nodeRole fields: ", err.Error())
-		} else {
-			nodeRole = certManager.GetCertificate().GetRole().String()
-			nodeReference = certManager.GetCertificate().GetNodeRef().String()
-		}
 
-		ctx, logger = inslogger.InitNodeLogger(ctx, cfg.Log, nodeReference, nodeRole)
-		global.InitTicker()
-	}
+	nodeRole := certManager.GetCertificate().GetRole().String()
+	nodeRef := certManager.GetCertificate().GetNodeRef().String()
 
-	cmp, err := newComponents(ctx, *cfg)
-	fatal(ctx, err, "failed to create components")
+	traceID := utils.RandTraceID() + "_main"
+	ctx, logger := inslogger.InitNodeLogger(ctx, cfg.Log, nodeRef, nodeRole)
+	global.InitTicker()
 
 	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
-		jaegerFlush := internal.Jaeger(ctx, cfg.Tracer.Jaeger, mainTraceID, cmp.NodeRef, cmp.NodeRole)
+		jaegerFlush := internal.Jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole)
 		defer jaegerFlush()
 	}
+
+	cm := initComponents(
+		ctx,
+		*cfg,
+		bootstrapComponents.CryptographyService,
+		bootstrapComponents.PlatformCryptographyScheme,
+		bootstrapComponents.KeyStore,
+		bootstrapComponents.KeyProcessor,
+		certManager,
+	)
 
 	var gracefulStop = make(chan os.Signal, 1)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
@@ -83,18 +84,24 @@ func (s *Server) Serve() {
 		logger.Debug("caught sig: ", sig)
 
 		logger.Warn("GRACEFUL STOP APP")
-		err = cmp.Stop(ctx)
-		fatal(ctx, err, "failed to graceful stop components")
+		// th.Leave(ctx, 10) TODO: is actual ??
+		logger.Info("main leave ends ")
+
+		err = cm.GracefulStop(ctx)
+		checkError(ctx, err, "failed to graceful stop components")
+
+		err = cm.Stop(ctx)
+		checkError(ctx, err, "failed to stop components")
 		close(waitChannel)
 	}()
 
-	err = cmp.Start(ctx)
-	fatal(ctx, err, "failed to start components")
+	err = cm.Start(ctx)
+	checkError(ctx, err, "failed to start components")
 	fmt.Println("All components were started")
 	<-waitChannel
 }
 
-func fatal(ctx context.Context, err error, message string) {
+func checkError(ctx context.Context, err error, message string) {
 	if err == nil {
 		return
 	}

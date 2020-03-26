@@ -6,6 +6,7 @@
 package server
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal/headless"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal/heavy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal/light"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal/virtual"
@@ -25,4 +26,8 @@ func NewHeavyServer(cfgPath string, gensisCfgPath string) Server {
 
 func NewVirtualServer(cfgPath string) Server {
 	return virtual.New(cfgPath)
+}
+
+func NewHeadlessNetworkNodeServer(cfgPath string) Server {
+	return headless.New(cfgPath)
 }
