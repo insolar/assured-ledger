@@ -14,7 +14,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
@@ -223,7 +223,7 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 	softTimeout := false
 
 	phase2StartedAt := time.Now()
-	defer stats.Record(ctx, metrics.Phase02Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())/1e6))
+	defer stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())/1e6))
 
 	for {
 	inner:
