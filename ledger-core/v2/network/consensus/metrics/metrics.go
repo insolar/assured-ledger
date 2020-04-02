@@ -28,6 +28,8 @@ var (
 	)
 )
 
+const StatUnit = 1e-6
+
 func init() {
 	err := view.Register(
 		&view.View{
