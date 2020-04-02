@@ -6,8 +6,6 @@
 package metrics
 
 import (
-	"time"
-
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 )
@@ -29,8 +27,6 @@ var (
 		stats.UnitMilliseconds,
 	)
 )
-
-const StatUnit = int64(time.Nanosecond / time.Millisecond)
 
 func init() {
 	err := view.Register(
