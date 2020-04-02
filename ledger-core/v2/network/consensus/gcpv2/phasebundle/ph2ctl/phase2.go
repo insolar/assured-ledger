@@ -221,7 +221,12 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 
 	idleLoop := false
 	softTimeout := false
+
 	phase2StartedAt := time.Now()
+	defer func() {
+		// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
+		go stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())*metrics.StatUnit))
+	}()
 
 	for {
 	inner:
@@ -233,16 +238,12 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 			switch {
 			case done:
 				log.Debug(">>>>workerPhase2: Done")
-				// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
-				go stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())*metrics.StatUnit))
 				return
 			case np == nil:
 				switch {
 				// there is actually no need for early exit here
 				case softTimeout && idleLoop:
 					log.Debug(">>>>workerPhase2: timeout + idle")
-					// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
-					go stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())*metrics.StatUnit))
 					return
 				case joinQueue.Len() > 0 || nodeQueue.Len() > 0 || !softTimeout:
 					break inner
