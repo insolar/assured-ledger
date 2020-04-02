@@ -156,7 +156,7 @@ func (c *Phase3Controller) workerPhase3(ctx context.Context) {
 		// context was stopped in a hard way, we are dead in terms of consensus
 		// TODO should wait for further packets to decide if we need to turn ourselves into suspended state
 		// c.R.StopRoundByTimeout()
-		// TODO: low-latency metrics
+		// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
 		go stats.Record(ctx, metrics.Phase3Time.M(float64(time.Since(phase3StartedAt).Nanoseconds()*metrics.StatUnit)))
 		return
 	}
@@ -172,13 +172,13 @@ func (c *Phase3Controller) workerPhase3(ctx context.Context) {
 
 	if !c.workerRecvPhase3(ctx, localInspector) {
 		// context was stopped in a hard way or we have left a consensus
-		// TODO: low-latency metrics
+		// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
 		go stats.Record(ctx, metrics.Phase3Time.M(float64(time.Since(phase3StartedAt).Nanoseconds()*metrics.StatUnit)))
 		return
 	}
 	// TODO should wait for further packets to decide if we need to turn ourselves into suspended state
 	// c.R.StopRoundByTimeout()
-	// TODO: low-latency metrics
+	// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
 	go stats.Record(ctx, metrics.Phase3Time.M(float64(time.Since(phase3StartedAt).Nanoseconds()*metrics.StatUnit)))
 
 	workerQueueFlusher(c.R, c.queuePh3Recv, c.queueTrustUpdated)
