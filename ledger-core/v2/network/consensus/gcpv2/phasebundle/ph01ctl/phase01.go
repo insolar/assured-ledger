@@ -167,7 +167,8 @@ func (c *Phase01Controller) workerPhase01(ctx context.Context) {
 
 	if ok, nshChannel := c.R.PreparePulseChange(); ok {
 		nsh, startIndex = c.workerSendPhase0(ctx, nodes, nshChannel)
-		stats.Record(ctx, metrics.Phase01Time.M(float64(time.Since(phase01StartedAt).Nanoseconds())/1e6))
+		// TODO: low-latency metrics
+		go stats.Record(ctx, metrics.Phase01Time.M(float64(time.Since(phase01StartedAt).Nanoseconds()*metrics.StatUnit)))
 		if startIndex < 0 {
 			// stopped via context
 			inslogger.FromContext(ctx).Error(">>>>>>workerPhase01: was stopped via context")

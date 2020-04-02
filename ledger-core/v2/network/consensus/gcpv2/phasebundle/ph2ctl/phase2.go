@@ -223,7 +223,6 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 	softTimeout := false
 
 	phase2StartedAt := time.Now()
-	defer stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds())/1e6))
 
 	for {
 	inner:
@@ -235,12 +234,16 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 			switch {
 			case done:
 				log.Debug(">>>>workerPhase2: Done")
+				// TODO: low-latency metrics
+				go stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds()*metrics.StatUnit)))
 				return
 			case np == nil:
 				switch {
 				// there is actually no need for early exit here
 				case softTimeout && idleLoop:
 					log.Debug(">>>>workerPhase2: timeout + idle")
+					// TODO: low-latency metrics
+					go stats.Record(ctx, metrics.Phase2Time.M(float64(time.Since(phase2StartedAt).Nanoseconds()*metrics.StatUnit)))
 					return
 				case joinQueue.Len() > 0 || nodeQueue.Len() > 0 || !softTimeout:
 					break inner
