@@ -12,8 +12,11 @@ import (
 	"sync"
 	"time"
 
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/consensus"
@@ -144,6 +147,12 @@ func (c *Phase3Controller) workerPhase3(ctx context.Context) {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 	}
+
+	phase3StartedAt := time.Now()
+	defer func() {
+		// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
+		go stats.Record(ctx, metrics.Phase3Time.M(float64(time.Since(phase3StartedAt).Nanoseconds())*metrics.StatUnit))
+	}()
 
 	localInspector := c.workerPrePhase3(ctx)
 	if localInspector == nil {

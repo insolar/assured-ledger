@@ -1,6 +1,6 @@
 module github.com/insolar/assured-ledger/ledger-core/v2
 
-go 1.12
+go 1.14
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
@@ -53,7 +53,7 @@ require (
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
 	go.opencensus.io v0.22.0
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
