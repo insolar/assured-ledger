@@ -10,11 +10,13 @@ import "io"
 type Decrypter interface {
 	SignatureKey() SignatureKey
 	DecryptBytes([]byte) []byte
-	NewDecryptingReader(src io.Reader) io.Reader
+	NewDecryptingReader(src io.Reader, encryptedSize uint) (r io.Reader, plainSize uint)
 }
 
 type Encrypter interface {
 	SignatureKey() SignatureKey
 	EncryptBytes([]byte) []byte
-	NewEncryptingWriter(dst io.Writer) io.Writer
+	NewEncryptingWriter(dst io.Writer, plainSize uint) io.Writer
+
+	GetOverheadSize(dataSize uint) uint
 }

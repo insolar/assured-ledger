@@ -252,6 +252,7 @@ type ExecutionContext interface {
 	GetPendingCallCount() int
 
 	// NewBargeInThisStepOnly provides a builder for a simple barge-in. The barge-in function will be ignored if the step has changed.
+	// TODO add step-tolerance as for adapter calls
 	NewBargeInThisStepOnly() BargeInBuilder
 
 	// InitiateLongRun forces detachment of this slot from SlotMachine's worker to allow slow processing and/or multiple sync calls.

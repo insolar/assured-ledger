@@ -8,7 +8,7 @@ package insolar
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 )
 
 const (

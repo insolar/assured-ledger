@@ -13,7 +13,7 @@ func NewTeeWriter(main, copy io.Writer) io.Writer {
 	return &TeeWriter{main, teeTemplate{copy, 0}}
 }
 
-func NewTeeWriterWithWipe(main, copy io.Writer, zeroLeadingBytes int) io.Writer {
+func NewTeeWriterWithSkip(main, copy io.Writer, zeroLeadingBytes int) io.Writer {
 	return &TeeWriter{main, teeTemplate{copy, zeroLeadingBytes}}
 }
 
@@ -21,28 +21,26 @@ func NewTeeReader(main io.Reader, copy io.Writer) io.Reader {
 	return &TeeReader{main, teeTemplate{copy, 0}}
 }
 
-func NewTeeReaderWithWipe(main io.Reader, copy io.Writer, zeroLeadingBytes int) io.Reader {
-	return &TeeReader{main, teeTemplate{copy, zeroLeadingBytes}}
+func NewTeeReaderWithSkip(main io.Reader, copy io.Writer, skipLeadingBytes int) io.Reader {
+	return &TeeReader{main, teeTemplate{copy, skipLeadingBytes}}
 }
 
 type teeTemplate struct {
-	copy     io.Writer
-	zeroHead int
+	copy io.Writer
+	skip int
 }
 
 func (w *teeTemplate) teeWrite(n int, b []byte) {
 	switch {
 	case w.copy == nil:
 		return
-	case w.zeroHead <= 0:
+	case w.skip <= 0:
 		_, _ = w.copy.Write(b[:n])
-	case w.zeroHead >= n:
-		w.zeroHead -= n
-		_, _ = WriteZeros(n, w.copy)
+	case w.skip >= n:
+		w.skip -= n
 	default:
-		_, _ = WriteZeros(w.zeroHead, w.copy)
-		_, _ = w.copy.Write(b[w.zeroHead:n])
-		w.zeroHead = 0
+		_, _ = w.copy.Write(b[w.skip:n])
+		w.skip = 0
 	}
 }
 

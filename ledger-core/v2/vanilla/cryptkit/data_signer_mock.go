@@ -887,7 +887,7 @@ func (mmGetSigningMethod *DataSignerMock) GetSigningMethod() (s1 SigningMethod) 
 		if mm_results == nil {
 			mmGetSigningMethod.t.Fatal("No results are set for the DataSignerMock.GetSigningMethod")
 		}
-		return (*mm_results).s1
+		return (*mm_results).d1
 	}
 	if mmGetSigningMethod.funcGetSigningMethod != nil {
 		return mmGetSigningMethod.funcGetSigningMethod()

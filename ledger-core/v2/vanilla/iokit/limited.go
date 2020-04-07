@@ -20,24 +20,20 @@ func LimitReader(r io.Reader, n int64) *LimitedReader {
 	return &LimitedReader{TeeReader{main: r}, n}
 }
 
-func NewBufferWith(r io.Reader, n int64) *LimitedReader {
-	return &LimitedReader{TeeReader{main: r}, n}
-}
-
 func NewLimitedTeeWriter(main, copy io.Writer, limit int64) *LimitedWriter {
 	return &LimitedWriter{TeeWriter{main, teeTemplate{copy, 0}}, limit}
 }
 
-func NewLimitedTeeWriterWithWipe(main, copy io.Writer, zeroLeadingBytes int, limit int64) *LimitedWriter {
-	return &LimitedWriter{TeeWriter{main, teeTemplate{copy, zeroLeadingBytes}}, limit}
+func NewLimitedTeeWriterWithSkip(main, copy io.Writer, skipLeadingBytes int, limit int64) *LimitedWriter {
+	return &LimitedWriter{TeeWriter{main, teeTemplate{copy, skipLeadingBytes}}, limit}
 }
 
 func NewLimitedTeeReader(main io.Reader, copy io.Writer, limit int64) *LimitedReader {
 	return &LimitedReader{TeeReader{main, teeTemplate{copy, 0}}, limit}
 }
 
-func NewLimitedTeeReaderWithWipe(main io.Reader, copy io.Writer, zeroLeadingBytes int, limit int64) *LimitedReader {
-	return &LimitedReader{TeeReader{main, teeTemplate{copy, zeroLeadingBytes}}, limit}
+func NewLimitedTeeReaderWithSkip(main io.Reader, copy io.Writer, skipLeadingBytes int, limit int64) *LimitedReader {
+	return &LimitedReader{TeeReader{main, teeTemplate{copy, skipLeadingBytes}}, limit}
 }
 
 /***********************************************/

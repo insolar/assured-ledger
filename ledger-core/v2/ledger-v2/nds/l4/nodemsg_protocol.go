@@ -6,14 +6,10 @@
 package l4
 
 import (
-	"encoding/binary"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/apinetwork"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -28,174 +24,11 @@ const (
 	NodeMessageParcelBody // or Head + Body
 )
 
-func NewPacket(tp NodeMessageType) Packet {
-	pt := Packet{}
+func NewPacket(tp NodeMessageType) apinetwork.Packet {
+	pt := apinetwork.Packet{}
 	pt.Header.SetProtocolType(ProtocolNodeMessage)
 	pt.Header.SetPacketType(uint8(tp))
 	return pt
-}
-
-type Packet struct {
-	Header      apinetwork.Header `insolar-transport:"Protocol=0x03;Packet=0-1"`             // ByteSize=16
-	PulseNumber pulse.Number      `insolar-transport:"[30-31]=0"`                            // [30-31] MUST ==0, ByteSize=4
-	ExtraLength uint32            `insolar-transport:"Packet=1-;optional=IsExcessiveLength"` // ByteSize=4
-
-	EncryptionData []byte `insolar-transport:"Packet=1;optional=IsBodyEncrypted"`
-	// EncryptableBody interface{}
-
-	PacketSignature longbits.Bits512 `insolar-transport:"generate=signature"` // ByteSize=64
-}
-
-func (p *Packet) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer, dataSize uint, fn func(*iokit.LimitedWriter) error) error {
-	//p.Header.SetProtocolType(ProtocolNodeMessage)
-
-	if pn, err := ctx.PrepareHeader(&p.Header); err != nil {
-		return err
-	} else if p.PulseNumber == 0 {
-		p.PulseNumber = pn
-	}
-
-	signer := ctx.GetPayloadSigner()
-	hasher := signer.NewHasher()
-
-	packetSize := dataSize
-	packetSize += uint(pulse.NumberSize)
-	packetSize += uint(signer.GetDigestSize())
-
-	if p.Header.IsBodyEncrypted() {
-		// TODO encryption data size calc
-		packetSize += 0
-	}
-
-	p.Header.SetPayloadLength(uint64(packetSize))
-	if p.Header.IsExcessiveLength() && NodeMessageType(p.Header.GetPacketType()) == NodeMessageState {
-		// ExtraLength is not allowed for packet type 0
-		return throw.IllegalValue()
-	}
-	packetSize += p.Header.ByteSize()
-
-	teeWriter := iokit.NewLimitedTeeWriterWithWipe(writer, hasher, p.Header.GetHashingZeroPrefix(), int64(packetSize))
-
-	if err := p.Header.SerializeTo(teeWriter); err != nil {
-		return err
-	}
-
-	byteOrder := binary.LittleEndian
-	buf := make([]byte, pulse.NumberSize)
-	byteOrder.PutUint32(buf, uint32(p.PulseNumber))
-	if _, err := teeWriter.Write(buf); err != nil {
-		return err
-	}
-	if p.ExtraLength > 0 {
-		byteOrder.PutUint32(buf, p.ExtraLength)
-		if _, err := teeWriter.Write(buf[:4]); err != nil {
-			return err
-		}
-	}
-
-	if p.Header.IsBodyEncrypted() {
-		encWriter := ctx.GetPayloadEncrypter().NewEncryptingWriter(teeWriter)
-		teeEncWriter := iokit.LimitWriter(encWriter, teeWriter.RemainingBytes())
-
-		if err := fn(teeEncWriter); err != nil {
-			return err
-		}
-	} else {
-		if err := fn(teeWriter); err != nil {
-			return err
-		}
-	}
-	if teeWriter.RemainingBytes() != 0 {
-		return throw.IllegalState()
-	}
-
-	digest := hasher.SumToDigest()
-	signature := signer.SignDigest(digest)
-
-	if err := longbits.CopyAllBytes(signature, p.PacketSignature[:]); err != nil {
-		return err
-	}
-	_, err := signature.WriteTo(writer)
-	return err
-}
-
-func (p *Packet) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader, fn func(*iokit.LimitedReader) error) error {
-	signer := ctx.GetPayloadVerifier()
-	hasher := signer.NewHasher()
-
-	teeReader := iokit.NewTeeReaderWithWipe(reader, hasher, p.Header.GetHashingZeroPrefix())
-	if err := p.Header.DeserializeFrom(teeReader); err != nil {
-		return err
-	}
-
-	if p.Header.GetProtocolType() != ProtocolNodeMessage {
-		return throw.IllegalValue()
-	}
-
-	byteOrder := binary.LittleEndian
-	buf := make([]byte, 4)
-	if _, err := reader.Read(buf); err != nil {
-		return err
-	}
-	if n := byteOrder.Uint32(buf); pulse.IsValidAsPulseNumber(int(n)) {
-		p.PulseNumber = pulse.Number(n)
-	} else {
-		return throw.IllegalValue()
-	}
-
-	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
-		return err
-	}
-
-	readLimit := int64(0)
-	switch limit, err := p.Header.GetPayloadLength(); {
-	case err != nil:
-		return err
-	case p.Header.IsExcessiveLength() && NodeMessageType(p.Header.GetPacketType()) == NodeMessageState:
-		return throw.IllegalValue()
-	default:
-		readLimit = int64(limit)
-	}
-
-	switch n := int64(signer.GetDigestSize()); {
-	case readLimit < n:
-		return throw.IllegalValue()
-	case n != int64(len(p.PacketSignature)):
-		return throw.IllegalValue()
-	default:
-		readLimit -= n
-	}
-
-	if readLimit > 0 && p.Header.IsBodyEncrypted() {
-		encReader := ctx.GetPayloadDecrypter().NewDecryptingReader(teeReader)
-		limitReader := iokit.LimitReader(encReader, readLimit)
-		if err := fn(limitReader); err != nil {
-			return err
-		}
-		readLimit = limitReader.RemainingBytes()
-	} else {
-		limitReader := iokit.LimitReader(teeReader, readLimit)
-		if err := fn(limitReader); err != nil {
-			return err
-		}
-		readLimit = limitReader.RemainingBytes()
-	}
-	if readLimit != 0 {
-		return throw.IllegalValue()
-	}
-
-	if _, err := io.ReadFull(reader, p.PacketSignature[:]); err != nil {
-		return err
-	}
-
-	digest := hasher.SumToDigest()
-	signature := cryptkit.NewSignature(longbits.NewMutableFixedSize(p.PacketSignature[:]), signer.GetSignatureMethod())
-
-	if !signer.IsValidDigestSignature(digest, signature) {
-		return throw.IllegalValue()
-	}
-
-	return nil
 }
 
 // Flags for NodeMessageState
@@ -208,6 +41,33 @@ type NodeMsgState struct {
 	BodyRq     ParcelId   `insolar-transport:"optional=PacketFlags[0]"` //
 	RejectList []ParcelId `insolar-transport:"optional=PacketFlags[1]"` //
 	AckList    []ParcelId `insolar-transport:"list=nocount"`            // length is determined by packet size
+}
+
+func FillNodeMsgState(maxPacketSize int, bodyRq ParcelId, ackList *[]ParcelId, rejectList *[]ParcelId) (m NodeMsgState) {
+	if bodyRq != 0 {
+		m.BodyRq = bodyRq
+		maxPacketSize -= ParcelIdByteSize
+	}
+	maxIdCount := maxPacketSize / ParcelIdByteSize
+	maxIdCount, m.AckList = moveParcelIdList(maxIdCount, ackList)
+	if maxIdCount > 1 { // 1 is to reserve space for varint count
+		_, m.RejectList = moveParcelIdList(maxIdCount-1, rejectList)
+	}
+	return
+}
+
+func moveParcelIdList(maxCount int, list *[]ParcelId) (int, []ParcelId) {
+	n := len(*list)
+	if maxCount >= n {
+		x := *list
+		*list = nil
+		return maxCount - n, x
+	}
+	x := *list
+	// take from tail to allow better memory re-use on high load
+	// also, recent packets will be acked/rejected faster that improves efficiency on high load
+	*list = x[:n-maxCount]
+	return maxCount, x[n-maxCount:]
 }
 
 func (p *NodeMsgState) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {

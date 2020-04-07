@@ -7,7 +7,7 @@ package iokit
 
 import "io"
 
-func LimitReaderWithTrigger(r io.Reader, n int64, triggerFn func()) *LimitedTriggerReader {
+func LimitReaderWithTrigger(r io.Reader, n int64, triggerFn func(int64)) *LimitedTriggerReader {
 	return &LimitedTriggerReader{LimitedReader{TeeReader{main: r}, n}, triggerFn}
 }
 
@@ -16,7 +16,7 @@ var _ io.ReadCloser = &LimitedTriggerReader{}
 type hLimitedReader = LimitedReader
 type LimitedTriggerReader struct {
 	hLimitedReader
-	t func()
+	t func(int64)
 }
 
 func (p *LimitedTriggerReader) Read(b []byte) (int, error) {
@@ -25,12 +25,22 @@ func (p *LimitedTriggerReader) Read(b []byte) (int, error) {
 	}
 	n, err := p.hLimitedReader.Read(b)
 	if p.hLimitedReader.n <= 0 {
-		//p.hLimitedReader.r.main = nil
-		p.t()
+		p.trigger()
 	}
 	return n, err
 }
 
+func (p *LimitedTriggerReader) trigger() {
+	if p.t == nil {
+		return
+	}
+	//p.hLimitedReader.R.main = nil
+	t := p.t
+	p.t = nil
+	t(p.hLimitedReader.n)
+}
+
 func (p *LimitedTriggerReader) Close() error {
-	panic("implement me")
+	p.trigger()
+	return nil
 }

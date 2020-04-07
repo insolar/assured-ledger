@@ -6,6 +6,7 @@
 package longbits
 
 import (
+	"encoding/hex"
 	"io"
 	"math/bits"
 	"strings"
@@ -215,4 +216,13 @@ func (v ByteString) String() string {
 
 func (v ByteString) NewIoReader() io.Reader {
 	return strings.NewReader(string(v))
+}
+
+func (v ByteString) Hex() string {
+	if v == "" {
+		return ""
+	}
+	b := make([]byte, hex.EncodedLen(len(v)))
+	hex.Encode(b, []byte(v))
+	return string(b)
 }

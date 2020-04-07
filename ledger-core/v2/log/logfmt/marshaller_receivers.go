@@ -214,6 +214,6 @@ func (p *stringCapturer) AddTimeField(key string, v time.Time, fFmt LogFieldForm
 	}
 }
 
-func (p *stringCapturer) AddErrorField(string, throw.StackTrace, bool) {
+func (p *stringCapturer) AddErrorField(string, throw.StackTrace, throw.Severity, bool) {
 	// ignore
 }

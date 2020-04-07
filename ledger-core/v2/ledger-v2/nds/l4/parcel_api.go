@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
@@ -18,6 +18,7 @@ type DeliveryAddress struct {
 
 type ReturnAddress struct {
 	returnTo DeliveryAddress
+	returnId ParcelId
 }
 
 type DeliveryParcel struct {

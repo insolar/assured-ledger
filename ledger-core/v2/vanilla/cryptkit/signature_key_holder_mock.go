@@ -611,6 +611,221 @@ func (m *SignatureKeyHolderMock) MinimockCopyToInspect() {
 	}
 }
 
+type mSignatureKeyHolderMockCopyTo struct {
+	mock               *SignatureKeyHolderMock
+	defaultExpectation *SignatureKeyHolderMockCopyToExpectation
+	expectations       []*SignatureKeyHolderMockCopyToExpectation
+
+	callArgs []*SignatureKeyHolderMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// SignatureKeyHolderMockCopyToExpectation specifies expectation struct of the SignatureKeyHolder.CopyTo
+type SignatureKeyHolderMockCopyToExpectation struct {
+	mock    *SignatureKeyHolderMock
+	params  *SignatureKeyHolderMockCopyToParams
+	results *SignatureKeyHolderMockCopyToResults
+	Counter uint64
+}
+
+// SignatureKeyHolderMockCopyToParams contains parameters of the SignatureKeyHolder.CopyTo
+type SignatureKeyHolderMockCopyToParams struct {
+	p []byte
+}
+
+// SignatureKeyHolderMockCopyToResults contains results of the SignatureKeyHolder.CopyTo
+type SignatureKeyHolderMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for SignatureKeyHolder.CopyTo
+func (mmCopyTo *mSignatureKeyHolderMockCopyTo) Expect(p []byte) *mSignatureKeyHolderMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("SignatureKeyHolderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &SignatureKeyHolderMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &SignatureKeyHolderMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the SignatureKeyHolder.CopyTo
+func (mmCopyTo *mSignatureKeyHolderMockCopyTo) Inspect(f func(p []byte)) *mSignatureKeyHolderMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for SignatureKeyHolderMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by SignatureKeyHolder.CopyTo
+func (mmCopyTo *mSignatureKeyHolderMockCopyTo) Return(i1 int) *SignatureKeyHolderMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("SignatureKeyHolderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &SignatureKeyHolderMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &SignatureKeyHolderMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the SignatureKeyHolder.CopyTo method
+func (mmCopyTo *mSignatureKeyHolderMockCopyTo) Set(f func(p []byte) (i1 int)) *SignatureKeyHolderMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the SignatureKeyHolder.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the SignatureKeyHolder.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the SignatureKeyHolder.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mSignatureKeyHolderMockCopyTo) When(p []byte) *SignatureKeyHolderMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("SignatureKeyHolderMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &SignatureKeyHolderMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &SignatureKeyHolderMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up SignatureKeyHolder.CopyTo return parameters for the expectation previously defined by the When method
+func (e *SignatureKeyHolderMockCopyToExpectation) Then(i1 int) *SignatureKeyHolderMock {
+	e.results = &SignatureKeyHolderMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements SignatureKeyHolder
+func (mmCopyTo *SignatureKeyHolderMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &SignatureKeyHolderMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := SignatureKeyHolderMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("SignatureKeyHolderMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the SignatureKeyHolderMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to SignatureKeyHolderMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished SignatureKeyHolderMock.CopyTo invocations
+func (mmCopyTo *SignatureKeyHolderMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of SignatureKeyHolderMock.CopyTo invocations
+func (mmCopyTo *SignatureKeyHolderMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to SignatureKeyHolderMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mSignatureKeyHolderMockCopyTo) Calls() []*SignatureKeyHolderMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*SignatureKeyHolderMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *SignatureKeyHolderMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *SignatureKeyHolderMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SignatureKeyHolderMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to SignatureKeyHolderMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to SignatureKeyHolderMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to SignatureKeyHolderMock.CopyTo")
+	}
+}
+
 type mSignatureKeyHolderMockEquals struct {
 	mock               *SignatureKeyHolderMock
 	defaultExpectation *SignatureKeyHolderMockEqualsExpectation
@@ -1683,7 +1898,7 @@ func (mmWriteTo *SignatureKeyHolderMock) WriteTo(w io.Writer) (n int64, err erro
 		if mm_results == nil {
 			mmWriteTo.t.Fatal("No results are set for the SignatureKeyHolderMock.WriteTo")
 		}
-		return (*mm_results).n, (*mm_results).err
+		return (*mm_results).s1
 	}
 	if mmWriteTo.funcWriteTo != nil {
 		return mmWriteTo.funcWriteTo(w)

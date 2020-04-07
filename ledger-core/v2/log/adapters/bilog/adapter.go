@@ -55,7 +55,7 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 		preallocate += maxEventBufferIncrement
 	}
 
-	encoder := objectEncoder{v.encoder, nil, time.Now(), level == logcommon.DebugLevel}
+	encoder := objectEncoder{v.encoder, nil, time.Now(), level == logcommon.DebugLevel, level}
 	if v.recycleBuf {
 		encoder.content = allocateBuffer(preallocate)
 	} else {
@@ -98,7 +98,7 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 	return encoder
 }
 
-func (v binLogAdapter) sendEvent(level log.Level, encoder objectEncoder, msgStr string, completed *bool) {
+func (v binLogAdapter) sendEvent(encoder objectEncoder, msgStr string, completed *bool) {
 	encoder.AddStrField(logoutput.MessageFieldName, msgStr, logfmt.LogFieldFormat{})
 
 	var content []byte
@@ -109,8 +109,10 @@ func (v binLogAdapter) sendEvent(level log.Level, encoder objectEncoder, msgStr 
 	}
 
 	// NB! writer's methods can call runtime.Goexit() etc
-	// So we have to mark our part as complete before it
+	// So we have to mark our part as completed before it
 	*completed = true
+
+	level := encoder.level
 
 	var err error
 	if v.lowLatency {
@@ -193,7 +195,7 @@ func (v binLogAdapter) NewEventStruct(level log.Level) func(interface{}, []logfm
 			collector := v.config.Metrics.GetMetricsCollector()
 			msgStr, _ = obj.MarshalLogObject(&event, collector)
 		}
-		v.sendEvent(level, event, msgStr, &completed)
+		v.sendEvent(event, msgStr, &completed)
 	}
 }
 
@@ -212,7 +214,7 @@ func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 		if len(args) != 1 {
 			msgStr := v.config.MsgFormat.FmtLogObject(args...)
 			event := v.prepareEncoder(level, v.expectedEventLen)
-			v.sendEvent(level, event, msgStr, &completed)
+			v.sendEvent(event, msgStr, &completed)
 			return
 		}
 
@@ -223,7 +225,7 @@ func (v binLogAdapter) NewEvent(level log.Level) func(args []interface{}) {
 			collector := v.config.Metrics.GetMetricsCollector()
 			msgStr, _ = obj.MarshalLogObject(&event, collector)
 		}
-		v.sendEvent(level, event, msgStr, &completed)
+		v.sendEvent(event, msgStr, &completed)
 	}
 }
 
@@ -241,7 +243,7 @@ func (v binLogAdapter) NewEventFmt(level log.Level) func(fmt string, args []inte
 
 		msgStr := v.config.MsgFormat.Sformatf(fmt, args...)
 		event := v.prepareEncoder(level, len(msgStr))
-		v.sendEvent(level, event, msgStr, &completed)
+		v.sendEvent(event, msgStr, &completed)
 	}
 }
 
@@ -261,7 +263,7 @@ func (v binLogAdapter) EmbeddedFlush(msgStr string) {
 	}()
 
 	event := v.prepareEncoder(level, len(msgStr))
-	v.sendEvent(level, event, msgStr, &completed)
+	v.sendEvent(event, msgStr, &completed)
 }
 
 func (v binLogAdapter) Is(level log.Level) bool {
@@ -286,7 +288,7 @@ func (v binLogAdapter) _prepareAppendFields(nExpected int) objectEncoder {
 		buf = make([]byte, 0, len(v.staticFields)+required)
 	}
 	buf = append(buf, v.staticFields...)
-	return objectEncoder{v.encoder, buf, time.Time{}, false}
+	return objectEncoder{v.encoder, buf, time.Time{}, false, 0}
 }
 
 // NB! Reference receiver allows return of the existing instance when nothing was changed, otherwise it will make a copy
@@ -335,7 +337,7 @@ func (v *binLogAdapter) _addFieldsByBuilder(fields map[string]interface{}) {
 		newFields = &v.staticFields
 	}
 
-	objEncoder := objectEncoder{v.encoder, *newFields, time.Time{}, false}
+	objEncoder := objectEncoder{v.encoder, *newFields, time.Time{}, false, 0}
 	objEncoder.addIntfFields(fields)
 	*newFields = objEncoder.content
 }

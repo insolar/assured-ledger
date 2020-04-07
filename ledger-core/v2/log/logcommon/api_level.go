@@ -19,8 +19,8 @@ const (
 	InfoLevel
 	WarnLevel
 	ErrorLevel
-	FatalLevel
 	PanicLevel
+	FatalLevel
 	NoLevel
 
 	LogLevelCount = iota

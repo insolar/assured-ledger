@@ -756,6 +756,221 @@ func (m *CloudStateHashMock) MinimockCopyToInspect() {
 	}
 }
 
+type mCloudStateHashMockCopyTo struct {
+	mock               *CloudStateHashMock
+	defaultExpectation *CloudStateHashMockCopyToExpectation
+	expectations       []*CloudStateHashMockCopyToExpectation
+
+	callArgs []*CloudStateHashMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// CloudStateHashMockCopyToExpectation specifies expectation struct of the CloudStateHash.CopyTo
+type CloudStateHashMockCopyToExpectation struct {
+	mock    *CloudStateHashMock
+	params  *CloudStateHashMockCopyToParams
+	results *CloudStateHashMockCopyToResults
+	Counter uint64
+}
+
+// CloudStateHashMockCopyToParams contains parameters of the CloudStateHash.CopyTo
+type CloudStateHashMockCopyToParams struct {
+	p []byte
+}
+
+// CloudStateHashMockCopyToResults contains results of the CloudStateHash.CopyTo
+type CloudStateHashMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for CloudStateHash.CopyTo
+func (mmCopyTo *mCloudStateHashMockCopyTo) Expect(p []byte) *mCloudStateHashMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("CloudStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &CloudStateHashMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &CloudStateHashMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the CloudStateHash.CopyTo
+func (mmCopyTo *mCloudStateHashMockCopyTo) Inspect(f func(p []byte)) *mCloudStateHashMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for CloudStateHashMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by CloudStateHash.CopyTo
+func (mmCopyTo *mCloudStateHashMockCopyTo) Return(i1 int) *CloudStateHashMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("CloudStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &CloudStateHashMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &CloudStateHashMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the CloudStateHash.CopyTo method
+func (mmCopyTo *mCloudStateHashMockCopyTo) Set(f func(p []byte) (i1 int)) *CloudStateHashMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the CloudStateHash.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the CloudStateHash.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the CloudStateHash.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mCloudStateHashMockCopyTo) When(p []byte) *CloudStateHashMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("CloudStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &CloudStateHashMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &CloudStateHashMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up CloudStateHash.CopyTo return parameters for the expectation previously defined by the When method
+func (e *CloudStateHashMockCopyToExpectation) Then(i1 int) *CloudStateHashMock {
+	e.results = &CloudStateHashMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements CloudStateHash
+func (mmCopyTo *CloudStateHashMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &CloudStateHashMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := CloudStateHashMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("CloudStateHashMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the CloudStateHashMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to CloudStateHashMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished CloudStateHashMock.CopyTo invocations
+func (mmCopyTo *CloudStateHashMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of CloudStateHashMock.CopyTo invocations
+func (mmCopyTo *CloudStateHashMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to CloudStateHashMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mCloudStateHashMockCopyTo) Calls() []*CloudStateHashMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*CloudStateHashMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *CloudStateHashMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *CloudStateHashMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CloudStateHashMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to CloudStateHashMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to CloudStateHashMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to CloudStateHashMock.CopyTo")
+	}
+}
+
 type mCloudStateHashMockEquals struct {
 	mock               *CloudStateHashMock
 	defaultExpectation *CloudStateHashMockEqualsExpectation

@@ -93,7 +93,7 @@ func (m zerologMarshaller) AddRawJSONField(key string, v interface{}, fFmt logfm
 	m.event.RawJSON(key, []byte(m.Sformatf(fFmt.Fmt, v)))
 }
 
-func (m zerologMarshaller) AddErrorField(msg string, stack throw.StackTrace, _ bool) {
+func (m zerologMarshaller) AddErrorField(msg string, stack throw.StackTrace, severity throw.Severity, hasPanic bool) {
 	if msg != "" {
 		m.event.Str(zerolog.ErrorFieldName, msg)
 	}

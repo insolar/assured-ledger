@@ -50,6 +50,8 @@ func (p *Once) doSlow(f func() uint32) {
 	}
 }
 
+/***********************************************************/
+
 type OnceFlag struct {
 	done int32
 }
@@ -84,4 +86,91 @@ func (p *OnceFlag) DoSpin(f func()) bool {
 func (p *OnceFlag) doSlow(f func()) {
 	defer atomic.StoreInt32(&p.done, 1)
 	f()
+}
+
+/***********************************************************/
+
+type StartStopFlag struct {
+	done int32
+}
+
+func (p *StartStopFlag) IsActive() bool {
+	return atomic.LoadInt32(&p.done) == 1
+}
+
+func (p *StartStopFlag) IsStarting() bool {
+	return atomic.LoadInt32(&p.done) < 0
+}
+
+func (p *StartStopFlag) WasStarted() bool {
+	return atomic.LoadInt32(&p.done) != 0
+}
+
+func (p *StartStopFlag) WasStopped() bool {
+	return atomic.LoadInt32(&p.done) >= 2
+}
+
+func (p *StartStopFlag) IsStopping() bool {
+	return atomic.LoadInt32(&p.done) == 2
+}
+
+func (p *StartStopFlag) IsStopped() bool {
+	return atomic.LoadInt32(&p.done) == 3
+}
+
+func (p *StartStopFlag) Status() (active, wasStarted bool) {
+	n := atomic.LoadInt32(&p.done)
+	return n == 1, n != 0
+}
+
+func (p *StartStopFlag) DoStart(f func()) bool {
+	if !atomic.CompareAndSwapInt32(&p.done, 0, -1) {
+		return false
+	}
+	p.doSlow(f, 1)
+	return true
+}
+
+func (p *StartStopFlag) DoStop(f func()) bool {
+	if !atomic.CompareAndSwapInt32(&p.done, 1, 2) {
+		return false
+	}
+	p.doSlow(f, 3)
+	return true
+}
+
+func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
+	for {
+		switch atomic.LoadInt32(&p.done) {
+		case 0:
+			if atomic.CompareAndSwapInt32(&p.done, 0, 2) {
+				p.doSlow(discardFn, 3)
+				return true
+			}
+		case 1:
+			return p.DoStop(stopFn)
+		default:
+			return false
+		}
+	}
+}
+
+func (p *StartStopFlag) Start() bool {
+	return !atomic.CompareAndSwapInt32(&p.done, 0, 1)
+}
+
+func (p *StartStopFlag) Stop(f func()) bool {
+	return !atomic.CompareAndSwapInt32(&p.done, 1, 3)
+}
+
+func (p *StartStopFlag) doSlow(f func(), status int32) {
+	upd := int32(3) // stopped
+	defer func() {
+		atomic.StoreInt32(&p.done, upd)
+	}()
+
+	if f != nil {
+		f()
+	}
+	upd = status
 }

@@ -6,8 +6,8 @@
 package l4
 
 type MessageDelivery interface {
-	ShipTo(to DeliveryAddress, parcel DeliveryParcel, needsTag bool) (DeliveryTag, error)
-	ShipReturn(to ReturnAddress, parcel DeliveryParcel, needsTag bool) (DeliveryTag, error)
+	ShipTo(to DeliveryAddress, parcel DeliveryParcel, needsTag bool) (*DeliveryTag, error)
+	ShipReturn(to ReturnAddress, parcel DeliveryParcel, needsTag bool) (*DeliveryTag, error)
 }
 
 type DeliveryTag struct {

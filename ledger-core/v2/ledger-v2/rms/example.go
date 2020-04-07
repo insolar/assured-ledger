@@ -86,3 +86,18 @@ func init() {
 	RegisterPolymorph(101, func() ProtoMessage { return &MsgExample{} })
 	RegisterPolymorph(102, func() ProtoMessage { return &RecExample2{} })
 }
+
+func (m *MsgExample) InitPolymorphField(setup bool) bool {
+	const polymorphId = 101
+	if setup {
+		m.MsgPolymorph = polymorphId
+		return true
+	}
+	return m.MsgPolymorph == polymorphId
+}
+
+func init() {
+	RegisterPolymorph(100, func() ProtoMessage { return &RecExample{} })
+	RegisterPolymorph(101, func() ProtoMessage { return &MsgExample{} })
+	RegisterPolymorph(102, func() ProtoMessage { return &RecExample2{} })
+}

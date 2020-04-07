@@ -156,14 +156,14 @@ func CopyFixedSize(v FixedReader) FoldableReader {
 	return fixedSize{AsBytes(v)}
 }
 
-func CopyAllBytes(v FixedReader, b []byte) error {
-	if n := v.FixedByteSize(); n != len(b) {
-		if n < len(b) {
+func CopyAllBytes(to []byte, from FixedReader) error {
+	if n := from.FixedByteSize(); n != len(to) {
+		if n < len(to) {
 			return io.ErrShortBuffer
 		}
 		return io.ErrShortWrite
 	}
-	v.CopyTo(b)
+	from.CopyTo(to)
 	return nil
 }
 

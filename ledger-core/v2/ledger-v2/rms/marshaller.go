@@ -35,5 +35,6 @@ type GoGoMessage interface {
 
 type PolymorphMessage interface {
 	GoGoMarshaller
+	// deprecated
 	InitPolymorphField(setup bool) bool
 }

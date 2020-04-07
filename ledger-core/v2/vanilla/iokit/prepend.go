@@ -30,6 +30,10 @@ func (p *PrependedReader) Read(b []byte) (int, error) {
 
 	cn := copy(b, p.prepend)
 	if cn == pn {
+		if pr, ok := p.R.(*PrependedReader); ok {
+			*p = *pr
+			return cn, nil
+		}
 		p.prepend = nil
 	} else {
 		p.prepend = p.prepend[cn:]
@@ -87,6 +91,7 @@ func (p *PrependedWriter) Write(b []byte) (int, error) {
 	case n != len(fb):
 		return n, io.ErrShortWrite
 	}
+	// TODO flattening
 
 	if cp == len(b) {
 		return cp, nil
