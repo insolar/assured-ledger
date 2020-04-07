@@ -16,7 +16,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/dgraph-io/badger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/dummy_api"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
@@ -216,7 +215,6 @@ func newComponents(ctx context.Context, cfg configuration.Configuration, genesis
 		ArtifactsClient     = artifacts.NewClient(WmBus)
 		AvailabilityChecker = api.NewNetworkChecker(cfg.AvailabilityChecker)
 		APIWrapper          *api.RunnerWrapper
-		DummyAPI            = dummy_api.NewDummyAPI(cfg.DummyAPI)
 	)
 	{
 		var err error
@@ -392,7 +390,6 @@ func newComponents(ctx context.Context, cfg configuration.Configuration, genesis
 		Requester,
 		ArtifactsClient,
 		APIWrapper,
-		DummyAPI,
 		AvailabilityChecker,
 		KeyProcessor,
 		CryptoScheme,
