@@ -7,37 +7,17 @@ package dummy_api
 
 import (
 	"context"
-	"encoding/json"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/pkg/errors"
 )
 
 type DummyAPI struct {
 	server *http.Server
-}
-
-func mustConvertMapToJson(data map[string]interface{}) []byte {
-	jsonString, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-
-	return jsonString
-}
-
-func create(w http.ResponseWriter, req *http.Request) {
-	result := map[string]interface{}{"reference": gen.Reference()}
-	rawJson := mustConvertMapToJson(result)
-	_, err := w.Write(rawJson)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func NewDummyAPI(api configuration.DummyAPI) *DummyAPI {
@@ -49,9 +29,9 @@ func NewDummyAPI(api configuration.DummyAPI) *DummyAPI {
 func registerHandlers() {
 	walletLocation := "/wallet"
 	http.HandleFunc(walletLocation+"/create", create)
-	http.HandleFunc(walletLocation+"/transfer", create)
-	http.HandleFunc(walletLocation+"/get_balance", create)
-	http.HandleFunc(walletLocation+"/add_amount", create)
+	http.HandleFunc(walletLocation+"/transfer", transfer)
+	http.HandleFunc(walletLocation+"/get_balance", getBalance)
+	http.HandleFunc(walletLocation+"/add_amount", addAmount)
 }
 
 func (d *DummyAPI) Start(ctx context.Context) error {
