@@ -5,7 +5,6 @@
 
 package configuration
 
-// APIRunner holds configuration for api
 type TestWalletAPI struct {
 	Address string
 }
