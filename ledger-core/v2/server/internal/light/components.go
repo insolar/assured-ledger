@@ -11,7 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/dummy_api"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/component-manager"
 	"github.com/pkg/errors"
 
@@ -184,7 +184,6 @@ func newComponents(ctx context.Context, cfg configuration.Configuration) (*compo
 		ArtifactsClient     = artifacts.NewClient(Sender)
 		AvailabilityChecker = api.NewNetworkChecker(cfg.AvailabilityChecker)
 		APIWrapper          *api.RunnerWrapper
-		DummyAPI            = dummy_api.NewDummyAPI(cfg.DummyAPI)
 	)
 	{
 		var err error
@@ -385,7 +384,7 @@ func newComponents(ctx context.Context, cfg configuration.Configuration) (*compo
 		Requester,
 		ArtifactsClient,
 		APIWrapper,
-		DummyAPI,
+		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
 		AvailabilityChecker,
 		KeyProcessor,
 		CryptoScheme,

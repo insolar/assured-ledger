@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dummy_api
+package testwalletapi
 
 import (
 	"context"
@@ -16,12 +16,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DummyAPI struct {
+type TestWalletAPI struct {
 	server *http.Server
 }
 
-func NewDummyAPI(api configuration.DummyAPI) *DummyAPI {
-	return &DummyAPI{
+func NewTestWalletAPI(api configuration.TestWalletAPI) *TestWalletAPI {
+	return &TestWalletAPI{
 		server: &http.Server{Addr: api.Address},
 	}
 }
@@ -34,7 +34,7 @@ func registerHandlers() {
 	http.HandleFunc(walletLocation+"/add_amount", addAmount)
 }
 
-func (d *DummyAPI) Start(ctx context.Context) error {
+func (d *TestWalletAPI) Start(ctx context.Context) error {
 	registerHandlers()
 
 	listener, err := net.Listen("tcp", d.server.Addr)
@@ -50,7 +50,7 @@ func (d *DummyAPI) Start(ctx context.Context) error {
 	return nil
 }
 
-func (d *DummyAPI) Stop(ctx context.Context) error {
+func (d *TestWalletAPI) Stop(ctx context.Context) error {
 	const timeOut = 5
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(timeOut)*time.Second)

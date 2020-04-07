@@ -134,7 +134,7 @@ func main() {
 			conf.Ledger.JetSplit.DepthLimit = 4
 		}
 
-		conf.DummyAPI.Address = fmt.Sprintf(defaultHost+":323%02d", nodeIndex)
+		conf.TestWalletAPI.Address = fmt.Sprintf(defaultHost+":323%02d", nodeIndex)
 
 		conf.APIRunner.Address = fmt.Sprintf(defaultHost+":191%02d", nodeIndex)
 		conf.APIRunner.SwaggerPath = "application/api/spec/api-exported.yaml"
