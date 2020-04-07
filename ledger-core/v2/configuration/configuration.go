@@ -63,6 +63,7 @@ type Configuration struct {
 	LogicRunner         LogicRunner
 	APIRunner           APIRunner
 	AdminAPIRunner      APIRunner
+	DummyAPI            DummyAPI
 	AvailabilityChecker AvailabilityChecker
 	KeysPath            string
 	CertificatePath     string

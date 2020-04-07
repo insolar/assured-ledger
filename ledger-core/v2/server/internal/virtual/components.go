@@ -12,6 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/dummy_api"
 
 	"github.com/insolar/component-manager"
 
@@ -166,6 +167,7 @@ func initComponents(
 	checkError(ctx, err, "failed to start AdminAPIRunner")
 
 	APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+	DummyAPI := dummy_api.NewDummyAPI(cfg.DummyAPI)
 
 	// TODO: remove this hack in INS-3341
 	contractRequester.LR = logicRunner
@@ -180,6 +182,7 @@ func initComponents(
 		certManager,
 		logicRunner,
 		APIWrapper,
+		DummyAPI,
 		availabilityChecker,
 		nw,
 		pm,
