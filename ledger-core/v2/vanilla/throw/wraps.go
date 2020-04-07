@@ -107,10 +107,11 @@ func (v stackWrap) LogString() string {
 }
 
 func (v stackWrap) Error() string {
-	if v.stDeepest != nil {
-		return joinStack(v.LogString(), v.stDeepest)
-	}
-	return joinStack(v.LogString(), v.st)
+	//if v.stDeepest != nil {
+	//	return joinStack(v.LogString(), v.stDeepest)
+	//}
+	//return joinStack(v.LogString(), v.st)
+	return v.LogString()
 }
 
 /*******************************************************************/
@@ -158,10 +159,11 @@ func (v panicWrap) Unwrap() error {
 }
 
 func (v panicWrap) Error() string {
-	if v.stDeepest != nil {
-		return joinStack(v.LogString(), v.stDeepest)
-	}
-	return joinStack(v.LogString(), v.st)
+	//if v.stDeepest != nil {
+	//	return joinStack(v.LogString(), v.stDeepest)
+	//}
+	//return joinStack(v.LogString(), v.st)
+	return v.LogString()
 }
 
 /*******************************************************************/

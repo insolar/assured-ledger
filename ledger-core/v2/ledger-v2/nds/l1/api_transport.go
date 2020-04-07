@@ -11,7 +11,6 @@ import (
 	"net"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type SessionfulTransport interface {
@@ -20,7 +19,6 @@ type SessionfulTransport interface {
 	Close() error
 }
 
-type StopSignal = synckit.SignalChannel
 type SessionfulConnectFunc func(local, remote Address, conn io.ReadWriteCloser, w OutTransport, err error) (ok bool)
 
 type VerifyPeerCertificateFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error

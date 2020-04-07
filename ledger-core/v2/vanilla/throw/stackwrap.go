@@ -85,7 +85,6 @@ func withDetails(predecessor error, details interface{}) error {
 	var d fmtWrap
 	switch vv := details.(type) {
 	case fmtWrap:
-
 		d = vv
 	case panicWrap:
 		d = vv.fmtWrap
