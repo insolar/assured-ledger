@@ -78,6 +78,7 @@ regen-proxies: $(INSGOCC) ## regen contracts proxies
 generate-protobuf: ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ network/node/internal/node/node.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ insolar/record/record.proto
+	protoc -I./vendor -I./ --gogoslick_out=./ insolar/record/r0_record.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ insolar/jet/jet.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ ledger/drop/drop.proto
