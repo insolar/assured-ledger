@@ -25,7 +25,10 @@ func mustConvertMapToJson(data map[string]interface{}) []byte {
 	return jsonString
 }
 
-const traceIDField = "traceID"
+const (
+	traceIDField = "traceID"
+	errorField   = "error"
+)
 
 func create(w http.ResponseWriter, req *http.Request) {
 	traceID := utils.RandTraceID()
@@ -35,6 +38,7 @@ func create(w http.ResponseWriter, req *http.Request) {
 	result := map[string]interface{}{
 		"reference":  gen.Reference().String(),
 		traceIDField: traceID,
+		errorField:   nil,
 	}
 	rawJson := mustConvertMapToJson(result)
 	_, err := w.Write(rawJson)
@@ -73,6 +77,7 @@ func transfer(w http.ResponseWriter, req *http.Request) {
 
 	result := map[string]interface{}{
 		traceIDField: traceID,
+		errorField:   nil,
 	}
 
 	rawJson := mustConvertMapToJson(result)
@@ -107,8 +112,9 @@ func getBalance(w http.ResponseWriter, req *http.Request) {
 	}
 
 	result := map[string]interface{}{
-		traceIDField: traceID,
 		"amount":     1000,
+		traceIDField: traceID,
+		errorField:   nil,
 	}
 
 	rawJson := mustConvertMapToJson(result)
@@ -145,6 +151,7 @@ func addAmount(w http.ResponseWriter, req *http.Request) {
 
 	result := map[string]interface{}{
 		traceIDField: traceID,
+		errorField:   nil,
 	}
 
 	rawJson := mustConvertMapToJson(result)

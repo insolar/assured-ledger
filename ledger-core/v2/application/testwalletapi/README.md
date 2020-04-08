@@ -4,7 +4,16 @@ It's http API. It accepts POST requests. Parameters are expected from POST body 
 Different method are divided by different locations.
 
 #Errors
-If invalid JSON is received or not all parameters are given, API returns "Bad request"( http code 400 ).   
+If invalid JSON is received or not all parameters are given, API returns "Bad request"( http code 400 ).  
+If any internal error happens it will be returned in field "error". The structure of the value will be declared later.   
+
+#Minimum output
+```
+{
+    "error": null,
+    "traceID": "144b8072ca1d141a3e8d1b81ac8e5888"
+}
+```
 
 #Examples
 * Create wallet  
