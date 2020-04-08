@@ -327,10 +327,24 @@ message VPendingDelegationRequest {
     bytes DelegatorSignature = 23;
 }
 
-message VPendingExecutionIsFinished {
+message VDelegatedRequestFinished {
     int32 polymorph = 16;
 
-    bytes CallIncoming = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    int32 CallType = 20;
+    bytes CallFlags = 21;
+    bytes Callee = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+
+    bytes ResultFlags = 23;
+    bytes CallOutgoing = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes CallIncoming = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+
+    bytes DelegationSpec = 26;
+    bytes DelegatorSignature = 27;
+
+    bytes EntryHeadHash = 28;
+    bytes ObjectBody = 29;
+
+
 }
 
 
