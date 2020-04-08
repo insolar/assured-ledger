@@ -343,8 +343,4 @@ message VDelegatedRequestFinished {
 
     bytes EntryHeadHash = 28;
     bytes ObjectBody = 29;
-
-
 }
-
-
