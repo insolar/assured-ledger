@@ -196,7 +196,7 @@ message CompositeFilamentRecord {
     Material Meta = 23 [(gogoproto.nullable) = false];
 }
 
-//////////////////////////////////////
+// Following structures are for R0
 message VCallRequest {
     int32 polymorph = 16;
 
@@ -206,8 +206,8 @@ message VCallRequest {
     bytes Caller = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
     bytes Callee = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 
-    bytes CallSite.Declaration = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
-    CallSite.Method = 26
+    bytes CallSiteDeclaration = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+    string CallSiteMethod = 26;
 
     bytes CallSequence = 27;
     bytes CallReason = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
@@ -249,7 +249,7 @@ message VCallResult {
     bytes Callee = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 
     bytes ResultFlags = 25;
-    bytes CallOutgoing = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes CallOutgoing = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
     bytes CallIncoming = 27 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
 
     bytes PayloadHash = 28;
@@ -316,3 +316,21 @@ message VStateRequest {
 
     int32 CallRequestFlags = 28;
 }
+
+message VPendingDelegationRequest {
+    int32 polymorph = 16;
+
+    bytes Object = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+    bytes Request = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+
+    bytes DelegationSpec = 22;
+    bytes DelegatorSignature = 23;
+}
+
+message VPendingExecutionIsFinished {
+    int32 polymorph = 16;
+
+    bytes CallIncoming = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+}
+
+
