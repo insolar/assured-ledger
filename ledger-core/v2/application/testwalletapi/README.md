@@ -1,7 +1,10 @@
 #Description of TestWalletAPI
 
-It's http API. It accepts POST requests.  
-Different method are divided by different locations. Parameters are expected from POST body.  
+It's http API. It accepts POST requests. Parameters are expected from POST body in JSON format.  
+Different method are divided by different locations.
+
+#Errors
+If invalid JSON is received or not all parameters are given, API returns "Bad request"( http code 400 ).   
 
 #Examples
 * Create wallet  
