@@ -5,7 +5,7 @@
 
 // +build slowtest
 
-package integration
+package grand
 
 import (
 	"encoding/json"

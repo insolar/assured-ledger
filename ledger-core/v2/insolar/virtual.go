@@ -7,6 +7,8 @@ package insolar
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 // MachineType is a type of virtual machine
@@ -76,6 +78,7 @@ func (m CallMode) String() string {
 // that is required to implement foundation functions. This struct
 // shouldn't be used in core components.
 type LogicCallContext struct {
+	ID   uuid.UUID
 	Mode CallMode // either "execution" or "validation"
 
 	Request *Reference // reference of incoming request record
@@ -126,4 +129,39 @@ const (
 
 func (s PendingState) Equal(other PendingState) bool {
 	return s == other
+}
+
+type RequestResultType uint8
+
+const (
+	RequestSideEffectNone RequestResultType = iota
+	RequestSideEffectActivate
+	RequestSideEffectAmend
+	RequestSideEffectDeactivate
+)
+
+func (t RequestResultType) String() string {
+	switch t {
+	case RequestSideEffectNone:
+		return "None"
+	case RequestSideEffectActivate:
+		return "Activate"
+	case RequestSideEffectAmend:
+		return "Amend"
+	case RequestSideEffectDeactivate:
+		return "Deactivate"
+	default:
+		return "Unknown"
+	}
+}
+
+type RequestResult interface {
+	Type() RequestResultType
+
+	Activate() (Reference, Reference, []byte)
+	Amend() (ID, Reference, []byte)
+	Deactivate() ID
+
+	Result() []byte
+	ObjectReference() Reference
 }

@@ -5,7 +5,7 @@
 
 // +build slowtest
 
-package integration
+package grand
 
 import (
 	"context"
@@ -94,7 +94,7 @@ func DefaultVMConfig() configuration.Configuration {
 	cfg := configuration.Configuration{}
 	cfg.KeysPath = "testdata/bootstrap_keys.json"
 	cfg.Ledger.LightChainLimit = math.MaxInt32
-	cfg.LogicRunner = configuration.NewLogicRunner()
+	// cfg.LogicRunner = configuration.NewLogicRunner()
 	cfg.Bus.ReplyTimeout = 5 * time.Second
 	cfg.Log = configuration.NewLog()
 	cfg.Log.Level = log.InfoLevel.String()            // insolar.DebugLevel.String()
@@ -267,15 +267,11 @@ func (s *Server) PrepareAndStart() (*Server, error) {
 	)
 	checkError(ctx, err, "failed to start ContractRequester")
 
-	// TODO: remove this hack in INS-3341
-	contractRequester.LR = logicRunner
-
 	cm.Inject(CryptoScheme,
 		KeyStore,
 		CryptoService,
 		KeyProcessor,
 		Coordinator,
-		logicRunner,
 
 		ClientBus,
 		IncomingPubSub,
@@ -287,8 +283,6 @@ func (s *Server) PrepareAndStart() (*Server, error) {
 
 		NodeNetwork,
 		PulseManager)
-
-	logicRunner.MachinesManager = machinesManager
 
 	err = cm.Init(ctx)
 	checkError(ctx, err, "failed to init components")
