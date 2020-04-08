@@ -10,18 +10,15 @@ import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwor
 type ConnectionMode uint32
 
 const (
-	AllowUnknownPeer ConnectionMode = iota
-	//AllowIncomingConnections
+	AllowUnknownPeer ConnectionMode = 1 << iota
 )
 
-func (v ConnectionMode) IsProtocolAllowed(prot apinetwork.ProtocolType) bool {
-	return v&1<<(prot+16) != 0
+const AllowAll = ^ConnectionMode(0)
+
+func (v ConnectionMode) IsProtocolAllowed(pt apinetwork.ProtocolType) bool {
+	return v&1<<(pt+16) != 0
 }
 
 func (v ConnectionMode) IsUnknownPeerAllowed() bool {
 	return v&AllowUnknownPeer != 0
 }
-
-//func (v ConnectionMode) IsIncomingAllowed() bool {
-//	return v & AllowIncomingConnections != 0
-//}

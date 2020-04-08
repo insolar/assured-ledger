@@ -23,13 +23,11 @@ func SafeClose(c io.Closer) error {
 }
 
 func SafeCloseChain(c io.Closer, prev error) error {
-	switch {
-	case c != nil:
+	if c != nil {
 		err := c.Close()
 		if prev == nil {
 			return err
 		}
-	default:
-		return prev
 	}
+	return prev
 }

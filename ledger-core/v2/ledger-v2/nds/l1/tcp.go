@@ -7,20 +7,20 @@ package l1
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewTcp(binding Address) SessionfulTransport {
+func NewTcp(binding apinetwork.Address) SessionfulTransport {
 	return &TcpTransport{addr: binding.AsTCPAddr()}
 }
 
-func NewTcpTransport(binding Address) TcpTransport {
+func NewTcpTransport(binding apinetwork.Address) TcpTransport {
 	return TcpTransport{addr: binding.AsTCPAddr()}
 }
 
@@ -64,7 +64,7 @@ func (p *TcpTransport) Close() error {
 	return p.conn.Close()
 }
 
-func (p *TcpTransport) ConnectTo(to Address) (OutTransport, error) {
+func (p *TcpTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver)
 	if err != nil {
@@ -72,22 +72,29 @@ func (p *TcpTransport) ConnectTo(to Address) (OutTransport, error) {
 	}
 
 	remote := to.AsTCPAddr()
+	local := p.addr
+	local.Port = 0
+
 	var conn *net.TCPConn
-	if conn, err = net.DialTCP("tcp", &p.addr, &remote); err != nil {
+	if conn, err = net.DialTCP("tcp", &local, &remote); err != nil {
 		return nil, err
 	}
 
-	switch {
-	case p.receiveFn == nil:
+	if p.receiveFn == nil {
 		_ = conn.CloseRead()
-	case !p.receiveFn(tcpAddr(&p.addr), to, conn, nil, nil):
-		_ = conn.Close()
-		if p.conn != nil {
-			_ = p.conn.Close()
-		}
-		return nil, errors.New("aborted")
+	} else {
+		go runTcpReceive(conn.LocalAddr().(*net.TCPAddr), to, conn, p.conn, p.receiveFn)
 	}
 	return &tcpOutTransport{conn, nil, 0}, nil
+}
+
+func runTcpReceive(local *net.TCPAddr, remote apinetwork.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
+	if !receiveFn(apinetwork.FromTcpAddr(local), remote, conn, nil, nil) {
+		_ = conn.Close()
+		if parentConn != nil {
+			_ = parentConn.Close()
+		}
+	}
 }
 
 func runTcpListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
@@ -96,22 +103,24 @@ func runTcpListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
 		recover()
 	}()
 
-	local := tcpAddr(listenConn.Addr().(*net.TCPAddr))
+	local := apinetwork.FromTcpAddr(listenConn.Addr().(*net.TCPAddr))
 
 	for {
 		conn, err := listenConn.Accept()
-		if err == nil {
+		switch {
+		case err == nil:
 			w := &tcpOutTransport{conn, nil, 0}
-			if !receiveFn(local, tcpAddr(conn.RemoteAddr().(*net.TCPAddr)), conn, w, nil) {
+			if !receiveFn(local, apinetwork.FromTcpAddr(conn.RemoteAddr().(*net.TCPAddr)), conn, w, nil) {
 				break
 			}
 			continue
-		}
-		if !receiveFn(local, Address{}, nil, nil, err) {
-			break
+		case err == io.EOF:
+			return
+		case !receiveFn(local, apinetwork.Address{}, nil, nil, err):
+			return
 		}
 		if ne, ok := err.(net.Error); !ok || !ne.Temporary() {
-			break
+			return
 		}
 	}
 }

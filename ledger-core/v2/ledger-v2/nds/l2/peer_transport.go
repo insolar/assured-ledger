@@ -21,17 +21,18 @@ import (
 
 type PeerTransportFactory interface {
 	// LOCK: WARNING! This method is called under PeerTransport.mutex
-	SessionlessConnectTo(to l1.Address) (l1.OutTransport, error)
+	SessionlessConnectTo(to apinetwork.Address) (l1.OutTransport, error)
 	// LOCK: WARNING! This method is called under PeerTransport.mutex
-	SessionfulConnectTo(to l1.Address) (l1.OutTransport, error)
+	SessionfulConnectTo(to apinetwork.Address) (l1.OutTransport, error)
 	IsActive() bool
+	MaxSessionlessSize() uint16
 }
 
 type PeerTransportCentral struct {
 	factory PeerTransportFactory
 
-	maxUdpSize  uint16
-	maxPeerConn uint8
+	maxSessionlessSize uint16
+	maxPeerConn        uint8
 }
 
 func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
@@ -41,17 +42,13 @@ func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
 	return nil
 }
 
-func (p *PeerTransportCentral) reportCompromised(peer *PeerTransport, err error) {
-	// TODO handle compromised connection
-}
-
 var _ UnifiedOutTransport = &PeerTransport{}
 
 type PeerTransport struct {
 	central *PeerTransportCentral
 	dead    atomickit.OnceFlag
 
-	aliases []l1.Address
+	aliases []apinetwork.Address
 
 	rateQuota ratelimiter.RWRateQuota
 
@@ -68,7 +65,7 @@ type PeerTransport struct {
 	connections []io.Closer
 }
 
-func (p *PeerTransport) kill() []l1.Address {
+func (p *PeerTransport) kill() []apinetwork.Address {
 	if !p.dead.Set() {
 		return nil
 	}
@@ -153,7 +150,7 @@ func (p *PeerTransport) _resetConnection(t io.Closer, discardCurrentAddr bool) (
 	return false, false, nil
 }
 
-type connectFunc = func(to l1.Address) (l1.OutTransport, error)
+type connectFunc = func(to apinetwork.Address) (l1.OutTransport, error)
 
 func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limit PayloadLengthLimit) (uint8, l1.OutTransport, error) {
 
@@ -162,13 +159,13 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 
 		var err error
 		switch addr.AddrNetwork() {
-		case l1.DNS:
+		case apinetwork.DNS:
 			// primary address is always resolved
 			if index == 0 {
 				continue
 			}
 			fallthrough
-		case l1.IP:
+		case apinetwork.IP:
 			var t l1.OutTransport
 			t, err = factoryFn(addr)
 
@@ -186,7 +183,7 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 				t.SetTag(int(limit))
 				return index, t, nil
 			}
-		case l1.HostPK:
+		case apinetwork.HostPK:
 			// PK is addressable, but is not connectable
 			continue
 		default:
@@ -305,7 +302,7 @@ func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (Pa
 	}
 
 	for _, s := range p.connections {
-		if oc, ok := s.(l1.OutNetTransport); ok && oc.Conn() == s {
+		if oc, ok := s.(l1.OutNetTransport); ok && oc.Conn() == conn {
 			limit := PayloadLengthLimit(oc.GetTag())
 			if limit != 0 {
 				p.connCount++
@@ -342,12 +339,6 @@ func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, canRetr
 		if err = applyFn(t); err == nil {
 			return nil
 		}
-		if throw.SeverityOf(err).IsCompromised() {
-			_ = p.kill()
-			p.central.reportCompromised(p, err)
-			return err
-		}
-
 		if ok, hasMore := p.resetTransport(t, true); canRetry && ok && hasMore {
 			continue
 		}
@@ -389,13 +380,13 @@ func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn func(l1
 }
 
 func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error {
-	if size <= int64(p.central.maxUdpSize) {
+	if size <= int64(p.central.maxSessionlessSize) {
 		return p.UseSessionless(canRetry, applyFn)
 	}
 	return p.UseSessionful(size, canRetry, applyFn)
 }
 
-func (p *PeerTransport) SetAddresses(primary l1.Address, aliases []l1.Address) {
+func (p *PeerTransport) SetAddresses(primary apinetwork.Address, aliases []apinetwork.Address) {
 	switch {
 	case primary.IsZero():
 		panic(throw.IllegalValue())
@@ -410,7 +401,7 @@ func (p *PeerTransport) SetAddresses(primary l1.Address, aliases []l1.Address) {
 		panic(throw.IllegalState())
 	}
 
-	p.aliases = append(make([]l1.Address, 0, 1+len(aliases)), primary)
+	p.aliases = append(make([]apinetwork.Address, 0, 1+len(aliases)), primary)
 	for i, aa := range aliases {
 		if aa == primary {
 			p.aliases = append(p.aliases, aliases[:i]...)
@@ -421,7 +412,7 @@ func (p *PeerTransport) SetAddresses(primary l1.Address, aliases []l1.Address) {
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) AddAliases(aliases []l1.Address) {
+func (p *PeerTransport) AddAliases(aliases []apinetwork.Address) {
 	n := len(aliases)
 	if n == 0 {
 		return
@@ -436,7 +427,7 @@ func (p *PeerTransport) AddAliases(aliases []l1.Address) {
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) RemoveAliases(a l1.Address) bool {
+func (p *PeerTransport) RemoveAliases(a apinetwork.Address) bool {
 	if a.IsZero() {
 		return false
 	}

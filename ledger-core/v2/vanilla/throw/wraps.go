@@ -42,7 +42,7 @@ func (v msgWrap) LogString() string {
 }
 
 func (v msgWrap) Error() string {
-	return joinStack(v.msg, v.st)
+	return v.msg
 }
 
 type errString string

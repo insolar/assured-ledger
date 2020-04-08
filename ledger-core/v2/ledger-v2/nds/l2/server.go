@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+	"math"
 	"net"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
@@ -21,9 +22,17 @@ import (
 type ServerConfig struct {
 	BindingAddress string
 	PublicAddress  string
-	NetPreference  l1.NetworkPreference
+	NetPreference  apinetwork.NetworkPreference
 	TlsConfig      *tls.Config
-	UdpMaxSize     uint16
+	UdpMaxSize     int
+	PeerLimit      int
+}
+
+func NewUnifiedProtocolServer(protocols *apinetwork.UnifiedProtocolSet) *UnifiedProtocolServer {
+	if protocols == nil {
+		panic(throw.IllegalValue())
+	}
+	return &UnifiedProtocolServer{protocols: protocols}
 }
 
 type UnifiedProtocolServer struct {
@@ -36,10 +45,6 @@ type UnifiedProtocolServer struct {
 	protocols *apinetwork.UnifiedProtocolSet
 
 	receiver PeerReceiver
-
-	// known peers
-	// known addresses
-	// peer status - connected, known, active
 }
 
 func (p *UnifiedProtocolServer) SetConfig(config ServerConfig) {
@@ -64,8 +69,18 @@ func (p *UnifiedProtocolServer) SetBlacklistManager(blacklist BlacklistManager) 
 
 func (p *UnifiedProtocolServer) StartNoListen() {
 
-	binding := l1.NewHostPort(p.config.BindingAddress)
-	localAddrs, _, err := l1.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, binding)
+	p.peers.central.factory = &p.ptf
+	switch n := p.config.PeerLimit; {
+	case n < 0:
+		p.peers.central.maxPeerConn = 4
+	case n >= math.MaxUint8:
+		p.peers.central.maxPeerConn = math.MaxUint8
+	default:
+		p.peers.central.maxPeerConn = uint8(n)
+	}
+
+	binding := apinetwork.NewHostPort(p.config.BindingAddress)
+	localAddrs, _, err := apinetwork.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, binding)
 	if err != nil {
 		panic(err)
 	}
@@ -73,12 +88,12 @@ func (p *UnifiedProtocolServer) StartNoListen() {
 
 	public := binding
 	if p.config.PublicAddress != "" {
-		public = l1.NewHostPort(p.config.PublicAddress)
-		pubAddrs, _, err := l1.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, public)
+		public = apinetwork.NewHostPort(p.config.PublicAddress)
+		pubAddrs, _, err := apinetwork.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, public)
 		if err != nil {
 			panic(err)
 		}
-		localAddrs = l1.Join(localAddrs, pubAddrs)
+		localAddrs = apinetwork.Join(localAddrs, pubAddrs)
 	}
 
 	if err := p.peers.addLocal(public, localAddrs, func(peer *Peer) error {
@@ -88,7 +103,14 @@ func (p *UnifiedProtocolServer) StartNoListen() {
 		panic(err)
 	}
 
-	p.ptf.SetSessionless(l1.NewUdp(binding, p.config.UdpMaxSize), p.receiveSessionless)
+	udpSize := p.config.UdpMaxSize
+	switch {
+	case udpSize < 0:
+		udpSize = l1.MaxUdpSize
+	case udpSize > math.MaxUint16:
+		udpSize = math.MaxUint16
+	}
+	p.ptf.SetSessionless(l1.NewUdp(binding, uint16(udpSize)), p.receiveSessionless)
 
 	if p.config.TlsConfig == nil {
 		p.ptf.SetSessionful(l1.NewTcp(binding), p.connectSessionful)
@@ -109,6 +131,10 @@ func (p *UnifiedProtocolServer) StartListen() {
 	}
 }
 
+func (p *UnifiedProtocolServer) PeerManager() *PeerManager {
+	return &p.peers
+}
+
 func (p *UnifiedProtocolServer) Stop() {
 	_ = p.ptf.Close()
 	_ = p.peers.Close()
@@ -122,7 +148,7 @@ func (p *UnifiedProtocolServer) SetMode(mode ConnectionMode) {
 	p.mode.Store(uint32(mode))
 }
 
-func (p *UnifiedProtocolServer) checkConnection(_, remote l1.Address, err error) error {
+func (p *UnifiedProtocolServer) checkConnection(_, remote apinetwork.Address, err error) error {
 	switch {
 	case err != nil:
 		return err
@@ -132,7 +158,7 @@ func (p *UnifiedProtocolServer) checkConnection(_, remote l1.Address, err error)
 	return nil
 }
 
-func (p *UnifiedProtocolServer) receiveSessionless(local, remote l1.Address, b []byte, err error) bool {
+func (p *UnifiedProtocolServer) receiveSessionless(local, remote apinetwork.Address, b []byte, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err == nil {
 		if err = p.receiver.ReceiveDatagram(remote, b); err == nil {
@@ -148,31 +174,33 @@ func (p *UnifiedProtocolServer) receiveSessionless(local, remote l1.Address, b [
 	return true
 }
 
-func (p *UnifiedProtocolServer) connectSessionful(local, remote l1.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedProtocolServer) connectSessionful(local, remote apinetwork.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()
-	} else if runFn, err := p.receiver.ReceiveStream(remote, conn, w); err == nil {
-		go p.runReceiver(remote, runFn)
+	} else if runFn, err2 := p.receiver.ReceiveStream(remote, conn, w); err2 == nil {
+		go p.runReceiver(local, remote, runFn)
 		return true
+	} else {
+		err = err2
 	}
 
 	p.reportError(throw.WithDetails(err, ConnErrDetails{local, remote}))
 	return true
 }
 
-func (p *UnifiedProtocolServer) runReceiver(remote l1.Address, runFn func() error) {
+func (p *UnifiedProtocolServer) runReceiver(local, remote apinetwork.Address, runFn func() error) {
 	if err := runFn(); err != nil {
 		p.reportToBlacklist(remote, err)
-		p.reportError(err)
+		p.reportError(throw.WithDetails(err, ConnErrDetails{local, remote}))
 	}
 }
 
-func (p *UnifiedProtocolServer) isBlacklisted(remote l1.Address) bool {
+func (p *UnifiedProtocolServer) isBlacklisted(remote apinetwork.Address) bool {
 	return p.blacklist != nil && p.blacklist.IsBlacklisted(remote)
 }
 
-func (p *UnifiedProtocolServer) reportToBlacklist(remote l1.Address, err error) {
+func (p *UnifiedProtocolServer) reportToBlacklist(remote apinetwork.Address, err error) {
 	if bl := p.blacklist; bl != nil {
 		if sv := throw.SeverityOf(err); sv.IsFraudOrWorse() {
 			bl.ReportFraud(remote, p.peers, err)

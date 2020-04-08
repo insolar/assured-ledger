@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l1
+package apinetwork
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -110,7 +109,7 @@ func NewHostPort(hostport string) Address {
 	}
 }
 
-func NewHostId(id apinetwork.HostId) Address {
+func NewHostId(id HostId) Address {
 	a := Address{network: uint8(HostID)}
 	binary.LittleEndian.PutUint64(a.data0[:], uint64(id))
 	return a
@@ -240,7 +239,8 @@ func (a Address) HostString() string {
 	case DNS:
 		return string(a.data1)
 	case IP:
-		return a.AsIPAddr().String()
+		ipa := a.AsIPAddr()
+		return ipa.String()
 	case HostPK:
 		return "(PK)" + a.data1.Hex()
 	case HostID:
@@ -384,7 +384,7 @@ func (a Address) DataLen() int {
 	case IP:
 		return net.IPv6len
 	case HostID:
-		return apinetwork.HostIdByteSize
+		return HostIdByteSize
 	default:
 		if len(a.data1) > 0 {
 			return len(a.data1)
@@ -429,6 +429,7 @@ func (a Address) AsBits128() longbits.Bits128 {
 }
 
 const v4InV6Prefix = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF"
+const v6Loopback = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
 
 func (a Address) isIPv4() bool {
 	return a.network == uint8(IP) && a.isIPv4Prefix()
@@ -460,11 +461,22 @@ func (a Address) Name() string {
 	panic(throw.IllegalState())
 }
 
-func (a Address) AsHostId() apinetwork.HostId {
+func (a Address) AsHostId() HostId {
 	if a.AddrNetwork() == HostID {
-		return apinetwork.HostId(binary.LittleEndian.Uint64(a.data0[:]))
+		return HostId(binary.LittleEndian.Uint64(a.data0[:]))
 	}
 	panic(throw.IllegalState())
+}
+
+func (a Address) IsLoopback() bool {
+	switch {
+	case a.network != uint8(IP):
+		return false
+	case a.isIPv4Prefix():
+		return a.data0[12] == 127
+	default:
+		return string(a.data0[:]) == v6Loopback
+	}
 }
 
 /********************************************************/

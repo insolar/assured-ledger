@@ -5,9 +5,11 @@
 
 package l2
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+)
 
 type BlacklistManager interface {
-	IsBlacklisted(a l1.Address) bool
-	ReportFraud(l1.Address, PeerManager, error) bool
+	IsBlacklisted(a apinetwork.Address) bool
+	ReportFraud(apinetwork.Address, PeerManager, error) bool
 }

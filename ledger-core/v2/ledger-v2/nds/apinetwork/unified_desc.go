@@ -8,7 +8,6 @@ package apinetwork
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -22,9 +21,9 @@ type ProtocolSupporter interface {
 
 type ProtocolReceiver interface {
 	// ReceiveSmallPacket is called on small (non-excessive length) packets, (b) is exactly whole packet
-	ReceiveSmallPacket(from l1.Address, packet Packet, b []byte, signatureLen int) error
+	ReceiveSmallPacket(from Address, packet Packet, b []byte, signatureLen int) error
 	// ReceiveLargePacket is called on large (excessive length) packets, (preRead) is a pre-read portion, that can be larger than a header, and (r) is configured for the remaining length.
-	ReceiveLargePacket(from l1.Address, packet Packet, preRead []byte, signatureLen int, r io.LimitedReader) error
+	ReceiveLargePacket(from Address, packet Packet, preRead []byte, signatureLen int, r io.LimitedReader) error
 }
 
 type ProtocolReceivers = [ProtocolTypeMax + 1]ProtocolReceiver

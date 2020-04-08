@@ -29,10 +29,10 @@ type PacketErrDetails struct {
 }
 
 type ConnErrDetails struct {
-	Local, Remote l1.Address
+	Local, Remote apinetwork.Address
 }
 
-func (p PeerReceiver) ReceiveStream(remote l1.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
+func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
 	defer func() {
 		_ = iokit.SafeClose(conn)
 		err = throw.R(recover(), err)
@@ -75,6 +75,9 @@ func (p PeerReceiver) ReceiveStream(remote l1.Address, conn io.ReadWriteCloser, 
 
 			switch isEOF := false; {
 			case more < 0:
+				if err == io.EOF {
+					return nil
+				}
 				break
 			case err == io.EOF:
 				isEOF = true
@@ -129,7 +132,7 @@ func (p PeerReceiver) ReceiveStream(remote l1.Address, conn io.ReadWriteCloser, 
 	return runFn, nil
 }
 
-func (p PeerReceiver) ReceiveDatagram(remote l1.Address, b []byte) (err error) {
+func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err error) {
 
 	var fn apinetwork.VerifyHeaderFunc
 	fn, _, err = p.resolvePeer(remote, true, nil)
@@ -161,7 +164,7 @@ func (p PeerReceiver) ReceiveDatagram(remote l1.Address, b []byte) (err error) {
 	return throw.WithDetails(err, PacketErrDetails{packet.Header, packet.PulseNumber})
 }
 
-func (p PeerReceiver) resolvePeer(remote l1.Address, isIncoming bool, conn io.ReadWriteCloser) (apinetwork.VerifyHeaderFunc, *Peer, error) {
+func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, conn io.ReadWriteCloser) (apinetwork.VerifyHeaderFunc, *Peer, error) {
 	var tlsConn *tls.Conn
 	if t, ok := conn.(*tls.Conn); ok {
 		tlsConn = t
@@ -177,7 +180,7 @@ func (p PeerReceiver) resolvePeer(remote l1.Address, isIncoming bool, conn io.Re
 	case !isIncoming:
 		err = throw.Impossible()
 	default:
-		peer, err = p.PeerManager.connectFrom(remote, func(*Peer) error {
+		peer, err = p.PeerManager.connectionFrom(remote, func(*Peer) error {
 			if !p.ModeFn().IsUnknownPeerAllowed() {
 				return throw.Violation("unknown peer")
 			}
@@ -237,7 +240,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.Protoco
 				}
 
 				sid := toHostId(header.SourceID, supp)
-				if peer, err = p.PeerManager.peerNotLocal(l1.NewHostId(sid)); err == nil {
+				if peer, err = p.PeerManager.peerNotLocal(apinetwork.NewHostId(sid)); err == nil {
 					dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
 				}
 			}
@@ -260,12 +263,12 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.Protoco
 }
 
 func (p PeerReceiver) hasHostId(id apinetwork.HostId, peer *Peer) bool {
-	_, pr := p.PeerManager.peer(l1.NewHostId(id))
+	_, pr := p.PeerManager.peer(apinetwork.NewHostId(id))
 	return peer == pr
 }
 
 func (p PeerReceiver) isLocalHostId(id apinetwork.HostId) bool {
-	idx, pr := p.PeerManager.peer(l1.NewHostId(id))
+	idx, pr := p.PeerManager.peer(apinetwork.NewHostId(id))
 	return idx == 0 && pr != nil
 }
 
@@ -275,7 +278,7 @@ func (p PeerReceiver) checkTarget(supp apinetwork.ProtocolSupporter, header *api
 		return nil, nil
 	case header.IsForRelay():
 		tid := toHostId(header.TargetID, supp)
-		relayTo, err = p.PeerManager.peerNotLocal(l1.NewHostId(tid))
+		relayTo, err = p.PeerManager.peerNotLocal(apinetwork.NewHostId(tid))
 		switch {
 		case err != nil:
 			//

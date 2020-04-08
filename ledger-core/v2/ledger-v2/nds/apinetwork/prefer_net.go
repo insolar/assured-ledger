@@ -3,9 +3,11 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l1
+package apinetwork
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
 
 type NetworkPreference uint8
 

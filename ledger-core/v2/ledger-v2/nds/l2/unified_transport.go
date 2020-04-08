@@ -13,4 +13,5 @@ type UnifiedOutTransport interface {
 	UseSessionless(canRetry bool, applyFn func(l1.OutTransport) error) error
 	UseSessionful(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error
 	UseAny(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error
+	EnsureConnect() error
 }

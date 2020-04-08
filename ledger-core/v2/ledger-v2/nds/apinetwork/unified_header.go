@@ -266,6 +266,9 @@ func (h *Header) DeserializeMinFromBytes(b []byte) error {
 
 func (h *Header) DeserializeRestFromBytes(b []byte) (int, error) {
 	_ = b[HeaderByteSizeMax-1]
+	if !h.IsExcessiveLength() {
+		return HeaderByteSizeMin, nil
+	}
 	if err := h.deserializeExtraFromBytes(b[HeaderByteSizeMin:]); err != nil {
 		return 0, err
 	}

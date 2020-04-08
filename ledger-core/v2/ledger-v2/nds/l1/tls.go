@@ -11,19 +11,20 @@ import (
 	"errors"
 	"net"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewTls(binding Address, config tls.Config) SessionfulTransport {
-	return &TlsTransport{addr: binding.AsTCPAddr(), config: config}
+func NewTls(binding apinetwork.Address, config tls.Config) SessionfulTransport {
+	return &TlsTransport{addr: binding.AsTCPAddr(), config: &config}
 }
 
-func NewTlsTransport(binding Address, config tls.Config) TlsTransport {
-	return TlsTransport{addr: binding.AsTCPAddr(), config: config}
+func NewTlsTransport(binding apinetwork.Address, config tls.Config) TlsTransport {
+	return TlsTransport{addr: binding.AsTCPAddr(), config: &config}
 }
 
 type TlsTransport struct {
-	config    tls.Config
+	config    *tls.Config
 	addr      net.TCPAddr
 	conn      net.Listener
 	receiveFn SessionfulConnectFunc
@@ -52,7 +53,7 @@ func (p *TlsTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 	if err != nil {
 		return nil, err
 	}
-	p.conn = tls.NewListener(conn, &p.config)
+	p.conn = tls.NewListener(conn, p.config)
 	p.receiveFn = receiveFn
 	go runTcpListener(p.conn, receiveFn)
 	return p, nil
@@ -69,35 +70,34 @@ func (p *TlsTransport) Close() error {
 	return p.conn.Close()
 }
 
-func (p *TlsTransport) ConnectTo(to Address) (OutTransport, error) {
+func (p *TlsTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
 	return p.ConnectToExt(to, nil)
 }
 
-func (p *TlsTransport) ConnectToExt(to Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
+func (p *TlsTransport) ConnectToExt(to apinetwork.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver)
 	if err != nil {
 		return nil, err
 	}
 
-	peerConfig := &p.config
+	peerConfig := p.config
 	if peerVerify != nil {
-		cfg := p.config
+		cfg := *p.config
 		cfg.VerifyPeerCertificate = peerVerify
 		peerConfig = &cfg
 	}
 
+	local := p.addr
+	local.Port = 0
+
 	var conn *tls.Conn
-	if conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig); err != nil {
+	if conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &local}, "tcp", to.String(), peerConfig); err != nil {
 		return nil, err
 	}
 
-	if p.receiveFn != nil && !p.receiveFn(tcpAddr(&p.addr), to, conn, nil, nil) {
-		_ = conn.Close()
-		if p.conn != nil {
-			_ = p.conn.Close()
-		}
-		return nil, errors.New("aborted")
+	if p.receiveFn != nil {
+		go runTcpReceive(conn.LocalAddr().(*net.TCPAddr), to, conn, p.conn, p.receiveFn)
 	}
 	return &tcpOutTransport{conn, nil, 0}, nil
 }
