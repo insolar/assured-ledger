@@ -44,10 +44,6 @@ type ContractRequester struct {
 	JetCoordinator             jet.Coordinator
 	PlatformCryptographyScheme insolar.PlatformCryptographyScheme
 
-	// TODO: remove this hack in INS-3341
-	// we need ResultMatcher, not Logicrunner
-	LR insolar.LogicRunner
-
 	FlowDispatcher dispatcher.Dispatcher
 
 	ResultMutex sync.Mutex
@@ -358,9 +354,6 @@ func (cr *ContractRequester) result(ctx context.Context, msg *payload.ReturnResu
 		}
 		logger.Info("unwanted results of request")
 
-		if cr.LR != nil {
-			return cr.LR.AddUnwantedResponse(ctx, msg)
-		}
 		logger.Warn("drop unwanted")
 		return nil
 	}

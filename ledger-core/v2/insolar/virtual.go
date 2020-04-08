@@ -7,6 +7,8 @@ package insolar
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 // MachineType is a type of virtual machine
@@ -76,6 +78,7 @@ func (m CallMode) String() string {
 // that is required to implement foundation functions. This struct
 // shouldn't be used in core components.
 type LogicCallContext struct {
+	ID   uuid.UUID
 	Mode CallMode // either "execution" or "validation"
 
 	Request *Reference // reference of incoming request record
@@ -126,4 +129,93 @@ const (
 
 func (s PendingState) Equal(other PendingState) bool {
 	return s == other
+}
+
+// CodeDescriptor represents meta info required to fetch all code data.
+type CodeDescriptor interface {
+	// Ref returns reference to represented code record.
+	Ref() *Reference
+
+	// MachineType returns code machine type for represented code.
+	MachineType() MachineType
+
+	// Code returns code data.
+	Code() ([]byte, error)
+}
+
+// PrototypeDescriptor represents meta info required to fetch all prototype data.
+type PrototypeDescriptor interface {
+	// HeadRef returns head reference to represented object record.
+	HeadRef() *Reference
+
+	// StateID returns reference to object state record.
+	StateID() *ID
+
+	// Code returns code reference.
+	Code() *Reference
+}
+
+// ObjectDescriptor represents meta info required to fetch all object data.
+type ObjectDescriptor interface {
+	// HeadRef returns head reference to represented object record.
+	HeadRef() *Reference
+
+	// StateID returns reference to object state record.
+	StateID() *ID
+
+	// Memory fetches object memory from storage.
+	Memory() []byte
+
+	// Prototype returns prototype reference.
+	Prototype() (*Reference, error)
+
+	// Parent returns object's parent.
+	Parent() *Reference
+
+	// EarliestRequestID returns latest requestID for this object
+	EarliestRequestID() *ID
+}
+
+// DescriptorsCache provides convenient way to get prototype and code descriptors
+// of objects without fetching them twice
+type DescriptorsCache interface {
+	ByPrototypeRef(ctx context.Context, protoRef Reference) (PrototypeDescriptor, CodeDescriptor, error)
+	ByObjectDescriptor(ctx context.Context, obj ObjectDescriptor) (PrototypeDescriptor, CodeDescriptor, error)
+	GetPrototype(ctx context.Context, ref Reference) (PrototypeDescriptor, error)
+	GetCode(ctx context.Context, ref Reference) (CodeDescriptor, error)
+}
+
+type RequestResultType uint8
+
+const (
+	RequestSideEffectNone RequestResultType = iota
+	RequestSideEffectActivate
+	RequestSideEffectAmend
+	RequestSideEffectDeactivate
+)
+
+func (t RequestResultType) String() string {
+	switch t {
+	case RequestSideEffectNone:
+		return "None"
+	case RequestSideEffectActivate:
+		return "Activate"
+	case RequestSideEffectAmend:
+		return "Amend"
+	case RequestSideEffectDeactivate:
+		return "Deactivate"
+	default:
+		return "Unknown"
+	}
+}
+
+type RequestResult interface {
+	Type() RequestResultType
+
+	Activate() (Reference, Reference, []byte)
+	Amend() (ID, Reference, []byte)
+	Deactivate() ID
+
+	Result() []byte
+	ObjectReference() Reference
 }
