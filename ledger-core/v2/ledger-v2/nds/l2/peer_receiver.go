@@ -23,7 +23,16 @@ type PeerReceiver struct {
 	ModeFn      func() ConnectionMode
 }
 
-func (p PeerReceiver) ReceiveStream(local, remote l1.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
+type PacketErrDetails struct {
+	Header apinetwork.Header
+	Pulse  pulse.Number
+}
+
+type ConnErrDetails struct {
+	Local, Remote l1.Address
+}
+
+func (p PeerReceiver) ReceiveStream(remote l1.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
 	defer func() {
 		_ = iokit.SafeClose(conn)
 		err = throw.R(recover(), err)
@@ -37,8 +46,7 @@ func (p PeerReceiver) ReceiveStream(local, remote l1.Address, conn io.ReadWriteC
 		limit PayloadLengthLimit
 	)
 
-	// ATTENTION! Don't run "go" before checks to prevent an attacker from
-	// creation of multiple routines.
+	// ATTENTION! Don't run "go" before checks - this will prevent an attacker from creation of multiple routines.
 
 	if fn, peer, err = p.resolvePeer(remote, isIncoming, conn); err != nil {
 		return nil, err
@@ -91,11 +99,16 @@ func (p PeerReceiver) ReceiveStream(local, remote l1.Address, conn io.ReadWriteC
 					w = nil
 				}
 
-				receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
-				if more == 0 {
-					err = receiver.ReceiveSmallPacket(remote, packet, preRead, sigLen)
+				if packet.Header.IsForRelay() {
+					// TODO relay via sessionful
+					err = throw.NotImplemented()
 				} else {
-					err = receiver.ReceiveLargePacket(remote, packet, preRead, sigLen, io.LimitedReader{R: r, N: more})
+					receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
+					if more == 0 {
+						err = receiver.ReceiveSmallPacket(remote, packet, preRead, sigLen)
+					} else {
+						err = receiver.ReceiveLargePacket(remote, packet, preRead, sigLen, io.LimitedReader{R: r, N: more})
+					}
 				}
 
 				switch {
@@ -110,7 +123,7 @@ func (p PeerReceiver) ReceiveStream(local, remote l1.Address, conn io.ReadWriteC
 			default:
 				err = throw.WithDetails(err, PacketErrDetails{packet.Header, packet.PulseNumber})
 			}
-			return throw.WithDetails(err, ConnErrDetails{local, remote})
+			return err
 		}
 	}
 	return runFn, nil
@@ -125,9 +138,15 @@ func (p PeerReceiver) ReceiveDatagram(remote l1.Address, b []byte) (err error) {
 	sigLen := 0
 	var packet apinetwork.Packet
 	if n, sigLen, err = p.Protocols.ReceiveDatagram(&packet, fn, b); err == nil {
-		receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
+		if packet.Header.IsForRelay() {
+			// TODO relay via sessionless
+			err = throw.NotImplemented()
+		} else {
+			receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
+			err = receiver.ReceiveSmallPacket(remote, packet, b, sigLen)
+		}
 
-		switch err = receiver.ReceiveSmallPacket(remote, packet, b, sigLen); {
+		switch {
 		case err != nil:
 			//
 		case n != len(b):
@@ -148,105 +167,180 @@ func (p PeerReceiver) resolvePeer(remote l1.Address, isIncoming bool, conn io.Re
 		tlsConn = t
 	}
 
-	peer, err := p.PeerManager.peerNoLocal(remote)
+	isNew := false
+	peer, err := p.PeerManager.peerNotLocal(remote)
 	switch {
 	case err != nil:
 		return nil, nil, err
 	case peer != nil:
-		return p.knownPeerVerify(peer, remote, tlsConn), peer, nil
-	}
-
-	switch {
+		//
 	case !isIncoming:
 		err = throw.Impossible()
 	default:
-		mode := p.ModeFn()
-		if !mode.IsUnknownPeerAllowed() {
-			err = throw.Violation("unknown peer")
-			break
-		}
-
-		var fn apinetwork.VerifyHeaderFunc
-		switch peer, err = p.PeerManager.connectFrom(remote, func(peer *Peer) error {
-			fn = p.unknownPeerVerify(peer, remote, tlsConn)
+		peer, err = p.PeerManager.connectFrom(remote, func(*Peer) error {
+			if !p.ModeFn().IsUnknownPeerAllowed() {
+				return throw.Violation("unknown peer")
+			}
+			isNew = true
 			return nil
-		}); {
-		case err != nil:
-			break
-		case fn != nil:
+		})
+	}
+	if err == nil {
+		var fn apinetwork.VerifyHeaderFunc
+		if fn, err = p.checkPeer(peer, tlsConn); err == nil {
+			if isNew {
+				peer.UpgradeState(Connected)
+			}
 			return fn, peer, nil
-		default:
-			return p.knownPeerVerify(peer, remote, tlsConn), peer, nil
 		}
 	}
 	return nil, nil, err
 }
 
-func (p PeerReceiver) knownPeerVerify(peer *Peer, remote l1.Address, tlsConn *tls.Conn) apinetwork.VerifyHeaderFunc {
-	tlsState := 0
+func toHostId(id uint32, supp apinetwork.ProtocolSupporter) apinetwork.HostId {
 	switch {
-	case tlsConn == nil:
-		//
-	case peer.VerifyByTls(tlsConn):
-		tlsState = 1
+	case id == 0:
+		return 0
+	case supp == nil:
+		return apinetwork.HostId(id)
 	default:
-		tlsState = -1
-	}
-
-	return func(supp apinetwork.ProtocolSupporter, desc apinetwork.ProtocolPacketDescriptor,
-		header *apinetwork.Header, pn pulse.Number,
-	) (cryptkit.DataSignatureVerifier, error) {
-
-		if desc.TransportFlags&apinetwork.OmitSignatureOverTls != 0 {
-			if tlsState < 0 {
-				return nil, throw.RemoteBreach("TLS check failed")
-			}
-			// TODO support header/content validation without signature field when TLS is available by providing zero len hasher/verifier
-			return nil, throw.NotImplemented()
-		}
-
-		// TODO check receiver
-		// TODO change peer for relay
-
-		switch dsv, err := peer.getVerifier(supp, header, p.PeerManager.sigvFactory); {
-		case err != nil:
-			return nil, err
-		case dsv == nil:
-			return nil, throw.Violation("PK is not available")
-		default:
-			return dsv, nil
-		}
+		return supp.ToHostId(id)
 	}
 }
 
-// LOCK: WARNING! This method is called under PeerManager's lock
-func (p PeerReceiver) unknownPeerVerify(peer *Peer, remote l1.Address, tlsConn *tls.Conn) apinetwork.VerifyHeaderFunc {
+func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.ProtocolSupporter, header *apinetwork.Header,
+) (selfVerified bool, dsv cryptkit.DataSignatureVerifier, err error) {
 
-	// identify peer by TLS
-	// identify peer by IP
-	// check if it was redirected
-
-	initFn := func(supp apinetwork.ProtocolSupporter, desc apinetwork.ProtocolPacketDescriptor,
-		header *apinetwork.Header, number pulse.Number,
-	) (apinetwork.VerifyHeaderFunc, error) {
-
-		// TODO problem - IP can be unknown, but SourceID correct and matching PK/signature, then the peer has to be changed ...
-
-		return p.knownPeerVerify(peer, remote, tlsConn), nil
-	}
-
-	var knownFn apinetwork.VerifyHeaderFunc
-
-	return func(supp apinetwork.ProtocolSupporter, desc apinetwork.ProtocolPacketDescriptor,
-		header *apinetwork.Header, number pulse.Number,
-	) (cryptkit.DataSignatureVerifier, error) {
-		if initFn != nil {
-			var err error
-			if knownFn, err = initFn(supp, desc, header, number); err != nil {
-				return nil, err
+	if err = func() (err error) {
+		if header.ReceiverID != 0 {
+			// ReceiverID must match Local
+			if rid := toHostId(header.ReceiverID, supp); !p.isLocalHostId(rid) {
+				return throw.RemoteBreach("wrong ReceiverID")
 			}
-			initFn = nil
 		}
-		return knownFn(supp, desc, header, number)
+
+		switch {
+		case header.SourceID != 0:
+			if header.IsRelayRestricted() || header.IsForRelay() {
+				// SourceID must match Peer
+				// Signature must match Peer
+				if sid := toHostId(header.SourceID, supp); p.hasHostId(sid, peer) {
+					dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
+				} else {
+					return throw.RemoteBreach("wrong SourceID")
+				}
+			} else {
+				// Peer must be known and validated
+				// Signature must match SourceID
+				if err = peer.checkVerified(); err != nil {
+					return err
+				}
+
+				sid := toHostId(header.SourceID, supp)
+				if peer, err = p.PeerManager.peerNotLocal(l1.NewHostId(sid)); err == nil {
+					dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
+				}
+			}
+		case header.IsRelayRestricted():
+			// Signature must match Peer
+			dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
+		default:
+			// Peer must be known and validated
+			// Packet must be self-validated
+			if err = peer.checkVerified(); err != nil {
+				return err
+			}
+			selfVerified = true
+		}
+		return
+	}(); err != nil {
+		return false, nil, err
 	}
+	return
+}
+
+func (p PeerReceiver) hasHostId(id apinetwork.HostId, peer *Peer) bool {
+	_, pr := p.PeerManager.peer(l1.NewHostId(id))
+	return peer == pr
+}
+
+func (p PeerReceiver) isLocalHostId(id apinetwork.HostId) bool {
+	idx, pr := p.PeerManager.peer(l1.NewHostId(id))
+	return idx == 0 && pr != nil
+}
+
+func (p PeerReceiver) checkTarget(supp apinetwork.ProtocolSupporter, header *apinetwork.Header) (relayTo *Peer, err error) {
+	switch {
+	case !header.IsTargeted():
+		return nil, nil
+	case header.IsForRelay():
+		tid := toHostId(header.TargetID, supp)
+		relayTo, err = p.PeerManager.peerNotLocal(l1.NewHostId(tid))
+		switch {
+		case err != nil:
+			//
+		case relayTo == nil:
+			err = throw.E("unknown target")
+		default:
+			err = relayTo.checkVerified()
+		}
+		return
+	default:
+		// TargetID must match Local
+		if tid := toHostId(header.TargetID, supp); !p.isLocalHostId(tid) {
+			return nil, throw.RemoteBreach("wrong TargetID")
+		}
+		return nil, err
+	}
+}
+
+func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.VerifyHeaderFunc, error) {
+	tlsStatus := 0 // TLS is not present
+	if tlsConn != nil {
+		switch ok, err := peer.verifyByTls(tlsConn); {
+		case err != nil:
+			return nil, err
+		case ok:
+			tlsStatus = 1 // TLS check was ok
+		default:
+			tlsStatus = -1 // unable to match TLS - it doesn't mean failure yet!
+		}
+	}
+
+	return func(header *apinetwork.Header, flags apinetwork.ProtocolFlags, supp apinetwork.ProtocolSupporter) (dsv cryptkit.DataSignatureVerifier, err error) {
+
+		if !p.ModeFn().IsProtocolAllowed(header.GetProtocolType()) {
+			return nil, throw.Violation("protocol is disabled")
+		}
+
+		selfVerified := false
+		if selfVerified, dsv, err = p.checkSourceAndReceiver(peer, supp, header); err != nil {
+			return nil, err
+		}
+		if selfVerified && flags&apinetwork.SourcePK == 0 {
+			// requires support of self-verified packets (packet must have a PK field)
+			return nil, throw.Violation("must have source PK")
+		}
+
+		switch relayTo, err := p.checkTarget(supp, header); {
+		case err != nil:
+			return nil, err
+		case relayTo != nil:
+			// Relayed packet must always have a signature of source hence OmitSignatureOverTls is ignored
+			// Actual relay operation will be performed after packet parsing
+		default:
+			if tlsStatus != 0 && flags&apinetwork.OmitSignatureOverTls != 0 {
+				if tlsStatus < 0 {
+					return nil, throw.RemoteBreach("unidentified TLS cert")
+				}
+				// TODO support header/content validation without signature field when TLS is available by providing zero len hasher/verifier
+				return nil, throw.NotImplemented()
+			}
+		}
+
+		if dsv == nil {
+			return nil, throw.Violation("unable to verify packet")
+		}
+		return dsv, nil
+	}, nil
 }

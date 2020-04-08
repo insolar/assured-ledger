@@ -40,6 +40,10 @@ func (v Severity) IsCompromised() bool {
 	return v >= RemoteBreachSeverity
 }
 
+func (v Severity) IsFraudOrWorse() bool {
+	return v >= FraudSeverity
+}
+
 func Blame(msg string, description ...interface{}) error {
 	return Severe(BlameSeverity, msg, description...)
 }

@@ -206,6 +206,7 @@ func NewSignatureKey(data longbits.FoldableReader, signatureMethod SignatureMeth
 
 var _ SignatureKeyHolder = SignatureKey{}
 
+// TODO Rename to SigningKey
 type SignatureKey struct {
 	hFoldReader
 	signatureMethod SignatureMethod

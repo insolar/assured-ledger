@@ -108,29 +108,46 @@ func (p UnifiedProtocolSet) verifyPacket(packet *Packet, headerFn VerifyHeaderFu
 		switch {
 		case !packetDesc.IsSupported():
 			return throw.Violation("unsupported packet")
-		case !isDatagram && packetDesc.TransportFlags&DatagramOnly != 0:
+		case !isDatagram && packetDesc.Flags&DatagramOnly != 0:
 			return throw.Violation("datagram-only packet")
-		case isDatagram && packetDesc.TransportFlags&DatagramAllowed == 0:
+		case isDatagram && packetDesc.Flags&DatagramAllowed == 0:
 			return throw.Violation("non-datagram packet")
-		case h.TargetID == 0 && packetDesc.TransportFlags&NonTargetedSend == 0:
-			return throw.Violation("non-targeted packet")
 		case h.TargetID == h.ReceiverID:
+			if h.TargetID != 0 {
+				break
+			}
+			fallthrough
+		case h.TargetID == 0:
+			if packetDesc.Flags&OptionalTarget == 0 {
+				return throw.Violation("non-targeted packet")
+			}
 			break
 		case h.IsRelayRestricted():
 			return throw.RemoteBreach("relay is restricted by source")
-		case packetDesc.TransportFlags&DisableRelay != 0:
+		case packetDesc.Flags&DisableRelay != 0:
 			return throw.Violation("relay is restricted by receiver")
+		}
+
+		switch {
+		case h.SourceID == 0:
+			if packetDesc.Flags&NoSourceId == 0 {
+				return throw.Violation("non-sourced packet")
+			}
+		case h.SourceID == h.ReceiverID || h.SourceID == h.TargetID:
+			return throw.Violation("loopback")
+		case packetDesc.Flags&NoSourceId != 0:
+			return throw.Violation("sourced packet")
 		}
 
 		if fullLen, err = packet.Header.GetFullLength(); err != nil {
 			return err
 		}
 		if !packetDesc.IsAllowedLength(fullLen) {
-			return throw.Violation("incorrect length")
+			return throw.Violation("length is out of limit")
 		}
 
 		if headerFn != nil {
-			switch verifier, err = headerFn(protocolDesc.Supporter, packetDesc, &packet.Header, packet.PulseNumber); {
+			switch verifier, err = headerFn(&packet.Header, packetDesc.Flags, protocolDesc.Supporter); {
 			case err != nil:
 				return err
 			case verifier == nil:

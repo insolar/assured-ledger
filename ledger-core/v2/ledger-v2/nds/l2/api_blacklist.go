@@ -5,11 +5,9 @@
 
 package l2
 
-type PayloadLengthLimit uint8
+import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 
-const (
-	_ PayloadLengthLimit = iota
-	DetectByFirstPayloadLength
-	NonExcessivePayloadLength
-	UnlimitedPayloadLength
-)
+type BlacklistManager interface {
+	IsBlacklisted(a l1.Address) bool
+	ReportFraud(l1.Address, PeerManager, error) bool
+}

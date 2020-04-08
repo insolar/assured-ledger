@@ -110,6 +110,16 @@ func NewHostPort(hostport string) Address {
 	}
 }
 
+func NewHostId(id apinetwork.HostId) Address {
+	a := Address{network: uint8(HostID)}
+	binary.LittleEndian.PutUint64(a.data0[:], uint64(id))
+	return a
+}
+
+func NewHostPK(pk longbits.FixedReader) Address {
+	return Address{network: uint8(HostPK), data1: pk.AsByteString()}
+}
+
 var _ net.Addr = Address{}
 
 type Address struct {

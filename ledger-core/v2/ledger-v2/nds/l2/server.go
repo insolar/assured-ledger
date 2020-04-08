@@ -14,22 +14,24 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ServerConfig struct {
-	UnifiedBindingAddress string
-	UnifiedPublicAddress  string
-	NetworkPreference     l1.NetworkPreference
-	TlsConfig             *tls.Config
-	UdpMaxSize            uint16
+	BindingAddress string
+	PublicAddress  string
+	NetPreference  l1.NetworkPreference
+	TlsConfig      *tls.Config
+	UdpMaxSize     uint16
 }
 
 type UnifiedProtocolServer struct {
-	config ServerConfig
-	mode   atomickit.Uint32
-	ptf    peerTransportFactory
-	peers  PeerManager
+	config    ServerConfig
+	mode      atomickit.Uint32
+	ptf       peerTransportFactory
+	peers     PeerManager
+	blacklist BlacklistManager
 
 	protocols *apinetwork.UnifiedProtocolSet
 
@@ -48,18 +50,30 @@ func (p *UnifiedProtocolServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
 	p.peers.SetQuotaFactory(quotaFn)
 }
 
+func (p *UnifiedProtocolServer) SetPeerFactory(fn OfflinePeerFactoryFunc) {
+	p.peers.SetPeerFactory(fn)
+}
+
+func (p *UnifiedProtocolServer) SetVerifierFactory(f cryptkit.DataSignatureVerifierFactory) {
+	p.peers.SetVerifierFactory(f)
+}
+
+func (p *UnifiedProtocolServer) SetBlacklistManager(blacklist BlacklistManager) {
+	p.blacklist = blacklist
+}
+
 func (p *UnifiedProtocolServer) StartNoListen() {
 
-	binding := l1.NewHostPort(p.config.UnifiedBindingAddress)
+	binding := l1.NewHostPort(p.config.BindingAddress)
 	localAddrs, _, err := l1.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, binding)
 	if err != nil {
 		panic(err)
 	}
-	binding = p.config.NetworkPreference.ChooseOne(localAddrs)
+	binding = p.config.NetPreference.ChooseOne(localAddrs)
 
 	public := binding
-	if p.config.UnifiedPublicAddress != "" {
-		public = l1.NewHostPort(p.config.UnifiedPublicAddress)
+	if p.config.PublicAddress != "" {
+		public = l1.NewHostPort(p.config.PublicAddress)
 		pubAddrs, _, err := l1.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, public)
 		if err != nil {
 			panic(err)
@@ -67,9 +81,8 @@ func (p *UnifiedProtocolServer) StartNoListen() {
 		localAddrs = l1.Join(localAddrs, pubAddrs)
 	}
 
-	if err := p.peers.AddLocal(public, localAddrs, func(peer *Peer) error {
-		// TODO setup local peer
-
+	if err := p.peers.addLocal(public, localAddrs, func(peer *Peer) error {
+		// TODO setup PrivateKey for signing
 		return nil
 	}); err != nil {
 		panic(err)
@@ -114,27 +127,33 @@ func (p *UnifiedProtocolServer) checkConnection(_, remote l1.Address, err error)
 	case err != nil:
 		return err
 	case p.isBlacklisted(remote):
-		return throw.RemoteBreach("blacklist")
+		return throw.RemoteBreach("blacklisted")
 	}
 	return nil
 }
 
 func (p *UnifiedProtocolServer) receiveSessionless(local, remote l1.Address, b []byte, err error) bool {
+	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err == nil {
 		if err = p.receiver.ReceiveDatagram(remote, b); err == nil {
 			return true
 		}
+		err = throw.WithDetails(err, ConnErrDetails{local, remote})
+		p.reportToBlacklist(remote, err)
+	} else {
+		err = throw.WithDetails(err, ConnErrDetails{local, remote})
 	}
 
-	p.reportError(throw.WithDetails(err, ConnErrDetails{local, remote}))
+	p.reportError(err)
 	return true
 }
 
 func (p *UnifiedProtocolServer) connectSessionful(local, remote l1.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()
-	} else if runFn, err := p.receiver.ReceiveStream(local, remote, conn, w); err == nil {
-		go p.runReceiver(runFn)
+	} else if runFn, err := p.receiver.ReceiveStream(remote, conn, w); err == nil {
+		go p.runReceiver(remote, runFn)
 		return true
 	}
 
@@ -142,16 +161,27 @@ func (p *UnifiedProtocolServer) connectSessionful(local, remote l1.Address, conn
 	return true
 }
 
-func (p *UnifiedProtocolServer) runReceiver(runFn func() error) {
+func (p *UnifiedProtocolServer) runReceiver(remote l1.Address, runFn func() error) {
 	if err := runFn(); err != nil {
+		p.reportToBlacklist(remote, err)
 		p.reportError(err)
 	}
 }
 
 func (p *UnifiedProtocolServer) isBlacklisted(remote l1.Address) bool {
-	return false
+	return p.blacklist != nil && p.blacklist.IsBlacklisted(remote)
+}
+
+func (p *UnifiedProtocolServer) reportToBlacklist(remote l1.Address, err error) {
+	if bl := p.blacklist; bl != nil {
+		if sv := throw.SeverityOf(err); sv.IsFraudOrWorse() {
+			bl.ReportFraud(remote, p.peers, err)
+		}
+	}
 }
 
 func (p *UnifiedProtocolServer) reportError(err error) {
 	// TODO
+	println()
+	println(throw.ErrorWithStack(err))
 }

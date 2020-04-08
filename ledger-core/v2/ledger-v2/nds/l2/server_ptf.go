@@ -93,6 +93,7 @@ func (p *peerTransportFactory) Close() (err error) {
 	return throw.IllegalState()
 }
 
+// LOCK: WARNING! This method is called under PeerTransport.mutex
 func (p *peerTransportFactory) SessionlessConnectTo(to l1.Address) (l1.OutTransport, error) {
 	if p.listen.IsActive() {
 		return p.udpListen.ConnectTo(to)
@@ -104,6 +105,7 @@ func (p *peerTransportFactory) SessionlessConnectTo(to l1.Address) (l1.OutTransp
 	}
 }
 
+// LOCK: WARNING! This method is called under PeerTransport.mutex
 func (p *peerTransportFactory) SessionfulConnectTo(to l1.Address) (l1.OutTransport, error) {
 	if p.listen.IsActive() {
 		return p.tcpListen.ConnectTo(to)

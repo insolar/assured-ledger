@@ -34,6 +34,20 @@ type Header struct {
 	ExcessiveLength uint32 `insolar-transport:"optional=IsExcessiveLength"`
 }
 
+/*
+	Invalid combinations of Receiver, Source and Target
+
+	R	S	T	Description
+	-----------------------
+	0	_	N	Invalid
+	_	N	N	Invalid, loopback
+	N	N	_   Invalid, loopback
+	_	_	0	Invalid without OptionalTarget
+	_   N   _   Invalid with NoSourceId
+	_	0	_	Invalid without NoSourceId
+	N	_	K	Invalid when IsRelayRestricted == true
+*/
+
 type ProtocolType uint8
 
 const (
@@ -86,7 +100,11 @@ func (h *Header) IsZero() bool {
 	return h.ProtocolAndPacketType == 0
 }
 
-func (h *Header) IsRelayed() bool {
+func (h *Header) IsTargeted() bool {
+	return h.TargetID != 0
+}
+
+func (h *Header) IsForRelay() bool {
 	return h.ReceiverID != 0 && h.TargetID != 0 && h.TargetID != h.ReceiverID
 }
 

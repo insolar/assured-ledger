@@ -56,3 +56,25 @@ func (p *Uint32) CompareAndSub(v uint32) bool {
 		}
 	}
 }
+
+func (p *Uint32) SetLesser(v uint32) uint32 {
+	for {
+		switch x := p.Load(); {
+		case x <= v:
+			return x
+		case p.CompareAndSwap(x, v):
+			return v
+		}
+	}
+}
+
+func (p *Uint32) SetGreater(v uint32) uint32 {
+	for {
+		switch x := p.Load(); {
+		case x >= v:
+			return x
+		case p.CompareAndSwap(x, v):
+			return v
+		}
+	}
+}

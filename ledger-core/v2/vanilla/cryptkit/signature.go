@@ -18,7 +18,7 @@ func (s SigningMethod) String() string {
 	return string(s)
 }
 
-type SignatureMethod string /* Digest + Sign methods */
+type SignatureMethod string /* Digest + Signing methods */
 
 func (s SignatureMethod) DigestMethod() DigestMethod {
 	parts := strings.Split(string(s), "/")
@@ -51,10 +51,12 @@ type SignatureHolder interface {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureKeyHolder -o . -s _mock.go -g
 
+// TODO rename to SigningKeyHolder
 type SignatureKeyHolder interface {
 	longbits.FoldableReader
 	GetSigningMethod() SigningMethod
 	GetSignatureKeyMethod() SignatureMethod
+	// TODO rename to GetSigningKeyType
 	GetSignatureKeyType() SignatureKeyType
 	Equals(other SignatureKeyHolder) bool
 }
@@ -94,6 +96,7 @@ type SignedEvidenceHolder interface {
 	GetEvidence() SignedData
 }
 
+// TODO rename to SigningKeyType
 type SignatureKeyType uint8
 
 const (
@@ -131,4 +134,10 @@ type SignatureVerifier interface {
 
 type SignatureVerifierFactory interface {
 	CreateSignatureVerifierWithPKS(pks PublicKeyStore) SignatureVerifier
+	// TODO Add	CreateDataSignatureVerifier(k SignatureKey, m SignatureMethod) DataSignatureVerifier
+}
+
+type DataSignatureVerifierFactory interface {
+	IsSignatureKeySupported(SignatureKey) bool
+	CreateDataSignatureVerifier(SignatureKey) DataSignatureVerifier
 }

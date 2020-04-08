@@ -13,10 +13,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
-type VerifyHeaderFunc func(ProtocolSupporter, ProtocolPacketDescriptor, *Header, pulse.Number) (cryptkit.DataSignatureVerifier, error)
+type VerifyHeaderFunc func(h *Header, flags ProtocolFlags, s ProtocolSupporter) (cryptkit.DataSignatureVerifier, error)
 
 type ProtocolSupporter interface {
 	VerifyHeader(*Header, pulse.Number, cryptkit.DataSignatureVerifier) (cryptkit.DataSignatureVerifier, error)
+	ToHostId(id uint32) HostId
 }
 
 type ProtocolReceiver interface {
@@ -42,8 +43,8 @@ func (d ProtocolDescriptor) IsSupported() bool {
 }
 
 type ProtocolPacketDescriptor struct {
-	TransportFlags ProtocolFlags
-	LengthBits     uint8
+	Flags      ProtocolFlags
+	LengthBits uint8
 }
 
 func (d ProtocolPacketDescriptor) IsSupported() bool {
@@ -64,5 +65,7 @@ const (
 	DatagramAllowed
 	DisableRelay
 	OmitSignatureOverTls
-	NonTargetedSend
+	SourcePK
+	OptionalTarget
+	NoSourceId
 )

@@ -20,7 +20,9 @@ import (
 )
 
 type PeerTransportFactory interface {
+	// LOCK: WARNING! This method is called under PeerTransport.mutex
 	SessionlessConnectTo(to l1.Address) (l1.OutTransport, error)
+	// LOCK: WARNING! This method is called under PeerTransport.mutex
 	SessionfulConnectTo(to l1.Address) (l1.OutTransport, error)
 	IsActive() bool
 }
@@ -53,6 +55,7 @@ type PeerTransport struct {
 
 	rateQuota ratelimiter.RWRateQuota
 
+	// LOCK: WARNING! This mutex can be acquired under PeerManager.peerMutex
 	mutex      sync.RWMutex
 	smallMutex sync.Mutex
 	largeMutex sync.Mutex
@@ -65,15 +68,15 @@ type PeerTransport struct {
 	connections []io.Closer
 }
 
-func (p *PeerTransport) kill() error {
+func (p *PeerTransport) kill() []l1.Address {
 	if !p.dead.Set() {
-		return throw.IllegalState()
+		return nil
 	}
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	err := iokit.SafeClose(p.sessionless)
+	_ = iokit.SafeClose(p.sessionless)
 	ss := p.connections
 
 	p.sessionless = nil
@@ -83,7 +86,9 @@ func (p *PeerTransport) kill() error {
 	for _, s := range ss {
 		_ = s.Close()
 	}
-	return err
+	aliases := p.aliases
+	p.aliases = nil
+	return aliases
 }
 
 func (p *PeerTransport) checkActive() error {
@@ -206,9 +211,9 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 
 func (p *PeerTransport) getSessionlessTransport() (l1.OutTransport, error) {
 	p.mutex.RLock()
-	if p.sessionless != nil {
+	if t := p.sessionless; t != nil {
 		p.mutex.RUnlock()
-		return p.sessionless, nil
+		return t, nil
 	}
 	p.mutex.RUnlock()
 
@@ -225,9 +230,9 @@ func (p *PeerTransport) getSessionlessTransport() (l1.OutTransport, error) {
 
 func (p *PeerTransport) getSessionfulSmallTransport() (l1.OutTransport, error) {
 	p.mutex.RLock()
-	if p.sessionful != nil {
+	if t := p.sessionful; t != nil {
 		p.mutex.RUnlock()
-		return p.sessionful, nil
+		return t, nil
 	}
 	p.mutex.RUnlock()
 
@@ -429,4 +434,22 @@ func (p *PeerTransport) AddAliases(aliases []l1.Address) {
 		panic(throw.IllegalValue())
 	}
 	p.aliases = append(p.aliases, aliases...)
+}
+
+func (p *PeerTransport) RemoveAliases(a l1.Address) bool {
+	if a.IsZero() {
+		return false
+	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	for i, aa := range p.aliases {
+		if i != 0 && aa == a {
+			copy(p.aliases[i:], p.aliases[i+1:])
+			p.aliases = p.aliases[:len(p.aliases)-1]
+			return true
+		}
+	}
+	return false
 }
