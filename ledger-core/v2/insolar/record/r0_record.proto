@@ -6,14 +6,6 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option (gogoproto.goproto_getters_all) = false;
 
-message Genesis {
-    option (gogoproto.face) = true;
-
-    int32 polymorph = 16;
-
-    bytes Hash = 20;
-}
-
 message VCallRequest {
     int32 polymorph = 16;
 
