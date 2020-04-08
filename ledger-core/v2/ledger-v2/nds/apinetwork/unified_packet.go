@@ -23,13 +23,16 @@ const (
 type Packet struct {
 	Header Header
 
-	PulseNumber pulse.Number `insolar-transport:"[30-31]=0"`
+	PulseNumber pulse.Number `insolar-transport:"[30-31]=0"` // depends on protocol
+
+	// SourceKey []byte // depends on protocol
+
 	// HeaderSignature provides earlier verification for large packets to prevent
 	// an unauthorized sender from sending large data packets
 	HeaderSignature []byte   `insolar-transport:"optional=IsExcessiveLength"`
 	EncryptableBody struct{} `insolar-transport:"send=placeholder"`
 	EncryptionData  []byte   `insolar-transport:"optional=IsBodyEncrypted"`
-	PacketSignature []byte   `insolar-transport:"generate=signature"`
+	PacketSignature []byte   `insolar-transport:"generate=signature"` // can be zero length, depends on protocol
 }
 
 func (p *Packet) SerializeTo(ctx SerializationContext, writer io.Writer, dataSize uint, fn func(*iokit.LimitedWriter) error) error {
@@ -43,28 +46,31 @@ func (p *Packet) SerializeTo(ctx SerializationContext, writer io.Writer, dataSiz
 	hasher := signer.NewHasher()
 	var encrypter cryptkit.Encrypter
 
-	packetSize := dataSize
-	packetSize += uint(pulse.NumberSize)
-	packetSize += uint(signer.GetDigestSize()) // PacketSignature
+	payloadSize := dataSize
 
 	if p.Header.IsBodyEncrypted() {
 		encrypter = ctx.GetPayloadEncrypter()
-		packetSize += encrypter.GetOverheadSize(packetSize)
+		payloadSize += encrypter.GetOverheadSize(payloadSize)
 	}
 
-	p.Header.SetPayloadLength(uint64(packetSize))
+	signatureSize := uint(signer.GetDigestSize())
+
+	payloadSize += uint(pulse.NumberSize)
+	payloadSize += signatureSize // PacketSignature
+
+	packetSize := p.Header.SetPayloadLength(uint64(payloadSize))
 	if p.Header.IsExcessiveLength() {
-		packetSize += uint(signer.GetDigestSize()) // HeaderSignature
-		p.Header.SetPayloadLength(uint64(packetSize))
+		payloadSize += signatureSize // HeaderSignature
+		packetSize = p.Header.SetPayloadLength(uint64(payloadSize))
 	}
 
 	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
 		return err
 	}
 
-	packetSize += p.Header.ByteSize()
+	teeWriter := iokit.NewLimitedTeeWriterWithSkip(writer, hasher, p.Header.GetHashingZeroPrefix(),
+		int64(packetSize-uint64(signatureSize)))
 
-	teeWriter := iokit.NewLimitedTeeWriterWithSkip(writer, hasher, p.Header.GetHashingZeroPrefix(), int64(packetSize))
 	_, _ = iokit.WriteZeros(p.Header.GetHashingZeroPrefix(), hasher)
 
 	if err := p.Header.SerializeTo(teeWriter); err != nil {
@@ -277,4 +283,8 @@ func (p *Packet) verifySignature(verifier cryptkit.DataSignatureVerifier, digest
 		return throw.IllegalValue()
 	}
 	return nil
+}
+
+func (p *Packet) GetPayloadOffset() uint {
+	return p.Header.ByteSize() + pulse.NumberSize
 }

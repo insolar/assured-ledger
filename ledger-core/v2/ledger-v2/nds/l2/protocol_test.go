@@ -1,0 +1,200 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package l2
+
+import (
+	"bytes"
+	"hash/crc32"
+	"io"
+	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
+
+var TestProtocolDescriptor = apinetwork.ProtocolDescriptor{
+	SupportedPackets: [16]apinetwork.ProtocolPacketDescriptor{
+		0: {Flags: apinetwork.NoSourceId | apinetwork.OptionalTarget, LengthBits: 14},
+	},
+}
+
+var _ apinetwork.ProtocolReceiver = &TestProtocolMarshaller{}
+
+type TestProtocolMarshaller struct {
+	Count      atomickit.Uint32
+	LastFrom   apinetwork.Address
+	LastPacket apinetwork.Packet
+	LastBytes  []byte
+	LastMsg    string
+	LastSigLen int
+	LastLarge  bool
+	LastError  error
+	ReportErr  error
+}
+
+func (p *TestProtocolMarshaller) GetPayloadEncrypter() cryptkit.Encrypter {
+	panic(throw.Unsupported())
+}
+
+func (p *TestProtocolMarshaller) GetPayloadSigner() cryptkit.DataSigner {
+	return TestDataSigner{}
+}
+
+func (p *TestProtocolMarshaller) PrepareHeader(_ *apinetwork.Header, pn pulse.Number) (pulse.Number, error) {
+	return pn, nil
+}
+
+func (p *TestProtocolMarshaller) VerifyHeader(*apinetwork.Header, pulse.Number) error {
+	return nil
+}
+
+func (p *TestProtocolMarshaller) ReceiveSmallPacket(from apinetwork.Address, packet apinetwork.Packet, b []byte, signatureLen int) error {
+	p.LastFrom = from
+	p.LastPacket = packet
+	p.LastBytes = append([]byte(nil), b...)
+	p.LastSigLen = signatureLen
+	p.LastLarge = false
+	p.LastError = nil
+	p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-signatureLen])
+	p.Count.Add(1)
+	return p.ReportErr
+}
+
+func (p *TestProtocolMarshaller) ReceiveLargePacket(from apinetwork.Address, packet apinetwork.Packet, preRead []byte, signatureLen int, r io.LimitedReader) error {
+	p.LastFrom = from
+	p.LastPacket = packet
+	p.LastSigLen = signatureLen
+	p.LastLarge = true
+
+	p.LastBytes = make([]byte, len(preRead)+int(r.N))
+	copy(p.LastBytes, preRead)
+	if _, err := io.ReadFull(&r, p.LastBytes[len(preRead):]); err != nil {
+		p.LastError = err
+		return err
+	}
+	p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-signatureLen])
+	p.Count.Add(1)
+
+	return p.ReportErr
+}
+
+func (p *TestProtocolMarshaller) SerializeMsg(pt apinetwork.ProtocolType, pkt uint8, pn pulse.Number, msg string) []byte {
+	var packet apinetwork.Packet
+	packet.Header.SetProtocolType(pt)
+	packet.Header.SetPacketType(pkt)
+	packet.Header.SetRelayRestricted(true)
+	packet.PulseNumber = pn
+
+	buf := bytes.Buffer{}
+	if err := packet.SerializeTo(p, &buf, uint(len(msg)), func(w *iokit.LimitedWriter) error {
+		_, err := w.Write([]byte(msg))
+		return err
+	}); err != nil {
+		panic(throw.ErrorWithStack(err))
+	}
+	return buf.Bytes()
+}
+
+func (p *TestProtocolMarshaller) Wait(prevCount uint32) {
+	for i := 1000; i > 0; i-- {
+		time.Sleep(10 * time.Millisecond)
+		if p.Count.Load() > prevCount {
+			return
+		}
+	}
+	panic(throw.Impossible())
+}
+
+/***********************************/
+var _ cryptkit.DataSigner = TestDataSigner{}
+
+type TestDataSigner struct{}
+
+func (v TestDataSigner) SignDigest(digest cryptkit.Digest) cryptkit.Signature {
+	return cryptkit.NewSignature(digest, testSignatureMethod)
+}
+
+func (v TestDataSigner) GetSigningMethod() cryptkit.SigningMethod {
+	return testSigningMethod
+}
+
+const testSigningMethod = "test-sign"
+const testDigestMethod = "test-hash"
+const testSignatureMethod = testDigestMethod + "/" + testSigningMethod
+const testDigestSize = 4
+
+func (v TestDataSigner) GetDigestMethod() cryptkit.DigestMethod {
+	return testDigestMethod
+}
+
+func (v TestDataSigner) GetDigestSize() int {
+	return testDigestSize
+}
+
+func (v TestDataSigner) DigestData(r io.Reader) cryptkit.Digest {
+	return v.NewHasher().DigestReader(r).SumToDigest()
+}
+
+func (v TestDataSigner) DigestBytes(b []byte) cryptkit.Digest {
+	return v.NewHasher().DigestBytes(b).SumToDigest()
+}
+
+func (v TestDataSigner) NewHasher() cryptkit.DigestHasher {
+	return cryptkit.DigestHasher{v, crc32.NewIEEE()}
+}
+
+/**************************************/
+var _ cryptkit.DataSignatureVerifierFactory = TestVerifierFactory{}
+
+type TestVerifierFactory struct{}
+
+func (v TestVerifierFactory) IsSignatureKeySupported(k cryptkit.SignatureKey) bool {
+	return k.GetSigningMethod() == testSigningMethod
+}
+
+func (v TestVerifierFactory) CreateDataSignatureVerifier(k cryptkit.SignatureKey) cryptkit.DataSignatureVerifier {
+	if k.GetSigningMethod() == testSigningMethod {
+		return TestDataVerifier{}
+	}
+	return nil
+}
+
+/**************************************/
+var _ cryptkit.DataSignatureVerifier = TestDataVerifier{}
+
+type TestDataVerifier struct {
+	TestDataSigner
+}
+
+func (t TestDataVerifier) GetSignatureMethod() cryptkit.SignatureMethod {
+	return testSignatureMethod
+}
+
+func (t TestDataVerifier) IsDigestMethodSupported(m cryptkit.DigestMethod) bool {
+	return m == testDigestMethod
+}
+
+func (t TestDataVerifier) IsSignMethodSupported(m cryptkit.SigningMethod) bool {
+	return m == testSigningMethod
+}
+
+func (t TestDataVerifier) IsSignOfSignatureMethodSupported(m cryptkit.SignatureMethod) bool {
+	return m.SignMethod() == testSigningMethod
+}
+
+func (t TestDataVerifier) IsValidDigestSignature(digest cryptkit.DigestHolder, signature cryptkit.SignatureHolder) bool {
+	return longbits.EqualFixedLenWriterTo(digest, signature)
+}
+
+func (t TestDataVerifier) IsValidDataSignature(data io.Reader, signature cryptkit.SignatureHolder) bool {
+	digest := t.NewHasher().DigestReader(data).SumToDigest()
+	return t.IsValidDigestSignature(digest, signature)
+}

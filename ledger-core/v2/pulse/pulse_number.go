@@ -38,7 +38,7 @@ const (
 	MaxTimePulse = 1<<30 - 1
 
 	// PulseNumberSize declares the number of bytes in the pulse number
-	NumberSize int = 4
+	NumberSize = 4
 )
 
 const UnixTimeOfMinTimePulse = 1546300800                                           // 2019-01-01 00:00:00 +0000 UTC

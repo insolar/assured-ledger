@@ -93,11 +93,11 @@ const (
 )
 
 func (h *Header) IsValid() bool {
-	return h.ProtocolAndPacketType >= 1<<protocolTypeShift
+	return h.HeaderAndPayloadLength != 0
 }
 
 func (h *Header) IsZero() bool {
-	return h.ProtocolAndPacketType == 0
+	return h.ProtocolAndPacketType == 0 && h.HeaderAndPayloadLength == 0
 }
 
 func (h *Header) IsTargeted() bool {
@@ -261,6 +261,10 @@ func (h *Header) DeserializeMinFromBytes(b []byte) error {
 	h.HeaderAndPayloadLength = byteOrder.Uint16(b[6:])
 	h.SourceID = byteOrder.Uint32(b[8:])
 	h.TargetID = byteOrder.Uint32(b[12:])
+
+	if h.HeaderAndPayloadLength&unlimitedLengthFlag != 0 {
+		return throw.Unsupported()
+	}
 	return nil
 }
 

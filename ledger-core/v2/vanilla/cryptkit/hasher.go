@@ -46,9 +46,10 @@ func (v DigestHasher) SumToDigest() Digest {
 }
 
 func DigestOfHash(digester BasicDigester, hasher hash.Hash) Digest {
-	b := make([]byte, digester.GetDigestSize())
-	if len(hasher.Sum(b)) != len(b) {
+	n := digester.GetDigestSize()
+	if h := hasher.Sum(make([]byte, 0, n)); len(h) != n {
 		panic(throw.IllegalValue())
+	} else {
+		return NewDigest(longbits.NewMutableFixedSize(h), digester.GetDigestMethod())
 	}
-	return NewDigest(longbits.NewMutableFixedSize(b), digester.GetDigestMethod())
 }

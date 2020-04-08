@@ -18,17 +18,19 @@ type UnifiedProtocolSet struct {
 }
 
 func (p UnifiedProtocolSet) ReceivePacket(packet *Packet, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
-) (header []byte, sigLen int, more int64, err error) {
+) (preRead []byte, sigLen int, more int64, err error) {
 
-	header = make([]byte, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
+	preRead = make([]byte, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
 
 	more = -1
-	if n, err := io.ReadFull(r, header[:LargePacketBaselineWithoutSignatureSize]); err != nil {
-		return header[:n], 0, more, err
+	if readLen, err := io.ReadFull(r, preRead[:LargePacketBaselineWithoutSignatureSize]); err != nil {
+		return preRead[:readLen], 0, more, err
+	} else {
+		preRead = preRead[:readLen]
 	}
 
-	if _, err = packet.DeserializeMinFromBytes(header); err != nil {
-		return header, 0, more, throw.WithDefaultSeverity(err, throw.ViolationSeverity)
+	if _, err = packet.DeserializeMinFromBytes(preRead); err != nil {
+		return preRead, 0, more, throw.WithDefaultSeverity(err, throw.ViolationSeverity)
 	}
 
 	err = func() error {
@@ -42,25 +44,24 @@ func (p UnifiedProtocolSet) ReceivePacket(packet *Packet, headerFn VerifyHeaderF
 				if !allowExcessive {
 					return throw.Violation("non-excessive connection")
 				}
-				if err := packet.VerifyExcessivePayload(verifier, &header, r); err != nil {
+				if err := packet.VerifyExcessivePayload(verifier, &preRead, r); err != nil {
 					return throw.WithDefaultSeverity(err, throw.ViolationSeverity)
 				}
-				more = int64(fullLen) - int64(len(header))
+				more = int64(fullLen) - int64(len(preRead))
 				return nil
 			//case h.: // marker-delimited stream
 			//	return p.receiveFlowPacket(from, packet, header, r)
 			default:
-				pos := len(header)
-
-				if extra := int(fullLen) - pos; extra < 0 {
+				ofs := len(preRead)
+				if extra := int(fullLen) - ofs; extra < 0 {
 					return throw.Violation("insufficient length")
 				} else {
-					header = append(header, make([]byte, extra)...)
+					preRead = append(preRead, make([]byte, extra)...)
 				}
-				if _, err := io.ReadFull(r, header[pos:]); err != nil {
+				if _, err := io.ReadFull(r, preRead[ofs:]); err != nil {
 					return err
 				}
-				if err := packet.VerifyNonExcessivePayload(verifier, header); err != nil {
+				if err := packet.VerifyNonExcessivePayload(verifier, preRead); err != nil {
 					return throw.WithDefaultSeverity(err, throw.ViolationSeverity)
 				}
 				more = 0

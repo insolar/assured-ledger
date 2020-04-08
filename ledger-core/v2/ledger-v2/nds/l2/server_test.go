@@ -7,25 +7,36 @@ package l2
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestServer(t *testing.T) {
+	const Server1 = "127.0.0.1:10001"
+	const Server2 = "127.0.0.1:10002"
+
+	marshaller := &TestProtocolMarshaller{}
+
+	vf := TestVerifierFactory{}
+	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+
+	var peerProfileFn OfflinePeerFactoryFunc
+	peerProfileFn = func(peer *Peer) error {
+		peer.SetSignatureKey(sk)
+		return nil
+	}
+
 	var protocols apinetwork.UnifiedProtocolSet
 	protocols.SignatureSizeHint = 32
 
-	protocols.Protocols[0].SupportedPackets[0] = apinetwork.ProtocolPacketDescriptor{
-		LengthBits: 14,
-	}
-
-	const Server1 = "127.0.0.1:10001"
-	const Server2 = "127.0.0.1:10002"
+	protocols.Protocols[0] = TestProtocolDescriptor
+	protocols.Protocols[0].Receiver = marshaller
 
 	ups1 := NewUnifiedProtocolServer(&protocols)
 	ups1.SetConfig(ServerConfig{
@@ -33,6 +44,8 @@ func TestServer(t *testing.T) {
 		UdpMaxSize:     1400,
 		PeerLimit:      -1,
 	})
+	ups1.SetPeerFactory(peerProfileFn)
+	ups1.SetVerifierFactory(vf)
 
 	ups1.StartListen()
 	ups1.SetMode(AllowAll)
@@ -46,6 +59,8 @@ func TestServer(t *testing.T) {
 		UdpMaxSize:     1400,
 		PeerLimit:      -1,
 	})
+	ups2.SetPeerFactory(peerProfileFn)
+	ups2.SetVerifierFactory(vf)
 
 	ups2.StartNoListen()
 
@@ -57,19 +72,15 @@ func TestServer(t *testing.T) {
 	require.NotNil(t, conn21)
 	require.NoError(t, conn21.EnsureConnect())
 
-	testStr := longbits.Zero(apinetwork.LargePacketBaselineWithoutSignatureSize)
+	testStr := "short msg"
+	msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
 
-	require.NoError(t, conn21.UseSessionful(int64(testStr.FixedByteSize()), true, func(t l1.OutTransport) error {
-		return t.Send(testStr)
-	}))
-	require.NoError(t, conn21.UseSessionful(int64(testStr.FixedByteSize()), true, func(t l1.OutTransport) error {
-		return t.Send(testStr)
+	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), true, func(t l1.OutTransport) error {
+		return t.SendBytes(msgBytes)
 	}))
 
-	testStr = longbits.Zero(32768)
-	require.NoError(t, conn21.UseSessionful(int64(testStr.FixedByteSize()), true, func(t l1.OutTransport) error {
-		return t.Send(testStr)
-	}))
+	marshaller.Wait(0)
 
-	time.Sleep(5 * time.Second)
+	require.Equal(t, testStr, marshaller.LastMsg)
+	require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
 }
