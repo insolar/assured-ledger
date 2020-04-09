@@ -42,7 +42,7 @@ func DeserializePulseNumberFromBytes(b []byte) (pulse.Number, error) {
 
 	v := int(binary.LittleEndian.Uint32(b))
 	if !pulse.IsValidAsPulseNumber(v) {
-		return 0, throw.IllegalValue()
+		return 0, throw.Violation("invalid pulse number")
 	}
 	return pulse.OfInt(v), nil
 }

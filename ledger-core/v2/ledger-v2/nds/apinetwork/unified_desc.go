@@ -12,6 +12,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
+type ProtocolFlags uint8
+
+const (
+	DatagramOnly ProtocolFlags = 1 << iota
+	DatagramAllowed
+	DisableRelay
+	OmitSignatureOverTls
+	SourcePK
+	OptionalTarget
+	NoSourceId
+)
+
 type VerifyHeaderFunc func(h *Header, flags ProtocolFlags, s ProtocolSupporter) (cryptkit.DataSignatureVerifier, error)
 
 type ProtocolSupporter interface {
@@ -21,9 +33,9 @@ type ProtocolSupporter interface {
 
 type ProtocolReceiver interface {
 	// ReceiveSmallPacket is called on small (non-excessive length) packets, (b) is exactly whole packet
-	ReceiveSmallPacket(from Address, packet Packet, b []byte, sigLen uint32)
+	ReceiveSmallPacket(rp *ReceiverPacket, b []byte)
 	// ReceiveLargePacket is called on large (excessive length) packets, (preRead) is a pre-read portion, that can be larger than a header, and (r) is configured for the remaining length.
-	ReceiveLargePacket(from Address, packet Packet, preRead []byte, r io.LimitedReader, verifier PacketDataVerifier) error
+	ReceiveLargePacket(rp *ReceiverPacket, preRead []byte, r io.LimitedReader) error
 }
 
 type ProtocolDescriptors [ProtocolTypeCount]ProtocolDescriptor
@@ -58,15 +70,3 @@ func (d ProtocolPacketDescriptor) IsAllowedLength(fullLen uint64) bool {
 	}
 	return fullLen < uint64(1)<<d.LengthBits
 }
-
-type ProtocolFlags uint8
-
-const (
-	DatagramOnly ProtocolFlags = 1 << iota
-	DatagramAllowed
-	DisableRelay
-	OmitSignatureOverTls
-	SourcePK
-	OptionalTarget
-	NoSourceId
-)

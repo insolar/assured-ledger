@@ -102,57 +102,77 @@ func (p *ProtocolReceiveBuffer) SetProtocolReceiver(pt ProtocolType, val Protoco
 	p.receivers[pt] = val
 }
 
-func (p ProtocolReceiveBuffer) ReceiveSmallPacket(from Address, packet Packet, b []byte, sigLen uint32) {
+func (p ProtocolReceiveBuffer) ReceiveSmallPacket(rp *ReceiverPacket, b []byte) {
 	b = append([]byte(nil), b...) // make a copy
 
-	pt := packet.Header.GetProtocolType()
+	pt := rp.Header.GetProtocolType()
 	if p.oob.Has(pt) {
 		rec := p.receivers[pt]
-		go rec.ReceiveSmallPacket(from, packet, b, sigLen)
+		if rec == nil {
+			rec = p.defReceiver
+		}
+		go rec.ReceiveSmallPacket(rp, b)
 	}
 	buf := p.regularBuf
-	if s := p.priority[pt]; s != 0 && p.priorityBuf != nil && s.Has(packet.Header.GetPacketType()) {
+	if s := p.priority[pt]; s != 0 && p.priorityBuf != nil && s.Has(rp.Header.GetPacketType()) {
 		buf = p.priorityBuf
 	}
 
 	if p.discardedFn != nil {
 		select {
-		case buf <- smallPacket{from, packet, b, sigLen}:
+		case buf <- smallPacket{rp, b}:
 			return
 		default:
-			p.discardedFn(from, pt)
+			p.discardedFn(rp.From, pt)
 		}
 	} else {
-		buf <- smallPacket{from, packet, b, sigLen}
+		buf <- smallPacket{rp, b}
 	}
 }
 
-func (p ProtocolReceiveBuffer) ReceiveLargePacket(from Address, packet Packet, preRead []byte, r io.LimitedReader, verifier PacketDataVerifier) error {
-	pt := packet.Header.GetProtocolType()
+func (p ProtocolReceiveBuffer) ReceiveLargePacket(rp *ReceiverPacket, preRead []byte, r io.LimitedReader) error {
+	pt := rp.Header.GetProtocolType()
 	if !p.oob.Has(pt) {
 		if !p.largeSema.LockTimeout(p.largeTimeout) {
 			if p.discardedFn != nil {
-				p.discardedFn(from, pt)
+				p.discardedFn(rp.From, pt)
 			}
 			return errors.New("timeout")
 		}
 		defer p.largeSema.Unlock()
 	}
+
 	rec := p.receivers[pt]
-	return rec.ReceiveLargePacket(from, packet, preRead, r, verifier)
+	if rec == nil {
+		rec = p.defReceiver
+	}
+	return rec.ReceiveLargePacket(rp, preRead, r)
 }
 
-func (p ProtocolReceiveBuffer) RunWorker(priorityOnly bool) {
+func (p ProtocolReceiveBuffer) RunWorkers(count int, priorityOnly bool) {
+	receivers := p.receivers
+	for i := range receivers {
+		if receivers[i] == nil {
+			receivers[i] = p.defReceiver
+		}
+	}
+
 	switch {
 	case priorityOnly:
 		if p.priorityBuf == nil {
 			panic(throw.IllegalState())
 		}
-		go runSoloWorker(p.receivers, p.priorityBuf)
+		for ; count > 0; count-- {
+			go runSoloWorker(receivers, p.priorityBuf)
+		}
 	case p.priorityBuf == nil:
-		go runSoloWorker(p.receivers, p.regularBuf)
+		for ; count > 0; count-- {
+			go runSoloWorker(receivers, p.regularBuf)
+		}
 	default:
-		go runDuoWorker(p.receivers, p.priorityBuf, p.regularBuf)
+		for ; count > 0; count-- {
+			go runDuoWorker(receivers, p.priorityBuf, p.regularBuf)
+		}
 	}
 }
 
@@ -178,7 +198,7 @@ func runDuoWorker(receivers ProtocolReceivers, priority, regular <-chan smallPac
 			return
 		}
 		receiver := receivers[call.packet.Header.GetProtocolType()]
-		receiver.ReceiveSmallPacket(call.from, call.packet, call.b, call.sigLen)
+		receiver.ReceiveSmallPacket(call.packet, call.b)
 	}
 }
 
@@ -189,13 +209,11 @@ func runSoloWorker(receivers ProtocolReceivers, priority <-chan smallPacket) {
 			return
 		}
 		receiver := receivers[call.packet.Header.GetProtocolType()]
-		receiver.ReceiveSmallPacket(call.from, call.packet, call.b, call.sigLen)
+		receiver.ReceiveSmallPacket(call.packet, call.b)
 	}
 }
 
 type smallPacket struct {
-	from   Address
-	packet Packet
+	packet *ReceiverPacket
 	b      []byte
-	sigLen uint32
 }

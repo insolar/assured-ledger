@@ -288,7 +288,7 @@ func (h *Header) deserializeExtraFromBytes(b []byte) error {
 	byteOrder := binary.LittleEndian
 	h.ExcessiveLength = byteOrder.Uint32(b[0:])
 	if h.ExcessiveLength == 0 {
-		return throw.IllegalState()
+		return throw.Violation("zero excessive length")
 	}
 	return nil
 }

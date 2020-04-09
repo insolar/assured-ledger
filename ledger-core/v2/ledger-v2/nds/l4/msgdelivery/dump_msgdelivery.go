@@ -105,7 +105,7 @@ func (p *messageDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
 		// error
 	}
 
-	switch MessageDeliveryPacketType(h.GetPacketType()) {
+	switch PacketType(h.GetPacketType()) {
 	case DeliveryState:
 
 	case DeliveryParcelHead, DeliveryParcelBody:

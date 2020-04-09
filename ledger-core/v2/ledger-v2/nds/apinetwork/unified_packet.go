@@ -182,49 +182,61 @@ func (p *Packet) VerifyNonExcessivePayload(sv PacketDataVerifier, b []byte) erro
 	return sv.VerifyWhole(&p.Header, b)
 }
 
-func (p *Packet) DeserializeFrom(ctx DeserializationContext, reader io.Reader, fn func(*iokit.LimitedReader) error) error {
+type PayloadDeserializeFunc func(*Packet, *iokit.LimitedReader) error
 
-	sv := PacketDataVerifier{ctx.GetPayloadVerifier()}
+//func (p *Packet) DeserializeFrom(ctx DeserializationFactory, reader io.Reader, fn PayloadDeserializeFunc) error {
+//
+//	sv := PacketDataVerifier{ctx.GetPayloadVerifier()}
+//
+//	teeReader := sv.NewHashingReader(&p.Header, nil, reader)
+//
+//	if err := p.DeserializeMinFrom(teeReader); err != nil {
+//		return err
+//	}
+//
+//	readLimit := int64(0)
+//	if limit, err := p.Header.GetPayloadLength(); err != nil {
+//		return err
+//	} else {
+//		readLimit = int64(limit)
+//	}
+//
+//	switch n := int64(sv.GetSignatureSize()); {
+//	case readLimit < n:
+//		return throw.IllegalValue()
+//	case !p.Header.IsExcessiveLength():
+//		readLimit -= n
+//	case readLimit < n<<1:
+//		return throw.IllegalValue()
+//	default:
+//		var err error
+//		if p.HeaderSignature, err = teeReader.ReadAndVerifySignature(sv.verifier); err != nil {
+//			return err
+//		}
+//		readLimit -= n << 1
+//	}
+//
+//	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
+//		return err
+//	}
+//
+//	if err := p.DeserializePayload(teeReader, readLimit, ctx.GetPayloadDecrypter, fn); err != nil {
+//		return err
+//	}
+//
+//	var err error
+//	p.PacketSignature, err = teeReader.ReadAndVerifySignature(sv.verifier)
+//	return err
+//}
 
-	teeReader := sv.NewHashingReader(&p.Header, nil, reader)
-
-	if err := p.DeserializeMinFrom(teeReader); err != nil {
-		return err
-	}
-
-	readLimit := int64(0)
-	if limit, err := p.Header.GetPayloadLength(); err != nil {
-		return err
-	} else {
-		readLimit = int64(limit)
-	}
-
-	switch n := int64(sv.GetSignatureSize()); {
-	case readLimit < n:
-		return throw.IllegalValue()
-	case !p.Header.IsExcessiveLength():
-		readLimit -= n
-	case readLimit < n<<1:
-		return throw.IllegalValue()
-	default:
-		var err error
-		if p.HeaderSignature, err = teeReader.ReadAndVerifySignature(sv.Verifier); err != nil {
-			return err
-		}
-		readLimit -= n << 1
-	}
-
-	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
-		return err
-	}
-
+func (p *Packet) DeserializePayload(r io.Reader, readLimit int64, decryptFn func() cryptkit.Decrypter, fn PayloadDeserializeFunc) error {
 	if readLimit > 0 && p.Header.IsBodyEncrypted() {
-		decrypter := ctx.GetPayloadDecrypter()
+		decrypter := decryptFn()
 
-		encReader, plainSize := decrypter.NewDecryptingReader(teeReader, uint(readLimit))
+		encReader, plainSize := decrypter.NewDecryptingReader(r, uint(readLimit))
 		limitReader := iokit.LimitReader(encReader, int64(plainSize))
 
-		if err := fn(limitReader); err != nil {
+		if err := fn(p, limitReader); err != nil {
 			return err
 		}
 		if cr, ok := encReader.(io.Closer); ok {
@@ -237,19 +249,17 @@ func (p *Packet) DeserializeFrom(ctx DeserializationContext, reader io.Reader, f
 		if limitReader.RemainingBytes() != 0 {
 			return throw.IllegalValue()
 		}
+		return nil
 	} else {
-		limitReader := iokit.LimitReader(teeReader, readLimit)
-		if err := fn(limitReader); err != nil {
+		limitReader := iokit.LimitReader(r, readLimit)
+		if err := fn(p, limitReader); err != nil {
 			return err
 		}
 		if limitReader.RemainingBytes() != 0 {
 			return throw.IllegalValue()
 		}
 	}
-
-	var err error
-	p.PacketSignature, err = teeReader.ReadAndVerifySignature(sv.Verifier)
-	return err
+	return nil
 }
 
 func (p *Packet) GetPayloadOffset() uint {

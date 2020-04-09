@@ -17,11 +17,10 @@ type UnifiedProtocolSet struct {
 	SignatureSizeHint int // only a pre-allocation hint, actual size is taken from cryptkit.DataSignatureVerifier
 }
 
-func (p UnifiedProtocolSet) ReceivePacket(packet *Packet, sv *PacketDataVerifier, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
+func (p UnifiedProtocolSet) ReceivePacket(packet *ReceiverPacket, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
 ) (preRead []byte, more int64, err error) {
 
 	preRead = make([]byte, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
-	*sv = PacketDataVerifier{}
 
 	more = -1
 	if readLen, err := io.ReadFull(r, preRead[:LargePacketBaselineWithoutSignatureSize]); err != nil {
@@ -35,17 +34,17 @@ func (p UnifiedProtocolSet) ReceivePacket(packet *Packet, sv *PacketDataVerifier
 	}
 
 	err = func() error {
-		if verifier, fullLen, err := p.verifyPacket(packet, headerFn, false); err != nil {
+		if verifier, fullLen, err := p.verifyPacket(&packet.Packet, headerFn, false); err != nil {
 			return err
 		} else {
-			sv.Verifier = verifier
+			packet.verifier.Verifier = verifier
 
 			switch {
 			case packet.Header.IsExcessiveLength():
 				if !allowExcessive {
 					return throw.Violation("non-excessive connection")
 				}
-				if err := packet.VerifyExcessivePayload(*sv, &preRead, r); err != nil {
+				if err := packet.VerifyExcessivePayload(packet.verifier, &preRead, r); err != nil {
 					return err
 				}
 				more = int64(fullLen) - int64(len(preRead))
@@ -62,7 +61,7 @@ func (p UnifiedProtocolSet) ReceivePacket(packet *Packet, sv *PacketDataVerifier
 				if _, err := io.ReadFull(r, preRead[ofs:]); err != nil {
 					return err
 				}
-				if err := packet.VerifyNonExcessivePayload(*sv, preRead); err != nil {
+				if err := packet.VerifyNonExcessivePayload(packet.verifier, preRead); err != nil {
 					return err
 				}
 				more = 0
@@ -73,23 +72,19 @@ func (p UnifiedProtocolSet) ReceivePacket(packet *Packet, sv *PacketDataVerifier
 	return
 }
 
-func (p UnifiedProtocolSet) ReceiveDatagram(packet *Packet, headerFn VerifyHeaderFunc, b []byte) (length, sigLen int, err error) {
-	if _, err = packet.DeserializeMinFromBytes(b); err != nil {
-		return -1, 0, throw.WithDefaultSeverity(err, throw.ViolationSeverity)
+func (p UnifiedProtocolSet) ReceiveDatagram(packet *ReceiverPacket, headerFn VerifyHeaderFunc, b []byte) (int, error) {
+	if _, err := packet.DeserializeMinFromBytes(b); err != nil {
+		return -1, err
 	}
 
-	err = func() error {
-		if verifier, fullLen, err := p.verifyPacket(packet, headerFn, true); err != nil {
-			return err
-		} else if err = packet.VerifyNonExcessivePayload(PacketDataVerifier{verifier}, b); err != nil {
-			return err
-		} else {
-			length = int(fullLen)
-			sigLen = verifier.GetDigestSize()
-			return nil
-		}
-	}()
-	return
+	if verifier, fullLen, err := p.verifyPacket(&packet.Packet, headerFn, true); err != nil {
+		return 0, err
+	} else if err = packet.VerifyNonExcessivePayload(PacketDataVerifier{verifier}, b); err != nil {
+		return 0, err
+	} else {
+		packet.verifier.Verifier = verifier
+		return int(fullLen), nil
+	}
 }
 
 func (p UnifiedProtocolSet) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagram bool,

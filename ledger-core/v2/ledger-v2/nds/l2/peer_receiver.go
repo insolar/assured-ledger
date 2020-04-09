@@ -70,9 +70,8 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 		}
 
 		for {
-			var packet apinetwork.Packet
-			var verifier apinetwork.PacketDataVerifier
-			preRead, more, err := p.Protocols.ReceivePacket(&packet, &verifier, fn, r, limit != NonExcessivePayloadLength)
+			packet := apinetwork.ReceiverPacket{From: remote}
+			preRead, more, err := p.Protocols.ReceivePacket(&packet, fn, r, limit != NonExcessivePayloadLength)
 
 			switch isEOF := false; {
 			case more < 0:
@@ -109,9 +108,9 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 				} else {
 					receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
 					if more == 0 {
-						receiver.ReceiveSmallPacket(remote, packet, preRead, uint32(verifier.Verifier.GetDigestSize()))
+						receiver.ReceiveSmallPacket(&packet, preRead)
 					} else {
-						err = receiver.ReceiveLargePacket(remote, packet, preRead, io.LimitedReader{R: r, N: more}, verifier)
+						err = receiver.ReceiveLargePacket(&packet, preRead, io.LimitedReader{R: r, N: more})
 					}
 				}
 
@@ -139,12 +138,11 @@ func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err 
 	fn, _, err = p.resolvePeer(remote, true, nil)
 
 	n := -1
-	sigLen := 0
-	var packet apinetwork.Packet
-	if n, sigLen, err = p.Protocols.ReceiveDatagram(&packet, fn, b); err == nil {
+	packet := apinetwork.ReceiverPacket{From: remote}
+	if n, err = p.Protocols.ReceiveDatagram(&packet, fn, b); err == nil {
 		if !packet.Header.IsForRelay() {
 			receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
-			receiver.ReceiveSmallPacket(remote, packet, b, uint32(sigLen))
+			receiver.ReceiveSmallPacket(&packet, b)
 		} else {
 			// TODO relay via sessionless
 			err = throw.NotImplemented()

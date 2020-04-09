@@ -24,15 +24,15 @@ var MessageDeliveryProtocolDescriptor = apinetwork.ProtocolDescriptor{
 	},
 }
 
-type MessageDeliveryPacketType uint8
+type PacketType uint8
 
 const (
-	DeliveryState MessageDeliveryPacketType = iota
+	DeliveryState PacketType = iota
 	DeliveryParcelHead
 	DeliveryParcelBody // or Head + Body
 )
 
-func NewPacket(tp MessageDeliveryPacketType) apinetwork.Packet {
+func NewPacket(tp PacketType) apinetwork.Packet {
 	pt := apinetwork.Packet{}
 	pt.Header.SetProtocolType(ProtocolMessageDelivery)
 	pt.Header.SetPacketType(uint8(tp))
@@ -129,61 +129,57 @@ func (p *DeliveryStatePacket) SerializeTo(ctx apinetwork.SerializationContext, w
 	})
 }
 
-func (p *DeliveryStatePacket) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader) error {
-	packet := NewPacket(DeliveryState)
+func (p *DeliveryStatePacket) DeserializePayload(packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+	if reader.RemainingBytes() < ParcelIdByteSize {
+		return throw.IllegalValue()
+	}
 
-	return packet.DeserializeFrom(ctx, reader, func(reader *iokit.LimitedReader) error {
-		if reader.RemainingBytes() < ParcelIdByteSize {
+	b := make([]byte, reader.RemainingBytes())
+	if _, err := reader.Read(b); err != nil {
+		return err
+	}
+
+	if packet.Header.HasFlag(BodyRqFlag) {
+		p.BodyRq = ParcelIdReadFromBytes(b)
+		if p.BodyRq == 0 {
 			return throw.IllegalValue()
 		}
+		b = b[ParcelIdByteSize:]
+	}
 
-		b := make([]byte, reader.RemainingBytes())
-		if _, err := reader.Read(b); err != nil {
-			return err
-		}
-
-		if packet.Header.HasFlag(BodyRqFlag) {
-			p.BodyRq = ParcelIdReadFromBytes(b)
-			if p.BodyRq == 0 {
-				return throw.IllegalValue()
-			}
-			b = b[ParcelIdByteSize:]
-		}
-
-		if packet.Header.HasFlag(RejectListFlag) {
-			count, n := protokit.DecodeVarintFromBytes(b)
-			if count == 0 || n == 0 {
-				return throw.IllegalValue()
-			}
-			b = b[n:]
-			p.RejectList = make([]ParcelId, 0, count)
-			for ; count > 0; count-- {
-				id := ParcelIdReadFromBytes(b)
-				b = b[ParcelIdByteSize:]
-				if id == 0 {
-					return throw.IllegalValue()
-				}
-				p.RejectList = append(p.RejectList, id)
-			}
-		}
-
-		if len(b)%ParcelIdByteSize != 0 {
+	if packet.Header.HasFlag(RejectListFlag) {
+		count, n := protokit.DecodeVarintFromBytes(b)
+		if count == 0 || n == 0 {
 			return throw.IllegalValue()
 		}
-
-		p.AckList = make([]ParcelId, 0, len(b)/ParcelIdByteSize)
-
-		for len(b) > 0 {
+		b = b[n:]
+		p.RejectList = make([]ParcelId, 0, count)
+		for ; count > 0; count-- {
 			id := ParcelIdReadFromBytes(b)
+			b = b[ParcelIdByteSize:]
 			if id == 0 {
 				return throw.IllegalValue()
 			}
-			b = b[ParcelIdByteSize:]
-			p.AckList = append(p.AckList, id)
+			p.RejectList = append(p.RejectList, id)
 		}
+	}
 
-		return nil
-	})
+	if len(b)%ParcelIdByteSize != 0 {
+		return throw.IllegalValue()
+	}
+
+	p.AckList = make([]ParcelId, 0, len(b)/ParcelIdByteSize)
+
+	for len(b) > 0 {
+		id := ParcelIdReadFromBytes(b)
+		if id == 0 {
+			return throw.IllegalValue()
+		}
+		b = b[ParcelIdByteSize:]
+		p.AckList = append(p.AckList, id)
+	}
+
+	return nil
 }
 
 type DeliveryParcelPacket struct {
@@ -241,50 +237,45 @@ func (p *DeliveryParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, 
 	})
 }
 
-func (p *DeliveryParcelPacket) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader) error {
-	packet := NewPacket(DeliveryParcelBody) // or DeliveryParcelHead
-
-	return packet.DeserializeFrom(ctx, reader, func(reader *iokit.LimitedReader) (err error) {
-		switch MessageDeliveryPacketType(packet.Header.GetPacketType()) {
-		case DeliveryParcelHead:
-			p.ParcelType = apinetwork.HeadPayload
-		case DeliveryParcelBody:
-			if packet.Header.HasFlag(WithHeadFlag) {
-				p.ParcelType = apinetwork.CompletePayload
-			} else {
-				p.ParcelType = apinetwork.BodyPayload
-			}
-		}
-
-		{
-			hasReturn := packet.Header.HasFlag(ReturnIdFlag)
-			var b []byte
-			if hasReturn {
-				b = make([]byte, ParcelIdByteSize<<1)
-			} else {
-				b = make([]byte, ParcelIdByteSize)
-			}
-			if _, err := io.ReadFull(reader, b); err != nil {
-				return err
-			}
-			p.ParcelId = ParcelIdReadFromBytes(b)
-			if hasReturn {
-				p.ReturnId = ParcelIdReadFromBytes(b[ParcelIdByteSize:])
-			}
-		}
-
-		p.RepeatedSend = packet.Header.HasFlag(RepeatedSendFlag)
-
-		if p.Data != nil {
-			return p.Data.DeserializeFrom(ctx, reader)
-		}
-
-		factory := ctx.GetPayloadFactory()
-		if d, err := factory.DeserializePayloadFrom(ctx, p.ParcelType, reader); err != nil {
-			return err
+func (p *DeliveryParcelPacket) DeserializePayload(f apinetwork.DeserializationFactory, packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+	switch PacketType(packet.Header.GetPacketType()) {
+	case DeliveryParcelHead:
+		p.ParcelType = apinetwork.HeadPayload
+	case DeliveryParcelBody:
+		if packet.Header.HasFlag(WithHeadFlag) {
+			p.ParcelType = apinetwork.CompletePayload
 		} else {
-			p.Data = d
+			p.ParcelType = apinetwork.BodyPayload
 		}
-		return nil
-	})
+	}
+
+	{
+		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
+		var b []byte
+		if hasReturn {
+			b = make([]byte, ParcelIdByteSize<<1)
+		} else {
+			b = make([]byte, ParcelIdByteSize)
+		}
+		if _, err := io.ReadFull(reader, b); err != nil {
+			return err
+		}
+		p.ParcelId = ParcelIdReadFromBytes(b)
+		if hasReturn {
+			p.ReturnId = ParcelIdReadFromBytes(b[ParcelIdByteSize:])
+		}
+	}
+
+	p.RepeatedSend = packet.Header.HasFlag(RepeatedSendFlag)
+
+	if p.Data != nil {
+		return p.Data.DeserializeFrom(f, reader)
+	}
+
+	if d, err := f.DeserializePayloadFrom(p.ParcelType, reader); err != nil {
+		return err
+	} else {
+		p.Data = d
+	}
+	return nil
 }

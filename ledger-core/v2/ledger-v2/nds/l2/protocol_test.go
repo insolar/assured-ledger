@@ -56,23 +56,22 @@ func (p *TestProtocolMarshaller) VerifyHeader(*apinetwork.Header, pulse.Number) 
 	return nil
 }
 
-func (p *TestProtocolMarshaller) ReceiveSmallPacket(from apinetwork.Address, packet apinetwork.Packet, b []byte, sigLen uint32) {
-	p.LastFrom = from
-	p.LastPacket = packet
+func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *apinetwork.ReceiverPacket, b []byte) {
+	p.LastFrom = packet.From
+	p.LastPacket = packet.Packet
 	p.LastBytes = append([]byte(nil), b...)
-	p.LastSigLen = int(sigLen)
+	p.LastSigLen = packet.GetSignatureSize()
 	p.LastLarge = false
 	p.LastError = nil
-	p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(sigLen)])
+	p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(p.LastSigLen)])
 	p.Count.Add(1)
 	return
 }
 
-func (p *TestProtocolMarshaller) ReceiveLargePacket(from apinetwork.Address, packet apinetwork.Packet, preRead []byte, r io.LimitedReader, verifier apinetwork.PacketDataVerifier) error {
-	ss := verifier.GetSignatureSize()
-	p.LastFrom = from
-	p.LastPacket = packet
-	p.LastSigLen = ss
+func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *apinetwork.ReceiverPacket, preRead []byte, r io.LimitedReader) error {
+	p.LastFrom = packet.From
+	p.LastPacket = packet.Packet
+	p.LastSigLen = packet.GetSignatureSize()
 	p.LastLarge = true
 
 	p.LastBytes = make([]byte, len(preRead)+int(r.N))
@@ -81,7 +80,7 @@ func (p *TestProtocolMarshaller) ReceiveLargePacket(from apinetwork.Address, pac
 		p.LastError = err
 		return err
 	}
-	p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-ss])
+	p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-p.LastSigLen])
 	p.Count.Add(1)
 
 	return p.ReportErr

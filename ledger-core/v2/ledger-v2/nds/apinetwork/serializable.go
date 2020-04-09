@@ -41,7 +41,7 @@ type SizeAwareSerializer interface {
 }
 
 type SizeAwareDeserializer interface {
-	DeserializeFrom(ctx DeserializationContext, reader *iokit.LimitedReader) error
+	DeserializeFrom(DeserializationFactory, *iokit.LimitedReader) error
 }
 
 type Serializable interface {
@@ -58,5 +58,5 @@ const (
 )
 
 type DeserializationFactory interface {
-	DeserializePayloadFrom(ctx DeserializationContext, mode PayloadCompleteness, reader *iokit.LimitedReader) (Serializable, error)
+	DeserializePayloadFrom(PayloadCompleteness, *iokit.LimitedReader) (Serializable, error)
 }
