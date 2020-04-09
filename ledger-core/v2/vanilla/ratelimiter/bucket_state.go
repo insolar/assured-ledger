@@ -74,28 +74,8 @@ func (p *BucketState) TakeQuotaNoScale(max uint32, refillFn BucketRefillFunc) ui
 	return p.takeFilled(max, refillFn)
 }
 
-func (p *BucketState) quantizeCeiling(v uint32) uint32 {
-	if v < p.Quantum {
-		return p.Quantum
-	}
-	a := (uint64(v) + uint64(p.Quantum) - 1) / uint64(p.Quantum)
-	a *= uint64(p.Quantum)
-	if a > math.MaxUint32 {
-		return uint32(a - uint64(p.Quantum))
-	}
-	return uint32(a)
-}
-
-func (p *BucketState) quantizeFloor(v uint32) uint32 {
-	if v < p.Quantum {
-		return 0
-	}
-	a := uint64(v) / uint64(p.Quantum)
-	return uint32(a * uint64(p.Quantum))
-}
-
 func (p *BucketState) takeFilled(max uint32, refillFn BucketRefillFunc) uint32 {
-	allocate := p.takeQuantizedFilled(p.quantizeCeiling(max), refillFn)
+	allocate := p.takeQuantizedFilled(quantizeCeiling(max, p.Quantum), refillFn)
 	if allocate <= max {
 		return allocate
 	}
@@ -124,7 +104,7 @@ func (p *BucketState) takeQuantizedFilled(maxAligned uint32, refillFn BucketRefi
 			continue
 		}
 
-		switch q := p.quantizeFloor(allocated + n); {
+		switch q := quantizeFloor(allocated+n, p.Quantum); {
 		case q > allocated:
 			if !p.filledAmount.CompareAndSwap(n, n+allocated-q) {
 				continue
