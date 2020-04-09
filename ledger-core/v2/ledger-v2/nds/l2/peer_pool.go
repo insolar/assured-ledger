@@ -209,7 +209,7 @@ func (p *PeerManager) addAliases(to apinetwork.Address, aliases ...apinetwork.Ad
 func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary apinetwork.Address, aliases []apinetwork.Address) (uint32, *Peer, error) {
 	peer := &Peer{}
 	peer.transport.central = &p.central
-	peer.transport.SetAddresses(primary, aliases)
+	peer.transport.setAddresses(primary, aliases)
 
 	if p.peerFactory != nil {
 		if err := p.peerFactory(peer); err != nil {
@@ -384,5 +384,5 @@ func (p *Peer) checkVerified() error {
 }
 
 func (p *Peer) removeAlias(a apinetwork.Address) bool {
-	return p.transport.RemoveAliases(a)
+	return p.transport.removeAliases(a)
 }

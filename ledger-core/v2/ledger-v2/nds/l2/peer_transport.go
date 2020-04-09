@@ -386,7 +386,7 @@ func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn func(l1.OutTra
 	return p.UseSessionful(size, canRetry, applyFn)
 }
 
-func (p *PeerTransport) SetAddresses(primary apinetwork.Address, aliases []apinetwork.Address) {
+func (p *PeerTransport) setAddresses(primary apinetwork.Address, aliases []apinetwork.Address) {
 	switch {
 	case primary.IsZero():
 		panic(throw.IllegalValue())
@@ -412,7 +412,7 @@ func (p *PeerTransport) SetAddresses(primary apinetwork.Address, aliases []apine
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) AddAliases(aliases []apinetwork.Address) {
+func (p *PeerTransport) addAliases(aliases []apinetwork.Address) {
 	n := len(aliases)
 	if n == 0 {
 		return
@@ -427,7 +427,7 @@ func (p *PeerTransport) AddAliases(aliases []apinetwork.Address) {
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) RemoveAliases(a apinetwork.Address) bool {
+func (p *PeerTransport) removeAliases(a apinetwork.Address) bool {
 	if a.IsZero() {
 		return false
 	}

@@ -94,7 +94,7 @@ func (p *PeerMap) addAliases(peerIndex uint32, aliases []apinetwork.Address) err
 	case len(aliases) == 0:
 		//
 	default:
-		peer.transport.AddAliases(aliases)
+		peer.transport.addAliases(aliases)
 		if p.aliases == nil {
 			p.aliases = make(map[apinetwork.Address]uint32)
 		}
