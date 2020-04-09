@@ -95,7 +95,6 @@ func DefaultVMConfig() configuration.Configuration {
 	cfg.KeysPath = "testdata/bootstrap_keys.json"
 	cfg.Ledger.LightChainLimit = math.MaxInt32
 	cfg.LogicRunner = configuration.NewLogicRunner()
-	cfg.LogicRunner.BuiltIn = &configuration.BuiltIn{}
 	cfg.Bus.ReplyTimeout = 5 * time.Second
 	cfg.Log = configuration.NewLog()
 	cfg.Log.Level = log.InfoLevel.String()            // insolar.DebugLevel.String()

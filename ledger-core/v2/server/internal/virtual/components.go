@@ -12,6 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 
 	"github.com/insolar/component-manager"
 
@@ -180,6 +181,7 @@ func initComponents(
 		certManager,
 		logicRunner,
 		APIWrapper,
+		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
 		availabilityChecker,
 		nw,
 		pm,

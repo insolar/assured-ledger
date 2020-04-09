@@ -134,6 +134,8 @@ func main() {
 			conf.Ledger.JetSplit.DepthLimit = 4
 		}
 
+		conf.TestWalletAPI.Address = fmt.Sprintf(defaultHost+":323%02d", nodeIndex)
+
 		conf.APIRunner.Address = fmt.Sprintf(defaultHost+":191%02d", nodeIndex)
 		conf.APIRunner.SwaggerPath = "application/api/spec/api-exported.yaml"
 
@@ -247,8 +249,8 @@ var defaultInsloardConf *configuration.Configuration
 
 func newDefaultInsolardConfig() configuration.Configuration {
 	if defaultInsloardConf == nil {
-		holder := configuration.NewHolderWithFilePaths(insolardDefaultsConfig).MustInit(true)
-		defaultInsloardConf = &holder.Configuration
+		cfg := configuration.NewConfiguration()
+		defaultInsloardConf = &cfg
 	}
 	return *defaultInsloardConf
 }

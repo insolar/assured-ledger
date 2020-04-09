@@ -142,13 +142,11 @@ func (lr *LogicRunner) Start(ctx context.Context) error {
 		lr.rpc.Start(ctx)
 	}
 
-	if lr.Cfg.BuiltIn != nil {
-		bi := builtin.NewBuiltIn(lr.ArtifactManager, lr.ContractRunner)
+	bi := builtin.NewBuiltIn(lr.ArtifactManager, lr.ContractRunner)
 
-		err := lr.MachinesManager.RegisterExecutor(insolar.MachineTypeBuiltin, bi)
-		if err != nil {
-			return err
-		}
+	err := lr.MachinesManager.RegisterExecutor(insolar.MachineTypeBuiltin, bi)
+	if err != nil {
+		return err
 	}
 
 	// if lr.Cfg.GoPlugin != nil {

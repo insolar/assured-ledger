@@ -31,18 +31,13 @@ func New(cfgPath string) *Server {
 }
 
 func (s *Server) Serve() {
-	cfgHolder := configuration.NewHolder()
-	var err error
-	if len(s.cfgPath) != 0 {
-		err = cfgHolder.LoadFromFile(s.cfgPath)
-	} else {
-		err = cfgHolder.Load()
-	}
+	cfgHolder := configuration.NewHolder(s.cfgPath)
+	err := cfgHolder.Load()
 	if err != nil {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 
-	cfg := &cfgHolder.Configuration
+	cfg := cfgHolder.Configuration
 
 	fmt.Println("Version: ", version.GetFullVersion())
 	fmt.Println("Starts with configuration:\n", configuration.ToString(cfgHolder.Configuration))

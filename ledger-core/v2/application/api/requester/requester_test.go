@@ -169,7 +169,7 @@ func TestGetSeed(t *testing.T) {
 
 func TestGetResponseBodyEmpty(t *testing.T) {
 	_, err := GetResponseBodyPlatform("test", "", nil)
-	require.EqualError(t, err, "problem with sending request: Post test: unsupported protocol scheme \"\"")
+	require.EqualError(t, err, "problem with sending request: Post \"test\": unsupported protocol scheme \"\"")
 }
 
 func TestGetResponseBodyBadHttpStatus(t *testing.T) {

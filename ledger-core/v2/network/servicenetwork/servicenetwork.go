@@ -86,7 +86,6 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		hostNetwork,
 		nodeNetwork,
 		controller.NewRPCController(options),
-		controller.NewPulseController(),
 		bootstrap.NewRequester(options),
 		storage.NewMemoryStorage(),
 		n.BaseGateway,
@@ -140,11 +139,6 @@ func (n *ServiceNetwork) GracefulStop(ctx context.Context) error {
 // Stop implements insolar.Component
 func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
-}
-
-// HandlePulse process pulse from PulseController
-func (n *ServiceNetwork) HandlePulse(ctx context.Context, pulse insolar.Pulse, originalPacket network.ReceivedPacket) {
-	n.Gatewayer.Gateway().OnPulseFromPulsar(ctx, pulse, originalPacket)
 }
 
 func (n *ServiceNetwork) GetOrigin() insolar.NetworkNode {

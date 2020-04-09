@@ -113,13 +113,13 @@ func (v SignatureKeyType) IsSecret() bool {
 	return v != PublicAsymmetricKey
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureVerifier -o . -s _mock.go -g
-
 type DataSignatureVerifier interface {
 	DataDigester
 	GetSignatureMethod() SignatureMethod
 	SignatureVerifier
 }
+
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureVerifier -o . -s _mock.go -g
 
 type SignatureVerifier interface {
 	IsDigestMethodSupported(m DigestMethod) bool

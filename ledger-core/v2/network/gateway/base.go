@@ -11,29 +11,26 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/insolar/component-manager"
+	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
-
-	"github.com/pkg/errors"
-
-	"github.com/insolar/component-manager"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
 const (
@@ -66,11 +63,10 @@ type Base struct {
 	datagramHandler   *adapters.DatagramHandler
 	datagramTransport transport.DatagramTransport
 
-	ConsensusMode         consensus.Mode
-	consensusInstaller    consensus.Installer
-	ConsensusController   consensus.Controller
-	consensusPulseHandler network.PulseHandler
-	consensusStarted      uint32
+	ConsensusMode       consensus.Mode
+	consensusInstaller  consensus.Installer
+	ConsensusController consensus.Controller
+	consensusStarted    uint32
 
 	Options         *network.Options
 	bootstrapTimer  *time.Timer // nolint
@@ -202,16 +198,16 @@ func (g *Base) createOriginCandidate() error {
 func (g *Base) StartConsensus(ctx context.Context) error {
 
 	if g.NodeKeeper.GetOrigin().Role() == insolar.StaticRoleHeavyMaterial {
+		// one of the nodes has to be in consensus.ReadyNetwork state,
+		// all other nodes has to be in consensus.Joiner
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
-	pulseHandler := adapters.NewPulseHandler()
-	g.ConsensusController = g.consensusInstaller.ControllerFor(g.ConsensusMode, pulseHandler, g.datagramHandler)
+	g.ConsensusController = g.consensusInstaller.ControllerFor(g.ConsensusMode, g.datagramHandler)
 	g.ConsensusController.RegisterFinishedNotifier(func(ctx context.Context, report network.Report) {
 		g.Gatewayer.Gateway().OnConsensusFinished(ctx, report)
 	})
 
-	g.consensusPulseHandler = pulseHandler
 	atomic.StoreUint32(&g.consensusStarted, 1)
 	return nil
 }
@@ -219,12 +215,6 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 // ChangePulse process pulse from Consensus
 func (g *Base) ChangePulse(ctx context.Context, pulse insolar.Pulse) {
 	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, pulse)
-}
-
-func (g *Base) OnPulseFromPulsar(ctx context.Context, pu insolar.Pulse, originalPacket network.ReceivedPacket) {
-	if atomic.LoadUint32(&g.consensusStarted) == 1 {
-		g.consensusPulseHandler.HandlePulse(ctx, pu, originalPacket)
-	}
 }
 
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu insolar.Pulse) {

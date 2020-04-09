@@ -83,13 +83,6 @@ type Future interface {
 	Cancel()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.PulseHandler -o ../testutils/network -s _mock.go -g
-
-// PulseHandler interface to process new pulse.
-type PulseHandler interface {
-	HandlePulse(ctx context.Context, pulse insolar.Pulse, originalPacket ReceivedPacket)
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.OriginProvider -o ../testutils/network -s _mock.go -g
 
 //Deprecated: network internal usage only
@@ -168,7 +161,6 @@ type Gateway interface {
 
 	GetState() insolar.NetworkState
 
-	OnPulseFromPulsar(context.Context, insolar.Pulse, ReceivedPacket)
 	OnPulseFromConsensus(context.Context, insolar.Pulse)
 	OnConsensusFinished(ctx context.Context, report Report)
 

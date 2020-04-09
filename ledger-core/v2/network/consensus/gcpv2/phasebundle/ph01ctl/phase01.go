@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"time"
 
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
@@ -160,9 +163,12 @@ func (c *Phase01Controller) workerPhase01(ctx context.Context) {
 
 	var nsh proofs.NodeStateHash
 	startIndex := 0
+	phase01StartedAt := time.Now()
 
 	if ok, nshChannel := c.R.PreparePulseChange(); ok {
 		nsh, startIndex = c.workerSendPhase0(ctx, nodes, nshChannel)
+		// TODO: low-latency metrics - https://insolar.atlassian.net/browse/PLAT-217
+		go stats.Record(ctx, metrics.Phase01Time.M(float64(time.Since(phase01StartedAt).Nanoseconds())*metrics.StatUnit))
 		if startIndex < 0 {
 			// stopped via context
 			inslogger.FromContext(ctx).Error(">>>>>>workerPhase01: was stopped via context")

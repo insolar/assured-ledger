@@ -40,8 +40,8 @@ func TestClientServerExample(t *testing.T) {
 }
 
 func Example_ClientServer() {
-	cfgHolder := configuration.NewHolder().MustInit(false)
-	jconf := cfgHolder.Configuration.Tracer.Jaeger
+	cfg := configuration.NewConfiguration()
+	jconf := cfg.Tracer.Jaeger
 	ctx := context.Background()
 	inslogger.FromContext(ctx).Infof("jconf => %+v", jconf)
 

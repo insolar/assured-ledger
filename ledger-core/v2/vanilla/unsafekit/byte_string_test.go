@@ -19,9 +19,8 @@ import (
 // In accordance with unsafe Rule (6) this behavior is NOT guaranteed. Yet it is valid for gc compiler.
 // So one should be careful with Wrap/Unwrap operations.
 func TestRetentionByByteString(t *testing.T) {
-	type testPtr [2]byte
+	type testPtr [8912]byte // enforce off-stack allocation
 	b := make([]byte, 2048)
-	escapes(b) // this test will only work of on-heap objects
 
 	b[0] = 'A'
 	b[1] = 'B'
@@ -29,7 +28,6 @@ func TestRetentionByByteString(t *testing.T) {
 	finMark := uint32(0)
 
 	up := (*reflect.SliceHeader)(unsafe.Pointer(&b)).Data
-
 	runtime.SetFinalizer((*testPtr)(unsafe.Pointer(up)), func(_ *testPtr) {
 		atomic.StoreUint32(&finMark, 1)
 	})
@@ -63,23 +61,21 @@ func TestRetentionByByteString(t *testing.T) {
 // In accordance with unsafe Rule (6) this behavior is NOT guaranteed. Yet it is valid for gc compiler.
 // So one should be careful with Wrap/Unwrap operations.
 func TestRetentionBySlice(t *testing.T) {
-	type testPtr [2]byte
+	type testPtr [8912]byte // enforce off-stack allocation
+
 	bb := &testPtr{'A', 'B'}
-	escapes(bb) // this test will only work of on-heap objects
+	finMark := uint32(0)
+	runtime.SetFinalizer(bb, func(_ *testPtr) {
+		atomic.StoreUint32(&finMark, 1)
+	})
 
 	var b []byte
-
-	finMark := uint32(0)
 
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	sh.Data = uintptr(unsafe.Pointer(bb))
 	sh.Len = len(*bb)
 	sh.Cap = len(*bb)
 	sh = nil
-
-	runtime.SetFinalizer(bb, func(_ *testPtr) {
-		atomic.StoreUint32(&finMark, 1)
-	})
 	bb = nil
 
 	runtime.GC()
@@ -97,17 +93,5 @@ func TestRetentionBySlice(t *testing.T) {
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond)
 	runtime.GC()
-
 	require.Equal(t, uint32(1), finMark)
-}
-
-func escapes(x interface{}) {
-	if dummy.b {
-		dummy.x = x
-	}
-}
-
-var dummy struct {
-	b bool
-	x interface{}
 }

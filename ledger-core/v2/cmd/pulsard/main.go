@@ -41,7 +41,7 @@ type inputParams struct {
 }
 
 func parseInputParams() inputParams {
-	var rootCmd = &cobra.Command{Use: "insolard"}
+	var rootCmd = &cobra.Command{Use: "pulsard --config=<path to config>"}
 	var result inputParams
 	rootCmd.Flags().StringVarP(&result.configPath, "config", "c", "", "path to config file")
 	rootCmd.AddCommand(version.GetCommand("pulsard"))
