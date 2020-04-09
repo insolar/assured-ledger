@@ -13,7 +13,7 @@ import (
 
 type BucketState struct {
 	filledAmount   atomickit.Uint32
-	residualAmount atomickit.Uint32
+	residualAmount atomickit.Uint32 // scaled value!
 	bucketConfig
 }
 type bucketConfig = BucketConfig
@@ -21,34 +21,57 @@ type bucketConfig = BucketConfig
 type BucketRefillFunc func(need uint32) uint32
 
 func (p *BucketState) TakeQuotaNoWait(max int64, scale uint32, refillFn BucketRefillFunc) int64 {
-	maxAllocated := max / int64(scale)
-	switch {
-	case maxAllocated == 0:
-		maxAllocated = 1
-	case maxAllocated > math.MaxUint32:
-		maxAllocated = math.MaxUint32
-	}
-	return int64(p.TakeQuotaNoScale(uint32(maxAllocated), refillFn)) * int64(scale)
-}
-
-func (p *BucketState) TakeQuotaNoScale(maxAllocated uint32, refillFn BucketRefillFunc) uint32 {
-	if maxAllocated <= 0 {
+	if max <= 0 {
 		return 0
 	}
 	for {
 		switch n := p.residualAmount.Load(); {
-		case n >= maxAllocated:
-			if p.residualAmount.CompareAndSwap(n, n-maxAllocated) {
-				return maxAllocated
+		case int64(n) >= max:
+			if p.residualAmount.CompareAndSwap(n, n-uint32(max)) {
+				return max
 			}
 		case n > 0:
 			if p.residualAmount.CompareAndSwap(n, 0) {
-				return n + p.takeFilled(maxAllocated-n, refillFn)
+				return int64(n) + p._takeQuotaNoWait(max-int64(n), scale, refillFn)
 			}
 		default:
-			return p.takeFilled(maxAllocated, refillFn)
+			return p._takeQuotaNoWait(max, scale, refillFn)
 		}
 	}
+}
+
+func (p *BucketState) _takeQuotaNoWait(max int64, scale uint32, refillFn BucketRefillFunc) int64 {
+	maxUnscaled := (uint64(max) + uint64(scale) - 1) / uint64(scale)
+	if maxUnscaled > math.MaxUint32 {
+		maxUnscaled = math.MaxUint32
+	}
+
+	allocated := int64(p.takeFilled(uint32(maxUnscaled), refillFn)) * int64(scale)
+	if allocated <= max {
+		return allocated
+	}
+	p.addResidual(uint64(allocated - max))
+	return max
+}
+
+func (p *BucketState) addResidual(residual uint64) {
+	for {
+		n := p.residualAmount.Load()
+		x := residual + uint64(n)
+		if x > math.MaxUint32 {
+			x = math.MaxUint32
+		}
+		if p.residualAmount.CompareAndSwap(n, uint32(x)) {
+			return
+		}
+	}
+}
+
+func (p *BucketState) TakeQuotaNoScale(max uint32, refillFn BucketRefillFunc) uint32 {
+	if max <= 0 {
+		return 0
+	}
+	return p.takeFilled(max, refillFn)
 }
 
 func (p *BucketState) quantizeCeiling(v uint32) uint32 {
@@ -71,13 +94,13 @@ func (p *BucketState) quantizeFloor(v uint32) uint32 {
 	return uint32(a * uint64(p.Quantum))
 }
 
-func (p *BucketState) takeFilled(maxAllocated uint32, refillFn BucketRefillFunc) uint32 {
-	allocate := p.takeQuantizedFilled(p.quantizeCeiling(maxAllocated), refillFn)
-	if allocate <= maxAllocated {
+func (p *BucketState) takeFilled(max uint32, refillFn BucketRefillFunc) uint32 {
+	allocate := p.takeQuantizedFilled(p.quantizeCeiling(max), refillFn)
+	if allocate <= max {
 		return allocate
 	}
-	p.residualAmount.Add(allocate - maxAllocated)
-	return maxAllocated
+	p.residualAmount.Add(allocate - max)
+	return max
 }
 
 func (p *BucketState) takeQuantizedFilled(maxAligned uint32, refillFn BucketRefillFunc) uint32 {
