@@ -20,6 +20,62 @@ func GreatestCommonDivisor(a, b int) int {
 	return a
 }
 
+func GreatestCommonDivisorUint64(a, b uint64) uint64 {
+	if a == b {
+		return a
+	}
+
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+func GreatestCommonDivisorInt64(a, b int64) int64 {
+	if a == b {
+		return a
+	}
+
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+func GCDListUint64(min, a uint64, b ...uint64) uint64 {
+	for _, bb := range b {
+		if a <= min || a <= 1 {
+			break
+		}
+		a = GreatestCommonDivisorUint64(a, bb)
+	}
+	return a
+}
+
+func GCDListInt64(min, a int64, b ...int64) int64 {
+	for _, bb := range b {
+		if a <= min || a <= 1 {
+			break
+		}
+		a = GreatestCommonDivisorInt64(a, bb)
+	}
+	return a
+}
+
+func GCDListInt(min, a int, b ...int) int {
+	for _, bb := range b {
+		if a <= min || a <= 1 {
+			break
+		}
+		a = GreatestCommonDivisor(a, bb)
+	}
+	return a
+}
+
 func IsPowerOfTwo(x uint) bool {
 	return x&(x-1) == 0
 }
