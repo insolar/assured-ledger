@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l4
+package msgdelivery
 
 import (
 	"io"
@@ -16,9 +16,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var _ MessageDelivery = &messageDelivery{}
+var _ Service = &messageDelivery{}
 
-func NewMessageDelivery() MessageDelivery {
+func NewMessageDelivery() Service {
 	return &messageDelivery{}
 }
 
@@ -101,14 +101,14 @@ func (p *messageDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
 		return
 	}
 
-	if h.GetProtocolType() != ProtocolNodeMessage {
+	if h.GetProtocolType() != ProtocolMessageDelivery {
 		// error
 	}
 
-	switch NodeMessageType(h.GetPacketType()) {
-	case NodeMessageState:
+	switch MessageDeliveryPacketType(h.GetPacketType()) {
+	case DeliveryState:
 
-	case NodeMessageParcelHead, NodeMessageParcelBody:
+	case DeliveryParcelHead, DeliveryParcelBody:
 
 	}
 }

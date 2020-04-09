@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l4
+package msgdelivery
 
 import (
 	"io"
@@ -14,36 +14,44 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-const ProtocolNodeMessage = apinetwork.ProtocolTypeNodeMessage
+const ProtocolMessageDelivery = apinetwork.ProtocolTypeMessageDelivery
 
-type NodeMessageType uint8
+var MessageDeliveryProtocolDescriptor = apinetwork.ProtocolDescriptor{
+	SupportedPackets: [16]apinetwork.ProtocolPacketDescriptor{
+		DeliveryState:      {Flags: apinetwork.DatagramAllowed, LengthBits: apinetwork.SmallLengthBits},
+		DeliveryParcelHead: {Flags: apinetwork.DatagramAllowed, LengthBits: apinetwork.SmallLengthBits},
+		DeliveryParcelBody: {Flags: apinetwork.DatagramAllowed, LengthBits: apinetwork.MaxLengthBits},
+	},
+}
+
+type MessageDeliveryPacketType uint8
 
 const (
-	NodeMessageState NodeMessageType = iota
-	NodeMessageParcelHead
-	NodeMessageParcelBody // or Head + Body
+	DeliveryState MessageDeliveryPacketType = iota
+	DeliveryParcelHead
+	DeliveryParcelBody // or Head + Body
 )
 
-func NewPacket(tp NodeMessageType) apinetwork.Packet {
+func NewPacket(tp MessageDeliveryPacketType) apinetwork.Packet {
 	pt := apinetwork.Packet{}
-	pt.Header.SetProtocolType(ProtocolNodeMessage)
+	pt.Header.SetProtocolType(ProtocolMessageDelivery)
 	pt.Header.SetPacketType(uint8(tp))
 	return pt
 }
 
-// Flags for NodeMessageState
+// Flags for DeliveryState
 const (
 	BodyRqFlag apinetwork.FlagIndex = iota
 	RejectListFlag
 )
 
-type NodeMsgState struct {
+type DeliveryStatePacket struct {
 	BodyRq     ParcelId   `insolar-transport:"optional=PacketFlags[0]"` //
 	RejectList []ParcelId `insolar-transport:"optional=PacketFlags[1]"` //
 	AckList    []ParcelId `insolar-transport:"list=nocount"`            // length is determined by packet size
 }
 
-func FillNodeMsgState(maxPacketSize int, bodyRq ParcelId, ackList *[]ParcelId, rejectList *[]ParcelId) (m NodeMsgState) {
+func FillDeliveryStatePacket(maxPacketSize int, bodyRq ParcelId, ackList *[]ParcelId, rejectList *[]ParcelId) (m DeliveryStatePacket) {
 	if bodyRq != 0 {
 		m.BodyRq = bodyRq
 		maxPacketSize -= ParcelIdByteSize
@@ -70,8 +78,8 @@ func moveParcelIdList(maxCount int, list *[]ParcelId) (int, []ParcelId) {
 	return maxCount, x[n-maxCount:]
 }
 
-func (p *NodeMsgState) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {
-	packet := NewPacket(NodeMessageState)
+func (p *DeliveryStatePacket) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {
+	packet := NewPacket(DeliveryState)
 
 	size := uint(0)
 
@@ -121,8 +129,8 @@ func (p *NodeMsgState) SerializeTo(ctx apinetwork.SerializationContext, writer i
 	})
 }
 
-func (p *NodeMsgState) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader) error {
-	packet := NewPacket(NodeMessageState)
+func (p *DeliveryStatePacket) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader) error {
+	packet := NewPacket(DeliveryState)
 
 	return packet.DeserializeFrom(ctx, reader, func(reader *iokit.LimitedReader) error {
 		if reader.RemainingBytes() < ParcelIdByteSize {
@@ -178,7 +186,7 @@ func (p *NodeMsgState) DeserializeFrom(ctx apinetwork.DeserializationContext, re
 	})
 }
 
-type NodeMsgParcel struct {
+type DeliveryParcelPacket struct {
 	ParcelId ParcelId
 	ReturnId ParcelId `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
 
@@ -188,25 +196,25 @@ type NodeMsgParcel struct {
 	Data apinetwork.Serializable
 }
 
-const ( // Flags for NodeMessageParcelX
+const ( // Flags for DeliveryParcelPacket
 	ReturnIdFlag apinetwork.FlagIndex = iota
 	RepeatedSendFlag
-	WithHeadFlag // for NodeMessageParcelBody only
+	WithHeadFlag // for DeliveryParcelBody only
 )
 
-func (p *NodeMsgParcel) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {
+func (p *DeliveryParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {
 	if p.ParcelId == 0 {
 		return throw.IllegalState()
 	}
 
-	packet := NewPacket(NodeMessageParcelBody)
+	packet := NewPacket(DeliveryParcelBody)
 
 	switch p.ParcelType {
 	case apinetwork.CompletePayload:
 		packet.Header.SetFlag(WithHeadFlag, true)
 	case apinetwork.BodyPayload:
 	case apinetwork.HeadPayload:
-		packet.Header.SetPacketType(uint8(NodeMessageParcelHead))
+		packet.Header.SetPacketType(uint8(DeliveryParcelHead))
 	default:
 		return throw.IllegalState()
 	}
@@ -233,14 +241,14 @@ func (p *NodeMsgParcel) SerializeTo(ctx apinetwork.SerializationContext, writer 
 	})
 }
 
-func (p *NodeMsgParcel) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader) error {
-	packet := NewPacket(NodeMessageParcelBody) // or NodeMessageParcelHead
+func (p *DeliveryParcelPacket) DeserializeFrom(ctx apinetwork.DeserializationContext, reader io.Reader) error {
+	packet := NewPacket(DeliveryParcelBody) // or DeliveryParcelHead
 
 	return packet.DeserializeFrom(ctx, reader, func(reader *iokit.LimitedReader) (err error) {
-		switch NodeMessageType(packet.Header.GetPacketType()) {
-		case NodeMessageParcelHead:
+		switch MessageDeliveryPacketType(packet.Header.GetPacketType()) {
+		case DeliveryParcelHead:
 			p.ParcelType = apinetwork.HeadPayload
-		case NodeMessageParcelBody:
+		case DeliveryParcelBody:
 			if packet.Header.HasFlag(WithHeadFlag) {
 				p.ParcelType = apinetwork.CompletePayload
 			} else {

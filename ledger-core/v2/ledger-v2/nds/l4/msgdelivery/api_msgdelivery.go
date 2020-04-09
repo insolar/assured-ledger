@@ -3,9 +3,9 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l4
+package msgdelivery
 
-type MessageDelivery interface {
+type Service interface {
 	ShipTo(to DeliveryAddress, parcel DeliveryParcel, needsTag bool) (*DeliveryTag, error)
 	ShipReturn(to ReturnAddress, parcel DeliveryParcel, needsTag bool) (*DeliveryTag, error)
 }
