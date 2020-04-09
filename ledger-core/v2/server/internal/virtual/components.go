@@ -12,6 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 
 	"github.com/insolar/component-manager"
@@ -35,9 +36,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	runner2 "github.com/insolar/assured-ledger/ledger-core/v2/runner"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
-	virtual2 "github.com/insolar/assured-ledger/ledger-core/v2/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 )
 
 type bootstrapComponents struct {
@@ -126,11 +127,11 @@ func initComponents(
 	artifactsClient := artifacts.NewClient(b)
 	cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
 
-	virtual, err := virtual2.NewDispatcher()
+	virtualApplication, err := virtual.NewDispatcher()
 	checkError(ctx, err, "failed to create Virtual")
 
-	runner, err := runner2.NewRunner()
-	checkError(ctx, err, "failed to create Runner")
+	runnerService, err := runner.NewService()
+	checkError(ctx, err, "failed to create Service")
 
 	// logicRunner, err := logicrunner.NewLogicRunner(&cfg.LogicRunner, b)
 	// checkError(ctx, err, "failed to start LogicRunner")
@@ -183,8 +184,8 @@ func initComponents(
 		cryptographyService,
 		keyProcessor,
 		certManager,
-		virtual,
-		runner,
+		virtualApplication,
+		runnerService,
 		APIWrapper,
 		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
 		availabilityChecker,

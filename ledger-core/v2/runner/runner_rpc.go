@@ -10,18 +10,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func (r runner) GetCode(_ rpctypes.UpGetCodeReq, _ *rpctypes.UpGetCodeResp) error {
+func (r *DefaultService) GetCode(_ rpctypes.UpGetCodeReq, _ *rpctypes.UpGetCodeResp) error {
 	panic(throw.NotImplemented())
 }
 
-func (r runner) RouteCall(_ rpctypes.UpRouteReq, _ *rpctypes.UpRouteResp) error {
+func (r *DefaultService) RouteCall(_ rpctypes.UpRouteReq, _ *rpctypes.UpRouteResp) error {
 	panic(throw.NotImplemented())
 }
 
-func (r runner) SaveAsChild(_ rpctypes.UpSaveAsChildReq, _ *rpctypes.UpSaveAsChildResp) error {
+func (r *DefaultService) SaveAsChild(_ rpctypes.UpSaveAsChildReq, _ *rpctypes.UpSaveAsChildResp) error {
 	panic(throw.NotImplemented())
 }
 
-func (r runner) DeactivateObject(_ rpctypes.UpDeactivateObjectReq, _ *rpctypes.UpDeactivateObjectResp) error {
+func (r *DefaultService) DeactivateObject(_ rpctypes.UpDeactivateObjectReq, _ *rpctypes.UpDeactivateObjectResp) error {
 	panic(throw.NotImplemented())
 }

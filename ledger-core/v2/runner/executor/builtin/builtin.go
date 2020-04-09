@@ -12,34 +12,19 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
 // BuiltIn is a contract runner engine
 type BuiltIn struct {
-	// Prototype -> Code + Versions
-	// PrototypeRegistry    map[string]preprocessor.ContractWrapper
-	// PrototypeRefRegistry map[insolar.Reference]string
-	// Code ->
 	CodeRegistry         map[string]insolar.ContractWrapper
 	CodeRefRegistry      map[insolar.Reference]string
 	PrototypeRefRegistry map[insolar.Reference]string
 }
 
 // NewBuiltIn is an constructor
-func NewBuiltIn(am artifacts.Client, stub common.LogicRunnerRPCStub) *BuiltIn {
-	codeDescriptors := builtin.InitializeCodeDescriptors()
-	for _, codeDescriptor := range codeDescriptors {
-		am.InjectCodeDescriptor(*codeDescriptor.Ref(), codeDescriptor)
-	}
-
-	prototypeDescriptors := builtin.InitializePrototypeDescriptors()
-	for _, prototypeDescriptor := range prototypeDescriptors {
-		am.InjectPrototypeDescriptor(*prototypeDescriptor.HeadRef(), prototypeDescriptor)
-	}
-
+func NewBuiltIn(_ interface{}, stub common.LogicRunnerRPCStub) *BuiltIn {
 	common.CurrentProxyCtx = NewProxyHelper(stub)
 
 	return &BuiltIn{

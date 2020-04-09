@@ -9,13 +9,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
 type logProcessing struct {
@@ -24,10 +26,14 @@ type logProcessing struct {
 	messageType string
 }
 
-func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
+func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.CreateFunc {
 	payloadMeta := message.PayloadMeta
 	messageMeta := message.MessageMeta
+
 	traceID := messageMeta.Get(meta.TraceID)
+	if traceID == "" { // TODO[bigbes]: dirty hack, if we have no traceID - replace it with surrogate one
+		traceID = uuid.New().String()
+	}
 
 	payloadBytes := payloadMeta.Payload
 	payloadType, err := payload.UnmarshalType(payloadBytes)
@@ -41,7 +47,29 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 	logger.Error(logProcessing{messageType: payloadType.String()})
 
 	switch payloadType {
+	case payload.TypeVCallRequest:
+		pl := payload.VCallRequest{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVCallRequest{Meta: payloadMeta, Payload: &pl}
+		}
+
+	case payload.TypeVCallResult:
+		pl := payload.VCallResult{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVCallResult{Meta: payloadMeta, Payload: &pl}
+		}
+
 	default:
-		panic(fmt.Sprintf(" no handler for message type %s", payloadType.String()))
+		panic(fmt.Sprintf("no handler for message type %s", payloadType.String()))
 	}
 }

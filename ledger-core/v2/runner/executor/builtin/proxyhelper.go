@@ -122,16 +122,6 @@ func (h *ProxyHelper) DeactivateObject(object insolar.Reference) error {
 	return nil
 }
 
-/*
-func (h *ProxyHelper) Serialize(what interface{}, to *[]byte) error {
-	panic("implement me")
-}
-
-func (h *ProxyHelper) Deserialize(from []byte, into interface{}) error {
-	panic("implement me")
-}
-*/
-
 func (h *ProxyHelper) MakeErrorSerializable(err error) error {
 	if err == nil || err == (*foundation.Error)(nil) || reflect.ValueOf(err).IsNil() {
 		return nil

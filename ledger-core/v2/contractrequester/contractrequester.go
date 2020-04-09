@@ -339,7 +339,7 @@ func (cr *ContractRequester) handleRegisterResult(ctx context.Context, r *reply.
 	}
 }
 
-func (cr *ContractRequester) result(ctx context.Context, msg *payload.ReturnResults) error {
+func (cr *ContractRequester) result(ctx context.Context, msg *payload.ReturnResults) error { // nolint
 	cr.ResultMutex.Lock()
 	defer cr.ResultMutex.Unlock()
 

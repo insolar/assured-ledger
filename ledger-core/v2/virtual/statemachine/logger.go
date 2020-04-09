@@ -74,6 +74,7 @@ func prepareStepName(sd *smachine.StepDeclaration) {
 }
 
 func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logfmt.LogFieldMarshaller) {
+	fmt.Println(msg)
 	c.logger.Errorm(msg, fields...)
 }
 
@@ -111,11 +112,15 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 		err = stepLoggerData.Error.Error()
 	}
 
+	if err != "" {
+		fmt.Println(err)
+	}
+
 	msg := LogStepMessage{
 		Message: special + stepLoggerUpdateData.UpdateType + suffix,
 
 		MachineName: stepLoggerData.Declaration,
-		MachineID:   fmt.Sprintf("%s[%3d]", stepLoggerData.StepNo.MachineId(), stepLoggerData.CycleNo),
+		MachineID:   fmt.Sprintf("%s[%3d]", stepLoggerData.StepNo.MachineID(), stepLoggerData.CycleNo),
 		SlotStep:    fmt.Sprintf("%03d @ %03d", stepLoggerData.StepNo.StepNo(), stepLoggerData.StepNo.StepNo()),
 
 		From: stepLoggerData.CurrentStep.GetStepName(),
@@ -138,10 +143,10 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 type ConveyorLoggerFactory struct {
 }
 
-func (c ConveyorLoggerFactory) CreateStepLogger(ctx context.Context, _ smachine.StateMachine, traceID smachine.TracerId) smachine.StepLogger {
+func (c ConveyorLoggerFactory) CreateStepLogger(ctx context.Context, _ smachine.StateMachine, traceID smachine.TracerID) smachine.StepLogger {
 	_, logger := inslogger.WithTraceField(context.Background(), traceID)
 	return &ConveyorLogger{
-		StepLoggerStub: smachine.StepLoggerStub{TracerId: traceID},
+		StepLoggerStub: smachine.StepLoggerStub{TracerID: traceID},
 		logger:         logger,
 	}
 }
@@ -168,7 +173,7 @@ func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMac
 	global.Logger().Error(LogInternal{
 		Message: msg,
 
-		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineId(), slotMachineData.CycleNo),
+		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineID(), slotMachineData.CycleNo),
 		SlotStep:  fmt.Sprintf("%03d @ %03d", slotMachineData.StepNo.StepNo(), slotMachineData.StepNo.StepNo()),
 		Error:     slotMachineData.Error,
 		Backtrace: backtrace,
@@ -197,7 +202,7 @@ func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMac
 	global.Logger().Error(LogCritical{
 		Message: msg,
 
-		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineId(), slotMachineData.CycleNo),
+		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineID(), slotMachineData.CycleNo),
 		SlotStep:  fmt.Sprintf("%03d @ %03d", slotMachineData.StepNo.StepNo(), slotMachineData.StepNo.StepNo()),
 		Error:     slotMachineData.Error,
 		Backtrace: backtrace,

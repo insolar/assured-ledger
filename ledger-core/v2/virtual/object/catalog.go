@@ -19,8 +19,8 @@ func (p Catalog) Get(_ smachine.ExecutionContext, _ insolar.Reference) SharedSta
 	panic(throw.NotImplemented())
 }
 
-func (p Catalog) TryGet(ctx smachine.ExecutionContext, objectReference insolar.Reference) (SharedStateAccessor, bool) {
-	if v := ctx.GetPublishedLink(objectReference); v.IsAssignableTo((*SharedState)(nil)) {
+func (p Catalog) TryGet(ctx smachine.ExecutionContext, objectReference insolar.Reference) (SharedStateAccessor, bool) { // nolintcontractrequester/contractrequester.go:342
+	if v := ctx.GetPublishedLink(objectReference.String()); v.IsAssignableTo((*SharedState)(nil)) {
 		return SharedStateAccessor{v}, true
 	}
 	return SharedStateAccessor{}, false
@@ -32,11 +32,12 @@ func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference insolar.R
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerId(fmt.Sprintf("object-%s", objectReference.String()))
+		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
 		return NewStateMachineObject(objectReference, false)
 	})
 
-	return p.Get(ctx, objectReference)
+	accessor, _ := p.TryGet(ctx, objectReference)
+	return accessor
 }
 
 func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference insolar.Reference) SharedStateAccessor {
@@ -45,11 +46,12 @@ func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference inso
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerId(fmt.Sprintf("object-%s", objectReference.String()))
+		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
 		return NewStateMachineObject(objectReference, true)
 	})
 
-	return p.Get(ctx, objectReference)
+	accessor, _ := p.TryGet(ctx, objectReference)
+	return accessor
 }
 
 // //////////////////////////////////////

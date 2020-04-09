@@ -40,6 +40,7 @@ var _ dispatcher.Dispatcher = &conveyorDispatcher{}
 
 func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar.Pulse) {
 	logger := inslogger.FromContext(ctx)
+	logger.Error("Begin Pulse")
 	var (
 		pulseData  = adapters.NewPulseData(pulseObject)
 		pulseRange pulse.Range

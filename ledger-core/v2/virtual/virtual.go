@@ -7,37 +7,52 @@ package virtual
 
 import (
 	"context"
+	"fmt"
 	"time"
-
-	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
+	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/request"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-type Dispatcher interface {
-	component.Initer
-	component.Starter
-	component.Stopper
+func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.CreateFunc {
+	switch event := input.(type) {
+	case *statemachine.DispatcherMessage:
+		return request.HandlerFactoryMeta(event)
+	default:
+		panic(fmt.Sprintf("unknown event type, got %T", input))
+	}
 }
 
-type dispatcher struct {
+type Dispatcher struct {
 	FlowDispatcher flowDispatcher.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker statemachine.ConveyorWorker
 
 	Cfg *configuration.LogicRunner
+
+	// Components
+	Runner        runner.Service
+	MessageSender messagesender.Service
+
+	runnerAdapter        *runnerAdapter.Runner
+	messageSenderAdapter *messageSenderAdapter.MessageSender
 }
 
-func NewDispatcher() (Dispatcher, error) {
-	return &dispatcher{}, nil
+func NewDispatcher() (*Dispatcher, error) {
+	return &Dispatcher{}, nil
 }
 
-func (lr *dispatcher) Init(_ context.Context) error {
+func (lr *Dispatcher) Init(ctx context.Context) error {
 	machineConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -46,7 +61,7 @@ func (lr *dispatcher) Init(_ context.Context) error {
 		SlotMachineLogger: statemachine.ConveyorLoggerFactory{},
 	}
 
-	defaultHandlers := statemachine.DefaultHandlersFactory
+	defaultHandlers := DefaultHandlersFactory
 
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: machineConfig,
@@ -56,6 +71,12 @@ func (lr *dispatcher) Init(_ context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, defaultHandlers, nil)
 
+	lr.runnerAdapter = runnerAdapter.CreateRunnerServiceAdapter(ctx, lr.Runner)
+	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
+
+	lr.Conveyor.AddDependency(lr.runnerAdapter)
+	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
+
 	lr.ConveyorWorker = statemachine.NewConveyorWorker()
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
@@ -64,11 +85,11 @@ func (lr *dispatcher) Init(_ context.Context) error {
 	return nil
 }
 
-func (lr *dispatcher) Start(_ context.Context) error {
+func (lr *Dispatcher) Start(_ context.Context) error {
 	return nil
 }
 
-func (lr *dispatcher) Stop(_ context.Context) error {
+func (lr *Dispatcher) Stop(_ context.Context) error {
 	lr.ConveyorWorker.Stop()
 
 	return nil

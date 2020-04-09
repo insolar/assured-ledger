@@ -15,14 +15,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
-var _ descriptor.DescriptorsCache = &descriptorsCache{}
+var _ descriptor.Cache = &descriptorsCache{}
 
 type descriptorsCache struct {
 	codeCache  cache
 	protoCache cache
 }
 
-func NewDescriptorsCache() descriptor.DescriptorsCache {
+func NewDescriptorsCache() descriptor.Cache {
 	return &descriptorsCache{
 		codeCache:  newSingleFlightCache(),
 		protoCache: newSingleFlightCache(),

@@ -154,14 +154,3 @@ func (t RequestResultType) String() string {
 		return "Unknown"
 	}
 }
-
-type RequestResult interface {
-	Type() RequestResultType
-
-	Activate() (Reference, Reference, []byte)
-	Amend() (ID, Reference, []byte)
-	Deactivate() ID
-
-	Result() []byte
-	ObjectReference() Reference
-}

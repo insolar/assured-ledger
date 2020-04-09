@@ -14,9 +14,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
-	runner2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/runner"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/calltype"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
@@ -24,15 +26,23 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
-type runner struct {
-	cache   descriptor.DescriptorsCache
-	manager executor.Manager
+type Service interface {
+	ExecutionStart(ctx context.Context, execution execution.Execution) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error)
+	ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error)
+	ExecutionAbort(ctx context.Context, id uuid.UUID)
+	ExecutionClassify(ctx context.Context, execution execution.Execution) calltype.ContractCallType
+	ContractCompile(ctx context.Context, contract interface{})
+}
+
+type DefaultService struct {
+	Cache   descriptor.Cache
+	Manager executor.Manager
 
 	executions     map[uuid.UUID]*executionContext
 	executionsLock sync.Mutex
 }
 
-func (r *runner) stopExecution(id uuid.UUID) error {
+func (r *DefaultService) stopExecution(id uuid.UUID) error { // nolint
 	r.executionsLock.Lock()
 	defer r.executionsLock.Unlock()
 
@@ -44,31 +54,31 @@ func (r *runner) stopExecution(id uuid.UUID) error {
 	return nil
 }
 
-func (r *runner) getExecutionContext(id uuid.UUID) *executionContext {
+func (r *DefaultService) getExecutionContext(id uuid.UUID) *executionContext {
 	r.executionsLock.Lock()
 	defer r.executionsLock.Unlock()
 
 	return r.executions[id]
 }
 
-func (r *runner) waitForReply(id uuid.UUID) (*runner2.ContractExecutionStateUpdate, uuid.UUID, error) {
+func (r *DefaultService) waitForReply(id uuid.UUID) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
 	executionContext := r.getExecutionContext(id)
 	if executionContext == nil {
 		panic("failed to find ExecutionContext")
 	}
 
 	switch update := <-executionContext.output; update.Type {
-	case runner2.ContractDone, runner2.ContractAborted:
+	case executionupdate.ContractDone, executionupdate.ContractAborted:
 		_ = r.stopExecution(id)
 		fallthrough
-	case runner2.ContractError, runner2.ContractOutgoingCall:
+	case executionupdate.ContractError, executionupdate.ContractOutgoingCall:
 		return update, id, nil
 	default:
 		panic(fmt.Sprintf("unknown return type %v", update.Type))
 	}
 }
 
-func (r *runner) createExecutionContext(execution runner2.Execution) uuid.UUID {
+func (r *DefaultService) createExecutionContext(execution execution.Execution) uuid.UUID {
 	r.executionsLock.Lock()
 	defer r.executionsLock.Unlock()
 
@@ -87,7 +97,7 @@ func (r *runner) createExecutionContext(execution runner2.Execution) uuid.UUID {
 	return id
 }
 
-func (r *runner) executionRecover(ctx context.Context, id uuid.UUID) {
+func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
 	if err := recover(); err != nil {
 		// replace with custom error, not RecoverSlotPanicWithStack
 		err := smachine.RecoverSlotPanicWithStack("ContractRunnerService panic", err, nil, smachine.AsyncCallArea)
@@ -106,7 +116,7 @@ func (r *runner) executionRecover(ctx context.Context, id uuid.UUID) {
 func generateCallContext(
 	ctx context.Context,
 	id uuid.UUID,
-	execution runner2.Execution,
+	execution execution.Execution,
 	protoDesc descriptor.PrototypeDescriptor,
 	codeDesc descriptor.CodeDescriptor,
 ) *insolar.LogicCallContext {
@@ -120,7 +130,7 @@ func generateCallContext(
 		Code:      codeDesc.Ref(),
 
 		Caller:          &request.Caller,
-		CallerPrototype: &request.CallerPrototype,
+		CallerPrototype: &request.CallSiteDeclaration,
 
 		TraceID: inslogger.TraceID(ctx),
 	}
@@ -130,35 +140,35 @@ func generateCallContext(
 		// should be the same as request.Object
 		res.Callee = oDesc.HeadRef()
 	} else {
-		res.Callee = execution.Request.Object
+		res.Callee = &execution.Request.Caller
 	}
 
 	return res
 }
 
-func (r *runner) executeMethod(_ context.Context, _ uuid.UUID, _ *executionContext) bool {
+func (r *DefaultService) executeMethod(_ context.Context, _ uuid.UUID, _ *executionContext) bool {
 	panic(throw.NotImplemented())
 }
 
-func (r *runner) executeConstructor(ctx context.Context, id uuid.UUID, eCtx *executionContext) bool {
+func (r *DefaultService) executeConstructor(ctx context.Context, id uuid.UUID, eCtx *executionContext) bool {
 	var (
 		execution = eCtx.execution
 		request   = execution.Request
 	)
 
-	protoDesc, codeDesc, err := r.cache.ByPrototypeRef(ctx, *request.Prototype)
+	protoDesc, codeDesc, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
 	if err != nil {
 		return eCtx.ErrorWrapped(err, "couldn't get descriptors")
 	}
 
-	executor, err := r.manager.GetExecutor(codeDesc.MachineType())
+	executor, err := r.Manager.GetExecutor(codeDesc.MachineType())
 	if err != nil {
 		return eCtx.ErrorWrapped(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, execution, protoDesc, codeDesc)
 
-	newData, result, err := executor.CallConstructor(ctx, logicContext, *codeDesc.Ref(), request.Method, request.Arguments)
+	newData, result, err := executor.CallConstructor(ctx, logicContext, *codeDesc.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
 		return eCtx.ErrorWrapped(err, "execution error")
 	}
@@ -170,13 +180,13 @@ func (r *runner) executeConstructor(ctx context.Context, id uuid.UUID, eCtx *exe
 	// TODO: think how to provide ObjectReference here (== RequestReference)
 	res := requestresult.New(result, insolar.Reference{})
 	if newData != nil {
-		res.SetActivate(*request.Base, *request.Prototype, newData)
+		res.SetActivate(request.Callee, request.CallSiteDeclaration, newData)
 	}
 
 	return eCtx.Result(res)
 }
 
-func (r *runner) execute(ctx context.Context, id uuid.UUID) {
+func (r *DefaultService) execute(ctx context.Context, id uuid.UUID) {
 	defer r.executionRecover(ctx, id)
 
 	eCtx := r.getExecutionContext(id)
@@ -185,10 +195,11 @@ func (r *runner) execute(ctx context.Context, id uuid.UUID) {
 	}
 
 	var rv bool
+
 	switch eCtx.execution.Request.CallType {
-	case record.CTMethod:
+	case payload.CTMethod:
 		rv = r.executeMethod(ctx, id, eCtx)
-	case record.CTSaveAsChild:
+	case payload.CTConstructor:
 		rv = r.executeConstructor(ctx, id, eCtx)
 	}
 
@@ -197,7 +208,7 @@ func (r *runner) execute(ctx context.Context, id uuid.UUID) {
 	}
 }
 
-func (r *runner) ExecutionStart(ctx context.Context, execution runner2.Execution) (*runner2.ContractExecutionStateUpdate, uuid.UUID, error) {
+func (r *DefaultService) ExecutionStart(ctx context.Context, execution execution.Execution) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
 	id := r.createExecutionContext(execution)
 
 	go r.execute(ctx, id)
@@ -205,30 +216,35 @@ func (r *runner) ExecutionStart(ctx context.Context, execution runner2.Execution
 	return r.waitForReply(id)
 }
 
-func (r runner) ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*runner2.ContractExecutionStateUpdate, error) {
+func (r *DefaultService) ExecutionClassify(ctx context.Context, execution execution.Execution) calltype.ContractCallType {
+	return calltype.ContractCallOrdered
+}
+
+func (r *DefaultService) ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error) {
 	panic(throw.NotImplemented())
 }
 
-func (r runner) ExecutionAbort(ctx context.Context, id uuid.UUID) {
+func (r *DefaultService) ExecutionAbort(ctx context.Context, id uuid.UUID) {
 	panic(throw.NotImplemented())
 }
 
-func (r runner) ContractCompile(ctx context.Context, contract interface{}) {
+func (r *DefaultService) ContractCompile(ctx context.Context, contract interface{}) {
 	panic(throw.NotImplemented())
 }
 
-func NewRunner() (runner2.Runner, error) {
-	return &runner{
-		cache:          nil,
-		manager:        executor.NewManager(),
+func NewService() (*DefaultService, error) {
+	return &DefaultService{
+		Cache:   NewDescriptorsCache(),
+		Manager: executor.NewManager(),
+
 		executions:     make(map[uuid.UUID]*executionContext),
 		executionsLock: sync.Mutex{},
 	}, nil
 }
 
-func (r *runner) Init() error {
+func (r *DefaultService) Init() error {
 	exec := builtin.NewBuiltIn(nil, r)
-	if err := r.manager.RegisterExecutor(insolar.MachineTypeBuiltin, exec); err != nil {
+	if err := r.Manager.RegisterExecutor(insolar.MachineTypeBuiltin, exec); err != nil {
 		panic(throw.W(err, "failed to register executor", nil))
 	}
 

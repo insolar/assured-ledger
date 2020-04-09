@@ -10,23 +10,37 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type Info struct {
-	ObjectReference insolar.Reference
-	IsReadyToWork   bool
+	Reference     insolar.Reference
+	descriptor    descriptor.ObjectDescriptor
+	Deactivated   bool
+	IsReadyToWork bool
 
-	externalError error
-
-	ObjectLatestDescriptor artifacts.ObjectDescriptor
+	ObjectLatestDescriptor descriptor.ObjectDescriptor
 
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
 
 	PreviousExecutorState payload.PreviousExecutorState
+}
+
+func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
+	i.descriptor = descriptor.NewObjectDescriptor(
+		i.Reference, insolar.ID{}, prototype, memory, insolar.Reference{}, nil,
+	)
+}
+
+func (i *Info) Deactivate() {
+	i.Deactivated = true
+}
+
+func (i *Info) Descriptor() descriptor.ObjectDescriptor {
+	return i.descriptor
 }
 
 type SharedState struct {
@@ -36,7 +50,7 @@ type SharedState struct {
 func NewStateMachineObject(objectReference insolar.Reference, exists bool) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
-			Info: Info{ObjectReference: objectReference},
+			Info: Info{Reference: objectReference},
 		},
 		oldObject: exists,
 	}
@@ -47,8 +61,7 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl      smsync.BoolConditionalLink
-	previousResultSaved smsync.BoolConditionalLink
+	readyToWorkCtl smsync.BoolConditionalLink
 
 	oldObject bool
 }
@@ -76,7 +89,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
 	sdl := ctx.Share(&sm.SharedState, 0)
-	if !ctx.Publish(sm.ObjectReference, sdl) {
+	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
 	}
 	return ctx.Jump(sm.stepReadyToWork)

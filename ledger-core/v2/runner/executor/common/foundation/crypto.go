@@ -75,6 +75,6 @@ func GetShardIndex(s string, mod int) int {
 // Calc hash
 func hash(s string) uint32 {
 	h := fnv.New32a()
-	h.Write([]byte(s))
+	h.Write([]byte(s)) // nolint
 	return h.Sum32()
 }

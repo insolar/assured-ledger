@@ -7,13 +7,13 @@ package requestresult
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type RequestResult struct {
-	SideEffectType     artifacts.RequestResultType // every
-	RawResult          []byte                      // every
-	RawObjectReference insolar.Reference           // every
+	SideEffectType     insolar.RequestResultType // every
+	RawResult          []byte                    // every
+	RawObjectReference insolar.Reference         // every
 
 	ParentReference insolar.Reference // activate
 	ObjectImage     insolar.Reference // amend + activate
@@ -23,7 +23,7 @@ type RequestResult struct {
 
 func New(result []byte, objectRef insolar.Reference) *RequestResult {
 	return &RequestResult{
-		SideEffectType:     artifacts.RequestSideEffectNone,
+		SideEffectType:     insolar.RequestSideEffectNone,
 		RawResult:          result,
 		RawObjectReference: objectRef,
 	}
@@ -46,15 +46,15 @@ func (s *RequestResult) Deactivate() insolar.ID {
 }
 
 func (s *RequestResult) SetActivate(parent, image insolar.Reference, memory []byte) {
-	s.SideEffectType = artifacts.RequestSideEffectActivate
+	s.SideEffectType = insolar.RequestSideEffectActivate
 
 	s.ParentReference = parent
 	s.ObjectImage = image
 	s.Memory = memory
 }
 
-func (s *RequestResult) SetAmend(object artifacts.ObjectDescriptor, memory []byte) {
-	s.SideEffectType = artifacts.RequestSideEffectAmend
+func (s *RequestResult) SetAmend(object descriptor.ObjectDescriptor, memory []byte) {
+	s.SideEffectType = insolar.RequestSideEffectAmend
 	s.Memory = memory
 	s.ObjectStateID = *object.StateID()
 
@@ -62,12 +62,12 @@ func (s *RequestResult) SetAmend(object artifacts.ObjectDescriptor, memory []byt
 	s.ObjectImage = *prototype
 }
 
-func (s *RequestResult) SetDeactivate(object artifacts.ObjectDescriptor) {
-	s.SideEffectType = artifacts.RequestSideEffectDeactivate
+func (s *RequestResult) SetDeactivate(object descriptor.ObjectDescriptor) {
+	s.SideEffectType = insolar.RequestSideEffectDeactivate
 	s.ObjectStateID = *object.StateID()
 }
 
-func (s RequestResult) Type() artifacts.RequestResultType {
+func (s RequestResult) Type() insolar.RequestResultType {
 	return s.SideEffectType
 }
 
