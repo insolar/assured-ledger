@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
 type One struct {

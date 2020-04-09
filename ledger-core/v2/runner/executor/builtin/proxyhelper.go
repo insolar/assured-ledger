@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 )
 

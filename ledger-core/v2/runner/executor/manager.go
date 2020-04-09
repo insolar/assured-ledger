@@ -11,8 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/machinesmanager.MachinesManager -o ./ -s _mock.go -g
-
 type Manager interface {
 	RegisterExecutor(t insolar.MachineType, e insolar.MachineLogicExecutor) error
 	GetExecutor(t insolar.MachineType) (insolar.MachineLogicExecutor, error)

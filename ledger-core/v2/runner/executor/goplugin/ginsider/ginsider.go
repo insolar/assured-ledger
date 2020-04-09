@@ -24,8 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 )
 

@@ -13,8 +13,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
 // BuiltIn is a contract runner engine
