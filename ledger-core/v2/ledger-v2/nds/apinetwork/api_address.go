@@ -183,8 +183,7 @@ func (a Address) WithPort(port uint16) Address {
 	return a
 }
 
-type AddressIdentity string
-
+//type AddressIdentity string
 //func (a Address) ExactIdentity() AddressIdentity {
 //	prefix := ""
 //	switch a.Network() {
@@ -490,8 +489,6 @@ func Join(addresses ...[]Address) []Address {
 	}
 
 	result := make([]Address, 0, len(addresses[0]))
-
-	// this is cheaper than map[]bool
 	m := make(map[Address]struct{}, len(result)<<1)
 
 	for _, set := range addresses {

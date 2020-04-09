@@ -54,19 +54,21 @@ const (
 	ProtocolTypePulsar ProtocolType = iota
 	ProtocolTypeGlobulaConsensus
 	ProtocolTypeJoinCandidate
-	ProtocolTypeNodeMessage
+	ProtocolTypeMessageDelivery
 )
 
 const ProtocolTypeInterprocess = ProtocolTypePulsar
 
 const (
 	packetTypeBitSize = 4
-	packetTypeMask    = 1<<packetTypeBitSize - 1 // 0b00001111
-	PacketTypeMax     = packetTypeMask
+	PacketTypeCount   = 1 << packetTypeBitSize
+	PacketTypeMax     = PacketTypeCount - 1
+	packetTypeMask    = PacketTypeMax
 
 	protocolTypeBitSize = 8 - packetTypeBitSize
 	protocolTypeShift   = protocolTypeBitSize
-	ProtocolTypeMax     = 1<<protocolTypeBitSize - 1
+	ProtocolTypeCount   = 1 << protocolTypeBitSize
+	ProtocolTypeMax     = ProtocolTypeCount - 1
 	protocolTypeMask    = ProtocolTypeMax << protocolTypeShift
 
 	payloadLengthBits   = 14
@@ -77,7 +79,10 @@ const (
 	MinLengthBits         = 5
 	SmallLengthBits       = payloadLengthBits
 	ExcessiveLengthBits   = SmallLengthBits + 32
+	MaxLengthBits         = ExcessiveLengthBits
 	MaxNonExcessiveLength = 1<<payloadLengthBits - 1
+
+//	MaxNonExcessivePayloadLength = MaxNonExcessiveLength - HeaderByteSizeMin
 )
 
 type FlagIndex uint8

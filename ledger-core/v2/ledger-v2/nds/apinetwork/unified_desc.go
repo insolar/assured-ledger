@@ -21,12 +21,14 @@ type ProtocolSupporter interface {
 
 type ProtocolReceiver interface {
 	// ReceiveSmallPacket is called on small (non-excessive length) packets, (b) is exactly whole packet
-	ReceiveSmallPacket(from Address, packet Packet, b []byte, signatureLen int) error
+	ReceiveSmallPacket(from Address, packet Packet, b []byte, sigLen uint32)
 	// ReceiveLargePacket is called on large (excessive length) packets, (preRead) is a pre-read portion, that can be larger than a header, and (r) is configured for the remaining length.
-	ReceiveLargePacket(from Address, packet Packet, preRead []byte, signatureLen int, r io.LimitedReader) error
+	ReceiveLargePacket(from Address, packet Packet, preRead []byte, r io.LimitedReader, verifier PacketDataVerifier) error
 }
 
-type ProtocolReceivers = [ProtocolTypeMax + 1]ProtocolReceiver
+type ProtocolDescriptors [ProtocolTypeCount]ProtocolDescriptor
+type ProtocolReceivers [ProtocolTypeCount]ProtocolReceiver
+type ProtocolPacketDescriptors [PacketTypeCount]ProtocolPacketDescriptor
 
 type ProtocolDescriptor struct {
 	// TLS config
@@ -34,7 +36,7 @@ type ProtocolDescriptor struct {
 	// Certificate / signature? then needs unified_packet
 	Receiver         ProtocolReceiver
 	Supporter        ProtocolSupporter
-	SupportedPackets [PacketTypeMax + 1]ProtocolPacketDescriptor
+	SupportedPackets ProtocolPacketDescriptors
 }
 
 func (d ProtocolDescriptor) IsSupported() bool {

@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -155,9 +154,9 @@ func (p *Packet) DeserializeMinFromBytes(b []byte) (int, error) {
 	}
 }
 
-func (p *Packet) VerifyExcessivePayload(signer cryptkit.DataSignatureVerifier, preload *[]byte, r io.Reader) error {
+func (p *Packet) VerifyExcessivePayload(sv PacketDataVerifier, preload *[]byte, r io.Reader) error {
 	const x = LargePacketBaselineWithoutSignatureSize
-	n := signer.GetDigestSize()
+	n := sv.GetSignatureSize()
 	requiredLen := x + n
 	b := *preload
 	if l := len(b); requiredLen > l {
@@ -166,44 +165,28 @@ func (p *Packet) VerifyExcessivePayload(signer cryptkit.DataSignatureVerifier, p
 		if _, err := io.ReadFull(r, b[l:]); err != nil {
 			return err
 		}
-
 		*preload = b
 	}
 
-	hasher := signer.NewHasher()
-	zeroPrefix := p.Header.GetHashingZeroPrefix()
-
-	_, _ = iokit.WriteZeros(zeroPrefix, hasher)
-	_, _ = hasher.Write(b[zeroPrefix:x])
-	digest := hasher.SumToDigest()
-	return p.verifySignature(signer, digest, b[x:requiredLen])
+	return sv.VerifyWhole(&p.Header, b[:requiredLen])
 }
 
-func (p *Packet) VerifyNonExcessivePayload(signer cryptkit.DataSignatureVerifier, b []byte) error {
-	n := signer.GetDigestSize()
+func (p *Packet) VerifyNonExcessivePayload(sv PacketDataVerifier, b []byte) error {
 	switch limit, err := p.Header.GetFullLength(); {
 	case err != nil:
 		return err
 	case limit != uint64(len(b)):
 		return throw.IllegalValue()
-	case limit < uint64(PacketByteSizeMin+n):
-		return throw.IllegalValue()
 	}
 
-	hasher := signer.NewHasher()
-	zeroPrefix := p.Header.GetHashingZeroPrefix()
-	_, _ = iokit.WriteZeros(zeroPrefix, hasher)
-	_, _ = hasher.Write(b[zeroPrefix : len(b)-n])
-	digest := hasher.SumToDigest()
-	return p.verifySignature(signer, digest, b[len(b)-n:])
+	return sv.VerifyWhole(&p.Header, b)
 }
 
 func (p *Packet) DeserializeFrom(ctx DeserializationContext, reader io.Reader, fn func(*iokit.LimitedReader) error) error {
-	signer := ctx.GetPayloadVerifier()
-	hasher := signer.NewHasher()
 
-	teeReader := iokit.NewTeeReaderWithSkip(reader, hasher, p.Header.GetHashingZeroPrefix())
-	_, _ = iokit.WriteZeros(p.Header.GetHashingZeroPrefix(), hasher)
+	sv := PacketDataVerifier{ctx.GetPayloadVerifier()}
+
+	teeReader := sv.NewHashingReader(&p.Header, nil, reader)
 
 	if err := p.DeserializeMinFrom(teeReader); err != nil {
 		return err
@@ -216,7 +199,7 @@ func (p *Packet) DeserializeFrom(ctx DeserializationContext, reader io.Reader, f
 		readLimit = int64(limit)
 	}
 
-	switch n := int64(signer.GetDigestSize()); {
+	switch n := int64(sv.GetSignatureSize()); {
 	case readLimit < n:
 		return throw.IllegalValue()
 	case !p.Header.IsExcessiveLength():
@@ -224,15 +207,11 @@ func (p *Packet) DeserializeFrom(ctx DeserializationContext, reader io.Reader, f
 	case readLimit < n<<1:
 		return throw.IllegalValue()
 	default:
-		readLimit -= n << 1
-
-		digest := hasher.SumToDigest() // must be taken before reading the signature
-		p.HeaderSignature = make([]byte, n)
-		if _, err := io.ReadFull(reader, p.HeaderSignature); err != nil {
-			return err
-		} else if err = p.verifySignature(signer, digest, p.HeaderSignature); err != nil {
+		var err error
+		if p.HeaderSignature, err = teeReader.ReadAndVerifySignature(sv.Verifier); err != nil {
 			return err
 		}
+		readLimit -= n << 1
 	}
 
 	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
@@ -268,21 +247,9 @@ func (p *Packet) DeserializeFrom(ctx DeserializationContext, reader io.Reader, f
 		}
 	}
 
-	digest := hasher.SumToDigest()
-	p.PacketSignature = make([]byte, signer.GetDigestSize())
-	if _, err := io.ReadFull(reader, p.PacketSignature); err != nil {
-		return err
-	}
-	return p.verifySignature(signer, digest, p.PacketSignature)
-}
-
-func (p *Packet) verifySignature(verifier cryptkit.DataSignatureVerifier, digest cryptkit.Digest, signatureBytes []byte) error {
-	signature := cryptkit.NewSignature(longbits.NewMutableFixedSize(signatureBytes), verifier.GetSignatureMethod())
-
-	if !verifier.IsValidDigestSignature(digest, signature) {
-		return throw.IllegalValue()
-	}
-	return nil
+	var err error
+	p.PacketSignature, err = teeReader.ReadAndVerifySignature(sv.Verifier)
+	return err
 }
 
 func (p *Packet) GetPayloadOffset() uint {
