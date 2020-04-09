@@ -60,12 +60,18 @@ func _() {
 	_ = x[TypeStillExecuting-49]
 	_ = x[TypeErrorResultExitsts-50]
 	_ = x[TypeV2SetRequestResult-51]
-	_ = x[_latestType-52]
+	_ = x[TypeVCallRequest-52]
+	_ = x[TypeVCallResult-53]
+	_ = x[TypeVStateReport-54]
+	_ = x[TypeVStateRequest-55]
+	_ = x[TypeVPendingDelegationRequest-56]
+	_ = x[TypeVDelegatedRequestFinished-57]
+	_ = x[_latestType-58]
 }
 
-const _Type_name = "TypeUnknownTypeMetaTypeErrorTypeIDTypeIDsTypeJetTypeStateTypeGetObjectTypePassStateTypeIndexTypePassTypeGetCodeTypeCodeTypeSetCodeTypeSetIncomingRequestTypeSetOutgoingRequestTypeSagaCallAcceptNotificationTypeGetFilamentTypeGetRequestTypeRequestTypeGetPulseTypePulseTypeFilamentSegmentTypeSetResultTypeActivateTypeRequestInfoTypeGetRequestInfoTypeGotHotConfirmationTypeDeactivateTypeUpdateTypeHotObjectsTypeResultInfoTypeGetPendingsTypeHasPendingsTypePendingsInfoTypeReplicationTypeGetJetTypeAbandonedRequestsNotificationTypeGetLightInitialStateTypeLightInitialStateTypeGetIndexTypeSearchIndexTypeSearchIndexInfoTypeUpdateJetTypeReturnResultsTypeCallMethodTypeExecutorResultsTypePendingFinishedTypeAdditionalCallFromPreviousExecutorTypeStillExecutingTypeErrorResultExitstsTypeV2SetRequestResult_latestType"
+const _Type_name = "TypeUnknownTypeMetaTypeErrorTypeIDTypeIDsTypeJetTypeStateTypeGetObjectTypePassStateTypeIndexTypePassTypeGetCodeTypeCodeTypeSetCodeTypeSetIncomingRequestTypeSetOutgoingRequestTypeSagaCallAcceptNotificationTypeGetFilamentTypeGetRequestTypeRequestTypeGetPulseTypePulseTypeFilamentSegmentTypeSetResultTypeActivateTypeRequestInfoTypeGetRequestInfoTypeGotHotConfirmationTypeDeactivateTypeUpdateTypeHotObjectsTypeResultInfoTypeGetPendingsTypeHasPendingsTypePendingsInfoTypeReplicationTypeGetJetTypeAbandonedRequestsNotificationTypeGetLightInitialStateTypeLightInitialStateTypeGetIndexTypeSearchIndexTypeSearchIndexInfoTypeUpdateJetTypeReturnResultsTypeCallMethodTypeExecutorResultsTypePendingFinishedTypeAdditionalCallFromPreviousExecutorTypeStillExecutingTypeErrorResultExitstsTypeV2SetRequestResultTypeVCallRequestTypeVCallResultTypeVStateReportTypeVStateRequestTypeVPendingDelegationRequestTypeVDelegatedRequestFinished_latestType"
 
-var _Type_index = [...]uint16{0, 11, 19, 28, 34, 41, 48, 57, 70, 83, 92, 100, 111, 119, 130, 152, 174, 204, 219, 233, 244, 256, 265, 284, 297, 309, 324, 342, 364, 378, 388, 402, 416, 431, 446, 462, 477, 487, 520, 544, 565, 577, 592, 611, 624, 641, 655, 674, 693, 731, 749, 771, 793, 804}
+var _Type_index = [...]uint16{0, 11, 19, 28, 34, 41, 48, 57, 70, 83, 92, 100, 111, 119, 130, 152, 174, 204, 219, 233, 244, 256, 265, 284, 297, 309, 324, 342, 364, 378, 388, 402, 416, 431, 446, 462, 477, 487, 520, 544, 565, 577, 592, 611, 624, 641, 655, 674, 693, 731, 749, 771, 793, 809, 824, 840, 857, 886, 915, 926}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {
