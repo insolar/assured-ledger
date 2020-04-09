@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type ContractExecutionStateUpdateType int
@@ -38,7 +39,7 @@ type ContractExecutionStateUpdate struct {
 }
 
 type Execution struct {
-	Object     insolar.ObjectDescriptor
+	Object     descriptor.ObjectDescriptor
 	Context    context.Context
 	Request    *record.IncomingRequest
 	Nonce      int64
@@ -52,7 +53,7 @@ type Runner interface {
 	ExecutionStart(ctx context.Context, execution Execution) (*ContractExecutionStateUpdate, uuid.UUID, error)
 	ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*ContractExecutionStateUpdate, error)
 	ExecutionAbort(ctx context.Context, id uuid.UUID)
-	ContractCompile(ctx context.Context, prototypeDescriptor insolar.PrototypeDescriptor, codeDescriptor insolar.CodeDescriptor)
+	ContractCompile(ctx context.Context, contract interface{})
 }
 
 type EventGetCode interface {

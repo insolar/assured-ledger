@@ -126,7 +126,7 @@ func initComponents(
 	artifactsClient := artifacts.NewClient(b)
 	cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
 
-	virtual, err := virtual2.NewVirtual()
+	virtual, err := virtual2.NewDispatcher()
 	checkError(ctx, err, "failed to create Virtual")
 
 	runner, err := runner2.NewRunner()

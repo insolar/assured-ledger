@@ -7,6 +7,7 @@ package requestresult
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type RequestResult struct {
@@ -52,7 +53,7 @@ func (s *RequestResult) SetActivate(parent, image insolar.Reference, memory []by
 	s.Memory = memory
 }
 
-func (s *RequestResult) SetAmend(object insolar.ObjectDescriptor, memory []byte) {
+func (s *RequestResult) SetAmend(object descriptor.ObjectDescriptor, memory []byte) {
 	s.SideEffectType = insolar.RequestSideEffectAmend
 	s.Memory = memory
 	s.ObjectStateID = *object.StateID()
@@ -61,7 +62,7 @@ func (s *RequestResult) SetAmend(object insolar.ObjectDescriptor, memory []byte)
 	s.ObjectImage = *prototype
 }
 
-func (s *RequestResult) SetDeactivate(object insolar.ObjectDescriptor) {
+func (s *RequestResult) SetDeactivate(object descriptor.ObjectDescriptor) {
 	s.SideEffectType = insolar.RequestSideEffectDeactivate
 	s.ObjectStateID = *object.StateID()
 }

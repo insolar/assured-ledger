@@ -21,10 +21,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type runner struct {
-	cache   insolar.DescriptorsCache
+	cache   descriptor.DescriptorsCache
 	manager executor.Manager
 
 	executions     map[uuid.UUID]*executionContext
@@ -106,8 +107,8 @@ func generateCallContext(
 	ctx context.Context,
 	id uuid.UUID,
 	execution runner2.Execution,
-	protoDesc insolar.PrototypeDescriptor,
-	codeDesc insolar.CodeDescriptor,
+	protoDesc descriptor.PrototypeDescriptor,
+	codeDesc descriptor.CodeDescriptor,
 ) *insolar.LogicCallContext {
 	request := execution.Request
 	res := &insolar.LogicCallContext{
@@ -212,7 +213,7 @@ func (r runner) ExecutionAbort(ctx context.Context, id uuid.UUID) {
 	panic(throw.NotImplemented())
 }
 
-func (r runner) ContractCompile(ctx context.Context, prototypeDescriptor insolar.PrototypeDescriptor, codeDescriptor insolar.CodeDescriptor) {
+func (r runner) ContractCompile(ctx context.Context, contract interface{}) {
 	panic(throw.NotImplemented())
 }
 

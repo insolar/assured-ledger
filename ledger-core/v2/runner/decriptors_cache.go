@@ -12,16 +12,17 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
-var _ insolar.DescriptorsCache = &descriptorsCache{}
+var _ descriptor.DescriptorsCache = &descriptorsCache{}
 
 type descriptorsCache struct {
 	codeCache  cache
 	protoCache cache
 }
 
-func NewDescriptorsCache() insolar.DescriptorsCache {
+func NewDescriptorsCache() descriptor.DescriptorsCache {
 	return &descriptorsCache{
 		codeCache:  newSingleFlightCache(),
 		protoCache: newSingleFlightCache(),
@@ -31,7 +32,7 @@ func NewDescriptorsCache() insolar.DescriptorsCache {
 func (c *descriptorsCache) ByPrototypeRef(
 	ctx context.Context, protoRef insolar.Reference,
 ) (
-	insolar.PrototypeDescriptor, insolar.CodeDescriptor, error,
+	descriptor.PrototypeDescriptor, descriptor.CodeDescriptor, error,
 ) {
 	protoDesc, err := c.GetPrototype(ctx, protoRef)
 	if err != nil {
@@ -48,9 +49,9 @@ func (c *descriptorsCache) ByPrototypeRef(
 }
 
 func (c *descriptorsCache) ByObjectDescriptor(
-	ctx context.Context, obj insolar.ObjectDescriptor,
+	ctx context.Context, obj descriptor.ObjectDescriptor,
 ) (
-	insolar.PrototypeDescriptor, insolar.CodeDescriptor, error,
+	descriptor.PrototypeDescriptor, descriptor.CodeDescriptor, error,
 ) {
 	protoRef, err := obj.Prototype()
 	if err != nil {
@@ -67,7 +68,7 @@ func (c *descriptorsCache) ByObjectDescriptor(
 func (c *descriptorsCache) GetPrototype(
 	ctx context.Context, ref insolar.Reference,
 ) (
-	insolar.PrototypeDescriptor, error,
+	descriptor.PrototypeDescriptor, error,
 ) {
 	res, err := c.protoCache.get(ref, func() (interface{}, error) {
 		return nil, nil
@@ -76,13 +77,13 @@ func (c *descriptorsCache) GetPrototype(
 		return nil, errors.Wrap(err, "couldn't get object")
 	}
 
-	return res.(insolar.PrototypeDescriptor), nil
+	return res.(descriptor.PrototypeDescriptor), nil
 }
 
 func (c *descriptorsCache) GetCode(
 	ctx context.Context, ref insolar.Reference,
 ) (
-	insolar.CodeDescriptor, error,
+	descriptor.CodeDescriptor, error,
 ) {
 	res, err := c.codeCache.get(ref, func() (interface{}, error) {
 		return nil, nil
@@ -90,7 +91,7 @@ func (c *descriptorsCache) GetCode(
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't get code")
 	}
-	return res.(insolar.CodeDescriptor), nil
+	return res.(descriptor.CodeDescriptor), nil
 }
 
 type cache interface {

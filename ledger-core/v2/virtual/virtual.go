@@ -14,31 +14,30 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
-	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
+	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-type Virtual interface {
+type Dispatcher interface {
 	component.Initer
 	component.Starter
 	component.Stopper
 }
 
-type virtual struct {
-	FlowDispatcher dispatcher.Dispatcher
+type dispatcher struct {
+	FlowDispatcher flowDispatcher.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
-	ConveyorWorker lrCommon.ConveyorWorker
+	ConveyorWorker statemachine.ConveyorWorker
 
 	Cfg *configuration.LogicRunner
 }
 
-func NewVirtual() (Virtual, error) {
-	return &virtual{}, nil
+func NewDispatcher() (Dispatcher, error) {
+	return &dispatcher{}, nil
 }
 
-func (lr *virtual) Init(_ context.Context) error {
+func (lr *dispatcher) Init(_ context.Context) error {
 	machineConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -57,19 +56,19 @@ func (lr *virtual) Init(_ context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, defaultHandlers, nil)
 
-	lr.ConveyorWorker = lrCommon.NewConveyorWorker()
+	lr.ConveyorWorker = statemachine.NewConveyorWorker()
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
-	lr.FlowDispatcher = lrCommon.NewConveyorDispatcher(lr.Conveyor)
+	lr.FlowDispatcher = statemachine.NewConveyorDispatcher(lr.Conveyor)
 
 	return nil
 }
 
-func (lr *virtual) Start(_ context.Context) error {
+func (lr *dispatcher) Start(_ context.Context) error {
 	return nil
 }
 
-func (lr *virtual) Stop(_ context.Context) error {
+func (lr *dispatcher) Stop(_ context.Context) error {
 	lr.ConveyorWorker.Stop()
 
 	return nil
