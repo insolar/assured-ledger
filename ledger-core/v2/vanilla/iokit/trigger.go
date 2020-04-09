@@ -8,7 +8,7 @@ package iokit
 import "io"
 
 func LimitReaderWithTrigger(r io.Reader, n int64, triggerFn func(int64)) *LimitedTriggerReader {
-	return &LimitedTriggerReader{LimitedReader{TeeReader{main: r}, n}, triggerFn}
+	return &LimitedTriggerReader{LimitedReader{TeeReader{R: r}, n}, triggerFn}
 }
 
 var _ io.ReadCloser = &LimitedTriggerReader{}
@@ -34,7 +34,7 @@ func (p *LimitedTriggerReader) trigger() {
 	if p.t == nil {
 		return
 	}
-	//p.hLimitedReader.R.main = nil
+	//p.hLimitedReader.R.W = nil
 	t := p.t
 	p.t = nil
 	t(p.hLimitedReader.n)

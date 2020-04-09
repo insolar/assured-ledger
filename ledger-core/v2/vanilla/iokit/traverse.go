@@ -65,11 +65,11 @@ func traverseLimitReaders(r io.Reader, min int64) (io.Reader, int64) {
 			_, min = traverseLimitReaders(v.R, min)
 			return r, min
 		case *TeeReader:
-			if v.copy == nil {
-				r = v.main
+			if v.CopyTo == nil {
+				r = v.R
 				continue
 			}
-			_, min = traverseLimitReaders(v.main, min)
+			_, min = traverseLimitReaders(v.R, min)
 			return v, min
 		case *io.LimitedReader:
 			n = v.N
@@ -105,8 +105,8 @@ func updatedLimitReaders(r io.Reader, delta int64) {
 	for r != nil {
 		switch v := r.(type) {
 		case *TeeReader:
-			if v.copy == nil {
-				r = v.main
+			if v.CopyTo == nil {
+				r = v.R
 				continue
 			}
 			return
@@ -144,11 +144,11 @@ func traverseLimitWriters(w io.Writer, min int64) (io.Writer, int64) {
 			_, min = traverseLimitWriters(v.W, min)
 			return w, min
 		case *TeeWriter:
-			if v.copy == nil {
-				w = v.main
+			if v.CopyTo == nil {
+				w = v.W
 				continue
 			}
-			_, min = traverseLimitWriters(v.main, min)
+			_, min = traverseLimitWriters(v.W, min)
 			return v, min
 		case *LimitedWriter:
 			n = v.n
@@ -173,8 +173,8 @@ func updatedLimitWriters(w io.Writer, delta int64) {
 	for w != nil {
 		switch v := w.(type) {
 		case *TeeWriter:
-			if v.copy == nil {
-				w = v.main
+			if v.CopyTo == nil {
+				w = v.W
 				continue
 			}
 			return

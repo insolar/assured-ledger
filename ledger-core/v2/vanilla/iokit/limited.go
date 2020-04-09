@@ -13,11 +13,11 @@ type LenReader interface {
 }
 
 func LimitWriter(w io.Writer, n int64) *LimitedWriter {
-	return &LimitedWriter{TeeWriter{main: w}, n}
+	return &LimitedWriter{TeeWriter{W: w}, n}
 }
 
 func LimitReader(r io.Reader, n int64) *LimitedReader {
-	return &LimitedReader{TeeReader{main: r}, n}
+	return &LimitedReader{TeeReader{R: r}, n}
 }
 
 func NewLimitedTeeWriter(main, copy io.Writer, limit int64) *LimitedWriter {

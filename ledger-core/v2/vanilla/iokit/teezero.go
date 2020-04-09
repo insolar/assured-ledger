@@ -26,21 +26,21 @@ func NewTeeReaderWithSkip(main io.Reader, copy io.Writer, skipLeadingBytes int) 
 }
 
 type teeTemplate struct {
-	copy io.Writer
-	skip int
+	CopyTo io.Writer
+	Skip   int
 }
 
 func (w *teeTemplate) teeWrite(n int, b []byte) {
 	switch {
-	case w.copy == nil:
+	case w.CopyTo == nil:
 		return
-	case w.skip <= 0:
-		_, _ = w.copy.Write(b[:n])
-	case w.skip >= n:
-		w.skip -= n
+	case w.Skip <= 0:
+		_, _ = w.CopyTo.Write(b[:n])
+	case w.Skip >= n:
+		w.Skip -= n
 	default:
-		_, _ = w.copy.Write(b[w.skip:n])
-		w.skip = 0
+		_, _ = w.CopyTo.Write(b[w.Skip:n])
+		w.Skip = 0
 	}
 }
 
@@ -49,12 +49,12 @@ func (w *teeTemplate) teeWrite(n int, b []byte) {
 var _ io.Writer = &TeeWriter{}
 
 type TeeWriter struct {
-	main io.Writer
+	W io.Writer
 	teeTemplate
 }
 
 func (w *TeeWriter) Write(b []byte) (n int, err error) {
-	n, err = w.main.Write(b)
+	n, err = w.W.Write(b)
 	w.teeWrite(n, b)
 	return n, err
 }
@@ -64,12 +64,12 @@ func (w *TeeWriter) Write(b []byte) (n int, err error) {
 var _ io.Reader = &TeeReader{}
 
 type TeeReader struct {
-	main io.Reader
+	R io.Reader
 	teeTemplate
 }
 
 func (w *TeeReader) Read(b []byte) (n int, err error) {
-	n, err = w.main.Read(b)
+	n, err = w.R.Read(b)
 	w.teeWrite(n, b)
 	return n, err
 }
