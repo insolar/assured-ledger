@@ -141,3 +141,8 @@ type DataSignatureVerifierFactory interface {
 	IsSignatureKeySupported(SignatureKey) bool
 	CreateDataSignatureVerifier(SignatureKey) DataSignatureVerifier
 }
+
+type DataSignerFactory interface {
+	IsSignatureKeySupported(SignatureKey) bool
+	CreateDataSigner(SignatureKey) DataSigner
+}

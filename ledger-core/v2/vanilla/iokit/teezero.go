@@ -26,21 +26,21 @@ func NewTeeReaderWithSkip(main io.Reader, copy io.Writer, skipLeadingBytes int) 
 }
 
 type teeTemplate struct {
-	CopyTo io.Writer
-	Skip   int
+	CopyTo   io.Writer
+	CopySkip int
 }
 
 func (w *teeTemplate) teeWrite(n int, b []byte) {
 	switch {
 	case w.CopyTo == nil:
 		return
-	case w.Skip <= 0:
+	case w.CopySkip <= 0:
 		_, _ = w.CopyTo.Write(b[:n])
-	case w.Skip >= n:
-		w.Skip -= n
+	case w.CopySkip >= n:
+		w.CopySkip -= n
 	default:
-		_, _ = w.CopyTo.Write(b[w.Skip:n])
-		w.Skip = 0
+		_, _ = w.CopyTo.Write(b[w.CopySkip:n])
+		w.CopySkip = 0
 	}
 }
 
