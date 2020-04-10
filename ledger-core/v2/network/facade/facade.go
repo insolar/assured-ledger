@@ -7,7 +7,6 @@ package facade
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
@@ -41,16 +40,6 @@ type Messenger interface {
 	// blocks if network unreachable
 	SendRole(ctx context.Context, msg Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error
 	SendTarget(ctx context.Context, msg Marshaler, target insolar.Reference, opts ...SendOption) error
-}
-
-func apply(opts ...SendOption) {
-	defaultOpts := &option{}
-	for _, opt := range opts {
-		opt(defaultOpts)
-	}
-
-	fmt.Printf("%#v", defaultOpts)
-
 }
 
 type DefaultMessenger struct {
