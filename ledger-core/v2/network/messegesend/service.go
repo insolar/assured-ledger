@@ -36,21 +36,21 @@ func WithSyncBody() SendOption {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messegesend.Messenger -o ./ -s _mock.go -g
 
-type Messenger interface {
+type Service interface {
 	// blocks if network unreachable
 	SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error
 	SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error
 }
 
-type Service struct {
+type DefaultService struct {
 	sender bus.Sender
 }
 
-func NewService(sender bus.Sender) *Service {
-	return &Service{sender: sender}
+func NewDefaultService(sender bus.Sender) *DefaultService {
+	return &DefaultService{sender: sender}
 }
 
-func (dm *Service) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
+func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
@@ -61,7 +61,7 @@ func (dm *Service) SendRole(ctx context.Context, msg payload.Marshaler, role ins
 	return nil
 }
 
-func (dm *Service) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
+func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
