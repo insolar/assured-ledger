@@ -133,10 +133,18 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 					w = nil
 				}
 
-				if packet.Header.IsForRelay() {
+				switch {
+				case packet.Header.IsForRelay():
 					// TODO relay via sessionful
+					// relaying doesn't need decryption
 					err = throw.NotImplemented()
-				} else {
+				case packet.Header.IsBodyEncrypted():
+					packet.Decrypter = p.PeerManager.GetDecrypter(peer)
+					if packet.Decrypter == nil {
+						err = throw.Unsupported()
+					}
+					fallthrough
+				default:
 					receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
 					if more == 0 {
 						receiver.ReceiveSmallPacket(&packet, preRead)
@@ -257,7 +265,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.Protoco
 				// SourceID must match Peer
 				// Signature must match Peer
 				if sid := toHostId(header.SourceID, supp); p.hasHostId(sid, peer) {
-					dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
+					dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
 				} else {
 					return throw.RemoteBreach("wrong SourceID")
 				}
@@ -270,12 +278,12 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.Protoco
 
 				sid := toHostId(header.SourceID, supp)
 				if peer, err = p.PeerManager.peerNotLocal(apinetwork.NewHostId(sid)); err == nil {
-					dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
+					dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
 				}
 			}
 		case header.IsRelayRestricted():
 			// Signature must match Peer
-			dsv, err = peer.GetSignatureVerifier(p.PeerManager.svFactory)
+			dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
 		default:
 			// Peer must be known and validated
 			// Packet must be self-validated

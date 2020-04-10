@@ -22,7 +22,7 @@ import (
 
 var TestProtocolDescriptor = apinetwork.ProtocolDescriptor{
 	SupportedPackets: apinetwork.ProtocolPacketDescriptors{
-		0: {Flags: apinetwork.NoSourceId | apinetwork.OptionalTarget, LengthBits: 14},
+		0: {Flags: apinetwork.NoSourceId | apinetwork.OptionalTarget, LengthBits: 16},
 	},
 }
 
@@ -62,8 +62,15 @@ func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *apinetwork.ReceiverP
 	p.LastBytes = append([]byte(nil), b...)
 	p.LastSigLen = packet.GetSignatureSize()
 	p.LastLarge = false
-	p.LastError = nil
-	p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(p.LastSigLen)])
+	//p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(p.LastSigLen)])
+
+	p.LastError = packet.NewSmallPayloadDeserializer(b)(func(packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+		b := make([]byte, reader.RemainingBytes())
+		n, err := io.ReadFull(reader, b)
+		p.LastMsg = string(b[:n])
+		return err
+	})
+
 	p.Count.Add(1)
 	return
 }
@@ -74,13 +81,23 @@ func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *apinetwork.ReceiverP
 	p.LastSigLen = packet.GetSignatureSize()
 	p.LastLarge = true
 
-	p.LastBytes = make([]byte, len(preRead)+int(r.N))
-	copy(p.LastBytes, preRead)
-	if _, err := io.ReadFull(&r, p.LastBytes[len(preRead):]); err != nil {
-		p.LastError = err
+	p.LastBytes = nil
+
+	//p.LastBytes = make([]byte, len(preRead)+int(r.N))
+	//copy(p.LastBytes, preRead)
+	//if _, err := io.ReadFull(&r, p.LastBytes[len(preRead):]); err != nil {
+	//	p.LastError = err
+	//	return err
+	//}
+	//p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-p.LastSigLen])
+
+	p.LastError = packet.NewLargePayloadDeserializer(preRead, r)(func(packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+		b := make([]byte, reader.RemainingBytes())
+		n, err := io.ReadFull(reader, b)
+		p.LastMsg = string(b[:n])
 		return err
-	}
-	p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-p.LastSigLen])
+	})
+
 	p.Count.Add(1)
 
 	return p.ReportErr
@@ -155,6 +172,14 @@ func (v TestDataSigner) NewHasher() cryptkit.DigestHasher {
 var _ cryptkit.DataSignatureVerifierFactory = TestVerifierFactory{}
 
 type TestVerifierFactory struct{}
+
+func (v TestVerifierFactory) CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter {
+	panic("implement me")
+}
+
+func (v TestVerifierFactory) CreateDataSigner(cryptkit.SignatureKey) cryptkit.DataSigner {
+	panic("implement me")
+}
 
 func (v TestVerifierFactory) IsSignatureKeySupported(k cryptkit.SignatureKey) bool {
 	return k.GetSigningMethod() == testSigningMethod

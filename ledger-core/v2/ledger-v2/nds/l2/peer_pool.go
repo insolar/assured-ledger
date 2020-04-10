@@ -37,9 +37,16 @@ func NewPeerManager(factory PeerTransportFactory, local apinetwork.Address, loca
 	return pm
 }
 
+type PeerCryptographyFactory interface {
+	cryptkit.DataSignatureVerifierFactory
+	cryptkit.DataSignerFactory
+	IsSignatureKeySupported(cryptkit.SignatureKey) bool
+	CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter
+}
+
 type PeerManager struct {
 	quotaFactory PeerQuotaFactoryFunc
-	svFactory    cryptkit.DataSignatureVerifierFactory
+	sigFactory   PeerCryptographyFactory
 	peerFactory  OfflinePeerFactoryFunc
 
 	central PeerTransportCentral
@@ -81,12 +88,12 @@ func (p *PeerManager) SetPeerFactory(fn OfflinePeerFactoryFunc) {
 	p.peerFactory = fn
 }
 
-func (p *PeerManager) SetVerifierFactory(f cryptkit.DataSignatureVerifierFactory) {
+func (p *PeerManager) SetSignatureFactory(f PeerCryptographyFactory) {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
 	p.peers.ensureEmpty()
-	p.svFactory = f
+	p.sigFactory = f
 }
 
 func (p *PeerManager) peer(a apinetwork.Address) (uint32, *Peer) {
@@ -287,6 +294,11 @@ func (p *PeerManager) ConnectTo(remote apinetwork.Address) (UnifiedOutTransport,
 	return &peer.transport, nil
 }
 
+func (p *PeerManager) GetDecrypter(*Peer) cryptkit.Decrypter {
+	sk := p.Local().GetSignatureKey()
+	return p.sigFactory.CreateDataDecrypter(sk)
+}
+
 /**************************************/
 
 type PeerState uint8
@@ -335,6 +347,13 @@ func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 
 	p.pk = pk
 	p.dsv = nil
+}
+
+func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+
+	return p.pk
 }
 
 func (p *Peer) GetSignatureVerifier(factory cryptkit.DataSignatureVerifierFactory) (cryptkit.DataSignatureVerifier, error) {

@@ -339,7 +339,7 @@ func (h *Header) SerializeToBytes(b []byte) (uint, error) {
 		if h.ExcessiveLength == 0 {
 			return 0, throw.IllegalState()
 		}
-		byteOrder.PutUint32(b, h.ExcessiveLength)
+		byteOrder.PutUint32(b[HeaderByteSizeMin:], h.ExcessiveLength)
 	}
 	return size, nil
 }

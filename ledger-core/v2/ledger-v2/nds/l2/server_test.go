@@ -6,6 +6,7 @@
 package l2
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -45,7 +46,7 @@ func TestServer(t *testing.T) {
 		PeerLimit:      -1,
 	})
 	ups1.SetPeerFactory(peerProfileFn)
-	ups1.SetVerifierFactory(vf)
+	ups1.SetSignatureFactory(vf)
 
 	ups1.StartListen()
 	ups1.SetMode(AllowAll)
@@ -60,7 +61,7 @@ func TestServer(t *testing.T) {
 		PeerLimit:      -1,
 	})
 	ups2.SetPeerFactory(peerProfileFn)
-	ups2.SetVerifierFactory(vf)
+	ups2.SetSignatureFactory(vf)
 
 	ups2.StartNoListen()
 
@@ -80,6 +81,18 @@ func TestServer(t *testing.T) {
 	}))
 
 	marshaller.Wait(0)
+
+	require.Equal(t, testStr, marshaller.LastMsg)
+	require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+
+	testStr = strings.Repeat("long msg", 6553)
+	msgBytes = marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
+
+	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), true, func(t l1.OutTransport) error {
+		return t.SendBytes(msgBytes)
+	}))
+
+	marshaller.Wait(1)
 
 	require.Equal(t, testStr, marshaller.LastMsg)
 	require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)

@@ -5,7 +5,11 @@
 
 package l2
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+import (
+	"math"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+)
 
 type ConnectionMode uint32
 
@@ -21,4 +25,12 @@ func (v ConnectionMode) IsProtocolAllowed(pt apinetwork.ProtocolType) bool {
 
 func (v ConnectionMode) IsUnknownPeerAllowed() bool {
 	return v&AllowUnknownPeer != 0
+}
+
+func (v ConnectionMode) AllowedSet() apinetwork.ProtocolSet {
+	return apinetwork.ProtocolSet(v >> 16)
+}
+
+func (v ConnectionMode) SetAllowedSet(s apinetwork.ProtocolSet) ConnectionMode {
+	return v&math.MaxUint16 | ConnectionMode(s)<<16
 }

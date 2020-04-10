@@ -20,13 +20,19 @@ type UnifiedProtocolSet struct {
 func (p UnifiedProtocolSet) ReceivePacket(packet *ReceiverPacket, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
 ) (preRead []byte, more int64, err error) {
 
-	preRead = make([]byte, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
+	preRead = make([]byte, LargePacketBaselineWithoutSignatureSize, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
 
 	more = -1
-	if readLen, err := io.ReadFull(r, preRead[:LargePacketBaselineWithoutSignatureSize]); err != nil {
-		return preRead[:readLen], more, err
-	} else {
+	switch readLen, err := io.ReadFull(r, preRead); err {
+	case nil:
 		preRead = preRead[:readLen]
+	case io.EOF:
+		if readLen == len(preRead) {
+			break
+		}
+		fallthrough
+	default:
+		return preRead[:readLen], more, err
 	}
 
 	if _, err = packet.DeserializeMinFromBytes(preRead); err != nil {

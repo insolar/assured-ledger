@@ -6,8 +6,6 @@
 package apinetwork
 
 import (
-	"io"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -38,28 +36,14 @@ func (v PacketDataVerifier) VerifyWhole(h *Header, b []byte) error {
 		return throw.Violation("insufficient length")
 	}
 	_, _ = hasher.Write(b[skip:x])
-	return v.VerifySignature(hasher, b[x:])
+	return v.VerifySignature(hasher.SumToDigest(), b[x:])
 }
 
-func (v PacketDataVerifier) VerifySignature(hasher cryptkit.DigestHasher, signatureBytes []byte) error {
-	digest := hasher.SumToDigest()
+func (v PacketDataVerifier) VerifySignature(digest cryptkit.Digest, signatureBytes []byte) error {
 	signature := cryptkit.NewSignature(longbits.NewMutableFixedSize(signatureBytes), v.Verifier.GetSignatureMethod())
 
 	if !v.Verifier.IsValidDigestSignature(digest, signature) {
 		return throw.Violation("packet signature mismatch")
 	}
 	return nil
-}
-
-func (v PacketDataVerifier) NewHashingReader(h *Header, preRead []byte, r io.Reader) *cryptkit.HashingTeeReader {
-	skip, hasher := v.NewHasher(h)
-	tr := cryptkit.NewHashingTeeReader(hasher, r)
-	if len(preRead) > skip {
-		hasher.DigestBytes(preRead[skip:])
-		skip = 0
-	} else {
-		skip -= len(preRead)
-	}
-	tr.Skip = skip
-	return &tr
 }

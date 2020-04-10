@@ -229,10 +229,8 @@ type PayloadDeserializeFunc func(*Packet, *iokit.LimitedReader) error
 //	return err
 //}
 
-func (p *Packet) DeserializePayload(r io.Reader, readLimit int64, decryptFn func() cryptkit.Decrypter, fn PayloadDeserializeFunc) error {
+func (p *Packet) DeserializePayload(r io.Reader, readLimit int64, decrypter cryptkit.Decrypter, fn PayloadDeserializeFunc) error {
 	if readLimit > 0 && p.Header.IsBodyEncrypted() {
-		decrypter := decryptFn()
-
 		encReader, plainSize := decrypter.NewDecryptingReader(r, uint(readLimit))
 		limitReader := iokit.LimitReader(encReader, int64(plainSize))
 

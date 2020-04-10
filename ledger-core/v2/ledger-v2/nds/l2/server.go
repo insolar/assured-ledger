@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -65,8 +64,8 @@ func (p *UnifiedProtocolServer) SetPeerFactory(fn OfflinePeerFactoryFunc) {
 	p.peers.SetPeerFactory(fn)
 }
 
-func (p *UnifiedProtocolServer) SetVerifierFactory(f cryptkit.DataSignatureVerifierFactory) {
-	p.peers.SetVerifierFactory(f)
+func (p *UnifiedProtocolServer) SetSignatureFactory(f PeerCryptographyFactory) {
+	p.peers.SetSignatureFactory(f)
 }
 
 func (p *UnifiedProtocolServer) SetBlacklistManager(blacklist BlacklistManager) {
