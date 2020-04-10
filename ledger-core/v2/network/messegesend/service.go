@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/insolar/blob/master/LICENSE.md.
 
-package facade
+package messegesend
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func WithSyncBody() SendOption {
 	}
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/facade.Messenger -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messegesend.Messenger -o ./ -s _mock.go -g
 
 type Messenger interface {
 	// blocks if network unreachable
@@ -42,15 +42,15 @@ type Messenger interface {
 	SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error
 }
 
-type DefaultMessenger struct {
+type Service struct {
 	sender bus.Sender
 }
 
-func NewDefaultMessenger(sender bus.Sender) *DefaultMessenger {
-	return &DefaultMessenger{sender: sender}
+func NewService(sender bus.Sender) *Service {
+	return &Service{sender: sender}
 }
 
-func (dm *DefaultMessenger) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
+func (dm *Service) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
@@ -61,7 +61,7 @@ func (dm *DefaultMessenger) SendRole(ctx context.Context, msg payload.Marshaler,
 	return nil
 }
 
-func (dm *DefaultMessenger) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
+func (dm *Service) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")

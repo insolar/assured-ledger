@@ -9,11 +9,11 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/facade"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messegesend"
 )
 
 type MessengerService interface {
-	facade.Messenger
+	messegesend.Messenger
 }
 
 type MessengerServiceAdapter struct {
@@ -50,10 +50,10 @@ func (a *MessengerServiceAdapter) PrepareNotify(
 }
 
 type messengerService struct {
-	facade.Messenger
+	messegesend.Messenger
 }
 
-func CreateMessengerService(ctx context.Context, messenger facade.Messenger) *MessengerServiceAdapter {
+func CreateMessengerService(ctx context.Context, messenger messegesend.Messenger) *MessengerServiceAdapter {
 	// it's copy/past from other realizations
 	parallelReaders := 16
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)

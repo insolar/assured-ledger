@@ -92,7 +92,7 @@ type OriginProvider interface {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeNetwork -o ../testutils/network -s _mock.go -g
 
-//Deprecated: todo: move GetWorkingNodes to ServiceNetwork facade
+//Deprecated: todo: move GetWorkingNodes to ServiceNetwork messegesend
 type NodeNetwork interface {
 	OriginProvider
 
