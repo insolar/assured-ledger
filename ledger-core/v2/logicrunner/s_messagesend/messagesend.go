@@ -3,27 +3,27 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/insolar/blob/master/LICENSE.md.
 
-package s_messenger
+package s_messagesend
 
 import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/messegesend"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesend"
 )
 
-type MessengerService interface {
-	messegesend.Messenger
+type MessageSendService interface {
+	messagesend.Service
 }
 
-type MessengerServiceAdapter struct {
-	svc  MessengerService
+type MessageSendServiceAdapter struct {
+	svc  MessageSendService
 	exec smachine.ExecutionAdapter
 }
 
-func (a *MessengerServiceAdapter) PrepareSync(
+func (a *MessageSendServiceAdapter) PrepareSync(
 	ctx smachine.ExecutionContext,
-	fn func(svc MessengerService),
+	fn func(svc MessageSendService),
 ) smachine.SyncCallRequester {
 	return a.exec.PrepareSync(ctx, func(interface{}) smachine.AsyncResultFunc {
 		fn(a.svc)
@@ -31,18 +31,18 @@ func (a *MessengerServiceAdapter) PrepareSync(
 	})
 }
 
-func (a *MessengerServiceAdapter) PrepareAsync(
+func (a *MessageSendServiceAdapter) PrepareAsync(
 	ctx smachine.ExecutionContext,
-	fn func(svc MessengerService) smachine.AsyncResultFunc,
+	fn func(svc MessageSendService) smachine.AsyncResultFunc,
 ) smachine.AsyncCallRequester {
 	return a.exec.PrepareAsync(ctx, func(interface{}) smachine.AsyncResultFunc {
 		return fn(a.svc)
 	})
 }
 
-func (a *MessengerServiceAdapter) PrepareNotify(
+func (a *MessageSendServiceAdapter) PrepareNotify(
 	ctx smachine.ExecutionContext,
-	fn func(svc MessengerService),
+	fn func(svc MessageSendService),
 ) smachine.NotifyRequester {
 	return a.exec.PrepareNotify(ctx, func(interface{}) {
 		fn(a.svc)
@@ -50,19 +50,19 @@ func (a *MessengerServiceAdapter) PrepareNotify(
 }
 
 type messengerService struct {
-	messegesend.Messenger
+	messagesend.Service
 }
 
-func CreateMessengerService(ctx context.Context, messenger messegesend.Messenger) *MessengerServiceAdapter {
+func CreateMessageSendService(ctx context.Context, messenger messagesend.Service) *MessageSendServiceAdapter {
 	// it's copy/past from other realizations
 	parallelReaders := 16
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
-	return &MessengerServiceAdapter{
+	return &MessageSendServiceAdapter{
 		svc: messengerService{
-			Messenger: messenger,
+			Service: messenger,
 		},
-		exec: smachine.NewExecutionAdapter("MessengerService", ae),
+		exec: smachine.NewExecutionAdapter("MessageSendService", ae),
 	}
 }

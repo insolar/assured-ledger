@@ -27,7 +27,7 @@ import (
 	"github.com/insolar/component-manager"
 )
 
-// ServiceNetwork is messegesend for network.
+// ServiceNetwork is messagesend for network.
 type ServiceNetwork struct {
 	cfg configuration.Configuration
 	cm  *component.Manager
