@@ -66,16 +66,12 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 		return errors.Wrap(err, "Can't create watermill message")
 	}
 
-	latestPulse, err := dm.pulses.Latest(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to fetch pulse")
-	}
-	nodes, err := dm.coordinator.QueryRole(ctx, role, *object.GetLocal(), latestPulse.PulseNumber)
+	nodes, err := dm.coordinator.QueryRole(ctx, role, *object.GetLocal(), pn)
 	if err != nil {
 		return errors.Wrap(err, "failed to calculate role")
 	}
 
-	return dm.sendTarget(ctx, waterMillMsg, nodes[0], latestPulse.PulseNumber)
+	return dm.sendTarget(ctx, waterMillMsg, nodes[0], pn)
 }
 
 func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
