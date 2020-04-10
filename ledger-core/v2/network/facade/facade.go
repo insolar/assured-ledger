@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+
 	"github.com/pkg/errors"
 )
 
