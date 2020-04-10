@@ -16,13 +16,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Marshaler interface {
-	Marshal() ([]byte, error)
-	// Temporary commented to look like insolar.Payload
-	//MarshalHead() ([]byte, error)
-	//MarshalContent() ([]byte, error)
-}
-
 type option struct {
 	syncBody bool
 }
@@ -39,8 +32,8 @@ func WithSyncBody() SendOption {
 
 type Messenger interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error
-	SendTarget(ctx context.Context, msg Marshaler, target insolar.Reference, opts ...SendOption) error
+	SendRole(ctx context.Context, msg insolar.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error
+	SendTarget(ctx context.Context, msg insolar.Marshaler, target insolar.Reference, opts ...SendOption) error
 }
 
 type DefaultMessenger struct {
@@ -60,7 +53,7 @@ func joinOptions(opts ...SendOption) *option {
 	return emptyOpts
 }
 
-func (dm *DefaultMessenger) SendRole(ctx context.Context, msg Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
+func (dm *DefaultMessenger) SendRole(ctx context.Context, msg insolar.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
 	_ = joinOptions(opts...)
 
 	waterMillMsg, err := payload.NewMessage(msg.(insolar.Payload))
@@ -73,7 +66,7 @@ func (dm *DefaultMessenger) SendRole(ctx context.Context, msg Marshaler, role in
 	return nil
 }
 
-func (dm *DefaultMessenger) SendTarget(ctx context.Context, msg Marshaler, target insolar.Reference, opts ...SendOption) error {
+func (dm *DefaultMessenger) SendTarget(ctx context.Context, msg insolar.Marshaler, target insolar.Reference, opts ...SendOption) error {
 	_ = joinOptions(opts...)
 
 	waterMillMsg, err := payload.NewMessage(msg.(insolar.Payload))
