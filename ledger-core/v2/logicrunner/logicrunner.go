@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_messenger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/facade"
 	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
 
@@ -51,6 +53,7 @@ type LogicRunner struct {
 
 	MachinesManager machinesmanager.MachinesManager
 	Sender          bus.Sender
+	Messenger       facade.Messenger
 	FlowDispatcher  dispatcher.Dispatcher
 	ShutdownFlag    shutdown.Flag
 	ContractRunner  s_contract_runner.ContractRunnerService
@@ -63,6 +66,7 @@ type LogicRunner struct {
 	ContractRequesterService *s_contract_requester.ContractRequesterServiceAdapter
 	ContractRunnerService    *s_contract_runner.ContractRunnerServiceAdapter
 	SenderService            *s_sender.SenderServiceAdapter
+	MessengerService         *s_messenger.MessengerServiceAdapter
 	JetStorageService        *s_jet_storage.JetStorageServiceAdapter
 
 	Cfg *configuration.LogicRunner
@@ -76,8 +80,9 @@ func NewLogicRunner(cfg *configuration.LogicRunner, sender bus.Sender) (*LogicRu
 		return nil, errors.New("LogicRunner have nil configuration")
 	}
 	res := LogicRunner{
-		Cfg:    cfg,
-		Sender: sender,
+		Cfg:       cfg,
+		Sender:    sender,
+		Messenger: facade.NewDefaultMessenger(sender),
 	}
 
 	return &res, nil
@@ -109,6 +114,7 @@ func (lr *LogicRunner) Init(ctx context.Context) error {
 	lr.ContractRequesterService = s_contract_requester.CreateContractRequesterService(lr.ContractRequester)
 	lr.ContractRunnerService = s_contract_runner.CreateContractRunnerService(lr.ContractRunner)
 	lr.SenderService = s_sender.CreateSenderService(lr.Sender, lr.PulseAccessor)
+	lr.MessengerService = s_messenger.CreateMessengerService(lr.Messenger)
 	lr.JetStorageService = s_jet_storage.CreateJetStorageService(lr.JetStorage)
 
 	defaultHandlers := statemachine.DefaultHandlersFactory
