@@ -42,10 +42,9 @@ type contractRequesterService struct {
 	insolar.ContractRequester
 }
 
-func CreateContractRequesterService(ctx context.Context, ContractRequester insolar.ContractRequester) *ContractRequesterServiceAdapter {
-	// it's copy/past from other realizations
-	parallelReaders := 16
-	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+func CreateContractRequesterService(ContractRequester insolar.ContractRequester) *ContractRequesterServiceAdapter {
+	ctx := context.Background()
+	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &ContractRequesterServiceAdapter{

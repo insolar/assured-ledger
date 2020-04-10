@@ -16,14 +16,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-type option struct {
+type options struct {
 	syncBody bool
 }
 
-type SendOption func(*option)
+func (o *options) applyOptions(opts ...SendOption) {
+	for _, opt := range opts {
+		opt(o)
+	}
+}
+
+type SendOption func(*options)
 
 func WithSyncBody() SendOption {
-	return func(o *option) {
+	return func(o *options) {
 		o.syncBody = true
 	}
 }
@@ -32,8 +38,8 @@ func WithSyncBody() SendOption {
 
 type Messenger interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg insolar.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error
-	SendTarget(ctx context.Context, msg insolar.Marshaler, target insolar.Reference, opts ...SendOption) error
+	SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error
+	SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error
 }
 
 type DefaultMessenger struct {
@@ -44,19 +50,8 @@ func NewDefaultMessenger(sender bus.Sender) *DefaultMessenger {
 	return &DefaultMessenger{sender: sender}
 }
 
-func joinOptions(opts ...SendOption) *option {
-	emptyOpts := &option{}
-	for _, opt := range opts {
-		opt(emptyOpts)
-	}
-
-	return emptyOpts
-}
-
-func (dm *DefaultMessenger) SendRole(ctx context.Context, msg insolar.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
-	_ = joinOptions(opts...)
-
-	waterMillMsg, err := payload.NewMessage(msg.(insolar.Payload))
+func (dm *DefaultMessenger) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn pulse.Number, opts ...SendOption) error {
+	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
 	}
@@ -66,10 +61,8 @@ func (dm *DefaultMessenger) SendRole(ctx context.Context, msg insolar.Marshaler,
 	return nil
 }
 
-func (dm *DefaultMessenger) SendTarget(ctx context.Context, msg insolar.Marshaler, target insolar.Reference, opts ...SendOption) error {
-	_ = joinOptions(opts...)
-
-	waterMillMsg, err := payload.NewMessage(msg.(insolar.Payload))
+func (dm *DefaultMessenger) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
+	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
 	}

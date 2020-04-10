@@ -53,9 +53,10 @@ type messengerService struct {
 	facade.Messenger
 }
 
-func CreateMessengerService(messenger facade.Messenger) *MessengerServiceAdapter {
-	ctx := context.Background()
-	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
+func CreateMessengerService(ctx context.Context, messenger facade.Messenger) *MessengerServiceAdapter {
+	// it's copy/past from other realizations
+	parallelReaders := 16
+	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &MessengerServiceAdapter{
