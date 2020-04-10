@@ -38,7 +38,7 @@ func TestServer(t *testing.T) {
 	protocols.Protocols[0] = TestProtocolDescriptor
 	protocols.Protocols[0].Receiver = marshaller
 
-	ups1 := NewUnifiedProtocolServer(&protocols)
+	ups1 := NewUnifiedProtocolServer(&protocols, 2)
 	ups1.SetConfig(ServerConfig{
 		BindingAddress: Server1,
 		UdpMaxSize:     1400,
@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 	pm1 := ups1.PeerManager()
 	pm1.AddHostId(pm1.Local().GetPrimary(), 1)
 
-	ups2 := NewUnifiedProtocolServer(&protocols)
+	ups2 := NewUnifiedProtocolServer(&protocols, 2)
 	ups2.SetConfig(ServerConfig{
 		BindingAddress: Server2,
 		UdpMaxSize:     1400,

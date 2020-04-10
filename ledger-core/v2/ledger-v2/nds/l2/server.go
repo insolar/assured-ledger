@@ -11,11 +11,13 @@ import (
 	"io"
 	"math"
 	"net"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -28,11 +30,14 @@ type ServerConfig struct {
 	PeerLimit      int
 }
 
-func NewUnifiedProtocolServer(protocols *apinetwork.UnifiedProtocolSet) *UnifiedProtocolServer {
+func NewUnifiedProtocolServer(protocols *apinetwork.UnifiedProtocolSet, updParallelism int) *UnifiedProtocolServer {
 	if protocols == nil {
 		panic(throw.IllegalValue())
 	}
-	return &UnifiedProtocolServer{protocols: protocols}
+	if updParallelism <= 0 {
+		updParallelism = 4
+	}
+	return &UnifiedProtocolServer{protocols: protocols, udpSema: synckit.NewSemaphore(updParallelism)}
 }
 
 type UnifiedProtocolServer struct {
@@ -45,6 +50,7 @@ type UnifiedProtocolServer struct {
 	protocols *apinetwork.UnifiedProtocolSet
 
 	receiver PeerReceiver
+	udpSema  synckit.Semaphore
 }
 
 func (p *UnifiedProtocolServer) SetConfig(config ServerConfig) {
@@ -159,18 +165,26 @@ func (p *UnifiedProtocolServer) checkConnection(_, remote apinetwork.Address, er
 }
 
 func (p *UnifiedProtocolServer) receiveSessionless(local, remote apinetwork.Address, b []byte, err error) bool {
-	// DO NOT report checkConnection errors to blacklist
-	if err = p.checkConnection(local, remote, err); err == nil {
-		if err = p.receiver.ReceiveDatagram(remote, b); err == nil {
-			return true
-		}
-		err = throw.WithDetails(err, ConnErrDetails{local, remote})
-		p.reportToBlacklist(remote, err)
+	if p.udpSema.LockTimeout(time.Second) {
+		go func() {
+			defer p.udpSema.Unlock()
+
+			// DO NOT report checkConnection errors to blacklist
+			if err = p.checkConnection(local, remote, err); err == nil {
+				if err = p.receiver.ReceiveDatagram(remote, b); err == nil {
+					return
+				}
+				err = throw.WithDetails(err, ConnErrDetails{local, remote})
+				p.reportToBlacklist(remote, err)
+			} else {
+				err = throw.WithDetails(err, ConnErrDetails{local, remote})
+			}
+			p.reportError(err)
+		}()
 	} else {
-		err = throw.WithDetails(err, ConnErrDetails{local, remote})
+		p.reportError(throw.E("packet drop by timeout", ConnErrDetails{local, remote}))
 	}
 
-	p.reportError(err)
 	return true
 }
 
