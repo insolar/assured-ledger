@@ -31,6 +31,7 @@ To test Insolar locally, install it and deploy as described below.
 4. Install dependencies and build binaries:
 
    ```
+   make vendor 
    make
    ```
 
