@@ -33,6 +33,7 @@ type PeerTransportCentral struct {
 
 	maxSessionlessSize uint16
 	maxPeerConn        uint8
+	preferHttp         bool
 }
 
 func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
@@ -40,6 +41,20 @@ func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
 		return errors.New("aborted")
 	}
 	return nil
+}
+
+func (p *PeerTransportCentral) getTransportStreamFormat(limitedLength bool, peerPreferHttp bool) TransportStreamFormat {
+	switch {
+	case !p.preferHttp && !peerPreferHttp:
+		if limitedLength {
+			return BinaryLimitedLength
+		}
+		return BinaryUnlimitedLength
+	case limitedLength:
+		return HttpLimitedLength
+	default:
+		return HttpUnlimitedLength
+	}
 }
 
 var _ UnifiedOutTransport = &PeerTransport{}
@@ -152,7 +167,7 @@ func (p *PeerTransport) _resetConnection(t io.Closer, discardCurrentAddr bool) (
 
 type connectFunc = func(to apinetwork.Address) (l1.OutTransport, error)
 
-func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limit PayloadLengthLimit) (uint8, l1.OutTransport, error) {
+func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limit TransportStreamFormat) (uint8, l1.OutTransport, error) {
 
 	for index := startIndex; ; {
 		addr := p.aliases[index]
@@ -239,7 +254,7 @@ func (p *PeerTransport) getSessionfulSmallTransport() (l1.OutTransport, error) {
 	if p.sessionful != nil {
 		return p.sessionful, nil
 	}
-	if t, err := p._newSessionfulTransport(NonExcessivePayloadLength); err != nil {
+	if t, err := p._newSessionfulTransport(true); err != nil {
 		return nil, err
 	} else {
 		p.sessionful = t
@@ -249,7 +264,7 @@ func (p *PeerTransport) getSessionfulSmallTransport() (l1.OutTransport, error) {
 
 func (p *PeerTransport) getSessionfulLargeTransport() (l1.OutTransport, error) {
 	p.mutex.RLock()
-	if t := p._getSessionfulTransport(UnlimitedPayloadLength); t != nil {
+	if t := p._getSessionfulTransport(false); t != nil {
 		p.mutex.RUnlock()
 		return t, nil
 	}
@@ -257,22 +272,25 @@ func (p *PeerTransport) getSessionfulLargeTransport() (l1.OutTransport, error) {
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	return p._newSessionfulTransport(UnlimitedPayloadLength)
+	return p._newSessionfulTransport(false)
 }
 
-func (p *PeerTransport) _getSessionfulTransport(limit PayloadLengthLimit) l1.OutTransport {
+func (p *PeerTransport) _getSessionfulTransport(limitedLength bool) l1.OutTransport {
 	for _, s := range p.connections {
-		if o, ok := s.(l1.OutTransport); ok && o.GetTag() == int(limit) {
+		if o, ok := s.(l1.OutTransport); ok && TransportStreamFormat(o.GetTag()).IsDefinedLimited() == limitedLength {
 			return o
 		}
 	}
 	return nil
 }
 
-func (p *PeerTransport) _newSessionfulTransport(limit PayloadLengthLimit) (t l1.OutTransport, err error) {
-	if t = p._getSessionfulTransport(limit); t != nil {
+func (p *PeerTransport) _newSessionfulTransport(limitedLength bool) (t l1.OutTransport, err error) {
+	if t = p._getSessionfulTransport(limitedLength); t != nil {
 		return
 	}
+
+	limit := p.central.getTransportStreamFormat(limitedLength, false)
+
 	p.addrIndex, t, err = p.tryConnect(p.central.factory.SessionfulConnectTo, p.addrIndex, limit)
 	if err == nil {
 		//p.addConnection(t)
@@ -287,7 +305,7 @@ func (p *PeerTransport) addConnection(s io.Closer) {
 	p.mutex.Unlock()
 }
 
-func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (PayloadLengthLimit, error) {
+func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (TransportStreamFormat, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -298,13 +316,13 @@ func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (Pa
 
 		p.connCount++
 		p.connections = append(p.connections, conn)
-		return DetectByFirstPayloadLength, nil
+		return DetectByFirstPacket, nil
 	}
 
 	for _, s := range p.connections {
 		if oc, ok := s.(l1.OutNetTransport); ok && oc.Conn() == conn {
-			limit := PayloadLengthLimit(oc.GetTag())
-			if limit != 0 {
+			limit := TransportStreamFormat(oc.GetTag())
+			if limit.IsDefined() {
 				p.connCount++
 				p.connections = append(p.connections, s)
 				return limit, nil

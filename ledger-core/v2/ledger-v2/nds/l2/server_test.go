@@ -84,3 +84,16 @@ func TestServer(t *testing.T) {
 	require.Equal(t, testStr, marshaller.LastMsg)
 	require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
 }
+
+func TestHTTPLikeness(t *testing.T) {
+	h := apinetwork.Header{}
+	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("GET /0123456789ABCDEF")))
+
+	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("PUT /0123456789ABCDEF")))
+
+	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("POST /0123456789ABCDEF")))
+	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("POST 0123456789ABCDEF")))
+
+	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD /0123456789ABCDEF")))
+	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD 0123456789ABCDEF")))
+}

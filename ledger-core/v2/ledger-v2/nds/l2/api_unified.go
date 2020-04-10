@@ -5,11 +5,33 @@
 
 package l2
 
-type PayloadLengthLimit uint8
+type TransportStreamFormat uint8
 
 const (
-	_ PayloadLengthLimit = iota
-	DetectByFirstPayloadLength
-	NonExcessivePayloadLength
-	UnlimitedPayloadLength
+	_                   TransportStreamFormat = iota
+	DetectByFirstPacket                       // considered as Unlimited
+	BinaryLimitedLength
+	BinaryUnlimitedLength
+	HttpLimitedLength
+	HttpUnlimitedLength
 )
+
+func (v TransportStreamFormat) IsBinary() bool {
+	return v>>1 == 1
+}
+
+func (v TransportStreamFormat) IsHttp() bool {
+	return v>>1 == 2
+}
+
+func (v TransportStreamFormat) IsUnlimited() bool {
+	return v&1 != 0 // includes DetectByFirstPacket
+}
+
+func (v TransportStreamFormat) IsDefined() bool {
+	return v > DetectByFirstPacket
+}
+
+func (v TransportStreamFormat) IsDefinedLimited() bool {
+	return v.IsDefined() && !v.IsUnlimited()
+}

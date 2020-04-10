@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"io"
 	"net"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
@@ -55,7 +56,7 @@ func (p *TlsTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 	}
 	p.conn = tls.NewListener(conn, p.config)
 	p.receiveFn = receiveFn
-	go runTcpListener(p.conn, receiveFn)
+	go runTcpListener(p.conn, p.tlsConnect)
 	return p, nil
 }
 
@@ -96,8 +97,64 @@ func (p *TlsTransport) ConnectToExt(to apinetwork.Address, peerVerify VerifyPeer
 		return nil, err
 	}
 
+	// force connection setup now
+	if err = conn.Handshake(); err != nil {
+		return nil, err
+	} else if err = p.checkProtos(conn); err != nil {
+		return nil, err
+	}
+
 	if p.receiveFn != nil {
 		go runTcpReceive(conn.LocalAddr().(*net.TCPAddr), to, conn, p.conn, p.receiveFn)
 	}
 	return &tcpOutTransport{conn, nil, 0}, nil
+}
+
+func (p *TlsTransport) tlsConnect(local, remote apinetwork.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
+	if err != nil {
+		return p.receiveFn(local, remote, conn, w, err)
+	}
+
+	tlsConn := conn.(*tls.Conn)
+
+	if err = tlsConn.Handshake(); err != nil {
+		// If the handshake failed due to the client not speaking
+		// TLS, assume they're speaking plaintext HTTP and write a
+		// 400 response on the TLS conn's underlying net.Conn.
+		if re, ok := err.(tls.RecordHeaderError); ok && re.Conn != nil && tlsRecordHeaderLooksLikeHTTP(re.RecordHeader) {
+			_, _ = io.WriteString(re.Conn, "HTTP/1.0 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.\n")
+			_ = re.Conn.Close()
+			return true
+		}
+	} else if err = p.checkProtos(tlsConn); err == nil {
+		return p.receiveFn(local, remote, conn, w, nil)
+	}
+
+	_ = conn.Close()
+
+	//err = throw.WithDetails(err, l2.ConnErrDetails{Local:local, Remote:remote})
+	return p.receiveFn(local, remote, nil, nil, err)
+}
+
+func (p *TlsTransport) checkProtos(tlsConn *tls.Conn) error {
+	if len(p.config.NextProtos) == 0 {
+		return nil
+	}
+	tlsState := tlsConn.ConnectionState()
+	for _, proto := range p.config.NextProtos {
+		if proto == tlsState.NegotiatedProtocol {
+			return nil
+		}
+	}
+	return errors.New("unmatched TLS application level protocol")
+}
+
+// tlsRecordHeaderLooksLikeHTTP reports whether a TLS record header
+// looks like it might've been a misdirected plaintext HTTP request.
+func tlsRecordHeaderLooksLikeHTTP(hdr [5]byte) bool {
+	switch string(hdr[:]) {
+	case "GET /", "HEAD ", "POST ", "PUT /", "OPTIO":
+		return true
+	}
+	return false
 }

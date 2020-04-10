@@ -6,8 +6,12 @@
 package l2
 
 import (
+	"bufio"
 	"crypto/tls"
+	"errors"
 	"io"
+	"net/http"
+	"runtime"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
@@ -43,7 +47,7 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 	var (
 		fn    apinetwork.VerifyHeaderFunc
 		peer  *Peer
-		limit PayloadLengthLimit
+		limit TransportStreamFormat
 	)
 
 	// ATTENTION! Don't run "go" before checks - this will prevent an attacker from creation of multiple routines.
@@ -56,10 +60,28 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 		return nil, err
 	}
 
+	isHTTP := limit.IsHttp()
+	if isIncoming {
+		if tlsConn, ok := conn.(*tls.Conn); ok {
+			state := tlsConn.ConnectionState()
+			switch state.NegotiatedProtocol {
+			case "http/1.1":
+				isHTTP = true
+			case "":
+			default:
+				isHTTP = false
+			}
+		}
+
+		if limit.IsDefined() && limit.IsHttp() != isHTTP {
+			return nil, errors.New("expected HTTP")
+		}
+	}
+
 	c := conn
 	conn = nil // don't close by defer
 
-	runFn = func() error {
+	return func() error {
 		defer peer.transport.removeReceiver(c)
 
 		var r io.ReadCloser
@@ -69,14 +91,23 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 			r = c
 		}
 
+		if isHTTP {
+			return p.receiveHttpStream(nil, r, fn, limit)
+		}
+
 		for {
 			packet := apinetwork.ReceiverPacket{From: remote}
-			preRead, more, err := p.Protocols.ReceivePacket(&packet, fn, r, limit != NonExcessivePayloadLength)
+			preRead, more, err := p.Protocols.ReceivePacket(&packet, fn, r, limit.IsUnlimited())
 
 			switch isEOF := false; {
 			case more < 0:
-				if err == io.EOF {
+				switch err {
+				case io.EOF:
 					return nil
+				case apinetwork.ErrPossibleHTTPRequest:
+					if !limit.IsDefined() || limit.IsHttp() {
+						return p.receiveHttpStream(preRead, r, fn, limit)
+					}
 				}
 				break
 			case err == io.EOF:
@@ -85,11 +116,11 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 			case err == nil:
 				if w != nil {
 					switch {
-					case limit != DetectByFirstPayloadLength:
+					case limit != DetectByFirstPacket:
 					case more == 0:
-						limit = NonExcessivePayloadLength
+						limit = BinaryLimitedLength
 					default:
-						limit = UnlimitedPayloadLength
+						limit = BinaryUnlimitedLength
 					}
 
 					if q := peer.transport.rateQuota; q != nil {
@@ -128,8 +159,7 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 			}
 			return err
 		}
-	}
-	return runFn, nil
+	}, nil
 }
 
 func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err error) {
@@ -345,4 +375,32 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.Verif
 		}
 		return dsv, nil
 	}, nil
+}
+
+func (p PeerReceiver) receiveHttpStream(preRead []byte, r io.ReadCloser, fn apinetwork.VerifyHeaderFunc, limit TransportStreamFormat) error {
+	defer func() {
+		_ = r.Close()
+	}()
+
+	var reader *bufio.Reader
+	if len(preRead) > 0 {
+		switch string(preRead[:5]) {
+		case "GET /", "PUT /", "HEAD ", "POST ":
+		default:
+			return throw.Violation("unsupported header")
+		}
+		reader = bufio.NewReader(iokit.PrependReader(preRead, r))
+	} else {
+		reader = bufio.NewReader(r)
+	}
+
+	for {
+		req, err := http.ReadRequest(reader)
+		if err != nil {
+			return err
+		}
+		runtime.KeepAlive(req)
+		// TODO Read packet from HTTP body
+		return throw.NotImplemented()
+	}
 }

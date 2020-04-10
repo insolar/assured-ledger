@@ -30,7 +30,7 @@ func (p UnifiedProtocolSet) ReceivePacket(packet *ReceiverPacket, headerFn Verif
 	}
 
 	if _, err = packet.DeserializeMinFromBytes(preRead); err != nil {
-		return preRead, more, throw.WithDefaultSeverity(err, throw.ViolationSeverity)
+		return preRead, more, err
 	}
 
 	err = func() error {

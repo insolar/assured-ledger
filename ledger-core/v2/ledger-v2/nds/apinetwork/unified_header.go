@@ -7,6 +7,7 @@ package apinetwork
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -48,6 +49,9 @@ type Header struct {
 	N	_	K	Invalid when IsRelayRestricted == true
 */
 
+// ATTENTION! To provide compatibility with HTTP GET, PUT and POST following restrictions apply
+// 1) "POST /", "HEAD /" - Protocol=2, Packet=0 must have PacketFlags[5:] = 0
+// 2) "GET /", "PUT /" Protocol=2, Packet=0x0F is forbidden
 type ProtocolType uint8
 
 const (
@@ -256,9 +260,22 @@ func (h *Header) DeserializeFromBytes(b []byte) (uint, error) {
 	}
 }
 
+var ErrPossibleHTTPRequest = errors.New("possible HTTP request")
+
 func (h *Header) DeserializeMinFromBytes(b []byte) error {
 	byteOrder := binary.LittleEndian
 	_ = b[HeaderByteSizeMin-1]
+
+	switch b[4] {
+	case ' ':
+		// Compatibility with HTTP: "POST /" and "HEAD /"
+		if b[5] >= ' ' {
+			return ErrPossibleHTTPRequest
+		}
+	case '/':
+		// Compatibility with HTTP: "PUT /" and "GET /"
+		return ErrPossibleHTTPRequest
+	}
 
 	h.ReceiverID = byteOrder.Uint32(b)
 	h.ProtocolAndPacketType = b[4]
@@ -298,6 +315,17 @@ func (h *Header) SerializeToBytes(b []byte) (uint, error) {
 		return 0, throw.IllegalState()
 	}
 	_ = b[HeaderByteSizeMin-1]
+
+	switch h.ProtocolAndPacketType {
+	case ' ':
+		// Compatibility with HTTP: "POST /" and "HEAD /"
+		if h.PacketFlags >= ' ' {
+			return 0, ErrPossibleHTTPRequest
+		}
+	case '/':
+		// Compatibility with HTTP: "PUT /" and "GET /"
+		return 0, ErrPossibleHTTPRequest
+	}
 
 	byteOrder := binary.LittleEndian
 	byteOrder.PutUint32(b, h.ReceiverID)
