@@ -61,23 +61,6 @@ func NewDefaultMessenger(sender bus.Sender) *DefaultMessenger {
 	return &DefaultMessenger{sender: sender}
 }
 
-func main() {
-	// bus := bus.NewBus(configuration.NewBus(), nil, nil, nil, nil)
-	// serv := CreateBusService(NewDefaultMessenger(bus))
-	//
-	// pl := payload.Replication{}
-	// serv.PrepareAsync(nil, func(svc MessengerService) smachine.AsyncResultFunc {
-	// 	err := svc.SendRole(context.Background(), &pl, insolar.DynamicRoleHeavyExecutor, gen.Reference(), gen.PulseNumber())
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	//
-	// 	return func(ctx smachine.AsyncResultContext) {
-	// 		ctx.GetContext()
-	// 	}
-	// })
-}
-
 func joinOptions(opts ...SendOption) *option {
 	emptyOpts := &option{}
 	for _, opt := range opts {
