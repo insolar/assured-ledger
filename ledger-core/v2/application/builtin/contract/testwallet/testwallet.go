@@ -41,7 +41,12 @@ func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
 		return errors.New("wallet balance doesn't have enough amount")
 	}
 
-	err := testwallet.GetObject(toWallet).Accept(amount)
+	proxyWallet := testwallet.GetObject(toWallet)
+	if proxyWallet == nil {
+		return errors.New("wallet not found")
+	}
+
+	err := proxyWallet.Accept(amount)
 	if err != nil {
 		return err
 	}
