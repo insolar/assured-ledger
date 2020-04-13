@@ -8,7 +8,9 @@ package request
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type SMVCallResult struct {
@@ -40,5 +42,27 @@ func (s *SMVCallResult) GetStateMachineDeclaration() smachine.StateMachineDeclar
 }
 
 func (s *SMVCallResult) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.Payload.CallType != payload.CTMethod && s.Payload.CallType != payload.CTConstructor {
+		panic(throw.IllegalValue())
+	}
+
+	outgoingRef := reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
+	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
+	if link.IsZero() {
+		return ctx.Error(throw.E("no one is waiting", nil))
+	}
+	if bargeInCallback == nil {
+		return ctx.Error(throw.Impossible())
+	}
+
+	done := bargeInCallback.CallWithParam(s.Payload)
+	if !done {
+		return ctx.Error(throw.E("no one is waiting anymore", nil))
+	}
+
 	return ctx.Stop()
 }

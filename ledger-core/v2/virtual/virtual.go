@@ -9,10 +9,10 @@ import (
 	"context"
 	"time"
 
+	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -20,19 +20,22 @@ import (
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/request"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
+	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-type errUnknownEvent struct {
-	*log.Msg
-
-	InputType interface{} `fmt:"%T"`
-}
+// TODO[bigbes] commented until panics will show description
+// type errUnknownEvent struct {
+// 	*log.Msg
+//
+// 	InputType interface{} `fmt:"%T"`
+// }
 
 func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.CreateFunc {
 	switch event := input.(type) {
-	case *statemachine.DispatcherMessage:
+	case *virtualStateMachine.DispatcherMessage:
 		return request.HandlerFactoryMeta(event)
+	case *testWalletAPIStateMachine.TestAPICall:
+		return testWalletAPIStateMachine.Handler(event)
 	default:
 		panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
 	}
@@ -42,7 +45,7 @@ type Dispatcher struct {
 	FlowDispatcher flowDispatcher.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
-	ConveyorWorker statemachine.ConveyorWorker
+	ConveyorWorker virtualStateMachine.ConveyorWorker
 
 	// Components
 	Runner        runner.Service
@@ -62,7 +65,8 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
 		ScanCountLimit:    100000,
-		SlotMachineLogger: statemachine.ConveyorLoggerFactory{},
+		SlotMachineLogger: virtualStateMachine.ConveyorLoggerFactory{},
+		SlotAliasRegistry: &conveyor.GlobalAliases{},
 	}
 
 	defaultHandlers := DefaultHandlersFactory
@@ -81,10 +85,10 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
 	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
 
-	lr.ConveyorWorker = statemachine.NewConveyorWorker()
+	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker()
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
-	lr.FlowDispatcher = statemachine.NewConveyorDispatcher(lr.Conveyor)
+	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(lr.Conveyor)
 
 	return nil
 }

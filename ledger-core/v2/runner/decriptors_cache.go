@@ -78,7 +78,7 @@ func (c *descriptorsCache) GetPrototype(
 ) (
 	descriptor.PrototypeDescriptor, error,
 ) {
-	res, err := c.protoCache.get(ref, func() (interface{}, error) {
+	rawResult, err := c.protoCache.get(ref, func() (interface{}, error) {
 		for _, cb := range c.callbacks {
 			object, err := cb(ref)
 			if object != nil || err != nil {
@@ -87,11 +87,19 @@ func (c *descriptorsCache) GetPrototype(
 		}
 		return nil, nil
 	})
+
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get object")
+		return nil, errors.Wrap(err, "couldn't get prototype")
+	} else if rawResult == nil {
+		return nil, errors.Errorf("failed to find prototype descriptor %s", ref.String())
 	}
 
-	return res.(descriptor.PrototypeDescriptor), nil
+	result, ok := rawResult.(descriptor.PrototypeDescriptor)
+	if !ok {
+		return nil, errors.Errorf("unexpected type %T, expected PrototypeDescriptor", rawResult)
+	}
+
+	return result, nil
 }
 
 func (c *descriptorsCache) GetCode(
@@ -99,7 +107,7 @@ func (c *descriptorsCache) GetCode(
 ) (
 	descriptor.CodeDescriptor, error,
 ) {
-	res, err := c.codeCache.get(ref, func() (interface{}, error) {
+	rawResult, err := c.codeCache.get(ref, func() (interface{}, error) {
 		for _, cb := range c.callbacks {
 			object, err := cb(ref)
 			if object != nil || err != nil {
@@ -108,10 +116,19 @@ func (c *descriptorsCache) GetCode(
 		}
 		return nil, nil
 	})
+
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't get code")
+	} else if rawResult == nil {
+		return nil, errors.Errorf("failed to find code descriptor %s", ref.String())
 	}
-	return res.(descriptor.CodeDescriptor), nil
+
+	result, ok := rawResult.(descriptor.CodeDescriptor)
+	if !ok {
+		return nil, errors.Errorf("unexpected type %T, expected CodeDescriptor", rawResult)
+	}
+
+	return result, nil
 }
 
 type cache interface {

@@ -131,6 +131,8 @@ func initComponents(
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 
 	runnerService := runner.NewService()
+	err = runnerService.Init()
+	checkError(ctx, err, "failed to initialize Runner Service")
 
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
@@ -217,13 +219,12 @@ func initComponents(
 	checkError(ctx, err, "failed to init components")
 
 	// this should be done after Init due to inject
-	pm.AddDispatcher(contractRequester.FlowDispatcher)
+	pm.AddDispatcher(virtualDispatcher.FlowDispatcher)
 
 	return cm, startWatermill(
 		ctx, wmLogger, subscriber, b,
 		nw.SendMessageHandler,
 		virtualDispatcher.FlowDispatcher.Process,
-		contractRequester.FlowDispatcher.Process,
 	)
 }
 
@@ -232,7 +233,7 @@ func startWatermill(
 	logger watermill.LoggerAdapter,
 	sub message.Subscriber,
 	b *bus.Bus,
-	outHandler, inHandler, resultsHandler message.NoPublishHandlerFunc,
+	outHandler, inHandler message.NoPublishHandlerFunc,
 ) func() {
 	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
 	if err != nil {
@@ -260,13 +261,6 @@ func startWatermill(
 		sub,
 		inHandler,
 	)
-
-	inRouter.AddNoPublisherHandler(
-		"IncomingRequestResultHandler",
-		bus.TopicIncomingRequestResults,
-		sub,
-		resultsHandler)
-
 	startRouter(ctx, inRouter)
 	startRouter(ctx, outRouter)
 
