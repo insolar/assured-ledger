@@ -61,6 +61,7 @@ require (
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.21.0
 	gopkg.in/yaml.v2 v2.2.8
+	gotest.tools/gotestsum v0.4.1
 )
 
 replace github.com/insolar/assured-ledger/ledger-core/v2 => ./
