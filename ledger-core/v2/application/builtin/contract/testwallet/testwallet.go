@@ -6,6 +6,11 @@
 package testwallet
 
 import (
+	"errors"
+	"fmt"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 )
 
@@ -29,5 +34,25 @@ func (w *Wallet) Balance() (uint32, error) {
 
 func (w *Wallet) Accept(amount uint32) error {
 	w.balance += amount
+	return nil
+}
+
+func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
+	if amount > w.balance {
+		return errors.New("wallet balance doesn't have enough amount")
+	}
+
+	proxyWallet := testwallet.GetObject(toWallet)
+	if proxyWallet == nil {
+		return errors.New("toWallet is not object reference")
+	}
+
+	err := proxyWallet.Accept(amount)
+	if err != nil {
+		return fmt.Errorf("toWallet failed to accept trasfer with error: %s", err.Error())
+	}
+
+	w.balance -= amount
+
 	return nil
 }
