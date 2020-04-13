@@ -22,6 +22,7 @@ func New() (*Wallet, error) {
 	return &Wallet{balance: initialBalance}, nil
 }
 
+// ins:immutable
 func (w *Wallet) Balance() (uint32, error) {
 	return w.balance, nil
 }

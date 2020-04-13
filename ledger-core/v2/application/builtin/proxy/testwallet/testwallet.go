@@ -161,7 +161,7 @@ func (r *Wallet) GetCode() (insolar.Reference, error) {
 }
 
 // Balance is proxy generated method
-func (r *Wallet) Balance() (uint32, error) {
+func (r *Wallet) BalanceAsMutable() (uint32, error) {
 	var args [0]interface{}
 
 	var argsSerialized []byte
@@ -200,7 +200,7 @@ func (r *Wallet) Balance() (uint32, error) {
 }
 
 // BalanceAsImmutable is proxy generated method
-func (r *Wallet) BalanceAsImmutable() (uint32, error) {
+func (r *Wallet) Balance() (uint32, error) {
 	var args [0]interface{}
 
 	var argsSerialized []byte
