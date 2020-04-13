@@ -128,6 +128,17 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 			return &StateMachineAbandonedRequests{Meta: payloadMeta, Payload: &pl}
 		}
 
+	case payload.TypeVCallResult:
+		pl := payload.VCallResult{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(fmt.Sprintf("failed to unmarshal payload.VCallResult: %s", err.Error()))
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerId(traceID)
+			return &StateMachineCallResult{Meta: payloadMeta, Payload: &pl}
+		}
+
 	default:
 		panic(fmt.Sprintf(" no handler for message type %s", payloadType.String()))
 	}
