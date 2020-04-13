@@ -33,6 +33,7 @@ import (
 	noderecord "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/noderecord"
 	pkshard "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/pkshard"
 	rootdomain "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/rootdomain"
+	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 	wallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/wallet"
 
 	XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -52,6 +53,7 @@ func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
 		"noderecord":      noderecord.Initialize(),
 		"pkshard":         pkshard.Initialize(),
 		"rootdomain":      rootdomain.Initialize(),
+		"testwallet":      testwallet.Initialize(),
 		"wallet":          wallet.Initialize(),
 	}
 }
@@ -65,7 +67,7 @@ func shouldLoadRef(strRef string) XXX_insolar.Reference {
 }
 
 func InitializeCodeRefs() map[XXX_insolar.Reference]string {
-	rv := make(map[XXX_insolar.Reference]string, 12)
+	rv := make(map[XXX_insolar.Reference]string, 13)
 
 	rv[shouldLoadRef("insolar:0AAABAtrxlP_Iiq10drn2FuNMs2VppatXni7MP5Iy47g.record")] = "account"
 	rv[shouldLoadRef("insolar:0AAABAt3ka4Zhm241MIue3ibjyPHXE0GONYHMDtJEMEs.record")] = "costcenter"
@@ -78,13 +80,14 @@ func InitializeCodeRefs() map[XXX_insolar.Reference]string {
 	rv[shouldLoadRef("insolar:0AAABAvLOOIFkH6ikCcIZLil_HvpvwXFMxHvvyDwq8ls.record")] = "noderecord"
 	rv[shouldLoadRef("insolar:0AAABAhxOSY2jr3NGP38lV6vd97RpEyJYZuuBkwCcykA.record")] = "pkshard"
 	rv[shouldLoadRef("insolar:0AAABAiprNXjHYYuFbiGWyHqOhVd1kiZcuVJruipVv7s.record")] = "rootdomain"
+	rv[shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")] = "testwallet"
 	rv[shouldLoadRef("insolar:0AAABAgNCLM5-bWKjwAzmla4KxnaQenrEahCeKXgwjOE.record")] = "wallet"
 
 	return rv
 }
 
 func InitializePrototypeRefs() map[XXX_insolar.Reference]string {
-	rv := make(map[XXX_insolar.Reference]string, 12)
+	rv := make(map[XXX_insolar.Reference]string, 13)
 
 	rv[shouldLoadRef("insolar:0AAABAijqpfzqLqOhivOFDQOK5OO_gW78OzTTniCChIU")] = "account"
 	rv[shouldLoadRef("insolar:0AAABAiiIlRbDnHuBzCCo8E9V-kCUpb22kUkU2ebIsa8")] = "costcenter"
@@ -97,13 +100,14 @@ func InitializePrototypeRefs() map[XXX_insolar.Reference]string {
 	rv[shouldLoadRef("insolar:0AAABAgXJhmV8uwhpxIEfL7hqjD1wQUGg8SArUa0VOAc")] = "noderecord"
 	rv[shouldLoadRef("insolar:0AAABAiGN1L8F9gCH_keBaxOP4atp9fzLiIci7xOg-hs")] = "pkshard"
 	rv[shouldLoadRef("insolar:0AAABAu9gOQ8PRiG_hT8l-hHXMXvc89IhJBemCzzAglQ")] = "rootdomain"
+	rv[shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")] = "testwallet"
 	rv[shouldLoadRef("insolar:0AAABAgfNy9VkTWQBamlz1DPbynRrVLzRtsRo-X2YI6U")] = "wallet"
 
 	return rv
 }
 
 func InitializeCodeDescriptors() []XXX_artifacts.CodeDescriptor {
-	rv := make([]XXX_artifacts.CodeDescriptor, 0, 12)
+	rv := make([]XXX_artifacts.CodeDescriptor, 0, 13)
 
 	// account
 	rv = append(rv, XXX_artifacts.NewCodeDescriptor(
@@ -171,6 +175,12 @@ func InitializeCodeDescriptors() []XXX_artifacts.CodeDescriptor {
 		/* machineType: */ XXX_insolar.MachineTypeBuiltin,
 		/* ref:         */ shouldLoadRef("insolar:0AAABAiprNXjHYYuFbiGWyHqOhVd1kiZcuVJruipVv7s.record"),
 	))
+	// testwallet
+	rv = append(rv, XXX_artifacts.NewCodeDescriptor(
+		/* code:        */ nil,
+		/* machineType: */ XXX_insolar.MachineTypeBuiltin,
+		/* ref:         */ shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record"),
+	))
 	// wallet
 	rv = append(rv, XXX_artifacts.NewCodeDescriptor(
 		/* code:        */ nil,
@@ -182,7 +192,7 @@ func InitializeCodeDescriptors() []XXX_artifacts.CodeDescriptor {
 }
 
 func InitializePrototypeDescriptors() []XXX_artifacts.PrototypeDescriptor {
-	rv := make([]XXX_artifacts.PrototypeDescriptor, 0, 12)
+	rv := make([]XXX_artifacts.PrototypeDescriptor, 0, 13)
 
 	{ // account
 		pRef := shouldLoadRef("insolar:0AAABAijqpfzqLqOhivOFDQOK5OO_gW78OzTTniCChIU")
@@ -287,6 +297,16 @@ func InitializePrototypeDescriptors() []XXX_artifacts.PrototypeDescriptor {
 	{ // rootdomain
 		pRef := shouldLoadRef("insolar:0AAABAu9gOQ8PRiG_hT8l-hHXMXvc89IhJBemCzzAglQ")
 		cRef := shouldLoadRef("insolar:0AAABAiprNXjHYYuFbiGWyHqOhVd1kiZcuVJruipVv7s.record")
+		rv = append(rv, XXX_artifacts.NewPrototypeDescriptor(
+			/* head:         */ pRef,
+			/* state:        */ *pRef.GetLocal(),
+			/* code:         */ cRef,
+		))
+	}
+
+	{ // testwallet
+		pRef := shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+		cRef := shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")
 		rv = append(rv, XXX_artifacts.NewPrototypeDescriptor(
 			/* head:         */ pRef,
 			/* state:        */ *pRef.GetLocal(),
