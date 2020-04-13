@@ -15,7 +15,7 @@ type Wallet struct {
 	balance uint32
 }
 
-const initialBalance = 10000
+const initialBalance = 1000000000
 
 // New creates new wallet.
 func New() (*Wallet, error) {
