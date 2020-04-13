@@ -12,9 +12,12 @@ import (
 // Wallet - basic wallet contract.
 type Wallet struct {
 	foundation.BaseContract
+	balance uint32
 }
+
+const initialBalance = 10000
 
 // New creates new wallet.
 func New() (*Wallet, error) {
-	return &Wallet{}, nil
+	return &Wallet{balance: initialBalance}, nil
 }
