@@ -7,6 +7,7 @@ package testwallet
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -48,7 +49,7 @@ func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
 
 	err := proxyWallet.Accept(amount)
 	if err != nil {
-		return err
+		return fmt.Errorf("toWallet failed to accept trasfer with error: %s", err.Error())
 	}
 
 	w.balance -= amount
