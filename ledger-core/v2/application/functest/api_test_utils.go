@@ -33,6 +33,7 @@ const (
 )
 
 func init() {
+	rand.Seed(time.Now().Unix())
 	httpClient = createHTTPClient()
 }
 
@@ -92,7 +93,6 @@ func getURL(path, host, port string) string {
 		host = defaultHost
 	}
 	if port == "" {
-		rand.Seed(time.Now().Unix())
 		port = nodesPorts[rand.Intn(len(nodesPorts))]
 	}
 	res := "http://" + host + ":" + port + path
