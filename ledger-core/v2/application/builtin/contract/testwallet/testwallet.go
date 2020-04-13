@@ -43,7 +43,7 @@ func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
 
 	proxyWallet := testwallet.GetObject(toWallet)
 	if proxyWallet == nil {
-		return errors.New("wallet not found")
+		return errors.New("toWallet is not object reference")
 	}
 
 	err := proxyWallet.Accept(amount)
