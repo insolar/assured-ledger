@@ -21,3 +21,13 @@ const initialBalance = 1000000000
 func New() (*Wallet, error) {
 	return &Wallet{balance: initialBalance}, nil
 }
+
+// ins:immutable
+func (w *Wallet) Balance() (uint32, error) {
+	return w.balance, nil
+}
+
+func (w *Wallet) Accept(amount uint32) error {
+	w.balance += amount
+	return nil
+}
