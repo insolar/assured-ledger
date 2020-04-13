@@ -59,7 +59,7 @@ func (*simpleSelectionStrategy) SelectOnStopped(globulaStats *nodeset.ConsensusS
 	return NewSelection(!absMajority, resultSet)
 }
 
-func consensusDecisionOfNode(tc *nodeset.ConsensusStatColumn, absMajority bool, bftMajority uint16) nodeset.ConsensusBitsetEntry {
+func consensusDecisionOfNode(tc *nodeset.ConsensusStatColumn, _ bool, bftMajority uint16) nodeset.ConsensusBitsetEntry {
 
 	switch {
 	case tc.GetSummaryByValue(nodeset.ConsensusStatTrusted)+tc.GetSummaryByValue(nodeset.ConsensusStatDoubted) >= bftMajority:

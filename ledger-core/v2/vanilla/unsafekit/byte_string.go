@@ -131,6 +131,7 @@ func _unwrapUnsafeUintptr(s longbits.ByteString) uintptr {
 	return ((*reflect.StringHeader)(unsafe.Pointer(&s))).Data
 }
 
+// nolint
 func unwrapUnsafe(s longbits.ByteString, fn func([]byte) uintptr) uintptr {
 	return KeepAliveWhile(unsafe.Pointer(&s), func(p unsafe.Pointer) uintptr {
 		pString := (*reflect.StringHeader)(p)

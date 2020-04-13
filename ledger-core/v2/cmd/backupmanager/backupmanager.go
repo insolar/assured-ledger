@@ -50,20 +50,6 @@ func stopDB(ctx context.Context, bdb *store.BadgerDB, originalError error) {
 	}
 }
 
-func closeRawDB(bdb *badger.DB, originalError error) {
-	closeError := bdb.Close()
-	if closeError != nil {
-		closeError = errors.Wrap(originalError, "failed to close badger.DB")
-		global.Error(closeError.Error())
-	}
-	if originalError != nil {
-		global.Error(originalError.Error())
-	}
-	if originalError != nil || closeError != nil {
-		Exit(1)
-	}
-}
-
 type BadgerLogger struct {
 	log.Logger
 }
@@ -75,21 +61,6 @@ func (b BadgerLogger) Warningf(fmt string, args ...interface{}) {
 var (
 	badgerLogger BadgerLogger
 )
-
-func isDBEmpty(bdb *badger.DB) error {
-	tableInfo := bdb.Tables(true)
-	if len(tableInfo) != 0 {
-		return errors.New("tableInfo is not empty")
-	}
-
-	lsm, vlog := bdb.Size()
-	if lsm != 0 || vlog != 0 {
-		global.Infof("lsm: %zd, vlog: %zd", lsm, vlog)
-		return errors.New("lsm or vlog are not empty")
-	}
-
-	return nil
-}
 
 func finalizeLastPulse(ctx context.Context, bdb *store.BadgerDB) (insolar.PulseNumber, error) {
 	pulsesDB := pulse.NewDB(bdb)

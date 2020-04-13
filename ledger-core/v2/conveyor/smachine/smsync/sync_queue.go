@@ -59,10 +59,10 @@ func (p *queueControllerTemplate) GetName() string {
 	return p.name
 }
 
-func (p *queueControllerTemplate) enum(qId int, fn smachine.EnumQueueFunc) bool {
+func (p *queueControllerTemplate) enum(qID int, fn smachine.EnumQueueFunc) bool {
 	for item := p.queue.head.QueueNext(); item != nil; item = item.QueueNext() {
 		flags := item.getFlags()
-		if fn(qId, item.link, flags) {
+		if fn(qID, item.link, flags) {
 			return true
 		}
 	}
@@ -268,7 +268,9 @@ func (p *dependencyQueueEntry) IsReleaseOnWorking() bool {
 			return true
 		}
 		result := queue.controller.HasToReleaseOn(p.link, p.slotFlags, func() bool {
+			// nolint
 			done = queue == p.getQueue()
+			// nolint
 			return done
 		})
 		if done {
@@ -296,7 +298,9 @@ func (p *dependencyQueueEntry) _release(chkAndRemoveFn func(*dependencyQueueHead
 			return nil, nil
 		}
 		pd, sl := queue.controller.SafeRelease(p, func() bool {
+			// nolint
 			done = chkAndRemoveFn(queue)
+			// nolint
 			return done
 		})
 		if done {

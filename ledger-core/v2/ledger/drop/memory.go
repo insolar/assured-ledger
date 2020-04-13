@@ -24,7 +24,7 @@ type dropStorageMemory struct {
 }
 
 // NewStorageMemory creates a new storage, that holds data in a memory.
-func NewStorageMemory() *dropStorageMemory { // nolint: golint
+func NewStorageMemory() *dropStorageMemory { // nolint:golint
 	return &dropStorageMemory{
 		drops: map[dropKey]Drop{},
 	}

@@ -170,6 +170,9 @@ func (i *IndexDB) ForPulse(ctx context.Context, pn insolar.PulseNumber) ([]recor
 
 		index := record.Index{}
 		rawIndex, err := it.Value()
+		if err != nil {
+			return nil, errors.Wrap(err, "Can't get rawIndex")
+		}
 		err = index.Unmarshal(rawIndex)
 		if err != nil {
 			return nil, errors.Wrap(err, "Can't unmarshal index")

@@ -27,7 +27,7 @@ type declarationSetResult struct {
 
 func (*declarationSetResult) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	s := sm.(*SetResult)
-	injector.MustInjectById("bus.Sender", &s.sender)
+	injector.MustInjectByID("bus.Sender", &s.sender)
 }
 
 func (*declarationSetResult) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {

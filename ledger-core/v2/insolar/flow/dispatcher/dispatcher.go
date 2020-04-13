@@ -148,7 +148,7 @@ func (d *dispatcher) Process(msg *message.Message) error {
 	return nil
 }
 
-func pulseFromString(p string) (insolar.PulseNumber, error) {
+func pulseFromString(p string) (insolar.PulseNumber, error) { // nolint:deadcode,unused
 	u64, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return insolar.PulseNumber(0), errors.Wrap(err, "can't convert string value to pulse")

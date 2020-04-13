@@ -204,6 +204,7 @@ func (s *Slot) vacateQueueHead() {
 	s.prevInQueue = nil
 }
 
+// nolint:unused
 func (s *Slot) makeQueueHead() {
 	s.ensureNotInQueue()
 

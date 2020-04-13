@@ -35,7 +35,7 @@ func main() {
 	}
 }
 
-func runInsolardServer(configPath string, genesisConfigPath string) {
+func runInsolardServer(configPath string, _ string) {
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	s := server.NewHeadlessNetworkNodeServer(configPath)

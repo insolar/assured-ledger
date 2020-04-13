@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const firstOddPrimeIndex = 1
+
 func TestPrime(t *testing.T) {
 	require.Equal(t, 2, Prime(0))
 	require.Equal(t, 3, Prime(1))

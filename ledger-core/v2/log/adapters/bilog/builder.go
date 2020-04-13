@@ -68,7 +68,7 @@ func (f binLogFactory) CreateNewLogger(params logcommon.NewLoggerParams) (logcom
 
 func (f binLogFactory) createEncoderFactory(outFormat logcommon.LogFormat) (msgencoder.EncoderFactory, error) {
 	switch outFormat {
-	case logcommon.JsonFormat:
+	case logcommon.JSONFormat:
 		return json.EncoderManager(), nil
 	case logcommon.TextFormat:
 		return text.EncoderManager(), nil
@@ -121,13 +121,13 @@ func (f binLogFactory) createLogger(params logcommon.NewLoggerParams, template *
 		expectedEventLen: anticipatedFieldBuffer,
 	}
 
-	if encoderFactory, err := f.createEncoderFactory(outFormat); err != nil {
+	encoderFactory, err := f.createEncoderFactory(outFormat)
+	if err != nil {
 		return nil, err
-	} else {
-		la.encoder = encoderFactory.CreateEncoder(params.Config.MsgFormat)
-		if la.encoder == nil {
-			return nil, errors.New("encoder factory has failed: " + outFormat.String())
-		}
+	}
+	la.encoder = encoderFactory.CreateEncoder(params.Config.MsgFormat)
+	if la.encoder == nil {
+		return nil, errors.New("encoder factory has failed: " + outFormat.String())
 	}
 
 	{ // replacement and inheritance for ctxFields

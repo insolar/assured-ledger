@@ -114,7 +114,7 @@ func main() {
 			global.Fatal("couldn't setup metrics ", err)
 		}
 
-		defer m.Stop(ctx) // nolint: errcheck
+		defer m.Stop(ctx) // nolint:errcheck
 	}
 
 	global.Debug("ginsider launched, listens " + *listen)

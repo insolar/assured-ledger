@@ -36,7 +36,7 @@ type GlobuleProof struct {
 	NodeRoot      []byte
 }
 
-func (gp *GlobuleProof) hash(globuleHash []byte, helper *merkleHelper) []byte {
+func (gp *GlobuleProof) hash(globuleHash []byte, _ *merkleHelper) []byte {
 	return globuleHash
 }
 

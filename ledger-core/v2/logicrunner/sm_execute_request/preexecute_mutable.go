@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_execute_request
+package sm_execute_request // nolint:golint
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -52,11 +52,6 @@ func (s *SMPreExecuteMutable) stepTakeLock(ctx smachine.ExecutionContext) smachi
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	return ctx.Jump(s.stepSpawnExecution)
-}
-
-func (s *SMPreExecuteMutable) stepCheckOrdering(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// passing right now
 	return ctx.Jump(s.stepSpawnExecution)
 }
 

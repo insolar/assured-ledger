@@ -15,30 +15,30 @@ type MachineLogger struct {
 }
 
 func (MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg string) {
-	fmt.Printf("[MACHINE][LOG] %s[%3d]: %03d @ %03d: internal %s err=%v\n", data.StepNo.MachineId(), data.CycleNo,
+	fmt.Printf("[MACHINE][LOG] %s[%3d]: %03d @ %03d: internal %s err=%v\n", data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, data.Error)
 }
 
 func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
-	fmt.Printf("[MACHINE][ERR] %s[%3d]: %03d @ %03d: internal %s err=%v\n", data.StepNo.MachineId(), data.CycleNo,
+	fmt.Printf("[MACHINE][ERR] %s[%3d]: %03d @ %03d: internal %s err=%v\n", data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, data.Error)
 }
 
-func (MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerId) smachine.StepLogger {
+func (MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
 	return conveyorStepLogger{ctx, sm, tracer}
 }
 
 type conveyorStepLogger struct {
 	ctx    context.Context
 	sm     smachine.StateMachine
-	tracer smachine.TracerId
+	tracer smachine.TracerID
 }
 
 func (conveyorStepLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
 	return true
 }
 
-func (v conveyorStepLogger) GetTracerId() smachine.TracerId {
+func (v conveyorStepLogger) GetTracerID() smachine.TracerID {
 	return v.tracer
 }
 
@@ -93,7 +93,7 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 	}
 
 	if data.Error == nil {
-		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v\n", data.StepNo.MachineId(), data.CycleNo,
+		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v\n", data.StepNo.MachineID(), data.CycleNo,
 			data.StepNo.SlotID(), data.StepNo.StepNo(),
 			special, upd.UpdateType, detached, durations,
 			data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(), v.sm, v.tracer)
@@ -110,7 +110,7 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 		errSpecial = "recover-denied "
 	}
 
-	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v err=%v\n", data.StepNo.MachineId(), data.CycleNo,
+	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v err=%v\n", data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
 		special, errSpecial, upd.UpdateType, detached, data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(), v.sm, v.tracer, data.Error)
 }
@@ -119,11 +119,11 @@ func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType
 	v.prepareStepName(&data.CurrentStep)
 
 	if data.Error == nil {
-		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v\n", data.StepNo.MachineId(), data.CycleNo,
+		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v\n", data.StepNo.MachineID(), data.CycleNo,
 			data.StepNo.SlotID(), data.StepNo.StepNo(),
 			updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer)
 	} else {
-		fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v err=%v\n", data.StepNo.MachineId(), data.CycleNo,
+		fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v err=%v\n", data.StepNo.MachineID(), data.CycleNo,
 			data.StepNo.SlotID(), data.StepNo.StepNo(),
 			updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer, data.Error)
 	}
@@ -146,12 +146,12 @@ func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent i
 	case smachine.StepLoggerFatal:
 		special = "FTL"
 	default:
-		fmt.Printf("[U%d] %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v custom=%v\n", data.EventType, data.StepNo.MachineId(), data.CycleNo,
+		fmt.Printf("[U%d] %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v custom=%v\n", data.EventType, data.StepNo.MachineID(), data.CycleNo,
 			data.StepNo.SlotID(), data.StepNo.StepNo(),
 			data.CurrentStep.GetStepName(), v.sm, v.tracer, customEvent)
 		return
 	}
-	fmt.Printf("[%s] %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v custom=%v\n", special, data.StepNo.MachineId(), data.CycleNo,
+	fmt.Printf("[%s] %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v custom=%v\n", special, data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
 		data.CurrentStep.GetStepName(), v.sm, v.tracer, customEvent)
 
@@ -160,7 +160,7 @@ func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent i
 	}
 }
 
-func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterId smachine.AdapterId, callId uint64, fields []logfmt.LogFieldMarshaller) {
+func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
 	//case smachine.StepLoggerAdapterCall:
 	s := "?"
 	switch data.Flags & smachine.StepLoggerAdapterMask {
@@ -173,7 +173,7 @@ func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterId s
 	case smachine.StepLoggerAdapterAsyncCancel:
 		s = "async-cancel"
 	}
-	fmt.Printf("[ADP] %s %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v adapter=%v/%v\n", s, data.StepNo.MachineId(), data.CycleNo,
+	fmt.Printf("[ADP] %s %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v adapter=%v/%v\n", s, data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
-		data.CurrentStep.GetStepName(), v.sm, v.tracer, adapterId, callId)
+		data.CurrentStep.GetStepName(), v.sm, v.tracer, adapterID, callID)
 }

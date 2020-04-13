@@ -102,9 +102,9 @@ func (g *GameRandom) stepGetShared(ctx smachine.ExecutionContext) smachine.State
 	return ctx.WaitAny().ThenRepeat()
 }
 
-func (g *GameRandom) stepDone(ctx smachine.InitializationContext) smachine.StateUpdate {
-	return ctx.Stop()
-}
+// func (g *GameRandom) stepDone(ctx smachine.InitializationContext) smachine.StateUpdate {
+// 	return ctx.Stop()
+// }
 
 func (g *GameRandom) stepBetRound(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if g.accessShared(ctx, func(sd *sharedGameRandom) bool {

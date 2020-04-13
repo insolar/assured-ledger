@@ -125,3 +125,14 @@ func BenchmarkTestNil(t *testing.B) {
 		}
 	})
 }
+
+func reflectIsNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return rv.IsNil()
+	}
+	return false
+}

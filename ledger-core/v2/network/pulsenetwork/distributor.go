@@ -27,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/future"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/sequence"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -168,9 +167,9 @@ func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
 
 }
 
-func (d *distributor) generateID() types.RequestID {
-	return types.RequestID(d.idGenerator.Generate())
-}
+// func (d *distributor) generateID() types.RequestID {
+// 	return types.RequestID(d.idGenerator.Generate())
+// }
 
 func (d *distributor) sendPulseToHost(ctx context.Context, p *insolar.Pulse, host string) error {
 	logger := inslogger.FromContext(ctx)

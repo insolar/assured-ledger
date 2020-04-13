@@ -232,12 +232,13 @@ func (v *Global) UnmarshalJSON(data []byte) error {
 
 	switch realRepr := repr.(type) {
 	case string:
-		if decoded, err := DefaultDecoder().Decode(realRepr); err != nil {
+		decoded, err := DefaultDecoder().Decode(realRepr)
+		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal reference.Global")
-		} else {
-			v.addressLocal = *decoded.GetLocal()
-			v.addressBase = *decoded.GetBase()
 		}
+
+		v.addressLocal = *decoded.GetLocal()
+		v.addressBase = *decoded.GetBase()
 	case nil:
 	default:
 		return errors.Wrapf(err, "unexpected type %T when unmarshal reference.Global", repr)

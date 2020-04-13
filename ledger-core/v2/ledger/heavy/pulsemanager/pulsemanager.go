@@ -24,7 +24,7 @@ import (
 
 // PulseManager implements insolar.PulseManager.
 type PulseManager struct {
-	NodeNet            network.NodeNetwork         `inject:""`
+	NodeNet            network.NodeNetwork         `inject:""` // nolint
 	NodeSetter         node.Modifier               `inject:""`
 	Nodes              node.Accessor               `inject:""`
 	PulseAppender      pulse.Appender              `inject:""`

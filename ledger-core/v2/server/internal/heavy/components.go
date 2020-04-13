@@ -66,7 +66,7 @@ type components struct {
 	replicator executor.HeavyReplicator
 }
 
-func initTemporaryCertificateManager(ctx context.Context, cfg *configuration.Configuration) (*certificate.CertificateManager, error) {
+func initTemporaryCertificateManager(_ context.Context, cfg *configuration.Configuration) (*certificate.CertificateManager, error) {
 	earlyComponents := component.NewManager(nil)
 
 	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)

@@ -97,8 +97,6 @@ func (s *ExecuteOutgoingRequest) stepRegisterOutgoing(ctx smachine.ExecutionCont
 					s.Result = s.requestInfo.Result
 				}
 			}
-
-			return
 		}
 	}).DelayedStart().Sleep().ThenJump(s.stepSendCallMethod)
 }

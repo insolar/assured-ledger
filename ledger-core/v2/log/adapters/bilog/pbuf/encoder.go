@@ -55,10 +55,10 @@ type pbufEncoder struct {
 	enableFmt bool
 }
 
-const LevelFieldId = 16
-const TypeFieldId = 17
-const KeyFieldId = 18
-const ValueFieldId = 19
+const LevelFieldID = 16
+const TypeFieldID = 17
+const KeyFieldID = 18
+const ValueFieldID = 19
 
 const ErrorFieldType = reflect.Kind(100)
 const TimeFieldType = reflect.Kind(101)
@@ -66,18 +66,18 @@ const DurationFieldType = reflect.Kind(102)
 
 var fieldLogEntry = protokit.WireBytes.Tag(20)
 
-var fieldLevel = protokit.WireVarint.Tag(LevelFieldId)
-var fieldType = protokit.WireVarint.Tag(TypeFieldId)
-var fieldKeyId = protokit.WireVarint.Tag(KeyFieldId)
-var fieldKeyName = protokit.WireBytes.Tag(KeyFieldId)
+var fieldLevel = protokit.WireVarint.Tag(LevelFieldID)
+var fieldType = protokit.WireVarint.Tag(TypeFieldID)
+var fieldKeyID = protokit.WireVarint.Tag(KeyFieldID)
+var fieldKeyName = protokit.WireBytes.Tag(KeyFieldID)
 
 func (p pbufEncoder) appendKey(dst []byte, key string, fk reflect.Kind, wt protokit.WireType) (*encodeBuf, protokit.WireTag) {
 	b := &encodeBuf{dst}
 	if id, ok := p.names[key]; ok {
-		if id > ValueFieldId && id <= protokit.MaxFieldId {
+		if id > ValueFieldID && id <= protokit.MaxFieldID {
 			return b, wt.Tag(id)
 		}
-		fieldKeyId.MustWrite(b, uint64(id))
+		fieldKeyID.MustWrite(b, uint64(id))
 	} else {
 		if fk != reflect.Invalid && p.encodeType {
 			fieldType.MustWrite(b, uint64(fk))
@@ -88,7 +88,7 @@ func (p pbufEncoder) appendKey(dst []byte, key string, fk reflect.Kind, wt proto
 			panic(err)
 		}
 	}
-	return b, wt.Tag(ValueFieldId)
+	return b, wt.Tag(ValueFieldID)
 }
 
 const prependFieldSize = 2                                   // = fieldLogEntry.TagSize()

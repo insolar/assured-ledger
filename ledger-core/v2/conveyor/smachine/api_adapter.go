@@ -9,9 +9,9 @@ import (
 	"context"
 )
 
-type AdapterId string
+type AdapterID string
 
-func (v AdapterId) IsEmpty() bool {
+func (v AdapterID) IsEmpty() bool {
 	return len(v) == 0
 }
 

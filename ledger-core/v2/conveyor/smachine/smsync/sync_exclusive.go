@@ -140,21 +140,21 @@ func (p *exclusiveQueueController) SafeRelease(entry *dependencyQueueEntry, chkA
 	}
 }
 
-func (p *exclusiveQueueController) enum(qId int, fn smachine.EnumQueueFunc) bool {
+func (p *exclusiveQueueController) enum(qID int, fn smachine.EnumQueueFunc) bool {
 	item := p.queue.head.QueueNext()
 	if item == nil {
 		return false
 	}
 
 	flags := item.getFlags()
-	if fn(qId, item.link, flags) {
+	if fn(qID, item.link, flags) {
 		return true
 	}
-	qId--
+	qID--
 
 	for item = item.QueueNext(); item != nil; item = item.QueueNext() {
 		flags := item.getFlags()
-		if fn(qId, item.link, flags) {
+		if fn(qID, item.link, flags) {
 			return true
 		}
 	}

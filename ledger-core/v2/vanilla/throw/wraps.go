@@ -9,17 +9,12 @@ import (
 	"errors"
 )
 
-type bypassWrapper interface {
-	logStringer
-	bypassWrapper()
-}
-
 type msgWrap struct {
 	st  StackTrace
 	msg string
 }
 
-func (v msgWrap) bypassWrapper() {}
+func (v msgWrap) bypassWrapper() {} // nolint:unused
 
 func (v msgWrap) Cause() error {
 	return errString(v.msg)
@@ -78,7 +73,7 @@ type stackWrap struct {
 	err       error
 }
 
-func (v stackWrap) bypassWrapper() {}
+func (v stackWrap) bypassWrapper() {} // nolint:unused
 
 func (v stackWrap) ShallowStackTrace() StackTrace {
 	return v.st
@@ -123,7 +118,7 @@ type panicWrap struct {
 	stDeepMod DeepestStackMode
 }
 
-func (v fmtWrap) bypassWrapper() {}
+func (v fmtWrap) bypassWrapper() {} // nolint:unused
 
 func (v panicWrap) Cause() error {
 	if err := v.Unwrap(); err != nil {
@@ -200,7 +195,7 @@ func (v fmtWrap) ExtraInfo() (string, interface{}) {
 /*******************************************************************/
 
 type detailsWrap struct {
-	_logignore   struct{} // will be ignored by struct-logger
+	//_logignore   struct{} // will be ignored by struct-logger
 	err          error
 	details      fmtWrap
 	isComparable bool

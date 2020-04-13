@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_request
+package sm_request // nolint:golint
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 type logProcessing struct {
 	*log.Msg `txt:"processing message"`
 
-	message_type string
+	messageType string
 }
 
 func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
@@ -37,7 +37,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
-	logger.Error(logProcessing{message_type: payloadType.String()})
+	logger.Error(logProcessing{messageType: payloadType.String()})
 
 	switch payloadType {
 	case payload.TypeCallMethod:
@@ -47,7 +47,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineCallMethod{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -58,7 +58,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineSagaAccept{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -69,7 +69,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineUpdateJet{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -80,7 +80,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachinePendingFinished{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -91,7 +91,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineExecutorResults{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -102,7 +102,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineStillExecuting{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -113,7 +113,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineAdditionalCall{Meta: payloadMeta, Payload: &pl}
 		}
 
@@ -124,7 +124,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineAbandonedRequests{Meta: payloadMeta, Payload: &pl}
 		}
 

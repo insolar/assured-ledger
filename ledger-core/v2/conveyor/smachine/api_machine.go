@@ -12,7 +12,7 @@ type MachineCallFunc func(MachineCallContext)
 // Provides easy-to-use access to functions of the SlotMachine that require a proper worker / concurrency control
 type MachineCallContext interface {
 	SlotMachine() *SlotMachine
-	GetMachineId() string
+	GetMachineID() string
 
 	AddNew(context.Context, StateMachine, CreateDefaultValues) SlotLink
 	AddNewByFunc(context.Context, CreateFunc, CreateDefaultValues) (SlotLink, bool)

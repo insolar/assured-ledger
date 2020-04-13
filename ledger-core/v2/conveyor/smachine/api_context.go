@@ -92,8 +92,8 @@ type ConstructionContext interface {
 	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
 	SetLogTracing(bool)
 
-	// SetTracerId sets tracer id for the slot. This can't be directly changed after construction. See UpdateDefaultStepLogger()
-	SetTracerId(TracerId)
+	// SetTracerID sets tracer id for the slot. This can't be directly changed after construction. See UpdateDefaultStepLogger()
+	SetTracerID(TracerID)
 }
 
 type StepLoggerUpdateFunc func(StepLogger, StepLoggerFactoryFunc) StepLogger

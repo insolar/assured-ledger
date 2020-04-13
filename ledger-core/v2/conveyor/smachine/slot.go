@@ -43,15 +43,15 @@ type Slot struct {
 // stateMachineData contains details about specific StateMachine instance
 type stateMachineData struct {
 	declaration     StateMachineHelper
-	shadowMigrate   ShadowMigrateFunc // runs for all subroutines
-	stepLogger      StepLogger
-	defTerminate    internalTerminationHandlerFunc
-	defMigrate      MigrateFunc
-	defErrorHandler ErrorHandlerFunc
-	defFlags        StepFlags
+	shadowMigrate   ShadowMigrateFunc              // nolint runs for all subroutines
+	stepLogger      StepLogger                     // nolint
+	defTerminate    internalTerminationHandlerFunc // nolint
+	defMigrate      MigrateFunc                    // nolint
+	defErrorHandler ErrorHandlerFunc               // nolint
+	defFlags        StepFlags                      // nolint
 
 	// DO NOT modify content of this map
-	inheritable map[string]interface{}
+	inheritable map[string]interface{} // nolint
 
 	stateStack *stackedStateMachineData
 }
@@ -67,6 +67,7 @@ type stackedStateMachineData struct {
 	hasMigrates bool
 }
 
+// nolint
 type slotData struct {
 	parent SlotLink
 	ctx    context.Context
@@ -116,13 +117,13 @@ const (
 
 const stepIncrement uint64 = 1 << stepIncrementShift
 const slotFlagBusy uint64 = 1 << slotFlagBusyShift
-const slotIdMask = slotFlagBusy - 1
+const slotIDMask = slotFlagBusy - 1
 
 //see also numberOfReservedSteps
 
 /*
 	Slot and step numbers are interpreted together with isBusy flag:
-	[step] [busy] [slotId]
+	[step] [busy] [slotID]
 	[  0 ] [  0 ] [    0 ] slot is unused and is owned by a slot pool
 	[  N ] [  0 ] [   >0 ] slot is in use and is not owned by a slot pool
 	[  N ] [  1 ] [    N ] slot is in use and is not owned by a slot pool
@@ -186,13 +187,13 @@ func (s *Slot) unsetMachine() bool {
 	return atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&s.machine)), nil) != nil
 }
 
-func (s *Slot) invalidateSlotId() {
+func (s *Slot) invalidateSlotID() {
 	for {
 		v := atomic.LoadUint64(&s.idAndStep)
 		if SlotID(v).IsUnknown() || v <= slotFlagBusy {
 			panic("illegal state")
 		}
-		if atomic.CompareAndSwapUint64(&s.idAndStep, v, slotFlagBusy|v&^slotIdMask) {
+		if atomic.CompareAndSwapUint64(&s.idAndStep, v, slotFlagBusy|v&^slotIDMask) {
 			return
 		}
 	}
@@ -225,6 +226,7 @@ func (s *Slot) _slotAllocated(id SlotID) {
 	}
 }
 
+// nolint:unused
 func (s *Slot) _trySetFlag(f uint64) (bool, uint64) {
 	for {
 		v := atomic.LoadUint64(&s.idAndStep)
@@ -238,6 +240,7 @@ func (s *Slot) _trySetFlag(f uint64) (bool, uint64) {
 	}
 }
 
+// nolint:unused
 func (s *Slot) _setFlag(f uint64) uint64 {
 	ok, v := s._trySetFlag(f)
 	if !ok {
@@ -246,6 +249,7 @@ func (s *Slot) _setFlag(f uint64) uint64 {
 	return v
 }
 
+// nolint:unused
 func (s *Slot) _unsetFlag(f uint64) uint64 {
 	for {
 		v := atomic.LoadUint64(&s.idAndStep)
@@ -294,10 +298,10 @@ func (s *Slot) _tryStartSlot(minStepNo uint32) (isEmpty, isStarted bool, prevSte
 	}
 }
 
-func (s *Slot) _tryStartWithId(slotId SlotID, minStepNo uint32) (isValid, isStarted bool, prevStepNo uint32) {
+func (s *Slot) _tryStartWithID(slotID SlotID, minStepNo uint32) (isValid, isStarted bool, prevStepNo uint32) { // nolint:unparam
 	for {
 		v := atomic.LoadUint64(&s.idAndStep)
-		if v == 0 /* isEmpty() */ || SlotID(v) != slotId {
+		if v == 0 /* isEmpty() */ || SlotID(v) != slotID {
 			return false, false, 0
 		}
 
@@ -430,6 +434,7 @@ func (s *Slot) removeHeadedQueue() *Slot {
 	return nextDep
 }
 
+// nolint:unused
 func (s *Slot) ensureLocal(link SlotLink) {
 	switch m := s.getMachine(); {
 	case m == nil:
@@ -589,9 +594,9 @@ func (s *Slot) setStepLoggerAfterInit(updateFn StepLoggerUpdateFunc) {
 	newStepLogger := updateFn(s.stepLogger, s.getMachine().config.SlotMachineLogger.CreateStepLogger)
 
 	if newStepLogger == nil && s.stepLogger != nil {
-		tracerId := s.stepLogger.GetTracerId()
-		if len(tracerId) > 0 {
-			newStepLogger = StepLoggerStub{tracerId}
+		tracerID := s.stepLogger.GetTracerID()
+		if len(tracerID) > 0 {
+			newStepLogger = StepLoggerStub{TracerID: tracerID}
 		}
 	}
 	s.stepLogger = newStepLogger
@@ -624,11 +629,11 @@ func (s *Slot) setTracing(b bool) {
 	}
 }
 
-func (s *Slot) getTracerId() TracerId {
+func (s *Slot) getTracerID() TracerID {
 	if s.stepLogger == nil {
 		return ""
 	}
-	return s.stepLogger.GetTracerId()
+	return s.stepLogger.GetTracerID()
 }
 
 func (s *Slot) updateBoostFlag() {

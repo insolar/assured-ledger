@@ -6,14 +6,10 @@
 package gateway
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 )
 
-var (
-	tagNodeRef = insmetrics.MustTagKey("nodeRef")
-)
 
 var (
 	statPulse = stats.Int64(

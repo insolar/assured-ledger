@@ -6,11 +6,12 @@
 package logfmt
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 )
@@ -23,8 +24,7 @@ type fieldFmtReceiver struct {
 }
 
 func (f fieldFmtReceiver) def(t reflect.Kind) bool {
-	switch f.receiver.fmtTag {
-	case fmtTagText:
+	if f.receiver.fmtTag == fmtTagText {
 		f.w.AddStrField(f.receiver.key, f.receiver.fmtStr, LogFieldFormat{Kind: t})
 		return true
 	}

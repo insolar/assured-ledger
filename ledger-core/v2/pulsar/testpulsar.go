@@ -38,7 +38,7 @@ func NewTestPulsar(
 
 func (p *TestPulsar) SendPulse(ctx context.Context) error {
 	timeNow := time.Now()
-	pulseNumber := insolar.PulseNumber(pulse.OfTime(timeNow))
+	pulseNumber := pulse.OfTime(timeNow)
 
 	pls := insolar.Pulse{
 		PulseNumber:      pulseNumber,

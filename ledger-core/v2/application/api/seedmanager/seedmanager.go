@@ -82,7 +82,7 @@ func (sm *SeedManager) Add(seed Seed, pulse insolar.PulseNumber) {
 }
 
 func (sm *SeedManager) isExpired(ts time.Time) bool {
-	return time.Now().Sub(ts) > sm.ttl
+	return time.Since(ts) > sm.ttl
 }
 
 // Pop deletes and returns seed from the pool

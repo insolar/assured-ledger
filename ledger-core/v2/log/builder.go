@@ -206,11 +206,11 @@ func (z LoggerBuilder) BuildLowLatency() (Logger, error) {
 }
 
 func (z LoggerBuilder) build(needsLowLatency bool) (Logger, error) {
-	if el, err := z.buildEmbedded(needsLowLatency); err != nil {
+	el, err := z.buildEmbedded(needsLowLatency)
+	if err != nil {
 		return Logger{}, err
-	} else {
-		return WrapEmbeddedLogger(el), nil
 	}
+	return WrapEmbeddedLogger(el), nil
 }
 
 func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLogger, error) {
@@ -259,7 +259,8 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 			case needsLowLatency && !origConfig.LoggerOutput.IsLowLatencySupported():
 				// ... LL support is missing
 			default:
-				params := logcommon.CopyLoggerParams{reqs, z.level, z.fields, z.dynFields}
+				params := logcommon.CopyLoggerParams{
+					Reqs: reqs, Level: z.level, AppendFields: z.fields, AppendDynFields: z.dynFields}
 				if logger := template.CopyTemplateLogger(params); logger != nil {
 					return logger, nil
 				}
@@ -297,18 +298,16 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 	z.cfg.Metrics = metrics
 	z.cfg.LoggerOutput = output
 
-	params := logcommon.NewLoggerParams{reqs, z.level, z.fields, z.dynFields, z.cfg}
+	params := logcommon.NewLoggerParams{
+		Reqs: reqs, Level: z.level, Fields: z.fields, DynFields: z.dynFields, Config: z.cfg}
 	return z.factory.CreateNewLogger(params)
 }
 
 func (z LoggerBuilder) prepareOutput(metrics *logcommon.MetricsHelper, needsLowLatency bool) (logcommon.LoggerOutput, error) {
 
 	outputWriter, err := z.factory.PrepareBareOutput(z.cfg.BareOutput, metrics, z.cfg.BuildConfig)
-	switch {
-	case err != nil:
+	if err != nil {
 		return nil, err
-		//case outputWriter == z.cfg.LoggerOutput:
-		//
 	}
 	//if _, ok := z.cfg.BareOutput.(logcommon.LoggerOutput); ok &&
 

@@ -82,7 +82,6 @@ func (p *ChainedCancel) SetChain(chain context.CancelFunc) {
 		switch {
 		case lastState&^stateCancelled != 0: // chain is set or being set
 			panic("illegal state")
-			return
 		case !atomic.CompareAndSwapUint32(&p.state, lastState, lastState|stateChainHandlerBeingSet): //
 			continue
 		}

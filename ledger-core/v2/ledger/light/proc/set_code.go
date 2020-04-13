@@ -22,7 +22,7 @@ import (
 type SetCode struct {
 	message  payload.Meta
 	record   record.Virtual
-	code     []byte
+	// code     []byte
 	recordID insolar.ID
 	jetID    insolar.JetID
 

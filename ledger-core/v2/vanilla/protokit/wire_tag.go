@@ -29,14 +29,14 @@ func (v WireTag) IsZero() bool {
 }
 
 func (v WireTag) IsValid() bool {
-	return v.FieldId() > 0 && v.Type().IsValid()
+	return v.FieldID() > 0 && v.Type().IsValid()
 }
 
 func (v WireTag) Type() WireType {
 	return WireType(v & maskWireType)
 }
 
-func (v WireTag) FieldId() int {
+func (v WireTag) FieldID() int {
 	return int(v >> WireTypeBits)
 }
 
@@ -99,8 +99,8 @@ func (v WireTag) CheckTag(expected WireTag) error {
 	return v._checkTag(expected)
 }
 
-func (v WireTag) Check(expectedType WireType, expectedId int) error {
-	return v._checkTag(expectedType.Tag(expectedId))
+func (v WireTag) Check(expectedType WireType, expectedID int) error {
+	return v._checkTag(expectedType.Tag(expectedID))
 }
 
 func (v WireTag) ReadValue(r io.ByteReader) (uint64, error) {
@@ -130,8 +130,8 @@ func (v WireTag) EnsureTag(expected WireTag) {
 	}
 }
 
-func (v WireTag) Ensure(expectedType WireType, expectedId int) {
-	if err := v.Check(expectedType, expectedId); err != nil {
+func (v WireTag) Ensure(expectedType WireType, expectedID int) {
+	if err := v.Check(expectedType, expectedID); err != nil {
 		panic(err)
 	}
 }
@@ -154,5 +154,5 @@ func (v WireTag) String() string {
 	if v == 0 {
 		return "zeroTag"
 	}
-	return fmt.Sprintf("%d:%v", v.FieldId(), v.Type())
+	return fmt.Sprintf("%d:%v", v.FieldID(), v.Type())
 }

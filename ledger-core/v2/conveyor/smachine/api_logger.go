@@ -81,12 +81,12 @@ type StepLoggerUpdateData struct {
 }
 
 type SlotMachineLogger interface {
-	CreateStepLogger(context.Context, StateMachine, TracerId) StepLogger
+	CreateStepLogger(context.Context, StateMachine, TracerID) StepLogger
 	LogMachineInternal(data SlotMachineData, msg string)
 	LogMachineCritical(data SlotMachineData, msg string)
 }
 
-type StepLoggerFactoryFunc func(context.Context, StateMachine, TracerId) StepLogger
+type StepLoggerFactoryFunc func(context.Context, StateMachine, TracerID) StepLogger
 
 type StepLogLevel uint8
 
@@ -106,16 +106,16 @@ type StepLogger interface {
 	// (callId) is guaranteed to be unique per Slot for async calls.
 	// For notify and sync calls there is no guarantees on (callId).
 	// Type of call can be identified by (data.Flags).
-	LogAdapter(data StepLoggerData, adapterId AdapterId, callId uint64, fields []logfmt.LogFieldMarshaller)
+	LogAdapter(data StepLoggerData, adapterID AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller)
 
-	GetTracerId() TracerId
+	GetTracerID() TracerID
 
 	CreateAsyncLogger(context.Context, *StepLoggerData) (context.Context, StepLogger)
 }
 
 type StepLoggerFunc func(*StepLoggerData, *StepLoggerUpdateData)
 
-type TracerId = string
+type TracerID = string
 
 type Logger struct { // we use an explicit struct here to enable compiler optimizations when logging is not needed
 	ctx      context.Context
@@ -137,9 +137,9 @@ func (p Logger) GetContext() context.Context {
 	return p.ctx
 }
 
-func (p Logger) GetTracerId() TracerId {
+func (p Logger) GetTracerID() TracerID {
 	if stepLogger, _, _ := p.getStepLogger(); stepLogger != nil {
-		return stepLogger.GetTracerId()
+		return stepLogger.GetTracerID()
 	}
 	return ""
 }
@@ -173,16 +173,16 @@ func (p Logger) _doLog(stepLogger StepLogger, stepUpdate uint32, eventType StepL
 }
 
 func (p Logger) _doAdapterLog(stepLogger StepLogger, stepUpdate uint32, extraFlags StepLoggerFlags,
-	adapterId AdapterId, callId uint64, fields []logfmt.LogFieldMarshaller, err error,
+	adapterID AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller, err error,
 ) {
 	stepData := p.getStepLoggerData(StepLoggerAdapterCall, stepUpdate, err)
 	stepData.Flags |= extraFlags
-	stepLogger.LogAdapter(stepData, adapterId, callId, fields)
+	stepLogger.LogAdapter(stepData, adapterID, callID, fields)
 }
 
-func (p Logger) adapterCall(flags StepLoggerFlags, adapterId AdapterId, callId uint64, err error, fields ...logfmt.LogFieldMarshaller) {
+func (p Logger) adapterCall(flags StepLoggerFlags, adapterID AdapterID, callID uint64, err error, fields ...logfmt.LogFieldMarshaller) { // nolint:unparam
 	if stepLogger, stepUpdate, _ := p._checkLog(StepLoggerAdapterCall); stepLogger != nil {
-		p._doAdapterLog(stepLogger, stepUpdate, flags, adapterId, callId, fields, err)
+		p._doAdapterLog(stepLogger, stepUpdate, flags, adapterID, callID, fields, err)
 	}
 }
 

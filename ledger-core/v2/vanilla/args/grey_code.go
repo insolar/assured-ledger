@@ -15,13 +15,13 @@ func Grey(v uint) uint {
 // Converts a binary-reflected grey code to a linear binary number
 func FromGrey(g uint) uint {
 	if bits.UintSize == 64 {
-		g = g ^ (g >> 32)
+		g ^= g >> 32
 	}
-	g = g ^ (g >> 16)
-	g = g ^ (g >> 8)
-	g = g ^ (g >> 4)
-	g = g ^ (g >> 2)
-	g = g ^ (g >> 1)
+	g ^= g >> 16
+	g ^= g >> 8
+	g ^= g >> 4
+	g ^= g >> 2
+	g ^= g >> 1
 	return g
 }
 

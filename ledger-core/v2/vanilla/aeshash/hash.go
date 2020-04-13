@@ -49,4 +49,5 @@ func hash(data uintptr, len int, seed uint) uintptr {
 	return aeshash(data, uintptr(seed), uintptr(len))
 }
 
-func aeshash(pData, hSeed, sLen uintptr) uintptr
+// pData, hSeed, sLen
+func aeshash(p, h, s uintptr) uintptr

@@ -28,6 +28,7 @@ func GetCallerInfo(skipCallNumber int) (fileName string, funcName string, line i
 	return getCallerInfo2(skipCallNumber + 1) // getCallerInfo2 is 1.5 times faster than getCallerInfo1
 }
 
+// nolint:unused,deadcode
 func getCallerInfo1(skipCallNumber int) (fileName string, funcName string, line int) {
 	pc, fileName, line, _ := runtime.Caller(skipCallNumber + 1)
 

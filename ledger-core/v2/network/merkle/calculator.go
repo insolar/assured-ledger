@@ -21,7 +21,7 @@ type stater interface {
 
 type calculator struct {
 	Stater                     stater                             `inject:""`
-	OriginProvider             network.OriginProvider             `inject:""`
+	OriginProvider             network.OriginProvider             `inject:""` // nolint
 	PlatformCryptographyScheme insolar.PlatformCryptographyScheme `inject:""`
 	CryptographyService        insolar.CryptographyService        `inject:""`
 

@@ -106,8 +106,8 @@ func ParseFormat(formatStr string, defValue logcommon.LogFormat) (logcommon.LogF
 		return defValue, nil
 	case logcommon.TextFormat.String():
 		return logcommon.TextFormat, nil
-	case logcommon.JsonFormat.String():
-		return logcommon.JsonFormat, nil
+	case logcommon.JSONFormat.String():
+		return logcommon.JSONFormat, nil
 	}
 	return defValue, fmt.Errorf("unknown Format: '%s', replaced with '%s'", formatStr, defValue)
 }

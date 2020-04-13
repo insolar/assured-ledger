@@ -98,7 +98,7 @@ func DefaultVMConfig() configuration.Configuration {
 	cfg.Bus.ReplyTimeout = 5 * time.Second
 	cfg.Log = configuration.NewLog()
 	cfg.Log.Level = log.InfoLevel.String()            // insolar.DebugLevel.String()
-	cfg.Log.Formatter = logcommon.JsonFormat.String() // insolar.TextFormat.String()
+	cfg.Log.Formatter = logcommon.JSONFormat.String() // insolar.TextFormat.String()
 	return cfg
 }
 
