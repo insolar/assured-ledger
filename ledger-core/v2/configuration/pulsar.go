@@ -11,8 +11,6 @@ type Pulsar struct {
 
 	NumberDelta uint32
 
-	UseConstantEntropy bool
-
 	DistributionTransport Transport
 	PulseDistributor      PulseDistributor
 }
