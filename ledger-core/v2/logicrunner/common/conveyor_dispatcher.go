@@ -40,6 +40,13 @@ var _ dispatcher.Dispatcher = &conveyorDispatcher{}
 
 func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar.Pulse) {
 	logger := inslogger.FromContext(ctx)
+
+	// this is temporary decision. Only for R0 Milestone 1, since we want to apply only first pulse
+	if c.state == InitializationDone {
+		logger.Infof("Skip applying pulse to conveyor: %d", pulseObject.PulseNumber)
+		return
+	}
+
 	var (
 		pulseData  = adapters.NewPulseData(pulseObject)
 		pulseRange pulse.Range
@@ -65,6 +72,12 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar
 func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject insolar.Pulse) {
 	global.Errorf("ClosePulse -> [%d]", pulseObject.PulseNumber)
 	c.previousPulse = pulseObject.PulseNumber
+
+	// this is temporary decision. Only for R0 Milestone 1, since we want to apply only first pulse
+	if c.state == InitializationDone {
+		inslogger.FromContext(ctx).Infof("Skip preparing pulse to conveyor %d", pulseObject.PulseNumber)
+		return
+	}
 
 	switch c.state {
 	case InitializationDone:
