@@ -28,8 +28,10 @@ const (
 	requestTimeout = 30 * time.Second
 	contentType    = "Content-Type"
 
-	defaultHost      = "127.0.0.1"
-	createWalletPath = "/wallet/create"
+	defaultHost          = "127.0.0.1"
+	walletCreatePath     = "/wallet/create"
+	walletGetBalancePath = "/wallet/get_balance"
+	walletAddAmountPath  = "/wallet/add_amount"
 )
 
 func init() {
@@ -106,4 +108,56 @@ func sendAPIRequest(url string, body interface{}) ([]byte, error) {
 	}
 
 	return doReq(req)
+}
+
+// Creates wallet and returns it's reference.
+func createSimpleWallet() (string, error) {
+	createURL := getURL(walletCreatePath, "", "")
+	rawResp, err := sendAPIRequest(createURL, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to send request or get response body")
+	}
+
+	resp, err := unmarshalCreateWalletResponse(rawResp)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal response")
+	}
+	if resp.Err != nil {
+		return "", errors.Wrap(err, "problem during execute request")
+	}
+	return resp.Ref, nil
+}
+
+// Returns wallet balance.
+func getWalletBalance(url, ref string) (int, error) {
+	rawResp, err := sendAPIRequest(url, getWalletBalanceRequestBody{Ref: ref})
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to send request or get response body")
+	}
+
+	resp, err := unmarshalGetWalletBalanceResponse(rawResp)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to unmarshal response")
+	}
+	if resp.Err != nil {
+		return 0, errors.Wrap(err, "problem during execute request")
+	}
+	return resp.Amount, nil
+}
+
+// Adds amount to wallet.
+func addAmountToWallet(url, ref string, amount uint) error {
+	rawResp, err := sendAPIRequest(url, walletAddAmountRequestBody{To: ref, Amount: amount})
+	if err != nil {
+		return errors.Wrap(err, "failed to send request or get response body")
+	}
+
+	resp, err := unmarshalWalletAddAmountResponse(rawResp)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal response")
+	}
+	if resp.Err != nil {
+		return errors.Wrap(err, "problem during execute request")
+	}
+	return nil
 }
