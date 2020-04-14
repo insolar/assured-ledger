@@ -276,6 +276,12 @@ func Debugf(fmt string, args ...interface{}) {
 	}
 }
 
+func Debugm(arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(log.DebugLevel); fn != nil {
+		fn(arg, fields)
+	}
+}
+
 func Info(args ...interface{}) {
 	if fn := g().NewEvent(log.InfoLevel); fn != nil {
 		fn(args)
@@ -285,6 +291,12 @@ func Info(args ...interface{}) {
 func Infof(fmt string, args ...interface{}) {
 	if fn := g().NewEventFmt(log.InfoLevel); fn != nil {
 		fn(fmt, args)
+	}
+}
+
+func Infom(arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(log.InfoLevel); fn != nil {
+		fn(arg, fields)
 	}
 }
 
@@ -300,9 +312,21 @@ func Warnf(fmt string, args ...interface{}) {
 	}
 }
 
+func Warnm(arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(log.WarnLevel); fn != nil {
+		fn(arg, fields)
+	}
+}
+
 func Error(args ...interface{}) {
 	if fn := g().NewEvent(log.ErrorLevel); fn != nil {
 		fn(args)
+	}
+}
+
+func Errorm(arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(log.ErrorLevel); fn != nil {
+		fn(arg, fields)
 	}
 }
 
@@ -333,6 +357,12 @@ func Fatalf(fmt string, args ...interface{}) {
 func Panic(args ...interface{}) {
 	if fn := g().NewEvent(log.PanicLevel); fn != nil {
 		fn(args)
+	}
+}
+
+func Panicm(arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(log.PanicLevel); fn != nil {
+		fn(arg, fields)
 	}
 }
 
