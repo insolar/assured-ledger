@@ -52,7 +52,7 @@ func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.R
 	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
 }
 
-func (g *WaitMinRoles) switchOnMinRoles(ctx context.Context, pulse insolar.Pulse) {
+func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse insolar.Pulse) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_request
+package sm_request // nolint:golint
 
 import (
 	"github.com/pkg/errors"
@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_execute_request/outgoing"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
@@ -22,8 +21,8 @@ type StateMachineSagaAccept struct {
 	Meta    *payload.Meta
 	Payload *payload.SagaCallAcceptNotification
 
-	sharedStateLink sm_object.SharedObjectStateAccessor
-	externalError   error
+	// sharedStateLink sm_object.SharedObjectStateAccessor
+	// externalError   error
 }
 
 /* -------- Declaration ------------- */

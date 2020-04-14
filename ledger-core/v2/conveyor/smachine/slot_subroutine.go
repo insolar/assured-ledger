@@ -14,13 +14,13 @@ import (
 )
 
 type subroutineMarker struct {
-	slotId SlotID
+	slotID SlotID
 	step   uint32
 }
 
 func (s *Slot) newSubroutineMarker() subroutineMarker {
 	id, step, _ := s.GetState()
-	return subroutineMarker{slotId: id, step: step}
+	return subroutineMarker{slotID: id, step: step}
 }
 
 func (s *Slot) getSubroutineMarker() subroutineMarker {
@@ -32,14 +32,14 @@ func (s *Slot) getSubroutineMarker() subroutineMarker {
 
 func (s *Slot) getTopSubroutineMarker() subroutineMarker {
 	id, _, _ := s.GetState()
-	return subroutineMarker{slotId: id}
+	return subroutineMarker{slotID: id}
 }
 
-func (s *Slot) ensureNoSubroutine() {
-	if s.hasSubroutine() {
-		panic(throw.IllegalState())
-	}
-}
+// func (s *Slot) ensureNoSubroutine() {
+// 	if s.hasSubroutine() {
+// 		panic(throw.IllegalState())
+// 	}
+// }
 
 func (s *Slot) forceTopSubroutineUpdate(su StateUpdate) StateUpdate {
 	if !typeOfStateUpdate(su).IsSubroutineSafe() {
@@ -81,7 +81,7 @@ func (s *Slot) hasSubroutine() bool {
 
 func (s *Slot) checkSubroutineMarker(marker subroutineMarker) (isCurrent, isValid bool) {
 	switch id := s.GetSlotID(); {
-	case id != marker.slotId:
+	case id != marker.slotID:
 		//
 	case marker.step == 0:
 		return s.stateStack == nil, true
@@ -114,7 +114,7 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 	return SlotStep{Migration: migrateFn, Transition: func(ctx ExecutionContext) StateUpdate {
 		ec := ctx.(*executionContext)
 		slot := ec.s
-		tracerId := ctx.Log().GetTracerId()
+		tracerID := ctx.Log().GetTracerID()
 
 		prev := slot.stateMachineData
 		if migrateFn == nil {
@@ -131,7 +131,7 @@ func (s *Slot) prepareSubroutineStart(ssm SubroutineStateMachine, exitFn Subrout
 		}
 
 		slot.stateMachineData = stateMachineData{declaration: decl, stateStack: stackedSdd}
-		initFn := slot.prepareSubroutineInit(ssm, tracerId)
+		initFn := slot.prepareSubroutineInit(ssm, tracerID)
 
 		return initFn.defaultInit(ctx)
 	}}

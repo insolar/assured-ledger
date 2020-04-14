@@ -51,7 +51,7 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 	}
 
 	executor, callChan := smachine.NewCallChannelExecutor(ctx, bufMax, false, n)
-	pulseDataAdapter := smachine.NewExecutionAdapter(smachine.AdapterId(injector.GetDefaultInjectionId(pds)), executor)
+	pulseDataAdapter := smachine.NewExecutionAdapter(smachine.AdapterID(injector.GetDefaultInjectionID(pds)), executor)
 
 	smachine.StartChannelWorkerParallelCalls(ctx, uint16(parallelReaders), callChan, pds)
 

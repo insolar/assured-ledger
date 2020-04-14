@@ -20,7 +20,7 @@ const (
 type adapterCallRequest struct {
 	ctx       *executionContext
 	fn        AdapterCallFunc
-	adapterId AdapterId
+	adapterID AdapterID
 	executor  AdapterExecutor
 	mode      uint8
 
@@ -106,8 +106,8 @@ func (c *adapterCallRequest) _startAsync() {
 		return
 	}
 
-	var localCallId uint16 // to explicitly control type
-	localCallId = c.ctx.countAsyncCalls
+	var localCallID uint16 // to explicitly control type
+	localCallID = c.ctx.countAsyncCalls
 
 	c.ctx.countAsyncCalls++
 	if c.ctx.countAsyncCalls == 0 {
@@ -117,24 +117,24 @@ func (c *adapterCallRequest) _startAsync() {
 	var overrideFn AdapterCallbackFunc
 	if c.isLogging {
 		logger, stepNo := c.ctx._newLoggerAsync()
-		callId := uint64(stepNo)<<16 | uint64(localCallId)
+		callID := uint64(stepNo)<<16 | uint64(localCallID)
 
 		overrideFn = func(resultFunc AsyncResultFunc, err error) bool {
 			switch {
 			case err != nil:
-				logger.adapterCall(StepLoggerAdapterAsyncResult, c.adapterId, callId, err)
+				logger.adapterCall(StepLoggerAdapterAsyncResult, c.adapterID, callID, err)
 			case resultFunc == nil:
-				logger.adapterCall(StepLoggerAdapterAsyncCancel, c.adapterId, callId, nil)
+				logger.adapterCall(StepLoggerAdapterAsyncCancel, c.adapterID, callID, nil)
 			default:
-				logger.adapterCall(StepLoggerAdapterAsyncResult, c.adapterId, callId, nil)
+				logger.adapterCall(StepLoggerAdapterAsyncResult, c.adapterID, callID, nil)
 			}
 			return false // don't stop callback
 		}
-		logger.adapterCall(StepLoggerAdapterAsyncCall, c.adapterId, callId, nil)
+		logger.adapterCall(StepLoggerAdapterAsyncCall, c.adapterID, callID, nil)
 	}
 
 	stepLink := c.ctx.s.NewStepLink()
-	callback := NewAdapterCallback(c.adapterId, stepLink, overrideFn, c.flags, c.nestedFn)
+	callback := NewAdapterCallback(c.adapterID, stepLink, overrideFn, c.flags, c.nestedFn)
 	cancelFn := c.executor.StartCall(c.fn, callback, c.cancel != nil)
 
 	if c.cancel != nil {
@@ -195,7 +195,7 @@ func (c *adapterSyncCallRequest) _startSyncWithResult(isTry bool) AsyncResultFun
 
 	if c.isLogging {
 		logger := c.ctx._newLogger()
-		logger.adapterCall(StepLoggerAdapterSyncCall, c.adapterId, 0, nil)
+		logger.adapterCall(StepLoggerAdapterSyncCall, c.adapterID, 0, nil)
 	}
 
 	if ok, result := c.executor.TrySyncCall(c.fn); ok {
@@ -213,7 +213,7 @@ func (c *adapterSyncCallRequest) _startSyncWithResult(isTry bool) AsyncResultFun
 	}
 	resultCh := make(chan resultType, 1)
 
-	callback := NewAdapterCallback(c.adapterId, c.ctx.s.NewStepLink(), func(fn AsyncResultFunc, err error) bool {
+	callback := NewAdapterCallback(c.adapterID, c.ctx.s.NewStepLink(), func(fn AsyncResultFunc, err error) bool {
 		resultCh <- resultType{fn, err}
 		close(resultCh) // prevent repeated callbacks
 		return true
@@ -250,7 +250,7 @@ func (c *adapterSyncCallRequest) _startSyncWithResult(isTry bool) AsyncResultFun
 type adapterNotifyRequest struct {
 	ctx       *executionContext
 	fn        AdapterNotifyFunc
-	adapterId AdapterId
+	adapterID AdapterID
 	executor  AdapterExecutor
 	isLogging bool
 	mode      uint8
@@ -290,7 +290,7 @@ func (c *adapterNotifyRequest) DelayedSend() CallConditionalBuilder {
 func (c *adapterNotifyRequest) _startAsync() {
 	if c.isLogging {
 		logger, _ := c.ctx._newLoggerAsync()
-		logger.adapterCall(StepLoggerAdapterNotifyCall, c.adapterId, 0, nil)
+		logger.adapterCall(StepLoggerAdapterNotifyCall, c.adapterID, 0, nil)
 	}
 	c.executor.SendNotify(c.fn)
 }

@@ -450,7 +450,7 @@ func (b *Bus) IncomingMessageRouter(handle message.HandlerFunc) message.HandlerF
 // and set it as byte slice back to msg.Payload.
 // Note: this method has side effect - msg-argument mutating
 func (b *Bus) wrapMeta(
-	ctx context.Context,
+	_ context.Context,
 	msg *message.Message,
 	receiver insolar.Reference,
 	originHash payload.MessageHash,

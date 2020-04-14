@@ -218,7 +218,7 @@ func (p *mimicLedger) processSetOutgoingRequest(ctx context.Context, pl *payload
 	return p.setRequestCommon(ctx, request)
 }
 
-func (p *mimicLedger) sendSagaCallAcceptNotification(ctx context.Context, requestID insolar.ID, request record.Request, objectID insolar.ID) error {
+func (p *mimicLedger) sendSagaCallAcceptNotification(ctx context.Context, requestID insolar.ID, request record.Record, objectID insolar.ID) error {
 	logger := inslogger.FromContext(ctx)
 	logger.Info("Sending SagaCallAcceptNotification")
 

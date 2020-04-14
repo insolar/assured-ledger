@@ -19,7 +19,7 @@ type constructionContext struct {
 	creator      *Slot
 	injects      map[string]interface{}
 	inherit      DependencyInheritanceMode
-	tracerId     TracerId
+	tracerID     TracerID
 	callbackFn   TerminationCallbackFunc
 	callbackLink SlotLink
 	isTracing    bool
@@ -93,9 +93,9 @@ func (p *constructionContext) SetLogTracing(isTracing bool) {
 	p.isTracing = isTracing
 }
 
-func (p *constructionContext) SetTracerId(tracerId TracerId) {
+func (p *constructionContext) SetTracerID(tracerID TracerID) {
 	p.ensure(updCtxConstruction)
-	p.tracerId = tracerId
+	p.tracerID = tracerID
 }
 
 func (p *constructionContext) executeCreate(nextCreate CreateFunc) StateMachine {

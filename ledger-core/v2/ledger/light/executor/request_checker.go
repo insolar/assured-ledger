@@ -122,7 +122,7 @@ func (c *RequestCheckerDefault) CheckRequest(ctx context.Context, requestID inso
 
 func (c *RequestCheckerDefault) checkReasonForOutgoingRequest(
 	ctx context.Context,
-	outgoingRequest *record.OutgoingRequest,
+	_ *record.OutgoingRequest,
 	reasonID insolar.ID,
 	outgoingRequestID insolar.ID,
 	objectID insolar.ID,

@@ -141,7 +141,7 @@ func (m *Scope) ActivateObject(
 
 func (m *Scope) activateObject(
 	ctx context.Context,
-	domain insolar.Reference,
+	_ insolar.Reference, // domain
 	obj insolar.Reference,
 	prototype insolar.Reference,
 	isPrototype bool,

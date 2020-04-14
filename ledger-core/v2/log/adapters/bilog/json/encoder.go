@@ -92,7 +92,7 @@ func (p jsonEncoder) AppendUintField(dst []byte, key string, v uint64, fFmt logf
 	case fFmt.HasFmt:
 		return p.appendStrf(dst, fFmt.Fmt, v)
 	default:
-		return strconv.AppendUint(dst, uint64(v), 10)
+		return strconv.AppendUint(dst, v, 10)
 	}
 }
 

@@ -42,8 +42,8 @@ func (p SlotLink) String() string {
 	return fmt.Sprintf("slot-%d", p.id)
 }
 
-func (p SlotLink) MachineId() string {
-	return p.getMachine().GetMachineId()
+func (p SlotLink) MachineID() string {
+	return p.getMachine().GetMachineID()
 }
 
 func (p SlotLink) SlotID() SlotID {
@@ -101,7 +101,7 @@ func (p SlotLink) getIsValidAndBusy() (isValid, isBusy bool) {
 
 func (p SlotLink) tryStartWorking() (s *Slot, isStarted bool, prevStepNo uint32) {
 	if p.s != nil {
-		if _, isStarted, prevStepNo = p.s._tryStartWithId(p.id, 1); isStarted {
+		if _, isStarted, prevStepNo = p.s._tryStartWithID(p.id, 1); isStarted {
 			return p.s, true, prevStepNo
 		}
 	}
@@ -186,7 +186,7 @@ func (p StepLink) IsNearStep(forwardDelta uint32) bool {
 	}
 }
 
-func (p StepLink) isValidAndAtExactStep() (valid, atExactStep bool) {
+func (p StepLink) isValidAndAtExactStep() (valid, atExactStep bool) { // nolint:unparam
 	if p.s == nil {
 		return false, false
 	}
@@ -194,10 +194,10 @@ func (p StepLink) isValidAndAtExactStep() (valid, atExactStep bool) {
 	return p.id == id, p.step == step
 }
 
-func (p StepLink) getIsValidBusyAndAtStep() (isValid, isBusy, atExactStep bool) {
-	if p.s == nil {
-		return false, false, false
-	}
-	id, step, isBusy := p.s._getState()
-	return p.id == id, isBusy, p.step == 0 || p.step == step
-}
+// func (p StepLink) getIsValidBusyAndAtStep() (isValid, isBusy, atExactStep bool) {
+// 	if p.s == nil {
+// 		return false, false, false
+// 	}
+// 	id, step, isBusy := p.s._getState()
+// 	return p.id == id, isBusy, p.step == 0 || p.step == step
+// }

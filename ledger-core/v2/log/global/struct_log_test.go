@@ -198,7 +198,7 @@ func TestLogValueGetters(t *testing.T) {
 		complexFmt string
 		quotedStr  bool
 	}{
-		{logcommon.JsonFormat, `":`, "[%.0f,%.0f]", true},
+		{logcommon.JSONFormat, `":`, "[%.0f,%.0f]", true},
 		{logcommon.TextFormat, `=`, "(%.0f+%.0fi)", false},
 	} {
 		t.Run(fmtOpt.fmtType.String(), func(t *testing.T) {

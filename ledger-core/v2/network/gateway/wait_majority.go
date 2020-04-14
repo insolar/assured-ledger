@@ -41,7 +41,7 @@ func (g *WaitMajority) OnConsensusFinished(ctx context.Context, report network.R
 	g.switchOnMajorityRule(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
 }
 
-func (g *WaitMajority) switchOnMajorityRule(ctx context.Context, pulse insolar.Pulse) {
+func (g *WaitMajority) switchOnMajorityRule(_ context.Context, pulse insolar.Pulse) {
 	_, err := rules.CheckMajorityRule(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

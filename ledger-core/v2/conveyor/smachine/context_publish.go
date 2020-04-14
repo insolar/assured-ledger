@@ -18,7 +18,7 @@ type globalAliasKey struct {
 
 func isValidPublishValue(data interface{}) bool {
 	switch data.(type) {
-	case nil, dependencyKey, slotIdKey, *slotAliases, *uniqueAliasKey, globalAliasKey:
+	case nil, dependencyKey, slotIDKey, *slotAliases, *uniqueAliasKey, globalAliasKey:
 		return false
 	}
 	return true
@@ -26,7 +26,7 @@ func isValidPublishValue(data interface{}) bool {
 
 func isValidPublishKey(key interface{}) bool {
 	switch key.(type) {
-	case nil, dependencyKey, slotIdKey, *slotAliases, *uniqueAliasKey, globalAliasKey:
+	case nil, dependencyKey, slotIDKey, *slotAliases, *uniqueAliasKey, globalAliasKey:
 		return false
 	case bool, int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, uint, uintptr:
 		return true

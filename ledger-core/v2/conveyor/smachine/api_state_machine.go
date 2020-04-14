@@ -35,7 +35,7 @@ type StateMachineHelper interface {
 	// Is called once per SM after InjectDependencies().
 	// When result is (_, false) then StepLoggerFactory will be used.
 	// When result is (nil, true) then any logging will be disabled.
-	GetStepLogger(context.Context, StateMachine, TracerId, StepLoggerFactoryFunc) (StepLogger, bool)
+	GetStepLogger(context.Context, StateMachine, TracerID, StepLoggerFactoryFunc) (StepLogger, bool)
 
 	// GetShadowMigrateFor returns a shadow migration handler for the given stateMachine, that will be invoked on every migration. SM has no control over it.
 	// Is called once per SM after InjectDependencies().
@@ -57,7 +57,7 @@ type SubroutineStateMachine interface {
 }
 
 type stepDeclExt struct {
-	SeqId int
+	SeqID int
 	Name  string
 }
 
@@ -69,13 +69,13 @@ type StepDeclaration struct {
 func (v StepDeclaration) GetStepName() string {
 	switch {
 	case len(v.Name) > 0:
-		if v.SeqId != 0 {
-			return fmt.Sprintf("%s[%d]", v.Name, v.SeqId)
+		if v.SeqID != 0 {
+			return fmt.Sprintf("%s[%d]", v.Name, v.SeqID)
 		}
-		return fmt.Sprintf("%s", v.Name)
+		return fmt.Sprint(v.Name)
 
-	case v.SeqId != 0:
-		return fmt.Sprintf("#[%d]", v.SeqId)
+	case v.SeqID != 0:
+		return fmt.Sprintf("#[%d]", v.SeqID)
 
 	case v.Transition == nil:
 		return "<nil>"
@@ -86,7 +86,7 @@ func (v StepDeclaration) GetStepName() string {
 }
 
 func (v StepDeclaration) IsNameless() bool {
-	return v.SeqId == 0 && len(v.Name) == 0
+	return v.SeqID == 0 && len(v.Name) == 0
 }
 
 // See ShadowMigrator
@@ -125,7 +125,7 @@ func (s *StateMachineDeclTemplate) GetShadowMigrateFor(StateMachine) ShadowMigra
 func (s *StateMachineDeclTemplate) InjectDependencies(StateMachine, SlotLink, *injector.DependencyInjector) {
 }
 
-func (s *StateMachineDeclTemplate) GetStepLogger(context.Context, StateMachine, TracerId, StepLoggerFactoryFunc) (StepLogger, bool) {
+func (s *StateMachineDeclTemplate) GetStepLogger(context.Context, StateMachine, TracerID, StepLoggerFactoryFunc) (StepLogger, bool) {
 	return nil, false
 }
 
@@ -154,7 +154,7 @@ type CreateDefaultValues struct {
 	// WARNING! This handler is UNSAFE to access another SM.
 	TerminationHandler TerminationHandlerFunc
 	TerminationResult  interface{}
-	TracerId           TracerId
+	TracerID           TracerID
 }
 
 func (p *CreateDefaultValues) PutOverride(id string, v interface{}) {

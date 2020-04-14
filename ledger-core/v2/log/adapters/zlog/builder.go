@@ -18,7 +18,7 @@ func selectFormatter(format logcommon.LogFormat, output io.Writer) (io.Writer, e
 	switch format {
 	case logcommon.TextFormat:
 		return newDefaultTextOutput(output), nil
-	case logcommon.JsonFormat:
+	case logcommon.JSONFormat:
 		return output, nil
 	default:
 		return nil, errors.New("unknown formatter " + format.String())

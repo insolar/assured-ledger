@@ -116,16 +116,19 @@ func (p FraudFactory) NewHostFraud(fraudType int, msg string, violatorHost endpo
 	return p.NewFraud(fraudType, msg, violatorHost, nil, details...)
 }
 
+// nolint:interfacer
 func (p FraudFactory) NewInconsistentMembershipAnnouncement(violator profiles.ActiveNode,
 	evidence1 profiles.MembershipAnnouncement, evidence2 profiles.MembershipAnnouncement) FraudError {
 	return p.NewNodeFraud(FraudMultipleNsh, "multiple membership profile", violator, evidence1, evidence2)
 }
 
-func (p FraudFactory) NewMismatchedMembershipRank(violator profiles.ActiveNode, mp profiles.MembershipProfile) FraudError {
+func (p FraudFactory) NewMismatchedMembershipRank(violator profiles.ActiveNode, mp profiles.MembershipProfile) FraudError { // nolint:interfacer
 	return p.NewNodeFraud(MismatchedRank, "mismatched membership profile rank", violator, mp)
 }
 
-func (p FraudFactory) NewMismatchedMembershipRankOrNodeCount(violator profiles.ActiveNode, mp profiles.MembershipProfile, nodeCount int) FraudError {
+// nolint:interfacer
+func (p FraudFactory) NewMismatchedMembershipRankOrNodeCount(violator profiles.ActiveNode,
+	mp profiles.MembershipProfile, nodeCount int) FraudError {
 	return p.NewNodeFraud(MismatchedRank, "mismatched membership profile node count", violator, mp, nodeCount)
 }
 

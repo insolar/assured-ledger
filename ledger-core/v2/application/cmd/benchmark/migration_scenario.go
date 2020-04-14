@@ -74,6 +74,7 @@ func (s *migrationScenario) getBalanceCheckMembers() []sdk.Member {
 	return s.balanceCheckMembers
 }
 
+// nolint: unparam
 func replaceLast(str, replace string) string {
 	if len(replace) >= len(str) {
 		return replace

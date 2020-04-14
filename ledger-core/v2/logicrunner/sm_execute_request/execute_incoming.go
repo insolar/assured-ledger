@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_execute_request
+package sm_execute_request // nolint:golint
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -100,7 +100,7 @@ func (s *ExecuteIncomingRequest) stepClassifyCall(ctx smachine.ExecutionContext)
 	case s_contract_runner.ContractCallMutable:
 		return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 
 			return &SMPreExecuteMutable{ExecuteIncomingCommon: common}
 		})
@@ -108,7 +108,7 @@ func (s *ExecuteIncomingRequest) stepClassifyCall(ctx smachine.ExecutionContext)
 	case s_contract_runner.ContractCallImmutable:
 		return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 
 			return &SMPreExecuteImmutable{ExecuteIncomingCommon: common}
 		})

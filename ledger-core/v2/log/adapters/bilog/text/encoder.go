@@ -30,7 +30,11 @@ var encoderMgr = encoderManager{}
 type encoderManager struct{}
 
 func (m encoderManager) CreateMetricWriter(downstream io.Writer, fieldName string, reportFn logcommon.DurationReportFunc) (io.Writer, error) {
-	w := &json.MetricTimeWriter{downstream, []byte(tail), reportFn, nil}
+	w := &json.MetricTimeWriter{
+		Writer:   downstream,
+		Eol:      []byte(tail),
+		ReportFn: reportFn,
+		AppendFn: nil}
 	if fieldName != "" {
 		w.AppendFn = func(dst []byte, d time.Duration) []byte {
 			dst = AppendKey(dst, fieldName)

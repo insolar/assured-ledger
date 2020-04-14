@@ -237,7 +237,7 @@ func NewEphemeralControlFeeder(ephemeralController EphemeralController) *Ephemer
 }
 
 type EphemeralControlFeeder struct {
-	pulseChanger        PulseChanger
+	// pulseChanger        PulseChanger
 	ephemeralController EphemeralController
 
 	pulseDuration time.Duration
@@ -280,11 +280,8 @@ func (f *EphemeralControlFeeder) CanStopEphemeralByCensus(expected census.Expect
 	}
 
 	networkNodes := NewNetworkNodeList(population.GetProfiles())
-	if f.ephemeralController.EphemeralMode(networkNodes) {
-		return false
-	}
 
-	return true
+	return !f.ephemeralController.EphemeralMode(networkNodes)
 }
 
 func (f *EphemeralControlFeeder) EphemeralConsensusFinished(isNextEphemeral bool, roundStartedAt time.Time, expected census.Operational) {

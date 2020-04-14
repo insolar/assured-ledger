@@ -13,7 +13,7 @@ import (
 //var _ smachine.AttachableSlotWorker = &AttachableWorker{}
 
 type AttachableWorker struct {
-	signalSource *synckit.VersionedSignal
+	// signalSource *synckit.VersionedSignal
 }
 
 func (p *AttachableWorker) AttachTo(_ *smachine.SlotMachine, loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool) {
@@ -24,8 +24,9 @@ func (p *AttachableWorker) AttachTo(_ *smachine.SlotMachine, loopLimit uint32, f
 
 //var _ smachine.FixedSlotWorker = &SlotWorker{}
 
+// nolint:unused,structcheck
 type SlotWorker struct {
-	parent      *AttachableWorker
+	// parent      *AttachableWorker
 	outerSignal *synckit.SignalVersion
 	loopLimit   uint32
 }

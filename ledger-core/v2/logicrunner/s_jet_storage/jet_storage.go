@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package s_jet_storage
+package s_jet_storage // nolint:golint
 
 import (
 	"context"
@@ -45,14 +45,14 @@ type jetStorageService struct {
 	Accessor pulse.Accessor
 }
 
-func CreateJetStorageService(JetStorage jet.Storage) *JetStorageServiceAdapter {
+func CreateJetStorageService(jetStorage jet.Storage) *JetStorageServiceAdapter {
 	ctx := context.Background()
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &JetStorageServiceAdapter{
 		svc: jetStorageService{
-			Storage: JetStorage,
+			Storage: jetStorage,
 		},
 		exec: smachine.NewExecutionAdapter("JetStorage", ae),
 	}

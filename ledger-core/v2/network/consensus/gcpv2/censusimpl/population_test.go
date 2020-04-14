@@ -649,46 +649,6 @@ func TestRemoveOthers(t *testing.T) {
 	require.Equal(t, dp.local, dp.slotByID[2])
 }
 
-func TestLen(t *testing.T) {
-	ss := slotSorter{}
-	size := 2
-	ss.values = make([]*updatableSlot, size)
-	require.Equal(t, size, ss.Len())
-}
-
-func TestLess(t *testing.T) {
-	ss := slotSorter{lessFn: testLessFunc}
-	ss.values = make([]*updatableSlot, 2)
-	us1 := updatableSlot{}
-	us1.index = 2
-	ss.values[0] = &us1
-	us2 := updatableSlot{}
-	us2.index = 1
-	ss.values[1] = &us2
-	require.False(t, ss.Less(0, 1))
-}
-
-func TestSwap(t *testing.T) {
-	ss := slotSorter{lessFn: testLessFunc}
-	ss.values = make([]*updatableSlot, 2)
-	us1 := updatableSlot{}
-	ind1 := member.Index(2)
-	ind2 := member.Index(1)
-	us1.index = ind1
-	ss.values[0] = &us1
-	us2 := updatableSlot{}
-	us2.index = ind2
-	ss.values[1] = &us2
-	require.Equal(t, ind1, ss.values[0].index)
-
-	require.Equal(t, ind2, ss.values[1].index)
-
-	ss.Swap(0, 1)
-	require.Equal(t, ind2, ss.values[0].index)
-
-	require.Equal(t, ind1, ss.values[1].index)
-}
-
 func TestPrepare(t *testing.T) {
 	rr := roleRecord{}
 	require.Panics(t, func() { rr.prepare() })

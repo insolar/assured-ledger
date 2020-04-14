@@ -15,13 +15,13 @@ import (
 func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) InitFunc {
 	m := s.machine
 
-	cc := constructionContext{creator: creator, s: s, injects: defValues.OverriddenDependencies, tracerId: defValues.TracerId}
+	cc := constructionContext{creator: creator, s: s, injects: defValues.OverriddenDependencies, tracerID: defValues.TracerID}
 	selfUpdate := s == creator
 	if selfUpdate {
 		cc.inherit = InheritResolvedDependencies
 		cc.isTracing = creator.isTracing()
-		if cc.tracerId == "" && s.stepLogger != nil {
-			cc.tracerId = creator.stepLogger.GetTracerId()
+		if cc.tracerID == "" && s.stepLogger != nil {
+			cc.tracerID = creator.stepLogger.GetTracerID()
 		}
 	}
 
@@ -56,7 +56,7 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 	}
 
 	// Step Logger
-	m.prepareStepLogger(s, sm, cc.tracerId)
+	m.prepareStepLogger(s, sm, cc.tracerID)
 
 	// get Init step
 	initFn := decl.GetInitStateFor(sm)
@@ -87,7 +87,7 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 }
 
 // Both prepareSubroutineInit and prepareSlotInit MUST be in-line
-func (s *Slot) prepareSubroutineInit(sm SubroutineStateMachine, tracerId TracerId) InitFunc {
+func (s *Slot) prepareSubroutineInit(sm SubroutineStateMachine, tracerID TracerID) InitFunc { // nolint:interfacer
 	m := s.machine
 	prev := s.stateStack
 
@@ -98,7 +98,7 @@ func (s *Slot) prepareSubroutineInit(sm SubroutineStateMachine, tracerId TracerI
 		true, prev.inheritable, nil)
 
 	// Step Logger
-	m.prepareStepLogger(s, sm, tracerId)
+	m.prepareStepLogger(s, sm, tracerID)
 
 	sc := subroutineStartContext{slotContext{s: s}, 0}
 	initFn := sc.executeSubroutineStart(sm.GetSubroutineInitState)

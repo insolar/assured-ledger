@@ -62,8 +62,7 @@ func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
 
 // Returns true when the underlying data is of the given type
 func (v SharedDataLink) IsOfType(t reflect.Type) bool {
-	switch a := v.data.(type) {
-	case *uniqueAliasKey:
+	if a, ok := v.data.(*uniqueAliasKey); ok {
 		return a.valueType == t
 	}
 	return reflect.TypeOf(v.data) == t

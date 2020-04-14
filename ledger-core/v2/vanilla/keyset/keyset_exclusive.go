@@ -56,9 +56,7 @@ func (v exclusiveKeySet) SupersetOf(ks KeySet) bool {
 		return false
 	}
 
-	return !v.keys.EnumKeys(func(k Key) bool {
-		return ks.Contains(k)
-	})
+	return !v.keys.EnumKeys(ks.Contains)
 }
 
 func (v exclusiveKeySet) SubsetOf(ks KeySet) bool {
@@ -75,9 +73,7 @@ func (v exclusiveKeySet) Equal(ks KeySet) bool {
 	if !ks.IsOpenSet() || v.RawKeyCount() != ks.RawKeyCount() {
 		return false
 	}
-	return !v.keys.EnumKeys(func(k Key) bool {
-		return ks.Contains(k)
-	})
+	return !v.keys.EnumKeys(ks.Contains)
 }
 
 func (v exclusiveKeySet) EqualInverse(ks KeySet) bool {
@@ -90,7 +86,7 @@ func (v exclusiveKeySet) EqualInverse(ks KeySet) bool {
 }
 
 func (v exclusiveKeySet) Inverse() KeySet {
-	return inclusiveKeySet{v.keys}
+	return inclusiveKeySet(v)
 }
 
 func (v exclusiveKeySet) Union(ks KeySet) KeySet {

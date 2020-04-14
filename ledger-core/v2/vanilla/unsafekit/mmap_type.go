@@ -35,11 +35,12 @@ type MMapType struct {
 }
 
 func NewMMapType(t reflect.Type) (MMapType, bool) {
-	if mm := MemoryModelDependencyOf(t); mm == MemoryMapIncompatible {
+	mm := MemoryModelDependencyOf(t)
+	if  mm == MemoryMapIncompatible {
 		return MMapType{}, false
-	} else {
-		return MMapType{t, mm == MemoryModelIndependent}, true
 	}
+
+	return MMapType{t:t,modelIndependent: mm == MemoryModelIndependent}, true
 }
 
 func MustMMapType(t reflect.Type, mustBeIndependent bool) MMapType {
@@ -62,11 +63,12 @@ func NewMMapSliceType(t reflect.Type) (MMapSliceType, bool) {
 	if t.Kind() != reflect.Slice {
 		panic("illegal value")
 	}
-	if mm := MemoryModelDependencyOf(t.Elem()); mm == MemoryMapIncompatible {
+	mm := MemoryModelDependencyOf(t.Elem())
+	if mm == MemoryMapIncompatible {
 		return MMapSliceType{}, false
-	} else {
-		return MMapSliceType{t, mm == MemoryModelIndependent}, true
 	}
+
+	return MMapSliceType{t:t, modelIndependent: mm == MemoryModelIndependent}, true
 }
 
 func MustMMapSliceType(t reflect.Type, mustBeIndependent bool) MMapSliceType {
@@ -99,11 +101,10 @@ func MemoryModelDependencyOf(t reflect.Type) MemoryMapModel {
 
 	case reflect.Uintptr: // same as Pointer
 		return MemoryMapIncompatible
-	default:
-		return MemoryMapIncompatible
-
 	case reflect.Struct:
 		//
+	default:
+		return MemoryMapIncompatible
 	}
 
 	memoryModelDepended := false

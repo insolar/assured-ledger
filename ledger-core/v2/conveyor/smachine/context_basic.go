@@ -234,8 +234,8 @@ func (p *slotContext) _newChild(fn CreateFunc, runInit bool, defValues CreateDef
 	if fn == nil {
 		panic("illegal value")
 	}
-	if len(defValues.TracerId) == 0 {
-		defValues.TracerId = p.s.getTracerId()
+	if len(defValues.TracerID) == 0 {
+		defValues.TracerID = p.s.getTracerID()
 	}
 
 	m := p.s.machine

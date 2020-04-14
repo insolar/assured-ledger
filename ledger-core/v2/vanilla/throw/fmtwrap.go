@@ -117,11 +117,13 @@ func defaultFmt(v interface{}, force bool) string {
 		//
 	default:
 		s := ""
-		if t := reflect.TypeOf(v); t.Kind() == reflect.Struct && t.PkgPath() == "" {
+		t := reflect.TypeOf(v)
+		switch {
+		case t.Kind() == reflect.Struct && t.PkgPath() == "":
 			return fmt.Sprintf("%+v", vv)
-		} else if force {
+		case force:
 			s = fmt.Sprint(vv)
-		} else {
+		default:
 			return ""
 		}
 		if len(s) == 0 {

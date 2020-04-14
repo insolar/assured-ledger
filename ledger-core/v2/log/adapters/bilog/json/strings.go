@@ -26,6 +26,7 @@ func (v escapeMode) needsEscape() bool {
 	return v == escapeChar
 }
 
+// nolint:unused
 func (v escapeMode) needsQuotes() bool {
 	return v >= quoteChar
 }

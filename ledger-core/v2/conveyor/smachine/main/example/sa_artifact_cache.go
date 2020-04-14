@@ -16,12 +16,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
-type ArtifactCacheId string
+type ArtifactCacheID string
 
 type ArtifactCacheService interface {
-	Set(objectID insolar.ID, object []byte) ArtifactCacheId
-	SetRandomID(object []byte) (ArtifactCacheId, error)
-	Get(id ArtifactCacheId) ([]byte, bool)
+	Set(objectID insolar.ID, object []byte) ArtifactCacheID
+	SetRandomID(object []byte) (ArtifactCacheID, error)
+	Get(id ArtifactCacheID) ([]byte, bool)
 }
 
 type ArtifactCacheServiceAdapter struct {
@@ -50,7 +50,7 @@ func CreateArtifactCacheService() *ArtifactCacheServiceAdapter {
 
 	return &ArtifactCacheServiceAdapter{
 		svc: &unlimitedArtifactCacheService{
-			cache: map[ArtifactCacheId][]byte{},
+			cache: map[ArtifactCacheID][]byte{},
 		},
 		exec: smachine.NewExecutionAdapter("ArtifactCache", ae),
 	}
@@ -58,21 +58,21 @@ func CreateArtifactCacheService() *ArtifactCacheServiceAdapter {
 
 type unlimitedArtifactCacheService struct {
 	lock  sync.RWMutex
-	cache map[ArtifactCacheId][]byte
+	cache map[ArtifactCacheID][]byte
 }
 
-func (a *unlimitedArtifactCacheService) Set(objectID insolar.ID, object []byte) ArtifactCacheId {
+func (a *unlimitedArtifactCacheService) Set(objectID insolar.ID, object []byte) ArtifactCacheID {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
-	cacheID := ArtifactCacheId(objectID.String())
+	cacheID := ArtifactCacheID(objectID.String())
 
 	a.cache[cacheID] = object
 
 	return cacheID
 }
 
-func (a *unlimitedArtifactCacheService) SetRandomID(object []byte) (ArtifactCacheId, error) {
+func (a *unlimitedArtifactCacheService) SetRandomID(object []byte) (ArtifactCacheID, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -80,14 +80,14 @@ func (a *unlimitedArtifactCacheService) SetRandomID(object []byte) (ArtifactCach
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get id for request")
 	}
-	cacheID := ArtifactCacheId(rawCacheID.String())
+	cacheID := ArtifactCacheID(rawCacheID.String())
 
 	a.cache[cacheID] = object
 
 	return cacheID, nil
 }
 
-func (a *unlimitedArtifactCacheService) Get(id ArtifactCacheId) ([]byte, bool) {
+func (a *unlimitedArtifactCacheService) Get(id ArtifactCacheID) ([]byte, bool) {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 

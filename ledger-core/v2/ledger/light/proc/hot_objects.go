@@ -200,7 +200,7 @@ func (p *HotObjects) notifyPending(
 		"earliestPulse": *lifeline.EarliestOpenRequest,
 	})
 
-	if p.availableNotifications <= 0 {
+	if p.availableNotifications == 0 {
 		logger.Warn("out of AbandonedRequestsNotification limit")
 		return
 	}

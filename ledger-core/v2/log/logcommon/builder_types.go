@@ -65,7 +65,7 @@ type LogFormat string
 
 const (
 	TextFormat LogFormat = "text"
-	JsonFormat LogFormat = "json"
+	JSONFormat LogFormat = "json"
 	PbufFormat LogFormat = "pbuf"
 )
 

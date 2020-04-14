@@ -7,10 +7,11 @@ package badgertools
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"math"
 	"os"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // FileLoadingMode specifies how data in LSM table files and value log files should
@@ -87,32 +88,32 @@ func (lf *logFile) munmap() (err error) {
 	return nil
 }
 
-// Acquire lock on mmap/file if you are calling this
-func (lf *logFile) read(p valuePointer) (buf []byte, err error) {
-	var nbr int64
-	offset := p.Offset
-	if lf.loadingMode == FileIO {
-		buf = s.Resize(int(p.Len))
-		var n int
-		n, err = lf.fd.ReadAt(buf, int64(offset))
-		nbr = int64(n)
-	} else {
-		// Do not convert size to uint32, because the lf.fmap can be of size
-		// 4GB, which overflows the uint32 during conversion to make the size 0,
-		// causing the read to fail with ErrEOF. See issue #585.
-		size := int64(len(lf.fmap))
-		valsz := p.Len
-		if int64(offset) >= size || int64(offset+valsz) > size {
-			err = ErrEOF
-		} else {
-			buf = lf.fmap[offset : offset+valsz]
-			nbr = int64(valsz)
-		}
-	}
-	//y.NumReads.Add(1)
-	//y.NumBytesRead.Add(nbr)
-	return buf, err
-}
+// // Acquire lock on mmap/file if you are calling this
+// func (lf *logFile) read(p valuePointer) (buf []byte, err error) {
+// 	var nbr int64
+// 	offset := p.Offset
+// 	if lf.loadingMode == FileIO {
+// 		buf = s.Resize(int(p.Len))
+// 		var n int
+// 		n, err = lf.fd.ReadAt(buf, int64(offset))
+// 		nbr = int64(n)
+// 	} else {
+// 		// Do not convert size to uint32, because the lf.fmap can be of size
+// 		// 4GB, which overflows the uint32 during conversion to make the size 0,
+// 		// causing the read to fail with ErrEOF. See issue #585.
+// 		size := int64(len(lf.fmap))
+// 		valsz := p.Len
+// 		if int64(offset) >= size || int64(offset+valsz) > size {
+// 			err = ErrEOF
+// 		} else {
+// 			buf = lf.fmap[offset : offset+valsz]
+// 			nbr = int64(valsz)
+// 		}
+// 	}
+// 	//y.NumReads.Add(1)
+// 	//y.NumBytesRead.Add(nbr)
+// 	return buf, err
+// }
 
 func (lf *logFile) doneWriting(offset uint32) error {
 	// Sync before acquiring lock.  (We call this from write() and thus know we have shared access

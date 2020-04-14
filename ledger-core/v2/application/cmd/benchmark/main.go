@@ -325,7 +325,7 @@ func saveMembers(members []sdk.Member) error {
 	if err != nil {
 		return errors.Wrap(err, "couldn't create file")
 	}
-	defer file.Close() // nolint: errcheck
+	defer file.Close() // nolint:errcheck
 
 	result, err := json.MarshalIndent(members, "", "    ")
 	if err != nil {

@@ -459,6 +459,7 @@ func (c *DynamicPopulation) GetUnorderedProfiles() []profiles.Updatable {
 	return r
 }
 
+// nolint:unused
 func (c *DynamicPopulation) getUnorderedSlots() []*updatableSlot {
 	r := make([]*updatableSlot, len(c.slotByID))
 	idx := 0
@@ -511,23 +512,6 @@ func (c *DynamicPopulation) RemoveProfile(id insolar.ShortNodeID) {
 func (c *DynamicPopulation) RemoveOthers() {
 	c.slotByID = make(map[insolar.ShortNodeID]*updatableSlot)
 	c.slotByID[c.local.GetNodeID()] = c.local
-}
-
-type slotSorter struct {
-	values []*updatableSlot
-	lessFn LessFunc
-}
-
-func (c *slotSorter) Len() int {
-	return len(c.values)
-}
-
-func (c *slotSorter) Less(i, j int) bool {
-	return c.lessFn(c.values[i], c.values[j])
-}
-
-func (c *slotSorter) Swap(i, j int) {
-	c.values[i], c.values[j] = c.values[j], c.values[i]
 }
 
 var _ census.RolePopulation = &roleRecord{}

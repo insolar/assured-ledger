@@ -15,13 +15,21 @@ import (
 
 type AdapterCallbackFunc func(AsyncResultFunc, error) bool
 
-func NewAdapterCallback(adapterId AdapterId, caller StepLink, callbackOverride AdapterCallbackFunc, flags AsyncCallFlags,
+func NewAdapterCallback(adapterID AdapterID, caller StepLink, callbackOverride AdapterCallbackFunc, flags AsyncCallFlags,
 	nestedFn CreateFactoryFunc) *AdapterCallback {
-	return &AdapterCallback{adapterId, caller, callbackOverride, nil, nestedFn, 0, flags}
+	return &AdapterCallback{
+		adapterID:  adapterID,
+		caller:     caller,
+		callbackFn: callbackOverride,
+		cancel:     nil,
+		nestedFn:   nestedFn,
+		state:      0,
+		flags:      flags,
+	}
 }
 
 type AdapterCallback struct {
-	adapterId  AdapterId
+	adapterID  AdapterID
 	caller     StepLink
 	callbackFn AdapterCallbackFunc
 	cancel     *synckit.ChainedCancel
@@ -106,7 +114,7 @@ func (c *AdapterCallback) callback(isCancel bool, resultFn AsyncResultFunc, err 
 
 func (m *SlotMachine) queueAsyncResultCallback(callerLink StepLink, flags AsyncCallFlags, cancel *synckit.ChainedCancel,
 	resultFn AsyncResultFunc, err error, ignoreAsyncCount bool,
-) bool {
+) bool { // nolint:unparam
 	if m == nil {
 		return false
 	}
@@ -150,7 +158,7 @@ func (c *AdapterCallback) SendNested(defaultFactoryFn CreateFactoryFunc, payload
 			return false, nil
 		}
 		if cf := factoryFn(payload); cf != nil {
-			switch link, ok := m.AddNested(c.adapterId, c.caller.SlotLink, cf); {
+			switch link, ok := m.AddNested(c.adapterID, c.caller.SlotLink, cf); {
 			case ok:
 				return true, nil
 			case link.IsZero():

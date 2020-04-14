@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_object
+package sm_object // nolint:golint
 
 import (
 	"github.com/pkg/errors"
@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
+// nolint
 type ObjectInfo struct {
 	ObjectReference insolar.Reference
 	IsReadyToWork   bool
@@ -220,7 +221,7 @@ func (sm *SMObject) stepGetLatestValidatedState(ctx smachine.ExecutionContext) s
 func (sm *SMObject) stateGotLatestValidatedStatePrototypeAndCode(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.externalError != nil {
 		ctx.Error(sm.externalError)
-	} else if sm.IsReadyToWork != true {
+	} else if !sm.IsReadyToWork {
 		return ctx.Sleep().ThenJump(sm.stateGotLatestValidatedStatePrototypeAndCode)
 	}
 

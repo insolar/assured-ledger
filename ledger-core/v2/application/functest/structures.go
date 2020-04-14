@@ -11,13 +11,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+// nolint:unused
 type createWalletResponse struct {
 	Err     error  `json:"error"`
 	Ref     string `json:"reference"`
 	TraceID string `json:"traceID"`
 }
 
-func unmarshalCreateWalletResponse(resp []byte) (createWalletResponse, error) {
+func unmarshalCreateWalletResponse(resp []byte) (createWalletResponse, error) { // nolint:unused,deadcode
 	result := createWalletResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return createWalletResponse{}, errors.Wrap(err, "problem with unmarshaling response")

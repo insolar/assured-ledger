@@ -182,11 +182,11 @@ func (m *SlotMachine) executeWorkingSlots(currentScanNo uint32, priorityOnly boo
 			m.nonPriorityCount++
 		}
 
-		if stopNow, loopIncrement := m._executeSlot(currentSlot, prevStepNo, worker, loopLimit); stopNow {
+		stopNow, loopIncrement := m._executeSlot(currentSlot, prevStepNo, worker, loopLimit)
+		if stopNow {
 			return
-		} else {
-			i += loopIncrement
 		}
+		i += loopIncrement
 	}
 }
 
@@ -354,10 +354,7 @@ func (m *SlotMachine) ensureLocal(s *Slot) {
 
 func (m *SlotMachine) _canCallback(link SlotLink) bool {
 	m.ensureLocal(link.s)
-	if link.IsValid() {
-		return true
-	}
-	return false
+	return link.IsValid()
 }
 
 func (m *SlotMachine) asyncPostSlotExecution(s *Slot, stateUpdate StateUpdate, prevStepNo uint32, inactivityNano time.Duration) {

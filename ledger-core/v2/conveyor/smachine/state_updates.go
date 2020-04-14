@@ -169,10 +169,10 @@ func init() {
 					return false // the same step won't be short-looped
 
 				case slot.stepDecl != nil:
-					prevSeqId := slot.stepDecl.SeqId
+					prevSeqID := slot.stepDecl.SeqID
 					nextDecl := slot.declaration.GetStepDeclaration(nextStep)
 					slot.setNextStep(stateUpdate.step, nextDecl)
-					return nextDecl != nil && prevSeqId < nextDecl.SeqId // only proper further steps can be short-looped
+					return nextDecl != nil && prevSeqID < nextDecl.SeqID // only proper further steps can be short-looped
 
 				default:
 					isConsec, nextDecl := slot.declaration.IsConsecutive(slot.step.Transition, nextStep)

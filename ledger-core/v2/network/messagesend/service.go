@@ -24,14 +24,15 @@ type options struct {
 	syncBody bool
 }
 
-func (o *options) applyOptions(opts ...SendOption) {
-	for _, opt := range opts {
-		opt(o)
-	}
-}
+// func (o *options) applyOptions(opts ...SendOption) {
+// 	for _, opt := range opts {
+// 		opt(o)
+// 	}
+// }
 
 type SendOption func(*options)
 
+// nolint:unused
 func WithSyncBody() SendOption {
 	return func(o *options) {
 		o.syncBody = true
@@ -110,7 +111,7 @@ func (dm *DefaultService) sendTarget(
 	}
 	// send message and start reply goroutine
 	msg.SetContext(ctx)
-	_, msg, err = dm.wrapMeta(ctx, msg, target, payload.MessageHash{}, pulse)
+	_, msg, err = dm.wrapMeta(msg, target, payload.MessageHash{}, pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Error(errors.Wrap(err, "failed to send message"))
 		return errors.Wrap(err, "can't wrap meta message")
@@ -129,7 +130,6 @@ func (dm *DefaultService) sendTarget(
 // and set it as byte slice back to msg.Payload.
 // Note: this method has side effect - msg-argument mutating
 func (dm *DefaultService) wrapMeta(
-	ctx context.Context,
 	msg *message.Message,
 	receiver insolar.Reference,
 	originHash payload.MessageHash,

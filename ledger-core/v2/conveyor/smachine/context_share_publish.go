@@ -207,23 +207,23 @@ func (m *SlotMachine) TryUnsafeUnpublish(key interface{}) (keyExists, wasUnpubli
 }
 
 func (m *SlotMachine) unpublishUnbound(k interface{}) (keyExists, wasUnpublished bool, value interface{}) {
-	if v, ok := m.localRegistry.Load(k); !ok {
+	v, ok := m.localRegistry.Load(k)
+	if !ok {
 		return false, false, nil
-	} else {
-		switch sdl := v.(type) {
-		case SharedDataLink:
-			if sdl.IsUnbound() {
-				m.localRegistry.Delete(k)
-				return true, true, v
-			}
-		case *SharedDataLink:
-			if sdl != nil && sdl.IsUnbound() {
-				m.localRegistry.Delete(k)
-				return true, true, v
-			}
-		}
-		return true, false, v
 	}
+	switch sdl := v.(type) {
+	case SharedDataLink:
+		if sdl.IsUnbound() {
+			m.localRegistry.Delete(k)
+			return true, true, v
+		}
+	case *SharedDataLink:
+		if sdl != nil && sdl.IsUnbound() {
+			m.localRegistry.Delete(k)
+			return true, true, v
+		}
+	}
+	return true, false, v
 }
 
 func _asSharedDataLink(v interface{}) SharedDataLink {

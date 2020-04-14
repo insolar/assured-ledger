@@ -67,7 +67,7 @@ func NewPulseConveyor(
 	r.slotConfig.parentRegistry = r.slotMachine
 
 	// shared SlotId sequence
-	r.slotConfig.config.SlotIdGenerateFn = r.slotMachine.CopyConfig().SlotIdGenerateFn
+	r.slotConfig.config.SlotIDGenerateFn = r.slotMachine.CopyConfig().SlotIDGenerateFn
 
 	r.pdm.Init(config.MinCachePulseAge, config.MaxPastPulseAge, 1, config.PulseDataService)
 
@@ -142,7 +142,7 @@ func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event Inp
 	case pulseState == Antique:
 		// Antique events have individual pulse slots, while being executed in a single SlotMachine
 		if cps, ok := p.pdm.getCachedPulseSlot(targetPN); ok {
-			createDefaults.PutOverride(injector.GetDefaultInjectionId(cps), cps)
+			createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
 			break // add SM
 		}
 
@@ -454,12 +454,9 @@ func (p *PulseConveyor) StartWorker(emergencyStop <-chan struct{}, completedFn f
 func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop chan<- struct{}, completedFn func()) {
 	if emergencyStop != nil {
 		go func() {
-			select {
-			case <-emergencyStop:
-				p.slotMachine.Stop()
-				p.externalSignal.NextBroadcast()
-				return
-			}
+			<-emergencyStop
+			p.slotMachine.Stop()
+			p.externalSignal.NextBroadcast()
 		}()
 	}
 

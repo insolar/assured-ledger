@@ -8,7 +8,6 @@ package logicrunner
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"time"
 
@@ -195,23 +194,24 @@ func (lr *LogicRunner) stopIfNeeded(ctx context.Context) {
 	lr.ShutdownFlag.Done(ctx, func() bool { return true })
 }
 
-func (lr *LogicRunner) sendOnPulseMessagesAsync(ctx context.Context, messages map[insolar.Reference][]payload.Payload) {
-	ctx, spanMessages := instracer.StartSpan(ctx, "pulse.logicrunner sending messages")
-	spanMessages.SetTag("numMessages", strconv.Itoa(len(messages)))
+// func (lr *LogicRunner) sendOnPulseMessagesAsync(ctx context.Context, messages map[insolar.Reference][]payload.Payload) {
+// 	ctx, spanMessages := instracer.StartSpan(ctx, "pulse.logicrunner sending messages")
+// 	spanMessages.SetTag("numMessages", strconv.Itoa(len(messages)))
+//
+// 	var sendWg sync.WaitGroup
+//
+// 	for ref, msg := range messages {
+// 		sendWg.Add(len(msg))
+// 		for _, msg := range msg {
+// 			go lr.sendOnPulseMessage(ctx, ref, msg, &sendWg)
+// 		}
+// 	}
+//
+// 	sendWg.Wait()
+// 	spanMessages.Finish()
+// }
 
-	var sendWg sync.WaitGroup
-
-	for ref, msg := range messages {
-		sendWg.Add(len(msg))
-		for _, msg := range msg {
-			go lr.sendOnPulseMessage(ctx, ref, msg, &sendWg)
-		}
-	}
-
-	sendWg.Wait()
-	spanMessages.Finish()
-}
-
+// nolint:unused
 func (lr *LogicRunner) sendOnPulseMessage(ctx context.Context, objectRef insolar.Reference, payloadObj payload.Payload, sendWg *sync.WaitGroup) {
 	defer sendWg.Done()
 
@@ -225,16 +225,6 @@ func (lr *LogicRunner) sendOnPulseMessage(ctx context.Context, objectRef insolar
 	// so flow canceled should not happened, if it does, somebody already restarted
 	_, done := lr.Sender.SendRole(ctx, msg, insolar.DynamicRoleVirtualExecutor, objectRef)
 	done()
-}
-
-func contextWithServiceData(ctx context.Context, data *payload.ServiceData) context.Context {
-	ctx = inslogger.ContextWithTrace(ctx, data.LogTraceID)
-	ctx = inslogger.WithLoggerLevel(ctx, data.LogLevel)
-	if data.TraceSpanData != nil {
-		parentSpan := instracer.MustDeserialize(data.TraceSpanData)
-		return instracer.WithParentSpan(ctx, parentSpan)
-	}
-	return ctx
 }
 
 func (lr *LogicRunner) AddUnwantedResponse(ctx context.Context, msg insolar.Payload) error {

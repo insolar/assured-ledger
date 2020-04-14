@@ -199,7 +199,7 @@ outer:
 			return err
 		}
 
-		entryId := wt.FieldId()
+		entryId := wt.FieldID()
 		switch {
 		case entryId >= minChapterFieldId && entryId <= maxChapterFieldId:
 			//

@@ -12,7 +12,7 @@ import (
 )
 
 type StepLoggerStub struct {
-	TracerId TracerId
+	TracerID TracerID
 }
 
 func (StepLoggerStub) CanLogEvent(StepLoggerEvent, StepLogLevel) bool {
@@ -22,14 +22,14 @@ func (StepLoggerStub) CanLogEvent(StepLoggerEvent, StepLogLevel) bool {
 func (StepLoggerStub) LogUpdate(StepLoggerData, StepLoggerUpdateData)                            {}
 func (StepLoggerStub) LogInternal(StepLoggerData, string)                                        {}
 func (StepLoggerStub) LogEvent(StepLoggerData, interface{}, []logfmt.LogFieldMarshaller)         {}
-func (StepLoggerStub) LogAdapter(StepLoggerData, AdapterId, uint64, []logfmt.LogFieldMarshaller) {}
+func (StepLoggerStub) LogAdapter(StepLoggerData, AdapterID, uint64, []logfmt.LogFieldMarshaller) {}
 
 func (StepLoggerStub) CreateAsyncLogger(ctx context.Context, data *StepLoggerData) (context.Context, StepLogger) {
 	return ctx, nil
 }
 
-func (v StepLoggerStub) GetTracerId() TracerId {
-	return v.TracerId
+func (v StepLoggerStub) GetTracerID() TracerID {
+	return v.TracerID
 }
 
 type fixedSlotLogger struct {

@@ -11,11 +11,11 @@ import (
 	"strings"
 )
 
-func GetDefaultInjectionId(v interface{}) string {
-	return GetDefaultInjectionIdByType(reflect.TypeOf(v))
+func GetDefaultInjectionID(v interface{}) string {
+	return GetDefaultInjectionIDByType(reflect.TypeOf(v))
 }
 
-func GetDefaultInjectionIdByType(vt reflect.Type) string {
+func GetDefaultInjectionIDByType(vt reflect.Type) string {
 	return strings.TrimLeft(vt.String(), "*")
 }
 
@@ -49,7 +49,7 @@ func (p *DependencyInjector) MustInject(varRef interface{}) {
 	}
 }
 
-func (p *DependencyInjector) MustInjectById(id string, varRef interface{}) {
+func (p *DependencyInjector) MustInjectByID(id string, varRef interface{}) {
 	if err := p.tryInjectVar(id, varRef); err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func (p *DependencyInjector) Inject(varRef interface{}) error {
 	return p.tryInjectVar("", varRef)
 }
 
-func (p *DependencyInjector) InjectById(id string, varRef interface{}) error {
+func (p *DependencyInjector) InjectByID(id string, varRef interface{}) error {
 	if id == "" {
 		panic("illegal value")
 	}
@@ -93,7 +93,7 @@ func (p *DependencyInjector) InjectAll() error {
 				continue
 			}
 		case typeName == "":
-			typeName = GetDefaultInjectionIdByType(tt)
+			typeName = GetDefaultInjectionIDByType(tt)
 			fallthrough
 		default:
 			if p.resolveTypeAndSet(typeName, sf.Name, fv, sf.Type, isNillable) {
@@ -133,7 +133,7 @@ func (p *DependencyInjector) tryInjectVar(id string, varRef interface{}) error {
 		if p.resolveNameAndSet(id, v, vt, isNillable) {
 			return nil
 		}
-	case p.resolveTypeAndSet(GetDefaultInjectionIdByType(vt), "", v, vt, isNillable):
+	case p.resolveTypeAndSet(GetDefaultInjectionIDByType(vt), "", v, vt, isNillable):
 		return nil
 	}
 
