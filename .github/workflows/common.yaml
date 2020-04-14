@@ -38,9 +38,6 @@ jobs:
       - name: Run golangci-lint
         run: make lint
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Run unit tests
-        run: make test_unit
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Run slow tests
+      - name: Run unit and slow tests
         run: make test_slow
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
