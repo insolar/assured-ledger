@@ -3,12 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/insolar/blob/master/LICENSE.md.
 
-package messagesend
+package messagesender
 
 import (
 	"context"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
@@ -39,7 +40,7 @@ func WithSyncBody() SendOption {
 	}
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messagesend.Service -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender.Service -o ./ -s _mock.go -g
 
 type Service interface {
 	// blocks if network unreachable
