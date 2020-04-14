@@ -318,6 +318,12 @@ func Fatal(args ...interface{}) {
 	}
 }
 
+func Fatalm(arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(log.FatalLevel); fn != nil {
+		fn(arg, fields)
+	}
+}
+
 func Fatalf(fmt string, args ...interface{}) {
 	if fn := g().NewEventFmt(log.FatalLevel); fn != nil {
 		fn(fmt, args)
