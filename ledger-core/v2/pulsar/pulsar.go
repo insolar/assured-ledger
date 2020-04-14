@@ -78,7 +78,7 @@ func (p *Pulsar) Send(ctx context.Context, pulseNumber insolar.PulseNumber) erro
 	logger := inslogger.FromContext(ctx)
 	logger.Infof("before sending new pulseNumber: %v", pulseNumber)
 
-	entropy, _, err := p.generateNewEntropyAndSign()
+	entropy, _, err := p.generateNewEntropyAndSign(p.Config.UseConstantEntropy)
 	if err != nil {
 		logger.Error(err)
 		return err
@@ -139,15 +139,18 @@ func (p *Pulsar) LastPN() insolar.PulseNumber {
 	return p.lastPN
 }
 
-func (p *Pulsar) generateNewEntropyAndSign() (insolar.Entropy, []byte, error) {
-	e := p.EntropyGenerator.GenerateEntropy()
+func (p *Pulsar) generateNewEntropyAndSign(useConstantEntropy bool) (insolar.Entropy, []byte, error) {
+	entropy := insolar.Entropy{}
+	if !useConstantEntropy {
+		entropy = p.EntropyGenerator.GenerateEntropy()
+	}
 
-	sign, err := p.CryptographyService.Sign(e[:])
+	sign, err := p.CryptographyService.Sign(entropy[:])
 	if err != nil {
 		return insolar.Entropy{}, nil, err
 	}
 
-	return e, sign.Bytes(), nil
+	return entropy, sign.Bytes(), nil
 }
 
 // PulseSenderConfirmationPayload is a struct with info about pulse's confirmations

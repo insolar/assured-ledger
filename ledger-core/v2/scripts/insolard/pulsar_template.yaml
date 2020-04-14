@@ -1,5 +1,6 @@
 pulsar:
   pulsetime: 10000
+  UseConstantEntropy: true
   receivingsigntimeout: 1000
   receivingnumbertimeout: 1000
   receivingvectortimeout: 1000
