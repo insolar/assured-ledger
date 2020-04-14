@@ -33,6 +33,9 @@ jobs:
           go mod download
           make vendor pre-build build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Check if working directory is clean after build
+        run: scripts/gitstatus.sh
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Install golangci-lint
         run: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.23.6
       - name: Run golangci-lint
