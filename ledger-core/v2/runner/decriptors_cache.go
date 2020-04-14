@@ -18,15 +18,23 @@ import (
 var _ descriptor.Cache = &descriptorsCache{}
 
 type descriptorsCache struct {
+	callbacks []descriptor.CacheCallbackType
+
 	codeCache  cache
 	protoCache cache
 }
 
 func NewDescriptorsCache() descriptor.Cache {
 	return &descriptorsCache{
+		callbacks: make([]descriptor.CacheCallbackType, 0),
+
 		codeCache:  newSingleFlightCache(),
 		protoCache: newSingleFlightCache(),
 	}
+}
+
+func (c *descriptorsCache) RegisterCallback(cb descriptor.CacheCallbackType) {
+	c.callbacks = append(c.callbacks, cb)
 }
 
 func (c *descriptorsCache) ByPrototypeRef(
@@ -71,6 +79,12 @@ func (c *descriptorsCache) GetPrototype(
 	descriptor.PrototypeDescriptor, error,
 ) {
 	res, err := c.protoCache.get(ref, func() (interface{}, error) {
+		for _, cb := range c.callbacks {
+			object, err := cb(ref)
+			if object != nil || err != nil {
+				return object, err
+			}
+		}
 		return nil, nil
 	})
 	if err != nil {
@@ -86,6 +100,12 @@ func (c *descriptorsCache) GetCode(
 	descriptor.CodeDescriptor, error,
 ) {
 	res, err := c.codeCache.get(ref, func() (interface{}, error) {
+		for _, cb := range c.callbacks {
+			object, err := cb(ref)
+			if object != nil || err != nil {
+				return object, err
+			}
+		}
 		return nil, nil
 	})
 	if err != nil {

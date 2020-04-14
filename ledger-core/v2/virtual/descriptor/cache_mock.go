@@ -16,29 +16,17 @@ import (
 type CacheMock struct {
 	t minimock.Tester
 
-	funcByObjectDescriptor          func(ctx context.Context, obj ObjectDescriptor) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error)
-	inspectFuncByObjectDescriptor   func(ctx context.Context, obj ObjectDescriptor)
-	afterByObjectDescriptorCounter  uint64
-	beforeByObjectDescriptorCounter uint64
-	ByObjectDescriptorMock          mCacheMockByObjectDescriptor
-
 	funcByPrototypeRef          func(ctx context.Context, protoRef insolar.Reference) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error)
 	inspectFuncByPrototypeRef   func(ctx context.Context, protoRef insolar.Reference)
 	afterByPrototypeRefCounter  uint64
 	beforeByPrototypeRefCounter uint64
 	ByPrototypeRefMock          mCacheMockByPrototypeRef
 
-	funcGetCode          func(ctx context.Context, ref insolar.Reference) (c2 CodeDescriptor, err error)
-	inspectFuncGetCode   func(ctx context.Context, ref insolar.Reference)
-	afterGetCodeCounter  uint64
-	beforeGetCodeCounter uint64
-	GetCodeMock          mCacheMockGetCode
-
-	funcGetPrototype          func(ctx context.Context, ref insolar.Reference) (p1 PrototypeDescriptor, err error)
-	inspectFuncGetPrototype   func(ctx context.Context, ref insolar.Reference)
-	afterGetPrototypeCounter  uint64
-	beforeGetPrototypeCounter uint64
-	GetPrototypeMock          mCacheMockGetPrototype
+	funcRegisterCallback          func(cb CacheCallbackType)
+	inspectFuncRegisterCallback   func(cb CacheCallbackType)
+	afterRegisterCallbackCounter  uint64
+	beforeRegisterCallbackCounter uint64
+	RegisterCallbackMock          mCacheMockRegisterCallback
 }
 
 // NewCacheMock returns a mock for Cache
@@ -48,237 +36,13 @@ func NewCacheMock(t minimock.Tester) *CacheMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.ByObjectDescriptorMock = mCacheMockByObjectDescriptor{mock: m}
-	m.ByObjectDescriptorMock.callArgs = []*CacheMockByObjectDescriptorParams{}
-
 	m.ByPrototypeRefMock = mCacheMockByPrototypeRef{mock: m}
 	m.ByPrototypeRefMock.callArgs = []*CacheMockByPrototypeRefParams{}
 
-	m.GetCodeMock = mCacheMockGetCode{mock: m}
-	m.GetCodeMock.callArgs = []*CacheMockGetCodeParams{}
-
-	m.GetPrototypeMock = mCacheMockGetPrototype{mock: m}
-	m.GetPrototypeMock.callArgs = []*CacheMockGetPrototypeParams{}
+	m.RegisterCallbackMock = mCacheMockRegisterCallback{mock: m}
+	m.RegisterCallbackMock.callArgs = []*CacheMockRegisterCallbackParams{}
 
 	return m
-}
-
-type mCacheMockByObjectDescriptor struct {
-	mock               *CacheMock
-	defaultExpectation *CacheMockByObjectDescriptorExpectation
-	expectations       []*CacheMockByObjectDescriptorExpectation
-
-	callArgs []*CacheMockByObjectDescriptorParams
-	mutex    sync.RWMutex
-}
-
-// CacheMockByObjectDescriptorExpectation specifies expectation struct of the Cache.ByObjectDescriptor
-type CacheMockByObjectDescriptorExpectation struct {
-	mock    *CacheMock
-	params  *CacheMockByObjectDescriptorParams
-	results *CacheMockByObjectDescriptorResults
-	Counter uint64
-}
-
-// CacheMockByObjectDescriptorParams contains parameters of the Cache.ByObjectDescriptor
-type CacheMockByObjectDescriptorParams struct {
-	ctx context.Context
-	obj ObjectDescriptor
-}
-
-// CacheMockByObjectDescriptorResults contains results of the Cache.ByObjectDescriptor
-type CacheMockByObjectDescriptorResults struct {
-	p1  PrototypeDescriptor
-	c2  CodeDescriptor
-	err error
-}
-
-// Expect sets up expected params for Cache.ByObjectDescriptor
-func (mmByObjectDescriptor *mCacheMockByObjectDescriptor) Expect(ctx context.Context, obj ObjectDescriptor) *mCacheMockByObjectDescriptor {
-	if mmByObjectDescriptor.mock.funcByObjectDescriptor != nil {
-		mmByObjectDescriptor.mock.t.Fatalf("CacheMock.ByObjectDescriptor mock is already set by Set")
-	}
-
-	if mmByObjectDescriptor.defaultExpectation == nil {
-		mmByObjectDescriptor.defaultExpectation = &CacheMockByObjectDescriptorExpectation{}
-	}
-
-	mmByObjectDescriptor.defaultExpectation.params = &CacheMockByObjectDescriptorParams{ctx, obj}
-	for _, e := range mmByObjectDescriptor.expectations {
-		if minimock.Equal(e.params, mmByObjectDescriptor.defaultExpectation.params) {
-			mmByObjectDescriptor.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmByObjectDescriptor.defaultExpectation.params)
-		}
-	}
-
-	return mmByObjectDescriptor
-}
-
-// Inspect accepts an inspector function that has same arguments as the Cache.ByObjectDescriptor
-func (mmByObjectDescriptor *mCacheMockByObjectDescriptor) Inspect(f func(ctx context.Context, obj ObjectDescriptor)) *mCacheMockByObjectDescriptor {
-	if mmByObjectDescriptor.mock.inspectFuncByObjectDescriptor != nil {
-		mmByObjectDescriptor.mock.t.Fatalf("Inspect function is already set for CacheMock.ByObjectDescriptor")
-	}
-
-	mmByObjectDescriptor.mock.inspectFuncByObjectDescriptor = f
-
-	return mmByObjectDescriptor
-}
-
-// Return sets up results that will be returned by Cache.ByObjectDescriptor
-func (mmByObjectDescriptor *mCacheMockByObjectDescriptor) Return(p1 PrototypeDescriptor, c2 CodeDescriptor, err error) *CacheMock {
-	if mmByObjectDescriptor.mock.funcByObjectDescriptor != nil {
-		mmByObjectDescriptor.mock.t.Fatalf("CacheMock.ByObjectDescriptor mock is already set by Set")
-	}
-
-	if mmByObjectDescriptor.defaultExpectation == nil {
-		mmByObjectDescriptor.defaultExpectation = &CacheMockByObjectDescriptorExpectation{mock: mmByObjectDescriptor.mock}
-	}
-	mmByObjectDescriptor.defaultExpectation.results = &CacheMockByObjectDescriptorResults{p1, c2, err}
-	return mmByObjectDescriptor.mock
-}
-
-//Set uses given function f to mock the Cache.ByObjectDescriptor method
-func (mmByObjectDescriptor *mCacheMockByObjectDescriptor) Set(f func(ctx context.Context, obj ObjectDescriptor) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error)) *CacheMock {
-	if mmByObjectDescriptor.defaultExpectation != nil {
-		mmByObjectDescriptor.mock.t.Fatalf("Default expectation is already set for the Cache.ByObjectDescriptor method")
-	}
-
-	if len(mmByObjectDescriptor.expectations) > 0 {
-		mmByObjectDescriptor.mock.t.Fatalf("Some expectations are already set for the Cache.ByObjectDescriptor method")
-	}
-
-	mmByObjectDescriptor.mock.funcByObjectDescriptor = f
-	return mmByObjectDescriptor.mock
-}
-
-// When sets expectation for the Cache.ByObjectDescriptor which will trigger the result defined by the following
-// Then helper
-func (mmByObjectDescriptor *mCacheMockByObjectDescriptor) When(ctx context.Context, obj ObjectDescriptor) *CacheMockByObjectDescriptorExpectation {
-	if mmByObjectDescriptor.mock.funcByObjectDescriptor != nil {
-		mmByObjectDescriptor.mock.t.Fatalf("CacheMock.ByObjectDescriptor mock is already set by Set")
-	}
-
-	expectation := &CacheMockByObjectDescriptorExpectation{
-		mock:   mmByObjectDescriptor.mock,
-		params: &CacheMockByObjectDescriptorParams{ctx, obj},
-	}
-	mmByObjectDescriptor.expectations = append(mmByObjectDescriptor.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Cache.ByObjectDescriptor return parameters for the expectation previously defined by the When method
-func (e *CacheMockByObjectDescriptorExpectation) Then(p1 PrototypeDescriptor, c2 CodeDescriptor, err error) *CacheMock {
-	e.results = &CacheMockByObjectDescriptorResults{p1, c2, err}
-	return e.mock
-}
-
-// ByObjectDescriptor implements Cache
-func (mmByObjectDescriptor *CacheMock) ByObjectDescriptor(ctx context.Context, obj ObjectDescriptor) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error) {
-	mm_atomic.AddUint64(&mmByObjectDescriptor.beforeByObjectDescriptorCounter, 1)
-	defer mm_atomic.AddUint64(&mmByObjectDescriptor.afterByObjectDescriptorCounter, 1)
-
-	if mmByObjectDescriptor.inspectFuncByObjectDescriptor != nil {
-		mmByObjectDescriptor.inspectFuncByObjectDescriptor(ctx, obj)
-	}
-
-	mm_params := &CacheMockByObjectDescriptorParams{ctx, obj}
-
-	// Record call args
-	mmByObjectDescriptor.ByObjectDescriptorMock.mutex.Lock()
-	mmByObjectDescriptor.ByObjectDescriptorMock.callArgs = append(mmByObjectDescriptor.ByObjectDescriptorMock.callArgs, mm_params)
-	mmByObjectDescriptor.ByObjectDescriptorMock.mutex.Unlock()
-
-	for _, e := range mmByObjectDescriptor.ByObjectDescriptorMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.p1, e.results.c2, e.results.err
-		}
-	}
-
-	if mmByObjectDescriptor.ByObjectDescriptorMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmByObjectDescriptor.ByObjectDescriptorMock.defaultExpectation.Counter, 1)
-		mm_want := mmByObjectDescriptor.ByObjectDescriptorMock.defaultExpectation.params
-		mm_got := CacheMockByObjectDescriptorParams{ctx, obj}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmByObjectDescriptor.t.Errorf("CacheMock.ByObjectDescriptor got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmByObjectDescriptor.ByObjectDescriptorMock.defaultExpectation.results
-		if mm_results == nil {
-			mmByObjectDescriptor.t.Fatal("No results are set for the CacheMock.ByObjectDescriptor")
-		}
-		return (*mm_results).p1, (*mm_results).c2, (*mm_results).err
-	}
-	if mmByObjectDescriptor.funcByObjectDescriptor != nil {
-		return mmByObjectDescriptor.funcByObjectDescriptor(ctx, obj)
-	}
-	mmByObjectDescriptor.t.Fatalf("Unexpected call to CacheMock.ByObjectDescriptor. %v %v", ctx, obj)
-	return
-}
-
-// ByObjectDescriptorAfterCounter returns a count of finished CacheMock.ByObjectDescriptor invocations
-func (mmByObjectDescriptor *CacheMock) ByObjectDescriptorAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmByObjectDescriptor.afterByObjectDescriptorCounter)
-}
-
-// ByObjectDescriptorBeforeCounter returns a count of CacheMock.ByObjectDescriptor invocations
-func (mmByObjectDescriptor *CacheMock) ByObjectDescriptorBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmByObjectDescriptor.beforeByObjectDescriptorCounter)
-}
-
-// Calls returns a list of arguments used in each call to CacheMock.ByObjectDescriptor.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmByObjectDescriptor *mCacheMockByObjectDescriptor) Calls() []*CacheMockByObjectDescriptorParams {
-	mmByObjectDescriptor.mutex.RLock()
-
-	argCopy := make([]*CacheMockByObjectDescriptorParams, len(mmByObjectDescriptor.callArgs))
-	copy(argCopy, mmByObjectDescriptor.callArgs)
-
-	mmByObjectDescriptor.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockByObjectDescriptorDone returns true if the count of the ByObjectDescriptor invocations corresponds
-// the number of defined expectations
-func (m *CacheMock) MinimockByObjectDescriptorDone() bool {
-	for _, e := range m.ByObjectDescriptorMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ByObjectDescriptorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterByObjectDescriptorCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcByObjectDescriptor != nil && mm_atomic.LoadUint64(&m.afterByObjectDescriptorCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockByObjectDescriptorInspect logs each unmet expectation
-func (m *CacheMock) MinimockByObjectDescriptorInspect() {
-	for _, e := range m.ByObjectDescriptorMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to CacheMock.ByObjectDescriptor with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ByObjectDescriptorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterByObjectDescriptorCounter) < 1 {
-		if m.ByObjectDescriptorMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to CacheMock.ByObjectDescriptor")
-		} else {
-			m.t.Errorf("Expected call to CacheMock.ByObjectDescriptor with params: %#v", *m.ByObjectDescriptorMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcByObjectDescriptor != nil && mm_atomic.LoadUint64(&m.afterByObjectDescriptorCounter) < 1 {
-		m.t.Error("Expected call to CacheMock.ByObjectDescriptor")
-	}
 }
 
 type mCacheMockByPrototypeRef struct {
@@ -499,450 +263,199 @@ func (m *CacheMock) MinimockByPrototypeRefInspect() {
 	}
 }
 
-type mCacheMockGetCode struct {
+type mCacheMockRegisterCallback struct {
 	mock               *CacheMock
-	defaultExpectation *CacheMockGetCodeExpectation
-	expectations       []*CacheMockGetCodeExpectation
+	defaultExpectation *CacheMockRegisterCallbackExpectation
+	expectations       []*CacheMockRegisterCallbackExpectation
 
-	callArgs []*CacheMockGetCodeParams
+	callArgs []*CacheMockRegisterCallbackParams
 	mutex    sync.RWMutex
 }
 
-// CacheMockGetCodeExpectation specifies expectation struct of the Cache.GetCode
-type CacheMockGetCodeExpectation struct {
-	mock    *CacheMock
-	params  *CacheMockGetCodeParams
-	results *CacheMockGetCodeResults
+// CacheMockRegisterCallbackExpectation specifies expectation struct of the Cache.RegisterCallback
+type CacheMockRegisterCallbackExpectation struct {
+	mock   *CacheMock
+	params *CacheMockRegisterCallbackParams
+
 	Counter uint64
 }
 
-// CacheMockGetCodeParams contains parameters of the Cache.GetCode
-type CacheMockGetCodeParams struct {
-	ctx context.Context
-	ref insolar.Reference
+// CacheMockRegisterCallbackParams contains parameters of the Cache.RegisterCallback
+type CacheMockRegisterCallbackParams struct {
+	cb CacheCallbackType
 }
 
-// CacheMockGetCodeResults contains results of the Cache.GetCode
-type CacheMockGetCodeResults struct {
-	c2  CodeDescriptor
-	err error
-}
-
-// Expect sets up expected params for Cache.GetCode
-func (mmGetCode *mCacheMockGetCode) Expect(ctx context.Context, ref insolar.Reference) *mCacheMockGetCode {
-	if mmGetCode.mock.funcGetCode != nil {
-		mmGetCode.mock.t.Fatalf("CacheMock.GetCode mock is already set by Set")
+// Expect sets up expected params for Cache.RegisterCallback
+func (mmRegisterCallback *mCacheMockRegisterCallback) Expect(cb CacheCallbackType) *mCacheMockRegisterCallback {
+	if mmRegisterCallback.mock.funcRegisterCallback != nil {
+		mmRegisterCallback.mock.t.Fatalf("CacheMock.RegisterCallback mock is already set by Set")
 	}
 
-	if mmGetCode.defaultExpectation == nil {
-		mmGetCode.defaultExpectation = &CacheMockGetCodeExpectation{}
+	if mmRegisterCallback.defaultExpectation == nil {
+		mmRegisterCallback.defaultExpectation = &CacheMockRegisterCallbackExpectation{}
 	}
 
-	mmGetCode.defaultExpectation.params = &CacheMockGetCodeParams{ctx, ref}
-	for _, e := range mmGetCode.expectations {
-		if minimock.Equal(e.params, mmGetCode.defaultExpectation.params) {
-			mmGetCode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetCode.defaultExpectation.params)
+	mmRegisterCallback.defaultExpectation.params = &CacheMockRegisterCallbackParams{cb}
+	for _, e := range mmRegisterCallback.expectations {
+		if minimock.Equal(e.params, mmRegisterCallback.defaultExpectation.params) {
+			mmRegisterCallback.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRegisterCallback.defaultExpectation.params)
 		}
 	}
 
-	return mmGetCode
+	return mmRegisterCallback
 }
 
-// Inspect accepts an inspector function that has same arguments as the Cache.GetCode
-func (mmGetCode *mCacheMockGetCode) Inspect(f func(ctx context.Context, ref insolar.Reference)) *mCacheMockGetCode {
-	if mmGetCode.mock.inspectFuncGetCode != nil {
-		mmGetCode.mock.t.Fatalf("Inspect function is already set for CacheMock.GetCode")
+// Inspect accepts an inspector function that has same arguments as the Cache.RegisterCallback
+func (mmRegisterCallback *mCacheMockRegisterCallback) Inspect(f func(cb CacheCallbackType)) *mCacheMockRegisterCallback {
+	if mmRegisterCallback.mock.inspectFuncRegisterCallback != nil {
+		mmRegisterCallback.mock.t.Fatalf("Inspect function is already set for CacheMock.RegisterCallback")
 	}
 
-	mmGetCode.mock.inspectFuncGetCode = f
+	mmRegisterCallback.mock.inspectFuncRegisterCallback = f
 
-	return mmGetCode
+	return mmRegisterCallback
 }
 
-// Return sets up results that will be returned by Cache.GetCode
-func (mmGetCode *mCacheMockGetCode) Return(c2 CodeDescriptor, err error) *CacheMock {
-	if mmGetCode.mock.funcGetCode != nil {
-		mmGetCode.mock.t.Fatalf("CacheMock.GetCode mock is already set by Set")
+// Return sets up results that will be returned by Cache.RegisterCallback
+func (mmRegisterCallback *mCacheMockRegisterCallback) Return() *CacheMock {
+	if mmRegisterCallback.mock.funcRegisterCallback != nil {
+		mmRegisterCallback.mock.t.Fatalf("CacheMock.RegisterCallback mock is already set by Set")
 	}
 
-	if mmGetCode.defaultExpectation == nil {
-		mmGetCode.defaultExpectation = &CacheMockGetCodeExpectation{mock: mmGetCode.mock}
+	if mmRegisterCallback.defaultExpectation == nil {
+		mmRegisterCallback.defaultExpectation = &CacheMockRegisterCallbackExpectation{mock: mmRegisterCallback.mock}
 	}
-	mmGetCode.defaultExpectation.results = &CacheMockGetCodeResults{c2, err}
-	return mmGetCode.mock
+
+	return mmRegisterCallback.mock
 }
 
-//Set uses given function f to mock the Cache.GetCode method
-func (mmGetCode *mCacheMockGetCode) Set(f func(ctx context.Context, ref insolar.Reference) (c2 CodeDescriptor, err error)) *CacheMock {
-	if mmGetCode.defaultExpectation != nil {
-		mmGetCode.mock.t.Fatalf("Default expectation is already set for the Cache.GetCode method")
+//Set uses given function f to mock the Cache.RegisterCallback method
+func (mmRegisterCallback *mCacheMockRegisterCallback) Set(f func(cb CacheCallbackType)) *CacheMock {
+	if mmRegisterCallback.defaultExpectation != nil {
+		mmRegisterCallback.mock.t.Fatalf("Default expectation is already set for the Cache.RegisterCallback method")
 	}
 
-	if len(mmGetCode.expectations) > 0 {
-		mmGetCode.mock.t.Fatalf("Some expectations are already set for the Cache.GetCode method")
+	if len(mmRegisterCallback.expectations) > 0 {
+		mmRegisterCallback.mock.t.Fatalf("Some expectations are already set for the Cache.RegisterCallback method")
 	}
 
-	mmGetCode.mock.funcGetCode = f
-	return mmGetCode.mock
+	mmRegisterCallback.mock.funcRegisterCallback = f
+	return mmRegisterCallback.mock
 }
 
-// When sets expectation for the Cache.GetCode which will trigger the result defined by the following
-// Then helper
-func (mmGetCode *mCacheMockGetCode) When(ctx context.Context, ref insolar.Reference) *CacheMockGetCodeExpectation {
-	if mmGetCode.mock.funcGetCode != nil {
-		mmGetCode.mock.t.Fatalf("CacheMock.GetCode mock is already set by Set")
+// RegisterCallback implements Cache
+func (mmRegisterCallback *CacheMock) RegisterCallback(cb CacheCallbackType) {
+	mm_atomic.AddUint64(&mmRegisterCallback.beforeRegisterCallbackCounter, 1)
+	defer mm_atomic.AddUint64(&mmRegisterCallback.afterRegisterCallbackCounter, 1)
+
+	if mmRegisterCallback.inspectFuncRegisterCallback != nil {
+		mmRegisterCallback.inspectFuncRegisterCallback(cb)
 	}
 
-	expectation := &CacheMockGetCodeExpectation{
-		mock:   mmGetCode.mock,
-		params: &CacheMockGetCodeParams{ctx, ref},
-	}
-	mmGetCode.expectations = append(mmGetCode.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Cache.GetCode return parameters for the expectation previously defined by the When method
-func (e *CacheMockGetCodeExpectation) Then(c2 CodeDescriptor, err error) *CacheMock {
-	e.results = &CacheMockGetCodeResults{c2, err}
-	return e.mock
-}
-
-// GetCode implements Cache
-func (mmGetCode *CacheMock) GetCode(ctx context.Context, ref insolar.Reference) (c2 CodeDescriptor, err error) {
-	mm_atomic.AddUint64(&mmGetCode.beforeGetCodeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetCode.afterGetCodeCounter, 1)
-
-	if mmGetCode.inspectFuncGetCode != nil {
-		mmGetCode.inspectFuncGetCode(ctx, ref)
-	}
-
-	mm_params := &CacheMockGetCodeParams{ctx, ref}
+	mm_params := &CacheMockRegisterCallbackParams{cb}
 
 	// Record call args
-	mmGetCode.GetCodeMock.mutex.Lock()
-	mmGetCode.GetCodeMock.callArgs = append(mmGetCode.GetCodeMock.callArgs, mm_params)
-	mmGetCode.GetCodeMock.mutex.Unlock()
+	mmRegisterCallback.RegisterCallbackMock.mutex.Lock()
+	mmRegisterCallback.RegisterCallbackMock.callArgs = append(mmRegisterCallback.RegisterCallbackMock.callArgs, mm_params)
+	mmRegisterCallback.RegisterCallbackMock.mutex.Unlock()
 
-	for _, e := range mmGetCode.GetCodeMock.expectations {
+	for _, e := range mmRegisterCallback.RegisterCallbackMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.c2, e.results.err
+			return
 		}
 	}
 
-	if mmGetCode.GetCodeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetCode.GetCodeMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetCode.GetCodeMock.defaultExpectation.params
-		mm_got := CacheMockGetCodeParams{ctx, ref}
+	if mmRegisterCallback.RegisterCallbackMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmRegisterCallback.RegisterCallbackMock.defaultExpectation.Counter, 1)
+		mm_want := mmRegisterCallback.RegisterCallbackMock.defaultExpectation.params
+		mm_got := CacheMockRegisterCallbackParams{cb}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetCode.t.Errorf("CacheMock.GetCode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmRegisterCallback.t.Errorf("CacheMock.RegisterCallback got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmGetCode.GetCodeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetCode.t.Fatal("No results are set for the CacheMock.GetCode")
-		}
-		return (*mm_results).c2, (*mm_results).err
+		return
+
 	}
-	if mmGetCode.funcGetCode != nil {
-		return mmGetCode.funcGetCode(ctx, ref)
+	if mmRegisterCallback.funcRegisterCallback != nil {
+		mmRegisterCallback.funcRegisterCallback(cb)
+		return
 	}
-	mmGetCode.t.Fatalf("Unexpected call to CacheMock.GetCode. %v %v", ctx, ref)
-	return
+	mmRegisterCallback.t.Fatalf("Unexpected call to CacheMock.RegisterCallback. %v", cb)
+
 }
 
-// GetCodeAfterCounter returns a count of finished CacheMock.GetCode invocations
-func (mmGetCode *CacheMock) GetCodeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetCode.afterGetCodeCounter)
+// RegisterCallbackAfterCounter returns a count of finished CacheMock.RegisterCallback invocations
+func (mmRegisterCallback *CacheMock) RegisterCallbackAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRegisterCallback.afterRegisterCallbackCounter)
 }
 
-// GetCodeBeforeCounter returns a count of CacheMock.GetCode invocations
-func (mmGetCode *CacheMock) GetCodeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetCode.beforeGetCodeCounter)
+// RegisterCallbackBeforeCounter returns a count of CacheMock.RegisterCallback invocations
+func (mmRegisterCallback *CacheMock) RegisterCallbackBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRegisterCallback.beforeRegisterCallbackCounter)
 }
 
-// Calls returns a list of arguments used in each call to CacheMock.GetCode.
+// Calls returns a list of arguments used in each call to CacheMock.RegisterCallback.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetCode *mCacheMockGetCode) Calls() []*CacheMockGetCodeParams {
-	mmGetCode.mutex.RLock()
+func (mmRegisterCallback *mCacheMockRegisterCallback) Calls() []*CacheMockRegisterCallbackParams {
+	mmRegisterCallback.mutex.RLock()
 
-	argCopy := make([]*CacheMockGetCodeParams, len(mmGetCode.callArgs))
-	copy(argCopy, mmGetCode.callArgs)
+	argCopy := make([]*CacheMockRegisterCallbackParams, len(mmRegisterCallback.callArgs))
+	copy(argCopy, mmRegisterCallback.callArgs)
 
-	mmGetCode.mutex.RUnlock()
+	mmRegisterCallback.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockGetCodeDone returns true if the count of the GetCode invocations corresponds
+// MinimockRegisterCallbackDone returns true if the count of the RegisterCallback invocations corresponds
 // the number of defined expectations
-func (m *CacheMock) MinimockGetCodeDone() bool {
-	for _, e := range m.GetCodeMock.expectations {
+func (m *CacheMock) MinimockRegisterCallbackDone() bool {
+	for _, e := range m.RegisterCallbackMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetCodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetCodeCounter) < 1 {
+	if m.RegisterCallbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRegisterCallbackCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetCode != nil && mm_atomic.LoadUint64(&m.afterGetCodeCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetCodeInspect logs each unmet expectation
-func (m *CacheMock) MinimockGetCodeInspect() {
-	for _, e := range m.GetCodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to CacheMock.GetCode with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetCodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetCodeCounter) < 1 {
-		if m.GetCodeMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to CacheMock.GetCode")
-		} else {
-			m.t.Errorf("Expected call to CacheMock.GetCode with params: %#v", *m.GetCodeMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetCode != nil && mm_atomic.LoadUint64(&m.afterGetCodeCounter) < 1 {
-		m.t.Error("Expected call to CacheMock.GetCode")
-	}
-}
-
-type mCacheMockGetPrototype struct {
-	mock               *CacheMock
-	defaultExpectation *CacheMockGetPrototypeExpectation
-	expectations       []*CacheMockGetPrototypeExpectation
-
-	callArgs []*CacheMockGetPrototypeParams
-	mutex    sync.RWMutex
-}
-
-// CacheMockGetPrototypeExpectation specifies expectation struct of the Cache.GetPrototype
-type CacheMockGetPrototypeExpectation struct {
-	mock    *CacheMock
-	params  *CacheMockGetPrototypeParams
-	results *CacheMockGetPrototypeResults
-	Counter uint64
-}
-
-// CacheMockGetPrototypeParams contains parameters of the Cache.GetPrototype
-type CacheMockGetPrototypeParams struct {
-	ctx context.Context
-	ref insolar.Reference
-}
-
-// CacheMockGetPrototypeResults contains results of the Cache.GetPrototype
-type CacheMockGetPrototypeResults struct {
-	p1  PrototypeDescriptor
-	err error
-}
-
-// Expect sets up expected params for Cache.GetPrototype
-func (mmGetPrototype *mCacheMockGetPrototype) Expect(ctx context.Context, ref insolar.Reference) *mCacheMockGetPrototype {
-	if mmGetPrototype.mock.funcGetPrototype != nil {
-		mmGetPrototype.mock.t.Fatalf("CacheMock.GetPrototype mock is already set by Set")
-	}
-
-	if mmGetPrototype.defaultExpectation == nil {
-		mmGetPrototype.defaultExpectation = &CacheMockGetPrototypeExpectation{}
-	}
-
-	mmGetPrototype.defaultExpectation.params = &CacheMockGetPrototypeParams{ctx, ref}
-	for _, e := range mmGetPrototype.expectations {
-		if minimock.Equal(e.params, mmGetPrototype.defaultExpectation.params) {
-			mmGetPrototype.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetPrototype.defaultExpectation.params)
-		}
-	}
-
-	return mmGetPrototype
-}
-
-// Inspect accepts an inspector function that has same arguments as the Cache.GetPrototype
-func (mmGetPrototype *mCacheMockGetPrototype) Inspect(f func(ctx context.Context, ref insolar.Reference)) *mCacheMockGetPrototype {
-	if mmGetPrototype.mock.inspectFuncGetPrototype != nil {
-		mmGetPrototype.mock.t.Fatalf("Inspect function is already set for CacheMock.GetPrototype")
-	}
-
-	mmGetPrototype.mock.inspectFuncGetPrototype = f
-
-	return mmGetPrototype
-}
-
-// Return sets up results that will be returned by Cache.GetPrototype
-func (mmGetPrototype *mCacheMockGetPrototype) Return(p1 PrototypeDescriptor, err error) *CacheMock {
-	if mmGetPrototype.mock.funcGetPrototype != nil {
-		mmGetPrototype.mock.t.Fatalf("CacheMock.GetPrototype mock is already set by Set")
-	}
-
-	if mmGetPrototype.defaultExpectation == nil {
-		mmGetPrototype.defaultExpectation = &CacheMockGetPrototypeExpectation{mock: mmGetPrototype.mock}
-	}
-	mmGetPrototype.defaultExpectation.results = &CacheMockGetPrototypeResults{p1, err}
-	return mmGetPrototype.mock
-}
-
-//Set uses given function f to mock the Cache.GetPrototype method
-func (mmGetPrototype *mCacheMockGetPrototype) Set(f func(ctx context.Context, ref insolar.Reference) (p1 PrototypeDescriptor, err error)) *CacheMock {
-	if mmGetPrototype.defaultExpectation != nil {
-		mmGetPrototype.mock.t.Fatalf("Default expectation is already set for the Cache.GetPrototype method")
-	}
-
-	if len(mmGetPrototype.expectations) > 0 {
-		mmGetPrototype.mock.t.Fatalf("Some expectations are already set for the Cache.GetPrototype method")
-	}
-
-	mmGetPrototype.mock.funcGetPrototype = f
-	return mmGetPrototype.mock
-}
-
-// When sets expectation for the Cache.GetPrototype which will trigger the result defined by the following
-// Then helper
-func (mmGetPrototype *mCacheMockGetPrototype) When(ctx context.Context, ref insolar.Reference) *CacheMockGetPrototypeExpectation {
-	if mmGetPrototype.mock.funcGetPrototype != nil {
-		mmGetPrototype.mock.t.Fatalf("CacheMock.GetPrototype mock is already set by Set")
-	}
-
-	expectation := &CacheMockGetPrototypeExpectation{
-		mock:   mmGetPrototype.mock,
-		params: &CacheMockGetPrototypeParams{ctx, ref},
-	}
-	mmGetPrototype.expectations = append(mmGetPrototype.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Cache.GetPrototype return parameters for the expectation previously defined by the When method
-func (e *CacheMockGetPrototypeExpectation) Then(p1 PrototypeDescriptor, err error) *CacheMock {
-	e.results = &CacheMockGetPrototypeResults{p1, err}
-	return e.mock
-}
-
-// GetPrototype implements Cache
-func (mmGetPrototype *CacheMock) GetPrototype(ctx context.Context, ref insolar.Reference) (p1 PrototypeDescriptor, err error) {
-	mm_atomic.AddUint64(&mmGetPrototype.beforeGetPrototypeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetPrototype.afterGetPrototypeCounter, 1)
-
-	if mmGetPrototype.inspectFuncGetPrototype != nil {
-		mmGetPrototype.inspectFuncGetPrototype(ctx, ref)
-	}
-
-	mm_params := &CacheMockGetPrototypeParams{ctx, ref}
-
-	// Record call args
-	mmGetPrototype.GetPrototypeMock.mutex.Lock()
-	mmGetPrototype.GetPrototypeMock.callArgs = append(mmGetPrototype.GetPrototypeMock.callArgs, mm_params)
-	mmGetPrototype.GetPrototypeMock.mutex.Unlock()
-
-	for _, e := range mmGetPrototype.GetPrototypeMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.p1, e.results.err
-		}
-	}
-
-	if mmGetPrototype.GetPrototypeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetPrototype.GetPrototypeMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetPrototype.GetPrototypeMock.defaultExpectation.params
-		mm_got := CacheMockGetPrototypeParams{ctx, ref}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetPrototype.t.Errorf("CacheMock.GetPrototype got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetPrototype.GetPrototypeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetPrototype.t.Fatal("No results are set for the CacheMock.GetPrototype")
-		}
-		return (*mm_results).p1, (*mm_results).err
-	}
-	if mmGetPrototype.funcGetPrototype != nil {
-		return mmGetPrototype.funcGetPrototype(ctx, ref)
-	}
-	mmGetPrototype.t.Fatalf("Unexpected call to CacheMock.GetPrototype. %v %v", ctx, ref)
-	return
-}
-
-// GetPrototypeAfterCounter returns a count of finished CacheMock.GetPrototype invocations
-func (mmGetPrototype *CacheMock) GetPrototypeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetPrototype.afterGetPrototypeCounter)
-}
-
-// GetPrototypeBeforeCounter returns a count of CacheMock.GetPrototype invocations
-func (mmGetPrototype *CacheMock) GetPrototypeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetPrototype.beforeGetPrototypeCounter)
-}
-
-// Calls returns a list of arguments used in each call to CacheMock.GetPrototype.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetPrototype *mCacheMockGetPrototype) Calls() []*CacheMockGetPrototypeParams {
-	mmGetPrototype.mutex.RLock()
-
-	argCopy := make([]*CacheMockGetPrototypeParams, len(mmGetPrototype.callArgs))
-	copy(argCopy, mmGetPrototype.callArgs)
-
-	mmGetPrototype.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetPrototypeDone returns true if the count of the GetPrototype invocations corresponds
-// the number of defined expectations
-func (m *CacheMock) MinimockGetPrototypeDone() bool {
-	for _, e := range m.GetPrototypeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetPrototypeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPrototypeCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetPrototype != nil && mm_atomic.LoadUint64(&m.afterGetPrototypeCounter) < 1 {
+	if m.funcRegisterCallback != nil && mm_atomic.LoadUint64(&m.afterRegisterCallbackCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockGetPrototypeInspect logs each unmet expectation
-func (m *CacheMock) MinimockGetPrototypeInspect() {
-	for _, e := range m.GetPrototypeMock.expectations {
+// MinimockRegisterCallbackInspect logs each unmet expectation
+func (m *CacheMock) MinimockRegisterCallbackInspect() {
+	for _, e := range m.RegisterCallbackMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to CacheMock.GetPrototype with params: %#v", *e.params)
+			m.t.Errorf("Expected call to CacheMock.RegisterCallback with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetPrototypeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPrototypeCounter) < 1 {
-		if m.GetPrototypeMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to CacheMock.GetPrototype")
+	if m.RegisterCallbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRegisterCallbackCounter) < 1 {
+		if m.RegisterCallbackMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to CacheMock.RegisterCallback")
 		} else {
-			m.t.Errorf("Expected call to CacheMock.GetPrototype with params: %#v", *m.GetPrototypeMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to CacheMock.RegisterCallback with params: %#v", *m.RegisterCallbackMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetPrototype != nil && mm_atomic.LoadUint64(&m.afterGetPrototypeCounter) < 1 {
-		m.t.Error("Expected call to CacheMock.GetPrototype")
+	if m.funcRegisterCallback != nil && mm_atomic.LoadUint64(&m.afterRegisterCallbackCounter) < 1 {
+		m.t.Error("Expected call to CacheMock.RegisterCallback")
 	}
 }
 
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *CacheMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockByObjectDescriptorInspect()
-
 		m.MinimockByPrototypeRefInspect()
 
-		m.MinimockGetCodeInspect()
-
-		m.MinimockGetPrototypeInspect()
+		m.MinimockRegisterCallbackInspect()
 		m.t.FailNow()
 	}
 }
@@ -966,8 +479,6 @@ func (m *CacheMock) MinimockWait(timeout mm_time.Duration) {
 func (m *CacheMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockByObjectDescriptorDone() &&
 		m.MinimockByPrototypeRefDone() &&
-		m.MinimockGetCodeDone() &&
-		m.MinimockGetPrototypeDone()
+		m.MinimockRegisterCallbackDone()
 }

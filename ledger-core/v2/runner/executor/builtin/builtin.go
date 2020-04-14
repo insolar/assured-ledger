@@ -18,18 +18,30 @@ import (
 
 // BuiltIn is a contract runner engine
 type BuiltIn struct {
+	DescriptorRegistry   map[insolar.Reference]interface{}
 	CodeRegistry         map[string]insolar.ContractWrapper
 	CodeRefRegistry      map[insolar.Reference]string
 	PrototypeRefRegistry map[insolar.Reference]string
 }
 
 // NewBuiltIn is an constructor
-func NewBuiltIn(_ interface{}, stub common.LogicRunnerRPCStub) *BuiltIn {
+func NewBuiltIn(stub common.LogicRunnerRPCStub) *BuiltIn {
 	common.CurrentProxyCtx = NewProxyHelper(stub)
 
+	descriptorRegistry := make(map[insolar.Reference]interface{})
+
+	for _, prototypeDescriptor := range builtin.InitializePrototypeDescriptors() {
+		descriptorRegistry[*prototypeDescriptor.HeadRef()] = prototypeDescriptor
+	}
+	for _, codeDescriptor := range builtin.InitializeCodeDescriptors() {
+		descriptorRegistry[*codeDescriptor.Ref()] = codeDescriptor
+	}
+
 	return &BuiltIn{
-		CodeRefRegistry: builtin.InitializeCodeRefs(),
-		CodeRegistry:    builtin.InitializeContractMethods(),
+		DescriptorRegistry:   descriptorRegistry,
+		CodeRegistry:         builtin.InitializeContractMethods(),
+		CodeRefRegistry:      builtin.InitializeCodeRefs(),
+		PrototypeRefRegistry: builtin.InitializePrototypeRefs(),
 	}
 }
 
@@ -81,4 +93,8 @@ func (b *BuiltIn) CallMethod(
 	}
 
 	return methodFunc(data, args)
+}
+
+func (b *BuiltIn) GetDescriptor(ref insolar.Reference) (interface{}, error) {
+	return b.DescriptorRegistry[ref], nil
 }

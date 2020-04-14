@@ -14,6 +14,7 @@ import (
 )
 
 type Execution struct {
+	Reference  insolar.Reference
 	Object     descriptor.ObjectDescriptor
 	Context    context.Context
 	Request    *payload.VCallRequest

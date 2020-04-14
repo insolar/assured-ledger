@@ -47,7 +47,7 @@ type Server struct {
 
 	// real components
 	virtual       *virtual.Dispatcher
-	runner        *runner.Service
+	runner        *runner.DefaultService
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
@@ -100,8 +100,8 @@ func NewServer(t *testing.T) *Server {
 
 	s.PublisherMock = &PublisherMock{}
 
-	runnerService, err := runner.NewRunner()
-	if err != nil {
+	runnerService := runner.NewService()
+	if err := runnerService.Init(); err != nil {
 		panic(err)
 	}
 	s.runner = runnerService
@@ -109,15 +109,11 @@ func NewServer(t *testing.T) *Server {
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
-	virtualService, err := virtual.NewDispatcher()
-	if err != nil {
-		panic(err)
-	}
-
+	virtualService := virtual.NewDispatcher()
 	virtualService.Runner = runnerService
 	virtualService.MessageSender = messageSender
 
-	if err = virtualService.Init(ctx); err != nil {
+	if err := virtualService.Init(ctx); err != nil {
 		panic(err)
 	}
 

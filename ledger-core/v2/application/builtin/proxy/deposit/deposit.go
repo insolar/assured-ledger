@@ -23,7 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/appfoundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 )
 
 type DaemonConfirm struct {

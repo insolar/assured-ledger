@@ -48,8 +48,8 @@ type Dispatcher struct {
 	messageSenderAdapter *messageSenderAdapter.MessageSender
 }
 
-func NewDispatcher() (*Dispatcher, error) {
-	return &Dispatcher{}, nil
+func NewDispatcher() *Dispatcher {
+	return &Dispatcher{}
 }
 
 func (lr *Dispatcher) Init(ctx context.Context) error {

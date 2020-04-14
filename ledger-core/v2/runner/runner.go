@@ -132,6 +132,8 @@ func generateCallContext(
 		Caller:          &request.Caller,
 		CallerPrototype: &request.CallSiteDeclaration,
 
+		Request: &execution.Reference,
+
 		TraceID: inslogger.TraceID(ctx),
 	}
 
@@ -232,21 +234,22 @@ func (r *DefaultService) ContractCompile(ctx context.Context, contract interface
 	panic(throw.NotImplemented())
 }
 
-func NewService() (*DefaultService, error) {
+func NewService() *DefaultService {
 	return &DefaultService{
 		Cache:   NewDescriptorsCache(),
 		Manager: executor.NewManager(),
 
 		executions:     make(map[uuid.UUID]*executionContext),
 		executionsLock: sync.Mutex{},
-	}, nil
+	}
 }
 
 func (r *DefaultService) Init() error {
-	exec := builtin.NewBuiltIn(nil, r)
+	exec := builtin.NewBuiltIn(r)
 	if err := r.Manager.RegisterExecutor(insolar.MachineTypeBuiltin, exec); err != nil {
 		panic(throw.W(err, "failed to register executor", nil))
 	}
+	r.Cache.RegisterCallback(exec.GetDescriptor)
 
 	return nil
 }

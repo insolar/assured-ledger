@@ -14,6 +14,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 
 	"github.com/insolar/component-manager"
 
@@ -36,7 +38,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 )
@@ -127,14 +128,13 @@ func initComponents(
 	artifactsClient := artifacts.NewClient(b)
 	cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
 
-	virtualApplication, err := virtual.NewDispatcher()
-	checkError(ctx, err, "failed to create Virtual")
+	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 
-	runnerService, err := runner.NewService()
-	checkError(ctx, err, "failed to create Service")
+	runnerService := runner.NewService()
 
-	// logicRunner, err := logicrunner.NewLogicRunner(&cfg.LogicRunner, b)
-	// checkError(ctx, err, "failed to start LogicRunner")
+	virtualApplication := virtual.NewDispatcher()
+	virtualApplication.Runner = runnerService
+	virtualApplication.MessageSender = messageSender
 
 	contractRequester, err := contractrequester.New(
 		b,
