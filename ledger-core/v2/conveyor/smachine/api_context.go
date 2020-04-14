@@ -172,17 +172,27 @@ type InOrderStepContext interface {
 	// Published aliases will be unpublished on terminations of SM.
 	// Returns false when key is in use.
 	PublishGlobalAlias(key interface{}) bool
-	// PublishGlobalAlias publishes this Slot and its barge-in globally under the given (key).
-	// Same as PublishGlobalAlias. (handler) can be nil.
+
+	// PublishGlobalAliasAndBargeIn publishes this Slot and its barge-in globally under the given (key).
+	// Published aliases will be unpublished on terminations of SM.
+	// Returns false when key is in use.
+	// (handler) can be nil.
 	PublishGlobalAliasAndBargeIn(key interface{}, handler BargeInHolder) bool
 
 	// UnpublishGlobalAlias unpublishes the given (key)
 	// Returns false when (key) is not published or is published by another slot.
 	UnpublishGlobalAlias(key interface{}) bool
-	// GetPublishedGlobalAliasAndBargeIn reads SlotLink for the given alias (key).
+
+	// GetPublishedGlobalAlias reads SlotLink for the given alias (key).
 	// When (key) is unknown, then zero/empty SlotLink is returned.
-	// Doesn't return handler provided by PublishGlobalAliasAndBargeIn as the handler is intended for external use only.
+	// Doesn't return handler provided by PublishGlobalAliasAndBargeIn,
+	// see GetPublishedGlobalAliasAndBargeIn.
 	GetPublishedGlobalAlias(key interface{}) SlotLink
+
+	// GetPublishedGlobalAliasAndBargeIn reads SlotLink and its barge-in for the given alias (key).
+	// When (key) is unknown, then zero/empty SlotLink is returned.
+	// When barge-in was not set for the (key), then nil holder is returned.
+	GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder)
 
 	// Error stops SM by calling an error handler.
 	Error(error) StateUpdate

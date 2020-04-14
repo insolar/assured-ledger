@@ -89,6 +89,12 @@ func (p *slotContext) GetPublishedGlobalAlias(key interface{}) SlotLink {
 	return av.Link
 }
 
+func (p *slotContext) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder) {
+	p.ensureAtLeast(updCtxInit)
+	av := p.s.machine.getGlobalPublished(key)
+	return av.Link, av.BargeIn
+}
+
 func (p *machineCallContext) GetPublished(key interface{}) interface{} {
 	p.ensureValid()
 	if v, ok := p.m.getPublished(key); ok {
