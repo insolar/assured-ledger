@@ -19,10 +19,10 @@ import (
 type ProxyHelper struct {
 	common.Serializer
 	common.SystemError
-	methods common.LogicRunnerRPCStub
+	methods common.RunnerRPCStub
 }
 
-func NewProxyHelper(runner common.LogicRunnerRPCStub) *ProxyHelper {
+func NewProxyHelper(runner common.RunnerRPCStub) *ProxyHelper {
 	return &ProxyHelper{
 		Serializer:  common.NewCBORSerializer(),
 		SystemError: common.NewSystemError(),

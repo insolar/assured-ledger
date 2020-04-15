@@ -28,7 +28,6 @@ import (
 
 // PulseManager implements insolar.PulseManager.
 type PulseManager struct {
-	LogicRunner   insolar.LogicRunner `inject:""`
 	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
 	NodeSetter    node.Modifier       `inject:""`
 	PulseAccessor pulse.Accessor      `inject:""`
@@ -112,11 +111,6 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 
 	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
 		return errors.Wrap(err, "call of AddPulse failed")
-	}
-
-	err = m.LogicRunner.OnPulse(ctx, storagePulse, newPulse)
-	if err != nil {
-		return err
 	}
 
 	for _, d := range m.dispatchers {

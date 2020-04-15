@@ -16,16 +16,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
-// BuiltIn is a contract runner engine
-type BuiltIn struct {
+// Runner is a contract runner engine
+type Runner struct {
 	DescriptorRegistry   map[insolar.Reference]interface{}
 	CodeRegistry         map[string]insolar.ContractWrapper
 	CodeRefRegistry      map[insolar.Reference]string
 	PrototypeRefRegistry map[insolar.Reference]string
 }
 
-// NewBuiltIn is an constructor
-func NewBuiltIn(stub common.LogicRunnerRPCStub) *BuiltIn {
+// New is an constructor
+func New(stub common.RunnerRPCStub) *Runner {
 	common.CurrentProxyCtx = NewProxyHelper(stub)
 
 	descriptorRegistry := make(map[insolar.Reference]interface{})
@@ -37,7 +37,7 @@ func NewBuiltIn(stub common.LogicRunnerRPCStub) *BuiltIn {
 		descriptorRegistry[*codeDescriptor.Ref()] = codeDescriptor
 	}
 
-	return &BuiltIn{
+	return &Runner{
 		DescriptorRegistry:   descriptorRegistry,
 		CodeRegistry:         builtin.InitializeContractMethods(),
 		CodeRefRegistry:      builtin.InitializeCodeRefs(),
@@ -45,7 +45,7 @@ func NewBuiltIn(stub common.LogicRunnerRPCStub) *BuiltIn {
 	}
 }
 
-func (b *BuiltIn) CallConstructor(
+func (b *Runner) CallConstructor(
 	_ context.Context,
 	callCtx *insolar.LogicCallContext,
 	codeRef insolar.Reference,
@@ -70,7 +70,7 @@ func (b *BuiltIn) CallConstructor(
 	return constructorFunc(*objRef, args)
 }
 
-func (b *BuiltIn) CallMethod(
+func (b *Runner) CallMethod(
 	_ context.Context,
 	callCtx *insolar.LogicCallContext,
 	codeRef insolar.Reference,
@@ -95,6 +95,6 @@ func (b *BuiltIn) CallMethod(
 	return methodFunc(data, args)
 }
 
-func (b *BuiltIn) GetDescriptor(ref insolar.Reference) (interface{}, error) {
+func (b *Runner) GetDescriptor(ref insolar.Reference) (interface{}, error) {
 	return b.DescriptorRegistry[ref], nil
 }

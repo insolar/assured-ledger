@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package descriptor
+package executionevent
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -12,27 +12,27 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type RPCEvent interface{}
+type RPC interface{}
 
-type EventGetCode interface {
+type GetCode interface {
 	CodeReference() insolar.Reference
 }
 
-type EventDeactivate interface {
+type Deactivate interface {
 	ParentObjectReference() insolar.Reference
 	ParentRequestReference() insolar.Reference
 }
 
-type EventSaveAsChild interface {
+type SaveAsChild interface {
 	Prototype() insolar.Reference
 	Arguments() []byte
 	Constructor() string
 	ParentObjectReference() insolar.Reference
 	ParentRequestReference() insolar.Reference
-	ConstructOutgoing(transcript execution.Execution) payload.VCallRequest
+	ConstructOutgoing(transcript execution.Context) payload.VCallRequest
 }
 
-type EventRouteCall interface {
+type RouteCall interface {
 	Saga() bool
 	Immutable() bool
 	Prototype() insolar.Reference
@@ -43,27 +43,27 @@ type EventRouteCall interface {
 	ParentRequestReference() insolar.Reference
 }
 
-type RPCEventBuilder interface {
-	Deactivate() RPCEvent
-	SaveAsChild(prototype insolar.Reference, constructor string, arguments []byte) RPCEvent
-	RouteCall(object insolar.Reference, prototype insolar.Reference, method string, arguments []byte) RPCRouteCallEvent
-	GetCode(code insolar.Reference) RPCEvent
+type Builder interface {
+	Deactivate() RPC
+	SaveAsChild(prototype insolar.Reference, constructor string, arguments []byte) RPC
+	RouteCall(object insolar.Reference, prototype insolar.Reference, method string, arguments []byte) RouteCallBuilder
+	GetCode(code insolar.Reference) RPC
 }
 
-type rpcBuilder struct {
+type builder struct {
 	request insolar.Reference
 	object  insolar.Reference
 }
 
-func (r rpcBuilder) Deactivate() RPCEvent {
-	return eventDeactivate{
+func (r builder) Deactivate() RPC {
+	return deactivate{
 		parentObjectReference:  r.object,
 		parentRequestReference: r.request,
 	}
 }
 
-func (r rpcBuilder) SaveAsChild(prototype insolar.Reference, constructor string, arguments []byte) RPCEvent {
-	return eventSaveAsChild{
+func (r builder) SaveAsChild(prototype insolar.Reference, constructor string, arguments []byte) RPC {
+	return saveAsChild{
 		parentRequestReference: r.request,
 		parentObjectReference:  r.object,
 
@@ -73,13 +73,13 @@ func (r rpcBuilder) SaveAsChild(prototype insolar.Reference, constructor string,
 	}
 }
 
-func (r rpcBuilder) RouteCall(
+func (r builder) RouteCall(
 	object insolar.Reference,
 	prototype insolar.Reference,
 	method string,
 	arguments []byte,
-) RPCRouteCallEvent {
-	return &eventRouteCall{
+) RouteCallBuilder {
+	return &routeCall{
 		parentRequestReference: r.request,
 		parentObjectReference:  r.object,
 
@@ -92,38 +92,38 @@ func (r rpcBuilder) RouteCall(
 	}
 }
 
-func (r rpcBuilder) GetCode(code insolar.Reference) RPCEvent {
-	return &eventGetCode{
+func (r builder) GetCode(code insolar.Reference) RPC {
+	return &getCode{
 		codeReference: code,
 	}
 }
 
-func NewRPCBuilder(request insolar.Reference, object insolar.Reference) RPCEventBuilder {
-	return &rpcBuilder{request: request, object: object}
+func NewRPCBuilder(request insolar.Reference, object insolar.Reference) Builder {
+	return &builder{request: request, object: object}
 }
 
-type eventGetCode struct {
+type getCode struct {
 	codeReference insolar.Reference
 }
 
-func (e eventGetCode) CodeReference() insolar.Reference {
+func (e getCode) CodeReference() insolar.Reference {
 	return e.codeReference
 }
 
-type eventDeactivate struct {
+type deactivate struct {
 	parentRequestReference insolar.Reference
 	parentObjectReference  insolar.Reference
 }
 
-func (e eventDeactivate) ParentObjectReference() insolar.Reference {
+func (e deactivate) ParentObjectReference() insolar.Reference {
 	return e.parentObjectReference
 }
 
-func (e eventDeactivate) ParentRequestReference() insolar.Reference {
+func (e deactivate) ParentRequestReference() insolar.Reference {
 	return e.parentRequestReference
 }
 
-type eventSaveAsChild struct {
+type saveAsChild struct {
 	parentRequestReference insolar.Reference
 	parentObjectReference  insolar.Reference
 
@@ -132,31 +132,31 @@ type eventSaveAsChild struct {
 	prototype   insolar.Reference
 }
 
-func (e eventSaveAsChild) Prototype() insolar.Reference {
+func (e saveAsChild) Prototype() insolar.Reference {
 	return e.prototype
 }
 
-func (e eventSaveAsChild) Arguments() []byte {
+func (e saveAsChild) Arguments() []byte {
 	return e.arguments
 }
 
-func (e eventSaveAsChild) Constructor() string {
+func (e saveAsChild) Constructor() string {
 	return e.constructor
 }
 
-func (e eventSaveAsChild) ParentObjectReference() insolar.Reference {
+func (e saveAsChild) ParentObjectReference() insolar.Reference {
 	return e.parentObjectReference
 }
 
-func (e eventSaveAsChild) ParentRequestReference() insolar.Reference {
+func (e saveAsChild) ParentRequestReference() insolar.Reference {
 	return e.parentRequestReference
 }
 
-func (e eventSaveAsChild) ConstructOutgoing(execution execution.Execution) payload.VCallRequest {
+func (e saveAsChild) ConstructOutgoing(execution execution.Context) payload.VCallRequest {
 	panic(throw.NotImplemented())
 }
 
-type eventRouteCall struct {
+type routeCall struct {
 	parentRequestReference insolar.Reference
 	parentObjectReference  insolar.Reference
 
@@ -168,55 +168,53 @@ type eventRouteCall struct {
 	saga      bool
 }
 
-func (e eventRouteCall) Saga() bool {
+func (e routeCall) Saga() bool {
 	return e.saga
 }
 
-func (e eventRouteCall) Immutable() bool {
+func (e routeCall) Immutable() bool {
 	return e.immutable
 }
 
-func (e eventRouteCall) Prototype() insolar.Reference {
+func (e routeCall) Prototype() insolar.Reference {
 	return e.prototype
 }
 
-func (e eventRouteCall) Object() insolar.Reference {
+func (e routeCall) Object() insolar.Reference {
 	return e.object
 }
 
-func (e eventRouteCall) Arguments() []byte {
+func (e routeCall) Arguments() []byte {
 	return e.arguments
 }
 
-func (e eventRouteCall) Method() string {
+func (e routeCall) Method() string {
 	return e.method
 }
 
-func (e eventRouteCall) ParentObjectReference() insolar.Reference {
+func (e routeCall) ParentObjectReference() insolar.Reference {
 	return e.parentObjectReference
 }
 
-func (e eventRouteCall) ParentRequestReference() insolar.Reference {
+func (e routeCall) ParentRequestReference() insolar.Reference {
 	return e.parentRequestReference
 }
 
-type RPCRouteCallEvent interface {
-	RPCEvent
-
-	SetSaga(isSaga bool) RPCRouteCallEvent
-	SetImmutable(isImmutable bool) RPCRouteCallEvent
+type RouteCallBuilder interface {
+	SetSaga(isSaga bool) RouteCallBuilder
+	SetImmutable(isImmutable bool) RouteCallBuilder
 }
 
-func (e eventRouteCall) ConstructOutgoing(execution execution.Execution) payload.VCallRequest {
+func (e routeCall) ConstructOutgoing(execution execution.Context) payload.VCallRequest {
 	panic(throw.NotImplemented())
 }
 
-func (e *eventRouteCall) SetSaga(isSaga bool) RPCRouteCallEvent {
+func (e *routeCall) SetSaga(isSaga bool) RouteCallBuilder {
 	e.saga = isSaga
 	return e
 }
 
-func (e *eventRouteCall) SetImmutable(isImmutable bool) RPCRouteCallEvent {
+func (e *routeCall) SetImmutable(isImmutable bool) RouteCallBuilder {
 	e.immutable = isImmutable
 	return e
 }

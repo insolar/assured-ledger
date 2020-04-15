@@ -10,7 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 )
 
-type LogicRunnerRPCStub interface {
+type RunnerRPCStub interface {
 	GetCode(rpctypes.UpGetCodeReq, *rpctypes.UpGetCodeResp) error
 	RouteCall(rpctypes.UpRouteReq, *rpctypes.UpRouteResp) error
 	SaveAsChild(rpctypes.UpSaveAsChildReq, *rpctypes.UpSaveAsChildResp) error

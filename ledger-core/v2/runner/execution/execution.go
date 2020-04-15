@@ -13,7 +13,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
-type Execution struct {
+// TODO[bigbes]: redo context, extract what is needed from VCallRequest to Context level and etc
+type Context struct {
 	Reference  insolar.Reference
 	Object     descriptor.ObjectDescriptor
 	Context    context.Context

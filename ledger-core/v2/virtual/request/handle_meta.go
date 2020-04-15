@@ -7,7 +7,6 @@ package request
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -24,6 +22,12 @@ type logProcessing struct {
 	*log.Msg `txt:"processing message"`
 
 	messageType string
+}
+
+type errNoHandler struct {
+	*log.Msg `txt:"no handler for message type"`
+
+	MessageType payload.Type
 }
 
 func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.CreateFunc {
@@ -38,7 +42,7 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 	payloadBytes := payloadMeta.Payload
 	payloadType, err := payload.UnmarshalType(payloadBytes)
 	if err != nil {
-		panic(throw.W(err, "failed to unmarhshal payload type", nil))
+		panic(err)
 	}
 
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
@@ -70,6 +74,6 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 		}
 
 	default:
-		panic(fmt.Sprintf("no handler for message type %s", payloadType.String()))
+		panic(errNoHandler{MessageType: payloadType})
 	}
 }

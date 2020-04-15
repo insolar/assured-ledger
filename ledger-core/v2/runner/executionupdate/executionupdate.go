@@ -10,23 +10,23 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 )
 
-//go:generate stringer -type=ContractExecutionStateUpdateType
-type ContractExecutionStateUpdateType int
+//go:generate stringer -type=StateUpdateType
+type StateUpdateType int
 
 const (
-	_ ContractExecutionStateUpdateType = iota
+	_ StateUpdateType = iota
 
-	ContractError
-	ContractAborted
-	ContractDone
+	TypeError
+	TypeAborted
+	TypeDone
 
-	ContractOutgoingCall
+	TypeOutgoingCall
 )
 
 type ContractExecutionStateUpdate struct {
-	Type  ContractExecutionStateUpdateType
+	Type  StateUpdateType
 	Error error
 
 	Result   *requestresult.RequestResult
-	Outgoing descriptor.RPCEvent
+	Outgoing executionevent.RPC
 }

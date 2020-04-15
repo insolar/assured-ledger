@@ -132,9 +132,9 @@ func initComponents(
 
 	runnerService := runner.NewService()
 
-	virtualApplication := virtual.NewDispatcher()
-	virtualApplication.Runner = runnerService
-	virtualApplication.MessageSender = messageSender
+	virtualDispatcher := virtual.NewDispatcher()
+	virtualDispatcher.Runner = runnerService
+	virtualDispatcher.MessageSender = messageSender
 
 	contractRequester, err := contractrequester.New(
 		b,
@@ -184,7 +184,7 @@ func initComponents(
 		cryptographyService,
 		keyProcessor,
 		certManager,
-		virtualApplication,
+		virtualDispatcher,
 		runnerService,
 		APIWrapper,
 		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
@@ -217,12 +217,12 @@ func initComponents(
 	checkError(ctx, err, "failed to init components")
 
 	// this should be done after Init due to inject
-	pm.AddDispatcher(nil, contractRequester.FlowDispatcher)
+	pm.AddDispatcher(contractRequester.FlowDispatcher)
 
 	return cm, startWatermill(
 		ctx, wmLogger, subscriber, b,
 		nw.SendMessageHandler,
-		nil,
+		virtualDispatcher.FlowDispatcher.Process,
 		contractRequester.FlowDispatcher.Process,
 	)
 }

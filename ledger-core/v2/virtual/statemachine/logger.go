@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ConveyorLogger struct {
@@ -43,7 +44,9 @@ type LogStepMessage struct {
 
 	MachineName interface{} `fmt:"%T"`
 	MachineID   string
-	SlotStep    string
+	SlotID      smachine.SlotID
+	SlotStepNo  uint32
+	CycleNo     uint32
 	From        string
 	To          string `opt:""`
 
@@ -86,7 +89,7 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 	case smachine.StepLoggerMigrate:
 		special = "migrate "
 	default:
-		panic("illegal value")
+		panic(throw.Impossible())
 	}
 
 	prepareStepName(&stepLoggerData.CurrentStep)
@@ -120,8 +123,10 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 		Message: special + stepLoggerUpdateData.UpdateType + suffix,
 
 		MachineName: stepLoggerData.Declaration,
-		MachineID:   fmt.Sprintf("%s[%3d]", stepLoggerData.StepNo.MachineID(), stepLoggerData.CycleNo),
-		SlotStep:    fmt.Sprintf("%03d @ %03d", stepLoggerData.StepNo.StepNo(), stepLoggerData.StepNo.StepNo()),
+		MachineID:   stepLoggerData.StepNo.MachineID(),
+		CycleNo:     stepLoggerData.CycleNo,
+		SlotID:      stepLoggerData.StepNo.SlotID(),
+		SlotStepNo:  stepLoggerData.StepNo.StepNo(),
 
 		From: stepLoggerData.CurrentStep.GetStepName(),
 		To:   stepLoggerUpdateData.NextStep.GetStepName(),
@@ -157,10 +162,12 @@ type LogInternal struct {
 	Message   string `fmt:"internal - %s"`
 	Component string `txt:"sm"`
 
-	MachineID string
-	SlotStep  string
-	Error     error  `opt:""`
-	Backtrace string `opt:""`
+	MachineID  string
+	SlotID     smachine.SlotID
+	SlotStepNo uint32
+	CycleNo    uint32
+	Error      error  `opt:""`
+	Backtrace  string `opt:""`
 }
 
 func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMachineData, msg string) {
@@ -173,10 +180,12 @@ func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMac
 	global.Logger().Error(LogInternal{
 		Message: msg,
 
-		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineID(), slotMachineData.CycleNo),
-		SlotStep:  fmt.Sprintf("%03d @ %03d", slotMachineData.StepNo.StepNo(), slotMachineData.StepNo.StepNo()),
-		Error:     slotMachineData.Error,
-		Backtrace: backtrace,
+		MachineID:  slotMachineData.StepNo.MachineID(),
+		CycleNo:    slotMachineData.CycleNo,
+		SlotID:     slotMachineData.StepNo.SlotID(),
+		SlotStepNo: slotMachineData.StepNo.StepNo(),
+		Error:      slotMachineData.Error,
+		Backtrace:  backtrace,
 	})
 }
 
@@ -186,10 +195,12 @@ type LogCritical struct {
 	Message   string `fmt:"internal critical - %s"`
 	Component string `txt:"sm"`
 
-	MachineID string
-	SlotStep  string
-	Error     error  `opt:""`
-	Backtrace string `opt:""`
+	MachineID  string
+	SlotID     smachine.SlotID
+	SlotStepNo uint32
+	CycleNo    uint32
+	Error      error  `opt:""`
+	Backtrace  string `opt:""`
 }
 
 func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMachineData, msg string) {
@@ -202,9 +213,11 @@ func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMac
 	global.Logger().Error(LogCritical{
 		Message: msg,
 
-		MachineID: fmt.Sprintf("%s[%3d]", slotMachineData.StepNo.MachineID(), slotMachineData.CycleNo),
-		SlotStep:  fmt.Sprintf("%03d @ %03d", slotMachineData.StepNo.StepNo(), slotMachineData.StepNo.StepNo()),
-		Error:     slotMachineData.Error,
-		Backtrace: backtrace,
+		MachineID:  slotMachineData.StepNo.MachineID(),
+		CycleNo:    slotMachineData.CycleNo,
+		SlotID:     slotMachineData.StepNo.SlotID(),
+		SlotStepNo: slotMachineData.StepNo.StepNo(),
+		Error:      slotMachineData.Error,
+		Backtrace:  backtrace,
 	})
 }

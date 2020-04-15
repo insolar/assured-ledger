@@ -7,28 +7,34 @@ package virtual
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/request"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
+
+type errUnknownEvent struct {
+	*log.Msg
+
+	InputType interface{} `fmt:"%T"`
+}
 
 func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.CreateFunc {
 	switch event := input.(type) {
 	case *statemachine.DispatcherMessage:
 		return request.HandlerFactoryMeta(event)
 	default:
-		panic(fmt.Sprintf("unknown event type, got %T", input))
+		panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
 	}
 }
 
@@ -37,8 +43,6 @@ type Dispatcher struct {
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker statemachine.ConveyorWorker
-
-	Cfg *configuration.LogicRunner
 
 	// Components
 	Runner        runner.Service

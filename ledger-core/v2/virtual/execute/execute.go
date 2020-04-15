@@ -36,7 +36,7 @@ type SMExecute struct {
 	isOrdered          bool
 	semaphoreOrdered   smachine.SyncLink
 	semaphoreUnordered smachine.SyncLink
-	execution          execution.Execution
+	execution          execution.Context
 	objectSharedState  object.SharedStateAccessor
 
 	// execution step
@@ -193,15 +193,15 @@ func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpd
 
 func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch s.executionNewState.Type {
-	case executionupdate.ContractDone:
+	case executionupdate.TypeDone:
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
-	case executionupdate.ContractError:
+	case executionupdate.TypeError:
 		ctx.Log().Error("failed to execute: "+s.executionNewState.Error.Error(), nil)
 		fallthrough
-	case executionupdate.ContractAborted:
+	case executionupdate.TypeAborted:
 		fallthrough
-	case executionupdate.ContractOutgoingCall:
+	case executionupdate.TypeOutgoingCall:
 		fallthrough
 	default:
 		panic(throw.W(throw.NotImplemented(), s.executionNewState.Type.String(), nil))

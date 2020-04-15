@@ -14,57 +14,57 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 )
 
-type executionContext struct {
-	execution execution.Execution
-	output    chan *executionupdate.ContractExecutionStateUpdate
-	input     chan interface{}
+type executionEventSink struct {
+	context execution.Context
+	output  chan *executionupdate.ContractExecutionStateUpdate
+	input   chan interface{}
 }
 
-func (c *executionContext) Error(err error) bool {
+func (c *executionEventSink) Error(err error) bool {
 	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type:  executionupdate.ContractError,
+		Type:  executionupdate.TypeError,
 		Error: err,
 	}
 
 	return true
 }
-func (c *executionContext) ErrorString(text string) bool {
+func (c *executionEventSink) ErrorString(text string) bool {
 	return c.Error(errors.New(text))
 }
-func (c *executionContext) ErrorWrapped(err error, text string) bool {
+func (c *executionEventSink) ErrorWrapped(err error, text string) bool {
 	return c.Error(errors.Wrap(err, text))
 }
 
-func (c *executionContext) ExternalCall(event descriptor.RPCEvent) bool {
+func (c *executionEventSink) ExternalCall(event descriptor.RPC) bool {
 	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type:     executionupdate.ContractOutgoingCall,
+		Type:     executionupdate.TypeOutgoingCall,
 		Outgoing: event,
 	}
 	return true
 }
-func (c *executionContext) Result(result *requestresult.RequestResult) bool {
+func (c *executionEventSink) Result(result *requestresult.RequestResult) bool {
 	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type:   executionupdate.ContractDone,
+		Type:   executionupdate.TypeDone,
 		Result: result,
 	}
 	return true
 }
 
-func (c *executionContext) Abort() bool {
+func (c *executionEventSink) Abort() bool {
 	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type: executionupdate.ContractAborted,
+		Type: executionupdate.TypeAborted,
 	}
 	return true
 }
 
-func (c *executionContext) Stop() {
+func (c *executionEventSink) Stop() {
 	close(c.input)
 	close(c.output)
 }
-func newExecutionContext(execution execution.Execution) *executionContext {
-	return &executionContext{
-		execution: execution,
-		output:    make(chan *executionupdate.ContractExecutionStateUpdate, 1),
-		input:     make(chan interface{}, 1),
+func newEventSink(execution execution.Context) *executionEventSink {
+	return &executionEventSink{
+		context: execution,
+		output:  make(chan *executionupdate.ContractExecutionStateUpdate, 1),
+		input:   make(chan interface{}, 1),
 	}
 }

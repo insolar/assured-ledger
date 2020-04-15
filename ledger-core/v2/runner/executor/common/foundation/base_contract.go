@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 )
 
-// BaseContract is a base class for all contracts.
+// BaseContract is a base embeddable struct for all insolar contracts
 type BaseContract struct {
 }
 
@@ -31,7 +31,7 @@ type BaseContractInterface interface {
 
 // GetReference - Returns public reference of contract
 func (bc *BaseContract) GetReference() insolar.Reference {
-	ctx := bc.GetContext()
+	ctx := bc.getContext()
 	if ctx.Callee == nil {
 		panic("context has no callee set")
 	}
@@ -40,16 +40,16 @@ func (bc *BaseContract) GetReference() insolar.Reference {
 
 // GetPrototype - Returns prototype of contract
 func (bc *BaseContract) GetPrototype() insolar.Reference {
-	return *bc.GetContext().Prototype
+	return *bc.getContext().Prototype
 }
 
 // GetCode - Returns prototype of contract
 func (bc *BaseContract) GetCode() insolar.Reference {
-	return *bc.GetContext().Code
+	return *bc.getContext().Code
 }
 
-// GetContext returns current calling context OBSOLETED.
-func (bc *BaseContract) GetContext() *insolar.LogicCallContext {
+// getContext returns current calling context
+func (bc *BaseContract) getContext() *insolar.LogicCallContext {
 	return GetLogicalContext()
 }
 

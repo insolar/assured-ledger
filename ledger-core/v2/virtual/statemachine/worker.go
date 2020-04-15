@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ConveyorWorker struct {
@@ -26,10 +27,10 @@ func (w *ConveyorWorker) Stop() {
 
 func (w *ConveyorWorker) AttachTo(conveyor *conveyor.PulseConveyor) {
 	if conveyor == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	if w.conveyor != nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	w.conveyor = conveyor
 	w.stopped.Add(1)

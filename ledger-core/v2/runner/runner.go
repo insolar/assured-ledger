@@ -27,10 +27,10 @@ import (
 )
 
 type Service interface {
-	ExecutionStart(ctx context.Context, execution execution.Execution) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error)
+	ExecutionStart(ctx context.Context, execution execution.Context) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error)
 	ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error)
 	ExecutionAbort(ctx context.Context, id uuid.UUID)
-	ExecutionClassify(ctx context.Context, execution execution.Execution) calltype.ContractCallType
+	ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType
 	ContractCompile(ctx context.Context, contract interface{})
 }
 
@@ -38,61 +38,61 @@ type DefaultService struct {
 	Cache   descriptor.Cache
 	Manager executor.Manager
 
-	executions     map[uuid.UUID]*executionContext
-	executionsLock sync.Mutex
+	eventSinkMap     map[uuid.UUID]*executionEventSink
+	eventSinkMapLock sync.Mutex
 }
 
 func (r *DefaultService) stopExecution(id uuid.UUID) error { // nolint
-	r.executionsLock.Lock()
-	defer r.executionsLock.Unlock()
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
 
-	if val, ok := r.executions[id]; ok {
-		delete(r.executions, id)
+	if val, ok := r.eventSinkMap[id]; ok {
+		delete(r.eventSinkMap, id)
 		val.Stop()
 	}
 
 	return nil
 }
 
-func (r *DefaultService) getExecutionContext(id uuid.UUID) *executionContext {
-	r.executionsLock.Lock()
-	defer r.executionsLock.Unlock()
+func (r *DefaultService) getExecutionSink(id uuid.UUID) *executionEventSink {
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
 
-	return r.executions[id]
+	return r.eventSinkMap[id]
 }
 
 func (r *DefaultService) waitForReply(id uuid.UUID) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
-	executionContext := r.getExecutionContext(id)
+	executionContext := r.getExecutionSink(id)
 	if executionContext == nil {
 		panic("failed to find ExecutionContext")
 	}
 
 	switch update := <-executionContext.output; update.Type {
-	case executionupdate.ContractDone, executionupdate.ContractAborted:
+	case executionupdate.TypeDone, executionupdate.TypeAborted:
 		_ = r.stopExecution(id)
 		fallthrough
-	case executionupdate.ContractError, executionupdate.ContractOutgoingCall:
+	case executionupdate.TypeError, executionupdate.TypeOutgoingCall:
 		return update, id, nil
 	default:
 		panic(fmt.Sprintf("unknown return type %v", update.Type))
 	}
 }
 
-func (r *DefaultService) createExecutionContext(execution execution.Execution) uuid.UUID {
-	r.executionsLock.Lock()
-	defer r.executionsLock.Unlock()
+func (r *DefaultService) createExecutionSink(execution execution.Context) uuid.UUID {
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
 
 	// TODO[bigbes]: think how to change from UUID to natural key, here (execution deduplication)
 	var id uuid.UUID
 	for {
 		id := uuid.New()
 
-		if _, ok := r.executions[id]; !ok {
+		if _, ok := r.eventSinkMap[id]; !ok {
 			break
 		}
 	}
 
-	r.executions[id] = newExecutionContext(execution)
+	r.eventSinkMap[id] = newEventSink(execution)
 
 	return id
 }
@@ -102,7 +102,7 @@ func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
 		// replace with custom error, not RecoverSlotPanicWithStack
 		err := smachine.RecoverSlotPanicWithStack("ContractRunnerService panic", err, nil, smachine.AsyncCallArea)
 
-		executionContext := r.getExecutionContext(id)
+		executionContext := r.getExecutionSink(id)
 		if executionContext == nil {
 			inslogger.FromContext(ctx).Errorf("[executionRecover] Failed to find a job execution context %s", id.String())
 			inslogger.FromContext(ctx).Errorf("[executionRecover] Failed to execute a job, panic: %v", r)
@@ -116,7 +116,7 @@ func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
 func generateCallContext(
 	ctx context.Context,
 	id uuid.UUID,
-	execution execution.Execution,
+	execution execution.Context,
 	protoDesc descriptor.PrototypeDescriptor,
 	codeDesc descriptor.CodeDescriptor,
 ) *insolar.LogicCallContext {
@@ -148,34 +148,34 @@ func generateCallContext(
 	return res
 }
 
-func (r *DefaultService) executeMethod(_ context.Context, _ uuid.UUID, _ *executionContext) bool {
+func (r *DefaultService) executeMethod(_ context.Context, _ uuid.UUID, _ *executionEventSink) {
 	panic(throw.NotImplemented())
 }
 
-func (r *DefaultService) executeConstructor(ctx context.Context, id uuid.UUID, eCtx *executionContext) bool {
+func (r *DefaultService) executeConstructor(ctx context.Context, id uuid.UUID, eventSink *executionEventSink) {
 	var (
-		execution = eCtx.execution
-		request   = execution.Request
+		executionContext = eventSink.context
+		request          = executionContext.Request
 	)
 
 	protoDesc, codeDesc, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
 	if err != nil {
-		return eCtx.ErrorWrapped(err, "couldn't get descriptors")
+		eventSink.ErrorWrapped(err, "couldn't get descriptors")
 	}
 
-	executor, err := r.Manager.GetExecutor(codeDesc.MachineType())
+	codeExecutor, err := r.Manager.GetExecutor(codeDesc.MachineType())
 	if err != nil {
-		return eCtx.ErrorWrapped(err, "couldn't get executor")
+		eventSink.ErrorWrapped(err, "couldn't get executor")
 	}
 
-	logicContext := generateCallContext(ctx, id, execution, protoDesc, codeDesc)
+	logicContext := generateCallContext(ctx, id, executionContext, protoDesc, codeDesc)
 
-	newData, result, err := executor.CallConstructor(ctx, logicContext, *codeDesc.Ref(), request.CallSiteMethod, request.Arguments)
+	newData, result, err := codeExecutor.CallConstructor(ctx, logicContext, *codeDesc.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
-		return eCtx.ErrorWrapped(err, "execution error")
+		eventSink.ErrorWrapped(err, "execution error")
 	}
 	if len(result) == 0 {
-		return eCtx.ErrorString("return of constructor is empty")
+		eventSink.ErrorString("return of constructor is empty")
 	}
 
 	// form and return result
@@ -185,40 +185,36 @@ func (r *DefaultService) executeConstructor(ctx context.Context, id uuid.UUID, e
 		res.SetActivate(request.Callee, request.CallSiteDeclaration, newData)
 	}
 
-	return eCtx.Result(res)
+	eventSink.Result(res)
 }
 
 func (r *DefaultService) execute(ctx context.Context, id uuid.UUID) {
 	defer r.executionRecover(ctx, id)
 
-	eCtx := r.getExecutionContext(id)
+	eCtx := r.getExecutionSink(id)
 	if eCtx == nil {
 		panic(throw.Impossible())
 	}
 
-	var rv bool
-
-	switch eCtx.execution.Request.CallType {
+	switch eCtx.context.Request.CallType {
 	case payload.CTMethod:
-		rv = r.executeMethod(ctx, id, eCtx)
+		r.executeMethod(ctx, id, eCtx)
 	case payload.CTConstructor:
-		rv = r.executeConstructor(ctx, id, eCtx)
-	}
-
-	if !rv {
-		panic(throw.Impossible())
+		r.executeConstructor(ctx, id, eCtx)
+	default:
+		panic(throw.Unsupported())
 	}
 }
 
-func (r *DefaultService) ExecutionStart(ctx context.Context, execution execution.Execution) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
-	id := r.createExecutionContext(execution)
+func (r *DefaultService) ExecutionStart(ctx context.Context, execution execution.Context) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
+	id := r.createExecutionSink(execution)
 
 	go r.execute(ctx, id)
 
 	return r.waitForReply(id)
 }
 
-func (r *DefaultService) ExecutionClassify(ctx context.Context, execution execution.Execution) calltype.ContractCallType {
+func (r *DefaultService) ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType {
 	return calltype.ContractCallOrdered
 }
 
@@ -239,13 +235,13 @@ func NewService() *DefaultService {
 		Cache:   NewDescriptorsCache(),
 		Manager: executor.NewManager(),
 
-		executions:     make(map[uuid.UUID]*executionContext),
-		executionsLock: sync.Mutex{},
+		eventSinkMap:     make(map[uuid.UUID]*executionEventSink),
+		eventSinkMapLock: sync.Mutex{},
 	}
 }
 
 func (r *DefaultService) Init() error {
-	exec := builtin.NewBuiltIn(r)
+	exec := builtin.New(r)
 	if err := r.Manager.RegisterExecutor(insolar.MachineTypeBuiltin, exec); err != nil {
 		panic(throw.W(err, "failed to register executor", nil))
 	}
