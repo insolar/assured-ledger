@@ -14,31 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type ProtocolController struct {
-	factory  apinetwork.DeserializationFactory
-	receiver PacketReceiver
-}
-
-func (p *ProtocolController) reportError(err error) {
-
-}
-
-func (p *ProtocolController) receiveState(payload *DeliveryStatePacket) error {
-
-}
-
-func (p *ProtocolController) receiveComplete(payload *DeliveryParcelPacket) error {
-
-}
-
-func (p *ProtocolController) receiveBody(payload *DeliveryParcelPacket) error {
-
-}
-
-func (p *ProtocolController) receiveHead(payload *DeliveryParcelPacket) error {
-
-}
-
 var _ apinetwork.ProtocolReceiver = &PacketReceiver{}
 
 type PacketReceiver struct {
@@ -60,12 +35,12 @@ func (p *PacketReceiver) receiveDispatcher(packet *apinetwork.ReceiverPacket, re
 	var err error
 	switch pt := PacketType(packet.Header.GetPacketType()); pt {
 	case DeliveryState:
-		payload := &DeliveryStatePacket{}
+		payload := &StatePacket{}
 		if err = readFn(payload.DeserializePayload); err == nil {
 			err = p.ctl.receiveState(payload)
 		}
 	case DeliveryParcelHead, DeliveryParcelBody:
-		payload := &DeliveryParcelPacket{}
+		payload := &ParcelPacket{}
 		if err = readFn(func(pkt *apinetwork.Packet, r *iokit.LimitedReader) error {
 			return payload.DeserializePayload(p.ctl.factory, pkt, r)
 		}); err == nil {

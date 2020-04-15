@@ -31,7 +31,7 @@ type DirectAddress = apinetwork.ShortNodeID
 
 type ReturnAddress struct {
 	returnTo DirectAddress
-	returnId ParcelId
+	returnId ShipmentID
 }
 
 type PulseTTL struct {
@@ -40,22 +40,27 @@ type PulseTTL struct {
 	TTL      uint8
 }
 
-type DeliveryParcel struct {
+type Shipment struct {
 	Head   apinetwork.SizeAwareSerializer
 	Body   apinetwork.SizeAwareSerializer
 	Cancel *synckit.ChainedCancel
 	PN     pulse.Number
-	// TTL defines how many pulses this parcel can survive before cancellation
+	// TTL defines how many pulses this shipment can survive before cancellation
 	TTL      uint8
 	Policies DeliveryPolicies
 }
 
-type ParcelId uint64
+type ShortShipmentId uint32
+type ShipmentID uint64 // NodeId + ShortShipmentId
 
-const ParcelIdByteSize = 8
+const ShipmentIdByteSize = 8
 
-func (v ParcelId) WriteTo(writer io.Writer) error {
-	var b [ParcelIdByteSize]byte
+func (v ShipmentID) ShortId() ShortShipmentId {
+	return ShortShipmentId(v)
+}
+
+func (v ShipmentID) WriteTo(writer io.Writer) error {
+	var b [ShipmentIdByteSize]byte
 	v.PutTo(b[:])
 	switch n, err := writer.Write(b[:]); {
 	case err != nil:
@@ -67,19 +72,19 @@ func (v ParcelId) WriteTo(writer io.Writer) error {
 	}
 }
 
-func (v ParcelId) PutTo(b []byte) int {
+func (v ShipmentID) PutTo(b []byte) int {
 	binary.LittleEndian.PutUint64(b, uint64(v))
-	return ParcelIdByteSize
+	return ShipmentIdByteSize
 }
 
-func ParcelIdReadFrom(reader io.Reader) (ParcelId, error) {
-	b := make([]byte, ParcelIdByteSize)
+func ShipmentIdReadFrom(reader io.Reader) (ShipmentID, error) {
+	b := make([]byte, ShipmentIdByteSize)
 	if _, err := io.ReadFull(reader, b); err != nil {
 		return 0, err
 	}
-	return ParcelIdReadFromBytes(b), nil
+	return ShipmentIdReadFromBytes(b), nil
 }
 
-func ParcelIdReadFromBytes(b []byte) ParcelId {
-	return ParcelId(binary.LittleEndian.Uint64(b))
+func ShipmentIdReadFromBytes(b []byte) ShipmentID {
+	return ShipmentID(binary.LittleEndian.Uint64(b))
 }
