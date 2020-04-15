@@ -9,9 +9,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 )
 
+type UnifiedOutFunc func(l1.OutTransport) error
 type UnifiedOutTransport interface {
-	UseSessionless(canRetry bool, applyFn func(l1.OutTransport) error) error
-	UseSessionful(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error
-	UseAny(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error
+	UseSessionless(canRetry bool, applyFn UnifiedOutFunc) error
+	UseSessionful(size int64, canRetry bool, applyFn UnifiedOutFunc) error
+	UseAny(size int64, canRetry bool, applyFn UnifiedOutFunc) error
 	EnsureConnect() error
 }

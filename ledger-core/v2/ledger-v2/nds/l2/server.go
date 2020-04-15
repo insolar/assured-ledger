@@ -29,17 +29,17 @@ type ServerConfig struct {
 	PeerLimit      int
 }
 
-func NewUnifiedProtocolServer(protocols *apinetwork.UnifiedProtocolSet, updParallelism int) *UnifiedProtocolServer {
+func NewUnifiedProtocolServer(protocols *apinetwork.UnifiedProtocolSet, updParallelism int) *UnifiedServer {
 	if protocols == nil {
 		panic(throw.IllegalValue())
 	}
 	if updParallelism <= 0 {
 		updParallelism = 4
 	}
-	return &UnifiedProtocolServer{protocols: protocols, udpSema: synckit.NewSemaphore(updParallelism)}
+	return &UnifiedServer{protocols: protocols, udpSema: synckit.NewSemaphore(updParallelism)}
 }
 
-type UnifiedProtocolServer struct {
+type UnifiedServer struct {
 	config    ServerConfig
 	mode      atomickit.Uint32
 	ptf       peerTransportFactory
@@ -52,27 +52,27 @@ type UnifiedProtocolServer struct {
 	udpSema  synckit.Semaphore
 }
 
-func (p *UnifiedProtocolServer) SetConfig(config ServerConfig) {
+func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
 }
 
-func (p *UnifiedProtocolServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
+func (p *UnifiedServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
 	p.peers.SetQuotaFactory(quotaFn)
 }
 
-func (p *UnifiedProtocolServer) SetPeerFactory(fn OfflinePeerFactoryFunc) {
+func (p *UnifiedServer) SetPeerFactory(fn OfflinePeerFactoryFunc) {
 	p.peers.SetPeerFactory(fn)
 }
 
-func (p *UnifiedProtocolServer) SetSignatureFactory(f PeerCryptographyFactory) {
+func (p *UnifiedServer) SetSignatureFactory(f PeerCryptographyFactory) {
 	p.peers.SetSignatureFactory(f)
 }
 
-func (p *UnifiedProtocolServer) SetBlacklistManager(blacklist BlacklistManager) {
+func (p *UnifiedServer) SetBlacklistManager(blacklist BlacklistManager) {
 	p.blacklist = blacklist
 }
 
-func (p *UnifiedProtocolServer) StartNoListen() {
+func (p *UnifiedServer) StartNoListen() {
 
 	p.peers.central.factory = &p.ptf
 	switch n := p.config.PeerLimit; {
@@ -126,7 +126,7 @@ func (p *UnifiedProtocolServer) StartNoListen() {
 	p.receiver = PeerReceiver{&p.peers, p.protocols, p.GetMode}
 }
 
-func (p *UnifiedProtocolServer) StartListen() {
+func (p *UnifiedServer) StartListen() {
 	if !p.ptf.HasTransports() {
 		p.StartNoListen()
 	}
@@ -136,24 +136,24 @@ func (p *UnifiedProtocolServer) StartListen() {
 	}
 }
 
-func (p *UnifiedProtocolServer) PeerManager() *PeerManager {
+func (p *UnifiedServer) PeerManager() *PeerManager {
 	return &p.peers
 }
 
-func (p *UnifiedProtocolServer) Stop() {
+func (p *UnifiedServer) Stop() {
 	_ = p.ptf.Close()
 	_ = p.peers.Close()
 }
 
-func (p *UnifiedProtocolServer) GetMode() ConnectionMode {
+func (p *UnifiedServer) GetMode() ConnectionMode {
 	return ConnectionMode(p.mode.Load())
 }
 
-func (p *UnifiedProtocolServer) SetMode(mode ConnectionMode) {
+func (p *UnifiedServer) SetMode(mode ConnectionMode) {
 	p.mode.Store(uint32(mode))
 }
 
-func (p *UnifiedProtocolServer) checkConnection(_, remote apinetwork.Address, err error) error {
+func (p *UnifiedServer) checkConnection(_, remote apinetwork.Address, err error) error {
 	switch {
 	case err != nil:
 		return err
@@ -163,7 +163,7 @@ func (p *UnifiedProtocolServer) checkConnection(_, remote apinetwork.Address, er
 	return nil
 }
 
-func (p *UnifiedProtocolServer) receiveSessionless(local, remote apinetwork.Address, b []byte, err error) bool {
+func (p *UnifiedServer) receiveSessionless(local, remote apinetwork.Address, b []byte, err error) bool {
 	if p.udpSema.LockTimeout(time.Second) {
 		go func() {
 			defer p.udpSema.Unlock()
@@ -187,7 +187,7 @@ func (p *UnifiedProtocolServer) receiveSessionless(local, remote apinetwork.Addr
 	return true
 }
 
-func (p *UnifiedProtocolServer) connectSessionful(local, remote apinetwork.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionful(local, remote apinetwork.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()
@@ -202,18 +202,18 @@ func (p *UnifiedProtocolServer) connectSessionful(local, remote apinetwork.Addre
 	return true
 }
 
-func (p *UnifiedProtocolServer) runReceiver(local, remote apinetwork.Address, runFn func() error) {
+func (p *UnifiedServer) runReceiver(local, remote apinetwork.Address, runFn func() error) {
 	if err := runFn(); err != nil {
 		p.reportToBlacklist(remote, err)
 		p.reportError(throw.WithDetails(err, ConnErrDetails{local, remote}))
 	}
 }
 
-func (p *UnifiedProtocolServer) isBlacklisted(remote apinetwork.Address) bool {
+func (p *UnifiedServer) isBlacklisted(remote apinetwork.Address) bool {
 	return p.blacklist != nil && p.blacklist.IsBlacklisted(remote)
 }
 
-func (p *UnifiedProtocolServer) reportToBlacklist(remote apinetwork.Address, err error) {
+func (p *UnifiedServer) reportToBlacklist(remote apinetwork.Address, err error) {
 	if bl := p.blacklist; bl != nil {
 		if sv := throw.SeverityOf(err); sv.IsFraudOrWorse() {
 			bl.ReportFraud(remote, p.peers, err)
@@ -221,7 +221,7 @@ func (p *UnifiedProtocolServer) reportToBlacklist(remote apinetwork.Address, err
 	}
 }
 
-func (p *UnifiedProtocolServer) reportError(err error) {
+func (p *UnifiedServer) reportError(err error) {
 	// TODO
 	println()
 	println(throw.ErrorWithStack(err))

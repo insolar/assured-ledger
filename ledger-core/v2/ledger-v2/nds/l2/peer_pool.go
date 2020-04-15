@@ -403,5 +403,5 @@ func (p *Peer) checkVerified() error {
 }
 
 func (p *Peer) removeAlias(a apinetwork.Address) bool {
-	return p.transport.removeAliases(a)
+	return p.transport.removeAlias(a)
 }

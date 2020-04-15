@@ -135,7 +135,7 @@ func (p *PeerTransport) _resetConnection(t io.Closer, discardCurrentAddr bool) (
 
 	for i, s := range p.connections {
 		if s != t {
-			if nout, ok := s.(l1.OutNetTransport); ok && nout.Conn() == t {
+			if nout, ok := s.(l1.TwoWayTransport); ok && nout.TwoWayConn() == t {
 				err = t.Close()
 				_ = s.Close()
 			} else {
@@ -292,10 +292,16 @@ func (p *PeerTransport) _newSessionfulTransport(limitedLength bool) (t l1.OutTra
 	limit := p.central.getTransportStreamFormat(limitedLength, false)
 
 	p.addrIndex, t, err = p.tryConnect(p.central.factory.SessionfulConnectTo, p.addrIndex, limit)
-	if err == nil {
+	if err != nil {
+		return nil, err
 		//p.addConnection(t)
-		p.connections = append(p.connections, t)
 	}
+
+	p.connections = append(p.connections, t)
+	if semi, ok := t.(l1.SemiTransport); ok {
+		go semi.ConnectReceiver(nil)
+	}
+
 	return
 }
 
@@ -320,7 +326,7 @@ func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (Tr
 	}
 
 	for _, s := range p.connections {
-		if oc, ok := s.(l1.OutNetTransport); ok && oc.Conn() == conn {
+		if oc, ok := s.(l1.TwoWayTransport); ok && oc.TwoWayConn() == conn {
 			limit := TransportStreamFormat(oc.GetTag())
 			if limit.IsDefined() {
 				p.connCount++
@@ -371,21 +377,21 @@ func (p *PeerTransport) EnsureConnect() error {
 	})
 }
 
-func (p *PeerTransport) UseSessionlessNoQuota(canRetry bool, applyFn func(l1.OutTransport) error) error {
-	return p.useTransport(func() (l1.OutTransport, error) {
-		if t, err := p.getSessionlessTransport(); err != nil {
-			return nil, err
-		} else {
-			return t.WithQuota(nil), err
-		}
-	}, canRetry, applyFn)
-}
+//func (p *PeerTransport) UseSessionlessNoQuota(canRetry bool, applyFn UnifiedOutFunc) error {
+//	return p.useTransport(func() (l1.OutTransport, error) {
+//		if t, err := p.getSessionlessTransport(); err != nil {
+//			return nil, err
+//		} else {
+//			return t.WithQuota(nil), err
+//		}
+//	}, canRetry, applyFn)
+//}
 
-func (p *PeerTransport) UseSessionless(canRetry bool, applyFn func(l1.OutTransport) error) error {
+func (p *PeerTransport) UseSessionless(canRetry bool, applyFn UnifiedOutFunc) error {
 	return p.useTransport(p.getSessionlessTransport, canRetry, applyFn)
 }
 
-func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error {
+func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn UnifiedOutFunc) error {
 	if size <= apinetwork.MaxNonExcessiveLength {
 		p.smallMutex.Lock()
 		defer p.smallMutex.Unlock()
@@ -397,7 +403,7 @@ func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn func(l1
 	return p.useTransport(p.getSessionfulLargeTransport, canRetry, applyFn)
 }
 
-func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn func(l1.OutTransport) error) error {
+func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn UnifiedOutFunc) error {
 	if size <= int64(p.central.maxSessionlessSize) {
 		return p.UseSessionless(canRetry, applyFn)
 	}
@@ -445,7 +451,7 @@ func (p *PeerTransport) addAliases(aliases []apinetwork.Address) {
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) removeAliases(a apinetwork.Address) bool {
+func (p *PeerTransport) removeAlias(a apinetwork.Address) bool {
 	if a.IsZero() {
 		return false
 	}
