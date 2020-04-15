@@ -142,7 +142,7 @@ func (s *DBStore) get(pn insolar.PulseNumber) *Tree {
 	return recovered
 }
 
-func (s *DBStore) set(pn insolar.PulseNumber, jt *Tree) error {
+func (s *DBStore) set(pn insolar.PulseNumber, jt *Tree) error { // nolint: interfacer
 	key := pulseKey(pn)
 
 	serialized, err := jt.Marshal()

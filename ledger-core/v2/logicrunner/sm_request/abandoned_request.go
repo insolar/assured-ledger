@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_request
+package sm_request // nolint:golint
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -42,6 +42,6 @@ func (s *StateMachineAbandonedRequests) Init(ctx smachine.InitializationContext)
 	return ctx.Stop()
 }
 
-func (s *StateMachineAbandonedRequests) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Stop()
-}
+// func (s *StateMachineAbandonedRequests) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
+// 	return ctx.Stop()
+// }

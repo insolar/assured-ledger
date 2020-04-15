@@ -131,6 +131,7 @@ func initComponents(
 		jc,
 		pcs,
 	)
+	checkError(ctx, err, "failed to start contractrequester")
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 

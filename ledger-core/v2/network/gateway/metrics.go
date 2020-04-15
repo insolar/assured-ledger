@@ -12,9 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 )
 
-var (
-	tagNodeRef = insmetrics.MustTagKey("nodeRef")
-)
 
 var (
 	statPulse = stats.Int64(

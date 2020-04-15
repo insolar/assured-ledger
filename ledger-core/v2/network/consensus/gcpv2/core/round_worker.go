@@ -300,12 +300,12 @@ func (p *RoundStateMachineWorker) sync(fn func()) {
 	p.syncCmd <- fn
 }
 
-func (p *RoundStateMachineWorker) async(fn func()) {
-	defer func() {
-		_ = recover()
-	}()
-	p.asyncCmd <- fn
-}
+// func (p *RoundStateMachineWorker) async(fn func()) {
+// 	defer func() {
+// 		_ = recover()
+// 	}()
+// 	p.asyncCmd <- fn
+// }
 
 func (p *RoundStateMachineWorker) GetState() RoundState {
 	return RoundState(atomic.LoadUint32(&p.roundState))

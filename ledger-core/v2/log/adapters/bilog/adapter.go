@@ -6,7 +6,6 @@
 package bilog
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -161,7 +160,7 @@ func (v binLogAdapter) doneEvent(level log.Level, recovered interface{}) {
 	if e, ok := recovered.(error); ok {
 		err = e
 	} else {
-		err = errors.New(fmt.Sprintf("internal error (%v)", recovered))
+		err = fmt.Errorf("internal error (%v)", recovered)
 	}
 
 	switch {

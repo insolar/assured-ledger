@@ -104,15 +104,16 @@ func (p *semaphoreSync) checkState() smachine.BoolDecision {
 }
 
 func (p *semaphoreSync) checkDependency(entry *dependencyQueueEntry, flags smachine.SlotDependencyFlags) (d smachine.Decision, passedStack bool) {
-	if d, notFound := p.checkDependencyHere(entry, flags); notFound {
+	d, notFound := p.checkDependencyHere(entry, flags)
+	if notFound {
 		d = entry.stacker.contains(&p.controller.awaiters.queue, entry)
 		if d == smachine.Passed {
 			return smachine.NotPassed, true
 		}
 		return d, false
-	} else {
-		return d, false
 	}
+	return d, false
+
 }
 
 func (p *semaphoreSync) checkDependencyHere(entry *dependencyQueueEntry, flags smachine.SlotDependencyFlags) (d smachine.Decision, notFound bool) {
@@ -331,11 +332,11 @@ func (p *workingQueueController) isQueueOfAwaiters(q *dependencyQueueHead) bool 
 	return p.awaiters.isQueue(q)
 }
 
-func (p *workingQueueController) enum(qId int, fn smachine.EnumQueueFunc) bool {
-	if p.queueControllerTemplate.enum(qId, fn) {
+func (p *workingQueueController) enum(qID int, fn smachine.EnumQueueFunc) bool {
+	if p.queueControllerTemplate.enum(qID, fn) {
 		return true
 	}
-	return p.awaiters.enum(qId-1, fn)
+	return p.awaiters.enum(qID-1, fn)
 }
 
 func (p *workingQueueController) adjustLimit(delta int, activeQ *dependencyQueueHead) ([]smachine.StepLink, bool) {

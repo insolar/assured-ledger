@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
-func CreateCatalogC() CatalogC {
+func CreateCatalogC() CatalogC { // nolint:golint
 	return &catalogC{}
 }
 

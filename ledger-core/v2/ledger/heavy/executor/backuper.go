@@ -154,13 +154,6 @@ func NewBackupMaker(ctx context.Context,
 	}, nil
 }
 
-func move(ctx context.Context, what string, toDirectory string) error {
-	inslogger.FromContext(ctx).Debugf("backuper. move %s -> %s", what, toDirectory)
-	err := os.Rename(what, toDirectory)
-
-	return errors.Wrapf(err, "can't move %s to %s", what, toDirectory)
-}
-
 // waitForFile waits for file filePath appearance
 func waitForFile(ctx context.Context, filePath string, numIterations uint) error {
 	inslogger.FromContext(ctx).Debug("waiting for ", filePath)
@@ -196,7 +189,7 @@ func (lw *logWrapper) Write(p []byte) (n int, err error) {
 func invokeBackupPostProcessCommand(ctx context.Context, command []string, currentBkpDirPath string) error {
 	logger := inslogger.FromContext(ctx)
 	logger.Info("invokeBackupPostProcessCommand starts")
-	cmd := exec.Command(command[0], command[1:]...)
+	cmd := exec.Command(command[0], command[1:]...) // nolint:gosec
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "INSOLAR_CURRENT_BACKUP_DIR="+currentBkpDirPath)
 	cmd.Stdout = &logWrapper{logger: logger, isInfo: true}

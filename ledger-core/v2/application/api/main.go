@@ -167,11 +167,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	ar.server.Handler = router
 	ar.SeedManager = seedmanager.New()
 
-	var (
-		server http.Handler = ar.rpcServer
-	)
-
-	server, err = NewRequestValidator(cfg.SwaggerPath, ar.rpcServer)
+	server, err := NewRequestValidator(cfg.SwaggerPath, ar.rpcServer)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to prepare api validator")
 	}

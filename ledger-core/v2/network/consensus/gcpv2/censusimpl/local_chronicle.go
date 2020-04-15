@@ -79,7 +79,7 @@ func (c *localChronicles) GetExpectedCensus() census.Expected {
 	return c.expected
 }
 
-func (c *localChronicles) makeActive(ce census.Expected, ca localActiveCensus) {
+func (c *localChronicles) makeActive(ce census.Expected, ca localActiveCensus) { // nolint:interfacer
 	c.rw.Lock()
 	defer c.rw.Unlock()
 

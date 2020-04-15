@@ -69,24 +69,24 @@ func (p *LazyEntryMap) Contains(k keyset.Key) bool {
 		return false
 	}
 
-	bucketIndex := k.GoMapHashWithSeed(p.hashSeed) & (1<<p.prefixLen - 1)
-	hasAdded := false
-
-	if p.entries == nil {
-		p.entries = make(map[Key]Entry, p.expectedKeyCount)
-	}
-
-	if remainingBuckets, _ := p.loader(int(bucketIndex), func(entry Entry) bool {
-		hasAdded = true
-		p.entries[entry.Key] = entry
-		return false
-	}); remainingBuckets == 0 {
-		p.loader = nil
-	}
-
-	if hasAdded {
-		_, ok := p.entries[k]
-		return ok
-	}
+	// bucketIndex := k.GoMapHashWithSeed(p.hashSeed) & (1<<p.prefixLen - 1)
+	// hasAdded := false
+	//
+	// if p.entries == nil {
+	// 	p.entries = make(map[Key]Entry, p.expectedKeyCount)
+	// }
+	//
+	// if remainingBuckets, _ := p.loader(int(bucketIndex), func(entry Entry) bool {
+	// 	hasAdded = true
+	// 	p.entries[entry.Key] = entry
+	// 	return false
+	// }); remainingBuckets == 0 {
+	// 	p.loader = nil
+	// }
+	//
+	// if hasAdded {
+	// 	_, ok := p.entries[k]
+	// 	return ok
+	// }
 	return false
 }

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_execute_request
+package sm_execute_request // nolint:golint
 
 import (
 	"fmt"
@@ -64,7 +64,6 @@ type ESMOutgoingCallProcess struct {
 
 	outgoingEvent *s_contract_runner.ContractExecutionStateUpdate
 	code          []byte
-	deactivate    bool
 	externalError error
 
 	outgoing            record.OutgoingRequest
@@ -307,7 +306,7 @@ func (s *ESMOutgoingCallProcess) stepOutgoingSaveResult(ctx smachine.ExecutionCo
 }
 
 func (s *ESMOutgoingCallProcess) stepFinishOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var result interface{} = nil
+	var result interface{}
 	if s.outgoingResult != nil {
 		result = s.outgoingResult.Payload
 	}

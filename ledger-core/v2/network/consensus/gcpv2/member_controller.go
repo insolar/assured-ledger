@@ -125,7 +125,7 @@ func (h *ConsensusMemberController) discard(toBeDiscarded api.RoundController) b
 	return h.discardInternal(false, toBeDiscarded)
 }
 
-func (h *ConsensusMemberController) terminate(toBeDiscarded api.RoundController) bool {
+func (h *ConsensusMemberController) terminate(toBeDiscarded api.RoundController) bool { // nolint:unparam
 	if toBeDiscarded == nil {
 		return false
 	}

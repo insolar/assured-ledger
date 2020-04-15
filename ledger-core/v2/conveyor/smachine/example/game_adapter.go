@@ -45,11 +45,11 @@ var _ GameChooseService = gameChooser{}
 
 type gameChooser struct{}
 
-var gameIdCount uint64 // atomic
+var gameIDCount uint64 // atomic
 
 func (gameChooser) ChooseGame() GameFactoryFunc {
-	gameId := strconv.FormatUint(atomic.AddUint64(&gameIdCount, 1)+1, 10)
+	gameID := strconv.FormatUint(atomic.AddUint64(&gameIDCount, 1)+1, 10)
 	return func(players GamePlayers) GameStateMachine {
-		return NewGameOfRandom(longbits.WrapStr(gameId), players)
+		return NewGameOfRandom(longbits.WrapStr(gameID), players)
 	}
 }

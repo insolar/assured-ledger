@@ -27,9 +27,9 @@ func _getStateUpdateType(updKind stateUpdKind) (StateUpdateType, bool) {
 	return StateUpdateType{}, false
 }
 
-func getStateUpdateType(stateUpdate StateUpdate) (StateUpdateType, bool) {
-	return _getStateUpdateType(stateUpdKind(stateUpdate.updKind))
-}
+// func getStateUpdateType(stateUpdate StateUpdate) (StateUpdateType, bool) {
+// 	return _getStateUpdateType(stateUpdKind(stateUpdate.updKind))
+// }
 
 func getStateUpdateTypeAndName(stateUpdate StateUpdate) (StateUpdateType, string, bool) {
 	if stateUpdate.IsZero() {
@@ -56,9 +56,9 @@ func newPanicStateUpdate(err error) StateUpdate {
 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdPanic]}.newError(err)
 }
 
-func newSubroutineAbortStateUpdate(step SlotStep) StateUpdate {
-	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdSubroutineAbort]}.newStepOnly(step)
-}
+// func newSubroutineAbortStateUpdate(step SlotStep) StateUpdate {
+// 	return StateUpdateTemplate{t: &stateUpdateTypes[stateUpdSubroutineAbort]}.newStepOnly(step)
+// }
 
 func recoverSlotPanicAsUpdate(update StateUpdate, msg string, recovered interface{}, prev error, area SlotPanicArea) StateUpdate {
 	switch {
@@ -70,9 +70,9 @@ func recoverSlotPanicAsUpdate(update StateUpdate, msg string, recovered interfac
 	return update
 }
 
-func getStateUpdateKind(stateUpdate StateUpdate) stateUpdKind {
-	return stateUpdKind(stateUpdate.updKind)
-}
+// func getStateUpdateKind(stateUpdate StateUpdate) stateUpdKind {
+// 	return stateUpdKind(stateUpdate.updKind)
+// }
 
 type SlotUpdateFunc func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sd *StepDeclaration) (isAvailable bool, err error)
 type SlotUpdatePrepareFunc func(slot *Slot, stateUpdate *StateUpdate)
@@ -175,10 +175,7 @@ func (v StateUpdateType) get() StateUpdateType {
 }
 
 func (v StateUpdateType) canGet() bool {
-	if v.apply == nil {
-		return false
-	}
-	return true
+	return v.apply != nil
 }
 
 func (v StateUpdateType) verifyVar(u interface{}) interface{} {
@@ -292,6 +289,7 @@ func (v StateUpdateTemplate) newStepLink(slotStep SlotStep, link SlotLink) State
 	}
 }
 
+// nolint:unused
 func (v StateUpdateTemplate) newVar(u interface{}) StateUpdate {
 	v.ensureTemplate(updParamVar)
 	return StateUpdate{

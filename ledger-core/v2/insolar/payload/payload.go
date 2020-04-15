@@ -71,6 +71,14 @@ const (
 	TypeErrorResultExitsts
 	TypeV2SetRequestResult
 
+	// New virtual message types
+	TypeVCallRequest
+	TypeVCallResult
+	TypeVStateReport
+	TypeVStateRequest
+	TypeVPendingDelegationRequest
+	TypeVDelegatedRequestFinished
+
 	// should be the last (required by TypesMap)
 	_latestType
 )
@@ -321,6 +329,24 @@ func Marshal(payload Payload) ([]byte, error) {
 	case *V2SetRequestResult:
 		pl.Polymorph = uint32(TypeV2SetRequestResult)
 		return pl.Marshal()
+	case *VCallRequest:
+		pl.Polymorph = uint32(TypeVCallRequest)
+		return pl.Marshal()
+	case *VCallResult:
+		pl.Polymorph = uint32(TypeVCallResult)
+		return pl.Marshal()
+	case *VStateRequest:
+		pl.Polymorph = uint32(TypeVStateRequest)
+		return pl.Marshal()
+	case *VStateReport:
+		pl.Polymorph = uint32(TypeVStateReport)
+		return pl.Marshal()
+	case *VPendingDelegationRequest:
+		pl.Polymorph = uint32(TypeVPendingDelegationRequest)
+		return pl.Marshal()
+	case *VDelegatedRequestFinished:
+		pl.Polymorph = uint32(TypeVDelegatedRequestFinished)
+		return pl.Marshal()
 	}
 
 	return nil, errors.New("unknown payload type")
@@ -542,6 +568,30 @@ func Unmarshal(data []byte) (Payload, error) {
 		return &pl, err
 	case TypeV2SetRequestResult:
 		pl := V2SetRequestResult{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVCallRequest:
+		pl := VCallRequest{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVCallResult:
+		pl := VCallResult{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVStateRequest:
+		pl := VStateRequest{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVStateReport:
+		pl := VStateReport{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVPendingDelegationRequest:
+		pl := VPendingDelegationRequest{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVDelegatedRequestFinished:
+		pl := VDelegatedRequestFinished{}
 		err := pl.Unmarshal(data)
 		return &pl, err
 	}

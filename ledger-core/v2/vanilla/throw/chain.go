@@ -31,6 +31,7 @@ type StackTraceHolder interface {
 
 // StackOf returns a target-matched entry with a wrapping StackTraceHolder (optional)
 // When (target) is nil - returns the last error of the chain
+// nolint
 func StackOf(errChain, target error) (error, StackTraceHolder, bool) {
 	isComparable := target == nil || reflect.TypeOf(target).Comparable()
 
@@ -52,6 +53,7 @@ func StackOf(errChain, target error) (error, StackTraceHolder, bool) {
 // NearestStackOf returns a target-matched entry with a last encountered StackTraceHolder with a either shallow or deep non-nil stack (optional)
 // When (target) is nil - returns the last error of the chain
 // When (target) is not found, returns only the last StackTraceHolder.
+// nolint
 func NearestStackOf(errChain, target error) (error, StackTraceHolder, bool) {
 	isComparable := target == nil || reflect.TypeOf(target).Comparable()
 

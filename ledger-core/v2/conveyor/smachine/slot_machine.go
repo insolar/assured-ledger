@@ -29,7 +29,7 @@ type SlotMachineConfig struct {
 	LogAdapterCalls   bool
 	SlotMachineLogger SlotMachineLogger
 
-	SlotIdGenerateFn func() SlotID
+	SlotIDGenerateFn func() SlotID
 
 	SlotAliasRegistry SlotAliasRegistry
 }
@@ -62,8 +62,8 @@ func NewSlotMachine(config SlotMachineConfig,
 		syncQueue:      newSlotMachineSync(eventCallback, signalCallback),
 	}
 
-	if m.config.SlotIdGenerateFn == nil {
-		m.config.SlotIdGenerateFn = m._allocateNextSlotID
+	if m.config.SlotIDGenerateFn == nil {
+		m.config.SlotIDGenerateFn = m._allocateNextSlotID
 	}
 
 	m.slotPool.initSlotPool()
@@ -178,7 +178,7 @@ func (m *SlotMachine) FindDependency(id string) (interface{}, bool) {
 }
 
 func (m *SlotMachine) AddDependency(v interface{}) {
-	if !m.TryPutDependency(injector.GetDefaultInjectionId(v), v) {
+	if !m.TryPutDependency(injector.GetDefaultInjectionID(v), v) {
 		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
 	}
 }
@@ -207,7 +207,7 @@ func (m *SlotMachine) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLi
 
 // SAFE for concurrent use
 func (m *SlotMachine) allocateNextSlotID() SlotID {
-	return m.config.SlotIdGenerateFn()
+	return m.config.SlotIDGenerateFn()
 }
 
 func (m *SlotMachine) _allocateNextSlotID() SlotID {
@@ -289,7 +289,7 @@ func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, e
 		}()
 
 		link = slot.NewStepLink()
-		slot.invalidateSlotId() // slotId is reset here and all links are invalid since this moment
+		slot.invalidateSlotID() // slotID is reset here and all links are invalid since this moment
 
 		th := slot.defTerminate
 		if th != nil {
@@ -348,7 +348,7 @@ func (m *SlotMachine) recycleEmptySlot(slot *Slot, err error) {
 			slot.defResult, err})
 	}
 
-	// slot.invalidateSlotId() // empty slot doesn't need early invalidation
+	// slot.invalidateSlotID() // empty slot doesn't need early invalidation
 
 	m._recycleSlot(slot) // SAFE for concurrent use
 }
@@ -381,9 +381,8 @@ func (m *SlotMachine) ScheduleCall(fn MachineCallFunc, isSignal bool) bool {
 	}
 	if isSignal {
 		return m.syncQueue.AddAsyncSignal(SlotLink{}, callFn)
-	} else {
-		return m.syncQueue.AddAsyncUpdate(SlotLink{}, callFn)
 	}
+	return m.syncQueue.AddAsyncUpdate(SlotLink{}, callFn)
 }
 
 // SAFE for concurrent use
@@ -435,11 +434,11 @@ func (m *SlotMachine) AddNewByFunc(ctx context.Context, cf CreateFunc, defValues
 	return link, ok
 }
 
-func (m *SlotMachine) AddNested(_ AdapterId, parent SlotLink, cf CreateFunc) (SlotLink, bool) {
+func (m *SlotMachine) AddNested(_ AdapterID, parent SlotLink, cf CreateFunc) (SlotLink, bool) {
 	if parent.IsZero() {
 		panic("illegal value")
 	}
-	// TODO PLAT-25 pass adapterId into injections?
+	// TODO PLAT-25 pass adapterID into injections?
 
 	link, ok := m.prepareNewSlot(nil, cf, nil, CreateDefaultValues{Parent: parent})
 	if ok {
@@ -508,19 +507,19 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 	return link, false // slot will be released by defer
 }
 
-func (m *SlotMachine) prepareStepLogger(slot *Slot, sm StateMachine, tracerId TracerId) {
+func (m *SlotMachine) prepareStepLogger(slot *Slot, sm StateMachine, tracerID TracerID) {
 	var stepLoggerFactory StepLoggerFactoryFunc
 	if m.config.SlotMachineLogger != nil {
 		stepLoggerFactory = m.config.SlotMachineLogger.CreateStepLogger
 	}
 
-	if stepLogger, ok := slot.declaration.GetStepLogger(slot.ctx, sm, tracerId, stepLoggerFactory); ok {
+	if stepLogger, ok := slot.declaration.GetStepLogger(slot.ctx, sm, tracerID, stepLoggerFactory); ok {
 		slot.stepLogger = stepLogger
 	} else if stepLoggerFactory != nil {
-		slot.stepLogger = stepLoggerFactory(slot.ctx, sm, tracerId)
+		slot.stepLogger = stepLoggerFactory(slot.ctx, sm, tracerID)
 	}
-	if slot.stepLogger == nil && len(tracerId) > 0 {
-		slot.stepLogger = StepLoggerStub{tracerId}
+	if slot.stepLogger == nil && len(tracerID) > 0 {
+		slot.stepLogger = StepLoggerStub{tracerID}
 	}
 }
 
@@ -871,6 +870,7 @@ func (m *SlotMachine) fromRelativeTime(rel uint32) time.Time {
 
 /* ---- Unsorted ---------------------------- */
 
+// nolint:unused
 func (m *SlotMachine) wakeupOnDeactivationOf(slot *Slot, waitOn SlotLink, worker FixedSlotWorker) {
 	if waitOn.s == slot || !waitOn.IsValid() {
 		// don't wait for self
@@ -886,6 +886,7 @@ func (m *SlotMachine) wakeupOnDeactivationOf(slot *Slot, waitOn SlotLink, worker
 }
 
 // waitOn MUST belong to this machine!
+// nolint:unused
 func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 	m.syncQueue.AddAsyncCallback(waitOn, func(waitOn SlotLink, worker DetachableSlotWorker) bool {
 		switch {
@@ -1071,7 +1072,7 @@ func (m *SlotMachine) GetStoppingSignal() <-chan struct{} {
 }
 
 // Must support nil receiver
-func (m *SlotMachine) GetMachineId() string {
+func (m *SlotMachine) GetMachineID() string {
 	return fmt.Sprintf("%p", m)
 }
 

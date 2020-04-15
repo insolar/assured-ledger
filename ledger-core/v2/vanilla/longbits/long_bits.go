@@ -40,9 +40,8 @@ func (v Bits64) CopyTo(p []byte) int {
 func (v Bits64) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
-	} else {
-		return copy(b, v[off:]), nil
 	}
+	return copy(b, v[off:]), nil
 }
 
 func (v Bits64) CutOutUint64() uint64 {
@@ -127,11 +126,11 @@ func (v Bits128) CopyTo(p []byte) int {
 }
 
 func (v Bits128) ReadAt(b []byte, off int64) (n int, err error) {
-	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
+	n, err = VerifyReadAt(b, off, len(v))
+	if err != nil || n == 0 {
 		return n, err
-	} else {
-		return copy(b, v[off:]), nil
 	}
+	return copy(b, v[off:]), nil
 }
 
 func (v Bits128) CutOutUint64() uint64 {
@@ -174,11 +173,11 @@ func (v Bits224) CopyTo(p []byte) int {
 }
 
 func (v Bits224) ReadAt(b []byte, off int64) (n int, err error) {
-	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
+	n, err = VerifyReadAt(b, off, len(v))
+	if err != nil || n == 0 {
 		return n, err
-	} else {
-		return copy(b, v[off:]), nil
 	}
+	return copy(b, v[off:]), nil
 }
 
 func (v Bits224) CutOutUint64() uint64 {
@@ -221,11 +220,11 @@ func (v Bits256) CopyTo(p []byte) int {
 }
 
 func (v Bits256) ReadAt(b []byte, off int64) (n int, err error) {
-	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
+	n, err = VerifyReadAt(b, off, len(v))
+	if err != nil || n == 0 {
 		return n, err
-	} else {
-		return copy(b, v[off:]), nil
 	}
+	return copy(b, v[off:]), nil
 }
 
 func (v Bits256) CutOutUint64() uint64 {
@@ -286,11 +285,11 @@ func (v Bits512) CopyTo(p []byte) int {
 }
 
 func (v Bits512) ReadAt(b []byte, off int64) (n int, err error) {
-	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
+	n, err = VerifyReadAt(b, off, len(v))
+	if err != nil || n == 0 {
 		return n, err
-	} else {
-		return copy(b, v[off:]), nil
 	}
+	return copy(b, v[off:]), nil
 }
 
 func (v Bits512) CutOutUint64() uint64 {

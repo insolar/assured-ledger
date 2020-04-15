@@ -7,7 +7,7 @@ package smachine
 
 /* ------- Slot-dependant aliases and mappings ------------- */
 
-type slotIdKey SlotID
+type slotIDKey SlotID
 
 type slotAliases struct {
 	keys []interface{}
@@ -75,7 +75,7 @@ func (s *Slot) registerBoundAlias(k, v interface{}) bool {
 		return false
 	}
 
-	var key interface{} = slotIdKey(s.GetSlotID())
+	var key interface{} = slotIDKey(s.GetSlotID())
 
 	switch isa, ok := m.Load(key); {
 	case !ok:
@@ -113,7 +113,7 @@ func (s *Slot) unregisterBoundAlias(k interface{}) bool {
 
 func (s *Slot) storeSubroutineAliases(parent *slotAliases, mode SubroutineCleanupMode) *slotAliases {
 	mm := &s.machine.localRegistry // SAFE for concurrent use
-	var key interface{} = slotIdKey(s.GetSlotID())
+	var key interface{} = slotIDKey(s.GetSlotID())
 
 	if isa, ok := mm.Load(key); ok {
 		switch sa := isa.(*slotAliases); {
@@ -138,7 +138,7 @@ func (s *Slot) restoreSubroutineAliases(parent *slotAliases, mode SubroutineClea
 	}
 
 	mm := &s.machine.localRegistry // SAFE for concurrent use
-	var key interface{} = slotIdKey(s.GetSlotID())
+	var key interface{} = slotIDKey(s.GetSlotID())
 
 	if isa, ok := mm.Load(key); ok {
 		sa := isa.(*slotAliases)
@@ -165,7 +165,7 @@ func (s *Slot) restoreSubroutineAliases(parent *slotAliases, mode SubroutineClea
 // ONLY to be used by a holder of a slot
 func (m *SlotMachine) unregisterBoundAliases(id SlotID) {
 	mm := &m.localRegistry // SAFE for concurrent use
-	var key interface{} = slotIdKey(id)
+	var key interface{} = slotIDKey(id)
 
 	if isa, ok := mm.Load(key); ok {
 		sa := isa.(*slotAliases)
@@ -186,7 +186,7 @@ func (m *SlotMachine) unregisterBoundAliases(id SlotID) {
 
 // ONLY to be used by a holder of a slot
 func (m *SlotMachine) _unregisterSlotBoundAlias(slotID SlotID, k interface{}) bool {
-	var key interface{} = slotIdKey(slotID)
+	var key interface{} = slotIDKey(slotID)
 
 	if isa, loaded := m.localRegistry.Load(key); loaded {
 		sa := isa.(*slotAliases)

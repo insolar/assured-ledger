@@ -129,7 +129,7 @@ type User struct {
 }
 
 // launchnetPath builds a path from either INSOLAR_FUNC_KEYS_PATH or LAUNCHNET_BASE_DIR
-func launchnetPath(a ...string) (string, error) {
+func launchnetPath(a ...string) (string, error) { // nolint:unparam
 	// Path set in Enviroment
 	keysPath := os.Getenv(keysPathVar)
 	if keysPath != "" {

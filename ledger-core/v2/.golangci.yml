@@ -1,9 +1,11 @@
 run:
   tests: false
+  timeout: 5m
   skip-dirs:
     - application/contract/
     - application/proxy/
     - logicrunner/goplugin/ginsider/healthcheck
+    - ledger-v2/*
 
 linters:
   enable:
@@ -37,5 +39,9 @@ issues:
       linters:
         - gosimple
     - text: "G107:"
+      linters:
+        - gosec
+    - path:
+        logicrunner/goplugin/goplugintestutils
       linters:
         - gosec

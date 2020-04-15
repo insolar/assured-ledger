@@ -18,7 +18,7 @@ type ArtifactClientService interface {
 
 type ArtifactBinary interface {
 	GetReference() insolar.Reference
-	GetCacheId() ArtifactCacheId
+	GetCacheId() ArtifactCacheID
 }
 
 type ArtifactClientServiceAdapter struct {

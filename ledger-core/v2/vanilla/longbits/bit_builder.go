@@ -83,6 +83,7 @@ func shiftRight(b, n byte) byte {
 	return b >> n
 }
 
+// nolint:unused
 func (p *BitBuilder) _align(rightShift bool) uint8 {
 	switch {
 	case p.accBit == p.accInit:
@@ -94,6 +95,7 @@ func (p *BitBuilder) _align(rightShift bool) uint8 {
 	}
 }
 
+// nolint:unused
 func (p *BitBuilder) align() (rightShift bool, ofs uint8) {
 	switch rightShift := p._rightShift(); {
 	case p.accBit == p.accInit:
@@ -258,7 +260,7 @@ func (p *BitBuilder) appendN0(bitCount int) {
 			}
 			bitCount -= alignCount
 		}
-		p.bytes = append(p.bytes, byte(p.accumulator))
+		p.bytes = append(p.bytes, p.accumulator)
 		p.accumulator = 0
 		p.accBit = p.accInit
 		if bitCount == 0 {
@@ -299,7 +301,7 @@ func (p *BitBuilder) appendN1(bitCount int) {
 			bitCount -= alignCount
 		}
 		p.accumulator |= normFn(0xFF, usedCount)
-		p.bytes = append(p.bytes, byte(p.accumulator))
+		p.bytes = append(p.bytes, p.accumulator)
 		p.accumulator = 0
 		p.accBit = p.accInit
 		if bitCount == 0 {
@@ -341,12 +343,12 @@ func (p *BitBuilder) AppendByte(b byte) {
 	p.accumulator = revFn(b, 8-usedCount)
 }
 
-func (p *BitBuilder) dump() []byte {
+func (p *BitBuilder) dump() []byte { // nolint:unused
 	_, usedCount := p.align()
 
 	bytes := append(make([]byte, 0, cap(p.bytes)), p.bytes...)
 	if usedCount > 0 {
-		bytes = append(bytes, byte(p.accumulator))
+		bytes = append(bytes, p.accumulator)
 	}
 	return bytes
 }
@@ -357,7 +359,7 @@ func (p *BitBuilder) Done() ([]byte, int) {
 	bytes := p.bytes
 	p.bytes = nil
 	if usedCount > 0 {
-		bytes = append(bytes, byte(p.accumulator))
+		bytes = append(bytes, p.accumulator)
 		p.accumulator = 0
 		p.accBit = p.accInit
 		return bytes, (len(p.bytes)-1)<<3 + int(usedCount)

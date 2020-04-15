@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_object
+package sm_object // nolint:golint
 
 import (
 	"fmt"
@@ -34,7 +34,7 @@ func (p LocalObjectCatalog) Create(ctx smachine.ExecutionContext, objectReferenc
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerId(fmt.Sprintf("object-%s", objectReference.String()))
+		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
 		return NewStateMachineObject(objectReference, false)
 	})
 
@@ -47,7 +47,7 @@ func (p LocalObjectCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectRef
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerId(fmt.Sprintf("object-%s", objectReference.String()))
+		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
 		return NewStateMachineObject(objectReference, true)
 	})
 

@@ -24,7 +24,7 @@ import (
 )
 
 type packetData struct {
-	data   []byte
+	data   []byte // nolint
 	packet *Packet
 }
 

@@ -28,7 +28,7 @@ func TestTextFormat(t *testing.T) {
 }
 
 func TestJsonFormat(t *testing.T) {
-	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.JsonFormat,
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.JSONFormat,
 		parseFn: func(t *testing.T, b []byte) map[string]interface{} {
 			fields := make(map[string]interface{})
 			err := json.Unmarshal(b, &fields)

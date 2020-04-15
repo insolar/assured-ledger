@@ -202,7 +202,6 @@ func isStackTraceTop(bstTop, bstFull []byte, mode StackCompareMode) bool {
 
 	i++
 	k := cmpLongestTillEol(bstTop[i:], bstFull[i+j:])
-	j += k
 	k += i
 
 	switch {

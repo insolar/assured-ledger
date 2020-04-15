@@ -31,7 +31,7 @@ func CodeOf(v interface{}) uintptr {
 	return *(*uintptr)(ptr)
 }
 
-const kindMask = (1 << 5) - 1
+// const kindMask = (1 << 5) - 1
 const kindDirectIface = 1 << 5
 
 func unwrapIface(v interface{}) (word unsafe.Pointer, kind uint8) {
@@ -60,13 +60,4 @@ func IsNil(v interface{}) bool {
 	return ptr == nil && kind&kindDirectIface != 0
 }
 
-func reflectIsNil(v interface{}) bool {
-	if v == nil {
-		return true
-	}
-	switch rv := reflect.ValueOf(v); rv.Kind() {
-	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		return rv.IsNil()
-	}
-	return false
-}
+

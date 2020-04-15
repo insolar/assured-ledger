@@ -175,16 +175,15 @@ func init() {
 				}
 
 				curStep := slot.step.Transition
-				prevSeqId := 0
+				prevSeqID := 0
 				if slot.stepDecl != nil {
-					prevSeqId = slot.stepDecl.SeqId
+					prevSeqID = slot.stepDecl.SeqID
 				}
-
 				slot.setNextStep(stateUpdate.step, nextDecl)
 
-				if nextDecl != nil && prevSeqId != 0 {
-					if nextSeqId := nextDecl.SeqId; nextSeqId != 0 {
-						return prevSeqId < nextDecl.SeqId // only proper forward steps can be short-looped
+				if nextDecl != nil && prevSeqID != 0 {
+					if nextSeqID := nextDecl.SeqID; nextSeqID != 0 {
+						return nextSeqID > prevSeqID // only proper forward steps can be short-looped
 					}
 				}
 				isConsecutive := slot.declaration.IsConsecutive(curStep, nextStep)

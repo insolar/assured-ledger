@@ -76,9 +76,9 @@ func (p *machineCallContext) SlotMachine() *SlotMachine {
 	return p.m
 }
 
-func (p *machineCallContext) GetMachineId() string {
+func (p *machineCallContext) GetMachineID() string {
 	p.ensureValid()
-	return p.m.GetMachineId()
+	return p.m.GetMachineID()
 }
 
 func (p *machineCallContext) CallDirectBargeIn(link StepLink, fn BargeInCallbackFunc) bool {

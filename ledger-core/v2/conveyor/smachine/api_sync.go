@@ -113,7 +113,7 @@ func (v SyncLink) DebugPrint(maxCount int) {
 		default:
 			prefix = ", "
 		}
-		mPrefix := link.MachineId()
+		mPrefix := link.MachineID()
 		if lastM != mPrefix {
 			lastM = mPrefix
 			fmt.Print(prefix, "M#", mPrefix, ":", link.SlotID())

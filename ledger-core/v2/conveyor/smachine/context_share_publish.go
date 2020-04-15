@@ -89,6 +89,12 @@ func (p *slotContext) GetPublishedGlobalAlias(key interface{}) SlotLink {
 	return av.Link
 }
 
+func (p *slotContext) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder) {
+	p.ensureAtLeast(updCtxInit)
+	av := p.s.machine.getGlobalPublished(key)
+	return av.Link, av.BargeIn
+}
+
 func (p *machineCallContext) GetPublished(key interface{}) interface{} {
 	p.ensureValid()
 	if v, ok := p.m.getPublished(key); ok {
@@ -207,23 +213,23 @@ func (m *SlotMachine) TryUnsafeUnpublish(key interface{}) (keyExists, wasUnpubli
 }
 
 func (m *SlotMachine) unpublishUnbound(k interface{}) (keyExists, wasUnpublished bool, value interface{}) {
-	if v, ok := m.localRegistry.Load(k); !ok {
+	v, ok := m.localRegistry.Load(k)
+	if !ok {
 		return false, false, nil
-	} else {
-		switch sdl := v.(type) {
-		case SharedDataLink:
-			if sdl.IsUnbound() {
-				m.localRegistry.Delete(k)
-				return true, true, v
-			}
-		case *SharedDataLink:
-			if sdl != nil && sdl.IsUnbound() {
-				m.localRegistry.Delete(k)
-				return true, true, v
-			}
-		}
-		return true, false, v
 	}
+	switch sdl := v.(type) {
+	case SharedDataLink:
+		if sdl.IsUnbound() {
+			m.localRegistry.Delete(k)
+			return true, true, v
+		}
+	case *SharedDataLink:
+		if sdl != nil && sdl.IsUnbound() {
+			m.localRegistry.Delete(k)
+			return true, true, v
+		}
+	}
+	return true, false, v
 }
 
 func _asSharedDataLink(v interface{}) SharedDataLink {

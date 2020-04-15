@@ -52,11 +52,11 @@ func (p *bitReader) ensure(readFn func() (byte, error)) error {
 	if p.accInit == 0 {
 		p.accInit = initLSB
 	}
-	if b, err := readFn(); err != nil {
+	b, err := readFn()
+	if err != nil {
 		return err
-	} else {
-		p.accumulator = b
 	}
+	p.accumulator = b
 	p.accBit = p.accInit
 	return nil
 }
@@ -95,11 +95,11 @@ func (p *bitReader) readByte(readFn func() (byte, error)) (byte, error) {
 	}
 
 	v := p.accumulator
-	if b, err := readFn(); err != nil {
+	b, err := readFn()
+	if err != nil {
 		return 0, err
-	} else {
-		p.accumulator = b
 	}
+	p.accumulator = b
 
 	w := p.accumulator
 	if rightShift, usedBits := p.align(); rightShift {
@@ -149,11 +149,11 @@ func (p *bitReader) readSubByte(bitLen uint8, readFn func() (byte, error)) (uint
 				v &^= (p.accBit << 1) - 1
 			}
 			return bits.Reverse8(v << usedBits), nil
-		} else {
-			p.accBit <<= bitLen
-			v := p.accumulator & (p.accBit - 1)
-			return v >> usedBits, nil
 		}
+
+		p.accBit <<= bitLen
+		v := p.accumulator & (p.accBit - 1)
+		return v >> usedBits, nil
 	}
 	bitLen -= remainBits
 
@@ -206,19 +206,16 @@ type BitIoReader struct {
 }
 
 func (p *BitIoReader) ReadBool() (bool, error) {
-	if v, e := p.ReadNext(); v != 0 {
-		return true, e
-	} else {
-		return false, e
-	}
+	v, e := p.ReadNext()
+	return v != 0, e
 }
 
 func (p *BitIoReader) ReadBit() (int, error) {
-	if v, e := p.ReadNext(); v != 0 {
+	v, e := p.ReadNext()
+	if v != 0 {
 		return 1, e
-	} else {
-		return 0, e
 	}
+	return 0, e
 }
 
 func (p *BitIoReader) ReadNext() (int, error) {
@@ -253,19 +250,16 @@ func (p *BitArrayReader) IsArrayDepleted() bool {
 }
 
 func (p *BitArrayReader) ReadBool() (bool, error) {
-	if v, e := p.ReadNext(); v != 0 {
-		return true, e
-	} else {
-		return false, e
-	}
+	v, e := p.ReadNext()
+	return v != 0, e
 }
 
 func (p *BitArrayReader) ReadBit() (int, error) {
-	if v, e := p.ReadNext(); v != 0 {
+	v, e := p.ReadNext()
+	if v != 0 {
 		return 1, e
-	} else {
-		return 0, e
 	}
+	return 0, e
 }
 
 func (p *BitArrayReader) ReadNext() (int, error) {
@@ -300,19 +294,16 @@ func (p *BitStrReader) IsArrayDepleted() bool {
 }
 
 func (p *BitStrReader) ReadBool() (bool, error) {
-	if v, e := p.ReadNext(); v != 0 {
-		return true, e
-	} else {
-		return false, e
-	}
+	v, e := p.ReadNext()
+	return v != 0, e
 }
 
 func (p *BitStrReader) ReadBit() (int, error) {
-	if v, e := p.ReadNext(); v != 0 {
+	v, e := p.ReadNext()
+	if v != 0 {
 		return 1, e
-	} else {
-		return 0, e
 	}
+	return 0, e
 }
 
 func (p *BitStrReader) ReadNext() (int, error) {

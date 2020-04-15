@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
-func mustConvertMapToJson(data map[string]interface{}) []byte {
+func mustConvertMapToJSON(data map[string]interface{}) []byte {
 	jsonString, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		panic(err)
@@ -40,8 +40,8 @@ func create(w http.ResponseWriter, req *http.Request) {
 		traceIDField: traceID,
 		errorField:   nil,
 	}
-	rawJson := mustConvertMapToJson(result)
-	_, err := w.Write(rawJson)
+	rawJSON := mustConvertMapToJSON(result)
+	_, err := w.Write(rawJSON)
 	if err != nil {
 		panic(err)
 	}
@@ -80,8 +80,8 @@ func transfer(w http.ResponseWriter, req *http.Request) {
 		errorField:   nil,
 	}
 
-	rawJson := mustConvertMapToJson(result)
-	_, err = w.Write(rawJson)
+	rawJSON := mustConvertMapToJSON(result)
+	_, err = w.Write(rawJSON)
 	if err != nil {
 		panic(err)
 	}
@@ -117,8 +117,8 @@ func getBalance(w http.ResponseWriter, req *http.Request) {
 		errorField:   nil,
 	}
 
-	rawJson := mustConvertMapToJson(result)
-	_, err = w.Write(rawJson)
+	rawJSON := mustConvertMapToJSON(result)
+	_, err = w.Write(rawJSON)
 	if err != nil {
 		panic(err)
 	}
@@ -154,8 +154,8 @@ func addAmount(w http.ResponseWriter, req *http.Request) {
 		errorField:   nil,
 	}
 
-	rawJson := mustConvertMapToJson(result)
-	_, err = w.Write(rawJson)
+	rawJSON := mustConvertMapToJSON(result)
+	_, err = w.Write(rawJSON)
 	if err != nil {
 		panic(err)
 	}

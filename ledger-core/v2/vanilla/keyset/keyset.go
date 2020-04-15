@@ -96,8 +96,7 @@ func Wrap(keys KeyList) KeySet {
 
 func CopyList(keys KeyList) KeySet {
 	n := keys.Count()
-	switch n {
-	case 0:
+	if n == 0 {
 		return Nothing()
 	}
 	return inclusiveKeySet{listSet{keys}.copy(0)}

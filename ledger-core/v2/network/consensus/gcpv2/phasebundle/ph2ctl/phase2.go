@@ -324,8 +324,8 @@ func (c *Phase2Controller) workerPhase2(ctx context.Context) {
 			processedJoiners += takeJoiners
 			processedNodes += takeNodes
 
-			remainingJoiners -= takeJoiners
-			remainingNodes -= takeNodes
+			// remainingJoiners -= takeJoiners
+			// remainingNodes -= takeNodes
 
 			nh := make([]*population.NodeAppearance, len(nhBuf))
 			for i, np := range nhBuf {

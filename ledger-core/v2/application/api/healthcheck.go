@@ -19,7 +19,7 @@ import (
 // HealthChecker allows to check network status of a node.
 type HealthChecker struct {
 	CertificateManager insolar.CertificateManager
-	NodeNetwork        network.NodeNetwork // nolint: staticcheck
+	NodeNetwork        network.NodeNetwork
 	PulseAccessor      pulse.Accessor
 }
 

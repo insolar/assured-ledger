@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_request
+package sm_request // nolint:golint
 
 import (
 	"time"
@@ -144,7 +144,7 @@ func (s *StateMachineCallMethod) stepExecute(ctx smachine.ExecutionContext) smac
 	)
 
 	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerId(traceID)
+		ctx.SetTracerID(traceID)
 
 		return &sm_execute_request.ExecuteIncomingRequest{
 			ExecuteIncomingCommon: &sm_execute_request.ExecuteIncomingCommon{
@@ -176,12 +176,14 @@ func (s *StateMachineCallMethod) stepError(ctx smachine.ExecutionContext) smachi
 
 /* -------- Migration ------------- */
 
+// nolint:unused
 func (s *StateMachineCallMethod) migrationPulseChanged(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
 
 	return ctx.Jump(s.stepPulseChanged)
 }
 
+// nolint:unused
 func (s *StateMachineCallMethod) stepPulseChanged(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	messageMeta := s.Meta
 	response := &reply.Error{ErrType: reply.FlowCancelled}
@@ -195,6 +197,7 @@ func (s *StateMachineCallMethod) stepPulseChanged(ctx smachine.ExecutionContext)
 	return ctx.Jump(s.stepDone)
 }
 
+// nolint:unused
 func (s *StateMachineCallMethod) migrationSendRegisteredCall(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
 

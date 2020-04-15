@@ -29,7 +29,7 @@ import (
 )
 
 // NewNodeNetwork create active node component
-func NewNodeNetwork(configuration configuration.Transport, certificate insolar.Certificate) (network.NodeNetwork, error) {
+func NewNodeNetwork(configuration configuration.Transport, certificate insolar.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
 	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create origin node")

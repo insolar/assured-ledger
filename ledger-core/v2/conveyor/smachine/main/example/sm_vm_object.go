@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
-func NewVMObjectSM(objKey longbits.ByteString) *vmObjectSM {
+func NewVMObjectSM(objKey longbits.ByteString) *vmObjectSM { // nolint:golint
 	return &vmObjectSM{SharedObjectState: SharedObjectState{ObjectInfo: ObjectInfo{ObjKey: objKey}}}
 }
 

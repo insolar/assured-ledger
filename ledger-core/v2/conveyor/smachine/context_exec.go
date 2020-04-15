@@ -198,10 +198,9 @@ func (c *conditionalUpdate) then(slotStep SlotStep) StateUpdate {
 			return c.template.newStep(slotStep, c.kickOff)
 		}
 		return c.template.newStepUntil(slotStep, c.kickOff, c.until)
-	} else {
-		if c.until != 0 {
-			panic("illegal value")
-		}
-		return c.template.newStepLink(slotStep, c.dependency)
 	}
+	if c.until != 0 {
+		panic("illegal value")
+	}
+	return c.template.newStepLink(slotStep, c.dependency)
 }

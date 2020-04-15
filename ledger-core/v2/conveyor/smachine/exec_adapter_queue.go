@@ -195,7 +195,7 @@ func (p *OverflowBufferCallChannel) sendWorker() {
 
 		switch n := len(p.buffer); {
 		case bufPos == n:
-			p.buffer = p.buffer[:]
+			p.buffer = p.buffer[:0]
 			bufPos = -1
 		case p.bufMax > 0 && bufPos > p.bufMax>>1:
 			fallthrough

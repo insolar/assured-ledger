@@ -64,9 +64,8 @@ func (v ByteString) CopyTo(b []byte) int {
 func (v ByteString) ReadAt(b []byte, off int64) (n int, err error) {
 	if n, err = VerifyReadAt(b, off, len(v)); err != nil || n == 0 {
 		return n, err
-	} else {
-		return copy(b, v[off:]), nil
 	}
+	return copy(b, v[off:]), nil
 }
 
 func (v ByteString) AsBytes() []byte {

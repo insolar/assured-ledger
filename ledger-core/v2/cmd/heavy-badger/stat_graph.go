@@ -117,7 +117,7 @@ func (g *webGraph) Draw() {
 	}
 
 	fmt.Println("saves report html file in", tmpFile.Name())
-	cmd := exec.Command("open", "--wait-apps", tmpFile.Name())
+	cmd := exec.Command("open", "--wait-apps", tmpFile.Name()) // nolint:gosec
 
 	fin := &finalizersHolder{}
 	fin.add(func() error {

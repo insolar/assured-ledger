@@ -111,7 +111,6 @@ type WaitHot struct {
 
 	dep struct {
 		waiter executor.JetWaiter
-		sender bus.Sender
 	}
 }
 

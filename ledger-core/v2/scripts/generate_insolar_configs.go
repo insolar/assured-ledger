@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -51,8 +50,6 @@ var (
 
 	keeperdConfigTmpl = "scripts/insolard/keeperd_template.yaml"
 	keeperdFileName   = withBaseDir("keeperd.yaml")
-
-	insolardDefaultsConfig = "scripts/insolard/defaults/insolard.yaml"
 )
 
 var (
@@ -105,8 +102,6 @@ func main() {
 	pwConfig := pulsewatcher.Config{}
 	discoveryNodesConfigs := make([]configuration.Configuration, 0, len(bootstrapConf.DiscoveryNodes))
 
-	var gorundPorts [][]string
-
 	promVars := &promConfigVars{
 		Jobs: map[string][]string{},
 	}
@@ -124,9 +119,6 @@ func main() {
 		conf.LogicRunner = configuration.NewLogicRunner()
 		conf.LogicRunner.GoPlugin.RunnerListen = fmt.Sprintf(defaultHost+":%d", rpcListenPort-1)
 		conf.LogicRunner.RPCListen = fmt.Sprintf(defaultHost+":%d", rpcListenPort)
-		if node.Role == "virtual" {
-			gorundPorts = append(gorundPorts, []string{strconv.Itoa(rpcListenPort - 1), strconv.Itoa(rpcListenPort)})
-		}
 
 		if node.Role == "light_material" {
 			conf.Ledger.JetSplit.ThresholdRecordsCount = 1
@@ -181,9 +173,6 @@ func main() {
 		conf.LogicRunner = configuration.NewLogicRunner()
 		conf.LogicRunner.GoPlugin.RunnerListen = fmt.Sprintf(defaultHost+":%d", rpcListenPort-1)
 		conf.LogicRunner.RPCListen = fmt.Sprintf(defaultHost+":%d", rpcListenPort)
-		if node.Role == "virtual" {
-			gorundPorts = append(gorundPorts, []string{strconv.Itoa(rpcListenPort - 1), strconv.Itoa(rpcListenPort)})
-		}
 
 		conf.APIRunner.Address = fmt.Sprintf(defaultHost+":191%02d", nodeIndex+len(bootstrapConf.DiscoveryNodes))
 		conf.AdminAPIRunner.Address = fmt.Sprintf(defaultHost+":190%02d", nodeIndex+len(bootstrapConf.DiscoveryNodes))

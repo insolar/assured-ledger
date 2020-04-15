@@ -51,7 +51,7 @@ func (p *SlotPool) Count() int {
 	if n == 0 {
 		return 0
 	}
-	return (n-1)*int(len(p.slotPages[0])) + int(p.slotPgPos) - p.unusedSlots.Count()
+	return (n-1)*len(p.slotPages[0]) + int(p.slotPgPos) - p.unusedSlots.Count()
 }
 
 func (p *SlotPool) Capacity() int {

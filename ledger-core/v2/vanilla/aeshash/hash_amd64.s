@@ -3,7 +3,9 @@
 // hash function using AES hardware instructions
 
 TEXT ·aeshash(SB),NOSPLIT,$0-32
+    // nolint
 	MOVQ	p+0(FP), AX	// ptr to data
+	// nolint
 	MOVQ	s+16(FP), CX	// size
 	LEAQ	ret+24(FP), DX
 
@@ -14,7 +16,8 @@ TEXT ·aeshash(SB),NOSPLIT,$0-32
 //	LEAQ	ret+16(FP), DX
 
 	// Fill an SSE register with our seeds.
-	MOVQ	h+8(FP), X0			// 64 bits of per-table hash seed
+	// nolint
+	MOVQ	h+8(FP), X0		// 64 bits of per-table hash seed
 	PINSRW	$4, CX, X0			// 16 bits of length
 	PSHUFHW $0, X0, X0			// repeat length 4 times total
 	MOVO	X0, X1				// save unscrambled seed

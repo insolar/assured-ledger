@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package s_contract_runner
+package s_contract_runner // nolint:golint
 
 import (
 	"bytes"
@@ -156,14 +156,13 @@ func CreateContractRunnerService(
 	}
 }
 
-func (c contractRunnerService) ClassifyCall(request *record.IncomingRequest) ContractCallType {
+func (c *contractRunnerService) ClassifyCall(request *record.IncomingRequest) ContractCallType {
 	switch {
 	case request.ReturnMode == record.ReturnSaga && false:
 		if !request.Immutable && request.CallType == record.CTMethod {
 			return ContractCallSaga
-		} else {
-			return ContractCallUnknown
 		}
+		return ContractCallUnknown
 	case request.Immutable:
 		return ContractCallImmutable
 	default:
@@ -306,7 +305,7 @@ func (c *contractRunnerService) createExecutionContext(transcript *common.Transc
 	return c.executions[transcript.RequestRef], false
 }
 
-func (c *contractRunnerService) stopExecution(requestReference insolar.Reference) error {
+func (c *contractRunnerService) stopExecution(requestReference insolar.Reference) {
 	c.executionsLock.Lock()
 	defer c.executionsLock.Unlock()
 
@@ -314,8 +313,6 @@ func (c *contractRunnerService) stopExecution(requestReference insolar.Reference
 		delete(c.executions, requestReference)
 		val.Stop()
 	}
-
-	return nil
 }
 
 func (c *contractRunnerService) waitForReply(requestReference insolar.Reference) (*ContractExecutionStateUpdate, error) {
@@ -326,7 +323,7 @@ func (c *contractRunnerService) waitForReply(requestReference insolar.Reference)
 
 	switch update := <-executionContext.output; update.Type {
 	case ContractDone:
-		_ = c.stopExecution(requestReference)
+		c.stopExecution(requestReference)
 		fallthrough
 	case ContractError, ContractOutgoingCall:
 		return update, nil
@@ -501,6 +498,4 @@ func (c *contractRunnerService) DeactivateObject(in rpctypes.UpDeactivateObjectR
 	default:
 		panic(fmt.Sprintf("Deactivate result unexpected type %T", val))
 	}
-
-	return nil
 }

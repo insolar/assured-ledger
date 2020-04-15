@@ -10,7 +10,7 @@ import "io"
 /*
 	This is a notation that allows predictable parsing of any protobuf without a scheme:
 		1. Textual strings are valid UTF-8 and do not start with codes less than LF (10)
-		2. Any encoded protobuf message always starts with a field of id=16 (aka PolymorphFieldId)
+		2. Any encoded protobuf message always starts with a field of id=16 (aka PolymorphFieldID)
 		3. Any binary / non-parsable payload is prepended with 0 or BinaryMarker byte
 */
 // TODO notation-aware pbuf parser/printer for protobuf without a scheme
@@ -27,7 +27,7 @@ const (
 //  _Marker		 = illegalUtf8FirstByte | byte(WireFixed32)	//16:fixed32
 )
 
-const PolymorphFieldId = illegalUtf8FirstByte >> WireTypeBits // = 16
+const PolymorphFieldID = illegalUtf8FirstByte >> WireTypeBits // = 16
 
 // As a valid pbuf payload cant start with groupEnd tag, so we can use it as an indicator of a non-parsable payload.
 // Number of BinaryMarkers is limited by valid UTF-8 codes, starting at 0xC0

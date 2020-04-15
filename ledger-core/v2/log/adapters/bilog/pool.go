@@ -29,5 +29,7 @@ func reuseBuffer(buf []byte) {
 	if cap(buf) != poolEntrySize {
 		return
 	}
-	bufferPool.Put(buf[:0])
+	// TODO: probably it is better to switch to buffer or *[]byte
+	// see details in https://staticcheck.io/docs/checks#SA6002
+	bufferPool.Put(buf[:0]) // nolint:staticcheck
 }

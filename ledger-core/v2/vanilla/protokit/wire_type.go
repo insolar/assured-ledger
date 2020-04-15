@@ -15,7 +15,7 @@ import (
 const (
 	WireTypeBits  = 3
 	MaxVarintSize = binary.MaxVarintLen64
-	MaxFieldId    = math.MaxUint32 >> WireTypeBits
+	MaxFieldID    = math.MaxUint32 >> WireTypeBits
 	maskWireType  = 1<<WireTypeBits - 1
 )
 
@@ -68,11 +68,11 @@ func (v WireType) IsValid() bool {
 	return v <= MaxWireType
 }
 
-func (v WireType) Tag(fieldId int) WireTag {
-	if fieldId <= 0 || fieldId > MaxFieldId {
+func (v WireType) Tag(fieldID int) WireTag {
+	if fieldID <= 0 || fieldID > MaxFieldID {
 		panic("illegal value")
 	}
-	return WireTag(fieldId<<WireTypeBits | int(v))
+	return WireTag(fieldID<<WireTypeBits | int(v))
 }
 
 const maxMask = int(^uint(0) >> 1)

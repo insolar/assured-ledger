@@ -181,7 +181,7 @@ func (dbs *dbScanner) getAllPulses() (pulses []insolar.Pulse) {
 	for ; err == nil; p, err = pulseStore.Backwards(ctx, p.PulseNumber, 1) {
 		pulses = append(pulses, p)
 	}
-	if err != nil && err != pulsedb.ErrNotFound {
+	if err != pulsedb.ErrNotFound {
 		fatalf("failed to get pulse on step %v: %v\n", len(pulses), err)
 	}
 	return

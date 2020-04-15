@@ -29,7 +29,7 @@ func fullNodeIsolatedCommand() *cobra.Command {
 	c.Flags().StringVar(
 		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
 
-	c.MarkFlagRequired("config")
+	c.MarkFlagRequired("config") // nolint
 	return c
 }
 

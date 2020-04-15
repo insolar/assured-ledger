@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package s_contract_requester
+package s_contract_requester // nolint: golint
 
 import (
 	"context"
@@ -42,14 +42,14 @@ type contractRequesterService struct {
 	insolar.ContractRequester
 }
 
-func CreateContractRequesterService(ContractRequester insolar.ContractRequester) *ContractRequesterServiceAdapter {
+func CreateContractRequesterService(contractRequester insolar.ContractRequester) *ContractRequesterServiceAdapter {
 	ctx := context.Background()
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &ContractRequesterServiceAdapter{
 		svc: contractRequesterService{
-			ContractRequester: ContractRequester,
+			ContractRequester: contractRequester,
 		},
 		exec: smachine.NewExecutionAdapter("ContractRequester", ae),
 	}

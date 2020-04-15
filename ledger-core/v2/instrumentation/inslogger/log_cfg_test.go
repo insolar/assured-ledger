@@ -193,7 +193,7 @@ func TestLog_DynField(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	l, err := global.Logger().Copy().WithFormat(logcommon.JsonFormat).WithLevel(log.DebugLevel).Build()
+	l, err := global.Logger().Copy().WithFormat(logcommon.JSONFormat).WithLevel(log.DebugLevel).Build()
 	if err != nil {
 		panic(err)
 	}

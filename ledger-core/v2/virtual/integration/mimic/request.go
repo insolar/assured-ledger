@@ -39,7 +39,7 @@ func (e *RequestEntity) appendOutgoing(outgoingEntity *RequestEntity) {
 	e.Outgoings[outgoingEntity.ID] = outgoingEntity
 }
 
-func (e RequestEntity) hasOpenedOutgoings() bool { //nolint: unused
+func (e RequestEntity) hasOpenedOutgoings() bool { // nolint:unused
 	for _, req := range e.Outgoings {
 		if req.Status != RequestFinished && req.Request.GetReturnMode() != record.ReturnSaga {
 			return true
