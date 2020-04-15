@@ -20,18 +20,21 @@ const (
 )
 
 type Packet struct {
-	Header Header
+	Header      Header
+	PulseNumber pulse.Number `insolar-transport:"[30-31]=0"`
 
-	PulseNumber pulse.Number `insolar-transport:"[30-31]=0"` // depends on protocol
+	/*
 
-	// SourceKey []byte // depends on protocol
+		SourceKey []byte // self-identified packets, not implemented, presence depends on protocol
 
-	// HeaderSignature provides earlier verification for large packets to prevent
-	// an unauthorized sender from sending large data packets
-	HeaderSignature []byte   `insolar-transport:"optional=IsExcessiveLength"`
-	EncryptableBody struct{} `insolar-transport:"send=placeholder"`
-	EncryptionData  []byte   `insolar-transport:"optional=IsBodyEncrypted"`
-	PacketSignature []byte   `insolar-transport:"generate=signature"` // can be zero length, depends on protocol
+		// HeaderSignature provides earlier verification for large packets to prevent
+		// an unauthorized sender from sending large data packets
+		HeaderSignature []byte   `insolar-transport:"optional=IsExcessiveLength"`
+		EncryptableBody struct{} `insolar-transport:"send=placeholder"`
+		EncryptionData  []byte   `insolar-transport:"optional=IsBodyEncrypted"`
+		PacketSignature []byte   `insolar-transport:"generate=signature"` // can be zero length, depends on protocol
+
+	*/
 }
 
 func (p *Packet) SerializeTo(ctx SerializationContext, writer io.Writer, dataSize uint, fn func(*iokit.LimitedWriter) error) error {

@@ -35,20 +35,6 @@ func (p *ReceiverPacket) NewSmallPayloadDeserializer(b []byte) PacketDeserialize
 func (p *ReceiverPacket) NewLargePayloadDeserializer(preRead []byte, r io.LimitedReader) PacketDeserializerFunc {
 
 	skip, hasher := p.verifier.NewHasher(&p.Header)
-
-	//if skip >= len(preRead) {
-	//	tr := cryptkit.NewHashingTeeReader(hasher, r)
-	//	tr.CopySkip = skip - len(preRead)
-	//	return &tr
-	//}
-	//
-	//if len(preRead) > skip {
-	//	hasher.DigestBytes(preRead[skip:])
-	//	tr := cryptkit.NewHashingTeeReader(hasher, iokit.PrependReader())
-	//} else {
-	//	skip -= len(preRead)
-	//}
-
 	sigSize := p.verifier.GetSignatureSize()
 	if sigSize > 0 {
 		r.N -= int64(sigSize)
