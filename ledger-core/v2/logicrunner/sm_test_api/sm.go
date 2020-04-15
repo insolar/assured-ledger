@@ -8,6 +8,7 @@ package sm_test_api
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_sender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
@@ -25,6 +26,11 @@ type TestApiCallSM struct {
 
 type TestApiCallSMDeclaration struct {
 	smachine.StateMachineDeclTemplate
+}
+
+func GetApiCaller() *insolar.Reference {
+	caller, _ := insolar.NewObjectReferenceFromString("insolar:1F5rFXwPMobzCzgQ7DeXwLOJj7VPaKmQMuc2ktAAAAAQ") // choosed by fairly random
+	return caller
 }
 
 func (TestApiCallSMDeclaration) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -57,18 +63,22 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	}
 
 	var obj insolar.Reference
+	var barginAlias string
 	switch s.requestPayload.CallType {
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee
+		barginAlias = "waiting for call result" // TODO make better
 	case payload.CTConstructor:
-		panic(throw.NotImplemented())
+		s.requestPayload.Caller = *GetApiCaller()
+
+		s.requestPayload.CallOutgoing = gen.ID()
+		obj = *insolar.NewGlobalReference(s.requestPayload.CallOutgoing, s.requestPayload.CallOutgoing)
+
+		outgoingRef := *insolar.NewGlobalReference(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
+		barginAlias = outgoingRef.String()
 	default:
 		panic(throw.IllegalValue())
 	}
-
-	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
-		svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, obj)
-	}).Send()
 
 	bgin := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 
@@ -83,7 +93,12 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	})
 
-	ctx.PublishGlobalAliasAndBargeIn("waiting for call result", bgin)
+	ctx.PublishGlobalAliasAndBargeIn(barginAlias, bgin)
+
+	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
+		svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, obj) // как посчетать obj для CTConstructor
+	}).Send()
+
 	return ctx.Sleep().ThenJump(s.stepProcessResult)
 }
 

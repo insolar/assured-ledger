@@ -7,7 +7,9 @@ package sm_request
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type StateMachineCallResult struct {
@@ -36,7 +38,18 @@ func (s *StateMachineCallResult) Init(ctx smachine.InitializationContext) smachi
 }
 
 func (s *StateMachineCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	link, bgin := ctx.GetPublishedGlobalAliasAndBargeIn("TODO: some key")
+	var barginAlias string
+	switch s.Payload.CallType {
+	case payload.CTMethod:
+		barginAlias = "waiting for call result" // TODO make better
+	case payload.CTConstructor:
+		outgoingRef := *insolar.NewGlobalReference(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
+		barginAlias = outgoingRef.String()
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	link, bgin := ctx.GetPublishedGlobalAliasAndBargeIn(barginAlias)
 	if link.IsZero() {
 		// TODO: log
 		return ctx.Stop()

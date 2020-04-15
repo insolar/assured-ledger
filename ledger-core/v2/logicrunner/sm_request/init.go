@@ -135,7 +135,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 		}
 		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
-			ctx.SetTracerId(traceID)
+			ctx.SetTracerID(traceID)
 			return &StateMachineCallResult{Meta: payloadMeta, Payload: &pl}
 		}
 
