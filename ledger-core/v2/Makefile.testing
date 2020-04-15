@@ -12,6 +12,12 @@ test_all: test_unit test_func test_slow ## run all tests (unit, func, slow)
 test_unit: ## run all unit tests
 	$(GOTEST) -count=1 $(TEST_ARGS) $(PACKAGES)
 
+.PHONY: test_with_coverage
+test_with_coverage: ## run unit tests with generation of coverage file
+	$(GOTEST) -coverprofile=coverage.out.tmp -count=1 $(TEST_ARGS) $(PACKAGES)
+	cat coverage.out.tmp | grep -v _mock.go > coverage.out
+	go tool cover -html=coverage.out
+
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest bloattest" ./application/functest -count=$(FUNCTEST_COUNT)
@@ -26,11 +32,4 @@ test_func_race: ## run functest 10 times with -race flag
 test_slow: ## run tests with slowtest tag
 	$(GOTEST) -count=1 $(TEST_ARGS) -tags slowtest $(PACKAGES)
 
-.PHONY: test_with_coverage
-test_with_coverage: $(ARTIFACTS_DIR) ## run unit tests with generation of coverage file
-	CGO_ENABLED=1 $(GOTEST) $(TEST_ARGS) -tags coverage --coverprofile=$(ARTIFACTS_DIR)/cover.all --covermode=count $(TESTED_PACKAGES)
-	@cat $(ARTIFACTS_DIR)/cover.all | ./scripts/dev/cover-filter.sh > $(COVERPROFILE)
 
-.PHONY: test_with_coverage_fast
-test_with_coverage_fast: ## ???
-	CGO_ENABLED=1 $(GOTEST) $(TEST_ARGS) -tags coverage -count 1 --coverprofile=$(COVERPROFILE) --covermode=count $(ALL_PACKAGES)
