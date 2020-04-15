@@ -1,9 +1,10 @@
 TEST_COUNT      ?= 1
 FUNCTEST_COUNT  ?= 1
+MIN_COVERAGE    ?= 39
 GOTEST          ?= go test
 TEST_ARGS       ?= -timeout 1200s
 TESTED_PACKAGES ?= $(shell go list ${ALL_PACKAGES} | grep -v "${MOCKS_PACKAGE}" | grep -v /ledger-v2/)
-PACKAGES ?= $(shell go list ./... | grep -v /ledger-v2/)
+PACKAGES        ?= $(shell go list ./... | grep -v /ledger-v2/)
 
 .PHONY: test_all
 test_all: test_unit test_func test_slow ## run all tests (unit, func, slow)
@@ -14,9 +15,10 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit tests with generation of coverage file
-	$(GOTEST) -coverprofile=coverage.out.tmp -count=1 $(TEST_ARGS) $(PACKAGES)
-	cat coverage.out.tmp | grep -v _mock.go > coverage.out
-	go tool cover -html=coverage.out
+	$(GOTEST) -coverprofile=coverage.tmp.out -covermode=count -count=1 $(TEST_ARGS) $(PACKAGES)
+	cat coverage.tmp.out | grep -v _mock.go > coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+	./scripts/dev/check-coverage.py --fname=./coverage.out --minimum=$(MIN_COVERAGE)
 
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times

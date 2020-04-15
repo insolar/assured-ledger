@@ -41,3 +41,11 @@ jobs:
       - name: Run unit and slow tests
         run: make test_slow
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Check code coverage
+        run: make test_with_coverage
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v1
+        with:
+          name: coverage-report
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.html
