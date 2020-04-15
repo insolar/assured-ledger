@@ -132,12 +132,12 @@ func generateCallContext(
 		Caller:          &request.Caller,
 		CallerPrototype: &request.CallSiteDeclaration,
 
-		Request: &execution.Reference,
+		Request: &execution.Incoming,
 
 		TraceID: inslogger.TraceID(ctx),
 	}
 
-	if oDesc := execution.Object; oDesc != nil {
+	if oDesc := execution.ObjectDescriptor; oDesc != nil {
 		res.Parent = oDesc.Parent()
 		// should be the same as request.Object
 		res.Callee = oDesc.HeadRef()
@@ -179,8 +179,7 @@ func (r *DefaultService) executeConstructor(ctx context.Context, id uuid.UUID, e
 	}
 
 	// form and return result
-	// TODO: think how to provide ObjectReference here (== RequestReference)
-	res := requestresult.New(result, insolar.Reference{})
+	res := requestresult.New(result, executionContext.Object)
 	if newData != nil {
 		res.SetActivate(request.Callee, request.CallSiteDeclaration, newData)
 	}

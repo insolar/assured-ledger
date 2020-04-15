@@ -77,16 +77,27 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 	return dSMExecuteInstance
 }
 
+func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
+	s.execution.Context = ctx.GetContext()
+	s.execution.Sequence = 0
+	s.execution.Request = s.Payload
+	s.execution.Pulse = s.pulseSlot.PulseData()
+
+	s.execution.Object = s.Payload.Caller
+	s.execution.Incoming = reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
+	s.execution.Outgoing = reference.NewGlobal(*s.Payload.Callee.GetLocal(), s.Payload.CallOutgoing)
+}
+
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	s.prepareExecution(ctx)
+
 	return ctx.Jump(s.stepWaitObjectReady)
 }
 
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		objectCatalog   = object.Catalog{}
-		callType        = s.Payload.CallType
-		objectID        = s.Payload.Callee.GetLocal()
-		objectReference = reference.NewGlobalSelf(*objectID)
+		objectCatalog = object.Catalog{}
+		callType      = s.Payload.CallType
 
 		isOrdered         bool
 		isConstructor     bool
@@ -95,14 +106,15 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	switch callType {
 	case payload.CTConstructor:
-		objectSharedState = objectCatalog.GetOrCreate(ctx, objectReference)
 		isConstructor = true
 		isOrdered = true
+		s.execution.Object = reference.NewGlobalSelf(s.Payload.CallOutgoing)
+		objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object)
 
 	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTMethod, payload.CTNotifyCall:
 		fallthrough
 	case payload.CTSAGACall, payload.CTParallelCall, payload.CTScheduleCall:
-		objectSharedState = objectCatalog.Get(ctx, objectReference)
+		objectSharedState = objectCatalog.Get(ctx, s.execution.Object)
 
 	default:
 		panic(throw.IllegalValue())
@@ -169,19 +181,12 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 	return ctx.Jump(s.stepExecute)
 }
 
-func (s *SMExecute) prepareExecution(ctx smachine.ExecutionContext) {
-	s.execution.Context = ctx.GetContext()
-	s.execution.Sequence = 0
-	s.execution.Request = s.Payload
-}
-
 func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.prepareExecution(ctx)
-	execution := s.execution
+	executionContext := s.execution
 
 	goCtx := ctx.GetContext()
 	return s.runner.PrepareAsync(ctx, func(svc runner.Service) smachine.AsyncResultFunc {
-		newState, id, err := svc.ExecutionStart(goCtx, execution)
+		newState, id, err := svc.ExecutionStart(goCtx, executionContext)
 
 		return func(ctx smachine.AsyncResultContext) {
 			s.executionNewState = newState

@@ -10,18 +10,22 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 // TODO[bigbes]: redo context, extract what is needed from VCallRequest to Context level and etc
 type Context struct {
-	Reference  insolar.Reference
-	Object     descriptor.ObjectDescriptor
-	Context    context.Context
-	Request    *payload.VCallRequest
-	Sequence   uint32
-	Deactivate bool
-	Pulse      insolar.Pulse
+	ObjectDescriptor descriptor.ObjectDescriptor
+	Context          context.Context
+	Request          *payload.VCallRequest
+	Sequence         uint32
+	Deactivate       bool
+	Pulse            pulse.Data
+
+	Object   insolar.Reference
+	Incoming insolar.Reference
+	Outgoing insolar.Reference
 
 	LogicContext insolar.LogicCallContext
 }

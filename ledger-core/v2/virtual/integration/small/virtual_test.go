@@ -126,74 +126,77 @@ func TestVirtual_BasicOperations_WithExecutor(t *testing.T) {
 	server := NewServer(t)
 	ctx := inslogger.TestContext(t)
 
-	pl := payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
-		CallType:            payload.CTConstructor,
-		CallFlags:           nil,
-		CallAsOf:            0,
-		Caller:              insolar.Reference{},
-		Callee:              gen.Reference(),
-		CallSiteDeclaration: testwallet.GetPrototype(),
-		CallSiteMethod:      "New",
-		CallSequence:        0,
-		CallReason:          insolar.Reference{},
-		RootTX:              insolar.Reference{},
-		CallTX:              insolar.Reference{},
-		CallRequestFlags:    0,
-		KnownCalleeIncoming: insolar.Reference{},
-		EntryHeadHash:       nil,
-		CallOutgoing:        reference.Local{},
-		Arguments:           insolar.MustSerialize([]interface{}{}),
+	for i := 0; i < 10; i++ {
+
+		pl := payload.VCallRequest{
+			Polymorph:           uint32(payload.TypeVCallRequest),
+			CallType:            payload.CTConstructor,
+			CallFlags:           nil,
+			CallAsOf:            0,
+			Caller:              insolar.Reference{},
+			Callee:              gen.Reference(),
+			CallSiteDeclaration: testwallet.GetPrototype(),
+			CallSiteMethod:      "New",
+			CallSequence:        0,
+			CallReason:          insolar.Reference{},
+			RootTX:              insolar.Reference{},
+			CallTX:              insolar.Reference{},
+			CallRequestFlags:    0,
+			KnownCalleeIncoming: insolar.Reference{},
+			EntryHeadHash:       nil,
+			CallOutgoing:        gen.ID(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+
+		plBytes, err := pl.Marshal()
+		if err != nil {
+			panic(err)
+		}
+
+		msg := payload.MustNewMessage(&payload.Meta{
+			Polymorph:  uint32(payload.TypeMeta),
+			Payload:    plBytes,
+			Sender:     insolar.Reference{},
+			Receiver:   insolar.Reference{},
+			Pulse:      server.GetPulse().PulseNumber,
+			ID:         nil,
+			OriginHash: payload.MessageHash{},
+		})
+
+		testIsDone := make(chan struct{}, 0)
+
+		server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+			assert.Len(t, messages, 1)
+
+			var (
+				_      = messages[0].Metadata
+				metaPl = messages[0].Payload
+			)
+
+			metaPlType, err := payload.UnmarshalType(metaPl)
+			assert.NoError(t, err)
+			assert.Equal(t, payload.TypeMeta, metaPlType)
+
+			metaPayload, err := payload.Unmarshal(metaPl)
+			assert.NoError(t, err)
+			assert.IsType(t, &payload.Meta{}, metaPayload)
+
+			callResultPl := metaPayload.(*payload.Meta).Payload
+			callResultPlType, err := payload.UnmarshalType(callResultPl)
+			assert.NoError(t, err)
+			assert.Equal(t, payload.TypeVCallResult, callResultPlType)
+
+			callResultPayload, err := payload.Unmarshal(callResultPl)
+			assert.NoError(t, err)
+			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
+
+			testIsDone <- struct{}{}
+
+			return nil
+		}
+
+		server.SendMessage(ctx, msg)
+
+		<-testIsDone
 	}
-
-	plBytes, err := pl.Marshal()
-	if err != nil {
-		panic(err)
-	}
-
-	msg := payload.MustNewMessage(&payload.Meta{
-		Polymorph:  uint32(payload.TypeMeta),
-		Payload:    plBytes,
-		Sender:     insolar.Reference{},
-		Receiver:   insolar.Reference{},
-		Pulse:      server.GetPulse().PulseNumber,
-		ID:         nil,
-		OriginHash: payload.MessageHash{},
-	})
-
-	testIsDone := make(chan struct{}, 0)
-
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		assert.Len(t, messages, 1)
-
-		var (
-			_      = messages[0].Metadata
-			metaPl = messages[0].Payload
-		)
-
-		metaPlType, err := payload.UnmarshalType(metaPl)
-		assert.NoError(t, err)
-		assert.Equal(t, payload.TypeMeta, metaPlType)
-
-		metaPayload, err := payload.Unmarshal(metaPl)
-		assert.NoError(t, err)
-		assert.IsType(t, &payload.Meta{}, metaPayload)
-
-		callResultPl := metaPayload.(*payload.Meta).Payload
-		callResultPlType, err := payload.UnmarshalType(callResultPl)
-		assert.NoError(t, err)
-		assert.Equal(t, payload.TypeVCallResult, callResultPlType)
-
-		callResultPayload, err := payload.Unmarshal(callResultPl)
-		assert.NoError(t, err)
-		assert.IsType(t, &payload.VCallResult{}, callResultPayload)
-
-		testIsDone <- struct{}{}
-
-		return nil
-	}
-
-	server.SendMessage(ctx, msg)
-
-	<-testIsDone
 }
