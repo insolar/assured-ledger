@@ -104,10 +104,12 @@ func (p *TlsTransport) ConnectToExt(to apinetwork.Address, peerVerify VerifyPeer
 		return nil, err
 	}
 
-	if p.receiveFn != nil {
-		go runTcpReceive(conn.LocalAddr().(*net.TCPAddr), to, conn, p.conn, p.receiveFn)
+	tcpOut := tcpOutTransport{conn, nil, 0}
+
+	if p.receiveFn == nil {
+		return &tcpOut, nil
 	}
-	return &tcpOutTransport{conn, nil, 0}, nil
+	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
 func (p *TlsTransport) tlsConnect(local, remote apinetwork.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
@@ -120,7 +122,7 @@ func (p *TlsTransport) tlsConnect(local, remote apinetwork.Address, conn io.Read
 	if err = tlsConn.Handshake(); err != nil {
 		// If the handshake failed due to the client not speaking
 		// TLS, assume they're speaking plaintext HTTP and write a
-		// 400 response on the TLS conn's underlying net.Conn.
+		// 400 response on the TLS conn's underlying net.TwoWayConn.
 		if re, ok := err.(tls.RecordHeaderError); ok && re.Conn != nil && tlsRecordHeaderLooksLikeHTTP(re.RecordHeader) {
 			_, _ = io.WriteString(re.Conn, "HTTP/1.0 400 Bad Request\r\n\r\nClient sent an HTTP request to an HTTPS server.\n")
 			_ = re.Conn.Close()

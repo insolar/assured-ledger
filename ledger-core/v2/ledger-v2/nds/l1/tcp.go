@@ -80,12 +80,14 @@ func (p *TcpTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
 		return nil, err
 	}
 
+	tcpOut := tcpOutTransport{conn, nil, 0}
 	if p.receiveFn == nil {
-		_ = conn.CloseRead()
-	} else {
-		go runTcpReceive(conn.LocalAddr().(*net.TCPAddr), to, conn, p.conn, p.receiveFn)
+		return &tcpSemiTransport{tcpOut, func(_, _ apinetwork.Address, conn io.ReadWriteCloser, _ OutTransport, _ error) bool {
+			_ = conn.(*net.TCPConn).CloseRead()
+			return false
+		}}, nil
 	}
-	return &tcpOutTransport{conn, nil, 0}, nil
+	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
 func runTcpReceive(local *net.TCPAddr, remote apinetwork.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
@@ -125,6 +127,7 @@ func runTcpListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
 	}
 }
 
+var _ TwoWayTransport = &tcpOutTransport{}
 var _ OutNetTransport = &tcpOutTransport{}
 
 type tcpOutTransport struct {
@@ -183,6 +186,32 @@ func (p *tcpOutTransport) WithQuota(q ratelimiter.RateQuota) OutTransport {
 	return &cp
 }
 
-func (p *tcpOutTransport) Conn() net.Conn {
+func (p *tcpOutTransport) TwoWayConn() io.ReadWriteCloser {
 	return p.conn
+}
+
+func (p *tcpOutTransport) NetConn() net.Conn {
+	return p.conn
+}
+
+var _ SemiTransport = &tcpSemiTransport{}
+
+type tcpSemiTransport struct {
+	tcpOutTransport
+	receiveFn SessionfulConnectFunc
+}
+
+func (p *tcpSemiTransport) ConnectReceiver(fn SessionfulConnectFunc) (bool, TwoWayTransport) {
+	if p.receiveFn == nil {
+		return false, nil
+	}
+	if fn == nil {
+		fn = p.receiveFn
+	}
+	p.receiveFn = nil
+	return fn(
+			apinetwork.AsAddress(p.conn.LocalAddr()),
+			apinetwork.AsAddress(p.conn.RemoteAddr()),
+			p.conn, nil, nil),
+		&p.tcpOutTransport
 }

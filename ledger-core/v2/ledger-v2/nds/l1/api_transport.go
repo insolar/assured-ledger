@@ -51,9 +51,20 @@ type OutTransport interface {
 	WithQuota(ratelimiter.RateQuota) OutTransport
 }
 
+type TwoWayTransport interface {
+	OutTransport
+	TwoWayConn() io.ReadWriteCloser
+}
+
+type SemiTransport interface {
+	TwoWayTransport
+	// ConnectReceiver with (nil) arg will use receive func of parent transport
+	ConnectReceiver(SessionfulConnectFunc) (bool, TwoWayTransport)
+}
+
 type OutNetTransport interface {
 	io.ReaderFrom
 	io.Writer
 	OutTransport
-	Conn() net.Conn
+	NetConn() net.Conn
 }
