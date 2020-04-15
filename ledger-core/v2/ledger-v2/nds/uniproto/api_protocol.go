@@ -8,7 +8,7 @@ package uniproto
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -22,6 +22,6 @@ type Receiver interface {
 
 type Supporter interface {
 	VerifyHeader(*Header, pulse.Number, cryptkit.DataSignatureVerifier) (cryptkit.DataSignatureVerifier, error)
-	ToHostId(id uint32) apinetwork.HostId
+	ToHostId(id uint32) nwapi.HostId
 	GetLocalNodeID(id uint32) uint32
 }

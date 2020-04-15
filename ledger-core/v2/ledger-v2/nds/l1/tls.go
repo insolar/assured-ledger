@@ -12,16 +12,16 @@ import (
 	"io"
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewTls(binding apinetwork.Address, config tls.Config) SessionfulTransport {
-	return &TlsTransport{addr: binding.AsTCPAddr(), config: &config}
+func NewTls(binding nwapi.Address, config *tls.Config) SessionfulTransport {
+	return &TlsTransport{addr: binding.AsTCPAddr(), config: config}
 }
 
-func NewTlsTransport(binding apinetwork.Address, config tls.Config) TlsTransport {
-	return TlsTransport{addr: binding.AsTCPAddr(), config: &config}
+func NewTlsTransport(binding nwapi.Address, config *tls.Config) TlsTransport {
+	return TlsTransport{addr: binding.AsTCPAddr(), config: config}
 }
 
 type TlsTransport struct {
@@ -71,11 +71,11 @@ func (p *TlsTransport) Close() error {
 	return p.conn.Close()
 }
 
-func (p *TlsTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
+func (p *TlsTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	return p.ConnectToExt(to, nil)
 }
 
-func (p *TlsTransport) ConnectToExt(to apinetwork.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
+func (p *TlsTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver)
 	if err != nil {
@@ -84,9 +84,9 @@ func (p *TlsTransport) ConnectToExt(to apinetwork.Address, peerVerify VerifyPeer
 
 	peerConfig := p.config
 	if peerVerify != nil {
-		cfg := *p.config
+		cfg := p.config.Clone()
 		cfg.VerifyPeerCertificate = peerVerify
-		peerConfig = &cfg
+		peerConfig = cfg
 	}
 
 	local := p.addr
@@ -112,7 +112,7 @@ func (p *TlsTransport) ConnectToExt(to apinetwork.Address, peerVerify VerifyPeer
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
-func (p *TlsTransport) tlsConnect(local, remote apinetwork.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
+func (p *TlsTransport) tlsConnect(local, remote nwapi.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
 	if err != nil {
 		return p.receiveFn(local, remote, conn, w, err)
 	}

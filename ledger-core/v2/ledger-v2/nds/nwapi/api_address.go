@@ -3,11 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package apinetwork
+package nwapi
 
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"math"
 	"net"
 	"strconv"
@@ -119,6 +120,13 @@ func NewHostPK(pk longbits.FixedReader) Address {
 	return Address{network: uint8(HostPK), data1: pk.AsByteString()}
 }
 
+func NewLocalUID(id HostId, uid uint64) Address {
+	a := Address{network: uint8(LocalUID)}
+	binary.LittleEndian.PutUint64(a.data0[:8], uint64(id))
+	binary.LittleEndian.PutUint64(a.data0[8:], uid)
+	return a
+}
+
 var _ net.Addr = Address{}
 
 type Address struct {
@@ -157,16 +165,14 @@ func (a Address) Network() string {
 	}
 }
 
-func (a Address) data0Len() uint8 {
-	return a.network>>networkBits + 1
-}
-
 func (a Address) HostOnly() Address {
-	if a.port == 0 {
+	if a.port == 0 && a.flags&data1isDNS == 0 {
 		// optimization
 		return a
 	}
 	a.port = 0
+	a.flags &^= data1isDNS
+	a.data1 = ""
 	return a
 }
 
@@ -244,6 +250,8 @@ func (a Address) HostString() string {
 		return "(PK)" + a.data1.Hex()
 	case HostID:
 		return "#" + a.AsHostId().String()
+	case LocalUID:
+		return "(UID)" + a.AsHostId().String() + "[" + hex.EncodeToString(a.data0[:8]) + "]"
 	default:
 		return "(" + strconv.Itoa(int(a.network)) + ")" + a.data1.String()
 	}
@@ -258,6 +266,8 @@ func (a Address) Resolve(ctx context.Context, resolver BasicAddressResolver) (Ad
 		return Address{}, err
 	}
 
+	// TODO add host name to data1
+
 	aa := NewIP(ips[0])
 	aa.port = a.port
 	return aa, nil
@@ -271,6 +281,8 @@ func (a Address) ResolveAll(ctx context.Context, resolver BasicAddressResolver) 
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO add host name to data1
 
 	aa := make([]Address, len(ips))
 	for i := range ips {
@@ -384,6 +396,8 @@ func (a Address) DataLen() int {
 		return net.IPv6len
 	case HostID:
 		return HostIdByteSize
+	case LocalUID:
+		return len(a.data0)
 	default:
 		if len(a.data1) > 0 {
 			return len(a.data1)
@@ -392,40 +406,41 @@ func (a Address) DataLen() int {
 	}
 }
 
-func (a Address) AsUint8() uint8 {
-	if len(a.data1) == 0 && a.data0Len() == 1 {
-		return a.data0[0]
+func (a Address) data0Len() uint8 {
+	n := a.network >> networkBits
+	if n == 0 {
+		return 0
 	}
-	panic(throw.IllegalState())
+	return n + 1
 }
 
-func (a Address) AsUint16() uint16 {
-	if len(a.data1) == 0 && a.data0Len() == 2 {
-		return binary.LittleEndian.Uint16(a.data0[:])
-	}
-	panic(throw.IllegalState())
-}
-
-func (a Address) AsUint32() uint32 {
-	if len(a.data1) == 0 && a.data0Len() == 4 {
-		return binary.LittleEndian.Uint32(a.data0[:])
-	}
-	panic(throw.IllegalState())
-}
-
-func (a Address) AsUint64() uint64 {
-	if len(a.data1) == 0 && a.data0Len() == 8 {
-		return binary.LittleEndian.Uint64(a.data0[:])
-	}
-	panic(throw.IllegalState())
-}
-
-func (a Address) AsBits128() longbits.Bits128 {
-	if len(a.data1) == 0 && a.data0Len() == 16 {
-		return a.data0
-	}
-	panic(throw.IllegalState())
-}
+//func (a Address) AsUint16() uint16 {
+//	if a.data0Len() == 2 {
+//		return binary.LittleEndian.Uint16(a.data0[:])
+//	}
+//	panic(throw.IllegalState())
+//}
+//
+//func (a Address) AsUint32() uint32 {
+//	if a.data0Len() == 4 {
+//		return binary.LittleEndian.Uint32(a.data0[:])
+//	}
+//	panic(throw.IllegalState())
+//}
+//
+//func (a Address) AsUint64() uint64 {
+//	if a.data0Len() == 8 {
+//		return binary.LittleEndian.Uint64(a.data0[:])
+//	}
+//	panic(throw.IllegalState())
+//}
+//
+//func (a Address) AsBits128() longbits.Bits128 {
+//	if a.data0Len() == 16 {
+//		return a.data0
+//	}
+//	panic(throw.IllegalState())
+//}
 
 const v4InV6Prefix = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF"
 const v6Loopback = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
@@ -461,8 +476,9 @@ func (a Address) Name() string {
 }
 
 func (a Address) AsHostId() HostId {
-	if a.AddrNetwork() == HostID {
-		return HostId(binary.LittleEndian.Uint64(a.data0[:]))
+	switch a.AddrNetwork() {
+	case HostID, LocalUID:
+		return HostId(binary.LittleEndian.Uint64(a.data0[:8]))
 	}
 	panic(throw.IllegalState())
 }

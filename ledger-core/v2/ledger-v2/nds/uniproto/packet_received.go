@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -17,7 +17,7 @@ import (
 
 type ReceivedPacket struct {
 	Packet
-	From      apinetwork.Address
+	From      nwapi.Address
 	Peer      Peer
 	verifier  PacketVerifier
 	Decrypter cryptkit.Decrypter

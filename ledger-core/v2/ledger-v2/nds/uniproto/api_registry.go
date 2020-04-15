@@ -6,7 +6,7 @@
 package uniproto
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 )
 
@@ -21,6 +21,6 @@ type PayloadSerializeFunc func(*SenderPacket, *iokit.LimitedWriter) error
 type PacketSerializeFunc func(*Packet) (int, PayloadSerializeFunc)
 
 type ProtocolSender interface {
-	SendTo(apinetwork.Address, func(*Packet) PayloadSerializeFunc) error
-	ConnectTo(apinetwork.Address, func(*SenderPacket)) error
+	SendTo(nwapi.Address, func(*Packet) PayloadSerializeFunc) error
+	ConnectTo(nwapi.Address, func(*SenderPacket)) error
 }

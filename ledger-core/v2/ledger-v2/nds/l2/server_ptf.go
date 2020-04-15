@@ -6,8 +6,8 @@
 package l2
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -99,7 +99,7 @@ func (p *peerTransportFactory) Close() (err error) {
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
-func (p *peerTransportFactory) SessionlessConnectTo(to apinetwork.Address) (l1.OutTransport, error) {
+func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error) {
 	if p.listen.IsActive() {
 		return p.udpListen.ConnectTo(to)
 	}
@@ -111,7 +111,7 @@ func (p *peerTransportFactory) SessionlessConnectTo(to apinetwork.Address) (l1.O
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
-func (p *peerTransportFactory) SessionfulConnectTo(to apinetwork.Address) (l1.OutTransport, error) {
+func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error) {
 	if p.listen.IsActive() {
 		return p.tcpListen.ConnectTo(to)
 	}

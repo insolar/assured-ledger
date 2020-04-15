@@ -13,8 +13,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -34,10 +34,10 @@ type PacketErrDetails struct {
 }
 
 type ConnErrDetails struct {
-	Local, Remote apinetwork.Address
+	Local, Remote nwapi.Address
 }
 
-func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
+func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
 	defer func() {
 		_ = iokit.SafeClose(conn)
 		err = throw.R(recover(), err)
@@ -171,7 +171,7 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 	}, nil
 }
 
-func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err error) {
+func (p PeerReceiver) ReceiveDatagram(remote nwapi.Address, b []byte) (err error) {
 
 	var (
 		fn   uniproto.VerifyHeaderFunc
@@ -205,7 +205,7 @@ func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err 
 	return throw.WithDetails(err, PacketErrDetails{packet.Header, packet.PulseNumber})
 }
 
-func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, conn io.ReadWriteCloser) (uniproto.VerifyHeaderFunc, *Peer, error) {
+func (p PeerReceiver) resolvePeer(remote nwapi.Address, isIncoming bool, conn io.ReadWriteCloser) (uniproto.VerifyHeaderFunc, *Peer, error) {
 	var tlsConn *tls.Conn
 	if t, ok := conn.(*tls.Conn); ok {
 		tlsConn = t
@@ -241,12 +241,12 @@ func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, co
 	return nil, nil, err
 }
 
-func toHostId(id uint32, supp uniproto.Supporter) apinetwork.HostId {
+func toHostId(id uint32, supp uniproto.Supporter) nwapi.HostId {
 	switch {
 	case id == 0:
 		return 0
 	case supp == nil:
-		return apinetwork.HostId(id)
+		return nwapi.HostId(id)
 	default:
 		return supp.ToHostId(id)
 	}
@@ -283,7 +283,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 				}
 
 				sid := toHostId(header.SourceID, supp)
-				if peer, err = p.PeerManager.peerNotLocal(apinetwork.NewHostId(sid)); err == nil {
+				if peer, err = p.PeerManager.peerNotLocal(nwapi.NewHostId(sid)); err == nil {
 					dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
 				}
 			}
@@ -305,13 +305,13 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 	return
 }
 
-func (p PeerReceiver) hasHostId(id apinetwork.HostId, peer *Peer) bool {
-	_, pr := p.PeerManager.peer(apinetwork.NewHostId(id))
+func (p PeerReceiver) hasHostId(id nwapi.HostId, peer *Peer) bool {
+	_, pr := p.PeerManager.peer(nwapi.NewHostId(id))
 	return peer == pr
 }
 
-func (p PeerReceiver) isLocalHostId(id apinetwork.HostId) bool {
-	idx, pr := p.PeerManager.peer(apinetwork.NewHostId(id))
+func (p PeerReceiver) isLocalHostId(id nwapi.HostId) bool {
+	idx, pr := p.PeerManager.peer(nwapi.NewHostId(id))
 	return idx == 0 && pr != nil
 }
 
@@ -321,7 +321,7 @@ func (p PeerReceiver) checkTarget(supp uniproto.Supporter, header *uniproto.Head
 		return nil, nil
 	case header.IsForRelay():
 		tid := toHostId(header.TargetID, supp)
-		relayTo, err = p.PeerManager.peerNotLocal(apinetwork.NewHostId(tid))
+		relayTo, err = p.PeerManager.peerNotLocal(nwapi.NewHostId(tid))
 		switch {
 		case err != nil:
 			//

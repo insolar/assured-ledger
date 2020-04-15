@@ -6,13 +6,13 @@
 package msgdelivery
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 )
 
 type DeliveryPeer struct {
 	nextSSID atomickit.Uint32 // ShortShipmentID
-	peerID   apinetwork.ShortNodeID
+	peerID   nwapi.ShortNodeID
 	outbound *peerProxy
 }
 

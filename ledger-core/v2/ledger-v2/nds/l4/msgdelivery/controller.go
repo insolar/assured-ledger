@@ -8,16 +8,16 @@ package msgdelivery
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type ReceiverFunc func(apinetwork.PayloadCompleteness, apinetwork.Serializable) error
+type ReceiverFunc func(nwapi.PayloadCompleteness, nwapi.Serializable) error
 
 type ProtocolController struct {
 	pType     uniproto.ProtocolType
-	factory   apinetwork.DeserializationFactory
+	factory   nwapi.DeserializationFactory
 	receiveFn ReceiverFunc
 	receiver  packetReceiver
 	dedup     receiveDeduplicator
@@ -95,7 +95,7 @@ func (p *ProtocolController) receiveParcel(packet *uniproto.ReceivedPacket, payl
 		}
 	}
 
-	if payload.ParcelType == apinetwork.BodyPayload {
+	if payload.ParcelType == nwapi.BodyPayload {
 		dPeer.sendBodyAck(payload.ParcelId)
 	} else {
 		dPeer.sendAck(payload.ParcelId)
@@ -124,7 +124,7 @@ func (p *ProtocolController) createProtoPeer(peer uniproto.Peer) io.Closer {
 	return dp
 }
 
-func (p *ProtocolController) send(to apinetwork.Address, payload *ParcelPacket) error {
+func (p *ProtocolController) send(to nwapi.Address, payload *ParcelPacket) error {
 	// check valid
 	// payload.
 }

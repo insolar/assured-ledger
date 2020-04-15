@@ -10,7 +10,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
 )
 
@@ -20,12 +20,12 @@ type SessionfulTransport interface {
 	Close() error
 }
 
-type SessionfulConnectFunc func(local, remote apinetwork.Address, conn io.ReadWriteCloser, w OutTransport, err error) (ok bool)
+type SessionfulConnectFunc func(local, remote nwapi.Address, conn io.ReadWriteCloser, w OutTransport, err error) (ok bool)
 
 type VerifyPeerCertificateFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 
 type OutTransportFactory interface {
-	ConnectTo(to apinetwork.Address) (OutTransport, error)
+	ConnectTo(to nwapi.Address) (OutTransport, error)
 	Close() error
 }
 
@@ -39,7 +39,7 @@ type SessionlessTransport interface {
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
-type SessionlessReceiveFunc func(local, remote apinetwork.Address, b []byte, err error) (ok bool)
+type SessionlessReceiveFunc func(local, remote nwapi.Address, b []byte, err error) (ok bool)
 
 type OutTransport interface {
 	io.Closer

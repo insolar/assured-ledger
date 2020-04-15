@@ -6,7 +6,7 @@
 package l2
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -14,7 +14,7 @@ type PeerMap struct {
 	peers       []*Peer
 	unusedCount uint32
 	unusedMin   uint32
-	aliases     map[apinetwork.Address]uint32
+	aliases     map[nwapi.Address]uint32
 }
 
 func (p *PeerMap) ensureEmpty() {
@@ -23,21 +23,21 @@ func (p *PeerMap) ensureEmpty() {
 	}
 }
 
-func (p *PeerMap) get(a apinetwork.Address) (uint32, *Peer) {
+func (p *PeerMap) get(a nwapi.Address) (uint32, *Peer) {
 	if idx, ok := p.aliases[mapId(a)]; ok {
 		return idx, p.peers[idx]
 	}
 	return 0, nil
 }
 
-func mapId(a apinetwork.Address) apinetwork.Address {
+func mapId(a nwapi.Address) nwapi.Address {
 	if a.IsLoopback() {
 		return a
 	}
 	return a.HostOnly()
 }
 
-func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []apinetwork.Address) ([]apinetwork.Address, error) {
+func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []nwapi.Address) ([]nwapi.Address, error) {
 	j := 0
 	for i, a := range aliases {
 		switch conflictIndex, hasConflict := p.aliases[mapId(a)]; {
@@ -49,12 +49,12 @@ func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []apinetwor
 		case conflictIndex == peerIndex && peer != nil:
 			//
 		default:
-			var primary apinetwork.Address
+			var primary nwapi.Address
 			if peer != nil {
 				primary = peer.GetPrimary()
 			}
 			return nil, throw.E("alias conflict", struct {
-				Address, Alias, ConflictWith apinetwork.Address
+				Address, Alias, ConflictWith nwapi.Address
 			}{primary, a, p.peers[conflictIndex].GetPrimary()})
 		}
 	}
@@ -73,7 +73,7 @@ func (p *PeerMap) remove(idx uint32) {
 	}
 }
 
-func (p *PeerMap) removeAlias(a apinetwork.Address) bool {
+func (p *PeerMap) removeAlias(a nwapi.Address) bool {
 	_, peer := p.get(a)
 	if peer == nil {
 		return false
@@ -86,7 +86,7 @@ func (p *PeerMap) removeAlias(a apinetwork.Address) bool {
 	return false
 }
 
-func (p *PeerMap) addAliases(peerIndex uint32, aliases []apinetwork.Address) error {
+func (p *PeerMap) addAliases(peerIndex uint32, aliases []nwapi.Address) error {
 	peer := p.peers[peerIndex]
 	switch aliases, err := p.checkAliases(peer, peerIndex, aliases); {
 	case err != nil:
@@ -96,7 +96,7 @@ func (p *PeerMap) addAliases(peerIndex uint32, aliases []apinetwork.Address) err
 	default:
 		peer.transport.addAliases(aliases)
 		if p.aliases == nil {
-			p.aliases = make(map[apinetwork.Address]uint32)
+			p.aliases = make(map[nwapi.Address]uint32)
 		}
 		for _, a := range aliases {
 			p.aliases[mapId(a)] = peerIndex
@@ -133,7 +133,7 @@ func (p *PeerMap) _addPeer(peer *Peer) uint32 {
 func (p *PeerMap) addPeer(peer *Peer) uint32 {
 	peerIndex := p._addPeer(peer)
 	if p.aliases == nil {
-		p.aliases = make(map[apinetwork.Address]uint32)
+		p.aliases = make(map[nwapi.Address]uint32)
 	}
 	for _, a := range peer.transport.aliases {
 		p.aliases[mapId(a)] = peerIndex

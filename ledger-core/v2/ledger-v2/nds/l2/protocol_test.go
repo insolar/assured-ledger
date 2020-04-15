@@ -11,7 +11,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
@@ -31,7 +31,7 @@ var _ uniproto.Receiver = &TestProtocolMarshaller{}
 
 type TestProtocolMarshaller struct {
 	Count      atomickit.Uint32
-	LastFrom   apinetwork.Address
+	LastFrom   nwapi.Address
 	LastPacket uniproto.Packet
 	LastBytes  []byte
 	LastMsg    string

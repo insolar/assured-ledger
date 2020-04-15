@@ -8,7 +8,6 @@ package msgdelivery
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
@@ -81,7 +80,7 @@ func moveParcelIdList(maxCount int, list *[]ShortShipmentID) (int, []ShortShipme
 	return maxCount, x[n-maxCount:]
 }
 
-func (p *StatePacket) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {
+func (p *StatePacket) SerializeTo(ctx uniproto.SerializationContext, writer io.Writer) error {
 	packet := NewPacket(DeliveryState)
 
 	size := uint(0)

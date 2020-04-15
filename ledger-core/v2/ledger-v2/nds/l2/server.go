@@ -13,8 +13,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
@@ -24,7 +24,7 @@ import (
 type ServerConfig struct {
 	BindingAddress string
 	PublicAddress  string
-	NetPreference  apinetwork.NetworkPreference
+	NetPreference  nwapi.NetworkPreference
 	TlsConfig      *tls.Config
 	UdpMaxSize     int
 	PeerLimit      int
@@ -85,8 +85,8 @@ func (p *UnifiedServer) StartNoListen() {
 		p.peers.central.maxPeerConn = uint8(n)
 	}
 
-	binding := apinetwork.NewHostPort(p.config.BindingAddress)
-	localAddrs, _, err := apinetwork.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, binding)
+	binding := nwapi.NewHostPort(p.config.BindingAddress)
+	localAddrs, _, err := nwapi.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, binding)
 	if err != nil {
 		panic(err)
 	}
@@ -94,12 +94,12 @@ func (p *UnifiedServer) StartNoListen() {
 
 	public := binding
 	if p.config.PublicAddress != "" {
-		public = apinetwork.NewHostPort(p.config.PublicAddress)
-		pubAddrs, _, err := apinetwork.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, public)
+		public = nwapi.NewHostPort(p.config.PublicAddress)
+		pubAddrs, _, err := nwapi.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, public)
 		if err != nil {
 			panic(err)
 		}
-		localAddrs = apinetwork.Join(localAddrs, pubAddrs)
+		localAddrs = nwapi.Join(localAddrs, pubAddrs)
 	}
 
 	if err := p.peers.addLocal(public, localAddrs, func(peer *Peer) error {
@@ -121,7 +121,7 @@ func (p *UnifiedServer) StartNoListen() {
 	if p.config.TlsConfig == nil {
 		p.ptf.SetSessionful(l1.NewTcp(binding), p.connectSessionful)
 	} else {
-		p.ptf.SetSessionful(l1.NewTls(binding, *p.config.TlsConfig), p.connectSessionful)
+		p.ptf.SetSessionful(l1.NewTls(binding, p.config.TlsConfig), p.connectSessionful)
 	}
 
 	p.receiver = PeerReceiver{&p.peers, p.protocols, p.GetMode}
@@ -154,7 +154,7 @@ func (p *UnifiedServer) SetMode(mode ConnectionMode) {
 	p.mode.Store(uint32(mode))
 }
 
-func (p *UnifiedServer) checkConnection(_, remote apinetwork.Address, err error) error {
+func (p *UnifiedServer) checkConnection(_, remote nwapi.Address, err error) error {
 	switch {
 	case err != nil:
 		return err
@@ -164,7 +164,7 @@ func (p *UnifiedServer) checkConnection(_, remote apinetwork.Address, err error)
 	return nil
 }
 
-func (p *UnifiedServer) receiveSessionless(local, remote apinetwork.Address, b []byte, err error) bool {
+func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte, err error) bool {
 	if p.udpSema.LockTimeout(time.Second) {
 		go func() {
 			defer p.udpSema.Unlock()
@@ -188,7 +188,7 @@ func (p *UnifiedServer) receiveSessionless(local, remote apinetwork.Address, b [
 	return true
 }
 
-func (p *UnifiedServer) connectSessionful(local, remote apinetwork.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()
@@ -203,18 +203,18 @@ func (p *UnifiedServer) connectSessionful(local, remote apinetwork.Address, conn
 	return true
 }
 
-func (p *UnifiedServer) runReceiver(local, remote apinetwork.Address, runFn func() error) {
+func (p *UnifiedServer) runReceiver(local, remote nwapi.Address, runFn func() error) {
 	if err := runFn(); err != nil {
 		p.reportToBlacklist(remote, err)
 		p.reportError(throw.WithDetails(err, ConnErrDetails{local, remote}))
 	}
 }
 
-func (p *UnifiedServer) isBlacklisted(remote apinetwork.Address) bool {
+func (p *UnifiedServer) isBlacklisted(remote nwapi.Address) bool {
 	return p.blacklist != nil && p.blacklist.IsBlacklisted(remote)
 }
 
-func (p *UnifiedServer) reportToBlacklist(remote apinetwork.Address, err error) {
+func (p *UnifiedServer) reportToBlacklist(remote nwapi.Address, err error) {
 	if bl := p.blacklist; bl != nil {
 		if sv := throw.SeverityOf(err); sv.IsFraudOrWorse() {
 			bl.ReportFraud(remote, p.peers, err)

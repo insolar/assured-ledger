@@ -8,7 +8,7 @@ package msgdelivery
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -16,11 +16,11 @@ import (
 
 type ParcelPacket struct {
 	ParcelId     ShortShipmentID
-	ReturnId     ShortShipmentID                `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
-	RepeatedSend bool                           `insolar-transport:"aliasOf=PacketFlags[1]"`
-	ParcelType   apinetwork.PayloadCompleteness `insolar-transport:"send=ignore;aliasOf=PacketFlags[2]"`
+	ReturnId     ShortShipmentID           `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
+	RepeatedSend bool                      `insolar-transport:"aliasOf=PacketFlags[1]"`
+	ParcelType   nwapi.PayloadCompleteness `insolar-transport:"send=ignore;aliasOf=PacketFlags[2]"`
 
-	Data apinetwork.Serializable
+	Data nwapi.Serializable
 }
 
 const ( // Flags for ParcelPacket
@@ -29,7 +29,7 @@ const ( // Flags for ParcelPacket
 	WithHeadFlag // for DeliveryParcelBody only
 )
 
-func (p *ParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer io.Writer) error {
+func (p *ParcelPacket) SerializeTo(ctx uniproto.SerializationContext, writer io.Writer) error {
 	if p.ParcelId == 0 {
 		return throw.IllegalState()
 	}
@@ -37,10 +37,10 @@ func (p *ParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer i
 	packet := NewPacket(DeliveryParcelBody)
 
 	switch p.ParcelType {
-	case apinetwork.CompletePayload:
+	case nwapi.CompletePayload:
 		packet.Header.SetFlag(WithHeadFlag, true)
-	case apinetwork.BodyPayload:
-	case apinetwork.HeadPayload:
+	case nwapi.BodyPayload:
+	case nwapi.HeadPayload:
 		packet.Header.SetPacketType(uint8(DeliveryParcelHead))
 	default:
 		return throw.IllegalState()
@@ -68,15 +68,15 @@ func (p *ParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer i
 	})
 }
 
-func (p *ParcelPacket) DeserializePayload(f apinetwork.DeserializationFactory, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+func (p *ParcelPacket) DeserializePayload(f nwapi.DeserializationFactory, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 	switch PacketType(packet.Header.GetPacketType()) {
 	case DeliveryParcelHead:
-		p.ParcelType = apinetwork.HeadPayload
+		p.ParcelType = nwapi.HeadPayload
 	case DeliveryParcelBody:
 		if packet.Header.HasFlag(WithHeadFlag) {
-			p.ParcelType = apinetwork.CompletePayload
+			p.ParcelType = nwapi.CompletePayload
 		} else {
-			p.ParcelType = apinetwork.BodyPayload
+			p.ParcelType = nwapi.BodyPayload
 		}
 	}
 

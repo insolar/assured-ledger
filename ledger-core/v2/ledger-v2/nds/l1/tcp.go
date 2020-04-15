@@ -10,17 +10,17 @@ import (
 	"io"
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewTcp(binding apinetwork.Address) SessionfulTransport {
+func NewTcp(binding nwapi.Address) SessionfulTransport {
 	return &TcpTransport{addr: binding.AsTCPAddr()}
 }
 
-func NewTcpTransport(binding apinetwork.Address) TcpTransport {
+func NewTcpTransport(binding nwapi.Address) TcpTransport {
 	return TcpTransport{addr: binding.AsTCPAddr()}
 }
 
@@ -64,7 +64,7 @@ func (p *TcpTransport) Close() error {
 	return p.conn.Close()
 }
 
-func (p *TcpTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
+func (p *TcpTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver)
 	if err != nil {
@@ -82,7 +82,7 @@ func (p *TcpTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
 
 	tcpOut := tcpOutTransport{conn, nil, 0}
 	if p.receiveFn == nil {
-		return &tcpSemiTransport{tcpOut, func(_, _ apinetwork.Address, conn io.ReadWriteCloser, _ OutTransport, _ error) bool {
+		return &tcpSemiTransport{tcpOut, func(_, _ nwapi.Address, conn io.ReadWriteCloser, _ OutTransport, _ error) bool {
 			_ = conn.(*net.TCPConn).CloseRead()
 			return false
 		}}, nil
@@ -90,8 +90,8 @@ func (p *TcpTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
-func runTcpReceive(local *net.TCPAddr, remote apinetwork.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
-	if !receiveFn(apinetwork.FromTcpAddr(local), remote, conn, nil, nil) {
+func runTcpReceive(local *net.TCPAddr, remote nwapi.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
+	if !receiveFn(nwapi.FromTcpAddr(local), remote, conn, nil, nil) {
 		_ = conn.Close()
 		if parentConn != nil {
 			_ = parentConn.Close()
@@ -105,20 +105,20 @@ func runTcpListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
 		recover()
 	}()
 
-	local := apinetwork.FromTcpAddr(listenConn.Addr().(*net.TCPAddr))
+	local := nwapi.FromTcpAddr(listenConn.Addr().(*net.TCPAddr))
 
 	for {
 		conn, err := listenConn.Accept()
 		switch {
 		case err == nil:
 			w := &tcpOutTransport{conn, nil, 0}
-			if !receiveFn(local, apinetwork.FromTcpAddr(conn.RemoteAddr().(*net.TCPAddr)), conn, w, nil) {
+			if !receiveFn(local, nwapi.FromTcpAddr(conn.RemoteAddr().(*net.TCPAddr)), conn, w, nil) {
 				break
 			}
 			continue
 		case err == io.EOF:
 			return
-		case !receiveFn(local, apinetwork.Address{}, nil, nil, err):
+		case !receiveFn(local, nwapi.Address{}, nil, nil, err):
 			return
 		}
 		if ne, ok := err.(net.Error); !ok || !ne.Temporary() {
@@ -210,8 +210,8 @@ func (p *tcpSemiTransport) ConnectReceiver(fn SessionfulConnectFunc) (bool, TwoW
 	}
 	p.receiveFn = nil
 	return fn(
-			apinetwork.AsAddress(p.conn.LocalAddr()),
-			apinetwork.AsAddress(p.conn.RemoteAddr()),
+			nwapi.AsAddress(p.conn.LocalAddr()),
+			nwapi.AsAddress(p.conn.RemoteAddr()),
 			p.conn, nil, nil),
 		&p.tcpOutTransport
 }

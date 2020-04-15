@@ -10,7 +10,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -45,13 +45,13 @@ type ReceiveBuffer struct {
 	priority     [ProtocolTypeCount]PacketSet
 	receivers    Receivers
 	defReceiver  Receiver
-	discardedFn  func(apinetwork.Address, ProtocolType)
+	discardedFn  func(nwapi.Address, ProtocolType)
 	largeSema    synckit.Semaphore
 	largeTimeout time.Duration
 }
 
 // For initialization only
-func (p *ReceiveBuffer) SetDiscardHandler(fn func(apinetwork.Address, ProtocolType)) {
+func (p *ReceiveBuffer) SetDiscardHandler(fn func(nwapi.Address, ProtocolType)) {
 	p.discardedFn = fn
 }
 

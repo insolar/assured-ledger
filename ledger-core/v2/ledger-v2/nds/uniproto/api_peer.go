@@ -8,14 +8,14 @@ package uniproto
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 type Peer interface {
-	GetPrimary() apinetwork.Address
+	GetPrimary() nwapi.Address
 	GetSignatureKey() cryptkit.SignatureKey
-	GetNodeID() apinetwork.ShortNodeID
+	GetNodeID() nwapi.ShortNodeID
 
 	SetProtoInfo(pt ProtocolType, info io.Closer)
 	GetProtoInfo(pt ProtocolType) io.Closer

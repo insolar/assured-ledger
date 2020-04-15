@@ -11,8 +11,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
@@ -22,9 +22,9 @@ import (
 
 type PeerTransportFactory interface {
 	// LOCK: WARNING! This method is called under PeerTransport.mutex
-	SessionlessConnectTo(to apinetwork.Address) (l1.OutTransport, error)
+	SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error)
 	// LOCK: WARNING! This method is called under PeerTransport.mutex
-	SessionfulConnectTo(to apinetwork.Address) (l1.OutTransport, error)
+	SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error)
 	IsActive() bool
 	MaxSessionlessSize() uint16
 }
@@ -60,11 +60,22 @@ func (p *PeerTransportCentral) getTransportStreamFormat(limitedLength bool, peer
 
 var _ uniproto.OutTransport = &PeerTransport{}
 
+var peerUID atomickit.Uint64
+
+func NextPeerUID() uint64 {
+	n := peerUID.Add(1)
+	if n == 0 {
+		panic(throw.IllegalState())
+	}
+	return n
+}
+
 type PeerTransport struct {
 	central *PeerTransportCentral
 	dead    atomickit.OnceFlag
+	uid     uint64
 
-	aliases []apinetwork.Address
+	aliases []nwapi.Address
 
 	rateQuota ratelimiter.RWRateQuota
 
@@ -81,7 +92,7 @@ type PeerTransport struct {
 	connections []io.Closer
 }
 
-func (p *PeerTransport) kill() []apinetwork.Address {
+func (p *PeerTransport) kill() []nwapi.Address {
 	if !p.dead.Set() {
 		return nil
 	}
@@ -166,7 +177,7 @@ func (p *PeerTransport) _resetConnection(t io.Closer, discardCurrentAddr bool) (
 	return false, false, nil
 }
 
-type connectFunc = func(to apinetwork.Address) (l1.OutTransport, error)
+type connectFunc = func(to nwapi.Address) (l1.OutTransport, error)
 
 func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limit TransportStreamFormat) (uint8, l1.OutTransport, error) {
 
@@ -175,13 +186,13 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 
 		var err error
 		switch addr.AddrNetwork() {
-		case apinetwork.DNS:
+		case nwapi.DNS:
 			// primary address is always resolved
 			if index == 0 {
 				continue
 			}
 			fallthrough
-		case apinetwork.IP:
+		case nwapi.IP:
 			var t l1.OutTransport
 			t, err = factoryFn(addr)
 
@@ -199,7 +210,7 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 				t.SetTag(int(limit))
 				return index, t, nil
 			}
-		case apinetwork.HostPK:
+		case nwapi.HostPK:
 			// PK is addressable, but is not connectable
 			continue
 		default:
@@ -411,7 +422,7 @@ func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn uniproto.OutFu
 	return p.UseSessionful(size, canRetry, applyFn)
 }
 
-func (p *PeerTransport) setAddresses(primary apinetwork.Address, aliases []apinetwork.Address) {
+func (p *PeerTransport) setAddresses(primary nwapi.Address, aliases []nwapi.Address) {
 	switch {
 	case primary.IsZero():
 		panic(throw.IllegalValue())
@@ -426,7 +437,7 @@ func (p *PeerTransport) setAddresses(primary apinetwork.Address, aliases []apine
 		panic(throw.IllegalState())
 	}
 
-	p.aliases = append(make([]apinetwork.Address, 0, 1+len(aliases)), primary)
+	p.aliases = append(make([]nwapi.Address, 0, 1+len(aliases)), primary)
 	for i, aa := range aliases {
 		if aa == primary {
 			p.aliases = append(p.aliases, aliases[:i]...)
@@ -437,7 +448,7 @@ func (p *PeerTransport) setAddresses(primary apinetwork.Address, aliases []apine
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) addAliases(aliases []apinetwork.Address) {
+func (p *PeerTransport) addAliases(aliases []nwapi.Address) {
 	n := len(aliases)
 	if n == 0 {
 		return
@@ -452,7 +463,7 @@ func (p *PeerTransport) addAliases(aliases []apinetwork.Address) {
 	p.aliases = append(p.aliases, aliases...)
 }
 
-func (p *PeerTransport) removeAlias(a apinetwork.Address) bool {
+func (p *PeerTransport) removeAlias(a nwapi.Address) bool {
 	if a.IsZero() {
 		return false
 	}

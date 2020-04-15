@@ -6,12 +6,12 @@
 package uniproto
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 type SerializationContext interface {
-	apinetwork.SerializationContext
+	nwapi.SerializationContext
 	PrepareHeader(*Header, pulse.Number) (pulse.Number, error)
 	VerifyHeader(*Header, pulse.Number) error
 }

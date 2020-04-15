@@ -6,10 +6,10 @@
 package l2
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 )
 
 type BlacklistManager interface {
-	IsBlacklisted(a apinetwork.Address) bool
-	ReportFraud(apinetwork.Address, PeerManager, error) bool
+	IsBlacklisted(a nwapi.Address) bool
+	ReportFraud(nwapi.Address, PeerManager, error) bool
 }

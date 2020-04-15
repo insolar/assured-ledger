@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
@@ -27,7 +27,7 @@ const (
 	roleAddress DeliveryAddressFlags = 1 << iota
 )
 
-type DirectAddress = apinetwork.ShortNodeID
+type DirectAddress = nwapi.ShortNodeID
 
 type ReturnAddress struct {
 	returnTo DirectAddress
@@ -41,8 +41,8 @@ type PulseTTL struct {
 }
 
 type Shipment struct {
-	Head   apinetwork.SizeAwareSerializer
-	Body   apinetwork.SizeAwareSerializer
+	Head   nwapi.SizeAwareSerializer
+	Body   nwapi.SizeAwareSerializer
 	Cancel *synckit.ChainedCancel
 	PN     pulse.Number
 	// TTL defines how many pulses this shipment can survive before cancellation

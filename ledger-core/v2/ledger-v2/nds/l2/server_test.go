@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -69,7 +69,7 @@ func TestServer(t *testing.T) {
 	pm2 := ups2.PeerManager()
 	pm2.AddHostId(pm2.Local().GetPrimary(), 2)
 
-	conn21, err := pm2.ConnectTo(apinetwork.NewHostPort(Server1))
+	conn21, err := pm2.ConnectTo(nwapi.NewHostPort(Server1))
 	require.NoError(t, err)
 	require.NotNil(t, conn21)
 	require.NoError(t, conn21.EnsureConnect())

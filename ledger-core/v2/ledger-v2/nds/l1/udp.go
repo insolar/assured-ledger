@@ -11,7 +11,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -20,14 +20,14 @@ import (
 //const MinUdpSize = 1300
 const MaxUdpSize = 2048
 
-func NewUdp(binding apinetwork.Address, maxByteSize uint16) SessionlessTransport {
+func NewUdp(binding nwapi.Address, maxByteSize uint16) SessionlessTransport {
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
 	return &UdpTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
 }
 
-func NewUdpTransport(binding apinetwork.Address, maxByteSize uint16) UdpTransport {
+func NewUdpTransport(binding nwapi.Address, maxByteSize uint16) UdpTransport {
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
@@ -83,7 +83,7 @@ func (p *UdpTransport) MaxByteSize() uint16 {
 	return p.maxByteSize
 }
 
-func (p *UdpTransport) ConnectTo(to apinetwork.Address) (OutTransport, error) {
+func (p *UdpTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	if p.conn == nil {
 		return nil, throw.IllegalState()
 	}
@@ -112,13 +112,13 @@ func (p *UdpTransport) run(receiveFn SessionlessReceiveFunc) {
 		recover()
 	}()
 
-	to := apinetwork.FromUdpAddr(p.conn.LocalAddr().(*net.UDPAddr))
+	to := nwapi.FromUdpAddr(p.conn.LocalAddr().(*net.UDPAddr))
 	buf := make([]byte, p.maxByteSize)
 
 	for {
 		n, addr, err := p.conn.ReadFromUDP(buf)
 
-		if !receiveFn(to, apinetwork.FromUdpAddr(addr), buf[:n], err) {
+		if !receiveFn(to, nwapi.FromUdpAddr(addr), buf[:n], err) {
 			break
 		}
 		if ne, ok := err.(net.Error); !ok || !ne.Temporary() {
