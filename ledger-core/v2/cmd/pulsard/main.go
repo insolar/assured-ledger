@@ -115,6 +115,10 @@ func main() {
 		}
 		// it's required since pulse is sent in goroutine
 		time.Sleep(time.Second * 10)
+		err = cm.Stop(ctx)
+		if err != nil {
+			inslog.Error(err)
+		}
 		return
 	}
 
