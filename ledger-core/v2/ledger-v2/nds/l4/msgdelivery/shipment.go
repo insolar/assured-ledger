@@ -12,7 +12,7 @@ type msgShipment struct {
 	returnId ShortShipmentID
 	shipment Shipment
 
-	peer *peerProxy
+	peer *DeliveryPeer
 }
 
 func (p *msgShipment) allowsBatching() bool {

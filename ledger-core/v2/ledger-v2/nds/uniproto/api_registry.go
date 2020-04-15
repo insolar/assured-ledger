@@ -13,14 +13,14 @@ import (
 type RegisterProtocolFunc func(ProtocolType, Descriptor, ProtocolController)
 type ProtocolRegistrationFunc func(RegisterProtocolFunc)
 type ProtocolController interface {
-	Start(ProtocolSender)
+	Start(Sender)
 	Stop()
 }
 
 type PayloadSerializeFunc func(*SenderPacket, *iokit.LimitedWriter) error
 type PacketSerializeFunc func(*Packet) (int, PayloadSerializeFunc)
 
-type ProtocolSender interface {
+type Sender interface {
 	SendTo(nwapi.Address, func(*Packet) PayloadSerializeFunc) error
 	ConnectTo(nwapi.Address, func(*SenderPacket)) error
 }

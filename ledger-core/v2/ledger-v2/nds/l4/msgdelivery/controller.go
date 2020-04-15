@@ -15,7 +15,7 @@ import (
 
 type ReceiverFunc func(nwapi.PayloadCompleteness, nwapi.Serializable) error
 
-type ProtocolController struct {
+type Controller struct {
 	pType     uniproto.ProtocolType
 	factory   nwapi.DeserializationFactory
 	receiveFn ReceiverFunc
@@ -23,13 +23,27 @@ type ProtocolController struct {
 	dedup     receiveDeduplicator
 	smSender  retrySender
 	lgSender  largeSender
+	starter   protoStarter
 }
 
-func (p *ProtocolController) reportError(err error) {
+func (p *Controller) RegisterWith(regFn uniproto.RegisterProtocolFunc) {
+	switch {
+	case p.pType == 0:
+		panic(throw.IllegalState())
+	case p.starter.ctl != nil:
+		panic(throw.IllegalState())
+	}
+	p.starter.ctl = p
+	desc := protoDescriptor
+	desc.Receiver = &p.receiver
+	regFn(p.pType, desc, &p.starter)
+}
+
+func (p *Controller) reportError(err error) {
 
 }
 
-func (p *ProtocolController) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
+func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
 	peerID := packet.Header.SourceID
 
 	if payload.BodyRq != 0 {
@@ -44,7 +58,7 @@ func (p *ProtocolController) receiveState(packet *uniproto.ReceivedPacket, paylo
 		if msg := p.smSender.get(shid); msg != nil && msg.markBodyRq() {
 			// TODO send body
 		} else {
-			dPeer.sendReject(payload.BodyRq)
+			dPeer.addReject(payload.BodyRq)
 		}
 	}
 
@@ -72,7 +86,7 @@ func (p *ProtocolController) receiveState(packet *uniproto.ReceivedPacket, paylo
 	return nil
 }
 
-func (p *ProtocolController) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
+func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
 	dPeer, ok := packet.Peer.GetOrCreateProtoInfo(p.pType, p.createProtoPeer).(*DeliveryPeer)
 	if !ok {
 		err := throw.RemoteBreach("peer is not a node")
@@ -96,9 +110,9 @@ func (p *ProtocolController) receiveParcel(packet *uniproto.ReceivedPacket, payl
 	}
 
 	if payload.ParcelType == nwapi.BodyPayload {
-		dPeer.sendBodyAck(payload.ParcelId)
+		dPeer.addBodyAck(payload.ParcelId)
 	} else {
-		dPeer.sendAck(payload.ParcelId)
+		dPeer.addAck(payload.ParcelId)
 	}
 
 	if !p.dedup.Add(DedupId(payload.ParcelId)) {
@@ -113,18 +127,17 @@ func (p *ProtocolController) receiveParcel(packet *uniproto.ReceivedPacket, payl
 	return err
 }
 
-func (p *ProtocolController) createProtoPeer(peer uniproto.Peer) io.Closer {
+func (p *Controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 	id := peer.GetNodeID()
 	if id.IsAbsent() {
 		return nil
 	}
 
 	dp := &DeliveryPeer{peerID: id}
-	dp.outbound = &peerProxy{peer: dp}
 	return dp
 }
 
-func (p *ProtocolController) send(to nwapi.Address, payload *ParcelPacket) error {
+func (p *Controller) send(to nwapi.Address, payload *ParcelPacket) error {
 	// check valid
 	// payload.
 }

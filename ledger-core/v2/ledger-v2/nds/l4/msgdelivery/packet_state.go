@@ -16,13 +16,15 @@ import (
 
 const Protocol = uniproto.ProtocolTypeMessageDelivery
 
-var ProtocolDescriptor = uniproto.Descriptor{
+var protoDescriptor = uniproto.Descriptor{
 	SupportedPackets: [16]uniproto.PacketDescriptor{
 		DeliveryState:      {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
 		DeliveryParcelHead: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
 		DeliveryParcelBody: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.MaxLengthBits},
 	},
 }
+
+const maxStatePacketDataSize = uniproto.MaxNonExcessiveLength - uniproto.PacketByteSizeMin - 512 /* reserved for signature */
 
 type PacketType uint8
 
@@ -49,35 +51,26 @@ const (
 type StatePacket struct {
 	BodyRq      ShortShipmentID   `insolar-transport:"optional=PacketFlags[0]"` //
 	RejectList  []ShortShipmentID `insolar-transport:"optional=PacketFlags[1]"` //
-	BodyAckList []ShortShipmentID `insolar-transport:"optional=PacketFlags[2]"` //
+	BodyAckList []ShortShipmentID `insolar-transport:"optional=PacketFlags[2]"` // TODO serialization / deser
 	AckList     []ShortShipmentID `insolar-transport:"list=nocount"`            // length is determined by packet size
 }
 
-func FillDeliveryStatePacket(maxPacketSize int, bodyRq ShortShipmentID, ackList *[]ShortShipmentID, rejectList *[]ShortShipmentID) (m StatePacket) {
-	if bodyRq != 0 {
-		m.BodyRq = bodyRq
-		maxPacketSize -= ShortShipmentIDByteSize
+func (p *StatePacket) remainingSpace(maxSize int) int {
+	total := 1 // for p.BodyRq
+	if n := len(p.AckList); n > 0 {
+		total += n
 	}
-	maxIdCount := maxPacketSize / ShortShipmentIDByteSize
-	maxIdCount, m.AckList = moveParcelIdList(maxIdCount, ackList)
-	if maxIdCount > 1 { // 1 is to reserve space for varint count
-		_, m.RejectList = moveParcelIdList(maxIdCount-1, rejectList)
+	if n := len(p.BodyAckList); n > 0 {
+		total += n + 1 // +1 for list length
 	}
-	return
+	if n := len(p.RejectList); n > 0 {
+		total += n + 1 // +1 for list length
+	}
+	return maxSize/ShortShipmentIDByteSize - total
 }
 
-func moveParcelIdList(maxCount int, list *[]ShortShipmentID) (int, []ShortShipmentID) {
-	n := len(*list)
-	if maxCount >= n {
-		x := *list
-		*list = nil
-		return maxCount - n, x
-	}
-	x := *list
-	// take from tail to allow better memory re-use on high load
-	// also, recent packets will be acked/rejected faster that improves efficiency on high load
-	*list = x[:n-maxCount]
-	return maxCount, x[n-maxCount:]
+func (p *StatePacket) isEmpty() bool {
+	return len(p.AckList) == 0 && p.BodyRq == 0 && len(p.BodyAckList) == 0 && len(p.RejectList) == 0
 }
 
 func (p *StatePacket) SerializeTo(ctx uniproto.SerializationContext, writer io.Writer) error {

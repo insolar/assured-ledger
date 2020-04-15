@@ -6,14 +6,22 @@
 package msgdelivery
 
 import (
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 )
 
 type DeliveryPeer struct {
 	nextSSID atomickit.Uint32 // ShortShipmentID
+	ctl      *Controller
 	peerID   nwapi.ShortNodeID
-	outbound *peerProxy
+	isDead   atomickit.OnceFlag
+
+	mutex    sync.Mutex
+	prepared StatePacket
+	peer     uniproto.Peer
 }
 
 func (p *DeliveryPeer) NextShipmentId() ShipmentID {
@@ -25,35 +33,79 @@ func (p *DeliveryPeer) NextShipmentId() ShipmentID {
 }
 
 func (p *DeliveryPeer) Close() error {
-	p.outbound.invalidate()
+	p.isDead.DoSet(func() { go p._close() })
 	return nil
 }
 
-func (p *DeliveryPeer) sendReject(id ShortShipmentID) {
+func (p *DeliveryPeer) _close() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
+	p.prepared = StatePacket{}
+	//p.peer.SetProtoInfo(p.ctl.pType, nil)
+	p.ctl = nil
+	p.peer = nil
 }
 
-func (p *DeliveryPeer) sendBodyAck(id ShortShipmentID) {
-
-}
-
-func (p *DeliveryPeer) sendAck(id ShortShipmentID) {
-
-}
-
-/**********************************/
-
-type peerProxy struct {
-	peer   *DeliveryPeer // keep alive
-	isDead atomickit.OnceFlag
-}
-
-func (p *peerProxy) isValid() bool {
+func (p *DeliveryPeer) isValid() bool {
 	return !p.isDead.IsSet()
 }
 
-func (p *peerProxy) invalidate() bool {
-	return p.isDead.DoSet(func() {
-		p.peer = nil
+func (p *DeliveryPeer) addToStatePacket(needed int, fn func(*StatePacket)) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	switch n := p.prepared.remainingSpace(maxStatePacketDataSize); {
+	case n > needed:
+		fn(&p.prepared)
+	case n == needed:
+		fn(&p.prepared)
+		packet := p.prepared
+		p.prepared = StatePacket{}
+		p._sendState(packet)
+	default:
+		packet := p.prepared
+		p.prepared = StatePacket{}
+		fn(&p.prepared)
+		p._sendState(packet)
+	}
+}
+
+func (p *DeliveryPeer) addReject(id ShortShipmentID) {
+	p.addToStatePacket(2, func(packet *StatePacket) {
+		packet.RejectList = append(packet.RejectList, id)
 	})
+}
+
+func (p *DeliveryPeer) addBodyAck(id ShortShipmentID) {
+	p.addToStatePacket(2, func(packet *StatePacket) {
+		packet.BodyAckList = append(packet.BodyAckList, id)
+	})
+}
+
+func (p *DeliveryPeer) addAck(id ShortShipmentID) {
+	p.addToStatePacket(1, func(packet *StatePacket) {
+		packet.AckList = append(packet.AckList, id)
+	})
+}
+
+func (p *DeliveryPeer) sendBodyRq(id ShortShipmentID) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if id == 0 && p.prepared.isEmpty() {
+		return
+	}
+
+	packet := p.prepared
+	p.prepared = StatePacket{}
+	packet.BodyRq = id
+	p._sendState(packet)
+}
+
+func (p *DeliveryPeer) _sendState(packet StatePacket) {
+	if !p.isValid() {
+		return
+	}
+	// TODO send
 }
