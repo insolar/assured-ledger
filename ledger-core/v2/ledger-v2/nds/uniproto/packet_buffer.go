@@ -3,18 +3,19 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package apinetwork
+package uniproto
 
 import (
 	"errors"
 	"io"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewReceiveBuffer(regularLimit, priorityLimit, largeLimit int, defReceiver ProtocolReceiver) ProtocolReceiveBuffer {
+func NewReceiveBuffer(regularLimit, priorityLimit, largeLimit int, defReceiver Receiver) ReceiveBuffer {
 	switch {
 	case defReceiver == nil:
 		panic(throw.IllegalValue())
@@ -27,7 +28,7 @@ func NewReceiveBuffer(regularLimit, priorityLimit, largeLimit int, defReceiver P
 	if priorityLimit > 0 {
 		priorityBuf = make(chan smallPacket, priorityLimit)
 	}
-	return ProtocolReceiveBuffer{
+	return ReceiveBuffer{
 		priorityBuf: priorityBuf,
 		regularBuf:  make(chan smallPacket, regularLimit),
 		largeSema:   synckit.NewSemaphore(largeLimit),
@@ -35,42 +36,42 @@ func NewReceiveBuffer(regularLimit, priorityLimit, largeLimit int, defReceiver P
 	}
 }
 
-var _ ProtocolReceiver = ProtocolReceiveBuffer{}
+var _ Receiver = ReceiveBuffer{}
 
-type ProtocolReceiveBuffer struct {
+type ReceiveBuffer struct {
 	priorityBuf  chan smallPacket
 	regularBuf   chan smallPacket
 	oob          ProtocolSet
 	priority     [ProtocolTypeCount]PacketSet
-	receivers    ProtocolReceivers
-	defReceiver  ProtocolReceiver
-	discardedFn  func(Address, ProtocolType)
+	receivers    Receivers
+	defReceiver  Receiver
+	discardedFn  func(apinetwork.Address, ProtocolType)
 	largeSema    synckit.Semaphore
 	largeTimeout time.Duration
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetDiscardHandler(fn func(Address, ProtocolType)) {
+func (p *ReceiveBuffer) SetDiscardHandler(fn func(apinetwork.Address, ProtocolType)) {
 	p.discardedFn = fn
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetLargePacketQueueTimeout(d time.Duration) {
+func (p *ReceiveBuffer) SetLargePacketQueueTimeout(d time.Duration) {
 	p.largeTimeout = d
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetOutOfBandProtocols(oob ProtocolSet) {
+func (p *ReceiveBuffer) SetOutOfBandProtocols(oob ProtocolSet) {
 	p.oob = oob
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetOutOfBand(pt ProtocolType, val bool) {
+func (p *ReceiveBuffer) SetOutOfBand(pt ProtocolType, val bool) {
 	p.oob = p.oob.Set(pt, val)
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetPriorityPackets(pp [ProtocolTypeCount]PacketSet) {
+func (p *ReceiveBuffer) SetPriorityPackets(pp [ProtocolTypeCount]PacketSet) {
 	if p.priorityBuf == nil {
 		panic(throw.IllegalState())
 	}
@@ -78,7 +79,7 @@ func (p *ProtocolReceiveBuffer) SetPriorityPackets(pp [ProtocolTypeCount]PacketS
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetPriorityByProtocol(pt ProtocolType, val bool) {
+func (p *ReceiveBuffer) SetPriorityByProtocol(pt ProtocolType, val bool) {
 	if p.priorityBuf == nil {
 		panic(throw.IllegalState())
 	}
@@ -90,7 +91,7 @@ func (p *ProtocolReceiveBuffer) SetPriorityByProtocol(pt ProtocolType, val bool)
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetPriority(pt ProtocolType, pk uint8, val bool) {
+func (p *ReceiveBuffer) SetPriority(pt ProtocolType, pk uint8, val bool) {
 	if p.priorityBuf == nil {
 		panic(throw.IllegalState())
 	}
@@ -98,11 +99,11 @@ func (p *ProtocolReceiveBuffer) SetPriority(pt ProtocolType, pk uint8, val bool)
 }
 
 // For initialization only
-func (p *ProtocolReceiveBuffer) SetProtocolReceiver(pt ProtocolType, val ProtocolReceiver) {
+func (p *ReceiveBuffer) SetProtocolReceiver(pt ProtocolType, val Receiver) {
 	p.receivers[pt] = val
 }
 
-func (p ProtocolReceiveBuffer) ReceiveSmallPacket(rp *ReceiverPacket, b []byte) {
+func (p ReceiveBuffer) ReceiveSmallPacket(rp *ReceivedPacket, b []byte) {
 	b = append([]byte(nil), b...) // make a copy
 
 	pt := rp.Header.GetProtocolType()
@@ -130,7 +131,7 @@ func (p ProtocolReceiveBuffer) ReceiveSmallPacket(rp *ReceiverPacket, b []byte) 
 	}
 }
 
-func (p ProtocolReceiveBuffer) ReceiveLargePacket(rp *ReceiverPacket, preRead []byte, r io.LimitedReader) error {
+func (p ReceiveBuffer) ReceiveLargePacket(rp *ReceivedPacket, preRead []byte, r io.LimitedReader) error {
 	pt := rp.Header.GetProtocolType()
 	if !p.oob.Has(pt) {
 		if !p.largeSema.LockTimeout(p.largeTimeout) {
@@ -149,7 +150,7 @@ func (p ProtocolReceiveBuffer) ReceiveLargePacket(rp *ReceiverPacket, preRead []
 	return rec.ReceiveLargePacket(rp, preRead, r)
 }
 
-func (p ProtocolReceiveBuffer) RunWorkers(count int, priorityOnly bool) {
+func (p ReceiveBuffer) RunWorkers(count int, priorityOnly bool) {
 	receivers := p.receivers
 	for i := range receivers {
 		if receivers[i] == nil {
@@ -176,13 +177,13 @@ func (p ProtocolReceiveBuffer) RunWorkers(count int, priorityOnly bool) {
 	}
 }
 
-func (p ProtocolReceiveBuffer) Close() {
+func (p ReceiveBuffer) Close() {
 	close(p.regularBuf)
 	close(p.priorityBuf)
 	p.largeSema.Close()
 }
 
-func runDuoWorker(receivers ProtocolReceivers, priority, regular <-chan smallPacket) {
+func runDuoWorker(receivers Receivers, priority, regular <-chan smallPacket) {
 	for {
 		var call smallPacket
 		ok := false
@@ -202,7 +203,7 @@ func runDuoWorker(receivers ProtocolReceivers, priority, regular <-chan smallPac
 	}
 }
 
-func runSoloWorker(receivers ProtocolReceivers, priority <-chan smallPacket) {
+func runSoloWorker(receivers Receivers, priority <-chan smallPacket) {
 	for {
 		call, ok := <-priority
 		if !ok {
@@ -214,6 +215,6 @@ func runSoloWorker(receivers ProtocolReceivers, priority <-chan smallPacket) {
 }
 
 type smallPacket struct {
-	packet *ReceiverPacket
+	packet *ReceivedPacket
 	b      []byte
 }

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package apinetwork
+package uniproto
 
 import (
 	"io"
@@ -157,7 +157,7 @@ func (p *Packet) DeserializeMinFromBytes(b []byte) (int, error) {
 	}
 }
 
-func (p *Packet) VerifyExcessivePayload(sv PacketDataVerifier, preload *[]byte, r io.Reader) error {
+func (p *Packet) VerifyExcessivePayload(sv PacketVerifier, preload *[]byte, r io.Reader) error {
 	const x = LargePacketBaselineWithoutSignatureSize
 	n := sv.GetSignatureSize()
 	requiredLen := x + n
@@ -174,7 +174,7 @@ func (p *Packet) VerifyExcessivePayload(sv PacketDataVerifier, preload *[]byte, 
 	return sv.VerifyWhole(&p.Header, b[:requiredLen])
 }
 
-func (p *Packet) VerifyNonExcessivePayload(sv PacketDataVerifier, b []byte) error {
+func (p *Packet) VerifyNonExcessivePayload(sv PacketVerifier, b []byte) error {
 	switch limit, err := p.Header.GetFullLength(); {
 	case err != nil:
 		return err
@@ -189,7 +189,7 @@ type PayloadDeserializeFunc func(*Packet, *iokit.LimitedReader) error
 
 //func (p *Packet) DeserializeFrom(ctx DeserializationFactory, reader io.Reader, fn PayloadDeserializeFunc) error {
 //
-//	sv := PacketDataVerifier{ctx.GetPayloadVerifier()}
+//	sv := PacketVerifier{ctx.GetPayloadVerifier()}
 //
 //	teeReader := sv.NewHashingReader(&p.Header, nil, reader)
 //

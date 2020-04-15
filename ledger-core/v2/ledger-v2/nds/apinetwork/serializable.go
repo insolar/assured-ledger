@@ -8,20 +8,16 @@ package apinetwork
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 )
 
 type SerializationContext interface {
-	PrepareHeader(*Header, pulse.Number) (pulse.Number, error)
-	VerifyHeader(*Header, pulse.Number) error
 	GetPayloadSigner() cryptkit.DataSigner
 	GetPayloadEncrypter() cryptkit.Encrypter
 }
 
 type DeserializationContext interface {
-	VerifyHeader(*Header, pulse.Number) error
 	GetPayloadVerifier() cryptkit.DataSignatureVerifier
 	GetPayloadDecrypter() cryptkit.Decrypter
 	GetPayloadFactory() DeserializationFactory

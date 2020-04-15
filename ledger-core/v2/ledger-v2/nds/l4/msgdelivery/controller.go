@@ -6,66 +6,125 @@
 package msgdelivery
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type ProtocolController struct {
-	factory  apinetwork.DeserializationFactory
-	receiver PacketReceiver
+type ReceiverFunc func(apinetwork.PayloadCompleteness, apinetwork.Serializable) error
 
-	lastOutgoingShId atomickit.Uint64 // ShipmentID
-	currPulseShId    ShipmentID
-	prevPulseShId    ShipmentID
+type ProtocolController struct {
+	pType     uniproto.ProtocolType
+	factory   apinetwork.DeserializationFactory
+	receiveFn ReceiverFunc
+	receiver  packetReceiver
+	dedup     receiveDeduplicator
+	smSender  retrySender
+	lgSender  largeSender
 }
 
 func (p *ProtocolController) reportError(err error) {
 
 }
 
-func (p *ProtocolController) receiveState(payload *StatePacket) error {
+func (p *ProtocolController) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
+	peerID := packet.Header.SourceID
 
+	if payload.BodyRq != 0 {
+		dPeer, ok := packet.Peer.GetProtoInfo(p.pType).(*DeliveryPeer)
+		if !ok {
+			err := throw.RemoteBreach("peer is not a node")
+			p.reportError(err)
+			return err
+		}
+
+		shid := AsShipmentID(peerID, payload.BodyRq)
+		if msg := p.smSender.get(shid); msg != nil && msg.markBodyRq() {
+			// TODO send body
+		} else {
+			dPeer.sendReject(payload.BodyRq)
+		}
+	}
+
+	for _, id := range payload.AckList {
+		shid := AsShipmentID(peerID, id)
+		if msg := p.smSender.get(shid); msg != nil {
+			msg.markAck()
+		}
+	}
+
+	for _, id := range payload.BodyAckList {
+		shid := AsShipmentID(peerID, id)
+		if msg := p.smSender.get(shid); msg != nil {
+			msg.markBodyAck()
+		}
+	}
+
+	for _, id := range payload.RejectList {
+		shid := AsShipmentID(peerID, id)
+		if msg := p.smSender.get(shid); msg != nil {
+			msg.markReject()
+		}
+	}
+
+	return nil
 }
 
-func (p *ProtocolController) receiveComplete(payload *ParcelPacket) error {
+func (p *ProtocolController) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
+	dPeer, ok := packet.Peer.GetOrCreateProtoInfo(p.pType, p.createProtoPeer).(*DeliveryPeer)
+	if !ok {
+		err := throw.RemoteBreach("peer is not a node")
+		p.reportError(err)
+		return err
+	}
 
+	//if payload.RepeatedSend {
+	//	// TODO collect stats
+	//} else {
+	//
+	//}
+
+	peerID := packet.Header.SourceID
+
+	if payload.ReturnId != 0 {
+		retID := AsShipmentID(peerID, payload.ReturnId)
+		if msg := p.smSender.get(retID); msg != nil {
+			msg.markBodyAck()
+		}
+	}
+
+	if payload.ParcelType == apinetwork.BodyPayload {
+		dPeer.sendBodyAck(payload.ParcelId)
+	} else {
+		dPeer.sendAck(payload.ParcelId)
+	}
+
+	if !p.dedup.Add(DedupId(payload.ParcelId)) {
+		return nil
+	}
+
+	// TODO in-proc unique node id
+	err := p.receiveFn(payload.ParcelType, payload.Data)
+	if err != nil {
+		p.reportError(err)
+	}
+	return err
 }
 
-func (p *ProtocolController) receiveBody(payload *ParcelPacket) error {
+func (p *ProtocolController) createProtoPeer(peer uniproto.Peer) io.Closer {
+	id := peer.GetNodeID()
+	if id.IsAbsent() {
+		return nil
+	}
 
+	dp := &DeliveryPeer{peerID: id}
+	dp.outbound = &peerProxy{peer: dp}
+	return dp
 }
 
-func (p *ProtocolController) receiveHead(payload *ParcelPacket) error {
-
-}
-
-func (p *ProtocolController) Ship(payload *ParcelPacket) error {
+func (p *ProtocolController) send(to apinetwork.Address, payload *ParcelPacket) error {
 	// check valid
-	//payload.
-}
-
-/**********************************/
-
-type DeliveryPeer struct {
-	nextShid atomickit.Uint32 // ShortShipmentId
-	outbound *OutboundPeer
-}
-
-func (p *DeliveryPeer) NextShipmentId() ShipmentID {
-
-}
-
-type OutboundPeer struct {
-	*DeliveryPeer
-	isDead atomickit.OnceFlag
-}
-
-func (p *OutboundPeer) isValid() bool {
-	return !p.isDead.IsSet()
-}
-
-func (p *OutboundPeer) invalidate() bool {
-	return p.isDead.DoSet(func() {
-		p.DeliveryPeer = nil
-	})
+	// payload.
 }

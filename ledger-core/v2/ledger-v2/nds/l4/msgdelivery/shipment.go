@@ -5,12 +5,14 @@
 
 package msgdelivery
 
+import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
+
 type msgShipment struct {
 	id       ShipmentID
-	returnId ShortShipmentId
+	returnId ShortShipmentID
 	shipment Shipment
 
-	peer *OutboundPeer
+	peer *peerProxy
 }
 
 func (p *msgShipment) allowsBatching() bool {
@@ -21,7 +23,11 @@ func (p *msgShipment) getBatchWeight() int {
 
 }
 
-func (p *msgShipment) isDone() bool {
+func (p *msgShipment) checkState() retries.RetryState {
+	return p._isDone() || !p.peer.isValid()
+}
+
+func (p *msgShipment) isBodyDone() bool {
 	return p._isDone() || !p.peer.isValid()
 }
 
@@ -29,6 +35,22 @@ func (p *msgShipment) _isDone() bool {
 
 }
 
-func (p *msgShipment) markReceived() {
+func (p *msgShipment) markAck() {
+
+}
+
+func (p *msgShipment) markBodyAck() {
+
+}
+
+func (p *msgShipment) markReject() {
+
+}
+
+func (p *msgShipment) send(retry bool) {
+
+}
+
+func (p *msgShipment) markBodyRq() bool {
 
 }

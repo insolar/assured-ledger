@@ -8,19 +8,12 @@ package msgdelivery
 import (
 	"math"
 	"sync"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewRetryController() *RetryController {
-
-}
-
-type RetryController struct {
-	sendPeriod time.Duration
-
+type retrySender struct {
 	retries retries.StagedController
 
 	ttl0 ttlAge
@@ -28,7 +21,7 @@ type RetryController struct {
 	ttlN ttlAge
 }
 
-func (p *RetryController) Send(to *DeliveryPeer, msg *msgShipment) {
+func (p *retrySender) Send(to *DeliveryPeer, msg *msgShipment) {
 	id := to.NextShipmentId()
 	msg.id = id
 	msg.peer = to.outbound
@@ -48,19 +41,19 @@ func (p *RetryController) Send(to *DeliveryPeer, msg *msgShipment) {
 	}
 
 	if id := retries.RetryID(msg.id); !p.retries.Add(id, wt, p) {
-		p._sendMsg(msg)
+		msg.send(false)
 		p.retries.AddForRetry(id)
 	}
 }
 
-func (p *RetryController) Retry(ids []retries.RetryID, repeatFn func([]retries.RetryID)) {
+func (p *retrySender) Retry(ids []retries.RetryID, repeatFn func([]retries.RetryID)) {
 	j := 0
 	for i, id := range ids {
 		msg := p.get(ShipmentID(id))
-		if msg == nil || msg.isDone() {
+		if msg == nil || msg.checkState() != retries.KeepRetrying {
 			continue
 		}
-		p._sendMsg(msg)
+		msg.send(true)
 		if j != i {
 			ids[j] = id
 		}
@@ -72,14 +65,14 @@ func (p *RetryController) Retry(ids []retries.RetryID, repeatFn func([]retries.R
 	}
 }
 
-func (p *RetryController) Verify(id retries.RetryID) bool {
+func (p *retrySender) CheckState(id retries.RetryID) retries.RetryState {
 	if msg := p.get(ShipmentID(id)); msg != nil {
-		return msg.isDone()
+		return msg.checkState()
 	}
-	return false
+	return retries.RemoveCompletely
 }
 
-func (p *RetryController) get(shid ShipmentID) *msgShipment {
+func (p *retrySender) get(shid ShipmentID) *msgShipment {
 	if msg := p.ttl0.get(shid); msg != nil {
 		return msg
 	}
@@ -92,7 +85,7 @@ func (p *RetryController) get(shid ShipmentID) *msgShipment {
 	return nil
 }
 
-func (p *RetryController) Remove(ids []retries.RetryID) {
+func (p *retrySender) Remove(ids []retries.RetryID) {
 	if len(ids) == 0 {
 		return
 	}
@@ -105,17 +98,13 @@ func (p *RetryController) Remove(ids []retries.RetryID) {
 	p.ttlN.deleteAll(ids)
 }
 
-func (p *RetryController) NextCycle() {
+func (p *retrySender) NextCycle() {
 	p.retries.NextCycle(p)
 }
 
-func (p *RetryController) NextTTLCycle() {
+func (p *retrySender) NextTTLCycle() {
 	p.ttl1.moveTo(&p.ttl0)
 	p.ttlN.flushTo(&p.ttl0, 1)
-}
-
-func (p *RetryController) _sendMsg(in *msgShipment) bool {
-	// send
 }
 
 /**********************************/
@@ -159,7 +148,7 @@ func (p *ttlAge) markReceived(id ShipmentID) bool {
 	if msg == nil {
 		return false
 	}
-	msg.markReceived()
+	msg.markAck()
 	return true
 }
 

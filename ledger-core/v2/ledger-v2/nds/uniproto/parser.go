@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package apinetwork
+package uniproto
 
 import (
 	"io"
@@ -12,12 +12,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type UnifiedProtocolSet struct {
-	Protocols         ProtocolDescriptors
+type Parser struct {
+	Protocols         Descriptors
 	SignatureSizeHint int // only a pre-allocation hint, actual size is taken from cryptkit.DataSignatureVerifier
 }
 
-func (p UnifiedProtocolSet) ReceivePacket(packet *ReceiverPacket, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
+func (p Parser) ReceivePacket(packet *ReceivedPacket, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
 ) (preRead []byte, more int64, err error) {
 
 	preRead = make([]byte, LargePacketBaselineWithoutSignatureSize, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
@@ -78,14 +78,14 @@ func (p UnifiedProtocolSet) ReceivePacket(packet *ReceiverPacket, headerFn Verif
 	return
 }
 
-func (p UnifiedProtocolSet) ReceiveDatagram(packet *ReceiverPacket, headerFn VerifyHeaderFunc, b []byte) (int, error) {
+func (p Parser) ReceiveDatagram(packet *ReceivedPacket, headerFn VerifyHeaderFunc, b []byte) (int, error) {
 	if _, err := packet.DeserializeMinFromBytes(b); err != nil {
 		return -1, err
 	}
 
 	if verifier, fullLen, err := p.verifyPacket(&packet.Packet, headerFn, true); err != nil {
 		return 0, err
-	} else if err = packet.VerifyNonExcessivePayload(PacketDataVerifier{verifier}, b); err != nil {
+	} else if err = packet.VerifyNonExcessivePayload(PacketVerifier{verifier}, b); err != nil {
 		return 0, err
 	} else {
 		packet.verifier.Verifier = verifier
@@ -93,7 +93,7 @@ func (p UnifiedProtocolSet) ReceiveDatagram(packet *ReceiverPacket, headerFn Ver
 	}
 }
 
-func (p UnifiedProtocolSet) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagram bool,
+func (p Parser) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagram bool,
 ) (cryptkit.DataSignatureVerifier, uint64, error) {
 	h := packet.Header
 	protocolDesc := &p.Protocols[h.GetProtocolType()]

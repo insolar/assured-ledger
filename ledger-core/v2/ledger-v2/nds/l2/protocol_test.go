@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -20,18 +21,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var TestProtocolDescriptor = apinetwork.ProtocolDescriptor{
-	SupportedPackets: apinetwork.ProtocolPacketDescriptors{
-		0: {Flags: apinetwork.NoSourceId | apinetwork.OptionalTarget, LengthBits: 16},
+var TestProtocolDescriptor = uniproto.Descriptor{
+	SupportedPackets: uniproto.PacketDescriptors{
+		0: {Flags: uniproto.NoSourceId | uniproto.OptionalTarget, LengthBits: 16},
 	},
 }
 
-var _ apinetwork.ProtocolReceiver = &TestProtocolMarshaller{}
+var _ uniproto.Receiver = &TestProtocolMarshaller{}
 
 type TestProtocolMarshaller struct {
 	Count      atomickit.Uint32
 	LastFrom   apinetwork.Address
-	LastPacket apinetwork.Packet
+	LastPacket uniproto.Packet
 	LastBytes  []byte
 	LastMsg    string
 	LastSigLen int
@@ -48,15 +49,15 @@ func (p *TestProtocolMarshaller) GetPayloadSigner() cryptkit.DataSigner {
 	return TestDataSigner{}
 }
 
-func (p *TestProtocolMarshaller) PrepareHeader(_ *apinetwork.Header, pn pulse.Number) (pulse.Number, error) {
+func (p *TestProtocolMarshaller) PrepareHeader(_ *uniproto.Header, pn pulse.Number) (pulse.Number, error) {
 	return pn, nil
 }
 
-func (p *TestProtocolMarshaller) VerifyHeader(*apinetwork.Header, pulse.Number) error {
+func (p *TestProtocolMarshaller) VerifyHeader(*uniproto.Header, pulse.Number) error {
 	return nil
 }
 
-func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *apinetwork.ReceiverPacket, b []byte) {
+func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *uniproto.ReceivedPacket, b []byte) {
 	p.LastFrom = packet.From
 	p.LastPacket = packet.Packet
 	p.LastBytes = append([]byte(nil), b...)
@@ -64,7 +65,7 @@ func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *apinetwork.ReceiverP
 	p.LastLarge = false
 	//p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(p.LastSigLen)])
 
-	p.LastError = packet.NewSmallPayloadDeserializer(b)(func(packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+	p.LastError = packet.NewSmallPayloadDeserializer(b)(func(packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 		b := make([]byte, reader.RemainingBytes())
 		n, err := io.ReadFull(reader, b)
 		p.LastMsg = string(b[:n])
@@ -75,7 +76,7 @@ func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *apinetwork.ReceiverP
 	return
 }
 
-func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *apinetwork.ReceiverPacket, preRead []byte, r io.LimitedReader) error {
+func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) error {
 	p.LastFrom = packet.From
 	p.LastPacket = packet.Packet
 	p.LastSigLen = packet.GetSignatureSize()
@@ -91,7 +92,7 @@ func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *apinetwork.ReceiverP
 	//}
 	//p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-p.LastSigLen])
 
-	p.LastError = packet.NewLargePayloadDeserializer(preRead, r)(func(packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+	p.LastError = packet.NewLargePayloadDeserializer(preRead, r)(func(packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 		b := make([]byte, reader.RemainingBytes())
 		n, err := io.ReadFull(reader, b)
 		p.LastMsg = string(b[:n])
@@ -103,8 +104,8 @@ func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *apinetwork.ReceiverP
 	return p.ReportErr
 }
 
-func (p *TestProtocolMarshaller) SerializeMsg(pt apinetwork.ProtocolType, pkt uint8, pn pulse.Number, msg string) []byte {
-	var packet apinetwork.Packet
+func (p *TestProtocolMarshaller) SerializeMsg(pt uniproto.ProtocolType, pkt uint8, pn pulse.Number, msg string) []byte {
+	var packet uniproto.Packet
 	packet.Header.SetProtocolType(pt)
 	packet.Header.SetPacketType(pkt)
 	packet.Header.SetRelayRestricted(true)

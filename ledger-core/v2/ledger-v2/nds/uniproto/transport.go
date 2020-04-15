@@ -3,16 +3,16 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniproto
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 )
 
-type UnifiedOutFunc func(l1.OutTransport) error
-type UnifiedOutTransport interface {
-	UseSessionless(canRetry bool, applyFn UnifiedOutFunc) error
-	UseSessionful(size int64, canRetry bool, applyFn UnifiedOutFunc) error
-	UseAny(size int64, canRetry bool, applyFn UnifiedOutFunc) error
+type OutFunc func(l1.OutTransport) error
+type OutTransport interface {
+	UseSessionless(canRetry bool, applyFn OutFunc) error
+	UseSessionful(size int64, canRetry bool, applyFn OutFunc) error
+	UseAny(size int64, canRetry bool, applyFn OutFunc) error
 	EnsureConnect() error
 }

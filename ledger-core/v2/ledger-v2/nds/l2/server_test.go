@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -33,7 +34,7 @@ func TestServer(t *testing.T) {
 		return nil
 	}
 
-	var protocols apinetwork.UnifiedProtocolSet
+	var protocols uniproto.Parser
 	protocols.SignatureSizeHint = 32
 
 	protocols.Protocols[0] = TestProtocolDescriptor
@@ -99,14 +100,14 @@ func TestServer(t *testing.T) {
 }
 
 func TestHTTPLikeness(t *testing.T) {
-	h := apinetwork.Header{}
-	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("GET /0123456789ABCDEF")))
+	h := uniproto.Header{}
+	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("GET /0123456789ABCDEF")))
 
-	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("PUT /0123456789ABCDEF")))
+	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("PUT /0123456789ABCDEF")))
 
-	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("POST /0123456789ABCDEF")))
-	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("POST 0123456789ABCDEF")))
+	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("POST /0123456789ABCDEF")))
+	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("POST 0123456789ABCDEF")))
 
-	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD /0123456789ABCDEF")))
-	require.Equal(t, apinetwork.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD 0123456789ABCDEF")))
+	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD /0123456789ABCDEF")))
+	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD 0123456789ABCDEF")))
 }

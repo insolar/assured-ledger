@@ -23,7 +23,7 @@ type StagedController struct {
 
 type RetryStrategy interface {
 	Retry(ids []RetryID, repeatFn func([]RetryID))
-	Verify(RetryID) bool
+	CheckState(RetryID) RetryState
 	Remove([]RetryID)
 }
 
@@ -90,51 +90,44 @@ func (p *StagedController) NextCycle(strategy RetryStrategy) {
 func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeatFn func([]RetryID)) {
 	var prev []RetryID
 	for _, list := range in {
-		undoneCount := segregate(list, strategy.Verify)
-		strategy.Remove(list[undoneCount:])
+		keepCount, removeStart := segregate(list, strategy.CheckState)
+
+		if rm := list[removeStart:]; len(rm) > 0 {
+			strategy.Remove(list[removeStart:])
+		}
 
 		switch free := cap(prev) - len(prev); {
-		case undoneCount == 0:
+		case keepCount == 0:
 			//
-		case undoneCount >= len(prev) || undoneCount > free:
+		case keepCount >= len(prev) || keepCount > free:
 			if len(prev) > 0 {
 				strategy.Retry(prev, repeatFn)
 			}
-			prev = list[:undoneCount]
+			prev = list[:keepCount]
 
-		case undoneCount == free:
-			prev = append(prev, list[:undoneCount]...)
+		case keepCount == free:
+			prev = append(prev, list[:keepCount]...)
 			strategy.Retry(prev, repeatFn)
 			prev = nil
 
 		default:
-			prev = append(prev, list[:undoneCount]...)
+			prev = append(prev, list[:keepCount]...)
 		}
 	}
 
-	if len(prev) > 0 {
-		strategy.Retry(prev, repeatFn)
+	if len(prev) == 0 {
+		return
 	}
+	strategy.Retry(prev, repeatFn)
 }
 
-func segregate(list []RetryID, isDoneFn func(RetryID) bool) int {
-	undoneCount := len(list)
-outer:
-	for i := 0; i < undoneCount; i++ {
-		if !isDoneFn(list[i]) {
-			continue
-		}
-		for undoneCount > i+1 {
-			undoneCount--
-			if !isDoneFn(list[undoneCount]) {
-				list[i], list[undoneCount] = list[undoneCount], list[i]
-				continue outer
-			}
-		}
-		break
-	}
-	return undoneCount
-}
+type RetryState uint8
+
+const (
+	KeepRetrying RetryState = iota
+	StopRetrying
+	RemoveCompletely
+)
 
 /**********************************/
 

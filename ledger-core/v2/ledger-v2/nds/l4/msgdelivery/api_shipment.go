@@ -50,17 +50,25 @@ type Shipment struct {
 	Policies DeliveryPolicies
 }
 
-type ShortShipmentId uint32
-type ShipmentID uint64 // NodeId + ShortShipmentId
-
-const ShipmentIdByteSize = 8
-
-func (v ShipmentID) ShortId() ShortShipmentId {
-	return ShortShipmentId(v)
+func AsShipmentID(node uint32, id ShortShipmentID) ShipmentID {
+	if id == 0 {
+		return 0
+	}
+	return ShipmentID(node)<<32 | ShipmentID(id)
 }
 
-func (v ShipmentID) WriteTo(writer io.Writer) error {
-	var b [ShipmentIdByteSize]byte
+type ShipmentID uint64 // NodeId + ShortShipmentID
+
+func (v ShipmentID) ShortId() ShortShipmentID {
+	return ShortShipmentID(v)
+}
+
+type ShortShipmentID uint32
+
+const ShortShipmentIDByteSize = 4
+
+func (v ShortShipmentID) SimpleWriteTo(writer io.Writer) error {
+	var b [ShortShipmentIDByteSize]byte
 	v.PutTo(b[:])
 	switch n, err := writer.Write(b[:]); {
 	case err != nil:
@@ -72,19 +80,19 @@ func (v ShipmentID) WriteTo(writer io.Writer) error {
 	}
 }
 
-func (v ShipmentID) PutTo(b []byte) int {
+func (v ShortShipmentID) PutTo(b []byte) int {
 	binary.LittleEndian.PutUint64(b, uint64(v))
-	return ShipmentIdByteSize
+	return ShortShipmentIDByteSize
 }
 
-func ShipmentIdReadFrom(reader io.Reader) (ShipmentID, error) {
-	b := make([]byte, ShipmentIdByteSize)
+func ShortShipmentIDReadFrom(reader io.Reader) (ShortShipmentID, error) {
+	b := make([]byte, ShortShipmentIDByteSize)
 	if _, err := io.ReadFull(reader, b); err != nil {
 		return 0, err
 	}
-	return ShipmentIdReadFromBytes(b), nil
+	return ShortShipmentIDReadFromBytes(b), nil
 }
 
-func ShipmentIdReadFromBytes(b []byte) ShipmentID {
-	return ShipmentID(binary.LittleEndian.Uint64(b))
+func ShortShipmentIDReadFromBytes(b []byte) ShortShipmentID {
+	return ShortShipmentID(binary.LittleEndian.Uint32(b))
 }

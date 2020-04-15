@@ -9,18 +9,19 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-const Protocol = apinetwork.ProtocolTypeMessageDelivery
+const Protocol = uniproto.ProtocolTypeMessageDelivery
 
-var ProtocolDescriptor = apinetwork.ProtocolDescriptor{
-	SupportedPackets: [16]apinetwork.ProtocolPacketDescriptor{
-		DeliveryState:      {Flags: apinetwork.DatagramAllowed, LengthBits: apinetwork.SmallLengthBits},
-		DeliveryParcelHead: {Flags: apinetwork.DatagramAllowed, LengthBits: apinetwork.SmallLengthBits},
-		DeliveryParcelBody: {Flags: apinetwork.DatagramAllowed, LengthBits: apinetwork.MaxLengthBits},
+var ProtocolDescriptor = uniproto.Descriptor{
+	SupportedPackets: [16]uniproto.PacketDescriptor{
+		DeliveryState:      {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
+		DeliveryParcelHead: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
+		DeliveryParcelBody: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.MaxLengthBits},
 	},
 }
 
@@ -32,8 +33,8 @@ const (
 	DeliveryParcelBody // or Head + Body
 )
 
-func NewPacket(tp PacketType) apinetwork.Packet {
-	pt := apinetwork.Packet{}
+func NewPacket(tp PacketType) uniproto.Packet {
+	pt := uniproto.Packet{}
 	pt.Header.SetProtocolType(Protocol)
 	pt.Header.SetPacketType(uint8(tp))
 	return pt
@@ -41,22 +42,24 @@ func NewPacket(tp PacketType) apinetwork.Packet {
 
 // Flags for DeliveryState
 const (
-	BodyRqFlag apinetwork.FlagIndex = iota
+	BodyRqFlag uniproto.FlagIndex = iota
 	RejectListFlag
+	BodyAckListFlag
 )
 
 type StatePacket struct {
-	BodyRq     ShipmentID   `insolar-transport:"optional=PacketFlags[0]"` //
-	RejectList []ShipmentID `insolar-transport:"optional=PacketFlags[1]"` //
-	AckList    []ShipmentID `insolar-transport:"list=nocount"`            // length is determined by packet size
+	BodyRq      ShortShipmentID   `insolar-transport:"optional=PacketFlags[0]"` //
+	RejectList  []ShortShipmentID `insolar-transport:"optional=PacketFlags[1]"` //
+	BodyAckList []ShortShipmentID `insolar-transport:"optional=PacketFlags[2]"` //
+	AckList     []ShortShipmentID `insolar-transport:"list=nocount"`            // length is determined by packet size
 }
 
-func FillDeliveryStatePacket(maxPacketSize int, bodyRq ShipmentID, ackList *[]ShipmentID, rejectList *[]ShipmentID) (m StatePacket) {
+func FillDeliveryStatePacket(maxPacketSize int, bodyRq ShortShipmentID, ackList *[]ShortShipmentID, rejectList *[]ShortShipmentID) (m StatePacket) {
 	if bodyRq != 0 {
 		m.BodyRq = bodyRq
-		maxPacketSize -= ShipmentIdByteSize
+		maxPacketSize -= ShortShipmentIDByteSize
 	}
-	maxIdCount := maxPacketSize / ShipmentIdByteSize
+	maxIdCount := maxPacketSize / ShortShipmentIDByteSize
 	maxIdCount, m.AckList = moveParcelIdList(maxIdCount, ackList)
 	if maxIdCount > 1 { // 1 is to reserve space for varint count
 		_, m.RejectList = moveParcelIdList(maxIdCount-1, rejectList)
@@ -64,7 +67,7 @@ func FillDeliveryStatePacket(maxPacketSize int, bodyRq ShipmentID, ackList *[]Sh
 	return
 }
 
-func moveParcelIdList(maxCount int, list *[]ShipmentID) (int, []ShipmentID) {
+func moveParcelIdList(maxCount int, list *[]ShortShipmentID) (int, []ShortShipmentID) {
 	n := len(*list)
 	if maxCount >= n {
 		x := *list
@@ -85,13 +88,13 @@ func (p *StatePacket) SerializeTo(ctx apinetwork.SerializationContext, writer io
 
 	if p.BodyRq != 0 {
 		packet.Header.SetFlag(BodyRqFlag, true)
-		size += ShipmentIdByteSize
+		size += ShortShipmentIDByteSize
 	}
 	if n := len(p.RejectList); n > 0 {
 		packet.Header.SetFlag(RejectListFlag, true)
 		size += uint(protokit.SizeVarint64(uint64(n)))
 	}
-	size += uint(len(p.AckList)) * ShipmentIdByteSize
+	size += uint(len(p.AckList)) * ShortShipmentIDByteSize
 	if size == 0 {
 		return throw.IllegalState()
 	}
@@ -101,7 +104,7 @@ func (p *StatePacket) SerializeTo(ctx apinetwork.SerializationContext, writer io
 
 		if p.BodyRq != 0 {
 			p.BodyRq.PutTo(b)
-			b = b[ShipmentIdByteSize:]
+			b = b[ShortShipmentIDByteSize:]
 		}
 
 		if n := len(p.RejectList); n > 0 {
@@ -113,7 +116,7 @@ func (p *StatePacket) SerializeTo(ctx apinetwork.SerializationContext, writer io
 					return throw.IllegalValue()
 				}
 				id.PutTo(b)
-				b = b[ShipmentIdByteSize:]
+				b = b[ShortShipmentIDByteSize:]
 			}
 		}
 
@@ -122,19 +125,19 @@ func (p *StatePacket) SerializeTo(ctx apinetwork.SerializationContext, writer io
 				return throw.IllegalValue()
 			}
 			id.PutTo(b)
-			b = b[ShipmentIdByteSize:]
+			b = b[ShortShipmentIDByteSize:]
 		}
 		_, err := writer.Write(b)
 		return err
 	})
 }
 
-func (p *StatePacket) SerializePayload(sp *apinetwork.SenderPacket, writer *iokit.LimitedWriter) error {
+func (p *StatePacket) SerializePayload(sp *uniproto.SenderPacket, writer *iokit.LimitedWriter) error {
 	b := make([]byte, writer.RemainingBytes())
 
 	if p.BodyRq != 0 {
 		p.BodyRq.PutTo(b)
-		b = b[ShipmentIdByteSize:]
+		b = b[ShortShipmentIDByteSize:]
 	}
 
 	if n := len(p.RejectList); n > 0 {
@@ -146,7 +149,7 @@ func (p *StatePacket) SerializePayload(sp *apinetwork.SenderPacket, writer *ioki
 				return throw.IllegalValue()
 			}
 			id.PutTo(b)
-			b = b[ShipmentIdByteSize:]
+			b = b[ShortShipmentIDByteSize:]
 		}
 	}
 
@@ -155,14 +158,14 @@ func (p *StatePacket) SerializePayload(sp *apinetwork.SenderPacket, writer *ioki
 			return throw.IllegalValue()
 		}
 		id.PutTo(b)
-		b = b[ShipmentIdByteSize:]
+		b = b[ShortShipmentIDByteSize:]
 	}
 	_, err := writer.Write(b)
 	return err
 }
 
-func (p *StatePacket) DeserializePayload(packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
-	if reader.RemainingBytes() < ShipmentIdByteSize {
+func (p *StatePacket) DeserializePayload(packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+	if reader.RemainingBytes() < ShortShipmentIDByteSize {
 		return throw.IllegalValue()
 	}
 
@@ -172,11 +175,11 @@ func (p *StatePacket) DeserializePayload(packet *apinetwork.Packet, reader *ioki
 	}
 
 	if packet.Header.HasFlag(BodyRqFlag) {
-		p.BodyRq = ShipmentIdReadFromBytes(b)
+		p.BodyRq = ShortShipmentIDReadFromBytes(b)
 		if p.BodyRq == 0 {
 			return throw.IllegalValue()
 		}
-		b = b[ShipmentIdByteSize:]
+		b = b[ShortShipmentIDByteSize:]
 	}
 
 	if packet.Header.HasFlag(RejectListFlag) {
@@ -185,10 +188,10 @@ func (p *StatePacket) DeserializePayload(packet *apinetwork.Packet, reader *ioki
 			return throw.IllegalValue()
 		}
 		b = b[n:]
-		p.RejectList = make([]ShipmentID, 0, count)
+		p.RejectList = make([]ShortShipmentID, 0, count)
 		for ; count > 0; count-- {
-			id := ShipmentIdReadFromBytes(b)
-			b = b[ShipmentIdByteSize:]
+			id := ShortShipmentIDReadFromBytes(b)
+			b = b[ShortShipmentIDByteSize:]
 			if id == 0 {
 				return throw.IllegalValue()
 			}
@@ -196,18 +199,18 @@ func (p *StatePacket) DeserializePayload(packet *apinetwork.Packet, reader *ioki
 		}
 	}
 
-	if len(b)%ShipmentIdByteSize != 0 {
+	if len(b)%ShortShipmentIDByteSize != 0 {
 		return throw.IllegalValue()
 	}
 
-	p.AckList = make([]ShipmentID, 0, len(b)/ShipmentIdByteSize)
+	p.AckList = make([]ShortShipmentID, 0, len(b)/ShortShipmentIDByteSize)
 
 	for len(b) > 0 {
-		id := ShipmentIdReadFromBytes(b)
+		id := ShortShipmentIDReadFromBytes(b)
 		if id == 0 {
 			return throw.IllegalValue()
 		}
-		b = b[ShipmentIdByteSize:]
+		b = b[ShortShipmentIDByteSize:]
 		p.AckList = append(p.AckList, id)
 	}
 

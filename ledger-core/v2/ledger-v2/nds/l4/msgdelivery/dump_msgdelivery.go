@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -74,7 +75,7 @@ func (p *messageDelivery) getNodeById(nid apinetwork.ShortNodeID) (*nodeDelivery
 	return nd, nil
 }
 
-func (p *messageDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
+func (p *messageDelivery) Receive(h uniproto.Header, r *iokit.LimitedReader) {
 	// use checkOnline before any actions
 
 	switch rid, sid, tid := apinetwork.ShortNodeID(h.ReceiverID), apinetwork.ShortNodeID(h.SourceID), apinetwork.ShortNodeID(h.TargetID); {
@@ -112,7 +113,7 @@ func (p *messageDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
 	}
 }
 
-func (p *messageDelivery) ReceiveConnectionless(h apinetwork.Header, b []byte) {
+func (p *messageDelivery) ReceiveConnectionless(h uniproto.Header, b []byte) {
 	panic("implement me")
 }
 
@@ -138,8 +139,8 @@ const (
 
 type NodeTransportReceiver interface {
 	//ReceiveOffline()
-	Receive(h apinetwork.Header, r *iokit.LimitedReader)
-	ReceiveConnectionless(apinetwork.Header, []byte)
+	Receive(h uniproto.Header, r *iokit.LimitedReader)
+	ReceiveConnectionless(uniproto.Header, []byte)
 }
 
 type NodeTransportSender interface {
@@ -165,7 +166,7 @@ type nodeDelivery struct {
 	ackBundle    []ShipmentID
 }
 
-func (p *nodeDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
+func (p *nodeDelivery) Receive(h uniproto.Header, r *iokit.LimitedReader) {
 	//b := make([]byte, fullSize)
 	//if _, err := io.ReadFull(r, b); err != nil {
 	//	p.parent.readError(p.sender.ShortNodeID(), err)
@@ -174,11 +175,11 @@ func (p *nodeDelivery) Receive(h apinetwork.Header, r *iokit.LimitedReader) {
 	// check signature
 }
 
-func (p *nodeDelivery) ReceiveConnectionless(h apinetwork.Header, b []byte) {
+func (p *nodeDelivery) ReceiveConnectionless(h uniproto.Header, b []byte) {
 	p.receive(h, b, true)
 }
 
-func (p *nodeDelivery) receive(h apinetwork.Header, b []byte, connectionless bool) {
+func (p *nodeDelivery) receive(h uniproto.Header, b []byte, connectionless bool) {
 	p.receiveMutex.Lock()
 	defer p.receiveMutex.Unlock()
 

@@ -7,12 +7,15 @@ package l2
 
 import (
 	"crypto/tls"
+	"io"
 	"math"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -197,10 +200,18 @@ func (p *PeerManager) AddAliases(to apinetwork.Address, aliases ...apinetwork.Ad
 	}
 }
 
-func (p *PeerManager) addAliases(to apinetwork.Address, aliases ...apinetwork.Address) error {
-	peerIndex, peer := p.peer(to)
+func (p *PeerManager) getPeer(a apinetwork.Address) (uint32, *Peer, error) {
+	peerIndex, peer := p.peer(a)
 	if peer == nil {
-		return throw.E("unknown peer", struct{ apinetwork.Address }{to})
+		return 0, nil, throw.E("unknown peer", struct{ apinetwork.Address }{a})
+	}
+	return peerIndex, peer, nil
+}
+
+func (p *PeerManager) addAliases(to apinetwork.Address, aliases ...apinetwork.Address) error {
+	peerIndex, _, err := p.getPeer(to)
+	if err != nil {
+		return err
 	}
 
 	if len(aliases) == 0 {
@@ -263,14 +274,27 @@ func (p *PeerManager) connectionFrom(remote apinetwork.Address, newPeerFn func(*
 	return peer, err
 }
 
-func (p *PeerManager) AddHostId(to apinetwork.Address, id apinetwork.HostId) bool {
-	if id == 0 {
-		return false
+func (p *PeerManager) AddHostId(to apinetwork.Address, id apinetwork.HostId) (bool, error) {
+	peerIndex, peer, err := p.getPeer(to)
+	if err != nil {
+		return false, err
 	}
-	return p.addAliases(to, apinetwork.NewHostId(id)) == nil
+	if id == 0 {
+		return false, nil
+	}
+
+	if id.IsNodeId() {
+		peer.SetNodeID(id.AsNodeId())
+	}
+
+	p.peerMutex.Lock()
+	defer p.peerMutex.Unlock()
+
+	err = p.peers.addAliases(peerIndex, []apinetwork.Address{apinetwork.NewHostId(id)})
+	return err == nil, err
 }
 
-func (p *PeerManager) ConnectTo(remote apinetwork.Address) (UnifiedOutTransport, error) {
+func (p *PeerManager) ConnectTo(remote apinetwork.Address) (uniproto.OutTransport, error) {
 	switch peer, err := p.peerNotLocal(remote); {
 	case err != nil:
 		return nil, err
@@ -316,11 +340,12 @@ type Peer struct {
 	mutex     sync.Mutex
 	pk        cryptkit.SignatureKey
 	dsv       cryptkit.DataSignatureVerifier
+	nodeID    apinetwork.ShortNodeID
+	state     atomickit.Uint32 // PeerState
 
-	id    apinetwork.HostId
-	state atomickit.Uint32 // PeerState
+	// HostIds for indirectly accessible hosts?
 
-	// HostIds for indirectly accessible hosts
+	protoInfo [uniproto.ProtocolTypeCount]io.Closer
 }
 
 func (p *Peer) GetPrimary() apinetwork.Address {
@@ -334,6 +359,13 @@ func (p *Peer) GetPrimary() apinetwork.Address {
 }
 
 func (p *Peer) onRemoved() []apinetwork.Address {
+	info := p.protoInfo
+	p.protoInfo = [uniproto.ProtocolTypeCount]io.Closer{}
+
+	for _, c := range info {
+		_ = iokit.SafeClose(c)
+	}
+
 	return p.transport.kill()
 }
 
@@ -404,4 +436,55 @@ func (p *Peer) checkVerified() error {
 
 func (p *Peer) removeAlias(a apinetwork.Address) bool {
 	return p.transport.removeAlias(a)
+}
+
+func (p *Peer) GetNodeID() apinetwork.ShortNodeID {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+
+	return p.nodeID
+}
+
+func (p *Peer) SetNodeID(id apinetwork.ShortNodeID) {
+	p.transport.mutex.Lock()
+	defer p.transport.mutex.Unlock()
+
+	if p.nodeID == id {
+		return
+	}
+
+	if !p.nodeID.IsAbsent() {
+		panic(throw.IllegalState())
+	}
+	p.nodeID = id
+}
+
+func (p *Peer) SetProtoInfo(pt uniproto.ProtocolType, info io.Closer) {
+	p.transport.mutex.Lock()
+	defer p.transport.mutex.Unlock()
+	p.protoInfo[pt] = info
+}
+
+func (p *Peer) GetOrCreateProtoInfo(pt uniproto.ProtocolType, factoryFn func(uniproto.Peer) io.Closer) io.Closer {
+	if factoryFn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	if r := p.GetProtoInfo(pt); r != nil {
+		return r
+	}
+	p.transport.mutex.Lock()
+	defer p.transport.mutex.Unlock()
+	if r := p.protoInfo[pt]; r != nil {
+		return r
+	}
+	r := factoryFn(p)
+	p.protoInfo[pt] = r
+	return r
+}
+
+func (p *Peer) GetProtoInfo(pt uniproto.ProtocolType) io.Closer {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+	return p.protoInfo[pt]
 }

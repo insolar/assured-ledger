@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -29,7 +30,7 @@ type ServerConfig struct {
 	PeerLimit      int
 }
 
-func NewUnifiedProtocolServer(protocols *apinetwork.UnifiedProtocolSet, updParallelism int) *UnifiedServer {
+func NewUnifiedProtocolServer(protocols *uniproto.Parser, updParallelism int) *UnifiedServer {
 	if protocols == nil {
 		panic(throw.IllegalValue())
 	}
@@ -46,7 +47,7 @@ type UnifiedServer struct {
 	peers     PeerManager
 	blacklist BlacklistManager
 
-	protocols *apinetwork.UnifiedProtocolSet
+	protocols *uniproto.Parser
 
 	receiver PeerReceiver
 	udpSema  synckit.Semaphore

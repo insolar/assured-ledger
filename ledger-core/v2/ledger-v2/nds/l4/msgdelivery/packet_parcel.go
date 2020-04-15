@@ -9,13 +9,14 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ParcelPacket struct {
-	ParcelId     ShipmentID
-	ReturnId     ShipmentID                     `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
+	ParcelId     ShortShipmentID
+	ReturnId     ShortShipmentID                `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
 	RepeatedSend bool                           `insolar-transport:"aliasOf=PacketFlags[1]"`
 	ParcelType   apinetwork.PayloadCompleteness `insolar-transport:"send=ignore;aliasOf=PacketFlags[2]"`
 
@@ -23,7 +24,7 @@ type ParcelPacket struct {
 }
 
 const ( // Flags for ParcelPacket
-	ReturnIdFlag apinetwork.FlagIndex = iota
+	ReturnIdFlag uniproto.FlagIndex = iota
 	RepeatedSendFlag
 	WithHeadFlag // for DeliveryParcelBody only
 )
@@ -45,7 +46,7 @@ func (p *ParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer i
 		return throw.IllegalState()
 	}
 
-	size := uint(ShipmentIdByteSize)
+	size := uint(ShortShipmentIDByteSize)
 	if p.ReturnId != 0 {
 		size <<= 1
 		packet.Header.SetFlag(ReturnIdFlag, true)
@@ -55,11 +56,11 @@ func (p *ParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer i
 	packet.Header.SetFlag(RepeatedSendFlag, p.RepeatedSend)
 
 	return packet.SerializeTo(ctx, writer, size, func(writer *iokit.LimitedWriter) error {
-		if err := p.ParcelId.WriteTo(writer); err != nil {
+		if err := p.ParcelId.SimpleWriteTo(writer); err != nil {
 			return err
 		}
 		if p.ReturnId != 0 {
-			if err := p.ReturnId.WriteTo(writer); err != nil {
+			if err := p.ReturnId.SimpleWriteTo(writer); err != nil {
 				return err
 			}
 		}
@@ -67,7 +68,7 @@ func (p *ParcelPacket) SerializeTo(ctx apinetwork.SerializationContext, writer i
 	})
 }
 
-func (p *ParcelPacket) DeserializePayload(f apinetwork.DeserializationFactory, packet *apinetwork.Packet, reader *iokit.LimitedReader) error {
+func (p *ParcelPacket) DeserializePayload(f apinetwork.DeserializationFactory, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 	switch PacketType(packet.Header.GetPacketType()) {
 	case DeliveryParcelHead:
 		p.ParcelType = apinetwork.HeadPayload
@@ -83,16 +84,16 @@ func (p *ParcelPacket) DeserializePayload(f apinetwork.DeserializationFactory, p
 		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
 		var b []byte
 		if hasReturn {
-			b = make([]byte, ShipmentIdByteSize<<1)
+			b = make([]byte, ShortShipmentIDByteSize<<1)
 		} else {
-			b = make([]byte, ShipmentIdByteSize)
+			b = make([]byte, ShortShipmentIDByteSize)
 		}
 		if _, err := io.ReadFull(reader, b); err != nil {
 			return err
 		}
-		p.ParcelId = ShipmentIdReadFromBytes(b)
+		p.ParcelId = ShortShipmentIDReadFromBytes(b)
 		if hasReturn {
-			p.ReturnId = ShipmentIdReadFromBytes(b[ShipmentIdByteSize:])
+			p.ReturnId = ShortShipmentIDReadFromBytes(b[ShortShipmentIDByteSize:])
 		}
 	}
 

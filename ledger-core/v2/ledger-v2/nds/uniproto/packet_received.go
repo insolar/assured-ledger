@@ -3,27 +3,29 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package apinetwork
+package uniproto
 
 import (
 	"bytes"
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type ReceiverPacket struct {
+type ReceivedPacket struct {
 	Packet
-	From      Address
-	verifier  PacketDataVerifier
+	From      apinetwork.Address
+	Peer      Peer
+	verifier  PacketVerifier
 	Decrypter cryptkit.Decrypter
 }
 
 type PacketDeserializerFunc func(PayloadDeserializeFunc) error
 
-func (p *ReceiverPacket) NewSmallPayloadDeserializer(b []byte) PacketDeserializerFunc {
+func (p *ReceivedPacket) NewSmallPayloadDeserializer(b []byte) PacketDeserializerFunc {
 	payload := b[p.GetPayloadOffset() : len(b)-p.verifier.GetSignatureSize()]
 	reader := bytes.NewReader(payload)
 
@@ -32,7 +34,7 @@ func (p *ReceiverPacket) NewSmallPayloadDeserializer(b []byte) PacketDeserialize
 	}
 }
 
-func (p *ReceiverPacket) NewLargePayloadDeserializer(preRead []byte, r io.LimitedReader) PacketDeserializerFunc {
+func (p *ReceivedPacket) NewLargePayloadDeserializer(preRead []byte, r io.LimitedReader) PacketDeserializerFunc {
 
 	skip, hasher := p.verifier.NewHasher(&p.Header)
 	sigSize := p.verifier.GetSignatureSize()
@@ -76,7 +78,7 @@ func (p *ReceiverPacket) NewLargePayloadDeserializer(preRead []byte, r io.Limite
 	}
 }
 
-func (ReceiverPacket) DownstreamError(err error) error {
+func (ReceivedPacket) DownstreamError(err error) error {
 	if err == io.EOF {
 		return err
 	}
@@ -86,6 +88,6 @@ func (ReceiverPacket) DownstreamError(err error) error {
 	return nil
 }
 
-func (p *ReceiverPacket) GetSignatureSize() int {
+func (p *ReceivedPacket) GetSignatureSize() int {
 	return p.verifier.GetSignatureSize()
 }

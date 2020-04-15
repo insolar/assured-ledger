@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
@@ -57,7 +58,7 @@ func (p *PeerTransportCentral) getTransportStreamFormat(limitedLength bool, peer
 	}
 }
 
-var _ UnifiedOutTransport = &PeerTransport{}
+var _ uniproto.OutTransport = &PeerTransport{}
 
 type PeerTransport struct {
 	central *PeerTransportCentral
@@ -377,7 +378,7 @@ func (p *PeerTransport) EnsureConnect() error {
 	})
 }
 
-//func (p *PeerTransport) UseSessionlessNoQuota(canRetry bool, applyFn UnifiedOutFunc) error {
+//func (p *PeerTransport) UseSessionlessNoQuota(canRetry bool, applyFn OutFunc) error {
 //	return p.useTransport(func() (l1.OutTransport, error) {
 //		if t, err := p.getSessionlessTransport(); err != nil {
 //			return nil, err
@@ -387,12 +388,12 @@ func (p *PeerTransport) EnsureConnect() error {
 //	}, canRetry, applyFn)
 //}
 
-func (p *PeerTransport) UseSessionless(canRetry bool, applyFn UnifiedOutFunc) error {
+func (p *PeerTransport) UseSessionless(canRetry bool, applyFn uniproto.OutFunc) error {
 	return p.useTransport(p.getSessionlessTransport, canRetry, applyFn)
 }
 
-func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn UnifiedOutFunc) error {
-	if size <= apinetwork.MaxNonExcessiveLength {
+func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn uniproto.OutFunc) error {
+	if size <= uniproto.MaxNonExcessiveLength {
 		p.smallMutex.Lock()
 		defer p.smallMutex.Unlock()
 		return p.useTransport(p.getSessionfulSmallTransport, canRetry, applyFn)
@@ -403,7 +404,7 @@ func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn Unified
 	return p.useTransport(p.getSessionfulLargeTransport, canRetry, applyFn)
 }
 
-func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn UnifiedOutFunc) error {
+func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn uniproto.OutFunc) error {
 	if size <= int64(p.central.maxSessionlessSize) {
 		return p.UseSessionless(canRetry, applyFn)
 	}

@@ -8,50 +8,43 @@ package msgdelivery
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l2"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var _ apinetwork.ProtocolReceiver = &PacketReceiver{}
+var _ uniproto.Receiver = &packetReceiver{}
 
-type PacketReceiver struct {
+type packetReceiver struct {
 	ctl *ProtocolController
 }
 
-func (p *PacketReceiver) ReceiveSmallPacket(packet *apinetwork.ReceiverPacket, b []byte) {
+func (p *packetReceiver) ReceiveSmallPacket(packet *uniproto.ReceivedPacket, b []byte) {
 	readFn := packet.NewSmallPayloadDeserializer(b)
 	_ = p.receiveDispatcher(packet, readFn)
 }
 
-func (p *PacketReceiver) ReceiveLargePacket(packet *apinetwork.ReceiverPacket, preRead []byte, r io.LimitedReader) error {
+func (p *packetReceiver) ReceiveLargePacket(packet *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) error {
 	readFn := packet.NewLargePayloadDeserializer(preRead, r)
 	err := p.receiveDispatcher(packet, readFn)
 	return packet.DownstreamError(err)
 }
 
-func (p *PacketReceiver) receiveDispatcher(packet *apinetwork.ReceiverPacket, readFn apinetwork.PacketDeserializerFunc) error {
+func (p *packetReceiver) receiveDispatcher(packet *uniproto.ReceivedPacket, readFn uniproto.PacketDeserializerFunc) error {
 	var err error
 	switch pt := PacketType(packet.Header.GetPacketType()); pt {
 	case DeliveryState:
 		payload := &StatePacket{}
 		if err = readFn(payload.DeserializePayload); err == nil {
-			err = p.ctl.receiveState(payload)
+			err = p.ctl.receiveState(packet, payload)
 		}
 	case DeliveryParcelHead, DeliveryParcelBody:
 		payload := &ParcelPacket{}
-		if err = readFn(func(pkt *apinetwork.Packet, r *iokit.LimitedReader) error {
+		if err = readFn(func(pkt *uniproto.Packet, r *iokit.LimitedReader) error {
 			return payload.DeserializePayload(p.ctl.factory, pkt, r)
 		}); err == nil {
-			switch payload.ParcelType {
-			case apinetwork.CompletePayload:
-				err = p.ctl.receiveComplete(payload)
-			case apinetwork.BodyPayload:
-				err = p.ctl.receiveBody(payload)
-			case apinetwork.HeadPayload:
-				err = p.ctl.receiveHead(payload)
-			}
+			err = p.ctl.receiveParcel(packet, payload)
 		}
 	default:
 		err = throw.Impossible()

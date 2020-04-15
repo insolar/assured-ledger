@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
@@ -23,12 +24,12 @@ import (
 
 type PeerReceiver struct {
 	PeerManager *PeerManager
-	Protocols   *apinetwork.UnifiedProtocolSet
+	Protocols   *uniproto.Parser
 	ModeFn      func() ConnectionMode
 }
 
 type PacketErrDetails struct {
-	Header apinetwork.Header
+	Header uniproto.Header
 	Pulse  pulse.Number
 }
 
@@ -45,7 +46,7 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 	isIncoming := w != nil
 
 	var (
-		fn    apinetwork.VerifyHeaderFunc
+		fn    uniproto.VerifyHeaderFunc
 		peer  *Peer
 		limit TransportStreamFormat
 	)
@@ -96,7 +97,7 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 		}
 
 		for {
-			packet := apinetwork.ReceiverPacket{From: remote}
+			packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
 			preRead, more, err := p.Protocols.ReceivePacket(&packet, fn, r, limit.IsUnlimited())
 
 			switch isEOF := false; {
@@ -104,7 +105,7 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 				switch err {
 				case io.EOF:
 					return nil
-				case apinetwork.ErrPossibleHTTPRequest:
+				case uniproto.ErrPossibleHTTPRequest:
 					if !limit.IsDefined() || limit.IsHttp() {
 						return p.receiveHttpStream(preRead, r, fn, limit)
 					}
@@ -172,11 +173,14 @@ func (p PeerReceiver) ReceiveStream(remote apinetwork.Address, conn io.ReadWrite
 
 func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err error) {
 
-	var fn apinetwork.VerifyHeaderFunc
-	fn, _, err = p.resolvePeer(remote, true, nil)
+	var (
+		fn   uniproto.VerifyHeaderFunc
+		peer *Peer
+	)
+	fn, peer, err = p.resolvePeer(remote, true, nil)
 
 	n := -1
-	packet := apinetwork.ReceiverPacket{From: remote}
+	packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
 	if n, err = p.Protocols.ReceiveDatagram(&packet, fn, b); err == nil {
 		if !packet.Header.IsForRelay() {
 			receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
@@ -201,7 +205,7 @@ func (p PeerReceiver) ReceiveDatagram(remote apinetwork.Address, b []byte) (err 
 	return throw.WithDetails(err, PacketErrDetails{packet.Header, packet.PulseNumber})
 }
 
-func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, conn io.ReadWriteCloser) (apinetwork.VerifyHeaderFunc, *Peer, error) {
+func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, conn io.ReadWriteCloser) (uniproto.VerifyHeaderFunc, *Peer, error) {
 	var tlsConn *tls.Conn
 	if t, ok := conn.(*tls.Conn); ok {
 		tlsConn = t
@@ -226,7 +230,7 @@ func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, co
 		})
 	}
 	if err == nil {
-		var fn apinetwork.VerifyHeaderFunc
+		var fn uniproto.VerifyHeaderFunc
 		if fn, err = p.checkPeer(peer, tlsConn); err == nil {
 			if isNew {
 				peer.UpgradeState(Connected)
@@ -237,7 +241,7 @@ func (p PeerReceiver) resolvePeer(remote apinetwork.Address, isIncoming bool, co
 	return nil, nil, err
 }
 
-func toHostId(id uint32, supp apinetwork.ProtocolSupporter) apinetwork.HostId {
+func toHostId(id uint32, supp uniproto.Supporter) apinetwork.HostId {
 	switch {
 	case id == 0:
 		return 0
@@ -248,7 +252,7 @@ func toHostId(id uint32, supp apinetwork.ProtocolSupporter) apinetwork.HostId {
 	}
 }
 
-func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.ProtocolSupporter, header *apinetwork.Header,
+func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter, header *uniproto.Header,
 ) (selfVerified bool, dsv cryptkit.DataSignatureVerifier, err error) {
 
 	if err = func() (err error) {
@@ -257,6 +261,8 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp apinetwork.Protoco
 			if rid := toHostId(header.ReceiverID, supp); !p.isLocalHostId(rid) {
 				return throw.RemoteBreach("wrong ReceiverID")
 			}
+		} else {
+			header.ReceiverID = p.getLocalHostId(supp)
 		}
 
 		switch {
@@ -309,7 +315,7 @@ func (p PeerReceiver) isLocalHostId(id apinetwork.HostId) bool {
 	return idx == 0 && pr != nil
 }
 
-func (p PeerReceiver) checkTarget(supp apinetwork.ProtocolSupporter, header *apinetwork.Header) (relayTo *Peer, err error) {
+func (p PeerReceiver) checkTarget(supp uniproto.Supporter, header *uniproto.Header) (relayTo *Peer, err error) {
 	switch {
 	case !header.IsTargeted():
 		return nil, nil
@@ -334,7 +340,7 @@ func (p PeerReceiver) checkTarget(supp apinetwork.ProtocolSupporter, header *api
 	}
 }
 
-func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.VerifyHeaderFunc, error) {
+func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyHeaderFunc, error) {
 	tlsStatus := 0 // TLS is not present
 	if tlsConn != nil {
 		switch ok, err := peer.verifyByTls(tlsConn); {
@@ -347,7 +353,7 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.Verif
 		}
 	}
 
-	return func(header *apinetwork.Header, flags apinetwork.ProtocolFlags, supp apinetwork.ProtocolSupporter) (dsv cryptkit.DataSignatureVerifier, err error) {
+	return func(header *uniproto.Header, flags uniproto.Flags, supp uniproto.Supporter) (dsv cryptkit.DataSignatureVerifier, err error) {
 
 		if !p.ModeFn().IsProtocolAllowed(header.GetProtocolType()) {
 			return nil, throw.Violation("protocol is disabled")
@@ -357,7 +363,7 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.Verif
 		if selfVerified, dsv, err = p.checkSourceAndReceiver(peer, supp, header); err != nil {
 			return nil, err
 		}
-		if selfVerified && flags&apinetwork.SourcePK == 0 {
+		if selfVerified && flags&uniproto.SourcePK == 0 {
 			// requires support of self-verified packets (packet must have a PK field)
 			return nil, throw.Violation("must have source PK")
 		}
@@ -369,7 +375,7 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.Verif
 			// Relayed packet must always have a signature of source hence OmitSignatureOverTls is ignored
 			// Actual relay operation will be performed after packet parsing
 		default:
-			if tlsStatus != 0 && flags&apinetwork.OmitSignatureOverTls != 0 {
+			if tlsStatus != 0 && flags&uniproto.OmitSignatureOverTls != 0 {
 				if tlsStatus < 0 {
 					return nil, throw.RemoteBreach("unidentified TLS cert")
 				}
@@ -385,7 +391,7 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (apinetwork.Verif
 	}, nil
 }
 
-func (p PeerReceiver) receiveHttpStream(preRead []byte, r io.ReadCloser, fn apinetwork.VerifyHeaderFunc, limit TransportStreamFormat) error {
+func (p PeerReceiver) receiveHttpStream(preRead []byte, r io.ReadCloser, fn uniproto.VerifyHeaderFunc, limit TransportStreamFormat) error {
 	defer func() {
 		_ = r.Close()
 	}()
@@ -411,4 +417,12 @@ func (p PeerReceiver) receiveHttpStream(preRead []byte, r io.ReadCloser, fn apin
 		// TODO Read packet from HTTP body
 		return throw.NotImplemented()
 	}
+}
+
+func (p PeerReceiver) getLocalHostId(supp uniproto.Supporter) uint32 {
+	id := uint32(p.PeerManager.Local().GetNodeID())
+	if supp == nil {
+		return id
+	}
+	return supp.GetLocalNodeID(id)
 }

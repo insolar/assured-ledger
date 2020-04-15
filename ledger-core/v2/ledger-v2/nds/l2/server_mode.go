@@ -8,7 +8,7 @@ package l2
 import (
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/apinetwork"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 )
 
 type ConnectionMode uint32
@@ -19,7 +19,7 @@ const (
 
 const AllowAll = ^ConnectionMode(0)
 
-func (v ConnectionMode) IsProtocolAllowed(pt apinetwork.ProtocolType) bool {
+func (v ConnectionMode) IsProtocolAllowed(pt uniproto.ProtocolType) bool {
 	return v&1<<(pt+16) != 0
 }
 
@@ -27,10 +27,10 @@ func (v ConnectionMode) IsUnknownPeerAllowed() bool {
 	return v&AllowUnknownPeer != 0
 }
 
-func (v ConnectionMode) AllowedSet() apinetwork.ProtocolSet {
-	return apinetwork.ProtocolSet(v >> 16)
+func (v ConnectionMode) AllowedSet() uniproto.ProtocolSet {
+	return uniproto.ProtocolSet(v >> 16)
 }
 
-func (v ConnectionMode) SetAllowedSet(s apinetwork.ProtocolSet) ConnectionMode {
+func (v ConnectionMode) SetAllowedSet(s uniproto.ProtocolSet) ConnectionMode {
 	return v&math.MaxUint16 | ConnectionMode(s)<<16
 }
