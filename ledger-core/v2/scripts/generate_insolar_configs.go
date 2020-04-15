@@ -241,6 +241,8 @@ func newDefaultInsolardConfig() configuration.Configuration {
 		cfg := configuration.NewConfiguration()
 		defaultInsloardConf = &cfg
 	}
+
+	defaultInsloardConf.Host.PulseWatchdogTimeout = 2592000 // one month
 	return *defaultInsloardConf
 }
 

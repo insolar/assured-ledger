@@ -45,6 +45,6 @@ func ConfigureOptions(conf configuration.Configuration) *Options {
 		PacketTimeout:        15 * time.Second,
 		AckPacketTimeout:     5 * time.Second,
 		BootstrapTimeout:     90 * time.Second,
-		PulseWatchdogTimeout: 30 * time.Second,
+		PulseWatchdogTimeout: time.Duration(config.PulseWatchdogTimeout) * time.Second,
 	}
 }
