@@ -172,7 +172,7 @@ type InOrderStepContext interface {
 	// Published aliases will be unpublished on terminations of SM.
 	// Returns false when key is in use.
 	PublishGlobalAlias(key interface{}) bool
-	// PublishGlobalAlias publishes this Slot and its barge-in globally under the given (key).
+	// PublishGlobalAliasAndBargeIn publishes this Slot and its barge-in globally under the given (key).
 	// Same as PublishGlobalAlias. (handler) can be nil.
 	PublishGlobalAliasAndBargeIn(key interface{}, handler BargeInHolder) bool
 

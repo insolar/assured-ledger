@@ -132,7 +132,7 @@ func (s *StateMachineDeclTemplate) GetStepLogger(context.Context, StateMachine, 
 
 type TerminationHandlerFunc func(TerminationData)
 
-// FixedSlotWorker can be nil
+// (FixedSlotWorker) arg can be nil
 type internalTerminationHandlerFunc func(TerminationData, FixedSlotWorker)
 
 type TerminationData struct {
@@ -143,7 +143,6 @@ type TerminationData struct {
 	Error   error
 }
 
-// See mergeDefaultValues() and prepareNewSlotWithDefaults()
 type CreateDefaultValues struct {
 	Context                context.Context
 	Parent                 SlotLink
@@ -152,7 +151,7 @@ type CreateDefaultValues struct {
 	// TerminationHandler provides a special termination handler that will be invoked AFTER termination of SM.
 	// This handler is invoked with data from GetDefaultTerminationResult() and error (if any).
 	// This handler is not directly accessible to SM.
-	// WARNING! This handler is UNSAFE to access another SM.
+	// WARNING! This handler is UNSAFE to access any SM.
 	TerminationHandler TerminationHandlerFunc
 	TerminationResult  interface{}
 	TracerId           TracerId
