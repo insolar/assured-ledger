@@ -420,7 +420,7 @@ func runPulsar() error {
 func waitForNet() error {
 	err := waitForNetworkState(insolar.WaitPulsar)
 	if err != nil {
-		return errors.Wrap(err, "Can't for NetworkState "+insolar.WaitPulsar.String())
+		return errors.Wrap(err, "Can't wait for NetworkState "+insolar.WaitPulsar.String())
 	}
 
 	err = runPulsar()
@@ -430,7 +430,7 @@ func waitForNet() error {
 
 	err = waitForNetworkState(insolar.CompleteNetworkState)
 	if err != nil {
-		return errors.Wrap(err, "Can't for NetworkState "+insolar.WaitPulsar.String())
+		return errors.Wrap(err, "Can't wait for NetworkState "+insolar.CompleteNetworkState.String())
 	}
 
 	return nil
