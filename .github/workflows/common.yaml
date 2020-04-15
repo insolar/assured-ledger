@@ -34,13 +34,17 @@ jobs:
           make vendor pre-build build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Check if working directory is clean after build
+        if: always()
         run: scripts/gitstatus.sh
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Install golangci-lint
+        if: always()
         run: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.23.6
       - name: Run golangci-lint
+        if: always()
         run: make lint
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Run unit and slow tests
+        if: always()
         run: make test_slow
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
