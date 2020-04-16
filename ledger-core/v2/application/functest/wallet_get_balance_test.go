@@ -21,10 +21,10 @@ func TestWalletGetBalance(t *testing.T) {
 	require.NoError(t, err, "failed to create wallet")
 
 	getBalanceURL := getURL(walletGetBalancePath, "", "")
-	rawResp, err := sendAPIRequest(getBalanceURL, getWalletBalanceRequestBody{Ref: walletRef})
+	rawResp, err := sendAPIRequest(getBalanceURL, walletGetBalanceRequestBody{Ref: walletRef})
 	require.NoError(t, err, "failed to send request or get response body")
 
-	resp, err := unmarshalGetWalletBalanceResponse(rawResp)
+	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
 	require.NoError(t, err, "failed to unmarshal response")
 
 	require.Empty(t, resp.Err, "problem during execute request")
