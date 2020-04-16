@@ -8,7 +8,6 @@ package sdk
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -18,10 +17,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
@@ -120,18 +117,6 @@ func NewSDK(adminUrls []string, publicUrls []string, memberKeysDirPath string, o
 		feeMember:              feeMember,
 		logLevel:               "",
 		options:                options,
-	}
-
-	if len(response.MigrationDaemonMembers) < application.GenesisAmountMigrationDaemonMembers {
-		return nil, errors.New(fmt.Sprintf("need at least '%d' migration daemons", application.GenesisAmountActiveMigrationDaemonMembers))
-	}
-
-	for i := 0; i < application.GenesisAmountMigrationDaemonMembers; i++ {
-		m, err := getMember(memberKeysDirPath+bootstrap.GetMigrationDaemonPath(i), response.MigrationDaemonMembers[i])
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to get migration daemon member; member's index: '%d'", i))
-		}
-		result.migrationDaemonMembers = append(result.migrationDaemonMembers, m)
 	}
 
 	return result, nil

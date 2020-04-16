@@ -8,17 +8,14 @@ package mimic
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
@@ -65,22 +62,6 @@ func GenerateBootstrap(skipBuild bool) (func(), string, error) {
 	}
 
 	return cleanupFunc, artifactsDir, nil
-}
-
-func ReadGenesisContractsConfig(dirPath string) (*application.GenesisContractsConfig, error) {
-	genesisConfigPath := path.Join(dirPath, GenesisRelativePath)
-
-	fh, err := os.Open(genesisConfigPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open genesis config for reading")
-	}
-
-	rv := application.GenesisHeavyConfig{}
-	if err := json.NewDecoder(fh).Decode(&rv); err != nil {
-		return nil, errors.Wrap(err, "failed to decode genesis config")
-	}
-
-	return &rv.ContractsConfig, nil
 }
 
 type recordModifierMock struct{}

@@ -348,9 +348,6 @@ func newComponents(ctx context.Context, cfg configuration.Configuration, genesis
 				RecordModifier: Records,
 				IndexModifier:  indexes,
 			},
-
-			DiscoveryNodes:  genesisCfg.DiscoveryNodes,
-			ContractsConfig: genesisCfg.ContractsConfig,
 		}
 	}
 
