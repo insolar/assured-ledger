@@ -48,12 +48,12 @@ func (s *StateMachineCallResult) stepProcess(ctx smachine.ExecutionContext) smac
 		return ctx.Error(throw.E("no one is waiting", struct{ smachine.SlotLink }{link}))
 	}
 	if bgin == nil {
-		return ctx.Error(throw.E("impossible situation ", struct{ smachine.BargeInHolder }{bgin}))
+		return ctx.Error(throw.Impossible())
 	}
 
 	done := bgin.CallWithParam(s.Payload)
 	if !done {
-		return ctx.Error(throw.E("no one is waiting anymore", struct{ *payload.VCallResult }{s.Payload}))
+		return ctx.Error(throw.E("no one is waiting anymore", struct{}{}))
 	}
 
 	return ctx.Stop()
