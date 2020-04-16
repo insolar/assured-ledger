@@ -15,14 +15,14 @@ import (
 )
 
 // Creates wallets and check Reference format in response body.
-func TestCreateWallet(t *testing.T) {
+func TestWalletCreate(t *testing.T) {
 	status := getStatus(t)
 	require.NotEqual(t, 0, status.WorkingListSize, "not enough nodes to run test")
-	count := 50 * status.WorkingListSize // 250 for 5 nodes
+	count := 50 * status.WorkingListSize
 
 	t.Run(fmt.Sprintf("count=%d", count), func(t *testing.T) {
 		for i := 0; i < count; i++ {
-			url := getURL(createWalletPath, "", "")
+			url := getURL(walletCreatePath, "", "")
 			rawResp, err := sendAPIRequest(url, nil)
 			require.NoError(t, err, "failed to send request or get response body")
 
