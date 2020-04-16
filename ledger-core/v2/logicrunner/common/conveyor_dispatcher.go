@@ -108,8 +108,3 @@ func (c *conveyorDispatcher) Process(msg *message.Message) error {
 func NewConveyorDispatcher(conveyor *conveyor.PulseConveyor) dispatcher.Dispatcher {
 	return &conveyorDispatcher{conveyor: conveyor}
 }
-
-type TestAPICall struct {
-	Payload payload.VCallRequest
-	Response chan payload.VCallResult
-}

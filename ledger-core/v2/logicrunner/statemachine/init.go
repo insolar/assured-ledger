@@ -8,11 +8,11 @@ package statemachine
 import (
 	"fmt"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_request"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_test_api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
@@ -20,8 +20,8 @@ func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.
 	switch inputConverted := input.(type) {
 	case *common.DispatcherMessage:
 		return sm_request.HandlerFactoryMeta(inputConverted)
-	case *common.TestAPICall:
-		return sm_test_api.Handler(inputConverted)
+	case *testwalletapi.TestAPICall:
+		return testwalletapi.Handler(inputConverted)
 	// case *sm_execute_request.SMEventSendOutgoing:
 	// 	return sm_execute_request.HandlerFactoryOutgoingSender(inputConverted)
 	default:
