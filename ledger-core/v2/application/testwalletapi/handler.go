@@ -11,7 +11,7 @@ import (
 )
 
 type TestAPICall struct {
-	Payload payload.VCallRequest
+	Payload  payload.VCallRequest
 	Response chan payload.VCallResult
 }
 
