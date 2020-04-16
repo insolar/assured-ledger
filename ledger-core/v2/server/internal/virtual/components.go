@@ -12,7 +12,10 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 
 	"github.com/insolar/component-manager"
 
@@ -30,13 +33,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 )
 
 type bootstrapComponents struct {
@@ -125,8 +128,13 @@ func initComponents(
 	artifactsClient := artifacts.NewClient(b)
 	cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
 
-	logicRunner, err := logicrunner.NewLogicRunner(&cfg.LogicRunner, b)
-	checkError(ctx, err, "failed to start LogicRunner")
+	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
+
+	runnerService := runner.NewService()
+
+	virtualDispatcher := virtual.NewDispatcher()
+	virtualDispatcher.Runner = runnerService
+	virtualDispatcher.MessageSender = messageSender
 
 	contractRequester, err := contractrequester.New(
 		b,
@@ -168,9 +176,6 @@ func initComponents(
 
 	APIWrapper := api.NewWrapper(API, AdminAPIRunner)
 
-	// TODO: remove this hack in INS-3341
-	contractRequester.LR = logicRunner
-
 	pm := pulsemanager.NewPulseManager()
 
 	cm.Register(
@@ -179,7 +184,8 @@ func initComponents(
 		cryptographyService,
 		keyProcessor,
 		certManager,
-		logicRunner,
+		virtualDispatcher,
+		runnerService,
 		APIWrapper,
 		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
 		availabilityChecker,
@@ -211,12 +217,12 @@ func initComponents(
 	checkError(ctx, err, "failed to init components")
 
 	// this should be done after Init due to inject
-	pm.AddDispatcher(logicRunner.FlowDispatcher, contractRequester.FlowDispatcher)
+	pm.AddDispatcher(contractRequester.FlowDispatcher)
 
 	return cm, startWatermill(
 		ctx, wmLogger, subscriber, b,
 		nw.SendMessageHandler,
-		logicRunner.FlowDispatcher.Process,
+		virtualDispatcher.FlowDispatcher.Process,
 		contractRequester.FlowDispatcher.Process,
 	)
 }

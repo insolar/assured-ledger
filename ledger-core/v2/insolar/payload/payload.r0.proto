@@ -29,7 +29,7 @@ message VCallRequest {
     bytes CallSiteDeclaration = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
     string CallSiteMethod = 26;
 
-    bytes CallSequence = 27;
+    uint32 CallSequence = 27;
     bytes CallReason = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
     bytes RootTX = 29 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
     bytes CallTX = 30 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];

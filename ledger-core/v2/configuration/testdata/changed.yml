@@ -50,7 +50,6 @@ metrics:
 logicrunner:
   rpclisten: 127.0.0.1:7778
   rpcprotocol: tcp
-  builtin: true
   goplugin:
     runnerlisten: 127.0.0.1:7777
     runnerprotocol: tcp
@@ -84,3 +83,5 @@ exporter:
   addr: :5678
 bus:
   replytimeout: 15s
+testwalletapi:
+  address:

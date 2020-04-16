@@ -34,7 +34,7 @@ import (
 )
 
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
-var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
+var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 var corePath = "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 var pkgErrorsPath = "github.com/pkg/errors"
 
