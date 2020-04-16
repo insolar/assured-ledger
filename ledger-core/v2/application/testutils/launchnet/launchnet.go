@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/pkg/errors"
 
@@ -361,7 +361,7 @@ func stopInsolard() error {
 	return nil
 }
 
-func waitForNet() error {
+func waitForNetworkState(state insolar.NetworkState) error {
 	numAttempts := 270
 	// TODO: read ports from bootstrap config
 	ports := []string{
@@ -379,6 +379,7 @@ func waitForNet() error {
 	}
 	numNodes := len(ports)
 	currentOk := 0
+	fmt.Println("Waiting for Network state: ", state.String())
 	for i := 0; i < numAttempts; i++ {
 		currentOk = 0
 		for _, port := range ports {
@@ -387,7 +388,7 @@ func waitForNet() error {
 				fmt.Println("[ waitForNet ] Problem with port " + port + ". Err: " + err.Error())
 				break
 			}
-			if resp.NetworkState != insolar.CompleteNetworkState.String() {
+			if resp.NetworkState != state.String() {
 				fmt.Println("[ waitForNet ] Good response from port " + port + ". Net is not ready. Response: " + resp.NetworkState)
 				break
 			}
@@ -395,7 +396,6 @@ func waitForNet() error {
 			currentOk++
 		}
 		if currentOk == numNodes {
-			fmt.Printf("[ waitForNet ] All %d nodes have started\n", numNodes)
 			break
 		}
 
@@ -405,6 +405,34 @@ func waitForNet() error {
 
 	if currentOk != numNodes {
 		return errors.New("[ waitForNet ] Can't Start net: No attempts left")
+	}
+	fmt.Println("All nodes have state", state.String())
+
+	return nil
+}
+
+func runPulsar() error {
+	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard -o -c .artifacts/launchnet/pulsar.yaml")
+	output, err := pulsarCmd.CombinedOutput()
+	fmt.Println("Pulsar launch output: ", string(output))
+
+	return errors.Wrap(err, "failed to launch pulsar")
+}
+
+func waitForNet() error {
+	err := waitForNetworkState(insolar.WaitPulsar)
+	if err != nil {
+		return errors.Wrap(err, "Can't wait for NetworkState "+insolar.WaitPulsar.String())
+	}
+
+	err = runPulsar()
+	if err != nil {
+		return errors.Wrap(err, "Can't run pulsar")
+	}
+
+	err = waitForNetworkState(insolar.CompleteNetworkState)
+	if err != nil {
+		return errors.Wrap(err, "Can't wait for NetworkState "+insolar.CompleteNetworkState.String())
 	}
 
 	return nil
@@ -429,7 +457,7 @@ func startNet() error {
 	// be eventually started with --log-level=debug. Otherwise someone will spent
 	// a lot of time trying to figure out why insgorund debug logs are missing
 	// during execution of functests.
-	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gw")
+	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gwp")
 	stdout, _ = cmd.StdoutPipe()
 
 	stderr, err = cmd.StderrPipe()

@@ -22,12 +22,16 @@ package builtin
 import (
 	"github.com/pkg/errors"
 
+	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
+
 	XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	XXX_artifacts "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
+	XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
-	return map[string]XXX_insolar.ContractWrapper{}
+	return map[string]XXX_insolar.ContractWrapper{
+		"testwallet": testwallet.Initialize(),
+	}
 }
 
 func shouldLoadRef(strRef string) XXX_insolar.Reference {
@@ -39,25 +43,46 @@ func shouldLoadRef(strRef string) XXX_insolar.Reference {
 }
 
 func InitializeCodeRefs() map[XXX_insolar.Reference]string {
-	rv := make(map[XXX_insolar.Reference]string, 0)
+	rv := make(map[XXX_insolar.Reference]string, 1)
+
+	rv[shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")] = "testwallet"
 
 	return rv
 }
 
 func InitializePrototypeRefs() map[XXX_insolar.Reference]string {
-	rv := make(map[XXX_insolar.Reference]string, 0)
+	rv := make(map[XXX_insolar.Reference]string, 1)
+
+	rv[shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")] = "testwallet"
 
 	return rv
 }
 
-func InitializeCodeDescriptors() []XXX_artifacts.CodeDescriptor {
-	rv := make([]XXX_artifacts.CodeDescriptor, 0, 0)
+func InitializeCodeDescriptors() []XXX_descriptor.CodeDescriptor {
+	rv := make([]XXX_descriptor.CodeDescriptor, 0, 1)
+
+	// testwallet
+	rv = append(rv, XXX_descriptor.NewCodeDescriptor(
+		/* code:        */ nil,
+		/* machineType: */ XXX_insolar.MachineTypeBuiltin,
+		/* ref:         */ shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record"),
+	))
 
 	return rv
 }
 
-func InitializePrototypeDescriptors() []XXX_artifacts.PrototypeDescriptor {
-	rv := make([]XXX_artifacts.PrototypeDescriptor, 0, 0)
+func InitializePrototypeDescriptors() []XXX_descriptor.PrototypeDescriptor {
+	rv := make([]XXX_descriptor.PrototypeDescriptor, 0, 1)
+
+	{ // testwallet
+		pRef := shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+		cRef := shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")
+		rv = append(rv, XXX_descriptor.NewPrototypeDescriptor(
+			/* head:         */ pRef,
+			/* state:        */ *pRef.GetLocal(),
+			/* code:         */ cRef,
+		))
+	}
 
 	return rv
 }

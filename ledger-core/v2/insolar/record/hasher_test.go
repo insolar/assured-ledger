@@ -10,9 +10,10 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHashVirtual(t *testing.T) {

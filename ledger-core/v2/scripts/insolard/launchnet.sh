@@ -176,6 +176,8 @@ create_required_dirs()
     mkdir -p ${DISCOVERY_NODES_DATA}certs
     mkdir -p ${CONFIGS_DIR}
 
+    mkdir -p ${PULSAR_DATA_DIR}
+
     mkdir -p ${INSGORUND_LOGS}
     touch $INSGORUND_PORT_FILE
     { set +x; } 2>/dev/null
@@ -305,7 +307,7 @@ process_input_params()
     # it must be manually reset between multiple calls to getopts
     # within the same shell invocation if a new set of parameters is to be used
     OPTIND=1
-    while getopts "h?ngblwC" opt; do
+    while getopts "h?ngblwpC" opt; do
         case "$opt" in
         h|\?)
             usage
@@ -330,6 +332,9 @@ process_input_params()
             ;;
         w)
             watch_pulse=false
+            ;;
+        p)
+            run_pulsar=false
             ;;
         C)
             generate_insolard_configs
@@ -441,19 +446,24 @@ bootstrap()
 
 run_insgorund=true
 watch_pulse=true
+run_pulsar=true
 check_working_dir
 process_input_params $@
 
 kill_all
 trap 'stop_all' INT TERM EXIT
 
-echo "start pulsar ..."
-echo "   log: ${LAUNCHNET_LOGS_DIR}pulsar_output.log"
-set -x
-mkdir -p ${PULSAR_DATA_DIR}
-${PULSARD} -c ${PULSAR_CONFIG} &> ${LAUNCHNET_LOGS_DIR}pulsar_output.log &
-{ set +x; } 2>/dev/null
-echo "pulsar log: ${LAUNCHNET_LOGS_DIR}pulsar_output.log"
+if [[ "$run_pulsar" == "true" ]]
+then
+    echo "start pulsar ..."
+    echo "   log: ${LAUNCHNET_LOGS_DIR}pulsar_output.log"
+    set -x
+    ${PULSARD} -c ${PULSAR_CONFIG} &> ${LAUNCHNET_LOGS_DIR}pulsar_output.log &
+    { set +x; } 2>/dev/null
+    echo "pulsar log: ${LAUNCHNET_LOGS_DIR}pulsar_output.log"
+else
+    echo "Skip launching of pulsar"
+fi
 
 launch_keeperd
 
@@ -480,7 +490,8 @@ trap 'handle_sigchld' SIGCHLD
 
 echo "start heavy node"
 set -x
-$INSOLARD full-node single-process \
+$INSOLARD test node \
+    --role=heavy_material \
     --config ${DISCOVERY_NODES_DATA}1/insolard.yaml \
     --heavy-genesis ${HEAVY_GENESIS_CONFIG_FILE} \
     2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}1/output.log > /dev/null &
@@ -491,8 +502,18 @@ echo "log: ${DISCOVERY_NODE_LOGS}1/output.log"
 echo "start discovery nodes ..."
 for i in `seq 2 $NUM_DISCOVERY_NODES`
 do
+    ROLE=""
+    # even - lme, odd - vm
+    if [ $((i%2)) -eq 0 ]
+    then
+      ROLE="virtual"
+    else
+      ROLE="light_material"
+    fi
+
     set -x
-    $INSOLARD full-node single-process \
+    $INSOLARD test node \
+        --role=${ROLE} \
         --config ${DISCOVERY_NODES_DATA}${i}/insolard.yaml \
         2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}${i}/output.log > /dev/null &
     { set +x; } 2>/dev/null

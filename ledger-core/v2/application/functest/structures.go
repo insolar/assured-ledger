@@ -25,3 +25,43 @@ func unmarshalCreateWalletResponse(resp []byte) (createWalletResponse, error) { 
 	}
 	return result, nil
 }
+
+// nolint:unused,deadcode
+type getWalletBalanceRequestBody struct {
+	Ref string `json:"walletRef"`
+}
+
+// nolint:unused,deadcode
+type getWalletBalanceResponse struct {
+	Err     error  `json:"error"`
+	Amount  int    `json:"amount"`
+	TraceID string `json:"traceID"`
+}
+
+func unmarshalGetWalletBalanceResponse(resp []byte) (getWalletBalanceResponse, error) { // nolint:unused,deadcode
+	result := getWalletBalanceResponse{}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return getWalletBalanceResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+	}
+	return result, nil
+}
+
+// nolint:unused,deadcode
+type walletAddAmountRequestBody struct {
+	To     string `json:"to"`
+	Amount uint   `json:"amount"`
+}
+
+// nolint:unused
+type walletAddAmountResponse struct {
+	Err     error  `json:"error"`
+	TraceID string `json:"traceID"`
+}
+
+func unmarshalWalletAddAmountResponse(resp []byte) (walletAddAmountResponse, error) { // nolint:unused,deadcode
+	result := walletAddAmountResponse{}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return walletAddAmountResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+	}
+	return result, nil
+}

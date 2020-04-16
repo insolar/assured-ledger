@@ -1034,65 +1034,6 @@ func New() (*Two, error) {
 	require.Contains(t, resp.Result.Error.Error(), "Epic fail in two.New()")
 }
 
-func TestGetParent(t *testing.T) {
-	launchnet.RunOnlyWithLaunchnet(t)
-	var contractOneCode = `
- package main
-
- import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
-	two "github.com/insolar/assured-ledger/ledger-core/v2/application/proxy/get_parent_two"
- )
-
- type One struct {
-	foundation.BaseContract
- }
-
-
-func New() (*One, error) {
-	return &One{}, nil
-}
-
-var INSATTR_AddChildAndReturnMyselfAsParent_API = true
-func (r *One) AddChildAndReturnMyselfAsParent() (string, error) {
-	holder := two.New()
-	friend, err := holder.AsChild(r.GetReference())
-	if err != nil {
-		return "", err
-	}
-
- 	return friend.GetParent()
-}
-`
-	var contractTwoCode = `
-package main
-
-import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
-)
-
-type Two struct {
-	foundation.BaseContract
-}
-
-func New() (*Two, error) {
-	return &Two{}, nil
-}
-
-var INSATTR_GetParent_API = true
-func (r *Two) GetParent() (string, error) {
-	return r.GetContext().Parent.String(), nil
-}
-`
-
-	uploadContractOnce(t, "get_parent_two", contractTwoCode)
-	obj := callConstructor(t, uploadContractOnce(t, "get_parent_one", contractOneCode), "New")
-
-	resp := callMethod(t, obj, "AddChildAndReturnMyselfAsParent")
-	require.Empty(t, resp.Error)
-	require.Equal(t, obj.String(), resp.ExtractedReply)
-}
-
 // TODO need to move it into jepsen tests
 func TestGinsiderMustDieAfterInsolardError(t *testing.T) {
 	// can't kill LR in launch.sh from functest
