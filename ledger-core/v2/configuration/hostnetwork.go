@@ -17,12 +17,13 @@ type Transport struct {
 
 // HostNetwork holds configuration for HostNetwork
 type HostNetwork struct {
-	Transport           Transport
-	MinTimeout          int   // bootstrap timeout min
-	MaxTimeout          int   // bootstrap timeout max
-	TimeoutMult         int   // bootstrap timout multiplier
-	SignMessages        bool  // signing a messages if true
-	HandshakeSessionTTL int32 // ms
+	Transport            Transport
+	MinTimeout           int   // bootstrap timeout min
+	MaxTimeout           int   // bootstrap timeout max
+	TimeoutMult          int   // bootstrap timout multiplier
+	SignMessages         bool  // signing a messages if true
+	HandshakeSessionTTL  int32 // ms
+	PulseWatchdogTimeout int32 // seconds
 }
 
 // NewHostNetwork creates new default HostNetwork configuration
@@ -31,11 +32,12 @@ func NewHostNetwork() HostNetwork {
 	transport := Transport{Protocol: "TCP", Address: "127.0.0.1:0"}
 
 	return HostNetwork{
-		Transport:           transport,
-		MinTimeout:          10,
-		MaxTimeout:          2000,
-		TimeoutMult:         2,
-		SignMessages:        false,
-		HandshakeSessionTTL: 5000,
+		Transport:            transport,
+		MinTimeout:           10,
+		MaxTimeout:           2000,
+		TimeoutMult:          2,
+		SignMessages:         false,
+		HandshakeSessionTTL:  5000,
+		PulseWatchdogTimeout: 30,
 	}
 }

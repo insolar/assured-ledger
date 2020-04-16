@@ -89,7 +89,9 @@ fi
 for i in `seq 1 $NUM_NODES`
 do
     set -x
-    $INSOLARD_CMD full-node single-process \
+    role="${ROLES[$i]//\"}"
+    $INSOLARD_CMD test node \
+        --role ${role} \
         --config ${NODES_DATA}${i}/insolard.yaml \
         &> ${NODES_LOGS}${i}/output.log &
     { set +x; } 2>/dev/null

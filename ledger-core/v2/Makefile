@@ -55,7 +55,7 @@ clean: ## run all cleanup tasks
 
 .PHONY: install-build-tools
 install-build-tools: ## install tools for codegen
-	./scripts/build/ls-tools.go | xargs -tI % go install -v %
+	go run ./scripts/build/ls-tools.go | xargs -tI % go install -v %
 
 .PHONY: pre-build
 pre-build: install-build-tools generate regen-builtin ## install dependencies, (re)generates all code

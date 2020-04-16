@@ -32,7 +32,7 @@ func NotImplemented() error {
 // Impossible is to indicate that the point can never be reached.
 // This error captures the topmost entry of caller's stack.
 func Impossible() error {
-	return newMsg("not implemented", 0)
+	return newMsg("impossible", 0)
 }
 
 // FailsHere creates an error that captures the topmost entry of caller's stack.

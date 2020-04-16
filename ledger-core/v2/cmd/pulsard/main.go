@@ -38,12 +38,14 @@ import (
 
 type inputParams struct {
 	configPath string
+	oneShot    bool
 }
 
 func parseInputParams() inputParams {
 	var rootCmd = &cobra.Command{Use: "pulsard --config=<path to config>"}
 	var result inputParams
 	rootCmd.Flags().StringVarP(&result.configPath, "config", "c", "", "path to config file")
+	rootCmd.Flags().BoolVarP(&result.oneShot, "one-shot", "o", false, "send one pulse and die")
 	rootCmd.AddCommand(version.GetCommand("pulsard"))
 	err := rootCmd.Execute()
 	if err != nil {
@@ -104,6 +106,22 @@ func main() {
 	}
 
 	cm, server := initPulsar(ctx, pCfg)
+
+	if params.oneShot {
+		nextPulseNumber := pulse.OfNow()
+		err := server.Send(ctx, nextPulseNumber)
+		if err != nil {
+			panic(err)
+		}
+		// it's required since pulse is sent in goroutine
+		time.Sleep(time.Second * 10)
+		err = cm.Stop(ctx)
+		if err != nil {
+			inslog.Error(err)
+		}
+		return
+	}
+
 	pulseTicker := runPulsar(ctx, server, pCfg.Pulsar)
 
 	defer func() {

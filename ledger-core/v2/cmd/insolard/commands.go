@@ -9,146 +9,156 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func fullNodeIsolatedCommand() *cobra.Command {
-	var (
-		configPath        string
-		genesisConfigPath string
-	)
+const (
+	configFlag       = "config"
+	roleFlag         = "role"
+	heavyGenesisFlag = "heavy-genesis"
+)
+
+func appProcessCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "isolated",
-		Short: "start full node in isolated mode",
-		Run: func(cmd *cobra.Command, args []string) {
-			// todo: implement mode
-			global.Fatal("command isolated is not implemented")
-		},
-	}
-	c.PersistentFlags().StringVarP(
-		&configPath, "config", "c", "", "path to config")
-	c.Flags().StringVar(
-		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
-
-	c.MarkFlagRequired("config") // nolint
-	return c
-}
-
-func fullNodeSingleProcessCommand() *cobra.Command {
-	var (
-		configPath        string
-		genesisConfigPath string
-	)
-	c := &cobra.Command{
-		Use:   "single-process",
-		Short: "start full node in single process mode",
-		Run: func(cmd *cobra.Command, args []string) {
-			global.Info("Starting full-node in single-process mode")
-			runInsolardServer(configPath, genesisConfigPath)
-		},
-	}
-	c.Flags().StringVarP(
-		&configPath, "config", "c", "", "path to config")
-	c.Flags().StringVar(
-		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
-	return c
-}
-
-func fullNodeCommand() *cobra.Command {
-	c := &cobra.Command{
-		Use:   "full-node",
-		Short: "description",
-	}
-
-	c.AddCommand(fullNodeIsolatedCommand(), fullNodeSingleProcessCommand())
-	return c
-}
-
-func testAppHeavyCommand() *cobra.Command {
-	var (
-		configPath        string
-		genesisConfigPath string
-		bridgePort        uint
-	)
-	c := &cobra.Command{
-		Use:   "heavy",
-		Short: "Start only application logic with Heavy role",
-		Run: func(cmd *cobra.Command, args []string) {
-			// todo: implement mode
-			global.Fatal("command test-network is not implemented")
-		},
-	}
-	c.Flags().StringVarP(
-		&configPath, "config", "c", "", "path to bootstrap config")
-	c.Flags().StringVar(
-		&genesisConfigPath, "heavy-genesis", "", "path to genesis config for heavy node")
-	c.Flags().UintVar(
-		&bridgePort, "bridge-port", 0, "bridge port for Net <-> App connection")
-	return c
-}
-
-func testAppVirtualCommand() *cobra.Command {
-	var (
-		configPath string
-		bridgePort uint
-	)
-	c := &cobra.Command{
-		Use:   "virtual",
-		Short: "Start only application logic with Virtual role",
-		Run: func(cmd *cobra.Command, args []string) {
-			// todo: implement mode
-			global.Fatal("subcommand virtual is not implemented")
-		},
-	}
-	c.Flags().StringVarP(
-		&configPath, "config", "c", "", "path to bootstrap config")
-	c.Flags().UintVar(
-		&bridgePort, "bridge-port", 0, "bridge port for Net <-> App connection")
-	return c
-}
-
-func appCommand() *cobra.Command {
-	c := &cobra.Command{
-		Use:   "app",
+		Use:   "app-process",
 		Short: "Start only application logic, connect to separated network process",
+		Run: func(cmd *cobra.Command, args []string) {
+			// todo: implement mode
+			global.Fatalm(throw.NotImplemented())
+		},
+	}
+
+	return c
+}
+
+func nodeCommand() *cobra.Command {
+	var (
+		role              string
+		genesisConfigPath string
+		passive           bool
+		pipelinePort      uint
+	)
+	c := &cobra.Command{
+		Use:   "node",
+		Short: "Run node in production two-processes  mode",
+		Run: func(cmd *cobra.Command, args []string) {
+			// todo: implement mode
+
+			global.Info(cmd.Flag(configFlag).Value.String())
+			global.Fatalm(throw.NotImplemented())
+		},
+	}
+
+	c.PersistentFlags().StringVarP(
+		&role, roleFlag, "r", "", "set static role")
+
+	c.PersistentFlags().StringVar(
+		&genesisConfigPath, heavyGenesisFlag, "", "path to genesis config for heavy node")
+
+	c.PersistentFlags().UintVar(
+		&pipelinePort, "pipeline-port", 0, "port for connection between node processes")
+
+	c.LocalFlags().BoolVar(
+		&passive, "passive", false, "passive help text")
+
+	c.MarkFlagRequired(roleFlag) // nolint
+
+	c.AddCommand(appProcessCommand())
+	return c
+}
+
+func testCloudCommand() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "cloud",
+		Short: "",
+		Run: func(cmd *cobra.Command, args []string) {
+			// todo: implement mode
+			global.Fatalm(throw.NotImplemented())
+		},
+	}
+	return c
+}
+
+func testNodeCommand() *cobra.Command {
+	var (
+		role              string
+		genesisConfigPath string
+	)
+	c := &cobra.Command{
+		Use:   "node",
+		Short: "Run node in single-process mode",
+		Run: func(cmd *cobra.Command, args []string) {
+			global.Info("Starting node in single-process mode")
+			runInsolardServer(cmd.Flag(configFlag).Value.String(), genesisConfigPath, role)
+		},
+	}
+
+	c.PersistentFlags().StringVarP(
+		&role, roleFlag, "r", "", "set static role")
+	c.MarkFlagRequired(roleFlag) // nolint
+
+	c.PersistentFlags().StringVar(
+		&genesisConfigPath, heavyGenesisFlag, "", "path to genesis config for heavy node")
+
+	return c
+}
+
+func testHeadlessCommand() *cobra.Command {
+	c := &cobra.Command{
+		Use:   "headless",
+		Short: "Run node in headless mode",
+		Run: func(cmd *cobra.Command, args []string) {
+			runHeadlessNetwork(cmd.Flag(configFlag).Value.String())
+		},
+	}
+	c.MarkFlagRequired("config") // nolint
+
+	return c
+}
+
+func testCommands() *cobra.Command {
+	c := &cobra.Command{
+		Use: "test",
 	}
 	c.AddCommand(
-		testAppHeavyCommand(),
-		testAppVirtualCommand(),
+		testCloudCommand(),
+		testNodeCommand(),
+		testHeadlessCommand(),
 	)
 	return c
 }
 
-func netCommand() *cobra.Command {
-	var (
-		configPath string
-		bridgePort uint
-		isHeadless bool
-	)
+func configGenerateCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "net",
-		Short: "Start only network and consensus logic",
+		Use:   "generate",
+		Short: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
-			global.Fatal("command net is not implemented")
+			global.Fatalm(throw.NotImplemented())
 		},
 	}
-	c.Flags().StringVarP(
-		&configPath, "config", "c", "", "path to bootstrap config")
-	c.Flags().BoolVar(
-		&isHeadless, "headless", false, "dir with certificate files")
-	c.Flags().UintVar(
-		&bridgePort, "bridge-port", 0, "bridge port for Net <-> App connection")
 	return c
 }
 
-func testNetworkCommand() *cobra.Command {
+func configValidateCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "test-network",
-		Short: "Start multi-role configuration with mocked network for debug and test purpose",
+		Use:   "validate",
+		Short: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
-			global.Fatal("command test-network is not implemented")
+			global.Fatalm(throw.NotImplemented())
 		},
 	}
+	return c
+}
+
+func configCommands() *cobra.Command {
+	c := &cobra.Command{
+		Use: "config",
+	}
+	c.AddCommand(
+		configGenerateCommand(),
+		configValidateCommand(),
+	)
 	return c
 }

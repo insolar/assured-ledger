@@ -71,12 +71,6 @@ type GatewayMock struct {
 	beforeOnPulseFromConsensusCounter uint64
 	OnPulseFromConsensusMock          mGatewayMockOnPulseFromConsensus
 
-	funcOnPulseFromPulsar          func(ctx context.Context, p1 insolar.Pulse, r1 mm_network.ReceivedPacket)
-	inspectFuncOnPulseFromPulsar   func(ctx context.Context, p1 insolar.Pulse, r1 mm_network.ReceivedPacket)
-	afterOnPulseFromPulsarCounter  uint64
-	beforeOnPulseFromPulsarCounter uint64
-	OnPulseFromPulsarMock          mGatewayMockOnPulseFromPulsar
-
 	funcRun          func(ctx context.Context, pulse insolar.Pulse)
 	inspectFuncRun   func(ctx context.Context, pulse insolar.Pulse)
 	afterRunCounter  uint64
@@ -120,9 +114,6 @@ func NewGatewayMock(t minimock.Tester) *GatewayMock {
 
 	m.OnPulseFromConsensusMock = mGatewayMockOnPulseFromConsensus{mock: m}
 	m.OnPulseFromConsensusMock.callArgs = []*GatewayMockOnPulseFromConsensusParams{}
-
-	m.OnPulseFromPulsarMock = mGatewayMockOnPulseFromPulsar{mock: m}
-	m.OnPulseFromPulsarMock.callArgs = []*GatewayMockOnPulseFromPulsarParams{}
 
 	m.RunMock = mGatewayMockRun{mock: m}
 	m.RunMock.callArgs = []*GatewayMockRunParams{}
@@ -1745,195 +1736,6 @@ func (m *GatewayMock) MinimockOnPulseFromConsensusInspect() {
 	}
 }
 
-type mGatewayMockOnPulseFromPulsar struct {
-	mock               *GatewayMock
-	defaultExpectation *GatewayMockOnPulseFromPulsarExpectation
-	expectations       []*GatewayMockOnPulseFromPulsarExpectation
-
-	callArgs []*GatewayMockOnPulseFromPulsarParams
-	mutex    sync.RWMutex
-}
-
-// GatewayMockOnPulseFromPulsarExpectation specifies expectation struct of the Gateway.OnPulseFromPulsar
-type GatewayMockOnPulseFromPulsarExpectation struct {
-	mock   *GatewayMock
-	params *GatewayMockOnPulseFromPulsarParams
-
-	Counter uint64
-}
-
-// GatewayMockOnPulseFromPulsarParams contains parameters of the Gateway.OnPulseFromPulsar
-type GatewayMockOnPulseFromPulsarParams struct {
-	ctx context.Context
-	p1  insolar.Pulse
-	r1  mm_network.ReceivedPacket
-}
-
-// Expect sets up expected params for Gateway.OnPulseFromPulsar
-func (mmOnPulseFromPulsar *mGatewayMockOnPulseFromPulsar) Expect(ctx context.Context, p1 insolar.Pulse, r1 mm_network.ReceivedPacket) *mGatewayMockOnPulseFromPulsar {
-	if mmOnPulseFromPulsar.mock.funcOnPulseFromPulsar != nil {
-		mmOnPulseFromPulsar.mock.t.Fatalf("GatewayMock.OnPulseFromPulsar mock is already set by Set")
-	}
-
-	if mmOnPulseFromPulsar.defaultExpectation == nil {
-		mmOnPulseFromPulsar.defaultExpectation = &GatewayMockOnPulseFromPulsarExpectation{}
-	}
-
-	mmOnPulseFromPulsar.defaultExpectation.params = &GatewayMockOnPulseFromPulsarParams{ctx, p1, r1}
-	for _, e := range mmOnPulseFromPulsar.expectations {
-		if minimock.Equal(e.params, mmOnPulseFromPulsar.defaultExpectation.params) {
-			mmOnPulseFromPulsar.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmOnPulseFromPulsar.defaultExpectation.params)
-		}
-	}
-
-	return mmOnPulseFromPulsar
-}
-
-// Inspect accepts an inspector function that has same arguments as the Gateway.OnPulseFromPulsar
-func (mmOnPulseFromPulsar *mGatewayMockOnPulseFromPulsar) Inspect(f func(ctx context.Context, p1 insolar.Pulse, r1 mm_network.ReceivedPacket)) *mGatewayMockOnPulseFromPulsar {
-	if mmOnPulseFromPulsar.mock.inspectFuncOnPulseFromPulsar != nil {
-		mmOnPulseFromPulsar.mock.t.Fatalf("Inspect function is already set for GatewayMock.OnPulseFromPulsar")
-	}
-
-	mmOnPulseFromPulsar.mock.inspectFuncOnPulseFromPulsar = f
-
-	return mmOnPulseFromPulsar
-}
-
-// Return sets up results that will be returned by Gateway.OnPulseFromPulsar
-func (mmOnPulseFromPulsar *mGatewayMockOnPulseFromPulsar) Return() *GatewayMock {
-	if mmOnPulseFromPulsar.mock.funcOnPulseFromPulsar != nil {
-		mmOnPulseFromPulsar.mock.t.Fatalf("GatewayMock.OnPulseFromPulsar mock is already set by Set")
-	}
-
-	if mmOnPulseFromPulsar.defaultExpectation == nil {
-		mmOnPulseFromPulsar.defaultExpectation = &GatewayMockOnPulseFromPulsarExpectation{mock: mmOnPulseFromPulsar.mock}
-	}
-
-	return mmOnPulseFromPulsar.mock
-}
-
-//Set uses given function f to mock the Gateway.OnPulseFromPulsar method
-func (mmOnPulseFromPulsar *mGatewayMockOnPulseFromPulsar) Set(f func(ctx context.Context, p1 insolar.Pulse, r1 mm_network.ReceivedPacket)) *GatewayMock {
-	if mmOnPulseFromPulsar.defaultExpectation != nil {
-		mmOnPulseFromPulsar.mock.t.Fatalf("Default expectation is already set for the Gateway.OnPulseFromPulsar method")
-	}
-
-	if len(mmOnPulseFromPulsar.expectations) > 0 {
-		mmOnPulseFromPulsar.mock.t.Fatalf("Some expectations are already set for the Gateway.OnPulseFromPulsar method")
-	}
-
-	mmOnPulseFromPulsar.mock.funcOnPulseFromPulsar = f
-	return mmOnPulseFromPulsar.mock
-}
-
-// OnPulseFromPulsar implements network.Gateway
-func (mmOnPulseFromPulsar *GatewayMock) OnPulseFromPulsar(ctx context.Context, p1 insolar.Pulse, r1 mm_network.ReceivedPacket) {
-	mm_atomic.AddUint64(&mmOnPulseFromPulsar.beforeOnPulseFromPulsarCounter, 1)
-	defer mm_atomic.AddUint64(&mmOnPulseFromPulsar.afterOnPulseFromPulsarCounter, 1)
-
-	if mmOnPulseFromPulsar.inspectFuncOnPulseFromPulsar != nil {
-		mmOnPulseFromPulsar.inspectFuncOnPulseFromPulsar(ctx, p1, r1)
-	}
-
-	mm_params := &GatewayMockOnPulseFromPulsarParams{ctx, p1, r1}
-
-	// Record call args
-	mmOnPulseFromPulsar.OnPulseFromPulsarMock.mutex.Lock()
-	mmOnPulseFromPulsar.OnPulseFromPulsarMock.callArgs = append(mmOnPulseFromPulsar.OnPulseFromPulsarMock.callArgs, mm_params)
-	mmOnPulseFromPulsar.OnPulseFromPulsarMock.mutex.Unlock()
-
-	for _, e := range mmOnPulseFromPulsar.OnPulseFromPulsarMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmOnPulseFromPulsar.OnPulseFromPulsarMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmOnPulseFromPulsar.OnPulseFromPulsarMock.defaultExpectation.Counter, 1)
-		mm_want := mmOnPulseFromPulsar.OnPulseFromPulsarMock.defaultExpectation.params
-		mm_got := GatewayMockOnPulseFromPulsarParams{ctx, p1, r1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmOnPulseFromPulsar.t.Errorf("GatewayMock.OnPulseFromPulsar got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmOnPulseFromPulsar.funcOnPulseFromPulsar != nil {
-		mmOnPulseFromPulsar.funcOnPulseFromPulsar(ctx, p1, r1)
-		return
-	}
-	mmOnPulseFromPulsar.t.Fatalf("Unexpected call to GatewayMock.OnPulseFromPulsar. %v %v %v", ctx, p1, r1)
-
-}
-
-// OnPulseFromPulsarAfterCounter returns a count of finished GatewayMock.OnPulseFromPulsar invocations
-func (mmOnPulseFromPulsar *GatewayMock) OnPulseFromPulsarAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmOnPulseFromPulsar.afterOnPulseFromPulsarCounter)
-}
-
-// OnPulseFromPulsarBeforeCounter returns a count of GatewayMock.OnPulseFromPulsar invocations
-func (mmOnPulseFromPulsar *GatewayMock) OnPulseFromPulsarBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmOnPulseFromPulsar.beforeOnPulseFromPulsarCounter)
-}
-
-// Calls returns a list of arguments used in each call to GatewayMock.OnPulseFromPulsar.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmOnPulseFromPulsar *mGatewayMockOnPulseFromPulsar) Calls() []*GatewayMockOnPulseFromPulsarParams {
-	mmOnPulseFromPulsar.mutex.RLock()
-
-	argCopy := make([]*GatewayMockOnPulseFromPulsarParams, len(mmOnPulseFromPulsar.callArgs))
-	copy(argCopy, mmOnPulseFromPulsar.callArgs)
-
-	mmOnPulseFromPulsar.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockOnPulseFromPulsarDone returns true if the count of the OnPulseFromPulsar invocations corresponds
-// the number of defined expectations
-func (m *GatewayMock) MinimockOnPulseFromPulsarDone() bool {
-	for _, e := range m.OnPulseFromPulsarMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.OnPulseFromPulsarMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterOnPulseFromPulsarCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcOnPulseFromPulsar != nil && mm_atomic.LoadUint64(&m.afterOnPulseFromPulsarCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockOnPulseFromPulsarInspect logs each unmet expectation
-func (m *GatewayMock) MinimockOnPulseFromPulsarInspect() {
-	for _, e := range m.OnPulseFromPulsarMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to GatewayMock.OnPulseFromPulsar with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.OnPulseFromPulsarMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterOnPulseFromPulsarCounter) < 1 {
-		if m.OnPulseFromPulsarMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to GatewayMock.OnPulseFromPulsar")
-		} else {
-			m.t.Errorf("Expected call to GatewayMock.OnPulseFromPulsar with params: %#v", *m.OnPulseFromPulsarMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcOnPulseFromPulsar != nil && mm_atomic.LoadUint64(&m.afterOnPulseFromPulsarCounter) < 1 {
-		m.t.Error("Expected call to GatewayMock.OnPulseFromPulsar")
-	}
-}
-
 type mGatewayMockRun struct {
 	mock               *GatewayMock
 	defaultExpectation *GatewayMockRunExpectation
@@ -2333,8 +2135,6 @@ func (m *GatewayMock) MinimockFinish() {
 
 		m.MinimockOnPulseFromConsensusInspect()
 
-		m.MinimockOnPulseFromPulsarInspect()
-
 		m.MinimockRunInspect()
 
 		m.MinimockUpdateStateInspect()
@@ -2370,7 +2170,6 @@ func (m *GatewayMock) minimockDone() bool {
 		m.MinimockNewGatewayDone() &&
 		m.MinimockOnConsensusFinishedDone() &&
 		m.MinimockOnPulseFromConsensusDone() &&
-		m.MinimockOnPulseFromPulsarDone() &&
 		m.MinimockRunDone() &&
 		m.MinimockUpdateStateDone()
 }
