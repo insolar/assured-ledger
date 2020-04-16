@@ -27,8 +27,8 @@ func TestWalletAddAmount(t *testing.T) {
 	resp, err := unmarshalWalletAddAmountResponse(rawResp)
 	require.NoError(t, err, "failed to unmarshal response")
 
-	assert.Empty(t, resp.Err, "problem during execute request")
-	assert.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
+	require.Empty(t, resp.Err, "problem during execute request")
+	require.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
 }
 
 // Creates wallet and calls /wallet/add_amount concurrently.

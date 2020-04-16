@@ -18,7 +18,7 @@ import (
 func TestWalletCreate(t *testing.T) {
 	status := getStatus(t)
 	require.NotEqual(t, 0, status.WorkingListSize, "not enough nodes to run test")
-	count := 50 * status.WorkingListSize // 250 for 5 nodes
+	count := 50 * status.WorkingListSize
 
 	t.Run(fmt.Sprintf("count=%d", count), func(t *testing.T) {
 		for i := 0; i < count; i++ {

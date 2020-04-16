@@ -27,7 +27,7 @@ func TestWalletGetBalance(t *testing.T) {
 	resp, err := unmarshalGetWalletBalanceResponse(rawResp)
 	require.NoError(t, err, "failed to unmarshal response")
 
-	assert.Empty(t, resp.Err, "problem during execute request")
+	require.Empty(t, resp.Err, "problem during execute request")
 	assert.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
 	assert.Equal(t, 1000, resp.Amount, "wrong amount")
 }

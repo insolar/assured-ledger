@@ -28,10 +28,12 @@ const (
 	requestTimeout = 30 * time.Second
 	contentType    = "Content-Type"
 
-	defaultHost          = "127.0.0.1"
-	walletCreatePath     = "/wallet/create"
-	walletGetBalancePath = "/wallet/get_balance"
-	walletAddAmountPath  = "/wallet/add_amount"
+	defaultHost = "127.0.0.1"
+	walletPath  = "/wallet"
+
+	walletCreatePath     = walletPath + "/create"
+	walletGetBalancePath = walletPath + "/get_balance"
+	walletAddAmountPath  = walletPath + "/add_amount"
 )
 
 func init() {
