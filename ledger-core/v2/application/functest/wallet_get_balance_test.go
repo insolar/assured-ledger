@@ -38,8 +38,14 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 	require.NoError(t, err, "failed to create wallet")
 
 	var wg sync.WaitGroup
-
 	count := 10 // Number of concurrent requests per node.
+
+	type result struct {
+		balance int
+		err     error
+	}
+	responses := make([]result, 0, count*len(nodesPorts))
+
 	for i := 0; i < count; i++ {
 		for _, port := range nodesPorts {
 			wg.Add(1)
@@ -48,11 +54,16 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 
 				getBalanceURL := getURL(walletGetBalancePath, "", port)
 				balance, err := getWalletBalance(getBalanceURL, walletRef)
-				assert.NoError(t, err)
-				assert.Equal(t, 1000, balance, "wrong balance amount")
+				// testing.T isn't goroutine save, so that we will check responses in main goroutine
+				responses = append(responses, result{balance: balance, err: err})
 			}(&wg, port)
 		}
 	}
 
 	wg.Wait()
+
+	for _, res := range responses {
+		assert.NoError(t, res.err)
+		assert.Equal(t, 1000, res.balance, "wrong balance amount")
+	}
 }

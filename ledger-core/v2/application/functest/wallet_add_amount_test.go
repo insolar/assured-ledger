@@ -36,10 +36,10 @@ func TestWalletAddAmountConcurrently(t *testing.T) {
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
-	// Data doesn't transfer from node to node, so all requests will be send to one node.
 	var wg sync.WaitGroup
-
 	count := 10 // Number of concurrent requests per node.
+	responses := make([]error, 0, count*len(nodesPorts))
+
 	for i := 0; i < count; i++ {
 		for _, port := range nodesPorts {
 			wg.Add(1)
@@ -48,10 +48,15 @@ func TestWalletAddAmountConcurrently(t *testing.T) {
 
 				addAmountURL := getURL(walletAddAmountPath, "", port)
 				err := addAmountToWallet(addAmountURL, walletRef, 100)
-				assert.NoError(t, err)
+				// testing.T isn't goroutine save, so that we will check responses in main goroutine
+				responses = append(responses, err)
 			}(&wg, port)
 		}
 	}
 
 	wg.Wait()
+
+	for _, res := range responses {
+		assert.NoError(t, res)
+	}
 }
