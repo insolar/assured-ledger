@@ -25,17 +25,22 @@ import (
 const cmdName = "insolard"
 
 func main() {
+	var (
+		configPath string
+	)
 	var rootCmd = &cobra.Command{
 		Use:     cmdName,
 		Version: version.GetFullVersion(),
 	}
 	rootCmd.AddCommand(
-		fullNodeCommand(),
-		appCommand(),
-		netCommand(),
-		testNetworkCommand(),
+		nodeCommand(),
+		testCommands(),
+		configCommands(),
 		version.GetCommand(cmdName),
 	)
+
+	rootCmd.PersistentFlags().StringVarP(&configPath, configFlag, "c", "", "path to config")
+	rootCmd.MarkPersistentFlagRequired("config") // nolint
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -46,12 +51,16 @@ func main() {
 // psAgentLauncher is a stub for gops agent launcher (available with 'debug' build tag)
 var psAgentLauncher = func() error { return nil }
 
-func runInsolardServer(configPath string, genesisConfigPath string) {
+func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
-	role, err := readRole(configPath)
+	certRole, err := readRoleFromCertificate(configPath)
 	if err != nil {
 		global.Fatal(errors.Wrap(err, "readRole failed"))
+	}
+	role := insolar.GetStaticRoleFromString(roleString)
+	if role != certRole {
+		global.Fatal("Role from certificate and role from flag must be equal")
 	}
 
 	if err := psAgentLauncher(); err != nil {
@@ -71,7 +80,17 @@ func runInsolardServer(configPath string, genesisConfigPath string) {
 	}
 }
 
-func readRole(path string) (insolar.StaticRole, error) {
+func runHeadlessNetwork(configPath string) {
+	jww.SetStdoutThreshold(jww.LevelDebug)
+
+	if err := psAgentLauncher(); err != nil {
+		global.Warnf("Failed to launch gops agent: %s", err)
+	}
+
+	server.NewHeadlessNetworkNodeServer(configPath).Serve()
+}
+
+func readRoleFromCertificate(path string) (insolar.StaticRole, error) {
 	var err error
 	cfg := configuration.NewHolder(path)
 
