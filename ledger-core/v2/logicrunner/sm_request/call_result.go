@@ -38,18 +38,13 @@ func (s *StateMachineCallResult) Init(ctx smachine.InitializationContext) smachi
 }
 
 func (s *StateMachineCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var barginAlias string
-	switch s.Payload.CallType {
-	case payload.CTMethod:
-		barginAlias = "waiting for call result" // TODO make better
-	case payload.CTConstructor:
-		outgoingRef := *insolar.NewGlobalReference(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
-		barginAlias = outgoingRef.String()
-	default:
+	if s.Payload.CallType != payload.CTMethod && s.Payload.CallType != payload.CTConstructor {
 		panic(throw.IllegalValue())
 	}
 
-	link, bgin := ctx.GetPublishedGlobalAliasAndBargeIn(barginAlias)
+	outgoingRef := *insolar.NewGlobalReference(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
+
+	link, bgin := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	if link.IsZero() {
 		// TODO: log
 		return ctx.Stop()

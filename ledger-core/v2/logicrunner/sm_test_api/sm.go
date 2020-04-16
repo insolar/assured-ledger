@@ -28,10 +28,7 @@ type TestApiCallSMDeclaration struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func GetApiCaller() *insolar.Reference {
-	caller, _ := insolar.NewObjectReferenceFromString("insolar:1F5rFXwPMobzCzgQ7DeXwLOJj7VPaKmQMuc2ktAAAAAQ") // choosed by fairly random
-	return caller
-}
+var ApiCaller, _ = insolar.NewObjectReferenceFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
 func (TestApiCallSMDeclaration) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
 	s := sm.(*TestApiCallSM)
@@ -63,19 +60,13 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	}
 
 	var obj insolar.Reference
-	var barginAlias string
 	switch s.requestPayload.CallType {
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee
-		barginAlias = "waiting for call result" // TODO make better
 	case payload.CTConstructor:
-		s.requestPayload.Caller = *GetApiCaller()
-
+		s.requestPayload.Caller = *ApiCaller
 		s.requestPayload.CallOutgoing = gen.ID()
 		obj = *insolar.NewGlobalReference(s.requestPayload.CallOutgoing, s.requestPayload.CallOutgoing)
-
-		outgoingRef := *insolar.NewGlobalReference(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
-		barginAlias = outgoingRef.String()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -93,10 +84,11 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	})
 
-	ctx.PublishGlobalAliasAndBargeIn(barginAlias, bgin)
+	outgoingRef := *insolar.NewGlobalReference(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
+	ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bgin)
 
 	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
-		svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, obj) // как посчетать obj для CTConstructor
+		svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, obj)
 	}).Send()
 
 	return ctx.Sleep().ThenJump(s.stepProcessResult)

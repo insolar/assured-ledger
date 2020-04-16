@@ -30,9 +30,9 @@ func TestKeys(t *testing.T) {
 			require.False(t, ref == refCopy, i)
 
 			interned := m.Put(ref, ValueLocator(i))
-			//if interned != nil && refCopy != nil {
+			// if interned != nil && refCopy != nil {
 			count++
-			//}
+			// }
 			require.True(t, m.Contains(ref), i)
 			{
 				refLocalAlt := makeLocal(j + 1e7)
