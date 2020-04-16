@@ -25,12 +25,11 @@ func TestWalletTransfer(t *testing.T) {
 	require.NoError(t, err, "failed to create wallet")
 
 	transferURL := getURL(walletTransferPath, "", "")
-	rawResp, err := sendAPIRequest(transferURL, walletTransferRequestBody{From: walletRefFrom, To: walletRefTo, Amount: 100})
+	rawResp, err := sendAPIRequest(transferURL, walletTransferRequestBody{From: walletRefFrom, To: walletRefTo, Amount: uint(transferAmount)})
 	require.NoError(t, err, "failed to send request or get response body")
 
 	resp, err := unmarshalWalletTransferResponse(rawResp)
 	require.NoError(t, err, "failed to unmarshal response")
-
 	require.Empty(t, resp.Err, "problem during execute request")
 	assert.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
 
