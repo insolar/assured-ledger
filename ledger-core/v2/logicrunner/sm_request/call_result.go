@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_request
+package sm_request // nolint:golint
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -45,22 +45,15 @@ func (s *StateMachineCallResult) stepProcess(ctx smachine.ExecutionContext) smac
 	outgoingRef := reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
 	link, bgin := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	if link.IsZero() {
-		// TODO: log
-		return ctx.Stop()
+		return ctx.Error(throw.E("no one is waiting", struct{ smachine.SlotLink }{link}))
 	}
 	if bgin == nil {
-		// TODO: log
-		return ctx.Stop()
-	}
-	if !bgin.IsValid() {
-		// TODO: log
-		return ctx.Stop()
+		return ctx.Error(throw.E("impossible situation ", struct{ smachine.BargeInHolder }{bgin}))
 	}
 
 	done := bgin.CallWithParam(s.Payload)
 	if !done {
-		// TODO: log
-		return ctx.Stop()
+		return ctx.Error(throw.E("no one is waiting anymore", struct{ *payload.VCallResult }{s.Payload}))
 	}
 
 	return ctx.Stop()

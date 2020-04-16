@@ -109,7 +109,7 @@ func NewConveyorDispatcher(conveyor *conveyor.PulseConveyor) dispatcher.Dispatch
 	return &conveyorDispatcher{conveyor: conveyor}
 }
 
-type TestApiCall struct {
+type TestAPICall struct {
 	Payload payload.VCallRequest
 	Response chan payload.VCallResult
 }

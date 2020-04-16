@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package sm_test_api
+package sm_test_api // nolint:golint
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type TestApiCallSM struct {
+type TestAPICallSM struct {
 	requestPayload  payload.VCallRequest
 	responsePayload payload.VCallResult
 
@@ -28,34 +28,34 @@ type TestApiCallSM struct {
 	sender    *s_sender.SenderServiceAdapter
 }
 
-type TestApiCallSMDeclaration struct {
+type TestAPICallSMDeclaration struct {
 	smachine.StateMachineDeclTemplate
 }
 
-var ApiCaller, _ = insolar.NewObjectReferenceFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+var APICaller, _ = insolar.NewObjectReferenceFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
-func (TestApiCallSMDeclaration) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
-	s := sm.(*TestApiCallSM)
+func (TestAPICallSMDeclaration) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+	s := sm.(*TestAPICallSM)
 	return s.Init
 }
 
-func (*TestApiCallSMDeclaration) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
-	s := sm.(*TestApiCallSM)
+func (*TestAPICallSMDeclaration) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := sm.(*TestAPICallSM)
 
 	injector.MustInject(&s.sender)
 }
 
-var testApiCallSMDeclarationInstance smachine.StateMachineDeclaration = &TestApiCallSMDeclaration{}
+var testAPICallSMDeclarationInstance smachine.StateMachineDeclaration = &TestAPICallSMDeclaration{}
 
-func (s *TestApiCallSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
-	return testApiCallSMDeclarationInstance
+func (s *TestAPICallSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return testAPICallSMDeclarationInstance
 }
 
-func (s *TestApiCallSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (s *TestAPICallSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	return ctx.Jump(s.stepSendRequest)
 }
 
-func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *TestAPICallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	goCtx := ctx.GetContext()
 
 	msg, err := payload.NewMessage(&s.requestPayload)
@@ -68,7 +68,7 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee
 	case payload.CTConstructor:
-		s.requestPayload.Caller = *ApiCaller
+		s.requestPayload.Caller = *APICaller
 		s.requestPayload.CallOutgoing = gen.IDWithPulse(s.PulseSlot.PulseData().PulseNumber)
 		obj = reference.NewGlobalSelf(s.requestPayload.CallOutgoing)
 	default:
@@ -98,7 +98,7 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	return ctx.Sleep().ThenJump(s.stepProcessResult)
 }
 
-func (s *TestApiCallSM) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *TestAPICallSM) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	reChan := s.response
 	go func() {

@@ -20,7 +20,7 @@ func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.
 	switch inputConverted := input.(type) {
 	case *common.DispatcherMessage:
 		return sm_request.HandlerFactoryMeta(inputConverted)
-	case *common.TestApiCall:
+	case *common.TestAPICall:
 		return sm_test_api.Handler(inputConverted)
 	// case *sm_execute_request.SMEventSendOutgoing:
 	// 	return sm_execute_request.HandlerFactoryOutgoingSender(inputConverted)
