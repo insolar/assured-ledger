@@ -71,6 +71,30 @@ To test Insolar locally, install it and deploy as described below.
      * `-c`: Number of concurrent threads in which requests are sent.
      * `-r`: Number of transfer requests to be sent in each thread.
 
+## Run single node
+
+We use two-process approach for running node in production.
+Time-critical consensus and network algorithms runs in the first process with high priority and resources quota.
+The other node components run in the second process.
+
+You have two options to run Insolar node in production:
+ * first process manage the second
+ * each process are managed separately
+ 
+The first scenario might be used in systemd service script
+```
+insolard config generate --role=virtual -c ./node.conf
+insolard node --role=virtual -c ./node.conf
+```
+
+The second scenario might be used in Kubernetes deployment.
+You must provide --passive flag for the first process and --pipeline-port for connection between processes.
+```
+insolard config generate --role=virtual -c ./node.conf
+insolard node --passive --role=virtual -c ./node.conf --pipeline-port=8989
+insolard node app-process --role=virtual -c ./node.conf --pipeline-port=8989
+```
+
 # Contribute!
 
 Feel free to submit issues, fork the repository and send pull requests! 
