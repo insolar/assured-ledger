@@ -32,9 +32,9 @@ func (p *PeerMap) get(a nwapi.Address) (uint32, *Peer) {
 
 func mapId(a nwapi.Address) nwapi.Address {
 	if a.IsLoopback() {
-		return a
+		return a.WithoutName()
 	}
-	return a.HostOnly()
+	return a.HostIdentity()
 }
 
 func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []nwapi.Address) ([]nwapi.Address, error) {

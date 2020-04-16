@@ -20,4 +20,5 @@ type Peer interface {
 	SetProtoInfo(pt ProtocolType, info io.Closer)
 	GetProtoInfo(pt ProtocolType) io.Closer
 	GetOrCreateProtoInfo(pt ProtocolType, factoryFn func(Peer) io.Closer) io.Closer
+	Transport() OutTransport
 }

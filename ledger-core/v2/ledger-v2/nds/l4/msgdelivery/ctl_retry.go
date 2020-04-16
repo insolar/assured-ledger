@@ -6,54 +6,54 @@
 package msgdelivery
 
 import (
-	"math"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type retrySender struct {
 	retries retries.StagedController
-
-	ttl0 ttlAge
-	ttl1 ttlAge
-	ttlN ttlAge
+	heads   msgMap
+	bodies  msgMap
 }
 
-func (p *retrySender) Send(to *DeliveryPeer, msg *msgShipment) {
-	id := to.NextShipmentId()
-	msg.id = id
-	msg.peer = to.outbound
+func (p *retrySender) _sendHead(msg *msgShipment, sz uint) {
+	p.heads.put(msg)
 
-	switch msg.shipment.TTL {
-	case 0:
-		p.ttl0.put(msg)
-	case 1:
-		p.ttl1.put(msg)
-	default:
-		p.ttlN.put(msg)
+	rid := retries.RetryID(msg.id)
+	if msg.isImmediateSend() || !p.retries.Add(rid, sz, p) {
+		msg.sendHead(false)
+		p.retries.AddHeadForRetry(rid)
 	}
+}
 
-	wt := math.MaxInt64
-	if msg.allowsBatching() {
-		wt = msg.getBatchWeight()
-	}
+func (p *retrySender) _sendBody(msg *msgShipment) {
+	p.heads.delete(msg.id)
+	p.bodies.put(msg)
 
-	if id := retries.RetryID(msg.id); !p.retries.Add(id, wt, p) {
-		msg.send(false)
-		p.retries.AddForRetry(id)
-	}
+	msg.sendBody(false)
+	p.retries.AddBodyForRetry(retries.RetryID(msg.id))
 }
 
 func (p *retrySender) Retry(ids []retries.RetryID, repeatFn func([]retries.RetryID)) {
 	j := 0
 	for i, id := range ids {
-		msg := p.get(ShipmentID(id))
-		if msg == nil || msg.checkState() != retries.KeepRetrying {
+
+		switch msg := p.getHeads(ShipmentID(id)); {
+		case msg == nil:
+			switch msg := p.getBodies(ShipmentID(id)); {
+			case msg == nil:
+				continue
+			case msg.getBodyRetryState() == retries.KeepRetrying:
+				msg.sendBody(true)
+			default:
+				continue
+			}
+		case msg.getHeadRetryState() == retries.KeepRetrying:
+			msg.sendHead(true)
+		default:
 			continue
 		}
-		msg.send(true)
 		if j != i {
 			ids[j] = id
 		}
@@ -66,74 +66,69 @@ func (p *retrySender) Retry(ids []retries.RetryID, repeatFn func([]retries.Retry
 }
 
 func (p *retrySender) CheckState(id retries.RetryID) retries.RetryState {
-	if msg := p.get(ShipmentID(id)); msg != nil {
-		return msg.checkState()
+	if msg := p.getHeads(ShipmentID(id)); msg != nil {
+		return msg.getHeadRetryState()
+	}
+	if msg := p.getBodies(ShipmentID(id)); msg != nil {
+		return msg.getBodyRetryState()
 	}
 	return retries.RemoveCompletely
 }
 
+func (p *retrySender) getHeads(shid ShipmentID) *msgShipment {
+	return p.heads.get(shid)
+}
+
+func (p *retrySender) getBodies(shid ShipmentID) *msgShipment {
+	return p.bodies.get(shid)
+}
+
 func (p *retrySender) get(shid ShipmentID) *msgShipment {
-	if msg := p.ttl0.get(shid); msg != nil {
+	if msg := p.heads.get(shid); msg != nil {
 		return msg
 	}
-	if msg := p.ttl1.get(shid); msg != nil {
-		return msg
-	}
-	if msg := p.ttlN.get(shid); msg != nil {
-		return msg
-	}
-	return nil
+	return p.bodies.get(shid)
 }
 
 func (p *retrySender) Remove(ids []retries.RetryID) {
-	if len(ids) == 0 {
-		return
-	}
-	if ids = p.ttl0.deleteAllAndShrink(ids); len(ids) == 0 {
-		return
-	}
-	if ids = p.ttl1.deleteAllAndShrink(ids); len(ids) == 0 {
-		return
-	}
-	p.ttlN.deleteAll(ids)
+	ids = p.heads.deleteAllAndShrink(ids)
+	p.bodies.deleteAll(ids)
 }
 
-func (p *retrySender) NextCycle() {
+func (p *retrySender) NextTimeCycle() {
 	p.retries.NextCycle(p)
-}
-
-func (p *retrySender) NextTTLCycle() {
-	p.ttl1.moveTo(&p.ttl0)
-	p.ttlN.flushTo(&p.ttl0, 1)
 }
 
 /**********************************/
 
-type ttlAge struct {
+type msgMap struct {
 	mx sync.RWMutex
 	mp map[ShipmentID]*msgShipment
 }
 
-func (p *ttlAge) put(msg *msgShipment) {
+func (p *msgMap) put(msg *msgShipment) {
 	p.mx.Lock()
 	p.mp[msg.id] = msg
 	p.mx.Unlock()
 }
 
-func (p *ttlAge) get(id ShipmentID) *msgShipment {
+func (p *msgMap) get(id ShipmentID) *msgShipment {
 	p.mx.RLock()
 	msg := p.mp[id]
 	p.mx.RUnlock()
 	return msg
 }
 
-func (p *ttlAge) delete(id ShipmentID) {
+func (p *msgMap) delete(id ShipmentID) {
 	p.mx.Lock()
 	delete(p.mp, id)
 	p.mx.Unlock()
 }
 
-func (p *ttlAge) deleteAll(ids []retries.RetryID) {
+func (p *msgMap) deleteAll(ids []retries.RetryID) {
+	if len(ids) == 0 {
+		return
+	}
 	p.mx.Lock()
 	for _, id := range ids {
 		delete(p.mp, ShipmentID(id))
@@ -141,18 +136,7 @@ func (p *ttlAge) deleteAll(ids []retries.RetryID) {
 	p.mx.Unlock()
 }
 
-func (p *ttlAge) markReceived(id ShipmentID) bool {
-	p.mx.RLock()
-	msg := p.mp[id]
-	p.mx.RUnlock()
-	if msg == nil {
-		return false
-	}
-	msg.markAck()
-	return true
-}
-
-func (p *ttlAge) deleteAllAndShrink(ids []retries.RetryID) []retries.RetryID {
+func (p *msgMap) deleteAllAndShrink(ids []retries.RetryID) []retries.RetryID {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -171,58 +155,4 @@ func (p *ttlAge) deleteAllAndShrink(ids []retries.RetryID) []retries.RetryID {
 	}
 	p.mx.Unlock()
 	return ids[:j]
-}
-
-func (p *ttlAge) flushTo(ttl0 *ttlAge, lowCut uint8) {
-	p.mx.Lock()
-	defer p.mx.Unlock()
-
-	ttl0.mx.Lock()
-	defer ttl0.mx.Unlock()
-
-	for id, msg := range p.mp {
-		if msg.shipment.TTL > lowCut {
-			msg.shipment.TTL--
-			continue
-		}
-		delete(p.mp, id)
-		ttl0.mp[id] = msg
-	}
-}
-
-func (p *ttlAge) moveTo(ttl0 *ttlAge) {
-	if ttl0 == nil {
-		panic(throw.IllegalValue())
-	}
-
-	p.mx.Lock()
-	if n := len(p.mp); n > 0 {
-		ttl0.mx.Lock()
-		ttl0.mp = p.mp
-		ttl0.mx.Unlock()
-
-		p.mp = make(map[ShipmentID]*msgShipment, n)
-		p.mx.Unlock()
-		return
-	}
-	p.mp = nil
-	p.mx.Unlock()
-
-	ttl0.flushAll()
-}
-
-func (p *ttlAge) flushAll() {
-	p.mx.Lock()
-	defer p.mx.Unlock()
-
-	switch n := len(p.mp); {
-	case n == 0:
-		//
-	case n > 32:
-		p.mp = make(map[ShipmentID]*msgShipment, n)
-	default:
-		for id, _ := range p.mp {
-			delete(p.mp, id)
-		}
-	}
 }

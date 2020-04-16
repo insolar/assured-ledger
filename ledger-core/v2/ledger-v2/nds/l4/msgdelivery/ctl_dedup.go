@@ -6,7 +6,6 @@
 package msgdelivery
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -15,7 +14,6 @@ type DedupId uint32
 const maxReceiveWindow = 1 << 16
 
 type receiveDeduplicator struct {
-	pn            pulse.Number
 	maxReceived   DedupId
 	received      map[DedupId]struct{}
 	minReceived   DedupId // >= minContinuous

@@ -62,12 +62,14 @@ func (p *DeliveryPeer) addToStatePacket(needed int, fn func(*StatePacket)) {
 		fn(&p.prepared)
 		packet := p.prepared
 		p.prepared = StatePacket{}
-		p._sendState(packet)
+		// TODO "go" is insecure because sender can potentially flood us
+		go p.sendState(packet)
 	default:
 		packet := p.prepared
 		p.prepared = StatePacket{}
 		fn(&p.prepared)
-		p._sendState(packet)
+		// TODO "go" is insecure because sender can potentially flood us
+		go p.sendState(packet)
 	}
 }
 
@@ -100,10 +102,25 @@ func (p *DeliveryPeer) sendBodyRq(id ShortShipmentID) {
 	packet := p.prepared
 	p.prepared = StatePacket{}
 	packet.BodyRq = id
-	p._sendState(packet)
+	p.sendState(packet)
 }
 
-func (p *DeliveryPeer) _sendState(packet StatePacket) {
+func (p *DeliveryPeer) sendState(packet StatePacket) {
+	if !p.isValid() {
+		return
+	}
+	// TODO send
+	p.peer.Transport()
+}
+
+func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody bool) {
+	if !p.isValid() {
+		return
+	}
+	// TODO send
+}
+
+func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment) {
 	if !p.isValid() {
 		return
 	}

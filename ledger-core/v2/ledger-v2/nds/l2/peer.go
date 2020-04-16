@@ -181,3 +181,7 @@ func (p *Peer) GetProtoInfo(pt uniproto.ProtocolType) io.Closer {
 	defer p.transport.mutex.RUnlock()
 	return p.protoInfo[pt]
 }
+
+func (p *Peer) Transport() uniproto.OutTransport {
+	return &p.transport
+}

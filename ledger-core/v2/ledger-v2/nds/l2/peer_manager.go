@@ -292,11 +292,19 @@ func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostId) (bool, error)
 }
 
 func (p *PeerManager) ConnectTo(remote nwapi.Address) (uniproto.OutTransport, error) {
+	peer, err := p.connectPeer(remote)
+	if peer == nil {
+		return nil, err
+	}
+	return &peer.transport, err
+}
+
+func (p *PeerManager) connectPeer(remote nwapi.Address) (*Peer, error) {
 	switch peer, err := p.peerNotLocal(remote); {
 	case err != nil:
 		return nil, err
 	case peer != nil:
-		return &peer.transport, nil
+		return peer, nil
 	}
 
 	p.peerMutex.Lock()
@@ -312,10 +320,50 @@ func (p *PeerManager) ConnectTo(remote nwapi.Address) (uniproto.OutTransport, er
 	if err = peer.transport.EnsureConnect(); err != nil {
 		return nil, err
 	}
-	return &peer.transport, nil
+	return peer, nil
 }
 
 func (p *PeerManager) GetDecrypter(*Peer) cryptkit.Decrypter {
 	sk := p.Local().GetSignatureKey()
 	return p.sigFactory.CreateDataDecrypter(sk)
+}
+
+/****************************/
+
+var _ uniproto.PeerManager = &facadePeerManager{}
+
+type facadePeerManager struct {
+	peerManager    *PeerManager
+	maxSessionless uint
+	maxSmall       uint
+}
+
+func (v facadePeerManager) ConnectPeer(address nwapi.Address) (uniproto.Peer, error) {
+	switch peer, err := v.peerManager.connectPeer(address); {
+	case peer != nil:
+		return peer, err
+	case err != nil:
+		return nil, err
+	default:
+		return nil, throw.Impossible()
+	}
+}
+
+func (v facadePeerManager) ConnectedPeer(address nwapi.Address) (uniproto.Peer, error) {
+	switch peer, err := v.peerManager.peerNotLocal(address); {
+	case err != nil:
+		return nil, err
+	case peer != nil:
+		return peer, nil
+	default:
+		return nil, throw.Impossible()
+	}
+}
+
+func (v facadePeerManager) MaxSessionlessPayloadSize() uint {
+	return v.maxSessionless
+}
+
+func (v facadePeerManager) MaxSmallPayloadSize() uint {
+	return v.maxSmall
 }

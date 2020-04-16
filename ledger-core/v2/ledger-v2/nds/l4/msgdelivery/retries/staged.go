@@ -16,9 +16,11 @@ const RetryStages = 3
 type RetryID uint64
 
 type StagedController struct {
-	batch          batch
-	minBatchWeight int
-	stages         [RetryStages]retryStage
+	batchHeads  batch
+	stages      [RetryStages]retryStage
+	bodiesStage uint8
+
+	minHeadBatchWeight uint
 }
 
 type RetryStrategy interface {
@@ -27,15 +29,15 @@ type RetryStrategy interface {
 	Remove([]RetryID)
 }
 
-func (p *StagedController) InitStages(minBatchWeight int, maxCounts [RetryStages]int) {
+func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetryStages]int, bodiesStage uint8) {
 	switch {
-	case minBatchWeight <= 0:
+	case minHeadBatchWeight <= 0:
 		panic(throw.IllegalValue())
-	case maxCounts[0] <= 0:
+	case periods[0] <= 0:
 		panic(throw.IllegalValue())
 	default:
-		last := maxCounts[0]
-		for _, n := range maxCounts[1:] {
+		last := periods[0]
+		for _, n := range periods[1:] {
 			if last >= n {
 				panic(throw.IllegalValue())
 			}
@@ -43,42 +45,49 @@ func (p *StagedController) InitStages(minBatchWeight int, maxCounts [RetryStages
 		}
 	}
 
-	p.batch.mutex.Lock()
-	defer p.batch.mutex.Unlock()
+	p.batchHeads.mutex.Lock()
+	defer p.batchHeads.mutex.Unlock()
 
-	if p.minBatchWeight != 0 {
+	if p.minHeadBatchWeight != 0 {
 		panic(throw.IllegalState())
 	}
-	p.minBatchWeight = minBatchWeight
-	for i, max := range maxCounts {
+	p.minHeadBatchWeight = minHeadBatchWeight
+	for i, max := range periods {
 		p.stages[i].max = max
 	}
+	_ = p.stages[bodiesStage].max
+	p.bodiesStage = bodiesStage
 }
 
-func (p *StagedController) Add(id RetryID, weight int, strategy RetryStrategy) bool {
-	if weight >= p.minBatchWeight {
+func (p *StagedController) Add(id RetryID, weight uint, strategy RetryStrategy) bool {
+	if weight >= p.minHeadBatchWeight {
 		return false
 	}
-	overflow := p.batch.add(id, weight, p.minBatchWeight)
-	strategy.Retry(overflow, p.batch.addPostList)
+	overflow := p.batchHeads.add(id, weight, p.minHeadBatchWeight)
+	strategy.Retry(overflow, p.batchHeads.addPostList)
 	return true
 }
 
-func (p *StagedController) AddForRetry(id RetryID) {
-	p.batch.addPostSolo(id)
+func (p *StagedController) AddHeadForRetry(id RetryID) {
+	p.batchHeads.addPostSolo(id)
+}
+
+func (p *StagedController) AddBodyForRetry(id RetryID) {
+	p.stages[p.bodiesStage].addPostSolo(id)
 }
 
 func (p *StagedController) NextCycle(strategy RetryStrategy) {
-	preBatch, pushToNext := p.batch.nextCycle()
+	preBatch, pushToNext := p.batchHeads.nextCycle()
 	if len(preBatch) > 0 {
-		strategy.Retry(preBatch, p.batch.addPostList)
+		strategy.Retry(preBatch, p.batchHeads.addPostList)
 	}
 
+	maxStage := len(p.stages) - 1
 	for i, _ := range p.stages {
 		var pre [][]RetryID
 		pre, pushToNext = p.stages[i].nextCycle(pushToNext)
 
-		if i == len(p.stages)-1 && len(pushToNext) > 0 {
+		if i == maxStage && len(pushToNext) > 0 {
 			// last stage pushes to itself
 			pre = append(pre, pushToNext)
 		}
@@ -157,7 +166,7 @@ func (p *stage) addPostSolo(v RetryID) {
 type batch struct {
 	stage
 	pre         []RetryID
-	batchWeight int
+	batchWeight uint
 }
 
 func (p *batch) nextCycle() (pre []RetryID, post []RetryID) {
@@ -175,7 +184,7 @@ func (p *batch) nextCycle() (pre []RetryID, post []RetryID) {
 	return
 }
 
-func (p *batch) add(id RetryID, weight int, sendNowWeight int) []RetryID {
+func (p *batch) add(id RetryID, weight uint, sendNowWeight uint) []RetryID {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -233,4 +242,14 @@ func (p *retryStage) nextCycle(prev []RetryID) (hic [][]RetryID, post []RetryID)
 	post = p.post
 	p.post = nil
 	return
+}
+
+func (p *retryStage) addPreList(v []RetryID) {
+	if len(v) > 0 {
+		return
+	}
+
+	p.mutex.Lock()
+	p.pre = append(p.pre, v)
+	p.mutex.Unlock()
 }

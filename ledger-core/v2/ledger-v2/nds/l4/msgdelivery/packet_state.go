@@ -44,15 +44,24 @@ func NewPacket(tp PacketType) uniproto.Packet {
 // Flags for DeliveryState
 const (
 	BodyRqFlag uniproto.FlagIndex = iota
-	RejectListFlag
+	BodyRqRejectListFlag
 	BodyAckListFlag
+	RejectListFlag
 )
 
 type StatePacket struct {
-	BodyRq      ShortShipmentID   `insolar-transport:"optional=PacketFlags[0]"` //
-	RejectList  []ShortShipmentID `insolar-transport:"optional=PacketFlags[1]"` //
+	// TODO the problem - BodyRq has to be retried
+
+	// From receiver to sender
+	BodyRq ShortShipmentID `insolar-transport:"optional=PacketFlags[0]"` //
+	// From sender to receiver
+	BodyRqRejectList []ShortShipmentID `insolar-transport:"optional=PacketFlags[1]"` // TODO serialization / deser
+	// From receiver to sender
 	BodyAckList []ShortShipmentID `insolar-transport:"optional=PacketFlags[2]"` // TODO serialization / deser
-	AckList     []ShortShipmentID `insolar-transport:"list=nocount"`            // length is determined by packet size
+	// From receiver to sender
+	RejectList []ShortShipmentID `insolar-transport:"optional=PacketFlags[3]"` //
+	// From receiver to sender
+	AckList []ShortShipmentID `insolar-transport:"list=nocount"` // length is determined by packet size
 }
 
 func (p *StatePacket) remainingSpace(maxSize int) int {

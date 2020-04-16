@@ -13,8 +13,15 @@ import (
 type RegisterProtocolFunc func(ProtocolType, Descriptor, ProtocolController)
 type ProtocolRegistrationFunc func(RegisterProtocolFunc)
 type ProtocolController interface {
-	Start(Sender)
+	Start(PeerManager)
 	Stop()
+}
+
+type PeerManager interface {
+	ConnectPeer(nwapi.Address) (Peer, error)
+	ConnectedPeer(nwapi.Address) (Peer, error)
+	MaxSmallPayloadSize() uint
+	MaxSessionlessPayloadSize() uint
 }
 
 type PayloadSerializeFunc func(*SenderPacket, *iokit.LimitedWriter) error

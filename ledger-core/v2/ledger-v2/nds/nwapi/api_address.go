@@ -145,7 +145,7 @@ const (
 )
 
 const (
-	data1isDNS addressFlags = 1 << iota
+	data1isName addressFlags = 1 << iota
 )
 
 func (a Address) IsZero() bool {
@@ -165,14 +165,33 @@ func (a Address) Network() string {
 	}
 }
 
-func (a Address) HostOnly() Address {
-	if a.port == 0 && a.flags&data1isDNS == 0 {
+func (a Address) HostIdentity() Address {
+	if a.port == 0 && a.flags&data1isName == 0 {
 		// optimization
 		return a
 	}
 	a.port = 0
-	a.flags &^= data1isDNS
+	a.flags &^= data1isName
 	a.data1 = ""
+	return a
+}
+
+func (a Address) WithoutName() Address {
+	if a.flags&data1isName == 0 {
+		// optimization
+		return a
+	}
+	a.flags &^= data1isName
+	a.data1 = ""
+	return a
+}
+
+func (a Address) WithoutPort() Address {
+	if a.port == 0 {
+		// optimization
+		return a
+	}
+	a.port = 0
 	return a
 }
 
@@ -458,14 +477,14 @@ func (a Address) isIPv4Prefix() bool {
 }
 
 func (a Address) getIPv6Zone() string {
-	if a.AddrNetwork() == IP && a.flags&data1isDNS == 0 && !a.isIPv4Prefix() {
+	if a.AddrNetwork() == IP && a.flags&data1isName == 0 && !a.isIPv4Prefix() {
 		return string(a.data1)
 	}
 	return ""
 }
 
 func (a Address) HasName() bool {
-	return a.AddrNetwork() == DNS || a.flags&data1isDNS != 0
+	return a.AddrNetwork() == DNS || a.flags&data1isName != 0
 }
 
 func (a Address) Name() string {

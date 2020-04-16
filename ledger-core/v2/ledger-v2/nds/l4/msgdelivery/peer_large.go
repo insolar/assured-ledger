@@ -5,5 +5,5 @@
 
 package msgdelivery
 
-type largeSender struct {
+type resendLarge struct {
 }

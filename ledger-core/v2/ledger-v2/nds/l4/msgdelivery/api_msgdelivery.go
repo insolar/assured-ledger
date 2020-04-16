@@ -20,6 +20,8 @@ const (
 	FireAndForget DeliveryPolicies = 1 << iota
 	// ExpectedParcel indicates that receiver expects this shipment, and the shipment should be delivered as head+body
 	ExpectedParcel
+
+	largeBody
 )
 
 //type TransportResult uint8
