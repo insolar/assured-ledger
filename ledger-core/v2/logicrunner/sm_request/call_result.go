@@ -7,8 +7,8 @@ package sm_request
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -42,8 +42,7 @@ func (s *StateMachineCallResult) stepProcess(ctx smachine.ExecutionContext) smac
 		panic(throw.IllegalValue())
 	}
 
-	outgoingRef := *insolar.NewGlobalReference(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
-
+	outgoingRef := reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
 	link, bgin := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	if link.IsZero() {
 		// TODO: log

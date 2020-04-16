@@ -6,11 +6,13 @@
 package sm_test_api
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_sender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -21,7 +23,9 @@ type TestApiCallSM struct {
 
 	response chan payload.VCallResult
 
-	sender *s_sender.SenderServiceAdapter
+	// injected arguments
+	PulseSlot *conveyor.PulseSlot
+	sender    *s_sender.SenderServiceAdapter
 }
 
 type TestApiCallSMDeclaration struct {
@@ -65,8 +69,8 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		obj = s.requestPayload.Callee
 	case payload.CTConstructor:
 		s.requestPayload.Caller = *ApiCaller
-		s.requestPayload.CallOutgoing = gen.ID()
-		obj = *insolar.NewGlobalReference(s.requestPayload.CallOutgoing, s.requestPayload.CallOutgoing)
+		s.requestPayload.CallOutgoing = gen.IDWithPulse(s.PulseSlot.PulseData().PulseNumber)
+		obj = reference.NewGlobalSelf(s.requestPayload.CallOutgoing)
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -84,7 +88,7 @@ func (s *TestApiCallSM) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	})
 
-	outgoingRef := *insolar.NewGlobalReference(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
+	outgoingRef := reference.NewGlobal(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
 	ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bgin)
 
 	s.sender.PrepareNotify(ctx, func(svc s_sender.SenderService) {
