@@ -189,7 +189,7 @@ func initComponents(
 		virtualDispatcher,
 		runnerService,
 		APIWrapper,
-		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
+		testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, pulses),
 		availabilityChecker,
 		nw,
 		pm,

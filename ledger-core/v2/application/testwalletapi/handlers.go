@@ -11,39 +11,96 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func mustConvertMapToJSON(data map[string]interface{}) []byte {
-	jsonString, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		panic(err)
-	}
+type logIncomingRequest struct {
+	*log.Msg `txt:"Incoming request"`
 
-	return jsonString
+	URL string
 }
 
 const (
 	traceIDField = "traceID"
-	errorField   = "error"
 )
 
-func create(w http.ResponseWriter, req *http.Request) {
-	traceID := utils.RandTraceID()
-	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
-	inslog.Info("Incoming request: ", req.URL)
+type TestWalletServerCreateResult struct {
+	Reference string `json:"reference"`
+	TraceID   string `json:"traceID"`
+	Error     string `json:"error"`
+}
 
-	result := map[string]interface{}{
-		"reference":  gen.Reference().String(),
-		traceIDField: traceID,
-		errorField:   nil,
+type TestWalletServerTransferResult struct {
+	TraceID string `json:"traceID"`
+	Error   string `json:"error"`
+}
+
+type TestWalletServerGetBalanceResult struct {
+	Amount  uint   `json:"amount"`
+	TraceID string `json:"traceID"`
+	Error   string `json:"error"`
+}
+
+type TestWalletServerAddAmountResult struct {
+	TraceID string `json:"traceID"`
+	Error   string `json:"error"`
+}
+
+func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
+	var (
+		ctx     = context.Background()
+		traceID = utils.RandTraceID()
+		logger  = inslogger.FromContext(ctx)
+	)
+
+	logger.Infom(logIncomingRequest{URL: req.URL.String()})
+
+	result := TestWalletServerCreateResult{
+		Reference: "",
+		TraceID:   traceID,
+		Error:     "",
 	}
-	rawJSON := mustConvertMapToJSON(result)
-	_, err := w.Write(rawJSON)
+	defer func() { s.mustWriteResult(w, result) }()
+
+	empty, _ := insolar.Serialize(struct{}{})
+
+	walletReq := payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		Callee:              gen.Reference(),
+		Arguments:           empty,
+		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteMethod:      create,
+	}
+
+	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		panic(err)
+		result.Error = err.Error()
+		return
+	}
+
+	var (
+		ref             insolar.Reference
+		contractCallErr *foundation.Error
+	)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
+	switch {
+	case err != nil:
+		result.Error = errors.Wrap(err, "Failed to unmarshal request").Error()
+	case contractCallErr != nil:
+		result.Error = contractCallErr.S
+	default:
+		result.Reference = ref.String()
 	}
 }
 
@@ -59,10 +116,13 @@ func (t *TransferParams) isValid() bool {
 
 const badRequestErrorPattern = "%s. " + traceIDField + ": %s"
 
-func transfer(w http.ResponseWriter, req *http.Request) {
-	traceID := utils.RandTraceID()
-	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
-	inslog.Info("Incoming request: ", req.URL)
+func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
+	var (
+		ctx     = context.Background()
+		traceID = utils.RandTraceID()
+		logger  = inslogger.FromContext(ctx)
+	)
+	logger.Infom(logIncomingRequest{URL: req.URL.String()})
 
 	params := TransferParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -75,16 +135,11 @@ func transfer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	result := map[string]interface{}{
-		traceIDField: traceID,
-		errorField:   nil,
+	result := TestWalletServerTransferResult{
+		TraceID: traceID,
+		Error:   "",
 	}
-
-	rawJSON := mustConvertMapToJSON(result)
-	_, err = w.Write(rawJSON)
-	if err != nil {
-		panic(err)
-	}
+	defer func() { s.mustWriteResult(w, result) }()
 }
 
 type GetBalanceParams struct {
@@ -95,10 +150,14 @@ func (g *GetBalanceParams) isValid() bool {
 	return len(g.WalletRef) > 0
 }
 
-func getBalance(w http.ResponseWriter, req *http.Request) {
-	traceID := utils.RandTraceID()
-	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
-	inslog.Info("Incoming request: ", req.URL)
+func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
+	var (
+		ctx     = context.Background()
+		traceID = utils.RandTraceID()
+		logger  = inslogger.FromContext(ctx)
+	)
+
+	logger.Infom(logIncomingRequest{URL: req.URL.String()})
 
 	params := GetBalanceParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -111,17 +170,12 @@ func getBalance(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	result := map[string]interface{}{
-		"amount":     1000,
-		traceIDField: traceID,
-		errorField:   nil,
+	result := TestWalletServerGetBalanceResult{
+		Amount:  1000,
+		TraceID: traceID,
+		Error:   "",
 	}
-
-	rawJSON := mustConvertMapToJSON(result)
-	_, err = w.Write(rawJSON)
-	if err != nil {
-		panic(err)
-	}
+	defer func() { s.mustWriteResult(w, result) }()
 }
 
 type AddAmountParams struct {
@@ -133,10 +187,14 @@ func (a *AddAmountParams) isValid() bool {
 	return a.Amount > 0 && len(a.To) > 0
 }
 
-func addAmount(w http.ResponseWriter, req *http.Request) {
-	traceID := utils.RandTraceID()
-	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
-	inslog.Info("Incoming request: ", req.URL)
+func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
+	var (
+		ctx     = context.Background()
+		traceID = utils.RandTraceID()
+		logger  = inslogger.FromContext(ctx)
+	)
+
+	logger.Infom(logIncomingRequest{URL: req.URL.String()})
 
 	params := AddAmountParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -149,13 +207,39 @@ func addAmount(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	result := map[string]interface{}{
-		traceIDField: traceID,
-		errorField:   nil,
+	result := TestWalletServerAddAmountResult{
+		TraceID: traceID,
+		Error:   "",
+	}
+	defer func() { s.mustWriteResult(w, result) }()
+}
+
+func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) (*payload.VCallResult, error) {
+	latestPulse, err := s.accessor.Latest(ctx)
+	if err != nil {
+		return nil, throw.W(err, "Failed to get latest pulse", nil)
 	}
 
-	rawJSON := mustConvertMapToJSON(result)
-	_, err = w.Write(rawJSON)
+	call := &statemachine.TestAPICall{
+		Payload:  req,
+		Response: make(chan payload.VCallResult),
+	}
+
+	err = s.feeder.AddInput(ctx, latestPulse.PulseNumber, call)
+	if err != nil {
+		return nil, throw.W(err, "Failed to add call to conveyor", nil)
+	}
+
+	res := <-call.Response
+	return &res, nil
+}
+
+func (s *TestWalletServer) mustWriteResult(w http.ResponseWriter, res interface{}) { // nolint:interfacer
+	resultString, err := s.jsonCodec.Marshal(res)
+	if err != nil {
+		panic(err)
+	}
+	_, err = w.Write(resultString)
 	if err != nil {
 		panic(err)
 	}

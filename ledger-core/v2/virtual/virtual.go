@@ -7,6 +7,7 @@ package virtual
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
@@ -18,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/request"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
@@ -37,7 +37,10 @@ func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.
 	case *testWalletAPIStateMachine.TestAPICall:
 		return testWalletAPIStateMachine.Handler(event)
 	default:
-		panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
+		// TODO[bigbes] commented until panics will show description
+		// panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
+		panic(fmt.Sprintf("unknown event type %T", input))
+
 	}
 }
 
@@ -101,4 +104,8 @@ func (lr *Dispatcher) Stop(_ context.Context) error {
 	lr.ConveyorWorker.Stop()
 
 	return nil
+}
+
+func (lr *Dispatcher) AddInput(ctx context.Context, pulse pulse.Number, msg interface{}) error {
+	return lr.Conveyor.AddInput(ctx, pulse, msg)
 }

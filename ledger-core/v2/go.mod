@@ -27,6 +27,7 @@ require (
 	github.com/insolar/rpc v1.2.2-0.20190812143745-c27e1d218f1f
 	github.com/insolar/x-crypto v0.0.0-20191031140942-75fab8a325f6
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
+	github.com/json-iterator/go v1.1.6
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect

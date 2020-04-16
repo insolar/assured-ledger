@@ -125,7 +125,7 @@ func createSimpleWallet() (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal response")
 	}
-	if resp.Err != nil {
+	if resp.Err != "" {
 		return "", errors.Wrap(err, "problem during execute request")
 	}
 	return resp.Ref, nil
@@ -142,7 +142,7 @@ func getWalletBalance(url, ref string) (int, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to unmarshal response")
 	}
-	if resp.Err != nil {
+	if resp.Err != "" {
 		return 0, errors.Wrap(err, "problem during execute request")
 	}
 	return resp.Amount, nil
@@ -159,7 +159,7 @@ func addAmountToWallet(url, ref string, amount uint) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal response")
 	}
-	if resp.Err != nil {
+	if resp.Err != "" {
 		return errors.Wrap(err, "problem during execute request")
 	}
 	return nil

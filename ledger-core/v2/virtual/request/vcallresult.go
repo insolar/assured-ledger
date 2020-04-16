@@ -51,6 +51,7 @@ func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.Stat
 	}
 
 	outgoingRef := reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
+
 	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	if link.IsZero() {
 		return ctx.Error(throw.E("no one is waiting", nil))

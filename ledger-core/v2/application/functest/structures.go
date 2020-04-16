@@ -13,7 +13,7 @@ import (
 
 // nolint:unused
 type walletCreateResponse struct {
-	Err     error  `json:"error"`
+	Err     string `json:"error"`
 	Ref     string `json:"reference"`
 	TraceID string `json:"traceID"`
 }
@@ -33,7 +33,7 @@ type walletGetBalanceRequestBody struct {
 
 // nolint:unused,deadcode
 type walletGetBalanceResponse struct {
-	Err     error  `json:"error"`
+	Err     string `json:"error"`
 	Amount  int    `json:"amount"`
 	TraceID string `json:"traceID"`
 }
@@ -54,7 +54,7 @@ type walletAddAmountRequestBody struct {
 
 // nolint:unused
 type walletAddAmountResponse struct {
-	Err     error  `json:"error"`
+	Err     string `json:"error"`
 	TraceID string `json:"traceID"`
 }
 
@@ -75,7 +75,7 @@ type walletTransferRequestBody struct {
 
 // nolint:unused
 type walletTransferResponse struct {
-	Err     error  `json:"error"`
+	Err     string `json:"error"`
 	TraceID string `json:"traceID"`
 }
 
