@@ -161,10 +161,10 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		}
 	}
 
-	if payload.ParcelType == nwapi.BodyPayload {
-		dPeer.addBodyAck(payload.ParcelId)
-	} else {
+	if payload.ParcelType == nwapi.HeadOnlyPayload {
 		dPeer.addAck(payload.ParcelId)
+	} else {
+		dPeer.addBodyAck(payload.ParcelId)
 	}
 
 	if !p.dedup.Add(DedupId(payload.ParcelId)) {

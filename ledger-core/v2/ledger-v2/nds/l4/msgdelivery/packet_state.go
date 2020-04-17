@@ -6,8 +6,7 @@
 package msgdelivery
 
 import (
-	"io"
-
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
@@ -82,58 +81,23 @@ func (p *StatePacket) isEmpty() bool {
 	return len(p.AckList) == 0 && p.BodyRq == 0 && len(p.BodyAckList) == 0 && len(p.RejectList) == 0
 }
 
-func (p *StatePacket) SerializeTo(ctx uniproto.SerializationContext, writer io.Writer) error {
-	packet := NewPacket(DeliveryState)
-
-	size := uint(0)
+func (p *StatePacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.DataSerializerFunc) {
+	packet.Packet = NewPacket(DeliveryState)
 
 	if p.BodyRq != 0 {
 		packet.Header.SetFlag(BodyRqFlag, true)
-		size += ShortShipmentIDByteSize
+		dataSize += ShortShipmentIDByteSize
 	}
 	if n := len(p.RejectList); n > 0 {
 		packet.Header.SetFlag(RejectListFlag, true)
-		size += uint(protokit.SizeVarint64(uint64(n)))
+		dataSize += uint(protokit.SizeVarint64(uint64(n)))
 	}
-	size += uint(len(p.AckList)) * ShortShipmentIDByteSize
-	if size == 0 {
-		return throw.IllegalState()
-	}
+	dataSize += uint(len(p.AckList)) * ShortShipmentIDByteSize
 
-	return packet.SerializeTo(ctx, writer, size, func(writer *iokit.LimitedWriter) error {
-		b := make([]byte, writer.RemainingBytes())
-
-		if p.BodyRq != 0 {
-			p.BodyRq.PutTo(b)
-			b = b[ShortShipmentIDByteSize:]
-		}
-
-		if n := len(p.RejectList); n > 0 {
-			sz := uint(protokit.EncodeVarintToBytes(b, uint64(n)))
-			b = b[sz:]
-
-			for _, id := range p.RejectList {
-				if id == 0 {
-					return throw.IllegalValue()
-				}
-				id.PutTo(b)
-				b = b[ShortShipmentIDByteSize:]
-			}
-		}
-
-		for _, id := range p.AckList {
-			if id == 0 {
-				return throw.IllegalValue()
-			}
-			id.PutTo(b)
-			b = b[ShortShipmentIDByteSize:]
-		}
-		_, err := writer.Write(b)
-		return err
-	})
+	return packet, dataSize, p.SerializePayload
 }
 
-func (p *StatePacket) SerializePayload(sp *uniproto.SenderPacket, writer *iokit.LimitedWriter) error {
+func (p *StatePacket) SerializePayload(_ *uniproto.SendingPacket, writer *iokit.LimitedWriter) error {
 	b := make([]byte, writer.RemainingBytes())
 
 	if p.BodyRq != 0 {
@@ -165,7 +129,7 @@ func (p *StatePacket) SerializePayload(sp *uniproto.SenderPacket, writer *iokit.
 	return err
 }
 
-func (p *StatePacket) DeserializePayload(packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+func (p *StatePacket) DeserializePayload(_ nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 	if reader.RemainingBytes() < ShortShipmentIDByteSize {
 		return throw.IllegalValue()
 	}

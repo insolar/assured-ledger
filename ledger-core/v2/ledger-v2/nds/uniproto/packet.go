@@ -8,6 +8,7 @@ package uniproto
 import (
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
@@ -37,22 +38,17 @@ type Packet struct {
 	*/
 }
 
-func (p *Packet) SerializeTo(ctx SerializationContext, writer io.Writer, dataSize uint, fn func(*iokit.LimitedWriter) error) error {
-	if pn, err := ctx.PrepareHeader(&p.Header, p.PulseNumber); err != nil {
-		return err
-	} else {
-		p.PulseNumber = pn
+func (p *Packet) SerializePayload(packet *SendingPacket, writer io.Writer, dataSize uint, fn func(*iokit.LimitedWriter) error) error {
+	if !pulse.IsValidAsPulseNumber(int(packet.PulseNumber)) {
+		return throw.E("invalid pulse")
 	}
 
-	signer := ctx.GetPayloadSigner()
+	signer := packet.signer.signer
 	hasher := signer.NewHasher()
-	var encrypter cryptkit.Encrypter
-
 	payloadSize := dataSize
 
 	if p.Header.IsBodyEncrypted() {
-		encrypter = ctx.GetPayloadEncrypter()
-		payloadSize += encrypter.GetOverheadSize(payloadSize)
+		payloadSize += packet.encrypter.GetOverheadSize(payloadSize)
 	}
 
 	signatureSize := uint(signer.GetDigestSize())
@@ -66,8 +62,8 @@ func (p *Packet) SerializeTo(ctx SerializationContext, writer io.Writer, dataSiz
 		packetSize = p.Header.SetPayloadLength(uint64(payloadSize))
 	}
 
-	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
-		return err
+	if packet.packetSizeLimit > 0 && packetSize > packet.packetSizeLimit {
+		return throw.E("packet size limit exceeded")
 	}
 
 	teeWriter := iokit.NewLimitedTeeWriterWithSkip(writer, hasher, p.Header.GetHashingZeroPrefix(),
@@ -95,8 +91,8 @@ func (p *Packet) SerializeTo(ctx SerializationContext, writer io.Writer, dataSiz
 		}
 	}
 
-	if encrypter != nil {
-		encWriter := encrypter.NewEncryptingWriter(teeWriter, dataSize)
+	if p.Header.IsBodyEncrypted() {
+		encWriter := packet.encrypter.NewEncryptingWriter(teeWriter, dataSize)
 		teeEncWriter := iokit.LimitWriter(encWriter, int64(dataSize))
 
 		if err := fn(teeEncWriter); err != nil {
@@ -185,80 +181,35 @@ func (p *Packet) VerifyNonExcessivePayload(sv PacketVerifier, b []byte) error {
 	return sv.VerifyWhole(&p.Header, b)
 }
 
-type PayloadDeserializeFunc func(*Packet, *iokit.LimitedReader) error
+type PayloadDeserializeFunc func(nwapi.DeserializationContext, *Packet, *iokit.LimitedReader) error
 
-//func (p *Packet) DeserializeFrom(ctx DeserializationFactory, reader io.Reader, fn PayloadDeserializeFunc) error {
-//
-//	sv := PacketVerifier{ctx.GetPayloadVerifier()}
-//
-//	teeReader := sv.NewHashingReader(&p.Header, nil, reader)
-//
-//	if err := p.DeserializeMinFrom(teeReader); err != nil {
-//		return err
-//	}
-//
-//	readLimit := int64(0)
-//	if limit, err := p.Header.GetPayloadLength(); err != nil {
-//		return err
-//	} else {
-//		readLimit = int64(limit)
-//	}
-//
-//	switch n := int64(sv.GetSignatureSize()); {
-//	case readLimit < n:
-//		return throw.IllegalValue()
-//	case !p.Header.IsExcessiveLength():
-//		readLimit -= n
-//	case readLimit < n<<1:
-//		return throw.IllegalValue()
-//	default:
-//		var err error
-//		if p.HeaderSignature, err = teeReader.ReadAndVerifySignature(sv.verifier); err != nil {
-//			return err
-//		}
-//		readLimit -= n << 1
-//	}
-//
-//	if err := ctx.VerifyHeader(&p.Header, p.PulseNumber); err != nil {
-//		return err
-//	}
-//
-//	if err := p.DeserializePayload(teeReader, readLimit, ctx.GetPayloadDecrypter, fn); err != nil {
-//		return err
-//	}
-//
-//	var err error
-//	p.PacketSignature, err = teeReader.ReadAndVerifySignature(sv.verifier)
-//	return err
-//}
-
-func (p *Packet) DeserializePayload(r io.Reader, readLimit int64, decrypter cryptkit.Decrypter, fn PayloadDeserializeFunc) error {
-	if readLimit > 0 && p.Header.IsBodyEncrypted() {
-		encReader, plainSize := decrypter.NewDecryptingReader(r, uint(readLimit))
-		limitReader := iokit.LimitReader(encReader, int64(plainSize))
-
-		if err := fn(p, limitReader); err != nil {
+func (p *Packet) DeserializePayload(ctx nwapi.DeserializationContext, r io.Reader, readLimit int64, decrypter cryptkit.Decrypter, fn PayloadDeserializeFunc) error {
+	if readLimit == 0 || !p.Header.IsBodyEncrypted() {
+		limitReader := iokit.LimitReader(r, readLimit)
+		if err := fn(ctx, p, limitReader); err != nil {
 			return err
 		}
-		if cr, ok := encReader.(io.Closer); ok {
-			// enables use of AEAD-like encryption with extra data/validation on closing
-			if err := cr.Close(); err != nil {
-				return err
-			}
-		}
-
 		if limitReader.RemainingBytes() != 0 {
 			return throw.IllegalValue()
 		}
 		return nil
-	} else {
-		limitReader := iokit.LimitReader(r, readLimit)
-		if err := fn(p, limitReader); err != nil {
+	}
+
+	encReader, plainSize := decrypter.NewDecryptingReader(r, uint(readLimit))
+	limitReader := iokit.LimitReader(encReader, int64(plainSize))
+
+	if err := fn(ctx, p, limitReader); err != nil {
+		return err
+	}
+	if cr, ok := encReader.(io.Closer); ok {
+		// enables use of AEAD-like encryption with extra data/validation on closing
+		if err := cr.Close(); err != nil {
 			return err
 		}
-		if limitReader.RemainingBytes() != 0 {
-			return throw.IllegalValue()
-		}
+	}
+
+	if limitReader.RemainingBytes() != 0 {
+		return throw.IllegalValue()
 	}
 	return nil
 }

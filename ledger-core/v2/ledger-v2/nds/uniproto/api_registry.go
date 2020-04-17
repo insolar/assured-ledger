@@ -24,10 +24,10 @@ type PeerManager interface {
 	MaxSessionlessPayloadSize() uint
 }
 
-type PayloadSerializeFunc func(*SenderPacket, *iokit.LimitedWriter) error
+type PayloadSerializeFunc func(*SendingPacket, *iokit.LimitedWriter) error
 type PacketSerializeFunc func(*Packet) (int, PayloadSerializeFunc)
 
 type Sender interface {
 	SendTo(nwapi.Address, func(*Packet) PayloadSerializeFunc) error
-	ConnectTo(nwapi.Address, func(*SenderPacket)) error
+	ConnectTo(nwapi.Address, func(*SendingPacket)) error
 }

@@ -41,14 +41,6 @@ type TestProtocolMarshaller struct {
 	ReportErr  error
 }
 
-func (p *TestProtocolMarshaller) GetPayloadEncrypter() cryptkit.Encrypter {
-	panic(throw.Unsupported())
-}
-
-func (p *TestProtocolMarshaller) GetPayloadSigner() cryptkit.DataSigner {
-	return TestDataSigner{}
-}
-
 func (p *TestProtocolMarshaller) PrepareHeader(_ *uniproto.Header, pn pulse.Number) (pulse.Number, error) {
 	return pn, nil
 }
@@ -65,7 +57,7 @@ func (p *TestProtocolMarshaller) ReceiveSmallPacket(packet *uniproto.ReceivedPac
 	p.LastLarge = false
 	//p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(p.LastSigLen)])
 
-	p.LastError = packet.NewSmallPayloadDeserializer(b)(func(packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+	p.LastError = packet.NewSmallPayloadDeserializer(b)(nil, func(_ nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 		b := make([]byte, reader.RemainingBytes())
 		n, err := io.ReadFull(reader, b)
 		p.LastMsg = string(b[:n])
@@ -84,15 +76,7 @@ func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *uniproto.ReceivedPac
 
 	p.LastBytes = nil
 
-	//p.LastBytes = make([]byte, len(preRead)+int(r.N))
-	//copy(p.LastBytes, preRead)
-	//if _, err := io.ReadFull(&r, p.LastBytes[len(preRead):]); err != nil {
-	//	p.LastError = err
-	//	return err
-	//}
-	//p.LastMsg = string(p.LastBytes[packet.GetPayloadOffset() : len(p.LastBytes)-p.LastSigLen])
-
-	p.LastError = packet.NewLargePayloadDeserializer(preRead, r)(func(packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+	p.LastError = packet.NewLargePayloadDeserializer(preRead, r)(nil, func(_ nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 		b := make([]byte, reader.RemainingBytes())
 		n, err := io.ReadFull(reader, b)
 		p.LastMsg = string(b[:n])
@@ -105,14 +89,15 @@ func (p *TestProtocolMarshaller) ReceiveLargePacket(packet *uniproto.ReceivedPac
 }
 
 func (p *TestProtocolMarshaller) SerializeMsg(pt uniproto.ProtocolType, pkt uint8, pn pulse.Number, msg string) []byte {
-	var packet uniproto.Packet
+	packet := uniproto.NewSendingPacket(TestDataSigner{}, nil)
 	packet.Header.SetProtocolType(pt)
 	packet.Header.SetPacketType(pkt)
 	packet.Header.SetRelayRestricted(true)
 	packet.PulseNumber = pn
 
 	buf := bytes.Buffer{}
-	if err := packet.SerializeTo(p, &buf, uint(len(msg)), func(w *iokit.LimitedWriter) error {
+
+	if err := packet.SerializePayload(packet, &buf, uint(len(msg)), func(w *iokit.LimitedWriter) error {
 		_, err := w.Write([]byte(msg))
 		return err
 	}); err != nil {

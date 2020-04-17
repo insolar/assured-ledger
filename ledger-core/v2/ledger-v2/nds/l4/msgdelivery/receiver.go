@@ -10,7 +10,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l2"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -36,19 +35,17 @@ func (p *packetReceiver) receiveDispatcher(packet *uniproto.ReceivedPacket, read
 	switch pt := PacketType(packet.Header.GetPacketType()); pt {
 	case DeliveryState:
 		payload := &StatePacket{}
-		if err = readFn(payload.DeserializePayload); err == nil {
+		if err = readFn(packet.GetContext(p.ctl.factory), payload.DeserializePayload); err == nil {
 			err = p.ctl.receiveState(packet, payload)
 		}
 	case DeliveryParcelHead, DeliveryParcelBody:
 		payload := &ParcelPacket{}
-		if err = readFn(func(pkt *uniproto.Packet, r *iokit.LimitedReader) error {
-			return payload.DeserializePayload(p.ctl.factory, pkt, r)
-		}); err == nil {
+		if err = readFn(packet.GetContext(p.ctl.factory), payload.DeserializePayload); err == nil {
 			err = p.ctl.receiveParcel(packet, payload)
 		}
 	default:
 		err = throw.Impossible()
 	}
-	p.ctl.reportError(throw.WithDetails(err, l2.PacketErrDetails{packet.Header, packet.PulseNumber}))
+	p.ctl.reportError(throw.WithDetails(err, l2.PacketErrDetails{Header: packet.Header, Pulse: packet.PulseNumber}))
 	return err
 }

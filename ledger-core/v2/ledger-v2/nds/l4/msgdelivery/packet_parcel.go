@@ -26,58 +26,56 @@ type ParcelPacket struct {
 const ( // Flags for ParcelPacket
 	ReturnIdFlag uniproto.FlagIndex = iota
 	RepeatedSendFlag
-	WithHeadFlag // for DeliveryParcelBody only
 )
 
-func (p *ParcelPacket) SerializeTo(ctx uniproto.SerializationContext, writer io.Writer) error {
+func (p *ParcelPacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.DataSerializerFunc) {
 	if p.ParcelId == 0 {
-		return throw.IllegalState()
+		panic(throw.IllegalState())
 	}
 
-	packet := NewPacket(DeliveryParcelBody)
+	packet.Packet = NewPacket(DeliveryParcelBody)
 
 	switch p.ParcelType {
 	case nwapi.CompletePayload:
-		packet.Header.SetFlag(WithHeadFlag, true)
-	case nwapi.BodyPayload:
-	case nwapi.HeadPayload:
+		//
+	case nwapi.HeadOnlyPayload:
 		packet.Header.SetPacketType(uint8(DeliveryParcelHead))
 	default:
-		return throw.IllegalState()
+		panic(throw.IllegalState())
 	}
 
-	size := uint(ShortShipmentIDByteSize)
+	dataSize = uint(ShortShipmentIDByteSize)
 	if p.ReturnId != 0 {
-		size <<= 1
+		dataSize <<= 1
 		packet.Header.SetFlag(ReturnIdFlag, true)
 	}
-	size += p.Data.ByteSize()
+	dataSize += p.Data.ByteSize()
 
 	packet.Header.SetFlag(RepeatedSendFlag, p.RepeatedSend)
 
-	return packet.SerializeTo(ctx, writer, size, func(writer *iokit.LimitedWriter) error {
-		if err := p.ParcelId.SimpleWriteTo(writer); err != nil {
-			return err
-		}
-		if p.ReturnId != 0 {
-			if err := p.ReturnId.SimpleWriteTo(writer); err != nil {
-				return err
-			}
-		}
-		return p.Data.SerializeTo(ctx, writer)
-	})
+	return packet, dataSize, p.SerializePayload
 }
 
-func (p *ParcelPacket) DeserializePayload(f nwapi.DeserializationFactory, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+func (p *ParcelPacket) SerializePayload(packet *uniproto.SendingPacket, writer *iokit.LimitedWriter) error {
+	if err := p.ParcelId.SimpleWriteTo(writer); err != nil {
+		return err
+	}
+	if p.ReturnId != 0 {
+		if err := p.ReturnId.SimpleWriteTo(writer); err != nil {
+			return err
+		}
+	}
+	return p.Data.SerializeTo(packet.GetContext(), writer)
+}
+
+func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 	switch PacketType(packet.Header.GetPacketType()) {
 	case DeliveryParcelHead:
-		p.ParcelType = nwapi.HeadPayload
+		p.ParcelType = nwapi.HeadOnlyPayload
 	case DeliveryParcelBody:
-		if packet.Header.HasFlag(WithHeadFlag) {
-			p.ParcelType = nwapi.CompletePayload
-		} else {
-			p.ParcelType = nwapi.BodyPayload
-		}
+		p.ParcelType = nwapi.CompletePayload
+	default:
+		panic(throw.Impossible())
 	}
 
 	{
@@ -100,13 +98,14 @@ func (p *ParcelPacket) DeserializePayload(f nwapi.DeserializationFactory, packet
 	p.RepeatedSend = packet.Header.HasFlag(RepeatedSendFlag)
 
 	if p.Data != nil {
-		return p.Data.DeserializeFrom(f, reader)
+		return p.Data.DeserializeFrom(ctx, reader)
 	}
 
-	if d, err := f.DeserializePayloadFrom(p.ParcelType, reader); err != nil {
+	f := ctx.GetPayloadFactory()
+	d, err := f.DeserializePayloadFrom(p.ParcelType, reader)
+	if err != nil {
 		return err
-	} else {
-		p.Data = d
 	}
+	p.Data = d
 	return nil
 }

@@ -8,18 +8,18 @@ package nwapi
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 )
 
 type SerializationContext interface {
-	GetPayloadSigner() cryptkit.DataSigner
-	GetPayloadEncrypter() cryptkit.Encrypter
+	SerializationContext()
+	//GetPayloadSigner() cryptkit.DataSigner
+	//GetPayloadEncrypter() cryptkit.Encrypter
 }
 
 type DeserializationContext interface {
-	GetPayloadVerifier() cryptkit.DataSignatureVerifier
-	GetPayloadDecrypter() cryptkit.Decrypter
+	//GetPayloadVerifier() cryptkit.DataSignatureVerifier
+	//GetPayloadDecrypter() cryptkit.Decrypter
 	GetPayloadFactory() DeserializationFactory
 }
 
@@ -33,11 +33,11 @@ type Deserializer interface {
 
 type SizeAwareSerializer interface {
 	ByteSize() uint
-	SerializeTo(ctx SerializationContext, writer *iokit.LimitedWriter) error
+	SerializeTo(SerializationContext, *iokit.LimitedWriter) error
 }
 
 type SizeAwareDeserializer interface {
-	DeserializeFrom(DeserializationFactory, *iokit.LimitedReader) error
+	DeserializeFrom(DeserializationContext, *iokit.LimitedReader) error
 }
 
 type Serializable interface {
@@ -45,12 +45,12 @@ type Serializable interface {
 	SizeAwareDeserializer
 }
 
-type PayloadCompleteness uint8
+type PayloadCompleteness bool
 
 const (
-	CompletePayload PayloadCompleteness = iota
-	BodyPayload
-	HeadPayload
+	CompletePayload PayloadCompleteness = true
+	PartialPayload  PayloadCompleteness = false
+	HeadOnlyPayload                     = PartialPayload
 )
 
 type DeserializationFactory interface {

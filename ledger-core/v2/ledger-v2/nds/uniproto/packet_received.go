@@ -8,6 +8,7 @@ package uniproto
 import (
 	"bytes"
 	"io"
+	"net"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -23,14 +24,14 @@ type ReceivedPacket struct {
 	Decrypter cryptkit.Decrypter
 }
 
-type PacketDeserializerFunc func(PayloadDeserializeFunc) error
+type PacketDeserializerFunc func(nwapi.DeserializationContext, PayloadDeserializeFunc) error
 
 func (p *ReceivedPacket) NewSmallPayloadDeserializer(b []byte) PacketDeserializerFunc {
 	payload := b[p.GetPayloadOffset() : len(b)-p.verifier.GetSignatureSize()]
 	reader := bytes.NewReader(payload)
 
-	return func(fn PayloadDeserializeFunc) error {
-		return p.DeserializePayload(reader, reader.Size(), p.Decrypter, fn)
+	return func(ctx nwapi.DeserializationContext, fn PayloadDeserializeFunc) error {
+		return p.DeserializePayload(ctx, reader, reader.Size(), p.Decrypter, fn)
 	}
 }
 
@@ -63,8 +64,8 @@ func (p *ReceivedPacket) NewLargePayloadDeserializer(preRead []byte, r io.Limite
 		panic(throw.Impossible())
 	}
 
-	return func(fn PayloadDeserializeFunc) error {
-		if err := p.DeserializePayload(reader, total, p.Decrypter, fn); err != nil {
+	return func(ctx nwapi.DeserializationContext, fn PayloadDeserializeFunc) error {
+		if err := p.DeserializePayload(ctx, reader, total, p.Decrypter, fn); err != nil {
 			return err
 		}
 		r.N += int64(sigSize)
@@ -79,7 +80,11 @@ func (p *ReceivedPacket) NewLargePayloadDeserializer(preRead []byte, r io.Limite
 }
 
 func (ReceivedPacket) DownstreamError(err error) error {
-	if err == io.EOF {
+	switch err {
+	case io.EOF, io.ErrUnexpectedEOF:
+		return err
+	}
+	if _, ok := err.(net.Error); ok {
 		return err
 	}
 	if sv := throw.SeverityOf(err); sv.IsFraudOrWorse() {
@@ -90,4 +95,8 @@ func (ReceivedPacket) DownstreamError(err error) error {
 
 func (p *ReceivedPacket) GetSignatureSize() int {
 	return p.verifier.GetSignatureSize()
+}
+
+func (p *ReceivedPacket) GetContext(factory nwapi.DeserializationFactory) nwapi.DeserializationContext {
+	return packetContext{factory}
 }
