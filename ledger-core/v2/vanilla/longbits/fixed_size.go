@@ -39,15 +39,21 @@ func FoldUint64(v uint64) uint32 {
 }
 
 func EqualFixedLenWriterTo(t, o FixedReader) bool {
-	if t == nil || o == nil {
+	switch {
+	case t == nil || o == nil:
 		return false
+	case t.FixedByteSize() == 0:
+		return o.FixedByteSize() == 0
 	}
 	return (&writerToComparer{}).compare(t, o)
 }
 
 func EqualFixedLenWriterToBytes(t FixedReader, o []byte) bool {
-	if t == nil {
+	switch {
+	case t == nil || o == nil:
 		return false
+	case t.FixedByteSize() == 0:
+		return len(o) == 0
 	}
 	return (&writerToComparer{}).compareBytes(o, t)
 }

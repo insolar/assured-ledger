@@ -27,6 +27,13 @@ func (d Digest) IsEmpty() bool {
 	return d.hFoldReader == nil
 }
 
+func (d Digest) FixedByteSize() int {
+	if d.hFoldReader != nil {
+		return d.hFoldReader.FixedByteSize()
+	}
+	return 0
+}
+
 func (d Digest) CopyOfDigest() Digest {
 	return Digest{hFoldReader: longbits.CopyToMutable(d.hFoldReader), digestMethod: d.digestMethod}
 }
@@ -68,6 +75,13 @@ type Signature struct {
 
 func (p Signature) IsEmpty() bool {
 	return p.hFoldReader == nil
+}
+
+func (p Signature) FixedByteSize() int {
+	if p.hFoldReader != nil {
+		return p.hFoldReader.FixedByteSize()
+	}
+	return 0
 }
 
 func (p Signature) CopyOfSignature() Signature {
@@ -227,6 +241,13 @@ func (p SignatureKey) GetSignatureKeyMethod() SignatureMethod {
 
 func (p SignatureKey) GetSignatureKeyType() SignatureKeyType {
 	return p.keyType
+}
+
+func (p SignatureKey) FixedByteSize() int {
+	if p.hFoldReader != nil {
+		return p.hFoldReader.FixedByteSize()
+	}
+	return 0
 }
 
 func (p SignatureKey) Equals(o SignatureKeyHolder) bool {

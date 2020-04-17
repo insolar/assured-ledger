@@ -16,6 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
+func TestCompareNil(t *testing.T) {
+	var s1, s2 Signature
+	require.True(t, s1.Equals(s2))
+}
+
 func TestIsSymmetric(t *testing.T) {
 	require.True(t, SymmetricKey.IsSymmetric())
 
