@@ -46,13 +46,34 @@ func (v DigestHasher) SumToDigest() Digest {
 	return DigestOfHash(v.BasicDigester, v.Hash)
 }
 
-func DigestOfHash(digester BasicDigester, hasher hash.Hash) Digest {
-	n := digester.GetDigestSize()
-	if h := hasher.Sum(make([]byte, 0, n)); len(h) != n {
+func (v DigestHasher) SumToDigestBytes(b []byte) {
+	HashToBytes(v.Hash, b)
+}
+
+func (v DigestHasher) SumToSignature(signer DataSigner) Signature {
+	digest := v.SumToDigest()
+	return signer.SignDigest(digest)
+}
+
+func HashToBytes(hasher hash.Hash, b []byte) {
+	n := len(b)
+	if h := hasher.Sum(b[:0:n]); len(h) != n {
 		panic(throw.IllegalValue())
-	} else {
-		return NewDigest(longbits.NewMutableFixedSize(h), digester.GetDigestMethod())
 	}
+}
+
+func ByteDigestOfHash(digester BasicDigester, hasher hash.Hash) []byte {
+	n := digester.GetDigestSize()
+	h := hasher.Sum(make([]byte, 0, n))
+	if len(h) != n {
+		panic(throw.IllegalValue())
+	}
+	return h
+}
+
+func DigestOfHash(digester BasicDigester, hasher hash.Hash) Digest {
+	h := ByteDigestOfHash(digester, hasher)
+	return NewDigest(longbits.NewMutableFixedSize(h), digester.GetDigestMethod())
 }
 
 func NewHashingTeeReader(hasher DigestHasher, r io.Reader) HashingTeeReader {
