@@ -75,11 +75,6 @@ func (g *Generator) Run(ctx context.Context) error {
 		return errors.Wrap(err, "generate discovery certificates failed")
 	}
 
-	vestingStep := g.config.VestingStepInPulses
-	if vestingStep == 0 {
-		vestingStep = 60 * 60 * 24
-	}
-
 	if g.config.NotDiscoveryKeysDir != "" {
 		inslog.Info("[ bootstrap ] create not discovery keys ...")
 		nodes, err := createKeysInDir(
