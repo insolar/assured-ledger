@@ -6,7 +6,6 @@
 package bootstrap
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"encoding/json"
@@ -17,14 +16,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/appfoundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 )
 
 // Generator is a component for generating bootstrap files required for discovery nodes bootstrap and heavy genesis.
@@ -51,30 +46,6 @@ func NewGeneratorWithConfig(config *Config, certificatesOutDir string) *Generato
 	}
 }
 
-func (g *Generator) readMigrationAddresses() ([][]string, error) {
-	file := g.config.MembersKeysDir + "migration_addresses.json"
-	result := make([][]string, g.config.MAShardCount)
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return result, errors.Wrapf(err, " couldn't read migration addresses file %v", file)
-	}
-
-	var ma []string
-	err = json.NewDecoder(bytes.NewReader(b)).Decode(&ma)
-	if err != nil {
-		return result, errors.Wrapf(err, "fail unmarshal migration addresses data")
-	}
-
-	for _, a := range ma {
-		if appfoundation.IsEthereumAddress(a) {
-			address := foundation.TrimAddress(a)
-			i := foundation.GetShardIndex(address, g.config.MAShardCount)
-			result[i] = append(result[i], address)
-		}
-	}
-	return result, nil
-}
-
 // Run generates bootstrap data.
 //
 // 1. builds Go plugins for genesis contracts
@@ -85,85 +56,6 @@ func (g *Generator) Run(ctx context.Context) error {
 	fmt.Printf("[ bootstrap ] config:\n%v\n", dumpAsJSON(g.config))
 
 	inslog := inslogger.FromContext(ctx)
-
-	inslog.Info("[ bootstrap ] read keys files")
-	rootPublicKey, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + "root_member_keys.json")
-	if err != nil {
-		return errors.Wrap(err, "couldn't get root keys")
-	}
-
-	feePublicKey, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + "fee_member_keys.json")
-	if err != nil {
-		return errors.Wrap(err, "couldn't get fees keys")
-	}
-
-	migrationAdminPublicKey, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + "migration_admin_member_keys.json")
-	if err != nil {
-		return errors.Wrap(err, "couldn't get migration admin keys")
-	}
-	migrationDaemonPublicKeys := []string{}
-	for i := 0; i < application.GenesisAmountMigrationDaemonMembers; i++ {
-		k, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + GetMigrationDaemonPath(i))
-		if err != nil {
-			return errors.Wrap(err, "couldn't get migration daemon keys")
-		}
-		migrationDaemonPublicKeys = append(migrationDaemonPublicKeys, k)
-	}
-
-	networkIncentivesPublicKeys := []string{}
-	for i := 0; i < application.GenesisAmountNetworkIncentivesMembers; i++ {
-		k, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + GetFundPath(i, "network_incentives_"))
-		if err != nil {
-			return errors.Wrap(err, "couldn't get network incentives keys")
-		}
-		networkIncentivesPublicKeys = append(networkIncentivesPublicKeys, k)
-	}
-
-	applicationIncentivesPublicKeys := []string{}
-	for i := 0; i < application.GenesisAmountApplicationIncentivesMembers; i++ {
-		k, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + GetFundPath(i, "application_incentives_"))
-		if err != nil {
-			return errors.Wrap(err, "couldn't get application incentives keys")
-		}
-		applicationIncentivesPublicKeys = append(applicationIncentivesPublicKeys, k)
-	}
-
-	foundationPublicKeys := []string{}
-	for i := 0; i < application.GenesisAmountFoundationMembers; i++ {
-		k, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + GetFundPath(i, "foundation_"))
-		if err != nil {
-			return errors.Wrap(err, "couldn't get foundation keys")
-		}
-		foundationPublicKeys = append(foundationPublicKeys, k)
-	}
-
-	fundsPublicKeys := []string{}
-	for i := 0; i < application.GenesisAmountFundsMembers; i++ {
-		k, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + GetFundPath(i, "funds_"))
-		if err != nil {
-			return errors.Wrap(err, "couldn't get funds keys")
-		}
-		fundsPublicKeys = append(fundsPublicKeys, k)
-	}
-
-	enterprisePublicKeys := []string{}
-	for i := 0; i < application.GenesisAmountEnterpriseMembers; i++ {
-		k, err := secrets.GetPublicKeyFromFile(g.config.MembersKeysDir + GetFundPath(i, "enterprise_"))
-		if err != nil {
-			return errors.Wrap(err, "couldn't get enterprise keys")
-		}
-		enterprisePublicKeys = append(enterprisePublicKeys, k)
-	}
-
-	if g.config.MAShardCount <= 0 {
-		panic(fmt.Sprintf("[genesis] store contracts failed: setup ma_shard_count parameter, current value %v", g.config.MAShardCount))
-	}
-
-	inslog.Info("[ bootstrap ] read migration addresses ...")
-	migrationAddresses, err := g.readMigrationAddresses()
-	if err != nil {
-		return errors.Wrap(err, "couldn't get migration addresses")
-	}
 
 	inslog.Info("[ bootstrap ] create discovery keys ...")
 	discoveryNodes, err := createKeysInDir(
@@ -181,11 +73,6 @@ func (g *Generator) Run(ctx context.Context) error {
 	err = g.makeCertificates(ctx, discoveryNodes, discoveryNodes)
 	if err != nil {
 		return errors.Wrap(err, "generate discovery certificates failed")
-	}
-
-	vestingStep := g.config.VestingStepInPulses
-	if vestingStep == 0 {
-		vestingStep = 60 * 60 * 24
 	}
 
 	if g.config.NotDiscoveryKeysDir != "" {
@@ -206,31 +93,6 @@ func (g *Generator) Run(ctx context.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "generate not discovery certificates failed")
 		}
-	}
-
-	inslog.Info("[ bootstrap ] create heavy genesis config ...")
-	contractsConfig := application.GenesisContractsConfig{
-		RootBalance:                     g.config.RootBalance,
-		MDBalance:                       g.config.MDBalance,
-		RootPublicKey:                   rootPublicKey,
-		FeePublicKey:                    feePublicKey,
-		MigrationAdminPublicKey:         migrationAdminPublicKey,
-		MigrationDaemonPublicKeys:       migrationDaemonPublicKeys,
-		NetworkIncentivesPublicKeys:     networkIncentivesPublicKeys,
-		ApplicationIncentivesPublicKeys: applicationIncentivesPublicKeys,
-		FoundationPublicKeys:            foundationPublicKeys,
-		FundsPublicKeys:                 fundsPublicKeys,
-		EnterprisePublicKeys:            enterprisePublicKeys,
-		MigrationAddresses:              migrationAddresses,
-		VestingPeriodInPulses:           g.config.VestingPeriodInPulses,
-		LockupPeriodInPulses:            g.config.LockupPeriodInPulses,
-		VestingStepInPulses:             vestingStep,
-		MAShardCount:                    g.config.MAShardCount,
-		PKShardCount:                    g.config.PKShardCount,
-	}
-	err = g.makeHeavyGenesisConfig(discoveryNodes, contractsConfig)
-	if err != nil {
-		return errors.Wrap(err, "generate heavy genesis config failed")
 	}
 
 	return nil
@@ -257,8 +119,6 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 				Reference: node.reference().String(),
 			},
 			MajorityRule: g.config.MajorityRule,
-
-			RootDomainReference: genesisrefs.ContractRootDomain.String(),
 		}
 		c.MinRoles.Virtual = g.config.MinRoles.Virtual
 		c.MinRoles.HeavyMaterial = g.config.MinRoles.HeavyMaterial
@@ -315,31 +175,6 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		inslogger.FromContext(ctx).Infof("[ bootstrap ] write certificate file: %v", certFile)
 	}
 	return nil
-}
-
-func (g *Generator) makeHeavyGenesisConfig(
-	discoveryNodes []nodeInfo,
-	contractsConfig application.GenesisContractsConfig,
-) error {
-	items := make([]application.DiscoveryNodeRegister, 0, len(g.config.DiscoveryNodes))
-	for _, node := range discoveryNodes {
-		items = append(items, application.DiscoveryNodeRegister{
-			Role:      node.role,
-			PublicKey: node.publicKey,
-		})
-	}
-	cfg := &application.GenesisHeavyConfig{
-		DiscoveryNodes:  items,
-		ContractsConfig: contractsConfig,
-	}
-	b, err := json.MarshalIndent(cfg, "", "    ")
-	if err != nil {
-		return errors.Wrapf(err, "failed to decode heavy config to json")
-	}
-
-	err = ioutil.WriteFile(g.config.HeavyGenesisConfigFile, b, 0600)
-	return errors.Wrapf(err,
-		"failed to write heavy config %v", g.config.HeavyGenesisConfigFile)
 }
 
 func dumpAsJSON(data interface{}) string {
