@@ -77,8 +77,8 @@ func TestServer(t *testing.T) {
 	testStr := "short msg"
 	msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
 
-	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), true, func(t l1.OutTransport) error {
-		return t.SendBytes(msgBytes)
+	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), func(t l1.OutTransport) (bool, error) {
+		return true, t.SendBytes(msgBytes)
 	}))
 
 	marshaller.Wait(0)
@@ -89,8 +89,8 @@ func TestServer(t *testing.T) {
 	testStr = strings.Repeat("long msg", 6553)
 	msgBytes = marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
 
-	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), true, func(t l1.OutTransport) error {
-		return t.SendBytes(msgBytes)
+	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), func(t l1.OutTransport) (bool, error) {
+		return true, t.SendBytes(msgBytes)
 	}))
 
 	marshaller.Wait(1)

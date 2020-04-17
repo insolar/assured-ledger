@@ -362,7 +362,7 @@ func (p *PeerTransport) removeReceiver(conn io.Closer) {
 
 type transportGetterFunc = func() (l1.OutTransport, error)
 
-func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, canRetry bool, applyFn func(l1.OutTransport) error) error {
+func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, applyFn uniproto.OutFunc) error {
 	for {
 		if err := p.checkActive(); err != nil {
 			return err
@@ -372,7 +372,9 @@ func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, canRetr
 		if err != nil {
 			return err
 		}
-		if err = applyFn(t); err == nil {
+
+		canRetry := false
+		if canRetry, err = applyFn(t); err == nil {
 			return nil
 		}
 		if ok, hasMore := p.resetTransport(t, true); canRetry && ok && hasMore {
@@ -384,42 +386,30 @@ func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, canRetr
 
 func (p *PeerTransport) EnsureConnect() error {
 	// no need for p.smallMutex as there will be no write/send
-	return p.useTransport(p.getSessionfulSmallTransport, true, func(l1.OutTransport) error {
-		return nil
-	})
+	return p.useTransport(p.getSessionfulSmallTransport, func(l1.OutTransport) (bool, error) { return true, nil })
 }
 
-//func (p *PeerTransport) UseSessionlessNoQuota(canRetry bool, applyFn OutFunc) error {
-//	return p.useTransport(func() (l1.OutTransport, error) {
-//		if t, err := p.getSessionlessTransport(); err != nil {
-//			return nil, err
-//		} else {
-//			return t.WithQuota(nil), err
-//		}
-//	}, canRetry, applyFn)
-//}
-
-func (p *PeerTransport) UseSessionless(canRetry bool, applyFn uniproto.OutFunc) error {
-	return p.useTransport(p.getSessionlessTransport, canRetry, applyFn)
+func (p *PeerTransport) UseSessionless(applyFn uniproto.OutFunc) error {
+	return p.useTransport(p.getSessionlessTransport, applyFn)
 }
 
-func (p *PeerTransport) UseSessionful(size int64, canRetry bool, applyFn uniproto.OutFunc) error {
+func (p *PeerTransport) UseSessionful(size int64, applyFn uniproto.OutFunc) error {
 	if size <= uniproto.MaxNonExcessiveLength {
 		p.smallMutex.Lock()
 		defer p.smallMutex.Unlock()
-		return p.useTransport(p.getSessionfulSmallTransport, canRetry, applyFn)
+		return p.useTransport(p.getSessionfulSmallTransport, applyFn)
 	}
 
 	p.largeMutex.Lock()
 	defer p.largeMutex.Unlock()
-	return p.useTransport(p.getSessionfulLargeTransport, canRetry, applyFn)
+	return p.useTransport(p.getSessionfulLargeTransport, applyFn)
 }
 
-func (p *PeerTransport) UseAny(size int64, canRetry bool, applyFn uniproto.OutFunc) error {
+func (p *PeerTransport) UseAny(size int64, applyFn uniproto.OutFunc) error {
 	if size <= int64(p.central.maxSessionlessSize) {
-		return p.UseSessionless(canRetry, applyFn)
+		return p.UseSessionless(applyFn)
 	}
-	return p.UseSessionful(size, canRetry, applyFn)
+	return p.UseSessionful(size, applyFn)
 }
 
 func (p *PeerTransport) setAddresses(primary nwapi.Address, aliases []nwapi.Address) {
@@ -479,4 +469,36 @@ func (p *PeerTransport) removeAlias(a nwapi.Address) bool {
 		}
 	}
 	return false
+}
+
+func (p *PeerTransport) sendPacket(tp uniproto.OutType, fn uniproto.OutFunc) error {
+	switch tp {
+	case uniproto.SessionfulLarge:
+		p.largeMutex.Lock()
+		defer p.largeMutex.Unlock()
+		return p.useTransport(p.getSessionfulLargeTransport, fn)
+
+	case uniproto.SessionfulSmall:
+		p.smallMutex.Lock()
+		defer p.smallMutex.Unlock()
+		return p.useTransport(p.getSessionfulSmallTransport, fn)
+
+	case uniproto.Sessionless:
+		return p.useTransport(p.getSessionlessTransport, fn)
+
+	case uniproto.SessionlessNoQuota:
+		if p.rateQuota == nil {
+			return p.useTransport(p.getSessionlessTransport, fn)
+		}
+
+		return p.useTransport(func() (t l1.OutTransport, err error) {
+			if t, err = p.getSessionlessTransport(); t == nil {
+				return
+			}
+			return t.WithQuota(nil), err
+		}, fn)
+
+	default:
+		panic(throw.Impossible())
+	}
 }

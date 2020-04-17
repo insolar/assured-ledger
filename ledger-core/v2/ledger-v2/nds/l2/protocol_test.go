@@ -6,7 +6,6 @@
 package l2
 
 import (
-	"bytes"
 	"hash/crc32"
 	"io"
 	"time"
@@ -95,15 +94,14 @@ func (p *TestProtocolMarshaller) SerializeMsg(pt uniproto.ProtocolType, pkt uint
 	packet.Header.SetRelayRestricted(true)
 	packet.PulseNumber = pn
 
-	buf := bytes.Buffer{}
-
-	if err := packet.SerializePayload(packet, &buf, uint(len(msg)), func(w *iokit.LimitedWriter) error {
+	b, err := packet.SerializeToBytes(uint(len(msg)), func(_ nwapi.SerializationContext, _ *uniproto.Packet, w *iokit.LimitedWriter) error {
 		_, err := w.Write([]byte(msg))
 		return err
-	}); err != nil {
+	})
+	if err != nil {
 		panic(throw.ErrorWithStack(err))
 	}
-	return buf.Bytes()
+	return b
 }
 
 func (p *TestProtocolMarshaller) Wait(prevCount uint32) {

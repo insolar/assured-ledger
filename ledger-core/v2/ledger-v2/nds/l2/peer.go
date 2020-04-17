@@ -185,3 +185,32 @@ func (p *Peer) GetProtoInfo(pt uniproto.ProtocolType) io.Closer {
 func (p *Peer) Transport() uniproto.OutTransport {
 	return &p.transport
 }
+
+func (p *Peer) SendPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc) error {
+
+	sp := p.createSendingPacket(packet)
+	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn)
+	switch {
+	case tp == uniproto.Any:
+		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
+			return p.transport.sendPacket(uniproto.Sessionless, sendFn)
+		}
+		fallthrough
+	case tp == uniproto.SessionfulAny:
+		if packetSize <= uniproto.MaxNonExcessiveLength {
+			tp = uniproto.SessionfulSmall
+		} else {
+			tp = uniproto.SessionfulLarge
+		}
+	}
+	return p.transport.sendPacket(tp, sendFn)
+}
+
+func (p *Peer) createSendingPacket(packet *uniproto.Packet) *uniproto.SendingPacket {
+	//if packet.Header.IsBodyEncrypted() {
+	//	// TODO encryption
+	//}
+	//return uniproto.NewSendingPacket(nil, nil)
+	// TODO sending packet
+	panic(throw.NotImplemented())
+}
