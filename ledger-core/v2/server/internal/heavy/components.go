@@ -16,7 +16,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/dgraph-io/badger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
@@ -391,7 +390,6 @@ func newComponents(ctx context.Context, cfg configuration.Configuration, genesis
 		Requester,
 		ArtifactsClient,
 		APIWrapper,
-		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
 		AvailabilityChecker,
 		KeyProcessor,
 		CryptoScheme,
