@@ -16,6 +16,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -94,6 +95,24 @@ func (g *Generator) Run(ctx context.Context) error {
 			return errors.Wrap(err, "generate not discovery certificates failed")
 		}
 	}
+
+	if err := g.makeEmptyGenesisConfig(); err != nil {
+		return errors.Wrap(err, "generate empty genesis config failed")
+	}
+
+	return nil
+}
+
+func (g *Generator) makeEmptyGenesisConfig() error {
+	cfg := &application.GenesisHeavyConfig{}
+	b, err := json.MarshalIndent(cfg, "", "    ")
+	if err != nil {
+		return errors.Wrapf(err, "failed to decode heavy config to json")
+	}
+
+	err = ioutil.WriteFile(g.config.HeavyGenesisConfigFile, b, 0600)
+	return errors.Wrapf(err,
+		"failed to write heavy config %v", g.config.HeavyGenesisConfigFile)
 
 	return nil
 }
@@ -183,14 +202,4 @@ func dumpAsJSON(data interface{}) string {
 		panic(err)
 	}
 	return string(b)
-}
-
-// GetMigrationDaemonPath generate key file name for migration daemon
-func GetMigrationDaemonPath(i int) string {
-	return "migration_daemon_" + strconv.Itoa(i) + "_member_keys.json"
-}
-
-// GetFundPath generate key file name for composite name
-func GetFundPath(i int, prefix string) string {
-	return prefix + strconv.Itoa(i) + "_member_keys.json"
 }
