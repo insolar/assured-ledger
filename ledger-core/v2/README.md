@@ -20,7 +20,7 @@ To join the Insolar network, download the [latest release](https://github.com/in
 
 You can test Assured Ledger locally:
 
-1. Install everything from the Prerequisites section.
+1. Install everything from the **Prerequisites** section.
 2. Install this platform.
 3. Deploy it locally.
 4. Run tests
@@ -66,11 +66,11 @@ Install v1.14 version of the [Golang programming tools](https://golang.org/doc/i
 
 #### Benchmark test
 
-When the pulse watcher says INSOLAR STATE: READY, you can run a benchmark in another terminal tab/window:
+When the pulse watcher says `INSOLAR STATE: READY`, you can run a benchmark in another terminal tab/window:
 
-     ```
-     bin/benchmark -c=4 -r=25 -k=.artifacts/launchnet/configs/
-     ```
+   ```
+    bin/benchmark -c=4 -r=25 -k=.artifacts/launchnet/configs/
+   ```
 
      Options:
      * `-k`: Path to the root user's key pair.
@@ -82,11 +82,11 @@ When the pulse watcher says INSOLAR STATE: READY, you can run a benchmark in ano
 Functional tests run via a requester that runs a complex scenario: creates a number of users with wallets and transfers some money between them.<br>
 Upon the first run, the script does it consecutively, upon subsequent runs — concurrently.
 
-When the pulse watcher says INSOLAR STATE: READY, run the following command in another terminal tab/window:
+When the pulse watcher says `INSOLAR STATE: READY`, run the following command in another terminal tab/window:
 
-     ```
-     bin/apirequester -k=.artifacts/launchnet/configs/ -p=http://127.0.0.1:19101/api/rpc
-     ```
+   ```
+    bin/apirequester -k=.artifacts/launchnet/configs/ -p=http://127.0.0.1:19101/api/rpc
+   ```
 
      Options:
      * `-k`: Path to the root user's key pair. All requests for a new user creation must be signed by the root one.
