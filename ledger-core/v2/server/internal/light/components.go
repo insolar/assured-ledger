@@ -11,7 +11,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/component-manager"
 	"github.com/pkg/errors"
 
@@ -384,7 +383,6 @@ func newComponents(ctx context.Context, cfg configuration.Configuration) (*compo
 		Requester,
 		ArtifactsClient,
 		APIWrapper,
-		testwalletapi.NewTestWalletAPI(cfg.TestWalletAPI),
 		AvailabilityChecker,
 		KeyProcessor,
 		CryptoScheme,
