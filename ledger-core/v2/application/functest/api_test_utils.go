@@ -34,6 +34,7 @@ const (
 	walletCreatePath     = walletPath + "/create"
 	walletGetBalancePath = walletPath + "/get_balance"
 	walletAddAmountPath  = walletPath + "/add_amount"
+	walletTransferPath   = walletPath + "/transfer"
 )
 
 func init() {
@@ -120,7 +121,7 @@ func createSimpleWallet() (string, error) {
 		return "", errors.Wrap(err, "failed to send request or get response body")
 	}
 
-	resp, err := unmarshalCreateWalletResponse(rawResp)
+	resp, err := unmarshalWalletCreateResponse(rawResp)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to unmarshal response")
 	}
@@ -132,12 +133,12 @@ func createSimpleWallet() (string, error) {
 
 // Returns wallet balance.
 func getWalletBalance(url, ref string) (int, error) {
-	rawResp, err := sendAPIRequest(url, getWalletBalanceRequestBody{Ref: ref})
+	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to send request or get response body")
 	}
 
-	resp, err := unmarshalGetWalletBalanceResponse(rawResp)
+	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to unmarshal response")
 	}

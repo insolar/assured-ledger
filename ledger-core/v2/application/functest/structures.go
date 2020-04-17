@@ -12,36 +12,36 @@ import (
 )
 
 // nolint:unused
-type createWalletResponse struct {
+type walletCreateResponse struct {
 	Err     error  `json:"error"`
 	Ref     string `json:"reference"`
 	TraceID string `json:"traceID"`
 }
 
-func unmarshalCreateWalletResponse(resp []byte) (createWalletResponse, error) { // nolint:unused,deadcode
-	result := createWalletResponse{}
+func unmarshalWalletCreateResponse(resp []byte) (walletCreateResponse, error) { // nolint:unused,deadcode
+	result := walletCreateResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
-		return createWalletResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+		return walletCreateResponse{}, errors.Wrap(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }
 
 // nolint:unused,deadcode
-type getWalletBalanceRequestBody struct {
+type walletGetBalanceRequestBody struct {
 	Ref string `json:"walletRef"`
 }
 
 // nolint:unused,deadcode
-type getWalletBalanceResponse struct {
+type walletGetBalanceResponse struct {
 	Err     error  `json:"error"`
 	Amount  int    `json:"amount"`
 	TraceID string `json:"traceID"`
 }
 
-func unmarshalGetWalletBalanceResponse(resp []byte) (getWalletBalanceResponse, error) { // nolint:unused,deadcode
-	result := getWalletBalanceResponse{}
+func unmarshalWalletGetBalanceResponse(resp []byte) (walletGetBalanceResponse, error) { // nolint:unused,deadcode
+	result := walletGetBalanceResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
-		return getWalletBalanceResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+		return walletGetBalanceResponse{}, errors.Wrap(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }
@@ -62,6 +62,27 @@ func unmarshalWalletAddAmountResponse(resp []byte) (walletAddAmountResponse, err
 	result := walletAddAmountResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
 		return walletAddAmountResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+	}
+	return result, nil
+}
+
+// nolint:unused,deadcode
+type walletTransferRequestBody struct {
+	To     string `json:"to"`
+	From   string `json:"from"`
+	Amount uint   `json:"amount"`
+}
+
+// nolint:unused
+type walletTransferResponse struct {
+	Err     error  `json:"error"`
+	TraceID string `json:"traceID"`
+}
+
+func unmarshalWalletTransferResponse(resp []byte) (walletTransferResponse, error) { // nolint:unused,deadcode
+	result := walletTransferResponse{}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return walletTransferResponse{}, errors.Wrap(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }

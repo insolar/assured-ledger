@@ -26,7 +26,7 @@ func TestWalletCreate(t *testing.T) {
 			rawResp, err := sendAPIRequest(url, nil)
 			require.NoError(t, err, "failed to send request or get response body")
 
-			resp, err := unmarshalCreateWalletResponse(rawResp)
+			resp, err := unmarshalWalletCreateResponse(rawResp)
 			require.NoError(t, err, "failed to unmarshal response")
 			require.Empty(t, resp.Err, "problem during execute request")
 			require.Contains(t, resp.Ref, "insolar:", "wrong reference")
