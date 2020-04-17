@@ -5,13 +5,15 @@
 
 package msgdelivery
 
+import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
+
 type Service interface {
-	ShipTo(to DeliveryAddress, shipment Shipment, needsTag bool) (*TrackingTag, error)
-	ShipReturn(to ReturnAddress, shipment Shipment, needsTag bool) (*TrackingTag, error)
+	ShipTo(to DeliveryAddress, shipment Shipment) error
+	ShipReturn(to ReturnAddress, shipment Shipment) error
+	PullBody(from ReturnAddress, receiveFn ReceiverFunc) error
 }
 
-type TrackingTag struct {
-}
+type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, nwapi.Serializable) error
 
 type DeliveryPolicies uint8
 
@@ -23,11 +25,3 @@ const (
 
 	largeBody
 )
-
-//type TransportResult uint8
-//
-//const (
-//	TransportUnreachable TransportResult = iota
-//	TransportSent
-//	//TransportDelivered
-//)

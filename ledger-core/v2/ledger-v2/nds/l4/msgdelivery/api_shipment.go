@@ -14,42 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
-type DeliveryAddress struct {
-	addrType     DeliveryAddressFlags
-	nodeSelector uint32
-	dataSelector uint64
-}
-
-type DeliveryAddressFlags uint32
-
-const directAddress DeliveryAddressFlags = 0
-const (
-	roleAddress DeliveryAddressFlags = 1 << iota
-)
-
-type DirectAddress = nwapi.ShortNodeID
-
-type ReturnAddress struct {
-	returnTo DirectAddress
-	returnId ShipmentID
-}
-
-type PulseTTL struct {
-	RefPulse pulse.Number
-	RefCount uint32
-	TTL      uint8
-}
-
-type Shipment struct {
-	Head   nwapi.SizeAwareSerializer
-	Body   nwapi.SizeAwareSerializer
-	Cancel *synckit.ChainedCancel
-	PN     pulse.Number
-	// TTL defines how many pulses this shipment can survive before cancellation
-	TTL      uint8
-	Policies DeliveryPolicies
-}
-
 func AsShipmentID(node uint32, id ShortShipmentID) ShipmentID {
 	if id == 0 {
 		return 0
@@ -95,4 +59,14 @@ func ShortShipmentIDReadFrom(reader io.Reader) (ShortShipmentID, error) {
 
 func ShortShipmentIDReadFromBytes(b []byte) ShortShipmentID {
 	return ShortShipmentID(binary.LittleEndian.Uint32(b))
+}
+
+type Shipment struct {
+	Head   nwapi.SizeAwareSerializer
+	Body   nwapi.SizeAwareSerializer
+	Cancel *synckit.ChainedCancel // TODO use
+	PN     pulse.Number
+	// TTL defines how many pulses this shipment can survive before cancellation
+	TTL      uint8
+	Policies DeliveryPolicies
 }

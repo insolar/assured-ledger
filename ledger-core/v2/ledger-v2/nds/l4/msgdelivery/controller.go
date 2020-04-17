@@ -8,33 +8,57 @@ package msgdelivery
 import (
 	"io"
 	"math"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type ReceiverFunc func(nwapi.PayloadCompleteness, nwapi.Serializable) error
+func NewController(pt uniproto.ProtocolType, regFn uniproto.RegisterProtocolFunc,
+	factory nwapi.DeserializationFactory, timeCycle time.Duration, receiveFn ReceiverFunc,
+) Service {
+	c := &controller{pType: pt, factory: factory, timeCycle: timeCycle, receiveFn: receiveFn}
+	c.registerWith(regFn)
+	return c
+}
 
-type Controller struct {
+type controller struct {
 	pType     uniproto.ProtocolType
 	factory   nwapi.DeserializationFactory
 	receiveFn ReceiverFunc
-	receiver  packetReceiver
-	dedup     receiveDeduplicator
-	smSender  retrySender
-	starter   protoStarter
+	timeCycle time.Duration
+
+	receiver packetReceiver
+	dedup    receiveDeduplicator
+	sender   retrySender
+	starter  protoStarter
 
 	pulseCycle atomickit.Uint64
 
+	stopSignal        synckit.ClosableSignalChannel
 	maxSmallSize      uint
 	maxHeadSize       uint // <= maxSmallSize
 	maxIgnoreHeadSize uint // <= maxSmallSize
+	localID           nwapi.ShortNodeID
 }
 
-func (p *Controller) RegisterWith(regFn uniproto.RegisterProtocolFunc) {
+func (p *controller) ShipTo(to DeliveryAddress, shipment Shipment) error {
+	panic("implement me")
+}
+
+func (p *controller) ShipReturn(to ReturnAddress, shipment Shipment) error {
+	panic("implement me")
+}
+
+func (p *controller) PullBody(from ReturnAddress, receiveFn ReceiverFunc) error {
+	panic("implement me")
+}
+
+func (p *controller) registerWith(regFn uniproto.RegisterProtocolFunc) {
 	switch {
 	case p.pType == 0:
 		panic(throw.IllegalState())
@@ -47,23 +71,23 @@ func (p *Controller) RegisterWith(regFn uniproto.RegisterProtocolFunc) {
 	regFn(p.pType, desc, &p.starter)
 }
 
-func (p *Controller) isActive() bool {
+func (p *controller) isActive() bool {
 	return p.starter.isActive()
 }
 
-func (p *Controller) checkActive() error {
+func (p *controller) checkActive() error {
 	if !p.isActive() {
 		return throw.FailHere("inactive")
 	}
 	return nil
 }
 
-func (p *Controller) reportError(err error) {
+func (p *controller) reportError(err error) {
 	// TODO
 	println(throw.ErrorWithStack(err))
 }
 
-func (p *Controller) nextPulseCycle(pn pulse.Number) bool {
+func (p *controller) nextPulseCycle(pn pulse.Number) bool {
 	for {
 		v := p.pulseCycle.Load()
 		if pulse.Number(v) >= pn {
@@ -77,12 +101,12 @@ func (p *Controller) nextPulseCycle(pn pulse.Number) bool {
 	}
 }
 
-func (p *Controller) getPulseCycle() (uint32, pulse.Number) {
+func (p *controller) getPulseCycle() (uint32, pulse.Number) {
 	v := p.pulseCycle.Load()
 	return uint32(v >> 32), pulse.Number(v)
 }
 
-func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
+func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
 	if err := p.checkActive(); err != nil {
 		p.reportError(err)
 		return err
@@ -99,9 +123,9 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 		}
 
 		shid := AsShipmentID(peerID, payload.BodyRq)
-		if msg := p.smSender.get(shid); msg != nil && msg.markBodyRq() {
+		if msg := p.sender.get(shid); msg != nil && msg.markBodyRq() {
 			// TODO "go" is insecure because sender can potentially flood us
-			go p.smSender._sendBody(msg)
+			go p.sender._sendBody(msg)
 		} else {
 			dPeer.addReject(payload.BodyRq)
 		}
@@ -109,21 +133,21 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 
 	for _, id := range payload.AckList {
 		shid := AsShipmentID(peerID, id)
-		if msg := p.smSender.get(shid); msg != nil {
+		if msg := p.sender.get(shid); msg != nil {
 			msg.markAck()
 		}
 	}
 
 	for _, id := range payload.BodyAckList {
 		shid := AsShipmentID(peerID, id)
-		if msg := p.smSender.get(shid); msg != nil {
+		if msg := p.sender.get(shid); msg != nil {
 			msg.markBodyAck()
 		}
 	}
 
 	for _, id := range payload.RejectList {
 		shid := AsShipmentID(peerID, id)
-		if msg := p.smSender.get(shid); msg != nil {
+		if msg := p.sender.get(shid); msg != nil {
 			msg.markReject()
 		}
 	}
@@ -131,7 +155,7 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 	return nil
 }
 
-func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
+func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
 	if err := p.checkActive(); err != nil {
 		p.reportError(err)
 		return err
@@ -154,9 +178,9 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 
 	if payload.ReturnId != 0 {
 		retID := AsShipmentID(peerID, payload.ReturnId)
-		if msg := p.smSender.getHeads(retID); msg != nil {
+		if msg := p.sender.getHeads(retID); msg != nil {
 			msg.markAck()
-		} else if msg = p.smSender.getBodies(retID); msg != nil {
+		} else if msg = p.sender.getBodies(retID); msg != nil {
 			msg.markBodyAck()
 		}
 	}
@@ -171,15 +195,21 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		return nil
 	}
 
-	// TODO in-proc unique node id
-	err := p.receiveFn(payload.ParcelType, payload.Data)
+	err := p.receiveFn(
+		ReturnAddress{
+			returnTo: packet.Peer.GetLocalUID(),
+			returnId: payload.ParcelId,
+		},
+		payload.ParcelType,
+		payload.Data)
+
 	if err != nil {
 		p.reportError(err)
 	}
 	return err
 }
 
-func (p *Controller) createProtoPeer(peer uniproto.Peer) io.Closer {
+func (p *controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 	id := peer.GetNodeID()
 	if id.IsAbsent() {
 		return nil
@@ -193,7 +223,7 @@ func (p *Controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 	return dp
 }
 
-func (p *Controller) applySizePolicy(shipment *Shipment) uint {
+func (p *controller) applySizePolicy(shipment *Shipment) uint {
 	switch {
 	case shipment.Head != nil:
 		headSize := shipment.Head.ByteSize()
@@ -242,7 +272,7 @@ func (p *Controller) applySizePolicy(shipment *Shipment) uint {
 	}
 }
 
-func (p *Controller) Send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) {
+func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) {
 	if err := p.checkActive(); err != nil {
 		panic(err)
 	}
@@ -288,7 +318,7 @@ func (p *Controller) Send(to nwapi.Address, returnId ShortShipmentID, shipment S
 			return
 		}
 
-		go p.smSender._sendHead(msg, sendSize)
+		go p.sender._sendHead(msg, sendSize)
 		return
 	}
 
@@ -298,11 +328,12 @@ func (p *Controller) Send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	}
 
 	msg.markBodyRq()
-	go p.smSender._sendBody(msg)
+	go p.sender._sendBody(msg)
 }
 
-func (p *Controller) onStarted() {
+func (p *controller) onStarted() {
 	p.maxSmallSize = p.starter.peers.MaxSmallPayloadSize()
+	p.localID = p.starter.peers.LocalPeer().GetNodeID()
 
 	if p.maxHeadSize > p.maxSmallSize || p.maxHeadSize == 0 {
 		p.maxHeadSize = p.maxSmallSize
@@ -310,6 +341,24 @@ func (p *Controller) onStarted() {
 	if p.maxIgnoreHeadSize > p.maxSmallSize || p.maxIgnoreHeadSize == 0 {
 		p.maxIgnoreHeadSize = p.maxSmallSize
 	}
+
+	p.stopSignal = make(synckit.ClosableSignalChannel)
+	go p.runWorker()
 }
 
-func (p *Controller) onStopped() {}
+func (p *controller) onStopped() {
+	close(p.stopSignal)
+}
+
+func (p *controller) runWorker() {
+	ticker := time.Tick(p.timeCycle)
+	for {
+		select {
+		case <-p.stopSignal:
+			return
+		case <-ticker:
+			//
+		}
+		p.sender.NextTimeCycle()
+	}
+}

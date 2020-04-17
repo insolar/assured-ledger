@@ -196,17 +196,24 @@ func (p *Peer) GetNodeID() nwapi.ShortNodeID {
 }
 
 func (p *Peer) SetNodeID(id nwapi.ShortNodeID) {
+	if id == 0 {
+		panic(throw.IllegalState())
+	}
+
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
-
-	if p.nodeID == id {
-		return
-	}
 
 	if !p.nodeID.IsAbsent() {
 		panic(throw.IllegalState())
 	}
 	p.nodeID = id
+}
+
+func (p *Peer) GetLocalUID() nwapi.Address {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+
+	return nwapi.NewLocalUID(p.transport.uid, nwapi.HostID(p.nodeID))
 }
 
 func (p *Peer) SetProtoInfo(pt uniproto.ProtocolType, info io.Closer) {

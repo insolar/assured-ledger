@@ -241,12 +241,12 @@ func (p PeerReceiver) resolvePeer(remote nwapi.Address, isIncoming bool, conn io
 	return nil, nil, err
 }
 
-func toHostId(id uint32, supp uniproto.Supporter) nwapi.HostId {
+func toHostId(id uint32, supp uniproto.Supporter) nwapi.HostID {
 	switch {
 	case id == 0:
 		return 0
 	case supp == nil:
-		return nwapi.HostId(id)
+		return nwapi.HostID(id)
 	default:
 		return supp.ToHostId(id)
 	}
@@ -305,12 +305,12 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 	return
 }
 
-func (p PeerReceiver) hasHostId(id nwapi.HostId, peer *Peer) bool {
+func (p PeerReceiver) hasHostId(id nwapi.HostID, peer *Peer) bool {
 	_, pr := p.PeerManager.peer(nwapi.NewHostId(id))
 	return peer == pr
 }
 
-func (p PeerReceiver) isLocalHostId(id nwapi.HostId) bool {
+func (p PeerReceiver) isLocalHostId(id nwapi.HostID) bool {
 	idx, pr := p.PeerManager.peer(nwapi.NewHostId(id))
 	return idx == 0 && pr != nil
 }

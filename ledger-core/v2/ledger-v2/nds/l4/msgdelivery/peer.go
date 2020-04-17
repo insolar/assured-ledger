@@ -15,7 +15,7 @@ import (
 
 type DeliveryPeer struct {
 	nextSSID atomickit.Uint32 // ShortShipmentID
-	ctl      *Controller
+	ctl      *controller
 	peerID   nwapi.ShortNodeID
 	isDead   atomickit.OnceFlag
 
@@ -109,12 +109,8 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 	if !p.isValid() {
 		return
 	}
-	// TODO send
 	template, dataSize, writeFn := packet.PreparePacket()
-	// TODO send
-	//template.Header.SourceID
-	//template.Header.ReceiverID
-	//template.Header.TargetID
+	p._setPacketForSend(&template)
 	if err := p.peer.SendPreparedPacket(uniproto.SmallAny, &template.Packet, dataSize, writeFn); err != nil {
 		p.ctl.reportError(err)
 	}
@@ -141,11 +137,14 @@ func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket) {
 	}
 
 	template, dataSize, writeFn := parcel.PreparePacket()
-	// TODO send
-	//template.Header.SourceID
-	//template.Header.ReceiverID
-	//template.Header.TargetID
+	p._setPacketForSend(&template)
 	if err := p.peer.SendPreparedPacket(tp, &template.Packet, dataSize, writeFn); err != nil {
 		p.ctl.reportError(err)
 	}
+}
+
+func (p *DeliveryPeer) _setPacketForSend(template *uniproto.PacketTemplate) {
+	template.Header.SourceID = uint32(p.ctl.localID)
+	template.Header.ReceiverID = uint32(p.peerID)
+	template.Header.TargetID = uint32(p.peerID)
 }

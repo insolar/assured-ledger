@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi/nwaddr"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
@@ -187,13 +188,13 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 
 		var err error
 		switch addr.AddrNetwork() {
-		case nwapi.DNS:
+		case nwaddr.DNS:
 			// primary address is always resolved
 			if index == 0 {
 				continue
 			}
 			fallthrough
-		case nwapi.IP:
+		case nwaddr.IP:
 			var t l1.OutTransport
 			t, err = factoryFn(addr)
 
@@ -211,7 +212,7 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 				t.SetTag(int(limit))
 				return index, t, nil
 			}
-		case nwapi.HostPK:
+		case nwaddr.HostPK:
 			// PK is addressable, but is not connectable
 			continue
 		default:
@@ -428,7 +429,7 @@ func (p *PeerTransport) setAddresses(primary nwapi.Address, aliases []nwapi.Addr
 		panic(throw.IllegalState())
 	}
 
-	p.aliases = append(make([]nwapi.Address, 0, 1+len(aliases)), primary)
+	p.aliases = append(make([]nwapi.Address, 0, len(aliases)+2), primary, nwapi.NewLocalUID(p.uid, 0))
 	for i, aa := range aliases {
 		if aa == primary {
 			p.aliases = append(p.aliases, aliases[:i]...)

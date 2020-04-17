@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi/nwaddr"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -23,7 +24,7 @@ func NewIP(ip net.IPAddr) Address {
 }
 
 func newIP(ip net.IP, zone string) Address {
-	a := Address{network: byte(IP)}
+	a := Address{network: byte(nwaddr.IP)}
 	switch len(ip) {
 	case net.IPv6len:
 		copy(a.data0[:], ip)
@@ -60,7 +61,7 @@ func NewHost(host string) Address {
 	if ip, zone := parseIPZone(host); ip != nil {
 		return newIP(ip, zone)
 	}
-	return Address{network: uint8(DNS), data1: longbits.WrapStr(strings.ToLower(host))}
+	return Address{network: uint8(nwaddr.DNS), data1: longbits.WrapStr(strings.ToLower(host))}
 }
 
 // Mimics net.parseIPZone behavior
@@ -110,18 +111,21 @@ func NewHostPort(hostport string) Address {
 	}
 }
 
-func NewHostId(id HostId) Address {
-	a := Address{network: uint8(HostID)}
+func NewHostId(id HostID) Address {
+	a := Address{network: uint8(nwaddr.HostID)}
 	binary.LittleEndian.PutUint64(a.data0[:], uint64(id))
 	return a
 }
 
 func NewHostPK(pk longbits.FixedReader) Address {
-	return Address{network: uint8(HostPK), data1: pk.AsByteString()}
+	return Address{network: uint8(nwaddr.HostPK), data1: pk.AsByteString()}
 }
 
-func NewLocalUID(id HostId, uid uint64) Address {
-	a := Address{network: uint8(LocalUID)}
+func NewLocalUID(uid uint64, id HostID) Address {
+	if uid == 0 {
+		panic(throw.IllegalState())
+	}
+	a := Address{network: uint8(nwaddr.LocalUID)}
 	binary.LittleEndian.PutUint64(a.data0[:8], uint64(id))
 	binary.LittleEndian.PutUint64(a.data0[8:], uid)
 	return a
@@ -152,13 +156,13 @@ func (a Address) IsZero() bool {
 	return a.network == 0
 }
 
-func (a Address) AddrNetwork() AddressNetwork {
-	return AddressNetwork(a.network & networkMask)
+func (a Address) AddrNetwork() nwaddr.Network {
+	return nwaddr.Network(a.network & networkMask)
 }
 
 func (a Address) Network() string {
 	switch a.AddrNetwork() {
-	case DNS, IP:
+	case nwaddr.DNS, nwaddr.IP:
 		return "ip"
 	default:
 		return "invalid"
@@ -166,10 +170,19 @@ func (a Address) Network() string {
 }
 
 func (a Address) HostIdentity() Address {
-	if a.port == 0 && a.flags&data1isName == 0 {
-		// optimization
+	switch {
+	case a.port != 0:
+		//
+	case a.flags&data1isName != 0:
+		//
+	case a.AddrNetwork() != nwaddr.LocalUID:
 		return a
+	case string(a.data0[:8]) == zero8Prefix:
+		return a
+	default:
+		copy(a.data0[:8], zero8Prefix)
 	}
+
 	a.port = 0
 	a.flags &^= data1isName
 	a.data1 = ""
@@ -208,49 +221,13 @@ func (a Address) WithPort(port uint16) Address {
 	return a
 }
 
-//type AddressIdentity string
-//func (a Address) ExactIdentity() AddressIdentity {
-//	prefix := ""
-//	switch a.Network() {
-//	case 0:
-//		return ""
-//	case DNS:
-//		prefix = "N"
-//	case IP:
-//		prefix = "I" // take data0!
-//	case HostPK:
-//		prefix = "P"
-//	case HostID:
-//		prefix = "#"
-//	default:
-//		prefix = strconv.Itoa(int(a.network)) + "?"
-//	}
-//	return AddressIdentity(prefix + string(a.data1))
-//}
-//
-//func (a Address) CoarseIdentity() uint64 {
-//	switch a.Network() {
-//	case 0:
-//		return 0
-//	case DNS:
-//		return uint64(aeshash.ByteStr(a.data1))
-//	case IP:
-//		return a.data0.FoldToUint64()
-//	default:
-//		if len(a.data1) > 0 {
-//			return uint64(aeshash.ByteStr(a.data1))
-//		}
-//		return a.data0.FoldToUint64()
-//	}
-//}
-
 func (a Address) String() string {
 	h := a.HostString()
 	if !a.HasPort() {
 		return h
 	}
 	p := strconv.Itoa(int(a.port))
-	if a.AddrNetwork() == IP {
+	if a.AddrNetwork() == nwaddr.IP {
 		return net.JoinHostPort(h, p)
 	}
 	return h + ":" + p
@@ -260,17 +237,22 @@ func (a Address) HostString() string {
 	switch a.AddrNetwork() {
 	case 0:
 		return ""
-	case DNS:
+	case nwaddr.DNS:
 		return string(a.data1)
-	case IP:
+	case nwaddr.IP:
 		ipa := a.AsIPAddr()
 		return ipa.String()
-	case HostPK:
+	case nwaddr.HostPK:
 		return "(PK)" + a.data1.Hex()
-	case HostID:
-		return "#" + a.AsHostId().String()
-	case LocalUID:
-		return "(UID)" + a.AsHostId().String() + "[" + hex.EncodeToString(a.data0[:8]) + "]"
+	case nwaddr.HostID:
+		return "#" + a.AsHostID().String()
+	case nwaddr.LocalUID:
+		hid := a.AsHostID()
+		s := ""
+		if !hid.IsAbsent() {
+			s = "[#" + hid.String() + "]"
+		}
+		return "(UID)" + hex.EncodeToString(a.data0[:8]) + s
 	default:
 		return "(" + strconv.Itoa(int(a.network)) + ")" + a.data1.String()
 	}
@@ -322,7 +304,7 @@ func (a Address) resolve(ctx context.Context, resolver BasicAddressResolver) ([]
 	switch n := a.AddrNetwork(); {
 	//case n.IsResolved():
 	//	return []net.IPAddr{a.AsIPAddr()}, nil
-	case n == DNS:
+	case n == nwaddr.DNS:
 		return resolver.LookupIPAddr(ctx, string(a.data1))
 	default:
 		if r, ok := resolver.(AddressResolver); ok {
@@ -383,7 +365,7 @@ func (a *Address) AsIPAddr() net.IPAddr {
 
 // ptr receiver is to prevent copy on slice op
 func (a *Address) asIP() net.IP {
-	if a.AddrNetwork() == IP {
+	if a.AddrNetwork() == nwaddr.IP {
 		return a.data0[:net.IPv6len]
 	}
 	panic(throw.IllegalState())
@@ -393,9 +375,9 @@ func (a Address) Data() longbits.ByteString {
 	switch a.AddrNetwork() {
 	case 0:
 		return ""
-	case DNS:
+	case nwaddr.DNS:
 		return a.data1
-	case IP:
+	case nwaddr.IP:
 		return longbits.CopyBytes(a.data0[:net.IPv6len])
 	default:
 		if len(a.data1) > 0 {
@@ -409,13 +391,13 @@ func (a Address) DataLen() int {
 	switch a.AddrNetwork() {
 	case 0:
 		return 0
-	case DNS:
+	case nwaddr.DNS:
 		return len(a.data1)
-	case IP:
+	case nwaddr.IP:
 		return net.IPv6len
-	case HostID:
-		return HostIdByteSize
-	case LocalUID:
+	case nwaddr.HostID:
+		return HostIDByteSize
+	case nwaddr.LocalUID:
 		return len(a.data0)
 	default:
 		if len(a.data1) > 0 {
@@ -461,15 +443,17 @@ func (a Address) data0Len() uint8 {
 //	panic(throw.IllegalState())
 //}
 
-const v4InV6Prefix = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF"
-const v6Loopback = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
+const zero4Prefix = "\x00\x00\x00\x00"
+const zero8Prefix = zero4Prefix + zero4Prefix
+const v4InV6Prefix = zero8Prefix + "\x00\x00\xFF\xFF"
+const v6Loopback = zero8Prefix + zero4Prefix + "\x00\x00\x00\x01"
 
 func (a Address) isIPv4() bool {
-	return a.network == uint8(IP) && a.isIPv4Prefix()
+	return a.network == uint8(nwaddr.IP) && a.isIPv4Prefix()
 }
 
 func (a Address) isIPv6() bool {
-	return a.network == uint8(IP) && !a.isIPv4Prefix()
+	return a.network == uint8(nwaddr.IP) && !a.isIPv4Prefix()
 }
 
 func (a Address) isIPv4Prefix() bool {
@@ -477,14 +461,14 @@ func (a Address) isIPv4Prefix() bool {
 }
 
 func (a Address) getIPv6Zone() string {
-	if a.AddrNetwork() == IP && a.flags&data1isName == 0 && !a.isIPv4Prefix() {
+	if a.AddrNetwork() == nwaddr.IP && a.flags&data1isName == 0 && !a.isIPv4Prefix() {
 		return string(a.data1)
 	}
 	return ""
 }
 
 func (a Address) HasName() bool {
-	return a.AddrNetwork() == DNS || a.flags&data1isName != 0
+	return a.AddrNetwork() == nwaddr.DNS || a.flags&data1isName != 0
 }
 
 func (a Address) Name() string {
@@ -494,17 +478,24 @@ func (a Address) Name() string {
 	panic(throw.IllegalState())
 }
 
-func (a Address) AsHostId() HostId {
+func (a Address) AsHostID() HostID {
 	switch a.AddrNetwork() {
-	case HostID, LocalUID:
-		return HostId(binary.LittleEndian.Uint64(a.data0[:8]))
+	case nwaddr.HostID, nwaddr.LocalUID:
+		return HostID(binary.LittleEndian.Uint64(a.data0[:8]))
+	}
+	panic(throw.IllegalState())
+}
+
+func (a Address) AsLocalUID() LocalUniqueID {
+	if a.AddrNetwork() == nwaddr.LocalUID {
+		return LocalUniqueID(binary.LittleEndian.Uint64(a.data0[8:]))
 	}
 	panic(throw.IllegalState())
 }
 
 func (a Address) IsLoopback() bool {
 	switch {
-	case a.network != uint8(IP):
+	case a.network != uint8(nwaddr.IP):
 		return false
 	case a.isIPv4Prefix():
 		return a.data0[12] == 127

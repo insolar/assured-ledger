@@ -7,12 +7,13 @@ package msgdelivery
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type protoStarter struct {
-	ctl   *Controller
+	ctl   *controller
 	state atomickit.StartStopFlag
 	peers uniproto.PeerManager
 }
@@ -33,6 +34,13 @@ func (p *protoStarter) Stop() {
 	if p.state.DoDiscard(nil, nil) {
 		p.ctl.onStopped()
 	}
+}
+
+func (p *protoStarter) NextPulse(pr pulse.Range) {
+	if !p.state.IsActive() {
+		return
+	}
+	p.ctl.nextPulseCycle(pr.RightBoundData().PulseNumber)
 }
 
 func (p *protoStarter) isActive() bool {

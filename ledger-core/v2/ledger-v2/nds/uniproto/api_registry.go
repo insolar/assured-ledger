@@ -7,13 +7,14 @@ package uniproto
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 type RegisterProtocolFunc func(ProtocolType, Descriptor, ProtocolController)
 type ProtocolRegistrationFunc func(RegisterProtocolFunc)
 type ProtocolController interface {
 	Start(PeerManager)
+	NextPulse(pulse.Range)
 	Stop()
 }
 
@@ -22,12 +23,5 @@ type PeerManager interface {
 	ConnectedPeer(nwapi.Address) (Peer, error)
 	MaxSmallPayloadSize() uint
 	MaxSessionlessPayloadSize() uint
-}
-
-type PayloadSerializeFunc func(*SendingPacket, *iokit.LimitedWriter) error
-type PacketSerializeFunc func(*Packet) (int, PayloadSerializeFunc)
-
-type Sender interface {
-	SendTo(nwapi.Address, func(*Packet) PayloadSerializeFunc) error
-	ConnectTo(nwapi.Address, func(*SendingPacket)) error
+	LocalPeer() Peer
 }

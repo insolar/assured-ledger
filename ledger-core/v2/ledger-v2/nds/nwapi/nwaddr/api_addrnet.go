@@ -3,27 +3,27 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package nwapi
+package nwaddr
 
-type AddressNetwork uint8
+type Network uint8
 
 const (
-	_ AddressNetwork = iota
+	_ Network = iota
 	IP
 	DNS
-	HostID
 	HostPK
+	HostID
 	LocalUID
 )
 
-func (a AddressNetwork) IsIP() bool {
+func (a Network) IsIP() bool {
 	return a == IP
 }
 
-func (a AddressNetwork) IsNetCompatible() bool {
+func (a Network) IsNetCompatible() bool {
 	return a == IP || a == DNS
 }
 
-func (a AddressNetwork) IsResolved() bool {
+func (a Network) IsResolved() bool {
 	return a == IP
 }

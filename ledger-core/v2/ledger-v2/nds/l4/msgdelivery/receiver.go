@@ -16,7 +16,7 @@ import (
 var _ uniproto.Receiver = &packetReceiver{}
 
 type packetReceiver struct {
-	ctl *Controller
+	ctl *controller
 }
 
 func (p *packetReceiver) ReceiveSmallPacket(packet *uniproto.ReceivedPacket, b []byte) {

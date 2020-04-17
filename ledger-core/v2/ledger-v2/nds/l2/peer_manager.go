@@ -225,6 +225,7 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 	peer.transport.uid = NextPeerUID()
 	peer.transport.central = &p.central
 	peer.transport.setAddresses(primary, aliases)
+	aliases = peer.transport.aliases
 
 	if p.peerFactory != nil {
 		if err := p.peerFactory(peer); err != nil {
@@ -238,7 +239,7 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 		}
 	}
 
-	if _, err := p.peers.checkAliases(nil, math.MaxUint32, peer.transport.aliases); err != nil {
+	if _, err := p.peers.checkAliases(nil, math.MaxUint32, aliases); err != nil {
 		return 0, nil, err
 	}
 
@@ -271,7 +272,7 @@ func (p *PeerManager) connectionFrom(remote nwapi.Address, newPeerFn func(*Peer)
 	return peer, err
 }
 
-func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostId) (bool, error) {
+func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostID) (bool, error) {
 	peerIndex, peer, err := p.getPeer(to)
 	if err != nil {
 		return false, err
@@ -280,8 +281,8 @@ func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostId) (bool, error)
 		return false, nil
 	}
 
-	if id.IsNodeId() {
-		peer.SetNodeID(id.AsNodeId())
+	if id.IsNodeID() {
+		peer.SetNodeID(id.AsNodeID())
 	}
 
 	p.peerMutex.Lock()
@@ -357,6 +358,10 @@ func (v facadePeerManager) ConnectedPeer(address nwapi.Address) (uniproto.Peer, 
 	default:
 		return nil, throw.Impossible()
 	}
+}
+
+func (v facadePeerManager) LocalPeer() uniproto.Peer {
+	return v.peerManager.Local()
 }
 
 func (v facadePeerManager) MaxSessionlessPayloadSize() uint {

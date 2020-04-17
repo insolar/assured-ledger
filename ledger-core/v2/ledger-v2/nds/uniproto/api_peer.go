@@ -14,12 +14,15 @@ import (
 
 type Peer interface {
 	GetPrimary() nwapi.Address
-	GetSignatureKey() cryptkit.SignatureKey
+	GetLocalUID() nwapi.Address
 	GetNodeID() nwapi.ShortNodeID
+
+	GetSignatureKey() cryptkit.SignatureKey
 
 	SetProtoInfo(pt ProtocolType, info io.Closer)
 	GetProtoInfo(pt ProtocolType) io.Closer
 	GetOrCreateProtoInfo(pt ProtocolType, factoryFn func(Peer) io.Closer) io.Closer
+
 	Transport() OutTransport
 	SendPacket(tp OutType, packet PacketPreparer) error
 	SendPreparedPacket(tp OutType, packet *Packet, dataSize uint, fn PayloadSerializerFunc) error

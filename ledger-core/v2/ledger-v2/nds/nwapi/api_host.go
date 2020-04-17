@@ -12,20 +12,28 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type HostId uint64
+type LocalUniqueID uint64
 
-func (v HostId) IsAbsent() bool { return v == AbsentHostId }
+func (v LocalUniqueID) IsAbsent() bool { return v == 0 }
 
-func (v HostId) IsNodeId() bool { return v > 0 && v <= maxShortNodeId }
+func (v LocalUniqueID) String() string {
+	return strconv.FormatUint(uint64(v), 10)
+}
 
-func (v HostId) AsNodeId() ShortNodeID {
-	if v.IsNodeId() {
+type HostID uint64
+
+func (v HostID) IsAbsent() bool { return v == 0 }
+
+func (v HostID) IsNodeID() bool { return v > 0 && v <= maxShortNodeId }
+
+func (v HostID) AsNodeID() ShortNodeID {
+	if v.IsNodeID() {
 		return ShortNodeID(v)
 	}
 	panic(throw.IllegalState())
 }
 
-func (v HostId) String() string {
+func (v HostID) String() string {
 	if v <= maxShortNodeId {
 		return strconv.FormatUint(uint64(v), 10)
 	}
@@ -34,8 +42,8 @@ func (v HostId) String() string {
 }
 
 const (
-	AbsentHostId   HostId = 0
-	HostIdByteSize        = 8
+	HostIDByteSize   = 8
+	LocalUIDByteSize = 8
 )
 
 // ShortNodeID is the shortened ID of node that is unique inside the globe

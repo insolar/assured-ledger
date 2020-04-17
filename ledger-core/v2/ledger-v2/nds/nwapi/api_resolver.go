@@ -9,6 +9,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi/nwaddr"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -79,7 +80,7 @@ func ExpandAddresses(ctx context.Context, skipError bool, resolverFn func(contex
 		case 0:
 			continue
 		case 1:
-			keep[i] = aa.AddrNetwork() != IP
+			keep[i] = aa.AddrNetwork() != nwaddr.IP
 		default:
 			keep[i] = true
 		}
