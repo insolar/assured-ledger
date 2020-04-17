@@ -7,7 +7,6 @@ package launchnet
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -153,49 +152,6 @@ func GetNodesCount() (int, error) {
 	}
 
 	return len(conf.DiscoverNodes) + len(conf.Nodes), nil
-}
-
-func GetNumShards() (int, error) {
-	type bootstrapConf struct {
-		PKShardCount int `yaml:"ma_shard_count"`
-	}
-
-	var conf bootstrapConf
-
-	path, err := launchnetPath("bootstrap.yaml")
-	if err != nil {
-		return 0, err
-	}
-	buff, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, errors.Wrap(err, "[ GetNumShards ] Can't read bootstrap config")
-	}
-
-	err = yaml.Unmarshal(buff, &conf)
-	if err != nil {
-		return 0, errors.Wrap(err, "[ GetNumShards ] Can't parse bootstrap config")
-	}
-
-	return conf.PKShardCount, nil
-}
-
-func loadMemberKeys(keysPath string, member *User) error {
-	text, err := ioutil.ReadFile(keysPath)
-	if err != nil {
-		return errors.Wrapf(err, "[ loadMemberKeys ] could't load member keys")
-	}
-	var data map[string]string
-	err = json.Unmarshal(text, &data)
-	if err != nil {
-		return errors.Wrapf(err, "[ loadMemberKeys ] could't unmarshal member keys")
-	}
-	if data["private_key"] == "" || data["public_key"] == "" {
-		return errors.New("[ loadMemberKeys ] could't find any keys")
-	}
-	member.PrivKey = data["private_key"]
-	member.PubKey = data["public_key"]
-
-	return nil
 }
 
 func stopInsolard() error {
