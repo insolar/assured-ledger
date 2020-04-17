@@ -113,16 +113,34 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 	p.peer.Transport()
 }
 
-func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody bool) {
+func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 	if !p.isValid() {
 		return
 	}
-	// TODO send
+	packet := ParcelPacket{ParcelId: msg.id.ShortId(), ReturnId: msg.returnId, RepeatedSend: isRepeated}
+	if isBody || msg.shipment.Body == nil || msg.shipment.Head == nil {
+		packet.ParcelType = nwapi.CompletePayload
+	} else {
+		packet.ParcelType = nwapi.HeadOnlyPayload
+	}
+	p._sendParcel(uniproto.Any, packet)
 }
 
-func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment) {
+func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
 	if !p.isValid() {
 		return
 	}
+	packet := ParcelPacket{ParcelId: msg.id.ShortId(), ReturnId: msg.returnId, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
+	p._sendParcel(uniproto.SessionfulLarge, packet)
+}
+
+func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket) {
+	template, dataSize, writeFn := parcel.SerializePacket()
 	// TODO send
+	//template.Header.SourceID
+	//template.Header.ReceiverID
+	//template.Header.TargetID
+	if err := p.peer.SendPacket(tp, &template.Packet, dataSize, writeFn); err != nil {
+		p.ctl.reportError(err)
+	}
 }

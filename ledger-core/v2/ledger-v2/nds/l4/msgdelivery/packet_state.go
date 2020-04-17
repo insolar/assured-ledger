@@ -81,7 +81,7 @@ func (p *StatePacket) isEmpty() bool {
 	return len(p.AckList) == 0 && p.BodyRq == 0 && len(p.BodyAckList) == 0 && len(p.RejectList) == 0
 }
 
-func (p *StatePacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.DataSerializerFunc) {
+func (p *StatePacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
 	packet.Packet = NewPacket(DeliveryState)
 
 	if p.BodyRq != 0 {

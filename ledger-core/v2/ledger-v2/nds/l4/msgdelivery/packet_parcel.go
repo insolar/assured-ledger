@@ -28,7 +28,7 @@ const ( // Flags for ParcelPacket
 	RepeatedSendFlag
 )
 
-func (p *ParcelPacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.DataSerializerFunc) {
+func (p *ParcelPacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
 	if p.ParcelId == 0 {
 		panic(throw.IllegalState())
 	}

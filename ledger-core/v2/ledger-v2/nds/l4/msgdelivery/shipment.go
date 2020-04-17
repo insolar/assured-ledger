@@ -142,16 +142,16 @@ func (p *msgShipment) _isExpired() bool {
 	return false
 }
 
-func (p *msgShipment) sendHead(b bool) {
+func (p *msgShipment) sendHead(isRepeated bool) {
 	if p.getState() > WaitAck {
 		return
 	}
 
 	defer p.state.CompareAndSwap(0, uint32(WaitAck))
-	p.peer.sendParcel(p, false)
+	p.peer.sendParcel(p, false, isRepeated)
 }
 
-func (p *msgShipment) sendBody(b bool) {
+func (p *msgShipment) sendBody(isRepeated bool) {
 	for {
 		switch state := p.getState(); state {
 		case BodyReady, BodyRequested, WaitBodyAck:
@@ -167,11 +167,11 @@ func (p *msgShipment) sendBody(b bool) {
 	if p.shipment.Policies&largeBody != 0 {
 		go func() {
 			defer p.state.CompareAndSwap(uint32(BodySending), uint32(WaitBodyAck))
-			p.peer.sendLargeParcel(p)
+			p.peer.sendLargeParcel(p, isRepeated)
 		}()
 		return
 	}
 
 	defer p.state.CompareAndSwap(uint32(BodySending), uint32(WaitBodyAck))
-	p.peer.sendParcel(p, true)
+	p.peer.sendParcel(p, true, isRepeated)
 }
