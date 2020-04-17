@@ -21,7 +21,7 @@ import (
 
 var (
 	httpClient *http.Client
-	nodesPorts = [2]string{"32304", "32305"}
+	nodesPorts = [2]string{"32302", "32304"}
 )
 
 const (
