@@ -7,11 +7,16 @@ package small
 
 import (
 	"context"
+	"io/ioutil"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
@@ -56,6 +61,9 @@ type Server struct {
 	pulseGenerator     *mimic.PulseGenerator
 	pulseStorage       *pulse.StorageMem
 	pulseManager       insolar.PulseManager
+
+	// components for testing http api
+	testWalletServer *testwalletapi.TestWalletServer
 }
 
 func NewServer(t *testing.T) *Server {
@@ -96,7 +104,9 @@ func NewServer(t *testing.T) *Server {
 	s.pulseStorage = Pulses
 	s.pulseGenerator = mimic.NewPulseGenerator(10)
 
-	s.JetCoordinatorMock = jet.NewCoordinatorMock(t).MeMock.Return(gen.Reference())
+	s.JetCoordinatorMock = jet.NewCoordinatorMock(t).
+		MeMock.Return(gen.Reference()).
+		QueryRoleMock.Return([]insolar.Reference{gen.Reference()}, nil)
 
 	s.PublisherMock = &PublisherMock{}
 
@@ -109,15 +119,18 @@ func NewServer(t *testing.T) *Server {
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
-	virtualService := virtual.NewDispatcher()
-	virtualService.Runner = runnerService
-	virtualService.MessageSender = messageSender
+	virtualDispatcher := virtual.NewDispatcher()
+	virtualDispatcher.Runner = runnerService
+	virtualDispatcher.MessageSender = messageSender
 
-	if err := virtualService.Init(ctx); err != nil {
+	if err := virtualDispatcher.Init(ctx); err != nil {
 		panic(err)
 	}
 
-	s.virtual = virtualService
+	s.virtual = virtualDispatcher
+
+	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
+	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
 
 	PulseManager.AddDispatcher(s.virtual.FlowDispatcher)
 	s.IncrementPulse(ctx)
@@ -156,4 +169,30 @@ func (s *Server) ReplaceMachinesManager(manager executor.Manager) {
 
 func (s *Server) ReplaceCache(cache descriptor.Cache) {
 	s.runner.Cache = cache
+}
+
+func (s *Server) AddInput(msg interface{}) error {
+	return s.virtual.AddInput(context.Background(), s.GetPulse().PulseNumber, msg)
+}
+
+// Utility function RE wallet creation
+
+func (s *Server) CallCreateWallet() (int, []byte) {
+	var (
+		responseWriter = httptest.NewRecorder()
+		httpRequest    = httptest.NewRequest("POST", "/wallet/request", strings.NewReader(""))
+	)
+
+	s.testWalletServer.Create(responseWriter, httpRequest)
+
+	var (
+		statusCode = responseWriter.Result().StatusCode
+		body, err  = ioutil.ReadAll(responseWriter.Result().Body)
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return statusCode, body
 }
