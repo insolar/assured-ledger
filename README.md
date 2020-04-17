@@ -1,2 +1,1 @@
-# Quick start
-`make vendor`
+Look for the README inside the ledger-core/v2 folder.
