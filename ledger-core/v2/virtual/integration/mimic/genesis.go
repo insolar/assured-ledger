@@ -7,7 +7,6 @@ package mimic
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,13 +16,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
 )
 
 const (
 	LaunchnetRelativePath = "scripts/insolard/launchnet.sh"
-	GenesisRelativePath   = "launchnet/configs/heavy_genesis.json"
 )
 
 func GenerateBootstrap(skipBuild bool) (func(), string, error) {
@@ -62,28 +58,4 @@ func GenerateBootstrap(skipBuild bool) (func(), string, error) {
 	}
 
 	return cleanupFunc, artifactsDir, nil
-}
-
-type recordModifierMock struct{}
-
-func (d dropModifierMock) Set(_ context.Context, _ drop.Drop) error {
-	return nil
-}
-
-type dropModifierMock struct{}
-
-func (r recordModifierMock) Set(_ context.Context, _ record.Material) error {
-	return nil
-}
-func (r recordModifierMock) BatchSet(_ context.Context, _ []record.Material) error {
-	return nil
-}
-
-type indexModifierMock struct{}
-
-func (i indexModifierMock) UpdateLastKnownPulse(_ context.Context, _ insolar.PulseNumber) error {
-	return nil
-}
-func (i indexModifierMock) SetIndex(_ context.Context, _ insolar.PulseNumber, _ record.Index) error {
-	return nil
 }

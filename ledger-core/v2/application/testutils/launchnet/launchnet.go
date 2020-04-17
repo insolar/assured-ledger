@@ -23,9 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -45,10 +44,6 @@ var disableLaunchnet = false
 var testRPCUrlVar = "INSOLAR_FUNC_RPC_URL"
 var testRPCUrlPublicVar = "INSOLAR_FUNC_RPC_URL_PUBLIC"
 var keysPathVar = "INSOLAR_FUNC_KEYS_PATH"
-
-const insolarRootMemberKeys = "root_member_keys.json"
-const insolarMigrationAdminMemberKeys = "migration_admin_member_keys.json"
-const insolarFeeMemberKeys = "fee_member_keys.json"
 
 var cmd *exec.Cmd
 var cmdCompleted = make(chan error, 1)
