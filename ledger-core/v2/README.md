@@ -89,8 +89,8 @@ When the pulse watcher says `INSOLAR STATE: READY`, run the following command in
    ```
 
      Options:
-     * `-k`: Path to the root user's key pair. All requests for a new user creation must be signed by the root one.
-     * `-p`: Node's public API URL. By default, the first node listens on the `127.0.0.1:19101` port. It can be changed in configuration.
+     * `-k`: Path to the root user's key pair.<br>All requests for a new user creation must be signed by the root one.
+     * `-p`: Node's public API URL. By default, the first node listens on the `127.0.0.1:19101` port.<br>It can be changed in configuration.
 
 
 ## Run single Insolar node
