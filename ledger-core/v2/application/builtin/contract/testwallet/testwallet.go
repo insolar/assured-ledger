@@ -6,54 +6,53 @@
 package testwallet
 
 import (
-       "errors"
-       "fmt"
+	"errors"
+	"fmt"
 
-       "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-       "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-       "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 )
 
 // Wallet - basic wallet contract.
 type Wallet struct {
-       foundation.BaseContract
-       balance uint32
+	foundation.BaseContract
+	balance uint32
 }
 
 const initialBalance = 1000000000
 
 // New creates new wallet.
 func New() (*Wallet, error) {
-       return &Wallet{balance: initialBalance}, nil
+	return &Wallet{balance: initialBalance}, nil
 }
 
 // ins:immutable
 func (w *Wallet) Balance() (uint32, error) {
-       return w.balance, nil
+	return w.balance, nil
 }
 
-
 func (w *Wallet) Accept(amount uint32) error {
-       w.balance += amount
-       return nil
+	w.balance += amount
+	return nil
 }
 
 func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
-       if amount > w.balance {
-               return errors.New("wallet balance doesn't have enough amount")
-       }
+	if amount > w.balance {
+		return errors.New("wallet balance doesn't have enough amount")
+	}
 
-       proxyWallet := testwallet.GetObject(toWallet)
-       if proxyWallet == nil {
-               return errors.New("toWallet is not object reference")
-       }
+	proxyWallet := testwallet.GetObject(toWallet)
+	if proxyWallet == nil {
+		return errors.New("toWallet is not object reference")
+	}
 
-       err := proxyWallet.Accept(amount)
-       if err != nil {
-               return fmt.Errorf("toWallet failed to accept trasfer with error: %s", err.Error())
-       }
+	err := proxyWallet.Accept(amount)
+	if err != nil {
+		return fmt.Errorf("toWallet failed to accept trasfer with error: %s", err.Error())
+	}
 
-       w.balance -= amount
+	w.balance -= amount
 
-       return nil
+	return nil
 }
