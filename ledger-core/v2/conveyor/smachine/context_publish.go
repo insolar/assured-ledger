@@ -39,7 +39,7 @@ func isValidPublishKey(key interface{}) bool {
 	default:
 		// have to go for reflection
 		tt := reflect.TypeOf(key)
-		return tt.Comparable() && tt.Kind() == reflect.Interface
+		return tt.Comparable() && tt.Kind() != reflect.Interface
 	}
 }
 
