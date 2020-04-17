@@ -24,42 +24,46 @@ type TestWalletServer struct {
 	server   *http.Server
 	feeder   conveyor.EventInputer
 	accessor pulse.Accessor
+	mux      *http.ServeMux
 
 	jsonCodec jsoniter.API
 }
 
 // Aliases VCallRequest.CallSiteMethod for call testwallet.Wallet contract methods
 const (
-	create     = "New"      // Create wallet
-	getBalance = "Balance"  // Get wallet balance
-	addAmount  = "Accept"   // Add money to wallet
-	transfer   = "Transfer" // Transfer money between wallets
+	create     = "New"        // Create wallet
+	getBalance = "GetBalance" // Get wallet balance
+	addAmount  = "Accept"     // Add money to wallet
+	transfer   = "Transfer"   // Transfer money between wallets
 )
 
 func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulse.Accessor) *TestWalletServer {
 	return &TestWalletServer{
 		server:    &http.Server{Addr: api.Address},
+		mux:       http.NewServeMux(),
 		feeder:    feeder,
 		accessor:  accessor,
 		jsonCodec: jsoniter.ConfigCompatibleWithStandardLibrary,
 	}
 }
 
-func registerHandlers(server *TestWalletServer) {
+func (s *TestWalletServer) RegisterHandlers(httpServerMux *http.ServeMux) {
 	walletLocation := "/wallet"
-	http.HandleFunc(walletLocation+"/create", server.Create)
-	http.HandleFunc(walletLocation+"/transfer", server.Transfer)
-	http.HandleFunc(walletLocation+"/get_balance", server.GetBalance)
-	http.HandleFunc(walletLocation+"/add_amount", server.AddAmount)
+	httpServerMux.HandleFunc(walletLocation+"/create", s.Create)
+	httpServerMux.HandleFunc(walletLocation+"/transfer", s.Transfer)
+	httpServerMux.HandleFunc(walletLocation+"/get_balance", s.GetBalance)
+	httpServerMux.HandleFunc(walletLocation+"/add_amount", s.AddAmount)
 }
 
 func (s *TestWalletServer) Start(ctx context.Context) error {
-	registerHandlers(s)
+	s.RegisterHandlers(s.mux)
+	s.server.Handler = s.mux
 
 	listener, err := net.Listen("tcp", s.server.Addr)
 	if err != nil {
 		return errors.Wrap(err, "Can't start listening")
 	}
+
 	go func() {
 		if err := s.server.Serve(listener); err != http.ErrServerClosed {
 			inslogger.FromContext(ctx).Error("Http server: ListenAndServe() error: ", err)

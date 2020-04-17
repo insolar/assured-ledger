@@ -6,11 +6,13 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -142,66 +144,139 @@ func generateCallContext(
 		// should be the same as request.Object
 		res.Callee = oDesc.HeadRef()
 	} else {
-		res.Callee = &execution.Request.Caller
+		res.Callee = &execution.Object
 	}
 
 	return res
 }
 
-func (r *DefaultService) executeMethod(_ context.Context, _ uuid.UUID, _ *executionEventSink) {
-	panic(throw.NotImplemented())
+func (r *DefaultService) executeMethod(
+	ctx context.Context,
+	id uuid.UUID,
+	eventSink *executionEventSink,
+) (
+	*requestresult.RequestResult,
+	error,
+) {
+	var (
+		executionContext = eventSink.context
+		request          = executionContext.Request
+
+		objectDescriptor = executionContext.ObjectDescriptor
+	)
+
+	prototypeReference, err := objectDescriptor.Prototype()
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't get prototype reference")
+	}
+	if prototypeReference == nil {
+		panic(throw.IllegalState())
+	}
+
+	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, *prototypeReference)
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't get descriptors")
+	}
+
+	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't get executor")
+	}
+
+	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
+
+	newData, result, err := codeExecutor.CallMethod(
+		ctx, logicContext, *codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "execution error")
+	}
+	if len(result) == 0 {
+		return nil, errors.New("return of method is empty")
+	}
+	if len(newData) == 0 {
+		return nil, errors.New("object state is empty")
+	}
+
+	// form and return result
+	res := requestresult.New(result, *objectDescriptor.HeadRef())
+
+	if !bytes.Equal(objectDescriptor.Memory(), newData) {
+		res.SetAmend(objectDescriptor, newData)
+	}
+
+	return res, nil
 }
 
-func (r *DefaultService) executeConstructor(ctx context.Context, id uuid.UUID, eventSink *executionEventSink) {
+func (r *DefaultService) executeConstructor(
+	ctx context.Context,
+	id uuid.UUID,
+	eventSink *executionEventSink,
+) (
+	*requestresult.RequestResult,
+	error,
+) {
 	var (
 		executionContext = eventSink.context
 		request          = executionContext.Request
 	)
 
-	protoDesc, codeDesc, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
+	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
 	if err != nil {
-		eventSink.ErrorWrapped(err, "couldn't get descriptors")
+		return nil, errors.Wrap(err, "couldn't get descriptors")
 	}
 
-	codeExecutor, err := r.Manager.GetExecutor(codeDesc.MachineType())
+	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		eventSink.ErrorWrapped(err, "couldn't get executor")
+		return nil, errors.Wrap(err, "couldn't get executor")
+
 	}
 
-	logicContext := generateCallContext(ctx, id, executionContext, protoDesc, codeDesc)
+	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
 
-	newData, result, err := codeExecutor.CallConstructor(ctx, logicContext, *codeDesc.Ref(), request.CallSiteMethod, request.Arguments)
+	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, *codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
-		eventSink.ErrorWrapped(err, "execution error")
+		return nil, errors.Wrap(err, "execution error")
 	}
-	if len(result) == 0 {
-		eventSink.ErrorString("return of constructor is empty")
-	}
-
-	// form and return result
-	res := requestresult.New(result, executionContext.Object)
-	if newData != nil {
-		res.SetActivate(request.Callee, request.CallSiteDeclaration, newData)
+	if len(executionResult) == 0 {
+		return nil, errors.New("return of constructor is empty")
 	}
 
-	eventSink.Result(res)
+	// form and return executionResult
+	res := requestresult.New(executionResult, executionContext.Object)
+	if newState != nil {
+		res.SetActivate(request.Callee, request.CallSiteDeclaration, newState)
+	}
+
+	return res, nil
 }
 
 func (r *DefaultService) execute(ctx context.Context, id uuid.UUID) {
 	defer r.executionRecover(ctx, id)
 
-	eCtx := r.getExecutionSink(id)
-	if eCtx == nil {
+	executionSink := r.getExecutionSink(id)
+	if executionSink == nil {
 		panic(throw.Impossible())
 	}
 
-	switch eCtx.context.Request.CallType {
+	var (
+		result *requestresult.RequestResult
+		err    error
+	)
+
+	switch executionSink.context.Request.CallType {
 	case payload.CTMethod:
-		r.executeMethod(ctx, id, eCtx)
+		result, err = r.executeMethod(ctx, id, executionSink)
 	case payload.CTConstructor:
-		r.executeConstructor(ctx, id, eCtx)
+		result, err = r.executeConstructor(ctx, id, executionSink)
 	default:
 		panic(throw.Unsupported())
+	}
+
+	if err != nil {
+		executionSink.Error(err)
+	} else {
+		executionSink.Result(result)
 	}
 }
 

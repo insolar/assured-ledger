@@ -10,13 +10,34 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Catalog struct{}
 
-func (p Catalog) Get(_ smachine.ExecutionContext, _ insolar.Reference) SharedStateAccessor {
-	panic(throw.NotImplemented())
+type errEntryMissing struct {
+	*log.Msg `txt:"entry is missing"`
+
+	ObjectReference reference.Global
+}
+
+type errEntryExists struct {
+	*log.Msg `txt:"entry already exists"`
+
+	ObjectReference reference.Global
+}
+
+func formatSMTraceID(ref reference.Global) string {
+	return fmt.Sprintf("object-%s", ref.String())
+}
+
+func (p Catalog) Get(ctx smachine.ExecutionContext, objectReference insolar.Reference) SharedStateAccessor {
+	if v, ok := p.TryGet(ctx, objectReference); ok {
+		return v
+	}
+	panic(throw.E("", errEntryMissing{ObjectReference: objectReference}))
 }
 
 func (p Catalog) TryGet(ctx smachine.ExecutionContext, objectReference insolar.Reference) (SharedStateAccessor, bool) { // nolintcontractrequester/contractrequester.go:342
@@ -28,11 +49,12 @@ func (p Catalog) TryGet(ctx smachine.ExecutionContext, objectReference insolar.R
 
 func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference insolar.Reference) SharedStateAccessor {
 	if _, ok := p.TryGet(ctx, objectReference); ok {
-		panic(fmt.Sprintf("already exists: %s", objectReference.String()))
+		panic(throw.E("", errEntryExists{ObjectReference: objectReference}))
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
+		ctx.SetTracerID(formatSMTraceID(objectReference))
+
 		return NewStateMachineObject(objectReference, false)
 	})
 
@@ -46,7 +68,8 @@ func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference inso
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
+		ctx.SetTracerID(formatSMTraceID(objectReference))
+
 		return NewStateMachineObject(objectReference, true)
 	})
 

@@ -28,7 +28,8 @@ import (
 type logIncomingRequest struct {
 	*log.Msg `txt:"Incoming request"`
 
-	URL string
+	URL     string
+	Handler string
 }
 
 const (
@@ -64,7 +65,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		logger  = inslogger.FromContext(ctx)
 	)
 
-	logger.Infom(logIncomingRequest{URL: req.URL.String()})
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Create"})
 
 	result := TestWalletServerCreateResult{
 		Reference: "",
@@ -73,12 +74,10 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	}
 	defer func() { s.mustWriteResult(w, result) }()
 
-	empty, _ := insolar.Serialize(struct{}{})
-
 	walletReq := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
 		Callee:              gen.Reference(),
-		Arguments:           empty,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
 		CallSiteDeclaration: testwallet.GetPrototype(),
 		CallSiteMethod:      create,
 	}
@@ -122,7 +121,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		traceID = utils.RandTraceID()
 		logger  = inslogger.FromContext(ctx)
 	)
-	logger.Infom(logIncomingRequest{URL: req.URL.String()})
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Transfer"})
 
 	params := TransferParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -208,7 +207,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		logger  = inslogger.FromContext(ctx)
 	)
 
-	logger.Infom(logIncomingRequest{URL: req.URL.String()})
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance"})
 
 	params := GetBalanceParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -247,6 +246,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		CallType:       payload.CTMethod,
 		Callee:         *ref,
 		CallSiteMethod: getBalance,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
@@ -288,7 +288,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		logger  = inslogger.FromContext(ctx)
 	)
 
-	logger.Infom(logIncomingRequest{URL: req.URL.String()})
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "AddAmount"})
 
 	params := AddAmountParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -321,9 +321,9 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	param, err := insolar.Serialize(params.Amount)
+	param, err := insolar.Serialize([]interface{}{params.Amount})
 	if err != nil {
-		result.Error = throw.W(err, "Failed to marshall amount", nil).Error()
+		result.Error = throw.W(err, "Failed to marshall arguments", nil).Error()
 		return
 	}
 
