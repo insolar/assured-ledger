@@ -51,6 +51,7 @@ clean: ## run all cleanup tasks
 	go clean $(ALL_PACKAGES)
 	rm -f $(COVERPROFILE)
 	rm -rf $(BIN_DIR)
+	rm -rf $(ARTIFACTS_DIR)
 	./scripts/insolard/launchnet.sh -l
 
 .PHONY: install-build-tools
