@@ -39,9 +39,9 @@ func TestWalletTransfer(t *testing.T) {
 
 	walletFromBalance, err := getWalletBalance(getBalanceURL, walletRefFrom)
 	require.NoError(t, err, "failed to get balance")
-	assert.Equal(t, startAmount-transferAmount, walletFromBalance, "wrong balance")
+	require.Equal(t, startAmount-transferAmount, walletFromBalance, "wrong balance")
 
 	walletToBalance, err := getWalletBalance(getBalanceURL, walletRefTo)
 	require.NoError(t, err, "failed to get balance")
-	assert.Equal(t, startAmount+transferAmount, walletToBalance, "wrong balance")
+	require.Equal(t, startAmount+transferAmount, walletToBalance, "wrong balance")
 }
