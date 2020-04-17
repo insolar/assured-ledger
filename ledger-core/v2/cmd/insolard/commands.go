@@ -24,7 +24,9 @@ const (
 func appProcessCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "app-process",
-		Short: "Run only application process in two-processes mode",
+		Short: "Run application process only, in a two-processes mode",
+		Long: `Two-processes mode implies two processes: first process contains time-critical network and consensus components
+and runs with a higher priority and resource quota; second process contains all other components.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
 			global.Infof("TODO: run app-process with flags config=%s role=%s port=%s",
@@ -48,10 +50,11 @@ func nodeCommand() *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "node",
-		Short: "Run node in production two-processes  mode",
-		Long: `Two-processes mode is the main mode for production  production mode.
-Time critical network and consensus components runs in separated process.
-Use --passive flag for running the second process manually, for example in Kubernetes deployment`,
+		Short: "Run node in production, in the two-processes  mode",
+		Long: `Two-processes mode implies two processes: first process contains time-critical network and consensus components
+and runs with a higher priority and resource quota; second process contains all other components.
+Use the --passive flag for the first process if you want to run the second process manually, for example, in Kubernetes deployment.
+If the first process is not run with this flag, it starts the second process automatically and passes all flags.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
 
@@ -68,14 +71,14 @@ Use --passive flag for running the second process manually, for example in Kuber
 		&role, roleFlag, "r", "", "set static role")
 
 	c.PersistentFlags().StringVar(
-		&genesisConfigPath, heavyGenesisFlag, "", "path to genesis config for heavy node")
+		&genesisConfigPath, heavyGenesisFlag, "", "path to genesis config for the Heavy node")
 
 	c.PersistentFlags().UintVar(
 		&pipelinePort, pipelinePortFlag, 0, "port for connection between node processes")
 
 	c.LocalFlags().BoolVar(&passive, passiveFlag, false,
-		`If the flag is not set, then the first process runs the second process with app-process command and passes flags.
-The pipeline-port flag will be added if it didn't set explicitly`)
+		`If this flag is not set, the first process runs the second process with the app-process command and passes all flags.
+If not set explicitly, the pipeline-port flag will be added automatically, with a random value.`)
 
 	c.MarkFlagRequired(roleFlag) // nolint
 
@@ -86,8 +89,8 @@ The pipeline-port flag will be added if it didn't set explicitly`)
 func testCloudCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "cloud",
-		Short: "Run single process cloud",
-		Long:  "Single process cloud mode id needed for development and debug smart-contracts",
+		Short: "Run single process in the cloud mode",
+		Long:  "Cloud mode for single processes is needed for development and debugging of smart contracts",
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
 			global.Fatalm(throw.NotImplemented())
@@ -103,9 +106,10 @@ func testNodeCommand() *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "node",
-		Short: "Run node in single-process mode",
-		Long: `In Single-process mode the time critical components runs in the same process.
-Only for test purpose, Don't use in production`,
+		Short: "Run node in the single process mode",
+		Long: `In single process mode, all components run in the same process: 
+both the time-critical network and consensus components and app components.
+Test-use only! Don't EVER use in production!`,
 		Run: func(cmd *cobra.Command, args []string) {
 			global.Info("Starting node in single-process mode")
 			runInsolardServer(cmd.Flag(configFlag).Value.String(), genesisConfigPath, role)
@@ -117,7 +121,7 @@ Only for test purpose, Don't use in production`,
 	c.MarkFlagRequired(roleFlag) // nolint
 
 	c.PersistentFlags().StringVar(
-		&genesisConfigPath, heavyGenesisFlag, "", "path to genesis config for heavy node")
+		&genesisConfigPath, heavyGenesisFlag, "", "path to genesis config for the Heavy node")
 
 	return c
 }
@@ -125,8 +129,8 @@ Only for test purpose, Don't use in production`,
 func testHeadlessCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "headless",
-		Short: "Run node in headless mode",
-		Long:  "Headless mode is needed for testing consensus and network algorithms",
+		Short: "Run node in the headless mode",
+		Long:  "Headless mode is needed for testing consensus and network algorithms.",
 		Run: func(cmd *cobra.Command, args []string) {
 			runHeadlessNetwork(cmd.Flag(configFlag).Value.String())
 		},
@@ -139,7 +143,7 @@ func testHeadlessCommand() *cobra.Command {
 func testCommands() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "test",
-		Short: "Group of subcommands for run nodes in development and testing modes",
+		Short: "Group of subcommands for running nodes in the development and testing modes.",
 	}
 	c.AddCommand(
 		testCloudCommand(),
@@ -152,7 +156,7 @@ func testCommands() *cobra.Command {
 func configGenerateCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "generate",
-		Short: "Generate configuration for a node in selected static role and run mode",
+		Short: "Generate configuration for a node in the selected static role and run mode.",
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
 			global.Infof("TODO: generate configuration with config=%s role=%s mode=%s",
@@ -169,7 +173,7 @@ func configGenerateCommand() *cobra.Command {
 func configValidateCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "validate",
-		Short: "Validate configuration for a node in selected static role and run mode",
+		Short: "Validate configuration for a node in the selected static role and run mode.",
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
 			global.Infof("TODO: validate configuration with config=%s role=%s mode=%s",
