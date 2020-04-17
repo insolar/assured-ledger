@@ -89,8 +89,9 @@ If not set explicitly, the pipeline-port flag will be added automatically, with 
 func testCloudCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "cloud",
-		Short: "Run single process in the cloud mode",
-		Long:  "Cloud mode for single processes is needed for development and debugging of smart contracts",
+		Short: "Run single process in the single-process-cloud",
+		Long:  `Single-process-cloud mode implies no consensus and no pulsar service (pulses are still generated).
+It is used for development and debugging of smart contracts`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
 			global.Fatalm(throw.NotImplemented())
@@ -106,10 +107,10 @@ func testNodeCommand() *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "node",
-		Short: "Run node in the single process mode",
-		Long: `In single process mode, all components run in the same process: 
+		Short: "Run node in the single-process mode",
+		Long: `Single-process mode implies that all components run in the same process: 
 both the time-critical network and consensus components and app components.
-Test-use only! Don't EVER use in production!`,
+Test- and development-use only! NEVER use in production!`,
 		Run: func(cmd *cobra.Command, args []string) {
 			global.Info("Starting node in single-process mode")
 			runInsolardServer(cmd.Flag(configFlag).Value.String(), genesisConfigPath, role)
@@ -130,7 +131,8 @@ func testHeadlessCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "headless",
 		Short: "Run node in the headless mode",
-		Long:  "Headless mode is needed for testing consensus and network algorithms.",
+		Long:  `Headless mode implies network communication and consensus but no running of smart contracts.
+		It is used for testing of consensus and network algorithms.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			runHeadlessNetwork(cmd.Flag(configFlag).Value.String())
 		},
