@@ -169,7 +169,7 @@ func CalcExcessivePayloadLength(baseLength uint16, excessive uint32) uint64 {
 
 func (h *Header) SetPayloadLength(payloadLength uint64) uint64 {
 	payloadLength += HeaderByteSizeMin
-	if payloadLength <= payloadLengthMask {
+	if payloadLength <= MaxNonExcessiveLength {
 		h.HeaderAndPayloadLength = uint16(payloadLength)
 	} else {
 		payloadLength += 4
@@ -177,6 +177,16 @@ func (h *Header) SetPayloadLength(payloadLength uint64) uint64 {
 		h.ExcessiveLength = uint32(payloadLength >> payloadLengthBits)
 	}
 	return payloadLength
+}
+
+func (h *Header) GetPacketSize(dataSize uint, sigSize uint) uint {
+	if dataSize > MaxNonExcessiveLength {
+		dataSize += 4
+		dataSize += sigSize
+	}
+	dataSize += sigSize
+	dataSize += HeaderByteSizeMin
+	return dataSize
 }
 
 func (h *Header) IsExcessiveLength() bool {
@@ -337,31 +347,31 @@ func (h *Header) SerializeToBytes(b []byte) (uint, error) {
 	size := h.ByteSize()
 	if size > HeaderByteSizeMin {
 		if h.ExcessiveLength == 0 {
-			return 0, throw.IllegalState()
+			panic(throw.IllegalState())
 		}
 		byteOrder.PutUint32(b[HeaderByteSizeMin:], h.ExcessiveLength)
 	}
 	return size, nil
 }
 
-func (h *Header) SerializeTo(writer io.Writer) error {
-	if !h.IsValid() {
-		return throw.IllegalState()
-	}
-	b := make([]byte, HeaderByteSizeMax)
-	sz, err := h.SerializeToBytes(b)
-	if err != nil {
-		return err
-	}
-
-	switch n, err := writer.Write(b[:sz]); {
-	case err != nil:
-		return err
-	case uint(n) != sz:
-		return io.ErrShortWrite
-	}
-	return nil
-}
+//func (h *Header) SerializeTo(writer io.Writer) error {
+//	if !h.IsValid() {
+//		return throw.IllegalState()
+//	}
+//	b := make([]byte, HeaderByteSizeMax)
+//	sz, err := h.SerializeToBytes(b)
+//	if err != nil {
+//		return err
+//	}
+//
+//	switch n, err := writer.Write(b[:sz]); {
+//	case err != nil:
+//		return err
+//	case uint(n) != sz:
+//		return io.ErrShortWrite
+//	}
+//	return nil
+//}
 
 func (h *Header) DeserializeFrom(reader io.Reader) error {
 	b := make([]byte, HeaderByteSizeMin)

@@ -24,6 +24,7 @@ type ReceivedPacket struct {
 	Decrypter cryptkit.Decrypter
 }
 
+type PayloadDeserializeFunc func(nwapi.DeserializationContext, *Packet, *iokit.LimitedReader) error
 type PacketDeserializerFunc func(nwapi.DeserializationContext, PayloadDeserializeFunc) error
 
 func (p *ReceivedPacket) NewSmallPayloadDeserializer(b []byte) PacketDeserializerFunc {

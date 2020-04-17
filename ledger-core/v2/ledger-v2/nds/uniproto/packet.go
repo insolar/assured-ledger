@@ -38,89 +38,28 @@ type Packet struct {
 	*/
 }
 
-func (p *Packet) SerializePayload(packet *SendingPacket, writer io.Writer, dataSize uint, fn func(*iokit.LimitedWriter) error) error {
-	if !pulse.IsValidAsPulseNumber(int(packet.PulseNumber)) {
-		return throw.E("invalid pulse")
+func (p *Packet) SerializeMinToBytes(b []byte) (uint, error) {
+	n, err := p.Header.SerializeToBytes(b)
+	if err != nil {
+		return 0, err
+	}
+	SerializePulseNumberToBytes(p.PulseNumber, b[n:])
+	return n + pulse.NumberSize, nil
+}
+
+func (p *Packet) SerializePayload(ctx nwapi.SerializationContext, writer *iokit.LimitedWriter, dataSize uint, encrypter cryptkit.Encrypter, fn PayloadSerializerFunc) error {
+	if !p.Header.IsBodyEncrypted() {
+		return fn(ctx, p, writer)
 	}
 
-	signer := packet.signer.signer
-	hasher := signer.NewHasher()
-	payloadSize := dataSize
-
-	if p.Header.IsBodyEncrypted() {
-		payloadSize += packet.encrypter.GetOverheadSize(payloadSize)
-	}
-
-	signatureSize := uint(signer.GetDigestSize())
-
-	payloadSize += uint(pulse.NumberSize)
-	payloadSize += signatureSize // PacketSignature
-
-	packetSize := p.Header.SetPayloadLength(uint64(payloadSize))
-	if p.Header.IsExcessiveLength() {
-		payloadSize += signatureSize // HeaderSignature
-		packetSize = p.Header.SetPayloadLength(uint64(payloadSize))
-	}
-
-	if packet.packetSizeLimit > 0 && packetSize > packet.packetSizeLimit {
-		return throw.E("packet size limit exceeded")
-	}
-
-	teeWriter := iokit.NewLimitedTeeWriterWithSkip(writer, hasher, p.Header.GetHashingZeroPrefix(),
-		int64(packetSize-uint64(signatureSize)))
-
-	_, _ = iokit.WriteZeros(p.Header.GetHashingZeroPrefix(), hasher)
-
-	if err := p.Header.SerializeTo(teeWriter); err != nil {
+	encWriter := encrypter.NewEncryptingWriter(writer, dataSize)
+	teeEncWriter := iokit.LimitWriter(encWriter, int64(dataSize))
+	if err := fn(ctx, p, teeEncWriter); err != nil {
 		return err
 	}
-
-	if err := SerializePulseNumber(p.PulseNumber, teeWriter); err != nil {
-		return err
-	}
-
-	if p.Header.IsExcessiveLength() {
-		digest := hasher.SumToDigest()
-		signature := signer.SignDigest(digest)
-
-		switch n, err := signature.WriteTo(teeWriter); {
-		case err != nil:
-			return err
-		case n != int64(signature.FixedByteSize()):
-			return io.ErrShortWrite
-		}
-	}
-
-	if p.Header.IsBodyEncrypted() {
-		encWriter := packet.encrypter.NewEncryptingWriter(teeWriter, dataSize)
-		teeEncWriter := iokit.LimitWriter(encWriter, int64(dataSize))
-
-		if err := fn(teeEncWriter); err != nil {
-			return err
-		}
-		if cw, ok := encWriter.(io.Closer); ok {
-			// enables use of AEAD-like encryption with extra data on closing
-			if err := cw.Close(); err != nil {
-				return err
-			}
-		}
-	} else {
-		if err := fn(teeWriter); err != nil {
-			return err
-		}
-	}
-	if teeWriter.RemainingBytes() != 0 {
-		return throw.IllegalState()
-	}
-
-	digest := hasher.SumToDigest()
-	signature := signer.SignDigest(digest)
-
-	switch n, err := signature.WriteTo(writer); {
-	case err != nil:
-		return err
-	case n != int64(signature.FixedByteSize()):
-		return io.ErrShortWrite
+	if cw, ok := encWriter.(io.Closer); ok {
+		// enables use of AEAD-like encryption with extra data on closing
+		return cw.Close()
 	}
 	return nil
 }
@@ -181,8 +120,6 @@ func (p *Packet) VerifyNonExcessivePayload(sv PacketVerifier, b []byte) error {
 	return sv.VerifyWhole(&p.Header, b)
 }
 
-type PayloadDeserializeFunc func(nwapi.DeserializationContext, *Packet, *iokit.LimitedReader) error
-
 func (p *Packet) DeserializePayload(ctx nwapi.DeserializationContext, r io.Reader, readLimit int64, decrypter cryptkit.Decrypter, fn PayloadDeserializeFunc) error {
 	if readLimit == 0 || !p.Header.IsBodyEncrypted() {
 		limitReader := iokit.LimitReader(r, readLimit)
@@ -216,4 +153,9 @@ func (p *Packet) DeserializePayload(ctx nwapi.DeserializationContext, r io.Reade
 
 func (p *Packet) GetPayloadOffset() uint {
 	return p.Header.ByteSize() + pulse.NumberSize
+}
+
+func (p *Packet) GetPacketSize(dataSize, sigSize uint) uint {
+	dataSize += pulse.NumberSize
+	return p.Header.GetPacketSize(dataSize, sigSize)
 }
