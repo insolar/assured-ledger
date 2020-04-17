@@ -14,6 +14,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
+var _ uniproto.ProtocolPacket = &ParcelPacket{}
+
 type ParcelPacket struct {
 	ParcelId     ShortShipmentID
 	ReturnId     ShortShipmentID           `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
@@ -28,12 +30,12 @@ const ( // Flags for ParcelPacket
 	RepeatedSendFlag
 )
 
-func (p *ParcelPacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
+func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
 	if p.ParcelId == 0 {
 		panic(throw.IllegalState())
 	}
 
-	packet.Packet = NewPacket(DeliveryParcelBody)
+	initPacket(DeliveryParcelComplete, &packet.Packet)
 
 	switch p.ParcelType {
 	case nwapi.CompletePayload:
@@ -56,7 +58,7 @@ func (p *ParcelPacket) SerializePacket() (packet uniproto.PacketTemplate, dataSi
 	return packet, dataSize, p.SerializePayload
 }
 
-func (p *ParcelPacket) SerializePayload(packet *uniproto.SendingPacket, writer *iokit.LimitedWriter) error {
+func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, _ *uniproto.Packet, writer *iokit.LimitedWriter) error {
 	if err := p.ParcelId.SimpleWriteTo(writer); err != nil {
 		return err
 	}
@@ -65,14 +67,14 @@ func (p *ParcelPacket) SerializePayload(packet *uniproto.SendingPacket, writer *
 			return err
 		}
 	}
-	return p.Data.SerializeTo(packet.GetContext(), writer)
+	return p.Data.SerializeTo(ctx, writer)
 }
 
 func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
 	switch PacketType(packet.Header.GetPacketType()) {
 	case DeliveryParcelHead:
 		p.ParcelType = nwapi.HeadOnlyPayload
-	case DeliveryParcelBody:
+	case DeliveryParcelComplete:
 		p.ParcelType = nwapi.CompletePayload
 	default:
 		panic(throw.Impossible())

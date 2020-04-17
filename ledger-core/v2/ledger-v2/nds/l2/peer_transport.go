@@ -30,7 +30,8 @@ type PeerTransportFactory interface {
 }
 
 type PeerTransportCentral struct {
-	factory PeerTransportFactory
+	factory    PeerTransportFactory
+	sigFactory PeerCryptographyFactory
 
 	maxSessionlessSize uint16
 	maxPeerConn        uint8

@@ -8,7 +8,6 @@ package l2
 import (
 	"crypto/tls"
 	"io"
-	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
@@ -30,11 +29,13 @@ const (
 
 type Peer struct {
 	transport PeerTransport
-	mutex     sync.Mutex
-	pk        cryptkit.SignatureKey
-	dsv       cryptkit.DataSignatureVerifier
-	nodeID    nwapi.ShortNodeID
-	state     atomickit.Uint32 // PeerState
+
+	pk  cryptkit.SignatureKey
+	dsv cryptkit.DataSignatureVerifier
+	dsg cryptkit.DataSigner
+
+	nodeID nwapi.ShortNodeID
+	state  atomickit.Uint32 // PeerState
 
 	// HostIds for indirectly accessible hosts?
 
@@ -70,8 +71,13 @@ func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
 
+	if p.pk.Equals(pk) {
+		return
+	}
+
 	p.pk = pk
 	p.dsv = nil
+	p.dsg = nil
 }
 
 func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
@@ -81,31 +87,82 @@ func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
 	return p.pk
 }
 
-func (p *Peer) GetSignatureVerifier(factory cryptkit.DataSignatureVerifierFactory) (cryptkit.DataSignatureVerifier, error) {
+func (p *Peer) _useKeyAndFactory(fn func(PeerCryptographyFactory) bool) error {
+	switch f := p.transport.central.sigFactory; {
+	case f == nil:
+		return throw.IllegalState()
+	case p.pk.IsEmpty():
+		return throw.FailCaller("key is missing", 1)
+	case !f.IsSignatureKeySupported(p.pk):
+		return throw.FailCaller("key is unsupported", 1)
+	case !fn(f):
+		return throw.FailCaller("factory has failed", 1)
+	}
+	return nil
+}
+
+func (p *Peer) GetDataVerifier() (cryptkit.DataSignatureVerifier, error) {
 	p.transport.mutex.RLock()
-	if dsv := p.dsv; dsv != nil {
+	if d := p.dsv; d != nil {
 		p.transport.mutex.RUnlock()
-		return dsv, nil
+		return d, nil
 	}
 	p.transport.mutex.RUnlock()
 
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
 
-	switch {
-	case p.dsv != nil:
-		return p.dsv, nil
-	case p.pk.IsEmpty():
-		return nil, throw.E("peer key is unknown")
-	//case !factory.IsSignatureKeySupported(p.pk):
-	default:
-		dsv := factory.CreateDataSignatureVerifier(p.pk)
-		if dsv == nil {
-			return nil, throw.E("unsupported peer key")
-		}
-		p.dsv = dsv
-		return dsv, nil
+	if d := p.dsv; d != nil {
+		return d, nil
 	}
+	err := p._useKeyAndFactory(func(f PeerCryptographyFactory) bool {
+		p.dsv = f.CreateDataSignatureVerifier(p.pk)
+		return p.dsv != nil
+	})
+	return p.dsv, err
+}
+
+func (p *Peer) GetDataSigner() (cryptkit.DataSigner, error) {
+	p.transport.mutex.RLock()
+	if d := p.dsg; d != nil {
+		p.transport.mutex.RUnlock()
+		return d, nil
+	}
+	p.transport.mutex.RUnlock()
+
+	p.transport.mutex.Lock()
+	defer p.transport.mutex.Unlock()
+
+	if d := p.dsg; d != nil {
+		return d, nil
+	}
+	err := p._useKeyAndFactory(func(f PeerCryptographyFactory) bool {
+		p.dsg = f.CreateDataSigner(p.pk)
+		return p.dsg != nil
+	})
+	return p.dsg, err
+}
+
+func (p *Peer) getDataDecrypter() (d cryptkit.Decrypter, err error) {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+
+	err = p._useKeyAndFactory(func(f PeerCryptographyFactory) bool {
+		d = f.CreateDataDecrypter(p.pk)
+		return d != nil
+	})
+	return d, err
+}
+
+func (p *Peer) GetDataEncrypter() (d cryptkit.Encrypter, err error) {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+
+	err = p._useKeyAndFactory(func(f PeerCryptographyFactory) bool {
+		d = f.CreateDataEncrypter(p.pk)
+		return d != nil
+	})
+	return d, err
 }
 
 func (p *Peer) UpgradeState(state PeerState) {
@@ -186,31 +243,68 @@ func (p *Peer) Transport() uniproto.OutTransport {
 	return &p.transport
 }
 
-func (p *Peer) SendPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc) error {
+func (p *Peer) SendPacket(tp uniproto.OutType, packet uniproto.PacketPreparer) error {
+	t, sz, fn := packet.PreparePacket()
+	return p.SendPreparedPacket(tp, &t.Packet, sz, fn)
+}
 
-	sp := p.createSendingPacket(packet)
+func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc) error {
+
+	sp, err := p.createSendingPacket(packet)
+	if err != nil {
+		return err
+	}
+
 	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn)
-	switch {
-	case tp == uniproto.Any:
+	switch tp {
+	case uniproto.Any:
 		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
-			return p.transport.sendPacket(uniproto.Sessionless, sendFn)
+			tp = uniproto.Sessionless
+			break
 		}
 		fallthrough
-	case tp == uniproto.SessionfulAny:
+	case uniproto.SessionfulAny:
 		if packetSize <= uniproto.MaxNonExcessiveLength {
 			tp = uniproto.SessionfulSmall
 		} else {
 			tp = uniproto.SessionfulLarge
 		}
+	case uniproto.SmallAny:
+		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
+			tp = uniproto.Sessionless
+			break
+		}
+		fallthrough
+	case uniproto.SessionfulSmall:
+		if packetSize > uniproto.MaxNonExcessiveLength {
+			return throw.E("too big for non-excessive packet")
+		}
+	case uniproto.Sessionless, uniproto.SessionlessNoQuota:
+		if packetSize > uint(p.transport.central.maxSessionlessSize) {
+			return throw.E("too big for sessionless packet")
+		}
 	}
 	return p.transport.sendPacket(tp, sendFn)
 }
 
-func (p *Peer) createSendingPacket(packet *uniproto.Packet) *uniproto.SendingPacket {
-	//if packet.Header.IsBodyEncrypted() {
-	//	// TODO encryption
-	//}
-	//return uniproto.NewSendingPacket(nil, nil)
-	// TODO sending packet
-	panic(throw.NotImplemented())
+func (p *Peer) createSendingPacket(packet *uniproto.Packet) (*uniproto.SendingPacket, error) {
+	var (
+		sig cryptkit.DataSigner
+		enc cryptkit.Encrypter
+		err error
+	)
+
+	if packet.Header.IsBodyEncrypted() {
+		if enc, err = p.GetDataEncrypter(); err != nil {
+			return nil, err
+		}
+	}
+	if sig, err = p.GetDataSigner(); err != nil {
+		return nil, err
+	}
+	sp := uniproto.NewSendingPacket(sig, enc)
+	sp.Packet = *packet
+	sp.Peer = p
+
+	return sp, nil
 }

@@ -21,7 +21,8 @@ type Peer interface {
 	GetProtoInfo(pt ProtocolType) io.Closer
 	GetOrCreateProtoInfo(pt ProtocolType, factoryFn func(Peer) io.Closer) io.Closer
 	Transport() OutTransport
-	SendPacket(tp OutType, packet *Packet, dataSize uint, fn PayloadSerializerFunc) error
+	SendPacket(tp OutType, packet PacketPreparer) error
+	SendPreparedPacket(tp OutType, packet *Packet, dataSize uint, fn PayloadSerializerFunc) error
 }
 
 type OutType uint8
@@ -31,6 +32,7 @@ const (
 	SessionfulAny
 	SessionfulLarge
 	SessionfulSmall
+	SmallAny
 	Sessionless
 	SessionlessNoQuota
 )

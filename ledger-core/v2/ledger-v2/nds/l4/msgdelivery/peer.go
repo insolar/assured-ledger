@@ -110,13 +110,17 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 		return
 	}
 	// TODO send
-	p.peer.Transport()
+	template, dataSize, writeFn := packet.PreparePacket()
+	// TODO send
+	//template.Header.SourceID
+	//template.Header.ReceiverID
+	//template.Header.TargetID
+	if err := p.peer.SendPreparedPacket(uniproto.SmallAny, &template.Packet, dataSize, writeFn); err != nil {
+		p.ctl.reportError(err)
+	}
 }
 
 func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
-	if !p.isValid() {
-		return
-	}
 	packet := ParcelPacket{ParcelId: msg.id.ShortId(), ReturnId: msg.returnId, RepeatedSend: isRepeated}
 	if isBody || msg.shipment.Body == nil || msg.shipment.Head == nil {
 		packet.ParcelType = nwapi.CompletePayload
@@ -127,20 +131,21 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 }
 
 func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
-	if !p.isValid() {
-		return
-	}
 	packet := ParcelPacket{ParcelId: msg.id.ShortId(), ReturnId: msg.returnId, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
 	p._sendParcel(uniproto.SessionfulLarge, packet)
 }
 
 func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket) {
-	template, dataSize, writeFn := parcel.SerializePacket()
+	if !p.isValid() {
+		return
+	}
+
+	template, dataSize, writeFn := parcel.PreparePacket()
 	// TODO send
 	//template.Header.SourceID
 	//template.Header.ReceiverID
 	//template.Header.TargetID
-	if err := p.peer.SendPacket(tp, &template.Packet, dataSize, writeFn); err != nil {
+	if err := p.peer.SendPreparedPacket(tp, &template.Packet, dataSize, writeFn); err != nil {
 		p.ctl.reportError(err)
 	}
 }

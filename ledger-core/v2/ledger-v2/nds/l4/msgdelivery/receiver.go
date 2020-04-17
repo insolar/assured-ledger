@@ -38,7 +38,7 @@ func (p *packetReceiver) receiveDispatcher(packet *uniproto.ReceivedPacket, read
 		if err = readFn(packet.GetContext(p.ctl.factory), payload.DeserializePayload); err == nil {
 			err = p.ctl.receiveState(packet, payload)
 		}
-	case DeliveryParcelHead, DeliveryParcelBody:
+	case DeliveryParcelHead, DeliveryParcelComplete:
 		payload := &ParcelPacket{}
 		if err = readFn(packet.GetContext(p.ctl.factory), payload.DeserializePayload); err == nil {
 			err = p.ctl.receiveParcel(packet, payload)

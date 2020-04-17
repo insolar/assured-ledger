@@ -13,40 +13,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-const Protocol = uniproto.ProtocolTypeMessageDelivery
-
-var protoDescriptor = uniproto.Descriptor{
-	SupportedPackets: [16]uniproto.PacketDescriptor{
-		DeliveryState:      {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
-		DeliveryParcelHead: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
-		DeliveryParcelBody: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.MaxLengthBits},
-	},
-}
-
-const maxStatePacketDataSize = uniproto.MaxNonExcessiveLength - uniproto.PacketByteSizeMin - 512 /* reserved for signature */
-
-type PacketType uint8
-
-const (
-	DeliveryState PacketType = iota
-	DeliveryParcelHead
-	DeliveryParcelBody // or Head + Body
-)
-
-func NewPacket(tp PacketType) uniproto.Packet {
-	pt := uniproto.Packet{}
-	pt.Header.SetProtocolType(Protocol)
-	pt.Header.SetPacketType(uint8(tp))
-	return pt
-}
-
-// Flags for DeliveryState
+// Flags for StatePacket
 const (
 	BodyRqFlag uniproto.FlagIndex = iota
 	BodyRqRejectListFlag
 	BodyAckListFlag
 	RejectListFlag
 )
+
+var _ uniproto.ProtocolPacket = &ParcelPacket{}
 
 type StatePacket struct {
 	// TODO the problem - BodyRq has to be retried
@@ -81,8 +56,8 @@ func (p *StatePacket) isEmpty() bool {
 	return len(p.AckList) == 0 && p.BodyRq == 0 && len(p.BodyAckList) == 0 && len(p.RejectList) == 0
 }
 
-func (p *StatePacket) SerializePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
-	packet.Packet = NewPacket(DeliveryState)
+func (p *StatePacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
+	initPacket(DeliveryState, &packet.Packet)
 
 	if p.BodyRq != 0 {
 		packet.Header.SetFlag(BodyRqFlag, true)
@@ -97,7 +72,7 @@ func (p *StatePacket) SerializePacket() (packet uniproto.PacketTemplate, dataSiz
 	return packet, dataSize, p.SerializePayload
 }
 
-func (p *StatePacket) SerializePayload(_ *uniproto.SendingPacket, writer *iokit.LimitedWriter) error {
+func (p *StatePacket) SerializePayload(_ nwapi.SerializationContext, _ *uniproto.Packet, writer *iokit.LimitedWriter) error {
 	b := make([]byte, writer.RemainingBytes())
 
 	if p.BodyRq != 0 {

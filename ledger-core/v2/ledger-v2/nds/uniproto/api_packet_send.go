@@ -17,6 +17,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
+type PacketPreparer interface {
+	PreparePacket() (template PacketTemplate, dataSize uint, dataFn PayloadSerializerFunc)
+}
+
+type ProtocolPacket interface {
+	PacketPreparer
+	SerializePayload(nwapi.SerializationContext, *Packet, *iokit.LimitedWriter) error
+	DeserializePayload(nwapi.DeserializationContext, *Packet, *iokit.LimitedReader) error
+}
+
 type PacketTemplate struct {
 	Packet
 }
@@ -25,10 +35,6 @@ type PayloadSerializerFunc func(nwapi.SerializationContext, *Packet, *iokit.Limi
 type PacketSerializerFunc func() (template PacketTemplate, dataSize uint, dataFn PayloadSerializerFunc)
 
 //var _ PacketSerializerFunc = PacketSerializer(nil).SerializePacket
-
-type PacketSerializer interface {
-	SerializePacket() (template PacketTemplate, dataSize uint, dataFn PayloadSerializerFunc)
-}
 
 type SerializationHelper struct {
 	// TODO signature size
@@ -82,7 +88,7 @@ func (p *SendingPacket) preSerialize(dataSize uint, alwaysComplete bool) ([]byte
 
 	preBufSize := packetSize
 	if !alwaysComplete && packetSize > MaxNonExcessiveLength {
-		preBufSize = PacketByteSizeMin + p.signer.GetSignatureSize()
+		preBufSize = LargePacketBaselineWithoutSignatureSize + p.signer.GetSignatureSize()
 	}
 	preBuf := make([]byte, preBufSize)
 	n, err := p.Packet.SerializeMinToBytes(preBuf)

@@ -140,9 +140,9 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 					// relaying doesn't need decryption
 					err = throw.NotImplemented()
 				case packet.Header.IsBodyEncrypted():
-					packet.Decrypter = p.PeerManager.GetDecrypter(peer)
-					if packet.Decrypter == nil {
-						err = throw.Unsupported()
+					packet.Decrypter, err = p.PeerManager.GetLocalDataDecrypter()
+					if err != nil {
+						break
 					}
 					fallthrough
 				default:
@@ -271,7 +271,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 				// SourceID must match Peer
 				// Signature must match Peer
 				if sid := toHostId(header.SourceID, supp); p.hasHostId(sid, peer) {
-					dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
+					dsv, err = peer.GetDataVerifier()
 				} else {
 					return throw.RemoteBreach("wrong SourceID")
 				}
@@ -284,12 +284,12 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 
 				sid := toHostId(header.SourceID, supp)
 				if peer, err = p.PeerManager.peerNotLocal(nwapi.NewHostId(sid)); err == nil {
-					dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
+					dsv, err = peer.GetDataVerifier()
 				}
 			}
 		case header.IsRelayRestricted():
 			// Signature must match Peer
-			dsv, err = peer.GetSignatureVerifier(p.PeerManager.sigFactory)
+			dsv, err = peer.GetDataVerifier()
 		default:
 			// Peer must be known and validated
 			// Packet must be self-validated

@@ -157,12 +157,19 @@ var _ cryptkit.DataSignatureVerifierFactory = TestVerifierFactory{}
 
 type TestVerifierFactory struct{}
 
+func (v TestVerifierFactory) CreateDataEncrypter(key cryptkit.SignatureKey) cryptkit.Encrypter {
+	panic("implement me")
+}
+
 func (v TestVerifierFactory) CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter {
 	panic("implement me")
 }
 
-func (v TestVerifierFactory) CreateDataSigner(cryptkit.SignatureKey) cryptkit.DataSigner {
-	panic("implement me")
+func (v TestVerifierFactory) CreateDataSigner(k cryptkit.SignatureKey) cryptkit.DataSigner {
+	if k.GetSigningMethod() == testSigningMethod {
+		return TestDataSigner{}
+	}
+	return nil
 }
 
 func (v TestVerifierFactory) IsSignatureKeySupported(k cryptkit.SignatureKey) bool {
@@ -206,4 +213,31 @@ func (t TestDataVerifier) IsValidDigestSignature(digest cryptkit.DigestHolder, s
 func (t TestDataVerifier) IsValidDataSignature(data io.Reader, signature cryptkit.SignatureHolder) bool {
 	digest := t.NewHasher().DigestReader(data).SumToDigest()
 	return t.IsValidDigestSignature(digest, signature)
+}
+
+/****************************************/
+
+var _ uniproto.ProtocolPacket = &TestPacket{}
+
+type TestPacket struct {
+	Text string
+}
+
+func (p *TestPacket) PreparePacket() (uniproto.PacketTemplate, uint, uniproto.PayloadSerializerFunc) {
+	pt := uniproto.PacketTemplate{}
+	pt.Header.SetRelayRestricted(true)
+	pt.PulseNumber = pulse.MinTimePulse
+	return pt, uint(len(p.Text)), p.SerializePayload
+}
+
+func (p *TestPacket) SerializePayload(_ nwapi.SerializationContext, _ *uniproto.Packet, writer *iokit.LimitedWriter) error {
+	_, err := writer.Write([]byte(p.Text))
+	return err
+}
+
+func (p *TestPacket) DeserializePayload(_ nwapi.DeserializationContext, _ *uniproto.Packet, reader *iokit.LimitedReader) error {
+	b := make([]byte, reader.RemainingBytes())
+	n, err := io.ReadFull(reader, b)
+	p.Text = string(b[:n])
+	return err
 }

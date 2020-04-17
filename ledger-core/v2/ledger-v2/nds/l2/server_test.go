@@ -69,34 +69,59 @@ func TestServer(t *testing.T) {
 	pm2 := ups2.PeerManager()
 	pm2.AddHostId(pm2.Local().GetPrimary(), 2)
 
-	conn21, err := pm2.ConnectTo(nwapi.NewHostPort(Server1))
+	conn21, err := pm2.Manager().ConnectPeer(nwapi.NewHostPort(Server1))
 	require.NoError(t, err)
 	require.NotNil(t, conn21)
-	require.NoError(t, conn21.EnsureConnect())
+	require.NoError(t, conn21.Transport().EnsureConnect())
 
-	testStr := "short msg"
-	msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
+	t.Run("small", func(t *testing.T) {
+		testStr := "short msg"
+		msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
 
-	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), func(t l1.OutTransport) (bool, error) {
-		return true, t.SendBytes(msgBytes)
-	}))
+		require.NoError(t, conn21.Transport().UseSessionful(int64(len(msgBytes)), func(t l1.OutTransport) (bool, error) {
+			return true, t.SendBytes(msgBytes)
+		}))
 
-	marshaller.Wait(0)
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
 
-	require.Equal(t, testStr, marshaller.LastMsg)
-	require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
 
-	testStr = strings.Repeat("long msg", 6553)
-	msgBytes = marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
+		testStr += "2"
+		require.NoError(t, conn21.SendPacket(uniproto.SessionfulSmall, &TestPacket{testStr}))
 
-	require.NoError(t, conn21.UseSessionful(int64(len(msgBytes)), func(t l1.OutTransport) (bool, error) {
-		return true, t.SendBytes(msgBytes)
-	}))
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
 
-	marshaller.Wait(1)
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+	})
 
-	require.Equal(t, testStr, marshaller.LastMsg)
-	require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+	t.Run("large", func(t *testing.T) {
+
+		testStr := strings.Repeat("long msg", 6553)
+		msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
+
+		require.NoError(t, conn21.Transport().UseSessionful(int64(len(msgBytes)), func(t l1.OutTransport) (bool, error) {
+			return true, t.SendBytes(msgBytes)
+		}))
+
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
+
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+
+		testStr += "2"
+		require.NoError(t, conn21.SendPacket(uniproto.SessionfulLarge, &TestPacket{testStr}))
+
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
+
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+	})
 }
 
 func TestHTTPLikeness(t *testing.T) {

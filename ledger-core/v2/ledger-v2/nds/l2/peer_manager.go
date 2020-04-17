@@ -41,11 +41,11 @@ type PeerCryptographyFactory interface {
 	cryptkit.DataSignerFactory
 	IsSignatureKeySupported(cryptkit.SignatureKey) bool
 	CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter
+	CreateDataEncrypter(cryptkit.SignatureKey) cryptkit.Encrypter
 }
 
 type PeerManager struct {
 	quotaFactory PeerQuotaFactoryFunc
-	sigFactory   PeerCryptographyFactory
 	peerFactory  OfflinePeerFactoryFunc
 
 	central PeerTransportCentral
@@ -92,7 +92,7 @@ func (p *PeerManager) SetSignatureFactory(f PeerCryptographyFactory) {
 	defer p.peerMutex.Unlock()
 
 	p.peers.ensureEmpty()
-	p.sigFactory = f
+	p.central.sigFactory = f
 }
 
 func (p *PeerManager) peer(a nwapi.Address) (uint32, *Peer) {
@@ -291,14 +291,6 @@ func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostId) (bool, error)
 	return err == nil, err
 }
 
-func (p *PeerManager) ConnectTo(remote nwapi.Address) (uniproto.OutTransport, error) {
-	peer, err := p.connectPeer(remote)
-	if peer == nil {
-		return nil, err
-	}
-	return &peer.transport, err
-}
-
 func (p *PeerManager) connectPeer(remote nwapi.Address) (*Peer, error) {
 	switch peer, err := p.peerNotLocal(remote); {
 	case err != nil:
@@ -323,9 +315,16 @@ func (p *PeerManager) connectPeer(remote nwapi.Address) (*Peer, error) {
 	return peer, nil
 }
 
-func (p *PeerManager) GetDecrypter(*Peer) cryptkit.Decrypter {
-	sk := p.Local().GetSignatureKey()
-	return p.sigFactory.CreateDataDecrypter(sk)
+func (p *PeerManager) GetLocalDataDecrypter() (cryptkit.Decrypter, error) {
+	return p.Local().getDataDecrypter()
+}
+
+func (p *PeerManager) Manager() uniproto.PeerManager {
+	return facadePeerManager{
+		peerManager:    p,
+		maxSessionless: p.central.maxSessionlessSize,
+		maxSmall:       uniproto.MaxNonExcessiveLength,
+	}
 }
 
 /****************************/
@@ -334,8 +333,8 @@ var _ uniproto.PeerManager = &facadePeerManager{}
 
 type facadePeerManager struct {
 	peerManager    *PeerManager
-	maxSessionless uint
-	maxSmall       uint
+	maxSessionless uint16
+	maxSmall       uint16
 }
 
 func (v facadePeerManager) ConnectPeer(address nwapi.Address) (uniproto.Peer, error) {
@@ -361,9 +360,9 @@ func (v facadePeerManager) ConnectedPeer(address nwapi.Address) (uniproto.Peer, 
 }
 
 func (v facadePeerManager) MaxSessionlessPayloadSize() uint {
-	return v.maxSessionless
+	return uint(v.maxSessionless)
 }
 
 func (v facadePeerManager) MaxSmallPayloadSize() uint {
-	return v.maxSmall
+	return uint(v.maxSmall)
 }
