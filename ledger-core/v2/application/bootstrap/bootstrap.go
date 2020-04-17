@@ -113,8 +113,6 @@ func (g *Generator) makeEmptyGenesisConfig() error {
 	err = ioutil.WriteFile(g.config.HeavyGenesisConfigFile, b, 0600)
 	return errors.Wrapf(err,
 		"failed to write heavy config %v", g.config.HeavyGenesisConfigFile)
-
-	return nil
 }
 
 type nodeInfo struct {
