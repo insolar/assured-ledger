@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -28,7 +27,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
@@ -57,12 +55,6 @@ var cmdCompleted = make(chan error, 1)
 var stdin io.WriteCloser
 var stdout io.ReadCloser
 var stderr io.ReadCloser
-
-var ApplicationIncentives [application.GenesisAmountApplicationIncentivesMembers]*User
-var NetworkIncentives [application.GenesisAmountNetworkIncentivesMembers]*User
-var Enterprise [application.GenesisAmountEnterpriseMembers]*User
-var Foundation [application.GenesisAmountFoundationMembers]*User
-var Funds [application.GenesisAmountFundsMembers]*User
 
 var projectRoot string
 var rootOnce sync.Once
@@ -114,12 +106,6 @@ func Run(cb func() int) int {
 	}
 	return code
 }
-
-var info *requester.InfoResponse
-var Root User
-var MigrationAdmin User
-var FeeMember User
-var MigrationDaemons [application.GenesisAmountMigrationDaemonMembers]*User
 
 type User struct {
 	Ref              string
@@ -214,121 +200,6 @@ func loadMemberKeys(keysPath string, member *User) error {
 	member.PrivKey = data["private_key"]
 	member.PubKey = data["public_key"]
 
-	return nil
-}
-
-func loadAllMembersKeys() error {
-	path, err := launchnetPath("configs", insolarRootMemberKeys)
-	if err != nil {
-		return err
-	}
-	err = loadMemberKeys(path, &Root)
-	if err != nil {
-		return err
-	}
-	path, err = launchnetPath("configs", insolarFeeMemberKeys)
-	if err != nil {
-		return err
-	}
-	err = loadMemberKeys(path, &FeeMember)
-	if err != nil {
-		return err
-	}
-	path, err = launchnetPath("configs", insolarMigrationAdminMemberKeys)
-	if err != nil {
-		return err
-	}
-	err = loadMemberKeys(path, &MigrationAdmin)
-	if err != nil {
-		return err
-	}
-	for i := range MigrationDaemons {
-		path, err := launchnetPath("configs", "migration_daemon_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		MigrationDaemons[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountApplicationIncentivesMembers; i++ {
-		path, err := launchnetPath("configs", "application_incentives_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		ApplicationIncentives[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountNetworkIncentivesMembers; i++ {
-		path, err := launchnetPath("configs", "network_incentives_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		NetworkIncentives[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountFoundationMembers; i++ {
-		path, err := launchnetPath("configs", "foundation_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		Foundation[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountFundsMembers; i++ {
-		path, err := launchnetPath("configs", "funds_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		Funds[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountEnterpriseMembers; i++ {
-		path, err := launchnetPath("configs", "enterprise_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		Enterprise[i] = &md
-	}
-
-	return nil
-}
-
-func setInfo() error {
-	var err error
-	info, err = requester.Info(TestRPCUrl)
-	if err != nil {
-		return errors.Wrap(err, "[ setInfo ] error sending request")
-	}
 	return nil
 }
 
@@ -546,31 +417,6 @@ func setup() error {
 		AdminHostPort = strings.Join(url[0:len(url)-1], "/")
 		disableLaunchnet = true
 	}
-
-	err := loadAllMembersKeys()
-	if err != nil {
-		return errors.Wrap(err, "[ setup ] could't load keys: ")
-	}
-	fmt.Println("[ setup ] all keys successfully loaded")
-
-	numAttempts := 60
-	for i := 0; i < numAttempts; i++ {
-		err = setInfo()
-		if err != nil {
-			fmt.Printf("[ setup ] Couldn't setInfo. Attempt %d/%d. Err: %s\n", i, numAttempts, err)
-		} else {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-	if err != nil {
-		return errors.Wrap(err, "[ setup ] could't receive Root reference ")
-	}
-
-	fmt.Println("[ setup ] references successfully received")
-	Root.Ref = info.RootMember
-	MigrationAdmin.Ref = info.MigrationAdminMember
-
 	return nil
 }
 
