@@ -16,18 +16,18 @@ func NewDirectAddress(id nwapi.ShortNodeID) DeliveryAddress {
 	if id.IsAbsent() {
 		panic(throw.IllegalValue())
 	}
-	return DeliveryAddress{addrType: directAddress, nodeSelector: uint32(id)}
+	return DeliveryAddress{addrType: DirectAddress, nodeSelector: uint32(id)}
 }
 
 func NewRoleAddress(roleId uint8, dataSelector uint64) DeliveryAddress {
 	if roleId == 0 {
 		panic(throw.IllegalValue())
 	}
-	return DeliveryAddress{addrType: roleAddress, nodeSelector: uint32(roleId), dataSelector: dataSelector}
+	return DeliveryAddress{addrType: RoleAddress, nodeSelector: uint32(roleId), dataSelector: dataSelector}
 }
 
 type DeliveryAddress struct {
-	addrType     addressFlags
+	addrType     AddressFlags
 	nodeSelector uint32
 	dataSelector uint64
 }
@@ -40,18 +40,16 @@ func (v DeliveryAddress) IsZero() bool {
 //	// TODO DeliveryAddress.String()
 //}
 
-type addressFlags uint32
+type AddressFlags uint32
 
-const directAddress addressFlags = 0
+const DirectAddress AddressFlags = 0
 const (
-	roleAddress addressFlags = 1 << iota
+	RoleAddress AddressFlags = 1 << iota
 )
-
-type DirectAddress = nwapi.ShortNodeID
 
 type ReturnAddress struct {
 	returnTo nwapi.Address
-	returnId ShortShipmentID
+	returnID ShortShipmentID
 }
 
 func (v ReturnAddress) IsZero() bool {
@@ -59,9 +57,9 @@ func (v ReturnAddress) IsZero() bool {
 }
 
 func (v ReturnAddress) IsValid() bool {
-	return !v.returnTo.IsZero() && v.returnId != 0
+	return !v.returnTo.IsZero() && v.returnID != 0
 }
 
 func (v ReturnAddress) String() string {
-	return v.returnTo.String() + "/" + strconv.FormatUint(uint64(v.returnId), 10)
+	return v.returnTo.String() + "/" + strconv.FormatUint(uint64(v.returnID), 10)
 }

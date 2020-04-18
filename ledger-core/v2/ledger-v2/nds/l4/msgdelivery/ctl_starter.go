@@ -46,3 +46,7 @@ func (p *protoStarter) NextPulse(pr pulse.Range) {
 func (p *protoStarter) isActive() bool {
 	return p.state.IsActive()
 }
+
+func (p *protoStarter) wasStarted() bool {
+	return p.state.WasStarted()
+}

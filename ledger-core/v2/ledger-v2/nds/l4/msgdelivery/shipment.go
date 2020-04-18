@@ -8,6 +8,7 @@ package msgdelivery
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ShipmentState uint8
@@ -22,6 +23,7 @@ const (
 	Done
 	Rejected
 	Expired
+	Cancelled
 )
 
 type msgShipment struct {
@@ -101,69 +103,81 @@ func (p *msgShipment) markAck() {
 	}
 }
 
-func (p *msgShipment) markBodyAck() {
-	for {
-		state := p.getState()
-		if state < Done && !p.state.CompareAndSwap(uint32(state), uint32(Done)) {
-			continue
-		}
-		return
-	}
-}
-
-func (p *msgShipment) markReject() {
-	for {
-		state := p.getState()
-		if state < Done && !p.state.CompareAndSwap(uint32(state), uint32(Rejected)) {
-			continue
-		}
-		return
-	}
-}
-
 func (p *msgShipment) markBodyRq() bool {
 	for {
 		switch state := p.getState(); {
-		case state >= BodyRequested:
+		case state >= Done:
 			return false
+		case state == BodySending:
+			return false
+		case state >= BodyRequested:
+			return true
 		case p.state.CompareAndSwap(uint32(state), uint32(BodyRequested)):
 			return true
 		}
 	}
 }
 
-func (p *msgShipment) markExpired() {
+func (p *msgShipment) _markCompletion(complete ShipmentState) {
+	if complete < Done {
+		panic(throw.IllegalValue())
+	}
 	for {
-		state := p.getState()
-		if state < Done && !p.state.CompareAndSwap(uint32(state), uint32(Expired)) {
-			continue
+		switch state := p.getState(); {
+		case state >= Done:
+			return
+		case p.state.CompareAndSwap(uint32(state), uint32(complete)):
+			// we may have to take additional measures to do cleanup shipment earlier
+			return
 		}
-		return
 	}
 }
 
+func (p *msgShipment) markBodyAck() {
+	p._markCompletion(Done)
+}
+
+func (p *msgShipment) markReject() {
+	p._markCompletion(Rejected)
+}
+
+func (p *msgShipment) markExpired() {
+	p._markCompletion(Expired)
+}
+
+func (p *msgShipment) markCancel() {
+	p._markCompletion(Cancelled)
+}
+
 func (p *msgShipment) _isExpired() bool {
-	cycle, _ := p.peer.ctl.getPulseCycle()
-	if cycle > p.expires {
+	if cycle, _ := p.peer.ctl.getPulseCycle(); cycle > p.expires {
+		p.markExpired()
+		return true
+	}
+	if p.shipment.Cancel.IsCancelled() {
 		p.markExpired()
 		return true
 	}
 	return false
 }
 
-func (p *msgShipment) sendHead(isRepeated bool) {
-	if p.getState() > WaitAck {
-		return
+func (p *msgShipment) sendHead() bool {
+	state := p.getState()
+	if state > WaitAck {
+		return false
 	}
 
 	defer p.state.CompareAndSwap(0, uint32(WaitAck))
-	p.peer.sendParcel(p, false, isRepeated)
+	p.peer.sendParcel(p, false, state == WaitAck)
+	return true
 }
 
-func (p *msgShipment) sendBody(isRepeated bool) {
+func (p *msgShipment) sendBody() {
+	isRepeated := false
 	for {
 		switch state := p.getState(); state {
 		case BodyReady, BodyRequested, WaitBodyAck:
+			isRepeated = state == WaitBodyAck
 			if !p.state.CompareAndSwap(uint32(state), uint32(BodySending)) {
 				continue
 			}

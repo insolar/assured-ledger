@@ -21,6 +21,8 @@ type DeliveryPeer struct {
 	peerID   nwapi.ShortNodeID
 	isDead   atomickit.OnceFlag
 
+	dedup receiveDeduplicator
+
 	mutex    sync.Mutex
 	prepared StatePacket
 	peer     uniproto.Peer
@@ -87,6 +89,12 @@ func (p *DeliveryPeer) addBodyAck(id ShortShipmentID) {
 	})
 }
 
+func (p *DeliveryPeer) addBodyRq(id ShortShipmentID) {
+	p.addToStatePacket(2, func(packet *StatePacket) {
+		packet.BodyRq = append(packet.BodyRq, id)
+	})
+}
+
 func (p *DeliveryPeer) addAck(id ShortShipmentID) {
 	p.addToStatePacket(1, func(packet *StatePacket) {
 		packet.AckList = append(packet.AckList, id)
@@ -142,6 +150,8 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 
 func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
 	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
+	packet.Data = msg.shipment.Body
+
 	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)
 }
 

@@ -16,20 +16,20 @@ const RetryStages = 3
 type RetryID uint64
 
 type StagedController struct {
-	batchHeads  batch
-	stages      [RetryStages]retryStage
-	bodiesStage uint8
+	batchHeads batch
+	stages     [RetryStages]retryStage
 
 	minHeadBatchWeight uint
 }
 
 type RetryStrategy interface {
-	Retry(ids []RetryID, repeatFn func([]RetryID))
+	Retry(ids []RetryID, repeatFn func(RetryID))
 	CheckState(RetryID) RetryState
 	Remove([]RetryID)
 }
 
-func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetryStages]int, bodiesStage uint8) {
+// for initialization only
+func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetryStages]int) {
 	switch {
 	case minHeadBatchWeight <= 0:
 		panic(throw.IllegalValue())
@@ -45,37 +45,32 @@ func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetrySta
 		}
 	}
 
-	p.batchHeads.mutex.Lock()
-	defer p.batchHeads.mutex.Unlock()
+	//p.batchHeads.mutex.Lock()
+	//defer p.batchHeads.mutex.Unlock()
 
-	if p.minHeadBatchWeight != 0 {
-		panic(throw.IllegalState())
-	}
 	p.minHeadBatchWeight = minHeadBatchWeight
 	for i, max := range periods {
 		p.stages[i].max = max
 	}
-	_ = p.stages[bodiesStage].max
-	p.bodiesStage = bodiesStage
 }
 
 func (p *StagedController) Add(id RetryID, weight uint, strategy RetryStrategy) {
 	overflow := p.batchHeads.add(id, weight, p.minHeadBatchWeight)
-	strategy.Retry(overflow, p.batchHeads.addPostList)
+	strategy.Retry(overflow, p.batchHeads.addPost)
 }
 
 func (p *StagedController) AddHeadForRetry(id RetryID) {
-	p.batchHeads.addPostSolo(id)
+	p.batchHeads.addPost(id)
 }
 
 func (p *StagedController) NextCycle(strategy RetryStrategy) {
 	preBatch, pushToNext := p.batchHeads.nextCycle()
 	if len(preBatch) > 0 {
-		strategy.Retry(preBatch, p.batchHeads.addPostList)
+		strategy.Retry(preBatch, p.batchHeads.addPost)
 	}
 
 	maxStage := len(p.stages) - 1
-	for i, _ := range p.stages {
+	for i := 0; i < len(p.stages); i++ {
 		var pre [][]RetryID
 		pre, pushToNext = p.stages[i].nextCycle(pushToNext)
 
@@ -84,11 +79,11 @@ func (p *StagedController) NextCycle(strategy RetryStrategy) {
 			pre = append(pre, pushToNext)
 		}
 
-		p.resend(pre, strategy, p.stages[i].addPostList)
+		p.resend(pre, strategy, p.stages[i].addPost)
 	}
 }
 
-func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeatFn func([]RetryID)) {
+func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeatFn func(RetryID)) {
 	var prev []RetryID
 	for _, list := range in {
 		keepCount, removeStart := segregate(list, strategy.CheckState)
@@ -137,17 +132,7 @@ type stage struct {
 	post  []RetryID
 }
 
-func (p *stage) addPostList(v []RetryID) {
-	if len(v) > 0 {
-		return
-	}
-
-	p.mutex.Lock()
-	p.post = append(p.post, v...)
-	p.mutex.Unlock()
-}
-
-func (p *stage) addPostSolo(v RetryID) {
+func (p *stage) addPost(v RetryID) {
 	p.mutex.Lock()
 	p.post = append(p.post, v)
 	p.mutex.Unlock()

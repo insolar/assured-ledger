@@ -10,6 +10,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -18,23 +19,26 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewController(pt uniproto.ProtocolType, regFn uniproto.RegisterControllerFunc,
-	factory nwapi.DeserializationFactory, timeCycle time.Duration, receiveFn ReceiverFunc,
+const minHeadBatchWeight = 1 << 20
+
+func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactory,
+	receiveFn ReceiverFunc, resolverFn ResolverFunc,
 ) Service {
-	c := &controller{pType: pt, factory: factory, timeCycle: timeCycle, receiveFn: receiveFn}
-	c.registerWith(regFn)
+	c := &controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
+	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
 	return c
 }
 
 type controller struct {
-	pType     uniproto.ProtocolType
-	factory   nwapi.DeserializationFactory
-	receiveFn ReceiverFunc
-	timeCycle time.Duration
+	pType      uniproto.ProtocolType
+	factory    nwapi.DeserializationFactory
+	receiveFn  ReceiverFunc
+	resolverFn ResolverFunc
+	timeCycle  time.Duration
 
 	receiver packetReceiver
-	dedup    receiveDeduplicator
 	sender   retrySender
+	bodyRq   bodyRequester
 	starter  protoStarter
 
 	pulseCycle atomickit.Uint64
@@ -46,19 +50,31 @@ type controller struct {
 	localID           nwapi.ShortNodeID
 }
 
-func (p *controller) ShipTo(to DeliveryAddress, shipment Shipment) error {
-	panic("implement me")
+// for initialization only
+func (p *controller) SetTimings(timeCycle time.Duration, retryStages [retries.RetryStages]time.Duration) {
+	switch {
+	case timeCycle < time.Microsecond:
+		panic(throw.IllegalValue())
+	case !p.isConfigurable():
+		panic(throw.IllegalState())
+	}
+	p.timeCycle = timeCycle
+
+	var periods [retries.RetryStages]int
+	last := 1
+	for i, ts := range retryStages {
+		n := int(ts / timeCycle)
+		if n < last {
+			panic(throw.IllegalValue())
+		}
+		last = n
+		periods[i] = n
+	}
+	p.sender.stages.InitStages(minHeadBatchWeight, periods)
 }
 
-func (p *controller) ShipReturn(to ReturnAddress, shipment Shipment) error {
-	panic("implement me")
-}
-
-func (p *controller) PullBody(from ReturnAddress, receiveFn ReceiverFunc) error {
-	panic("implement me")
-}
-
-func (p *controller) registerWith(regFn uniproto.RegisterControllerFunc) {
+// for initialization only
+func (p *controller) RegisterWith(regFn uniproto.RegisterControllerFunc) {
 	switch {
 	case p.pType == 0:
 		panic(throw.IllegalState())
@@ -69,12 +85,44 @@ func (p *controller) registerWith(regFn uniproto.RegisterControllerFunc) {
 	regFn(p.pType, protoDescriptor, &p.starter, &p.receiver)
 }
 
-func (p *controller) isActive() bool {
-	return p.starter.isActive()
+func (p *controller) ShipTo(to DeliveryAddress, shipment Shipment) error {
+	if to.addrType == DirectAddress {
+		switch {
+		case to.nodeSelector == 0:
+			return throw.IllegalValue()
+		case to.dataSelector != 0:
+			return throw.IllegalValue()
+		}
+		return p.send(nwapi.NewHostId(nwapi.HostID(to.nodeSelector)), 0, shipment)
+	}
+
+	addr, err := p.resolverFn(to.addrType, to.nodeSelector, to.dataSelector)
+	if err != nil {
+		return err
+	}
+	return p.send(addr, 0, shipment)
+}
+
+func (p *controller) ShipReturn(to ReturnAddress, shipment Shipment) error {
+	if !to.IsValid() {
+		return throw.IllegalValue()
+	}
+	return p.send(to.returnTo, to.returnID, shipment)
+}
+
+func (p *controller) PullBody(from ReturnAddress, rq ShipmentRequest) error {
+	if !from.IsValid() {
+		return throw.IllegalValue()
+	}
+	return p.sendBodyRq(from.returnTo, from.returnID, rq)
+}
+
+func (p *controller) isConfigurable() bool {
+	return !p.starter.wasStarted()
 }
 
 func (p *controller) checkActive() error {
-	if !p.isActive() {
+	if !p.starter.isActive() {
 		return throw.FailHere("inactive")
 	}
 	return nil
@@ -120,17 +168,13 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 			return err
 		}
 
-		shipments := make([]*msgShipment, 0, n)
 		for _, id := range payload.BodyRq {
 			switch msg := p.sender.get(AsShipmentID(peerID, id)); {
 			case msg == nil:
 				dPeer.addReject(id)
 			case msg.markBodyRq():
-				shipments = append(shipments, msg)
+				p.sender.sendBodyNoWait(msg)
 			}
-		}
-		if len(shipments) > 0 {
-			p.sender.sendBodiesNoWait(shipments...)
 		}
 	}
 
@@ -155,16 +199,24 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 	return nil
 }
 
+func (p *controller) getDeliveryPeer(peer uniproto.Peer) (*DeliveryPeer, error) {
+	dPeer, ok := peer.GetOrCreateProtoInfo(p.pType, p.createProtoPeer).(*DeliveryPeer)
+	if ok {
+		return dPeer, nil
+	}
+	err := throw.RemoteBreach("peer is not a node")
+	p.reportError(err)
+	return nil, err
+}
+
 func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
 	if err := p.checkActive(); err != nil {
 		p.reportError(err)
 		return err
 	}
 
-	dPeer, ok := packet.Peer.GetOrCreateProtoInfo(p.pType, p.createProtoPeer).(*DeliveryPeer)
-	if !ok {
-		err := throw.RemoteBreach("peer is not a node")
-		p.reportError(err)
+	dPeer, err := p.getDeliveryPeer(packet.Peer)
+	if err != nil {
 		return err
 	}
 
@@ -178,27 +230,34 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 
 	if payload.ReturnID != 0 {
 		retID := AsShipmentID(peerID, payload.ReturnID)
-		if msg := p.sender.getHeads(retID); msg != nil {
+		if msg := p.sender.get(retID); msg != nil {
+			// any reply is considered as a regular Ack
+			// to keep Body request-able
 			msg.markAck()
-		} else if msg = p.sender.getBodies(retID); msg != nil {
-			msg.markBodyAck()
 		}
 	}
 
+	receiveFn := p.receiveFn
+
 	if payload.ParcelType == nwapi.HeadOnlyPayload {
 		dPeer.addAck(payload.ParcelID)
+		if !dPeer.dedup.Add(DedupID(payload.ParcelID)) {
+			return nil
+		}
 	} else {
 		dPeer.addBodyAck(payload.ParcelID)
+		switch fn, ok := p.bodyRq.Remove(dPeer, payload.ParcelID); {
+		case !ok:
+			return nil
+		case fn != nil:
+			receiveFn = fn
+		}
 	}
 
-	if !p.dedup.Add(DedupId(payload.ParcelID)) {
-		return nil
-	}
-
-	err := p.receiveFn(
+	err = receiveFn(
 		ReturnAddress{
 			returnTo: packet.Peer.GetLocalUID(),
-			returnId: payload.ParcelID,
+			returnID: payload.ParcelID,
 		},
 		payload.ParcelType,
 		payload.Data)
@@ -223,7 +282,7 @@ func (p *controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 	return dp
 }
 
-func (p *controller) applySizePolicy(shipment *Shipment) uint {
+func (p *controller) applySizePolicy(shipment *Shipment) (uint, error) {
 	switch {
 	case shipment.Head != nil:
 		headSize := shipment.Head.ByteSize()
@@ -232,7 +291,7 @@ func (p *controller) applySizePolicy(shipment *Shipment) uint {
 				shipment.Body = shipment.Head
 				shipment.Head = nil
 			}
-			return headSize
+			return headSize, nil
 		}
 
 		bodySize := shipment.Body.ByteSize()
@@ -242,20 +301,19 @@ func (p *controller) applySizePolicy(shipment *Shipment) uint {
 
 		switch {
 		case bodySize <= headSize:
-			panic(throw.IllegalValue())
+			return 0, throw.IllegalValue()
 		case headSize > p.maxHeadSize:
 			shipment.Head = nil
-			return bodySize
 		case bodySize <= p.maxHeadSize:
 			shipment.Head = shipment.Body
 			shipment.Body = nil
-			return bodySize
 		case bodySize <= p.maxIgnoreHeadSize || shipment.Policies&ExpectedParcel != 0:
 			shipment.Head = nil
-			return bodySize
 		default:
-			return headSize
+			return headSize, nil
 		}
+		return bodySize, nil
+
 	case shipment.Body != nil:
 		bodySize := shipment.Body.ByteSize()
 		switch {
@@ -265,30 +323,37 @@ func (p *controller) applySizePolicy(shipment *Shipment) uint {
 		case bodySize > p.maxSmallSize:
 			shipment.Policies |= largeBody
 		}
+		return bodySize, nil
 
-		return bodySize
 	default:
-		panic(throw.IllegalValue())
+		return 0, throw.IllegalValue()
 	}
 }
 
-func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) {
+func (p *controller) peer(to nwapi.Address) (*DeliveryPeer, error) {
 	if err := p.checkActive(); err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	sendSize := p.applySizePolicy(&shipment)
 
 	// This protocol is only allowed for peers added by consensus
 	// It can't connect unknown peers.
 	peer, err := p.starter.peers.ConnectedPeer(to)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	dPeer, ok := peer.GetOrCreateProtoInfo(p.pType, p.createProtoPeer).(*DeliveryPeer)
-	if !ok {
-		panic(throw.E("peer is not a node"))
+	return p.getDeliveryPeer(peer)
+}
+
+func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) error {
+	dPeer, err := p.peer(to)
+	if err != nil {
+		return err
+	}
+
+	sendSize, err := p.applySizePolicy(&shipment)
+	if err != nil {
+		return err
 	}
 
 	cycle, pn := p.getPulseCycle()
@@ -304,31 +369,37 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	case shipment.PN == pn:
 		//
 	case shipment.PN > pn:
-		panic(throw.IllegalState())
+		return throw.IllegalState()
 	case msg.expires <= cycle:
 		// has expired
-		return
+		return nil
 	default:
 		msg.expires--
 	}
 
-	if msg.shipment.Head != nil {
-		if msg.shipment.Body == nil && msg.isFireAndForget() {
-			go msg.sendHead(false)
-			return
-		}
-
+	switch {
+	case msg.shipment.Head == nil:
+		msg.markBodyRq()
+		p.sender.sendBodyNoWait(msg)
+	case msg.shipment.Body == nil && msg.isFireAndForget():
+		p.sender.sendHeadNoRetryNoWait(msg)
+	default:
 		p.sender.sendHeadNoWait(msg, sendSize)
-		return
+	}
+	return nil
+}
+
+func (p *controller) sendBodyRq(to nwapi.Address, id ShortShipmentID, rq ShipmentRequest) error {
+	dPeer, err := p.peer(to)
+	if err != nil {
+		return err
 	}
 
-	if msg.isFireAndForget() {
-		p.sender.sendAsap(msg, nil)
-		return
-	}
-
-	msg.markBodyRq()
-	p.sender.sendBodiesNoWait(msg)
+	return p.bodyRq.Add(rqShipment{
+		id:      AsShipmentID(uint32(dPeer.peerID), id),
+		peer:    dPeer,
+		request: rq,
+	})
 }
 
 func (p *controller) onStarted() {

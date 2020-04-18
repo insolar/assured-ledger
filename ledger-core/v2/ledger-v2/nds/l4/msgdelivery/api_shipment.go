@@ -23,6 +23,10 @@ func AsShipmentID(node uint32, id ShortShipmentID) ShipmentID {
 
 type ShipmentID uint64 // NodeId + ShortShipmentID
 
+func (v ShipmentID) NodeID() uint32 {
+	return uint32(v >> 32)
+}
+
 func (v ShipmentID) ShortID() ShortShipmentID {
 	return ShortShipmentID(v)
 }
@@ -64,9 +68,16 @@ func ShortShipmentIDReadFromBytes(b []byte) ShortShipmentID {
 type Shipment struct {
 	Head   nwapi.SizeAwareSerializer
 	Body   nwapi.SizeAwareSerializer
-	Cancel *synckit.ChainedCancel // TODO use
-	PN     pulse.Number
+	Cancel *synckit.ChainedCancel
+	PN     pulse.Number // TODO use?
 	// TTL defines how many pulses this shipment can survive before cancellation
 	TTL      uint8
 	Policies DeliveryPolicies
+}
+
+type ShipmentRequest struct {
+	ReceiveFn ReceiverFunc
+	Cancel    *synckit.ChainedCancel
+	PN        pulse.Number // TODO use
+	TTL       uint8
 }

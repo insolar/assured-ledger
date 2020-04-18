@@ -9,21 +9,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type DedupId uint32
+type DedupID uint32
 
 const maxReceiveWindow = 1 << 16
 
 type receiveDeduplicator struct {
-	maxReceived   DedupId
-	received      map[DedupId]struct{}
-	minReceived   DedupId // >= minContinuous
-	excepts       map[DedupId]struct{}
-	minContinuous DedupId
+	maxReceived   DedupID
+	received      map[DedupID]struct{}
+	minReceived   DedupID // >= minContinuous
+	excepts       map[DedupID]struct{}
+	minContinuous DedupID
 
 	prevCount int
 }
 
-func (p *receiveDeduplicator) Has(id DedupId) bool {
+func (p *receiveDeduplicator) Has(id DedupID) bool {
 	switch {
 	case id > p.minReceived:
 		if id >= p.maxReceived {
@@ -39,17 +39,17 @@ func (p *receiveDeduplicator) Has(id DedupId) bool {
 	}
 }
 
-func (p *receiveDeduplicator) hasReceived(id DedupId) bool {
+func (p *receiveDeduplicator) hasReceived(id DedupID) bool {
 	_, ok := p.received[id]
 	return ok
 }
 
-func (p *receiveDeduplicator) hasExcept(id DedupId) bool {
+func (p *receiveDeduplicator) hasExcept(id DedupID) bool {
 	_, ok := p.excepts[id]
 	return ok
 }
 
-func (p *receiveDeduplicator) Add(id DedupId) bool {
+func (p *receiveDeduplicator) Add(id DedupID) bool {
 	switch {
 	case id >= p.maxReceived:
 		switch {
@@ -148,7 +148,7 @@ func (p *receiveDeduplicator) Add(id DedupId) bool {
 	return true
 }
 
-func (p *receiveDeduplicator) Reset( /* minCutoff DedupId */ ) {
+func (p *receiveDeduplicator) Reset( /* minCutoff DedupID */ ) {
 	const minCutoff = 0
 	//switch {
 	//case minCutoff == 0 || minCutoff >= p.maxReceived:
@@ -174,7 +174,7 @@ func (p *receiveDeduplicator) Reset( /* minCutoff DedupId */ ) {
 	if p.prevCount <= minCount {
 		p.received = nil
 	} else {
-		p.received = make(map[DedupId]struct{}, n)
+		p.received = make(map[DedupID]struct{}, n)
 	}
 	p.prevCount = n
 }

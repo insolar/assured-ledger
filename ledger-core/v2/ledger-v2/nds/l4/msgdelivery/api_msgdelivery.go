@@ -10,10 +10,11 @@ import "github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 type Service interface {
 	ShipTo(to DeliveryAddress, shipment Shipment) error
 	ShipReturn(to ReturnAddress, shipment Shipment) error
-	PullBody(from ReturnAddress, receiveFn ReceiverFunc) error
+	PullBody(from ReturnAddress, shipmentRq ShipmentRequest) error
 }
 
 type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, interface{}) error
+type ResolverFunc func(addrType AddressFlags, nodeSelector uint32, dataSelector uint64) (nwapi.Address, error)
 
 type DeliveryPolicies uint8
 
