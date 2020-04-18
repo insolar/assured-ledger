@@ -17,12 +17,13 @@ import (
 var _ uniproto.ProtocolPacket = &ParcelPacket{}
 
 type ParcelPacket struct {
-	ParcelId     ShortShipmentID
-	ReturnId     ShortShipmentID           `insolar-transport:"Packet=1;optional=PacketFlags[0]"`
+	ParcelID     ShortShipmentID
+	ReturnID     ShortShipmentID           `insolar-transport:"Packet=1,2;optional=PacketFlags[0]"`
+	BodyScale    uint8                     `insolar-transport:"Packet=1"` // bits.Len(byteSize(body+head))
+	ParcelType   nwapi.PayloadCompleteness `insolar-transport:"send=ignore"`
 	RepeatedSend bool                      `insolar-transport:"aliasOf=PacketFlags[1]"`
-	ParcelType   nwapi.PayloadCompleteness `insolar-transport:"send=ignore;aliasOf=PacketFlags[2]"`
 
-	Data nwapi.Serializable
+	Data nwapi.SizeAwareSerializer // nwapi.Serializable
 }
 
 const ( // Flags for ParcelPacket
@@ -31,24 +32,29 @@ const ( // Flags for ParcelPacket
 )
 
 func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
-	if p.ParcelId == 0 {
+	if p.ParcelID == 0 {
 		panic(throw.IllegalState())
 	}
 
 	initPacket(DeliveryParcelComplete, &packet.Packet)
 
+	dataSize = uint(ShortShipmentIDByteSize)
+
 	switch p.ParcelType {
 	case nwapi.CompletePayload:
 		//
 	case nwapi.HeadOnlyPayload:
+		if p.BodyScale == 0 {
+			panic(throw.IllegalState())
+		}
+		dataSize += 1
 		packet.Header.SetPacketType(uint8(DeliveryParcelHead))
 	default:
 		panic(throw.IllegalState())
 	}
 
-	dataSize = uint(ShortShipmentIDByteSize)
-	if p.ReturnId != 0 {
-		dataSize <<= 1
+	if p.ReturnID != 0 {
+		dataSize += uint(ShortShipmentIDByteSize)
 		packet.Header.SetFlag(ReturnIdFlag, true)
 	}
 	dataSize += p.Data.ByteSize()
@@ -58,12 +64,17 @@ func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize
 	return packet, dataSize, p.SerializePayload
 }
 
-func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, _ *uniproto.Packet, writer *iokit.LimitedWriter) error {
-	if err := p.ParcelId.SimpleWriteTo(writer); err != nil {
+func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, packet *uniproto.Packet, writer *iokit.LimitedWriter) error {
+	if err := p.ParcelID.SimpleWriteTo(writer); err != nil {
 		return err
 	}
-	if p.ReturnId != 0 {
-		if err := p.ReturnId.SimpleWriteTo(writer); err != nil {
+	if p.ReturnID != 0 {
+		if err := p.ReturnID.SimpleWriteTo(writer); err != nil {
+			return err
+		}
+	}
+	if packet.Header.GetPacketType() == uint8(DeliveryParcelHead) {
+		if _, err := writer.Write([]byte{p.BodyScale}); err != nil {
 			return err
 		}
 	}
@@ -81,27 +92,47 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 	}
 
 	{
-		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
-		var b []byte
-		if hasReturn {
-			b = make([]byte, ShortShipmentIDByteSize<<1)
-		} else {
-			b = make([]byte, ShortShipmentIDByteSize)
+		bufSize := ShortShipmentIDByteSize
+		if p.ParcelType == nwapi.HeadOnlyPayload {
+			bufSize++
 		}
+		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
+		if hasReturn {
+			bufSize += ShortShipmentIDByteSize
+		}
+		b := make([]byte, bufSize)
 		if _, err := io.ReadFull(reader, b); err != nil {
 			return err
 		}
-		p.ParcelId = ShortShipmentIDReadFromBytes(b)
+
+		p.ParcelID = ShortShipmentIDReadFromBytes(b)
+		if p.ParcelID == 0 {
+			return throw.IllegalValue()
+		}
+
+		bufSize = ShortShipmentIDByteSize
 		if hasReturn {
-			p.ReturnId = ShortShipmentIDReadFromBytes(b[ShortShipmentIDByteSize:])
+			p.ReturnID = ShortShipmentIDReadFromBytes(b[bufSize:])
+			if p.ReturnID == 0 {
+				return throw.IllegalValue()
+			}
+			bufSize += ShortShipmentIDByteSize
+		}
+
+		if p.ParcelType == nwapi.HeadOnlyPayload {
+			p.BodyScale = b[bufSize]
+			if p.BodyScale == 0 {
+				return throw.IllegalValue()
+			}
 		}
 	}
 
 	p.RepeatedSend = packet.Header.HasFlag(RepeatedSendFlag)
 
-	if p.Data != nil {
-		return p.Data.DeserializeFrom(ctx, reader)
+	if des, ok := p.Data.(nwapi.SizeAwareDeserializer); ok {
+		return des.DeserializeFrom(ctx, reader)
 	}
+	p.Data = nil
 
 	f := ctx.GetPayloadFactory()
 	d, err := f.DeserializePayloadFrom(p.ParcelType, reader)

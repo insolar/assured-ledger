@@ -12,57 +12,60 @@ import (
 )
 
 type retrySender struct {
-	retries retries.StagedController
-	heads   msgMap
-	bodies  msgMap
+	stages retries.StagedController
+	heads  msgMap
+	bodies msgMap
 }
 
-func (p *retrySender) _sendHead(msg *msgShipment, sz uint) {
+// ATTN! This method MUST return asap
+func (p *retrySender) sendHeadNoWait(msg *msgShipment, sz uint) {
 	p.heads.put(msg)
 
 	rid := retries.RetryID(msg.id)
-	if msg.isImmediateSend() || !p.retries.Add(rid, sz, p) {
-		msg.sendHead(false)
-		p.retries.AddHeadForRetry(rid)
+	if msg.isImmediateSend() {
+		p.sendAsap(msg, p.stages.AddHeadForRetry)
+		return
 	}
+	p.stages.Add(rid, sz, p)
 }
 
-func (p *retrySender) _sendBody(msg *msgShipment) {
-	p.heads.delete(msg.id)
-	p.bodies.put(msg)
+// ATTN! This method MUST return asap
+func (p *retrySender) sendBodiesNoWait(msgs ...*msgShipment) {
+	p.heads.deleteMsgList(msgs)
+	p.bodies.putAll(msgs)
 
-	msg.sendBody(false)
-	p.retries.AddBodyForRetry(retries.RetryID(msg.id))
+	// TODO "go" is insecure because sender can potentially flood us
+	go msgs[0].sendBody(false)
 }
 
 func (p *retrySender) Retry(ids []retries.RetryID, repeatFn func([]retries.RetryID)) {
-	j := 0
-	for i, id := range ids {
-
-		switch msg := p.getHeads(ShipmentID(id)); {
-		case msg == nil:
-			switch msg := p.getBodies(ShipmentID(id)); {
-			case msg == nil:
-				continue
-			case msg.getBodyRetryState() == retries.KeepRetrying:
-				msg.sendBody(true)
-			default:
-				continue
-			}
-		case msg.getHeadRetryState() == retries.KeepRetrying:
-			msg.sendHead(true)
-		default:
-			continue
-		}
-		if j != i {
-			ids[j] = id
-		}
-		j++
-	}
-
-	if j > 0 {
-		repeatFn(ids[:j])
-	}
+	p.queueRetry(ids, repeatFn)
+	//j := 0
+	//for i, id := range ids {
+	//	switch msg := p.getHeads(ShipmentID(id)); {
+	//	case msg == nil:
+	//		switch msg := p.getBodies(ShipmentID(id)); {
+	//		case msg == nil:
+	//			continue
+	//		case msg.getBodyRetryState() == retries.KeepRetrying:
+	//			msg.sendBody(true)
+	//		default:
+	//			continue
+	//		}
+	//	case msg.getHeadRetryState() == retries.KeepRetrying:
+	//		msg.sendHead(true)
+	//	default:
+	//		continue
+	//	}
+	//	if j != i {
+	//		ids[j] = id
+	//	}
+	//	j++
+	//}
+	//
+	//if j > 0 {
+	//	repeatFn(ids[:j])
+	//}
 }
 
 func (p *retrySender) CheckState(id retries.RetryID) retries.RetryState {
@@ -96,7 +99,15 @@ func (p *retrySender) Remove(ids []retries.RetryID) {
 }
 
 func (p *retrySender) NextTimeCycle() {
-	p.retries.NextCycle(p)
+	p.stages.NextCycle(p)
+}
+
+func (p *retrySender) sendAsap(msg *msgShipment, repeatFn func(id retries.RetryID)) {
+
+}
+
+func (p *retrySender) queueRetry(ids []retries.RetryID, repeatFn func([]retries.RetryID)) {
+
 }
 
 /**********************************/
@@ -110,6 +121,17 @@ func (p *msgMap) put(msg *msgShipment) {
 	p.mx.Lock()
 	p.mp[msg.id] = msg
 	p.mx.Unlock()
+}
+
+func (p *msgMap) putAll(msgs []*msgShipment) {
+	if len(msgs) == 0 {
+		return
+	}
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	for _, msg := range msgs {
+		p.mp[msg.id] = msg
+	}
 }
 
 func (p *msgMap) get(id ShipmentID) *msgShipment {
@@ -134,6 +156,17 @@ func (p *msgMap) deleteAll(ids []retries.RetryID) {
 		delete(p.mp, ShipmentID(id))
 	}
 	p.mx.Unlock()
+}
+
+func (p *msgMap) deleteMsgList(msgs []*msgShipment) {
+	if len(msgs) == 0 {
+		return
+	}
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	for _, msg := range msgs {
+		delete(p.mp, msg.id)
+	}
 }
 
 func (p *msgMap) deleteAllAndShrink(ids []retries.RetryID) []retries.RetryID {

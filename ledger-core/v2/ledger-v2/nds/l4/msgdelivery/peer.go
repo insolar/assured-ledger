@@ -6,11 +6,13 @@
 package msgdelivery
 
 import (
+	"math/bits"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type DeliveryPeer struct {
@@ -101,7 +103,7 @@ func (p *DeliveryPeer) sendBodyRq(id ShortShipmentID) {
 
 	packet := p.prepared
 	p.prepared = StatePacket{}
-	packet.BodyRq = id
+	packet.BodyRq = append(packet.BodyRq, id)
 	p.sendState(packet)
 }
 
@@ -111,34 +113,49 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 	}
 	template, dataSize, writeFn := packet.PreparePacket()
 	p._setPacketForSend(&template)
-	if err := p.peer.SendPreparedPacket(uniproto.SmallAny, &template.Packet, dataSize, writeFn); err != nil {
+	if err := p.peer.SendPreparedPacket(uniproto.SmallAny, &template.Packet, dataSize, writeFn, nil); err != nil {
 		p.ctl.reportError(err)
 	}
 }
 
 func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
-	packet := ParcelPacket{ParcelId: msg.id.ShortId(), ReturnId: msg.returnId, RepeatedSend: isRepeated}
-	if isBody || msg.shipment.Body == nil || msg.shipment.Head == nil {
-		packet.ParcelType = nwapi.CompletePayload
-	} else {
+	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated}
+
+	packet.ParcelType = nwapi.CompletePayload
+
+	switch {
+	case isBody:
+		packet.Data = msg.shipment.Body
+		p._sendParcel(uniproto.Any, packet, msg.canSendBody)
+		return
+	case msg.shipment.Body == nil:
+		packet.Data = msg.shipment.Head
+	case msg.shipment.Head == nil:
+		packet.Data = msg.shipment.Body
+	default:
 		packet.ParcelType = nwapi.HeadOnlyPayload
+		packet.Data = msg.shipment.Head
+		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
 	}
-	p._sendParcel(uniproto.Any, packet)
+	p._sendParcel(uniproto.Any, packet, msg.canSendHead)
 }
 
 func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
-	packet := ParcelPacket{ParcelId: msg.id.ShortId(), ReturnId: msg.returnId, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
-	p._sendParcel(uniproto.SessionfulLarge, packet)
+	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
+	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)
 }
 
-func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket) {
+func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket, checkFn func() bool) {
 	if !p.isValid() {
 		return
+	}
+	if parcel.Data == nil {
+		panic(throw.IllegalValue())
 	}
 
 	template, dataSize, writeFn := parcel.PreparePacket()
 	p._setPacketForSend(&template)
-	if err := p.peer.SendPreparedPacket(tp, &template.Packet, dataSize, writeFn); err != nil {
+	if err := p.peer.SendPreparedPacket(tp, &template.Packet, dataSize, writeFn, checkFn); err != nil {
 		p.ctl.reportError(err)
 	}
 }

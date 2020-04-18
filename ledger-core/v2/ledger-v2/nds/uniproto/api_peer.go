@@ -25,7 +25,7 @@ type Peer interface {
 
 	Transport() OutTransport
 	SendPacket(tp OutType, packet PacketPreparer) error
-	SendPreparedPacket(tp OutType, packet *Packet, dataSize uint, fn PayloadSerializerFunc) error
+	SendPreparedPacket(tp OutType, packet *Packet, dataSize uint, fn PayloadSerializerFunc, checkFn func() bool) error
 }
 
 type OutType uint8

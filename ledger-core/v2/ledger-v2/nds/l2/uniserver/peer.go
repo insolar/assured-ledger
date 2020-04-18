@@ -252,17 +252,17 @@ func (p *Peer) Transport() uniproto.OutTransport {
 
 func (p *Peer) SendPacket(tp uniproto.OutType, packet uniproto.PacketPreparer) error {
 	t, sz, fn := packet.PreparePacket()
-	return p.SendPreparedPacket(tp, &t.Packet, sz, fn)
+	return p.SendPreparedPacket(tp, &t.Packet, sz, fn, nil)
 }
 
-func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc) error {
+func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc, checkFn func() bool) error {
 
 	sp, err := p.createSendingPacket(packet)
 	if err != nil {
 		return err
 	}
 
-	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn)
+	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn, checkFn)
 	switch tp {
 	case uniproto.Any:
 		if packetSize <= uint(p.transport.central.maxSessionlessSize) {

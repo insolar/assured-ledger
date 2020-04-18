@@ -66,7 +66,7 @@ func (p *controller) registerWith(regFn uniproto.RegisterControllerFunc) {
 		panic(throw.IllegalState())
 	}
 	p.starter.ctl = p
-	regFn(p.pType, protoDescriptor, &p.starter)
+	regFn(p.pType, protoDescriptor, &p.starter, &p.receiver)
 }
 
 func (p *controller) isActive() bool {
@@ -112,7 +112,7 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 
 	peerID := packet.Header.SourceID
 
-	if payload.BodyRq != 0 {
+	if n := len(payload.BodyRq); n > 0 {
 		dPeer, ok := packet.Peer.GetProtoInfo(p.pType).(*DeliveryPeer)
 		if !ok {
 			err := throw.RemoteBreach("peer is not a node")
@@ -120,32 +120,34 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 			return err
 		}
 
-		shid := AsShipmentID(peerID, payload.BodyRq)
-		if msg := p.sender.get(shid); msg != nil && msg.markBodyRq() {
-			// TODO "go" is insecure because sender can potentially flood us
-			go p.sender._sendBody(msg)
-		} else {
-			dPeer.addReject(payload.BodyRq)
+		shipments := make([]*msgShipment, 0, n)
+		for _, id := range payload.BodyRq {
+			switch msg := p.sender.get(AsShipmentID(peerID, id)); {
+			case msg == nil:
+				dPeer.addReject(id)
+			case msg.markBodyRq():
+				shipments = append(shipments, msg)
+			}
 		}
-	}
-
-	for _, id := range payload.AckList {
-		shid := AsShipmentID(peerID, id)
-		if msg := p.sender.get(shid); msg != nil {
-			msg.markAck()
+		if len(shipments) > 0 {
+			p.sender.sendBodiesNoWait(shipments...)
 		}
 	}
 
 	for _, id := range payload.BodyAckList {
-		shid := AsShipmentID(peerID, id)
-		if msg := p.sender.get(shid); msg != nil {
+		if msg := p.sender.get(AsShipmentID(peerID, id)); msg != nil {
 			msg.markBodyAck()
 		}
 	}
 
+	for _, id := range payload.AckList {
+		if msg := p.sender.get(AsShipmentID(peerID, id)); msg != nil {
+			msg.markAck()
+		}
+	}
+
 	for _, id := range payload.RejectList {
-		shid := AsShipmentID(peerID, id)
-		if msg := p.sender.get(shid); msg != nil {
+		if msg := p.sender.get(AsShipmentID(peerID, id)); msg != nil {
 			msg.markReject()
 		}
 	}
@@ -174,8 +176,8 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 
 	peerID := packet.Header.SourceID
 
-	if payload.ReturnId != 0 {
-		retID := AsShipmentID(peerID, payload.ReturnId)
+	if payload.ReturnID != 0 {
+		retID := AsShipmentID(peerID, payload.ReturnID)
 		if msg := p.sender.getHeads(retID); msg != nil {
 			msg.markAck()
 		} else if msg = p.sender.getBodies(retID); msg != nil {
@@ -184,19 +186,19 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	}
 
 	if payload.ParcelType == nwapi.HeadOnlyPayload {
-		dPeer.addAck(payload.ParcelId)
+		dPeer.addAck(payload.ParcelID)
 	} else {
-		dPeer.addBodyAck(payload.ParcelId)
+		dPeer.addBodyAck(payload.ParcelID)
 	}
 
-	if !p.dedup.Add(DedupId(payload.ParcelId)) {
+	if !p.dedup.Add(DedupId(payload.ParcelID)) {
 		return nil
 	}
 
 	err := p.receiveFn(
 		ReturnAddress{
 			returnTo: packet.Peer.GetLocalUID(),
-			returnId: payload.ParcelId,
+			returnId: payload.ParcelID,
 		},
 		payload.ParcelType,
 		payload.Data)
@@ -293,7 +295,7 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	msg := &msgShipment{
 		id:       dPeer.NextShipmentId(),
 		peer:     dPeer,
-		returnId: returnId,
+		returnID: returnId,
 		expires:  cycle + uint32(shipment.TTL),
 		shipment: shipment,
 	}
@@ -316,17 +318,17 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 			return
 		}
 
-		go p.sender._sendHead(msg, sendSize)
+		p.sender.sendHeadNoWait(msg, sendSize)
 		return
 	}
 
 	if msg.isFireAndForget() {
-		go msg.sendBody(false)
+		p.sender.sendAsap(msg, nil)
 		return
 	}
 
 	msg.markBodyRq()
-	go p.sender._sendBody(msg)
+	p.sender.sendBodiesNoWait(msg)
 }
 
 func (p *controller) onStarted() {

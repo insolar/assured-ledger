@@ -120,7 +120,7 @@ func (p *SendingPacket) SerializeToBytes(dataSize uint, fn PayloadSerializerFunc
 	return preBuf, nil
 }
 
-func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc) (uint, OutFunc) {
+func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc, checkFn func() bool) (uint, OutFunc) {
 	preBuf, n, packetSize := p.preSerialize(dataSize, false)
 
 	hasher := p.signer.NewHasherWith(&p.Header, preBuf[:n])
@@ -130,6 +130,9 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 
 		isRepeated := false
 		return dataSize, func(t l1.OutTransport) (canRetry bool, err error) {
+			if checkFn != nil && !checkFn() {
+				return false, nil
+			}
 			if !isRepeated {
 				if err := p.serializeToBytes(preBuf[:n], dataSize, payloadSize, fn, hasher); err != nil {
 					return false, err
@@ -147,6 +150,10 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 	payloadSize := packetSize - uint(len(preBuf)) - p.GetSignatureSize()
 
 	return dataSize, func(t l1.OutTransport) (bool, error) {
+		if checkFn != nil && !checkFn() {
+			return false, nil
+		}
+
 		if err := t.SendBytes(preBuf); err != nil {
 			return true, err
 		}

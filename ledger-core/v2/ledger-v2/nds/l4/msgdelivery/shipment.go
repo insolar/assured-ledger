@@ -29,7 +29,7 @@ type msgShipment struct {
 	state   atomickit.Uint32 // ShipmentState
 	expires uint32           // after this cycle
 
-	returnId ShortShipmentID
+	returnID ShortShipmentID
 	shipment Shipment
 
 	peer *DeliveryPeer
@@ -51,7 +51,7 @@ func (p *msgShipment) getHeadRetryState() retries.RetryState {
 		return retries.RemoveCompletely
 	case !p.peer.isValid():
 		return retries.RemoveCompletely
-	case state <= WaitAck:
+	case p.canSendHead():
 		return retries.KeepRetrying
 	default:
 		return retries.StopRetrying
@@ -66,11 +66,20 @@ func (p *msgShipment) getBodyRetryState() retries.RetryState {
 		return retries.RemoveCompletely
 	case !p.peer.isValid():
 		return retries.RemoveCompletely
-	case state >= BodyRequested && state < Done:
+	case p.canSendBody():
 		return retries.KeepRetrying
 	default:
 		return retries.StopRetrying
 	}
+}
+
+func (p *msgShipment) canSendHead() bool {
+	return p.getState() <= WaitAck
+}
+
+func (p *msgShipment) canSendBody() bool {
+	state := p.getState()
+	return state >= BodyRequested && state < Done
 }
 
 func (p *msgShipment) getState() ShipmentState {

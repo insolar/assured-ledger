@@ -13,7 +13,7 @@ type Service interface {
 	PullBody(from ReturnAddress, receiveFn ReceiverFunc) error
 }
 
-type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, nwapi.Serializable) error
+type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, interface{}) error
 
 type DeliveryPolicies uint8
 

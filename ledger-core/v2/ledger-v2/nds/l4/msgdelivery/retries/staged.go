@@ -59,21 +59,13 @@ func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetrySta
 	p.bodiesStage = bodiesStage
 }
 
-func (p *StagedController) Add(id RetryID, weight uint, strategy RetryStrategy) bool {
-	if weight >= p.minHeadBatchWeight {
-		return false
-	}
+func (p *StagedController) Add(id RetryID, weight uint, strategy RetryStrategy) {
 	overflow := p.batchHeads.add(id, weight, p.minHeadBatchWeight)
 	strategy.Retry(overflow, p.batchHeads.addPostList)
-	return true
 }
 
 func (p *StagedController) AddHeadForRetry(id RetryID) {
 	p.batchHeads.addPostSolo(id)
-}
-
-func (p *StagedController) AddBodyForRetry(id RetryID) {
-	p.stages[p.bodiesStage].addPostSolo(id)
 }
 
 func (p *StagedController) NextCycle(strategy RetryStrategy) {

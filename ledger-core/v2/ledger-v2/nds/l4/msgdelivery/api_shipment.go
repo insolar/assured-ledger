@@ -23,7 +23,7 @@ func AsShipmentID(node uint32, id ShortShipmentID) ShipmentID {
 
 type ShipmentID uint64 // NodeId + ShortShipmentID
 
-func (v ShipmentID) ShortId() ShortShipmentID {
+func (v ShipmentID) ShortID() ShortShipmentID {
 	return ShortShipmentID(v)
 }
 
