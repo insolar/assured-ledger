@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniserver
 
 import (
 	"context"
@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -30,25 +29,24 @@ type ServerConfig struct {
 	PeerLimit      int
 }
 
-func NewUnifiedProtocolServer(protocols *uniproto.Parser, updParallelism int) *UnifiedServer {
-	if protocols == nil {
+func NewUnifiedServer(dispatcher uniproto.Dispatcher, updParallelism int) *UnifiedServer {
+	if dispatcher == nil {
 		panic(throw.IllegalValue())
 	}
 	if updParallelism <= 0 {
 		updParallelism = 4
 	}
-	return &UnifiedServer{protocols: protocols, udpSema: synckit.NewSemaphore(updParallelism)}
+	s := &UnifiedServer{udpSema: synckit.NewSemaphore(updParallelism)}
+	s.receiver.Parser.Dispatcher = dispatcher
+	return s
 }
 
 type UnifiedServer struct {
 	config    ServerConfig
-	mode      atomickit.Uint32
-	ptf       peerTransportFactory
-	peers     PeerManager
 	blacklist BlacklistManager
 
-	protocols *uniproto.Parser
-
+	ptf      peerTransportFactory
+	peers    PeerManager
 	receiver PeerReceiver
 	udpSema  synckit.Semaphore
 }
@@ -74,6 +72,11 @@ func (p *UnifiedServer) SetBlacklistManager(blacklist BlacklistManager) {
 }
 
 func (p *UnifiedServer) StartNoListen() {
+
+	p.receiver.Parser.SigSizeHint = p.peers.central.sigFactory.GetMaxSignatureSize()
+	if p.receiver.Parser.SigSizeHint <= 0 {
+		panic(throw.IllegalState())
+	}
 
 	p.peers.central.factory = &p.ptf
 	switch n := p.config.PeerLimit; {
@@ -124,7 +127,10 @@ func (p *UnifiedServer) StartNoListen() {
 		p.ptf.SetSessionful(l1.NewTls(binding, p.config.TlsConfig), p.connectSessionful)
 	}
 
-	p.receiver = PeerReceiver{&p.peers, p.protocols, p.GetMode}
+	p.receiver.PeerManager = &p.peers
+	d := p.receiver.Parser.Dispatcher
+	p.receiver.Parser.Protocols = d.Seal()
+	p.receiver.Parser.Dispatcher.Start(p.peers.Manager())
 }
 
 func (p *UnifiedServer) StartListen() {
@@ -144,14 +150,6 @@ func (p *UnifiedServer) PeerManager() *PeerManager {
 func (p *UnifiedServer) Stop() {
 	_ = p.ptf.Close()
 	_ = p.peers.Close()
-}
-
-func (p *UnifiedServer) GetMode() ConnectionMode {
-	return ConnectionMode(p.mode.Load())
-}
-
-func (p *UnifiedServer) SetMode(mode ConnectionMode) {
-	p.mode.Store(uint32(mode))
 }
 
 func (p *UnifiedServer) checkConnection(_, remote nwapi.Address, err error) error {
@@ -217,7 +215,7 @@ func (p *UnifiedServer) isBlacklisted(remote nwapi.Address) bool {
 func (p *UnifiedServer) reportToBlacklist(remote nwapi.Address, err error) {
 	if bl := p.blacklist; bl != nil {
 		if sv := throw.SeverityOf(err); sv.IsFraudOrWorse() {
-			bl.ReportFraud(remote, p.peers, err)
+			bl.ReportFraud(remote, &p.peers, err)
 		}
 	}
 }

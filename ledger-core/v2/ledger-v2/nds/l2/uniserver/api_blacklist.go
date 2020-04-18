@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniserver
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
@@ -11,5 +11,5 @@ import (
 
 type BlacklistManager interface {
 	IsBlacklisted(a nwapi.Address) bool
-	ReportFraud(nwapi.Address, PeerManager, error) bool
+	ReportFraud(nwapi.Address, *PeerManager, error) bool
 }

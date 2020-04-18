@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewController(pt uniproto.ProtocolType, regFn uniproto.RegisterProtocolFunc,
+func NewController(pt uniproto.ProtocolType, regFn uniproto.RegisterControllerFunc,
 	factory nwapi.DeserializationFactory, timeCycle time.Duration, receiveFn ReceiverFunc,
 ) Service {
 	c := &controller{pType: pt, factory: factory, timeCycle: timeCycle, receiveFn: receiveFn}
@@ -58,7 +58,7 @@ func (p *controller) PullBody(from ReturnAddress, receiveFn ReceiverFunc) error 
 	panic("implement me")
 }
 
-func (p *controller) registerWith(regFn uniproto.RegisterProtocolFunc) {
+func (p *controller) registerWith(regFn uniproto.RegisterControllerFunc) {
 	switch {
 	case p.pType == 0:
 		panic(throw.IllegalState())
@@ -66,9 +66,7 @@ func (p *controller) registerWith(regFn uniproto.RegisterProtocolFunc) {
 		panic(throw.IllegalState())
 	}
 	p.starter.ctl = p
-	desc := protoDescriptor
-	desc.Receiver = &p.receiver
-	regFn(p.pType, desc, &p.starter)
+	regFn(p.pType, protoDescriptor, &p.starter)
 }
 
 func (p *controller) isActive() bool {

@@ -3,13 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniserver
 
 type TransportStreamFormat uint8
 
 const (
 	_                   TransportStreamFormat = iota
-	DetectByFirstPacket                       // considered as Unlimited
+	DetectByFirstPacket                       // considered as Unrestricted
 	BinaryLimitedLength
 	BinaryUnlimitedLength
 	HttpLimitedLength

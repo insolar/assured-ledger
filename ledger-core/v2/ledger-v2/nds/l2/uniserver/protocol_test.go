@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniserver
 
 import (
 	"hash/crc32"
@@ -26,6 +26,7 @@ var TestProtocolDescriptor = uniproto.Descriptor{
 	},
 }
 
+var _ uniproto.Controller = &TestProtocolMarshaller{}
 var _ uniproto.Receiver = &TestProtocolMarshaller{}
 
 type TestProtocolMarshaller struct {
@@ -39,6 +40,10 @@ type TestProtocolMarshaller struct {
 	LastError  error
 	ReportErr  error
 }
+
+func (p *TestProtocolMarshaller) Start(manager uniproto.PeerManager) {}
+func (p *TestProtocolMarshaller) NextPulse(p2 pulse.Range)           {}
+func (p *TestProtocolMarshaller) Stop()                              {}
 
 func (p *TestProtocolMarshaller) PrepareHeader(_ *uniproto.Header, pn pulse.Number) (pulse.Number, error) {
 	return pn, nil
@@ -163,6 +168,10 @@ func (v TestVerifierFactory) CreateDataEncrypter(key cryptkit.SignatureKey) cryp
 
 func (v TestVerifierFactory) CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter {
 	panic("implement me")
+}
+
+func (v TestVerifierFactory) GetMaxSignatureSize() int {
+	return 4
 }
 
 func (v TestVerifierFactory) CreateDataSigner(k cryptkit.SignatureKey) cryptkit.DataSigner {

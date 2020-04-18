@@ -8,7 +8,7 @@ package msgdelivery
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l2"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -46,6 +46,6 @@ func (p *packetReceiver) receiveDispatcher(packet *uniproto.ReceivedPacket, read
 	default:
 		err = throw.Impossible()
 	}
-	p.ctl.reportError(throw.WithDetails(err, l2.PacketErrDetails{Header: packet.Header, Pulse: packet.PulseNumber}))
+	p.ctl.reportError(throw.WithDetails(err, uniserver.PacketErrDetails{Header: packet.Header, Pulse: packet.PulseNumber}))
 	return err
 }

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniserver
 
 import (
 	"strings"
@@ -34,13 +34,13 @@ func TestServer(t *testing.T) {
 		return nil
 	}
 
-	var protocols uniproto.Parser
-	protocols.SignatureSizeHint = 32
+	var dispatcher1 Dispatcher
+	dispatcher1.RegisterProtocol(0, TestProtocolDescriptor, marshaller, marshaller)
 
-	protocols.Protocols[0] = TestProtocolDescriptor
-	protocols.Protocols[0].Receiver = marshaller
+	buffer1 := NewReceiveBuffer(5, 0, 2, &dispatcher1)
+	buffer1.RunWorkers(1, false)
 
-	ups1 := NewUnifiedProtocolServer(&protocols, 2)
+	ups1 := NewUnifiedServer(&buffer1, 2)
 	ups1.SetConfig(ServerConfig{
 		BindingAddress: Server1,
 		UdpMaxSize:     1400,
@@ -50,12 +50,18 @@ func TestServer(t *testing.T) {
 	ups1.SetSignatureFactory(vf)
 
 	ups1.StartListen()
-	ups1.SetMode(AllowAll)
+	dispatcher1.SetMode(uniproto.AllowAll)
 
 	pm1 := ups1.PeerManager()
-	pm1.AddHostId(pm1.Local().GetPrimary(), 1)
+	_, err := pm1.AddHostId(pm1.Local().GetPrimary(), 1)
+	require.NoError(t, err)
 
-	ups2 := NewUnifiedProtocolServer(&protocols, 2)
+	var dispatcher2 Dispatcher
+	dispatcher2.SetMode(uniproto.NewConnectionMode(0, 0))
+	dispatcher2.RegisterProtocol(0, TestProtocolDescriptor, marshaller, marshaller)
+	dispatcher2.Seal()
+
+	ups2 := NewUnifiedServer(&dispatcher2, 2)
 	ups2.SetConfig(ServerConfig{
 		BindingAddress: Server2,
 		UdpMaxSize:     1400,
@@ -67,7 +73,8 @@ func TestServer(t *testing.T) {
 	ups2.StartNoListen()
 
 	pm2 := ups2.PeerManager()
-	pm2.AddHostId(pm2.Local().GetPrimary(), 2)
+	_, err = pm2.AddHostId(pm2.Local().GetPrimary(), 2)
+	require.NoError(t, err)
 
 	conn21, err := pm2.Manager().ConnectPeer(nwapi.NewHostPort(Server1))
 	require.NoError(t, err)

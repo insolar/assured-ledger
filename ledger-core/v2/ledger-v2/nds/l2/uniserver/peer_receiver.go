@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package l2
+package uniserver
 
 import (
 	"bufio"
@@ -24,8 +24,7 @@ import (
 
 type PeerReceiver struct {
 	PeerManager *PeerManager
-	Protocols   *uniproto.Parser
-	ModeFn      func() ConnectionMode
+	Parser      uniproto.Parser
 }
 
 type PacketErrDetails struct {
@@ -98,7 +97,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 
 		for {
 			packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
-			preRead, more, err := p.Protocols.ReceivePacket(&packet, fn, r, limit.IsUnlimited())
+			preRead, more, err := p.Parser.ReceivePacket(&packet, fn, r, limit.IsUnlimited())
 
 			switch isEOF := false; {
 			case more < 0:
@@ -146,7 +145,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 					}
 					fallthrough
 				default:
-					receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
+					receiver := p.Parser.Dispatcher.GetReceiver(packet.Header.GetProtocolType())
 					if more == 0 {
 						receiver.ReceiveSmallPacket(&packet, preRead)
 					} else {
@@ -181,9 +180,9 @@ func (p PeerReceiver) ReceiveDatagram(remote nwapi.Address, b []byte) (err error
 
 	n := -1
 	packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
-	if n, err = p.Protocols.ReceiveDatagram(&packet, fn, b); err == nil {
+	if n, err = p.Parser.ReceiveDatagram(&packet, fn, b); err == nil {
 		if !packet.Header.IsForRelay() {
-			receiver := p.Protocols.Protocols[packet.Header.GetProtocolType()].Receiver
+			receiver := p.Parser.Dispatcher.GetReceiver(packet.Header.GetProtocolType())
 			receiver.ReceiveSmallPacket(&packet, b)
 		} else {
 			// TODO relay via sessionless
@@ -222,7 +221,7 @@ func (p PeerReceiver) resolvePeer(remote nwapi.Address, isIncoming bool, conn io
 		err = throw.Impossible()
 	default:
 		peer, err = p.PeerManager.connectionFrom(remote, func(*Peer) error {
-			if !p.ModeFn().IsUnknownPeerAllowed() {
+			if !p.Parser.GetMode().IsUnknownPeerAllowed() {
 				return throw.Violation("unknown peer")
 			}
 			isNew = true
@@ -354,10 +353,6 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyH
 	}
 
 	return func(header *uniproto.Header, flags uniproto.Flags, supp uniproto.Supporter) (dsv cryptkit.DataSignatureVerifier, err error) {
-
-		if !p.ModeFn().IsProtocolAllowed(header.GetProtocolType()) {
-			return nil, throw.Violation("protocol is disabled")
-		}
 
 		selfVerified := false
 		if selfVerified, dsv, err = p.checkSourceAndReceiver(peer, supp, header); err != nil {
