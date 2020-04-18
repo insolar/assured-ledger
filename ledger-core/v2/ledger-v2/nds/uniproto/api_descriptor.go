@@ -11,13 +11,12 @@ type Descriptor struct {
 	// TLS config
 	// Route Validation / This ID
 	// Certificate / signature? then needs unified_packet
-	Receiver         Receiver
 	Supporter        Supporter
 	SupportedPackets PacketDescriptors
 }
 
 func (d Descriptor) IsSupported() bool {
-	return d.Receiver != nil
+	return d.SupportedPackets[0].IsSupported()
 }
 
 type PacketDescriptor struct {
@@ -39,5 +38,4 @@ func (d PacketDescriptor) IsAllowedLength(fullLen uint64) bool {
 type VerifyHeaderFunc func(h *Header, flags Flags, s Supporter) (cryptkit.DataSignatureVerifier, error)
 
 type Descriptors [ProtocolTypeCount]Descriptor
-type Receivers [ProtocolTypeCount]Receiver
 type PacketDescriptors [PacketTypeCount]PacketDescriptor

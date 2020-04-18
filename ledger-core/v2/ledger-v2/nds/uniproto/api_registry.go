@@ -10,9 +10,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
-type RegisterProtocolFunc func(ProtocolType, Descriptor, ProtocolController)
-type ProtocolRegistrationFunc func(RegisterProtocolFunc)
-type ProtocolController interface {
+type RegisterControllerFunc func(ProtocolType, Descriptor, Controller, Receiver)
+type RegisterProtocolFunc func(RegisterControllerFunc)
+type Controller interface {
 	Start(PeerManager)
 	NextPulse(pulse.Range)
 	Stop()

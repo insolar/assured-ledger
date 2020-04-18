@@ -5,6 +5,8 @@
 
 package uniproto
 
+import "math/bits"
+
 func NewProtocolSet(pts ...ProtocolType) ProtocolSet {
 	v := ProtocolSet(0)
 	for _, pt := range pts {
@@ -26,6 +28,18 @@ func (v ProtocolSet) Set(pt ProtocolType, val bool) ProtocolSet {
 		return v | 1<<pt
 	}
 	return v &^ 1 << pt
+}
+
+func (v ProtocolSet) ForEach(fn func(pt ProtocolType) bool) bool {
+	for pt := ProtocolType(0); v != 0; pt++ {
+		d := bits.TrailingZeros16(uint16(v))
+		pt += ProtocolType(d)
+		v >>= d + 1
+		if fn(pt) {
+			return true
+		}
+	}
+	return false
 }
 
 func NewPacketSet(pts ...ProtocolType) ProtocolSet {

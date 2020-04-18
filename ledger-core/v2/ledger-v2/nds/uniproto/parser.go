@@ -13,14 +13,20 @@ import (
 )
 
 type Parser struct {
-	Protocols         Descriptors
-	SignatureSizeHint int // only a pre-allocation hint, actual size is taken from cryptkit.DataSignatureVerifier
+	Protocols   Descriptors
+	SigSizeHint int // a pre-allocation hint, MUST be >= actual size from cryptkit.DataSignatureVerifier
+	Dispatcher  Dispatcher
+}
+
+func (p Parser) GetMode() ConnectionMode {
+	return p.Dispatcher.GetMode()
 }
 
 func (p Parser) ReceivePacket(packet *ReceivedPacket, headerFn VerifyHeaderFunc, r io.Reader, allowExcessive bool,
 ) (preRead []byte, more int64, err error) {
 
-	preRead = make([]byte, LargePacketBaselineWithoutSignatureSize, LargePacketBaselineWithoutSignatureSize+p.SignatureSizeHint)
+	const minSize = LargePacketBaselineWithoutSignatureSize
+	preRead = make([]byte, minSize, minSize+p.SigSizeHint)
 
 	more = -1
 	switch readLen, err := io.ReadFull(r, preRead); err {
@@ -96,11 +102,6 @@ func (p Parser) ReceiveDatagram(packet *ReceivedPacket, headerFn VerifyHeaderFun
 func (p Parser) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagram bool,
 ) (cryptkit.DataSignatureVerifier, uint64, error) {
 	h := packet.Header
-	protocolDesc := &p.Protocols[h.GetProtocolType()]
-	if !protocolDesc.IsSupported() {
-		return nil, 0, throw.Violation("unsupported protocol")
-	}
-	packetDesc := protocolDesc.SupportedPackets[h.GetPacketType()]
 
 	var (
 		verifier cryptkit.DataSignatureVerifier
@@ -108,6 +109,16 @@ func (p Parser) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagr
 	)
 
 	if err := func() (err error) {
+		if !p.GetMode().IsProtocolAllowed(h.GetProtocolType()) {
+			return throw.Violation("protocol is disabled")
+		}
+
+		protocolDesc := &p.Protocols[h.GetProtocolType()]
+		if !protocolDesc.IsSupported() {
+			return throw.Violation("unsupported protocol")
+		}
+		packetDesc := protocolDesc.SupportedPackets[h.GetPacketType()]
+
 		switch {
 		case !packetDesc.IsSupported():
 			return throw.Violation("unsupported packet")
