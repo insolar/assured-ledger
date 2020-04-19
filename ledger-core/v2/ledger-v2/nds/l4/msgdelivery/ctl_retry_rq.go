@@ -18,8 +18,29 @@ type bodyRequester struct {
 
 type rqShipment struct {
 	id      ShipmentID
+	expires uint32
 	peer    *DeliveryPeer
 	request ShipmentRequest
+}
+
+func (p *rqShipment) isExpired() bool {
+	panic(throw.NotImplemented()) // TODO
+}
+
+func (p *rqShipment) callbackRejected() {
+	fn := p.request.ReceiveFn
+	if fn == nil {
+		return
+	}
+
+	retAddr := ReturnAddress{
+		returnTo: p.peer.peer.GetLocalUID(),
+		returnID: p.id.ShortID(),
+		expires:  p.expires,
+	}
+	if err := fn(retAddr, false, nil); err != nil {
+		p.peer.ctl.reportError(err)
+	}
 }
 
 // TODO ttl and retries
@@ -36,9 +57,11 @@ func (p *bodyRequester) Add(rq rqShipment) error {
 	return nil
 }
 
-func (p *bodyRequester) Remove(peer *DeliveryPeer, id ShortShipmentID) (ReceiverFunc, bool) {
-	sid := AsShipmentID(uint32(peer.peerID), id)
+func (p *bodyRequester) Remove(peer *DeliveryPeer, id ShortShipmentID) (rqShipment, bool) {
+	return p.RemoveByID(AsShipmentID(uint32(peer.peerID), id))
+}
 
+func (p *bodyRequester) RemoveByID(sid ShipmentID) (rqShipment, bool) {
 	p.mutex.Lock()
 	rq, ok := p.requests[sid]
 	if ok {
@@ -47,7 +70,12 @@ func (p *bodyRequester) Remove(peer *DeliveryPeer, id ShortShipmentID) (Receiver
 	p.mutex.Unlock()
 
 	if !ok || rq.request.Cancel.IsCancelled() {
-		return nil, false
+		return rqShipment{}, false
 	}
-	return rq.request.ReceiveFn, ok
+	return rq, ok
+}
+
+func (p *bodyRequester) suspendRetry(sid ShipmentID) func() {
+	// TODO
+	return nil
 }

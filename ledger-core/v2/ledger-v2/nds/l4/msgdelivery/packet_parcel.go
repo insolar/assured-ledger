@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -17,13 +18,17 @@ import (
 var _ uniproto.ProtocolPacket = &ParcelPacket{}
 
 type ParcelPacket struct {
+	PulseNumber  pulse.Number `insolar-transport:"aliasOf=Packet.PulseNumber"`
 	ParcelID     ShortShipmentID
 	ReturnID     ShortShipmentID           `insolar-transport:"Packet=1,2;optional=PacketFlags[0]"`
 	BodyScale    uint8                     `insolar-transport:"Packet=1"` // bits.Len(byteSize(body+head))
+	TTLCycles    uint8                     `insolar-transport:"Packet=1"` // adjusted by PN
 	ParcelType   nwapi.PayloadCompleteness `insolar-transport:"send=ignore"`
 	RepeatedSend bool                      `insolar-transport:"aliasOf=PacketFlags[1]"`
 
 	Data nwapi.SizeAwareSerializer // nwapi.Serializable
+
+	OnDataReceiveFn func(*uniproto.Packet, *ParcelPacket, func() error) error `insolar-transport:"send=ignore"`
 }
 
 const ( // Flags for ParcelPacket
@@ -47,7 +52,7 @@ func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize
 		if p.BodyScale == 0 {
 			panic(throw.IllegalState())
 		}
-		dataSize += 1
+		dataSize += 2
 		packet.Header.SetPacketType(uint8(DeliveryParcelHead))
 	default:
 		panic(throw.IllegalState())
@@ -60,6 +65,7 @@ func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize
 	dataSize += p.Data.ByteSize()
 
 	packet.Header.SetFlag(RepeatedSendFlag, p.RepeatedSend)
+	packet.PulseNumber = p.PulseNumber
 
 	return packet, dataSize, p.SerializePayload
 }
@@ -74,7 +80,7 @@ func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, packet *
 		}
 	}
 	if packet.Header.GetPacketType() == uint8(DeliveryParcelHead) {
-		if _, err := writer.Write([]byte{p.BodyScale}); err != nil {
+		if _, err := writer.Write([]byte{p.BodyScale, p.TTLCycles}); err != nil {
 			return err
 		}
 	}
@@ -90,11 +96,12 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 	default:
 		panic(throw.Impossible())
 	}
+	p.PulseNumber = packet.PulseNumber
 
 	{
 		bufSize := ShortShipmentIDByteSize
 		if p.ParcelType == nwapi.HeadOnlyPayload {
-			bufSize++
+			bufSize += 2
 		}
 		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
 		if hasReturn {
@@ -124,21 +131,29 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 			if p.BodyScale == 0 {
 				return throw.IllegalValue()
 			}
+			p.TTLCycles = b[bufSize+1]
 		}
 	}
 
 	p.RepeatedSend = packet.Header.HasFlag(RepeatedSendFlag)
 
-	if des, ok := p.Data.(nwapi.SizeAwareDeserializer); ok {
-		return des.DeserializeFrom(ctx, reader)
-	}
-	p.Data = nil
+	readDataFn := func() error {
+		if des, ok := p.Data.(nwapi.SizeAwareDeserializer); ok {
+			return des.DeserializeFrom(ctx, reader)
+		}
+		p.Data = nil
 
-	f := ctx.GetPayloadFactory()
-	d, err := f.DeserializePayloadFrom(p.ParcelType, reader)
-	if err != nil {
-		return err
+		f := ctx.GetPayloadFactory()
+		d, err := f.DeserializePayloadFrom(p.ParcelType, reader)
+		if err != nil {
+			return err
+		}
+		p.Data = d
+		return nil
 	}
-	p.Data = d
-	return nil
+
+	if p.OnDataReceiveFn != nil {
+		return p.OnDataReceiveFn(packet, p, readDataFn)
+	}
+	return readDataFn()
 }

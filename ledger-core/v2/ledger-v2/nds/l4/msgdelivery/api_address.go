@@ -50,6 +50,7 @@ const (
 type ReturnAddress struct {
 	returnTo nwapi.Address
 	returnID ShortShipmentID
+	expires  uint32
 }
 
 func (v ReturnAddress) IsZero() bool {

@@ -6,6 +6,7 @@
 package msgdelivery
 
 import (
+	"math"
 	"math/bits"
 	"sync"
 
@@ -130,6 +131,22 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated}
 
 	packet.ParcelType = nwapi.CompletePayload
+	cycle, pn := p.ctl.getPulseCycle()
+
+	if msg.expires < cycle {
+		msg.markExpired()
+		return
+	}
+
+	if msg.shipment.Policies&ExactPulse == 0 {
+		packet.PulseNumber = pn
+		if cycle = msg.expires - cycle; cycle > math.MaxUint8 {
+			cycle = math.MaxUint8
+		}
+	} else {
+		packet.PulseNumber = msg.shipment.PN
+		cycle = uint32(msg.shipment.TTL)
+	}
 
 	switch {
 	case isBody:
@@ -144,6 +161,7 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 		packet.ParcelType = nwapi.HeadOnlyPayload
 		packet.Data = msg.shipment.Head
 		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
+		packet.TTLCycles = uint8(cycle)
 	}
 	p._sendParcel(uniproto.Any, packet, msg.canSendHead)
 }

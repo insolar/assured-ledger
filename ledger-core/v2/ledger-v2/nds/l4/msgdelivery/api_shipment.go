@@ -69,7 +69,7 @@ type Shipment struct {
 	Head   nwapi.SizeAwareSerializer
 	Body   nwapi.SizeAwareSerializer
 	Cancel *synckit.ChainedCancel
-	PN     pulse.Number // TODO use?
+	PN     pulse.Number
 	// TTL defines how many pulses this shipment can survive before cancellation
 	TTL      uint8
 	Policies DeliveryPolicies
@@ -78,6 +78,4 @@ type Shipment struct {
 type ShipmentRequest struct {
 	ReceiveFn ReceiverFunc
 	Cancel    *synckit.ChainedCancel
-	PN        pulse.Number // TODO use
-	TTL       uint8
 }

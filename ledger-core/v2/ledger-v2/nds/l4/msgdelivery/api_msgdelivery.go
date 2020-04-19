@@ -24,5 +24,7 @@ const (
 	// ExpectedParcel indicates that receiver expects this shipment, and the shipment should be delivered as head+body
 	ExpectedParcel
 
+	ExactPulse
+
 	largeBody
 )

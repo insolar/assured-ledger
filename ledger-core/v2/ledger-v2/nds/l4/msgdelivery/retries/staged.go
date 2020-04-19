@@ -56,30 +56,35 @@ func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetrySta
 
 func (p *StagedController) Add(id RetryID, weight uint, strategy RetryStrategy) {
 	overflow := p.batchHeads.add(id, weight, p.minHeadBatchWeight)
-	strategy.Retry(overflow, p.batchHeads.addPost)
+	if len(overflow) > 0 {
+		strategy.Retry(overflow, p.batchHeads.addSent)
+	}
 }
 
 func (p *StagedController) AddHeadForRetry(id RetryID) {
-	p.batchHeads.addPost(id)
+	p.batchHeads.addSent(id)
 }
 
 func (p *StagedController) NextCycle(strategy RetryStrategy) {
 	preBatch, pushToNext := p.batchHeads.nextCycle()
 	if len(preBatch) > 0 {
-		strategy.Retry(preBatch, p.batchHeads.addPost)
+		strategy.Retry(preBatch, p.batchHeads.addSent)
 	}
 
-	maxStage := len(p.stages) - 1
-	for i := 0; i < len(p.stages); i++ {
-		var pre [][]RetryID
-		pre, pushToNext = p.stages[i].nextCycle(pushToNext)
+	for i, maxStage := 0, len(p.stages)-1; i <= maxStage; i++ {
+		var resend [][]RetryID
+		resend, pushToNext = p.stages[i].nextCycle(pushToNext)
 
-		if i == maxStage && len(pushToNext) > 0 {
-			// last stage pushes to itself
-			pre = append(pre, pushToNext)
+		if i < maxStage {
+			p.resend(resend, strategy, p.stages[i].addSent)
+			continue
 		}
 
-		p.resend(pre, strategy, p.stages[i].addPost)
+		p.resend(resend, strategy, p.stages[i-1].addSent)
+		if i == maxStage && len(pushToNext) > 0 {
+			// last stage pushes to its own input
+			p.stages[i].addPreList(pushToNext)
+		}
 	}
 }
 
@@ -111,10 +116,9 @@ func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeat
 		}
 	}
 
-	if len(prev) == 0 {
-		return
+	if len(prev) > 0 {
+		strategy.Retry(prev, repeatFn)
 	}
-	strategy.Retry(prev, repeatFn)
 }
 
 type RetryState uint8
@@ -132,7 +136,7 @@ type stage struct {
 	post  []RetryID
 }
 
-func (p *stage) addPost(v RetryID) {
+func (p *stage) addSent(v RetryID) {
 	p.mutex.Lock()
 	p.post = append(p.post, v)
 	p.mutex.Unlock()
@@ -192,13 +196,14 @@ func (p *retryStage) nextCycle(prev []RetryID) (hic [][]RetryID, post []RetryID)
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	switch p.count++; {
-	case p.count >= p.max:
-		if p.max == 0 {
-			panic(throw.IllegalState())
+	p.count++
+	if p.count < p.max {
+		if len(prev) > 0 {
+			p.pre = append(p.pre, prev)
 		}
-		p.count = 0
-	case len(p.hic) > 0:
+		if len(p.hic) == 0 {
+			return nil, nil
+		}
 		n := p.max - p.count
 		n = len(p.hic) - len(p.hic)*n/(n+1)
 		if n > 0 {
@@ -206,13 +211,18 @@ func (p *retryStage) nextCycle(prev []RetryID) (hic [][]RetryID, post []RetryID)
 			p.hic = p.hic[n:]
 		}
 		return hic, nil
-	default:
-		return nil, nil
 	}
+
+	if p.max == 0 {
+		panic(throw.IllegalState())
+	}
+	p.count = 0
 
 	hic = p.hic
 	p.hic = p.pre
-	p.pre = make([][]RetryID, 0, len(p.pre))
+	if n := len(p.pre); n > 0 {
+		p.pre = make([][]RetryID, 0, n)
+	}
 	if len(prev) > 0 {
 		p.pre = append(p.pre, prev)
 	}

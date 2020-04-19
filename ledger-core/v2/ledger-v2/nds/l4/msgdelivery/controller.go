@@ -107,6 +107,7 @@ func (p *controller) ShipReturn(to ReturnAddress, shipment Shipment) error {
 	if !to.IsValid() {
 		return throw.IllegalValue()
 	}
+
 	return p.send(to.returnTo, to.returnID, shipment)
 }
 
@@ -114,7 +115,19 @@ func (p *controller) PullBody(from ReturnAddress, rq ShipmentRequest) error {
 	if !from.IsValid() {
 		return throw.IllegalValue()
 	}
-	return p.sendBodyRq(from.returnTo, from.returnID, rq)
+	if cycle, _ := p.getPulseCycle(); cycle > from.expires {
+		if rq.ReceiveFn != nil {
+			// avoid possible deadlock of the caller
+			go func() {
+				if err := rq.ReceiveFn(from, false, nil); err != nil {
+					p.reportError(err)
+				}
+			}()
+		}
+		return nil
+	}
+
+	return p.sendBodyRq(from, rq)
 }
 
 func (p *controller) isConfigurable() bool {
@@ -154,7 +167,6 @@ func (p *controller) getPulseCycle() (uint32, pulse.Number) {
 
 func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
 	if err := p.checkActive(); err != nil {
-		p.reportError(err)
 		return err
 	}
 
@@ -163,9 +175,7 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 	if n := len(payload.BodyRq); n > 0 {
 		dPeer, ok := packet.Peer.GetProtoInfo(p.pType).(*DeliveryPeer)
 		if !ok {
-			err := throw.RemoteBreach("peer is not a node")
-			p.reportError(err)
-			return err
+			return throw.RemoteBreach("peer is not a node")
 		}
 
 		for _, id := range payload.BodyRq {
@@ -191,9 +201,14 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 	}
 
 	for _, id := range payload.RejectList {
-		if msg := p.sender.get(AsShipmentID(peerID, id)); msg != nil {
+		sid := AsShipmentID(peerID, id)
+		if msg := p.sender.get(sid); msg != nil {
 			msg.markReject()
 		}
+		if rq, ok := p.bodyRq.RemoveByID(sid); ok {
+			rq.callbackRejected()
+		}
+
 	}
 
 	return nil
@@ -204,14 +219,11 @@ func (p *controller) getDeliveryPeer(peer uniproto.Peer) (*DeliveryPeer, error) 
 	if ok {
 		return dPeer, nil
 	}
-	err := throw.RemoteBreach("peer is not a node")
-	p.reportError(err)
-	return nil, err
+	return nil, throw.RemoteBreach("peer is not a node")
 }
 
 func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
 	if err := p.checkActive(); err != nil {
-		p.reportError(err)
 		return err
 	}
 
@@ -237,35 +249,59 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		}
 	}
 
+	retAddr := ReturnAddress{
+		returnTo: packet.Peer.GetLocalUID(),
+		returnID: payload.ParcelID,
+	}
+
 	receiveFn := p.receiveFn
+	duplicate := !dPeer.dedup.Add(DedupID(payload.ParcelID))
 
 	if payload.ParcelType == nwapi.HeadOnlyPayload {
+		if duplicate {
+			dPeer.addReject(payload.ParcelID)
+			return nil
+		}
+		ok, expiry, err := p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true)
+		if !ok {
+			dPeer.addReject(payload.ParcelID)
+			return err
+		}
+		retAddr.expires = expiry
+
 		dPeer.addAck(payload.ParcelID)
-		if !dPeer.dedup.Add(DedupID(payload.ParcelID)) {
-			return nil
-		}
 	} else {
-		dPeer.addBodyAck(payload.ParcelID)
-		switch fn, ok := p.bodyRq.Remove(dPeer, payload.ParcelID); {
-		case !ok:
+		// ignores peer-based deduplication as served per-request
+
+		rq, ok := p.bodyRq.Remove(dPeer, payload.ParcelID)
+		if !ok {
+			dPeer.addReject(payload.ParcelID)
 			return nil
-		case fn != nil:
-			receiveFn = fn
 		}
+
+		retAddr.expires = rq.expires
+		switch {
+		case rq.isExpired():
+			dPeer.addReject(payload.ParcelID)
+			rq.callbackRejected()
+			return nil
+		case rq.request.ReceiveFn != nil:
+			receiveFn = rq.request.ReceiveFn
+		}
+
+		dPeer.addBodyAck(payload.ParcelID)
 	}
 
-	err = receiveFn(
-		ReturnAddress{
-			returnTo: packet.Peer.GetLocalUID(),
-			returnID: payload.ParcelID,
-		},
-		payload.ParcelType,
-		payload.Data)
+	return receiveFn(retAddr, payload.ParcelType, payload.Data)
+}
 
-	if err != nil {
-		p.reportError(err)
+func (p *controller) receiveParcelBeforeData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
+	sid := AsShipmentID(packet.Header.SourceID, payload.ParcelID)
+	if fn := p.bodyRq.suspendRetry(sid); fn != nil {
+		defer fn()
 	}
-	return err
+
+	return dataFn()
 }
 
 func (p *controller) createProtoPeer(peer uniproto.Peer) io.Closer {
@@ -345,10 +381,34 @@ func (p *controller) peer(to nwapi.Address) (*DeliveryPeer, error) {
 	return p.getDeliveryPeer(peer)
 }
 
+func (p *controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (bool, uint32, error) {
+	cycle, cyclePN := p.getPulseCycle()
+	switch {
+	case cyclePN == pn:
+		//
+	case cyclePN < pn:
+		return false, 0, throw.IllegalState()
+	case inbound:
+		return false, 0, throw.IllegalValue()
+	case pn != 0: //
+		cycle--
+	}
+	return true, cycle + uint32(ttl), nil
+}
+
 func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) error {
 	dPeer, err := p.peer(to)
 	if err != nil {
 		return err
+	}
+
+	switch pn := shipment.PN; {
+	case pn.IsUnknown():
+		if shipment.Policies&ExactPulse != 0 {
+			return throw.IllegalValue()
+		}
+	case !pn.IsTimePulse():
+		return throw.IllegalValue()
 	}
 
 	sendSize, err := p.applySizePolicy(&shipment)
@@ -356,26 +416,24 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 		return err
 	}
 
-	cycle, pn := p.getPulseCycle()
 	msg := &msgShipment{
-		id:       dPeer.NextShipmentId(),
 		peer:     dPeer,
 		returnID: returnId,
-		expires:  cycle + uint32(shipment.TTL),
 		shipment: shipment,
 	}
 
-	switch {
-	case shipment.PN == pn:
-		//
-	case shipment.PN > pn:
-		return throw.IllegalState()
-	case msg.expires <= cycle:
-		// has expired
+	switch ok, expiry, err := p.adjustedExpiry(shipment.PN, shipment.TTL, false); {
+	case err != nil:
+		return err
+	case !ok:
+		// expired
 		return nil
 	default:
-		msg.expires--
+		msg.expires = expiry
 	}
+
+	// ATTN! Avoid gaps in numbering
+	msg.id = dPeer.NextShipmentId()
 
 	switch {
 	case msg.shipment.Head == nil:
@@ -389,14 +447,15 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	return nil
 }
 
-func (p *controller) sendBodyRq(to nwapi.Address, id ShortShipmentID, rq ShipmentRequest) error {
-	dPeer, err := p.peer(to)
+func (p *controller) sendBodyRq(from ReturnAddress, rq ShipmentRequest) error {
+	dPeer, err := p.peer(from.returnTo)
 	if err != nil {
 		return err
 	}
 
 	return p.bodyRq.Add(rqShipment{
-		id:      AsShipmentID(uint32(dPeer.peerID), id),
+		id:      AsShipmentID(uint32(dPeer.peerID), from.returnID),
+		expires: from.expires,
 		peer:    dPeer,
 		request: rq,
 	})
