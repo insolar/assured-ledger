@@ -173,7 +173,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var contractCallErr *foundation.Error
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
