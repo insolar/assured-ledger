@@ -85,7 +85,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err, "Failed to process create wallet contract call request", nil).Error()
 		return
 	}
 
@@ -98,7 +98,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	case err != nil:
 		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
 	case contractCallErr != nil:
-		result.Error = contractCallErr.S
+		result.Error = contractCallErr.Error()
 	default:
 		result.Reference = ref.String()
 	}
