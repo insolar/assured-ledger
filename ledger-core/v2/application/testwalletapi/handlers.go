@@ -149,7 +149,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	fromRef, err := insolar.NewReferenceFromString(params.From)
 	if err != nil {
 		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s), sender reference", params.From), nil,
+			"Failed to create reference from string", struct{ From string }{From: params.From},
 		).Error()
 		return
 	}
@@ -157,7 +157,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	toRef, err := insolar.NewReferenceFromString(params.To)
 	if err != nil {
 		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s), reciver reference", params.To), nil,
+			"Failed to create reference from string", struct{ To string }{To: params.To},
 		).Error()
 		return
 	}
