@@ -8,7 +8,6 @@
 package functest
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,12 +53,11 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-273")
 
 	var (
-		wg              sync.WaitGroup
 		ref             string
 		count           = 10 // Number of concurrent requests per node.
 		amount          = 100
 		expectedBalance = 1000 + amount*count*len(nodesPorts)*2
-		responses       = make([]error, 0, count*len(nodesPorts))
+		outChan         = make(chan error)
 	)
 
 	t.Log("1.Create wallet")
@@ -72,36 +70,28 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 	}
 	t.Log("2.Concurrent requests to /add_amount and /get_balance")
 	{
-
 		for i := 0; i < count; i++ {
 			for _, port := range nodesPorts {
-				wg.Add(1)
-				go func(wg *sync.WaitGroup, port string) {
-					defer wg.Done()
-
+				go func(port string) {
 					getBalanceURL := getURL(walletGetBalancePath, "", port)
-					_, err := getWalletBalance(getBalanceURL, ref)
-					// testing.T isn't goroutine save, so that we will check responses in main goroutine
-					responses = append(responses, err)
-				}(&wg, port)
+					_, resultErr := getWalletBalance(getBalanceURL, ref)
+					// testing.T isn't goroutine safe, so that we will check responses in main goroutine
+					outChan <- resultErr
+				}(port)
 
-				wg.Add(1)
-				go func(wg *sync.WaitGroup, port string) {
-					defer wg.Done()
-
+				go func(port string) {
 					addAmountURL := getURL(walletAddAmountPath, "", port)
-					err := addAmountToWallet(addAmountURL, ref, uint(amount))
-					// testing.T isn't goroutine save, so that we will check responses in main goroutine
-					responses = append(responses, err)
-				}(&wg, port)
+					resultErr := addAmountToWallet(addAmountURL, ref, uint(amount))
+					// testing.T isn't goroutine safe, so that we will check responses in main goroutine
+					outChan <- resultErr
+				}(port)
 			}
 		}
 
-		wg.Wait()
-
-		for _, r := range responses {
-			assert.NoError(t, r)
+		for i := 0; i < count*len(nodesPorts)*2; i++ {
+			assert.NoError(t, <-outChan)
 		}
+		close(outChan)
 	}
 	t.Log("3.Check balance after all requests are done")
 	{
