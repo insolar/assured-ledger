@@ -61,3 +61,11 @@ jobs:
         with:
           file: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
           name: coverage-report
+      - name: Add coverage.html to artifacts
+        with:
+          name: coverage-html
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.html
+      - name: Add coverage.out to artifacts
+        with:
+          name: coverage-out
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
