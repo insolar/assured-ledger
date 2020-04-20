@@ -4,3 +4,5 @@ ignore:
   - "**/*_mock.go"
   - "**/*_string.go"
   - "**/*.pb.go"
+fixes:
+  - "go/src/github.com/insolar/assured-ledger/::/"
