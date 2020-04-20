@@ -18,7 +18,6 @@ test_with_coverage: ## run unit tests with generation of coverage file
 	$(GOTEST) -coverprofile=coverage.tmp.out -covermode=count -count=1 $(TEST_ARGS) $(PACKAGES)
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
-	./scripts/dev/check-coverage.py --fname=./coverage.out --minimum=$(MIN_COVERAGE)
 
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
