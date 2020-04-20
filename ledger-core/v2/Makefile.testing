@@ -1,6 +1,5 @@
 TEST_COUNT      ?= 1
 FUNCTEST_COUNT  ?= 1
-MIN_COVERAGE    ?= 39
 GOTEST          ?= go test
 TEST_ARGS       ?= -timeout 1200s
 TESTED_PACKAGES ?= $(shell go list ${ALL_PACKAGES} | grep -v "${MOCKS_PACKAGE}" | grep -v /ledger-v2/)
