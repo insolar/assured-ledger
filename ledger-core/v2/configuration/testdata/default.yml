@@ -8,6 +8,7 @@ host:
   timeoutmult: 2
   signmessages: false
   handshakesessionttl: 5000
+  pulsewatchdogtimeout: 30
 service:
   cachedirectory: network_cache
 ledger:
