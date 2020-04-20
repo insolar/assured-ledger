@@ -74,7 +74,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// run tests
-	m.Run()
+	exitCode := m.Run()
 
 	// restore back variables
 	for varName, varValue := range variablesBackup {
@@ -84,4 +84,5 @@ func TestMain(m *testing.M) {
 		}
 
 	}
+	os.Exit(exitCode)
 }
