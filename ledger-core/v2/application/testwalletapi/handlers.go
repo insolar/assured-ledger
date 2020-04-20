@@ -140,6 +140,53 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		Error:   "",
 	}
 	defer func() { s.mustWriteResult(w, result) }()
+
+	fromRef, err := insolar.NewReferenceFromString(params.From)
+	if err != nil {
+		result.Error = fmt.Sprintf("Failed to create reference from string (%s), sender reference", params.From)
+		return
+	}
+
+	toRef, err := insolar.NewReferenceFromString(params.To)
+	if err != nil {
+		result.Error = fmt.Sprintf("Failed to create reference from string (%s), receiver reference", params.To)
+		return
+	}
+
+	//TODO how to serialize multiple method parameters?
+	transferParams := make([]interface{}, 2)
+	transferParams = append(transferParams, toRef)
+	transferParams = append(transferParams, params.Amount)
+
+	serTransferParams, err := insolar.Serialize(transferParams)
+	if err != nil {
+		result.Error = "Failed to marshall call parameters"
+		return
+	}
+
+	walletReq := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		Callee:         *fromRef,
+		Arguments:      serTransferParams,
+		CallSiteMethod: transfer,
+	}
+
+	walletRes, err := s.runWalletRequest(ctx, walletReq)
+	if err != nil {
+		result.Error = err.Error()
+		return
+	}
+
+	var contractCallErr *foundation.Error
+	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+	switch {
+	case err != nil:
+		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
+	case contractCallErr != nil:
+		result.Error = contractCallErr.S
+	default:
+
+	}
 }
 
 type GetBalanceParams struct {
