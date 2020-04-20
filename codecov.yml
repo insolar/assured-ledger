@@ -5,7 +5,7 @@ ignore:
   - "**/*_string.go"
   - "**/*.pb.go"
 fixes:
-  - "/home/runner/work/assured-ledger/assured-ledger/go/src/github.com/insolar/assured-ledger/::"
+  - "github.com/insolar/assured-ledger/::"
 # see https://docs.codecov.io/docs/pull-request-comments
 comment:
   layout: "reach, diff, flags, files"
