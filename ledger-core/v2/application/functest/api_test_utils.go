@@ -10,6 +10,7 @@ package functest
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -126,7 +127,7 @@ func createSimpleWallet() (string, error) {
 		return "", errors.Wrap(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
-		return "", errors.Wrap(err, "problem during execute request")
+		return "", fmt.Errorf("problem during execute request: %s", resp.Err)
 	}
 	return resp.Ref, nil
 }
@@ -143,7 +144,7 @@ func getWalletBalance(url, ref string) (int, error) {
 		return 0, errors.Wrap(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
-		return 0, errors.Wrap(err, "problem during execute request")
+		return 0, fmt.Errorf("problem during execute request: %s", resp.Err)
 	}
 	return resp.Amount, nil
 }
@@ -160,7 +161,7 @@ func addAmountToWallet(url, ref string, amount uint) error {
 		return errors.Wrap(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
-		return errors.Wrap(err, "problem during execute request")
+		return fmt.Errorf("problem during execute request: %s", resp.Err)
 	}
 	return nil
 }

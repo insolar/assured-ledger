@@ -38,9 +38,8 @@ func TestVirtual_BasicOperations_WithoutExecutor(t *testing.T) {
 	executorMock := testutils.NewMachineLogicExecutorMock(t)
 	executorMock.CallConstructorMock.Return(nil, []byte("345"), nil)
 	manager := executor.NewManager()
-	if err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock); err != nil {
-		panic(err)
-	}
+	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
 	cacheMock := descriptor.NewCacheMock(t)
@@ -72,9 +71,7 @@ func TestVirtual_BasicOperations_WithoutExecutor(t *testing.T) {
 	}
 
 	plBytes, err := pl.Marshal()
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	msg := payload.MustNewMessage(&payload.Meta{
 		Polymorph:  uint32(payload.TypeMeta),
@@ -152,9 +149,7 @@ func TestVirtual_BasicOperations_WithExecutor(t *testing.T) {
 		}
 
 		plBytes, err := pl.Marshal()
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err)
 
 		msg := payload.MustNewMessage(&payload.Meta{
 			Polymorph:  uint32(payload.TypeMeta),
@@ -264,9 +259,7 @@ func TestAPICreate(t *testing.T) {
 		}
 
 		callResultPayloadBytes, err := callResultPayload.Marshal()
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(t, err)
 
 		msg := payload.MustNewMessage(&payload.Meta{
 			Polymorph:  uint32(payload.TypeMeta),
