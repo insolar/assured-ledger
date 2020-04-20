@@ -139,23 +139,32 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		TraceID: traceID,
 		Error:   "",
 	}
-	defer func() { s.mustWriteResult(w, result) }()
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
 
 	fromRef, err := insolar.NewReferenceFromString(params.From)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err,
+			fmt.Sprintf("Failed to create reference from string (%s), sender reference", params.From), nil,
+		).Error()
 		return
 	}
 
 	toRef, err := insolar.NewReferenceFromString(params.To)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err,
+			fmt.Sprintf("Failed to create reference from string (%s), reciver reference", params.To), nil,
+		).Error()
 		return
 	}
 
 	serTransferParams, err := insolar.Serialize([]interface{}{toRef, params.Amount})
 	if err != nil {
-		result.Error = "Failed to marshall call parameters"
+		result.Error = throw.W(err, "Failed to marshall call parameters", nil).Error()
 		return
 	}
 
@@ -168,7 +177,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
 		return
 	}
 
@@ -176,7 +185,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
 	switch {
 	case err != nil:
-		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
+		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
 	case contractCallErr != nil:
 		result.Error = contractCallErr.Error()
 	default:
