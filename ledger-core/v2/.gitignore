@@ -57,3 +57,4 @@ application/proxy
 go.mod
 go.sum
 vendor
+coverage.html
