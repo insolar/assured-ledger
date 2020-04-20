@@ -29,7 +29,9 @@ type TestWalletServer struct {
 }
 
 const (
-	create = "New"
+	create     = "New"
+	getBalance = "Balance"
+	addAmount  = "Accept"
 )
 
 func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulse.Accessor) *TestWalletServer {
