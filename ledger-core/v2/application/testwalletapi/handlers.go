@@ -143,13 +143,13 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	fromRef, err := insolar.NewReferenceFromString(params.From)
 	if err != nil {
-		result.Error = fmt.Sprintf("Failed to create reference from string (%s), sender reference", params.From)
+		result.Error = err.Error()
 		return
 	}
 
 	toRef, err := insolar.NewReferenceFromString(params.To)
 	if err != nil {
-		result.Error = fmt.Sprintf("Failed to create reference from string (%s), receiver reference", params.To)
+		result.Error = err.Error()
 		return
 	}
 
@@ -173,12 +173,12 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var contractCallErr *foundation.Error
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
 	case contractCallErr != nil:
-		result.Error = contractCallErr.S
+		result.Error = contractCallErr.Error()
 	default:
 
 	}
