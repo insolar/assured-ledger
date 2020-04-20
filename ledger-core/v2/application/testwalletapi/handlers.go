@@ -176,12 +176,19 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		Error:   "",
 	}
 
-	defer func() { s.mustWriteResult(w, result) }()
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
 
 	ref, err := insolar.NewReferenceFromString(params.WalletRef)
 
 	if err != nil {
-		result.Error = fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef)
+		result.Error = throw.W(err,
+			fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef), nil,
+		).Error()
 		return
 	}
 
@@ -194,7 +201,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
 		return
 	}
 
@@ -206,9 +213,9 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &amount, &contractCallErr)
 	switch {
 	case err != nil:
-		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
+		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
 	case contractCallErr != nil:
-		result.Error = contractCallErr.S
+		result.Error = contractCallErr.Error()
 	default:
 		result.Amount = uint(amount)
 	}
@@ -247,17 +254,25 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		TraceID: traceID,
 		Error:   "",
 	}
-	defer func() { s.mustWriteResult(w, result) }()
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Errorm(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
 
 	ref, err := insolar.NewReferenceFromString(params.To)
 	if err != nil {
-		result.Error = fmt.Sprintf("Failed to create reference from string (%s)", params.To)
+		result.Error = throw.W(err,
+			fmt.Sprintf("Failed to create reference from string (%s)", params.To), nil,
+		).Error()
+
 		return
 	}
 
 	param, err := insolar.Serialize(params.Amount)
 	if err != nil {
-		result.Error = "Failed to marshall amount"
+		result.Error = throw.W(err, "Failed to marshall amount", nil).Error()
 		return
 	}
 
@@ -270,7 +285,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
 		return
 	}
 
@@ -279,9 +294,9 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case err != nil:
-		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
+		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
 	case contractCallErr != nil:
-		result.Error = contractCallErr.S
+		result.Error = contractCallErr.Error()
 	default:
 
 	}

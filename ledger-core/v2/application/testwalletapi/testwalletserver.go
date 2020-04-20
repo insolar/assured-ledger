@@ -28,10 +28,11 @@ type TestWalletServer struct {
 	jsonCodec jsoniter.API
 }
 
+// Aliases VCallRequest.CallSiteMethod for call testwallet.Wallet contract methods
 const (
-	create     = "New"
-	getBalance = "Balance"
-	addAmount  = "Accept"
+	create     = "New"     // Create wallet
+	getBalance = "Balance" // Get wallet balance
+	addAmount  = "Accept"  // Add money to wallet
 )
 
 func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulse.Accessor) *TestWalletServer {
