@@ -153,12 +153,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//TODO how to serialize multiple method parameters?
-	transferParams := make([]interface{}, 2)
-	transferParams = append(transferParams, toRef)
-	transferParams = append(transferParams, params.Amount)
-
-	serTransferParams, err := insolar.Serialize(transferParams)
+	serTransferParams, err := insolar.Serialize([]interface{}{toRef, params.Amount})
 	if err != nil {
 		result.Error = "Failed to marshall call parameters"
 		return
