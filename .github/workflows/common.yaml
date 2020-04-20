@@ -57,8 +57,8 @@ jobs:
         run: make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Upload coverage to Codecov  
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
         uses: codecov/codecov-action@v1
         with:
           file: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
           name: coverage-report
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
