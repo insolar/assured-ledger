@@ -11,8 +11,8 @@ const (
 	// Indicates that Slot's default flags (set by SetDefaultFlags()) will be ignored, otherwise ORed.
 	StepResetAllFlags StepFlags = 1 << iota
 
-	// When SM is at a step that StepWeak flag, then SM is considered as "weak".
-	// SlotMachine will delete all "weak" SMs when there are no "non-weak" or working SMs left.
+	// When SM is at a step that has StepWeak flag, then SM is considered as "weak".
+	// SlotMachine will stop all "weak" SMs when there are neither non-weak nor non-waiting SMs left.
 	StepWeak
 
 	// A step with StepPriority flag will be executed before other steps in a cycle.
