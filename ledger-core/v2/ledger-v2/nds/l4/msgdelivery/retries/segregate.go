@@ -5,7 +5,7 @@
 
 package retries
 
-func segregate(list []RetryID, isDoneFn func(RetryID) RetryState) (keepCount, removeStart int) {
+func Segregate(list []RetryID, isDoneFn func(RetryID) RetryState) (keepCount, removeStart int) {
 	nonRemoveCount := len(list)
 	removeStart = nonRemoveCount
 	keepCount = 0

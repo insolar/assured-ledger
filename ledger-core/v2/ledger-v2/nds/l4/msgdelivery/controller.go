@@ -26,6 +26,7 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 ) Service {
 	c := &controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
+	c.bodyRq.stages.InitStages(maxStatePacketEntries, [...]int{5, 10, 50})
 	return c
 }
 
@@ -36,10 +37,10 @@ type controller struct {
 	resolverFn ResolverFunc
 	timeCycle  time.Duration
 
-	receiver packetReceiver
-	sender   retrySender
-	bodyRq   bodyRequester
 	starter  protoStarter
+	receiver packetReceiver
+	sender   msgSender
+	bodyRq   rqSender
 
 	pulseCycle atomickit.Uint64
 
@@ -51,7 +52,7 @@ type controller struct {
 }
 
 // for initialization only
-func (p *controller) SetTimings(timeCycle time.Duration, retryStages [retries.RetryStages]time.Duration) {
+func (p *controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [retries.RetryStages]time.Duration) {
 	switch {
 	case timeCycle < time.Microsecond:
 		panic(throw.IllegalValue())
@@ -60,9 +61,13 @@ func (p *controller) SetTimings(timeCycle time.Duration, retryStages [retries.Re
 	}
 	p.timeCycle = timeCycle
 
-	var periods [retries.RetryStages]int
+	p.sender.stages.InitStages(minHeadBatchWeight, calcPeriods(timeCycle, sendStages))
+	p.bodyRq.stages.InitStages(maxStatePacketEntries, calcPeriods(timeCycle, rqStages))
+}
+
+func calcPeriods(timeCycle time.Duration, stages [retries.RetryStages]time.Duration) (periods [retries.RetryStages]int) {
 	last := 1
-	for i, ts := range retryStages {
+	for i, ts := range stages {
 		n := int(ts / timeCycle)
 		if n < last {
 			panic(throw.IllegalValue())
@@ -70,7 +75,7 @@ func (p *controller) SetTimings(timeCycle time.Duration, retryStages [retries.Re
 		last = n
 		periods[i] = n
 	}
-	p.sender.stages.InitStages(minHeadBatchWeight, periods)
+	return
 }
 
 // for initialization only
@@ -85,6 +90,7 @@ func (p *controller) RegisterWith(regFn uniproto.RegisterControllerFunc) {
 	regFn(p.pType, protoDescriptor, &p.starter, &p.receiver)
 }
 
+// TODO isolation facade
 func (p *controller) ShipTo(to DeliveryAddress, shipment Shipment) error {
 	if to.addrType == DirectAddress {
 		switch {
@@ -206,7 +212,7 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 			msg.markReject()
 		}
 		if rq, ok := p.bodyRq.RemoveByID(sid); ok {
-			rq.callbackRejected()
+			rq.requestRejected()
 		}
 
 	}
@@ -273,7 +279,7 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	} else {
 		// ignores peer-based deduplication as served per-request
 
-		rq, ok := p.bodyRq.Remove(dPeer, payload.ParcelID)
+		rq, ok := p.bodyRq.RemoveRq(dPeer, payload.ParcelID)
 		if !ok {
 			dPeer.addReject(payload.ParcelID)
 			return nil
@@ -283,7 +289,7 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		switch {
 		case rq.isExpired():
 			dPeer.addReject(payload.ParcelID)
-			rq.callbackRejected()
+			rq.requestRejected()
 			return nil
 		case rq.request.ReceiveFn != nil:
 			receiveFn = rq.request.ReceiveFn
@@ -366,6 +372,7 @@ func (p *controller) applySizePolicy(shipment *Shipment) (uint, error) {
 	}
 }
 
+// TODO support loopback
 func (p *controller) peer(to nwapi.Address) (*DeliveryPeer, error) {
 	if err := p.checkActive(); err != nil {
 		return nil, err
@@ -489,6 +496,7 @@ func (p *controller) runWorker() {
 		case <-ticker:
 			//
 		}
+		p.bodyRq.NextTimeCycle()
 		p.sender.NextTimeCycle()
 	}
 }

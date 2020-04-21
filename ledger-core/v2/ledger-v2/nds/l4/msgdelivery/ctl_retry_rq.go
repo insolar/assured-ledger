@@ -8,44 +8,44 @@ package msgdelivery
 import (
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type bodyRequester struct {
+type rqSender struct {
+	stages retries.StagedController
+
+	oob chan rqShipment
+	job chan retryJob
+
 	mutex    sync.Mutex
 	requests map[ShipmentID]rqShipment
+	suspends map[ShipmentID]struct{}
 }
 
-type rqShipment struct {
-	id      ShipmentID
-	expires uint32
-	peer    *DeliveryPeer
-	request ShipmentRequest
-}
-
-func (p *rqShipment) isExpired() bool {
-	panic(throw.NotImplemented()) // TODO
-}
-
-func (p *rqShipment) callbackRejected() {
-	fn := p.request.ReceiveFn
-	if fn == nil {
-		return
+func (p *rqSender) Add(rq rqShipment) error {
+	if err := p.put(rq); err != nil {
+		return err
 	}
 
-	retAddr := ReturnAddress{
-		returnTo: p.peer.peer.GetLocalUID(),
-		returnID: p.id.ShortID(),
-		expires:  p.expires,
+	select {
+	case p.oob <- rq:
+	default:
+		go func() {
+			p.oob <- rq
+		}()
 	}
-	if err := fn(retAddr, false, nil); err != nil {
-		p.peer.ctl.reportError(err)
-	}
+
+	//
+	//// TODO limit parallelism
+	//go func() {
+	//	rq.peer.sendBodyRq(rq.id.ShortID())
+	//	p.stages.AddHeadForRetry(retries.RetryID(rq.id))
+	//}()
+	return nil
 }
 
-// TODO ttl and retries
-
-func (p *bodyRequester) Add(rq rqShipment) error {
+func (p *rqSender) put(rq rqShipment) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -53,18 +53,18 @@ func (p *bodyRequester) Add(rq rqShipment) error {
 		return throw.FailHere("duplicate request")
 	}
 	p.requests[rq.id] = rq
-	go rq.peer.sendBodyRq(rq.id.ShortID())
 	return nil
 }
 
-func (p *bodyRequester) Remove(peer *DeliveryPeer, id ShortShipmentID) (rqShipment, bool) {
+func (p *rqSender) RemoveRq(peer *DeliveryPeer, id ShortShipmentID) (rqShipment, bool) {
 	return p.RemoveByID(AsShipmentID(uint32(peer.peerID), id))
 }
 
-func (p *bodyRequester) RemoveByID(sid ShipmentID) (rqShipment, bool) {
+func (p *rqSender) RemoveByID(sid ShipmentID) (rqShipment, bool) {
 	p.mutex.Lock()
 	rq, ok := p.requests[sid]
 	if ok {
+		delete(p.suspends, sid)
 		delete(p.requests, sid)
 	}
 	p.mutex.Unlock()
@@ -75,7 +75,68 @@ func (p *bodyRequester) RemoveByID(sid ShipmentID) (rqShipment, bool) {
 	return rq, ok
 }
 
-func (p *bodyRequester) suspendRetry(sid ShipmentID) func() {
-	// TODO
-	return nil
+func (p *rqSender) suspendRetry(id ShipmentID) func() {
+	p.mutex.Lock()
+	if _, ok := p.requests[id]; !ok {
+		p.mutex.Unlock()
+		return nil
+	}
+
+	p.suspends[id] = struct{}{}
+	p.mutex.Unlock()
+
+	return func() {
+		p.mutex.Lock()
+		delete(p.suspends, id)
+		p.mutex.Unlock()
+	}
+}
+
+func (p *rqSender) NextTimeCycle() {
+	p.stages.NextCycle(p)
+}
+
+func (p *rqSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	keepCount, removeStart := retries.Segregate(ids, func(id retries.RetryID) retries.RetryState {
+		sid := ShipmentID(id)
+		switch rq, ok := p.requests[sid]; {
+		case !ok:
+			return retries.RemoveCompletely
+		case rq.isExpired():
+			delete(p.requests, sid)
+			delete(p.suspends, sid)
+			return retries.RemoveCompletely
+		}
+		if _, ok := p.suspends[sid]; ok {
+			return retries.StopRetrying
+		}
+		return retries.KeepRetrying
+	})
+
+	for _, id := range ids[keepCount:removeStart] {
+		repeatFn(id)
+	}
+
+	if keepCount > 0 {
+
+	}
+
+	panic("implement me")
+}
+
+func (p *rqSender) CheckState(retries.RetryID) (r retries.RetryState) {
+	return retries.KeepRetrying
+}
+
+func (p *rqSender) Remove(ids []retries.RetryID) {
+	p.mutex.Lock()
+	for _, id := range ids {
+		sid := ShipmentID(id)
+		delete(p.requests, sid)
+		delete(p.suspends, sid)
+	}
+	p.mutex.Unlock()
 }

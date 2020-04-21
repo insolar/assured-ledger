@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
-type retrySender struct {
+type msgSender struct {
 	stages retries.StagedController
 	tracks msgMap
 
@@ -21,7 +21,7 @@ type retrySender struct {
 }
 
 // ATTN! This method MUST return asap
-func (p *retrySender) sendHeadNoWait(msg *msgShipment, sz uint) {
+func (p *msgSender) sendHeadNoWait(msg *msgShipment, sz uint) {
 	p.tracks.put(msg)
 
 	if !msg.isImmediateSend() || !p.sendHeadNoRetryNoWait(msg) {
@@ -30,7 +30,7 @@ func (p *retrySender) sendHeadNoWait(msg *msgShipment, sz uint) {
 }
 
 // ATTN! This method MUST return asap
-func (p *retrySender) sendHeadNoRetryNoWait(msg *msgShipment) bool {
+func (p *msgSender) sendHeadNoRetryNoWait(msg *msgShipment) bool {
 	select {
 	case p.oob <- msg:
 		return true
@@ -40,42 +40,43 @@ func (p *retrySender) sendHeadNoRetryNoWait(msg *msgShipment) bool {
 }
 
 // ATTN! This method MUST return asap
-func (p *retrySender) sendBodyNoWait(msg *msgShipment) {
+func (p *msgSender) sendBodyNoWait(msg *msgShipment) {
 	// TODO get rid of "go", use limiter somehow?
 	go msg.sendBody()
 }
 
-func (p *retrySender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
+func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
 	p.jobs <- retryJob{ids, repeatFn}
 }
 
-func (p *retrySender) CheckState(id retries.RetryID) retries.RetryState {
+func (p *msgSender) CheckState(id retries.RetryID) retries.RetryState {
 	if msg := p.getHeads(ShipmentID(id)); msg != nil {
 		return msg.getHeadRetryState()
 	}
+	// TODO move handling of retries.RemoveCompletely into Retry
 	return retries.RemoveCompletely
 }
 
-func (p *retrySender) getHeads(shid ShipmentID) *msgShipment {
+func (p *msgSender) getHeads(shid ShipmentID) *msgShipment {
 	return p.tracks.get(shid)
 }
 
-func (p *retrySender) get(shid ShipmentID) *msgShipment {
+func (p *msgSender) get(shid ShipmentID) *msgShipment {
 	if msg := p.tracks.get(shid); msg != nil {
 		return msg
 	}
 	return nil
 }
 
-func (p *retrySender) Remove(ids []retries.RetryID) {
+func (p *msgSender) Remove(ids []retries.RetryID) {
 	p.tracks.deleteAll(ids)
 }
 
-func (p *retrySender) NextTimeCycle() {
+func (p *msgSender) NextTimeCycle() {
 	p.stages.NextCycle(p)
 }
 
-func (p *retrySender) startWorker(parallel int) {
+func (p *msgSender) startWorker(parallel int) {
 	worker := retryWorker{
 		sender:    p,
 		sema:      synckit.NewSemaphore(parallel),
@@ -125,7 +126,7 @@ func (p *nodeMarks) mark(id ShipmentID) bool {
 /**********************************/
 
 type retryWorker struct {
-	sender *retrySender
+	sender *msgSender
 	sema   synckit.Semaphore
 	marks  nodeMarks
 

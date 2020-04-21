@@ -91,7 +91,7 @@ func (p *StagedController) NextCycle(strategy RetryStrategy) {
 func (p *StagedController) resend(in [][]RetryID, strategy RetryStrategy, repeatFn func(RetryID)) {
 	var prev []RetryID
 	for _, list := range in {
-		keepCount, removeStart := segregate(list, strategy.CheckState)
+		keepCount, removeStart := Segregate(list, strategy.CheckState)
 
 		if rm := list[removeStart:]; len(rm) > 0 {
 			strategy.Remove(list[removeStart:])
