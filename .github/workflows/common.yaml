@@ -56,6 +56,8 @@ jobs:
         if: always()
         run: make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: A little debug info
+        run: pwd && ls -la
       - name: Upload coverage to Codecov  
         uses: codecov/codecov-action@v1
         with:
