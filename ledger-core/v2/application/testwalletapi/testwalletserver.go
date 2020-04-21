@@ -30,9 +30,10 @@ type TestWalletServer struct {
 
 // Aliases VCallRequest.CallSiteMethod for call testwallet.Wallet contract methods
 const (
-	create     = "New"     // Create wallet
-	getBalance = "Balance" // Get wallet balance
-	addAmount  = "Accept"  // Add money to wallet
+	create     = "New"      // Create wallet
+	getBalance = "Balance"  // Get wallet balance
+	addAmount  = "Accept"   // Add money to wallet
+	transfer   = "Transfer" // Transfer money between wallets
 )
 
 func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulse.Accessor) *TestWalletServer {
