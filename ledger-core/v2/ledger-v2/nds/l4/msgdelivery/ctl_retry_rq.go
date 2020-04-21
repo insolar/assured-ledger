@@ -15,8 +15,8 @@ import (
 type rqSender struct {
 	stages retries.StagedController
 
-	oob chan rqShipment
-	job chan retryJob
+	oob  chan rqShipment
+	jobs chan retryJob
 
 	mutex    sync.Mutex
 	requests map[ShipmentID]rqShipment
@@ -28,20 +28,7 @@ func (p *rqSender) Add(rq rqShipment) error {
 		return err
 	}
 
-	select {
-	case p.oob <- rq:
-	default:
-		go func() {
-			p.oob <- rq
-		}()
-	}
-
-	//
-	//// TODO limit parallelism
-	//go func() {
-	//	rq.peer.sendBodyRq(rq.id.ShortID())
-	//	p.stages.AddHeadForRetry(retries.RetryID(rq.id))
-	//}()
+	p.oob <- rq
 	return nil
 }
 
@@ -54,6 +41,20 @@ func (p *rqSender) put(rq rqShipment) error {
 	}
 	p.requests[rq.id] = rq
 	return nil
+}
+
+func (p *rqSender) get(id ShipmentID) (rqShipment, retries.RetryState) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	rq, ok := p.requests[id]
+	if !ok {
+		return rq, retries.RemoveCompletely
+	}
+	if _, ok = p.suspends[id]; ok {
+		return rq, retries.StopRetrying
+	}
+	return rq, retries.KeepRetrying
 }
 
 func (p *rqSender) RemoveRq(peer *DeliveryPeer, id ShortShipmentID) (rqShipment, bool) {
@@ -97,15 +98,28 @@ func (p *rqSender) NextTimeCycle() {
 }
 
 func (p *rqSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
+
+	keepCount, removeStart := p.retry(ids)
+
+	for _, id := range ids[keepCount:removeStart] {
+		repeatFn(id)
+	}
+
+	if keepCount > 0 {
+		p.jobs <- retryJob{ids: ids[:keepCount], repeatFn: repeatFn}
+	}
+}
+
+func (p *rqSender) retry(ids []retries.RetryID) (keepCount, removeStart int) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	keepCount, removeStart := retries.Segregate(ids, func(id retries.RetryID) retries.RetryState {
+	return retries.Segregate(ids, func(id retries.RetryID) retries.RetryState {
 		sid := ShipmentID(id)
 		switch rq, ok := p.requests[sid]; {
 		case !ok:
 			return retries.RemoveCompletely
-		case rq.isExpired():
+		case rq.isExpired() || !rq.peer.isValid():
 			delete(p.requests, sid)
 			delete(p.suspends, sid)
 			return retries.RemoveCompletely
@@ -115,16 +129,6 @@ func (p *rqSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) 
 		}
 		return retries.KeepRetrying
 	})
-
-	for _, id := range ids[keepCount:removeStart] {
-		repeatFn(id)
-	}
-
-	if keepCount > 0 {
-
-	}
-
-	panic("implement me")
 }
 
 func (p *rqSender) CheckState(retries.RetryID) (r retries.RetryState) {
@@ -139,4 +143,9 @@ func (p *rqSender) Remove(ids []retries.RetryID) {
 		delete(p.suspends, sid)
 	}
 	p.mutex.Unlock()
+}
+
+func (p *rqSender) startWorker(parallel int) {
+	worker := newRetryRqWorker(p, parallel)
+	go worker.runRetry()
 }

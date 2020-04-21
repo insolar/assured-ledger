@@ -53,7 +53,7 @@ func (p *DeliveryPeer) _close() {
 }
 
 func (p *DeliveryPeer) isValid() bool {
-	return !p.isDead.IsSet()
+	return p != nil && !p.isDead.IsSet()
 }
 
 func (p *DeliveryPeer) addToStatePacket(needed int, fn func(*StatePacket)) {

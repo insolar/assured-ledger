@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type msgSender struct {
@@ -77,25 +76,8 @@ func (p *msgSender) NextTimeCycle() {
 }
 
 func (p *msgSender) startWorker(parallel int) {
-	worker := retryWorker{
-		sender:    p,
-		sema:      synckit.NewSemaphore(parallel),
-		marks:     nodeMarks{marks: make(map[uint32]struct{}, parallel)},
-		postponed: make([]postponedMsg, 0, 100),
-	}
+	worker := newRetryMsgWorker(p, parallel)
 	go worker.runRetry()
-}
-
-/**********************************/
-
-type retryJob struct {
-	ids      []retries.RetryID
-	repeatFn func(retries.RetryID)
-}
-
-type postponedMsg struct {
-	msg      *msgShipment
-	repeatFn func(retries.RetryID)
 }
 
 /**********************************/
@@ -121,134 +103,4 @@ func (p *nodeMarks) mark(id ShipmentID) bool {
 	p.marks[nid] = struct{}{}
 	p.mutex.Unlock()
 	return true
-}
-
-/**********************************/
-
-type retryWorker struct {
-	sender *msgSender
-	sema   synckit.Semaphore
-	marks  nodeMarks
-
-	// circular buffer
-	postponed   []postponedMsg
-	read, write int32
-
-	wakeup chan struct{}
-}
-
-func (p *retryWorker) runRetry() {
-	p.wakeup = make(chan struct{}, 1)
-	for {
-		job := retryJob{}
-		ok := false
-
-		var oob *msgShipment
-		select {
-		case oob, ok = <-p.sender.oob:
-		default:
-			select {
-			case oob, ok = <-p.sender.oob:
-			case job, ok = <-p.sender.jobs:
-			case <-p.wakeup:
-				if p.isEmptyPostponed() {
-					continue
-				}
-			}
-		}
-
-		switch {
-		case !ok:
-			return
-		case oob != nil:
-			p.processOoB(oob)
-		case !p.isEmptyPostponed():
-			p.processPostponed()
-		}
-
-		for _, id := range job.ids {
-			p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn)
-		}
-	}
-}
-
-func (p *retryWorker) sendHead(msg *msgShipment, repeatFn func(retries.RetryID)) {
-	defer func() {
-		p.sema.Unlock()
-		p.marks.unmark(msg.id)
-
-		select {
-		case p.wakeup <- struct{}{}:
-		default:
-		}
-	}()
-
-	if msg.sendHead() {
-		repeatFn(retries.RetryID(msg.id))
-	}
-}
-
-func (p *retryWorker) processOoB(msg *msgShipment) {
-	switch {
-	case p.marks.mark(msg.id):
-		p.sema.Lock()
-		go p.sendHead(msg, p.sender.stages.AddHeadForRetry)
-	case msg.canSendHead():
-		p.pushPostponed(msg, p.sender.stages.AddHeadForRetry)
-	}
-}
-
-func (p *retryWorker) processMsg(msg *msgShipment, repeatFn func(retries.RetryID)) {
-	switch {
-	case msg == nil:
-		return
-	case !p.marks.mark(msg.id):
-		//
-	case !p.sema.TryLock():
-		p.marks.unmark(msg.id)
-	default:
-		go p.sendHead(msg, repeatFn)
-		return
-	}
-
-	if msg.canSendHead() {
-		p.pushPostponed(msg, repeatFn)
-	}
-}
-
-func (p *retryWorker) pushPostponed(msg *msgShipment, repeatFn func(retries.RetryID)) {
-	if msg == nil {
-		return
-	}
-	if prev := p.postponed[p.write]; prev.msg != nil {
-		prev.msg.markCancel()
-	}
-	p.postponed[p.write] = postponedMsg{msg, repeatFn}
-	if p.write++; p.write >= int32(len(p.postponed)) {
-		p.write = 0
-	}
-}
-
-func (p *retryWorker) isEmptyPostponed() bool {
-	return p.read == p.write
-}
-
-func (p *retryWorker) processPostponed() {
-	lastWrite := p.write
-	if p.read > p.write {
-		for p.read < int32(len(p.postponed)) {
-			p._processPostponedItem()
-		}
-		p.read = 0
-	}
-	for p.read < lastWrite {
-		p._processPostponedItem()
-	}
-}
-
-func (p *retryWorker) _processPostponedItem() {
-	pmsg := p.postponed[p.read]
-	p.postponed[p.read] = postponedMsg{}
-	p.read++
-	p.processMsg(pmsg.msg, pmsg.repeatFn)
 }

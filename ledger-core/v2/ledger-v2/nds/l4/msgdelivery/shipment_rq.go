@@ -12,6 +12,10 @@ type rqShipment struct {
 	request ShipmentRequest
 }
 
+func (p rqShipment) isEmpty() bool {
+	return p.peer == nil
+}
+
 func (p rqShipment) isExpired() bool {
 	if cycle, _ := p.peer.ctl.getPulseCycle(); cycle > p.expires {
 		return true
@@ -36,4 +40,8 @@ func (p rqShipment) requestRejected() {
 	if err := fn(retAddr, false, nil); err != nil {
 		p.peer.ctl.reportError(err)
 	}
+}
+
+func (p rqShipment) isValid() bool {
+	return p.peer.isValid() && !p.isExpired()
 }
