@@ -34,6 +34,7 @@ type ParcelPacket struct {
 const ( // Flags for ParcelPacket
 	ReturnIdFlag uniproto.FlagIndex = iota
 	RepeatedSendFlag
+	HasBody
 )
 
 func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
@@ -88,7 +89,8 @@ func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, packet *
 }
 
 func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
-	switch PacketType(packet.Header.GetPacketType()) {
+	pt := PacketType(packet.Header.GetPacketType())
+	switch pt {
 	case DeliveryParcelHead:
 		p.ParcelType = nwapi.HeadOnlyPayload
 	case DeliveryParcelComplete:
@@ -100,7 +102,7 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 
 	{
 		bufSize := ShortShipmentIDByteSize
-		if p.ParcelType == nwapi.HeadOnlyPayload {
+		if pt == DeliveryParcelHead {
 			bufSize += 2
 		}
 		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
@@ -126,7 +128,7 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 			bufSize += ShortShipmentIDByteSize
 		}
 
-		if p.ParcelType == nwapi.HeadOnlyPayload {
+		if pt == DeliveryParcelHead {
 			p.BodyScale = b[bufSize]
 			if p.BodyScale == 0 {
 				return throw.IllegalValue()

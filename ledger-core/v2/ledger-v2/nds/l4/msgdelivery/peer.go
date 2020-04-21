@@ -18,7 +18,7 @@ import (
 
 type DeliveryPeer struct {
 	nextSSID atomickit.Uint32 // ShortShipmentID
-	ctl      *controller
+	ctl      *Controller
 	peerID   nwapi.ShortNodeID
 	isDead   atomickit.OnceFlag
 

@@ -103,6 +103,24 @@ func (p *PeerManager) peer(a nwapi.Address) (uint32, *Peer) {
 	return p.peers.get(a)
 }
 
+func (p *PeerManager) peerNilLocal(a nwapi.Address) (*Peer, error) {
+	p.peerMutex.RLock()
+	defer p.peerMutex.RUnlock()
+
+	return p._peerNilLocal(a)
+}
+
+func (p *PeerManager) _peerNilLocal(a nwapi.Address) (*Peer, error) {
+	switch idx, peer := p.peers.get(a); {
+	case peer == nil:
+		return nil, throw.FailHere("unknown peer")
+	case idx == 0:
+		return nil, nil
+	default:
+		return peer, nil
+	}
+}
+
 func (p *PeerManager) peerNotLocal(a nwapi.Address) (*Peer, error) {
 	p.peerMutex.RLock()
 	defer p.peerMutex.RUnlock()
@@ -294,21 +312,29 @@ func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostID) (bool, error)
 }
 
 func (p *PeerManager) connectPeer(remote nwapi.Address) (*Peer, error) {
-	switch peer, err := p.peerNotLocal(remote); {
+	switch peer, err := p.peerNilLocal(remote); {
 	case err != nil:
-		return nil, err
+		// not connected
 	case peer != nil:
 		return peer, nil
+	default:
+		// local
+		return nil, nil
 	}
 
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
-	peer, err := p._peerNotLocal(remote)
-	if err == nil && peer == nil {
-		_, peer, err = p._newPeer(nil, remote, nil)
+	peer, err := p._peerNilLocal(remote)
+	switch {
+	case peer != nil:
+		return peer, nil
+	case err == nil:
+		// local
+		return nil, nil
+
 	}
-	if err != nil {
+	if _, peer, err = p._newPeer(nil, remote, nil); err != nil {
 		return nil, err
 	}
 	if err = peer.transport.EnsureConnect(); err != nil {
@@ -341,23 +367,23 @@ type facadePeerManager struct {
 
 func (v facadePeerManager) ConnectPeer(address nwapi.Address) (uniproto.Peer, error) {
 	switch peer, err := v.peerManager.connectPeer(address); {
-	case peer != nil:
-		return peer, err
 	case err != nil:
 		return nil, err
+	case peer == nil:
+		return nil, nil
 	default:
-		return nil, throw.Impossible()
+		return peer, nil
 	}
 }
 
 func (v facadePeerManager) ConnectedPeer(address nwapi.Address) (uniproto.Peer, error) {
-	switch peer, err := v.peerManager.peerNotLocal(address); {
+	switch peer, err := v.peerManager.peerNilLocal(address); {
 	case err != nil:
 		return nil, err
-	case peer != nil:
-		return peer, nil
+	case peer == nil:
+		return nil, nil
 	default:
-		return nil, throw.Impossible()
+		return peer, nil
 	}
 }
 

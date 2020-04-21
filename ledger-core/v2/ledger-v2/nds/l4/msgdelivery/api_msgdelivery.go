@@ -11,6 +11,7 @@ type Service interface {
 	ShipTo(to DeliveryAddress, shipment Shipment) error
 	ShipReturn(to ReturnAddress, shipment Shipment) error
 	PullBody(from ReturnAddress, shipmentRq ShipmentRequest) error
+	RejectBody(from ReturnAddress) error
 }
 
 type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, interface{}) error

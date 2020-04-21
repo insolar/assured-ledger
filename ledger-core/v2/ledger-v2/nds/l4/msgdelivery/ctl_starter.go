@@ -13,7 +13,7 @@ import (
 )
 
 type protoStarter struct {
-	ctl   *controller
+	ctl   *Controller
 	state atomickit.StartStopFlag
 	peers uniproto.PeerManager
 }

@@ -23,14 +23,14 @@ const minHeadBatchWeight = 1 << 20
 
 func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactory,
 	receiveFn ReceiverFunc, resolverFn ResolverFunc,
-) Service {
-	c := &controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
+) *Controller {
+	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
-	c.bodyRq.stages.InitStages(maxStatePacketEntries, [...]int{5, 10, 50})
+	c.bodyRq.stages.InitStages(0, [...]int{5, 10, 50})
 	return c
 }
 
-type controller struct {
+type Controller struct {
 	pType      uniproto.ProtocolType
 	factory    nwapi.DeserializationFactory
 	receiveFn  ReceiverFunc
@@ -44,15 +44,14 @@ type controller struct {
 
 	pulseCycle atomickit.Uint64
 
-	stopSignal        synckit.ClosableSignalChannel
-	maxSmallSize      uint
-	maxHeadSize       uint // <= maxSmallSize
-	maxIgnoreHeadSize uint // <= maxSmallSize
-	localID           nwapi.ShortNodeID
+	stopSignal   synckit.ClosableSignalChannel
+	maxSmallSize uint
+	maxHeadSize  uint // <= maxSmallSize
+	localID      nwapi.ShortNodeID
 }
 
 // for initialization only
-func (p *controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [retries.RetryStages]time.Duration) {
+func (p *Controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [retries.RetryStages]time.Duration) {
 	switch {
 	case timeCycle < time.Microsecond:
 		panic(throw.IllegalValue())
@@ -63,6 +62,22 @@ func (p *controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [r
 
 	p.sender.stages.InitStages(minHeadBatchWeight, calcPeriods(timeCycle, sendStages))
 	p.bodyRq.stages.InitStages(maxStatePacketEntries, calcPeriods(timeCycle, rqStages))
+}
+
+// for initialization only
+func (p *Controller) RegisterWith(regFn uniproto.RegisterControllerFunc) {
+	switch {
+	case p.pType == 0:
+		panic(throw.IllegalState())
+	case p.starter.ctl != nil:
+		panic(throw.IllegalState())
+	}
+	p.starter.ctl = p
+	regFn(p.pType, protoDescriptor, &p.starter, &p.receiver)
+}
+
+func (p *Controller) NewFacade() Service {
+	return facade{p}
 }
 
 func calcPeriods(timeCycle time.Duration, stages [retries.RetryStages]time.Duration) (periods [retries.RetryStages]int) {
@@ -78,20 +93,7 @@ func calcPeriods(timeCycle time.Duration, stages [retries.RetryStages]time.Durat
 	return
 }
 
-// for initialization only
-func (p *controller) RegisterWith(regFn uniproto.RegisterControllerFunc) {
-	switch {
-	case p.pType == 0:
-		panic(throw.IllegalState())
-	case p.starter.ctl != nil:
-		panic(throw.IllegalState())
-	}
-	p.starter.ctl = p
-	regFn(p.pType, protoDescriptor, &p.starter, &p.receiver)
-}
-
-// TODO isolation facade
-func (p *controller) ShipTo(to DeliveryAddress, shipment Shipment) error {
+func (p *Controller) shipTo(to DeliveryAddress, shipment Shipment) error {
 	if to.addrType == DirectAddress {
 		switch {
 		case to.nodeSelector == 0:
@@ -109,7 +111,7 @@ func (p *controller) ShipTo(to DeliveryAddress, shipment Shipment) error {
 	return p.send(addr, 0, shipment)
 }
 
-func (p *controller) ShipReturn(to ReturnAddress, shipment Shipment) error {
+func (p *Controller) shipReturn(to ReturnAddress, shipment Shipment) error {
 	if !to.IsValid() {
 		return throw.IllegalValue()
 	}
@@ -117,42 +119,57 @@ func (p *controller) ShipReturn(to ReturnAddress, shipment Shipment) error {
 	return p.send(to.returnTo, to.returnID, shipment)
 }
 
-func (p *controller) PullBody(from ReturnAddress, rq ShipmentRequest) error {
+func (p *Controller) pullBody(from ReturnAddress, rq ShipmentRequest) error {
 	if !from.IsValid() {
 		return throw.IllegalValue()
 	}
-	if cycle, _ := p.getPulseCycle(); cycle > from.expires {
-		if rq.ReceiveFn != nil {
-			// avoid possible deadlock of the caller
-			go func() {
-				if err := rq.ReceiveFn(from, false, nil); err != nil {
-					p.reportError(err)
-				}
-			}()
-		}
-		return nil
+
+	switch cycle, _ := p.getPulseCycle(); {
+	case cycle > from.expires:
+		//
+	case !from.canPull:
+		//
+	default:
+		return p.sendBodyRq(from, rq)
 	}
 
-	return p.sendBodyRq(from, rq)
+	if fn := rq.ReceiveFn; fn != nil {
+		go func() {
+			if err := fn(from, false, nil); err != nil {
+				p.reportError(err)
+			}
+		}()
+	}
+	return nil
 }
 
-func (p *controller) isConfigurable() bool {
+func (p *Controller) rejectBody(from ReturnAddress) error {
+	if !from.IsValid() {
+		return throw.IllegalValue()
+	}
+	if from.canPull {
+		return p.rejectBodyRq(from)
+	}
+	return nil
+}
+
+func (p *Controller) isConfigurable() bool {
 	return !p.starter.wasStarted()
 }
 
-func (p *controller) checkActive() error {
+func (p *Controller) checkActive() error {
 	if !p.starter.isActive() {
 		return throw.FailHere("inactive")
 	}
 	return nil
 }
 
-func (p *controller) reportError(err error) {
+func (p *Controller) reportError(err error) {
 	// TODO
 	println(throw.ErrorWithStack(err))
 }
 
-func (p *controller) nextPulseCycle(pn pulse.Number) bool {
+func (p *Controller) nextPulseCycle(pn pulse.Number) bool {
 	for {
 		v := p.pulseCycle.Load()
 		if pulse.Number(v) >= pn {
@@ -166,12 +183,12 @@ func (p *controller) nextPulseCycle(pn pulse.Number) bool {
 	}
 }
 
-func (p *controller) getPulseCycle() (uint32, pulse.Number) {
+func (p *Controller) getPulseCycle() (uint32, pulse.Number) {
 	v := p.pulseCycle.Load()
 	return uint32(v >> 32), pulse.Number(v)
 }
 
-func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
+func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *StatePacket) error {
 	if err := p.checkActive(); err != nil {
 		return err
 	}
@@ -212,7 +229,9 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 			msg.markReject()
 		}
 		if rq, ok := p.bodyRq.RemoveByID(sid); ok {
-			rq.requestRejected()
+			if fn := rq.requestRejectedFn(); fn != nil {
+				go fn()
+			}
 		}
 
 	}
@@ -220,7 +239,7 @@ func (p *controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 	return nil
 }
 
-func (p *controller) getDeliveryPeer(peer uniproto.Peer) (*DeliveryPeer, error) {
+func (p *Controller) getDeliveryPeer(peer uniproto.Peer) (*DeliveryPeer, error) {
 	dPeer, ok := peer.GetOrCreateProtoInfo(p.pType, p.createProtoPeer).(*DeliveryPeer)
 	if ok {
 		return dPeer, nil
@@ -228,7 +247,7 @@ func (p *controller) getDeliveryPeer(peer uniproto.Peer) (*DeliveryPeer, error) 
 	return nil, throw.RemoteBreach("peer is not a node")
 }
 
-func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
+func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *ParcelPacket) error {
 	if err := p.checkActive(); err != nil {
 		return err
 	}
@@ -260,48 +279,52 @@ func (p *controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		returnID: payload.ParcelID,
 	}
 
-	receiveFn := p.receiveFn
 	duplicate := !dPeer.dedup.Add(DedupID(payload.ParcelID))
+
+	ok := false
+	if ok, retAddr.expires, err = p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true); !ok {
+		dPeer.addReject(payload.ParcelID)
+		return err
+	}
 
 	if payload.ParcelType == nwapi.HeadOnlyPayload {
 		if duplicate {
 			dPeer.addReject(payload.ParcelID)
 			return nil
 		}
-		ok, expiry, err := p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true)
-		if !ok {
-			dPeer.addReject(payload.ParcelID)
-			return err
-		}
-		retAddr.expires = expiry
-
 		dPeer.addAck(payload.ParcelID)
-	} else {
-		// ignores peer-based deduplication as served per-request
-
-		rq, ok := p.bodyRq.RemoveRq(dPeer, payload.ParcelID)
-		if !ok {
-			dPeer.addReject(payload.ParcelID)
-			return nil
-		}
-
-		retAddr.expires = rq.expires
-		switch {
-		case rq.isExpired():
-			dPeer.addReject(payload.ParcelID)
-			rq.requestRejected()
-			return nil
-		case rq.request.ReceiveFn != nil:
-			receiveFn = rq.request.ReceiveFn
-		}
-
-		dPeer.addBodyAck(payload.ParcelID)
+		retAddr.canPull = true
+		return p.receiveFn(retAddr, payload.ParcelType, payload.Data)
 	}
 
+	var rq rqShipment
+	switch rq, ok = p.bodyRq.RemoveRq(dPeer, payload.ParcelID); {
+	case ok:
+		// Body ignores peer-based deduplication when served per-request
+		if rq.isValid() {
+			break
+		}
+
+		dPeer.addReject(payload.ParcelID)
+		if fn := rq.requestRejectedFn(); fn != nil {
+			fn()
+		}
+		return nil
+	case duplicate:
+		dPeer.addReject(payload.ParcelID)
+		return nil
+	}
+
+	dPeer.addBodyAck(payload.ParcelID)
+
+	receiveFn := rq.request.ReceiveFn
+	if receiveFn == nil {
+		receiveFn = p.receiveFn
+	}
 	return receiveFn(retAddr, payload.ParcelType, payload.Data)
 }
 
-func (p *controller) receiveParcelBeforeData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
+func (p *Controller) receiveParcelBeforeData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
 	sid := AsShipmentID(packet.Header.SourceID, payload.ParcelID)
 	if fn := p.bodyRq.suspendRetry(sid); fn != nil {
 		defer fn()
@@ -310,7 +333,7 @@ func (p *controller) receiveParcelBeforeData(packet *uniproto.Packet, payload *P
 	return dataFn()
 }
 
-func (p *controller) createProtoPeer(peer uniproto.Peer) io.Closer {
+func (p *Controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 	id := peer.GetNodeID()
 	if id.IsAbsent() {
 		return nil
@@ -324,15 +347,14 @@ func (p *controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 	return dp
 }
 
-func (p *controller) applySizePolicy(shipment *Shipment) (uint, error) {
+func (p *Controller) applySizePolicy(shipment *Shipment) (uint, error) {
 	switch {
 	case shipment.Head != nil:
 		headSize := shipment.Head.ByteSize()
-		if shipment.Body == nil {
-			if headSize > p.maxHeadSize {
-				shipment.Body = shipment.Head
-				shipment.Head = nil
-			}
+		switch {
+		case headSize > p.maxHeadSize:
+			return 0, throw.FailHere("head is too big")
+		case shipment.Body == nil:
 			return headSize, nil
 		}
 
@@ -344,12 +366,10 @@ func (p *controller) applySizePolicy(shipment *Shipment) (uint, error) {
 		switch {
 		case bodySize <= headSize:
 			return 0, throw.IllegalValue()
-		case headSize > p.maxHeadSize:
-			shipment.Head = nil
 		case bodySize <= p.maxHeadSize:
 			shipment.Head = shipment.Body
 			shipment.Body = nil
-		case bodySize <= p.maxIgnoreHeadSize || shipment.Policies&ExpectedParcel != 0:
+		case shipment.Policies&ExpectedParcel != 0:
 			shipment.Head = nil
 		default:
 			return headSize, nil
@@ -372,23 +392,25 @@ func (p *controller) applySizePolicy(shipment *Shipment) (uint, error) {
 	}
 }
 
-// TODO support loopback
-func (p *controller) peer(to nwapi.Address) (*DeliveryPeer, error) {
+func (p *Controller) peer(to nwapi.Address) (*DeliveryPeer, error) {
 	if err := p.checkActive(); err != nil {
 		return nil, err
 	}
 
 	// This protocol is only allowed for peers added by consensus
 	// It can't connect unknown peers.
-	peer, err := p.starter.peers.ConnectedPeer(to)
-	if err != nil {
+	switch peer, err := p.starter.peers.ConnectedPeer(to); {
+	case err != nil:
 		return nil, err
+	case peer != nil:
+		return p.getDeliveryPeer(peer)
+	default:
+		// local
+		return nil, nil
 	}
-
-	return p.getDeliveryPeer(peer)
 }
 
-func (p *controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (bool, uint32, error) {
+func (p *Controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (bool, uint32, error) {
 	cycle, cyclePN := p.getPulseCycle()
 	switch {
 	case cyclePN == pn:
@@ -396,14 +418,19 @@ func (p *controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (b
 	case cyclePN < pn:
 		return false, 0, throw.IllegalState()
 	case inbound:
-		return false, 0, throw.IllegalValue()
-	case pn != 0: //
+		return false, 0, throw.FailHere("past pulse")
+	case pn == 0:
+		// use current
+	case ttl == 0:
+		// expired
+		return false, 0, nil
+	default:
 		cycle--
 	}
 	return true, cycle + uint32(ttl), nil
 }
 
-func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) error {
+func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) error {
 	dPeer, err := p.peer(to)
 	if err != nil {
 		return err
@@ -439,6 +466,11 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 		msg.expires = expiry
 	}
 
+	if dPeer == nil {
+		p.sendLoopback(msg)
+		return nil
+	}
+
 	// ATTN! Avoid gaps in numbering
 	msg.id = dPeer.NextShipmentId()
 
@@ -454,10 +486,14 @@ func (p *controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	return nil
 }
 
-func (p *controller) sendBodyRq(from ReturnAddress, rq ShipmentRequest) error {
+func (p *Controller) sendBodyRq(from ReturnAddress, rq ShipmentRequest) error {
 	dPeer, err := p.peer(from.returnTo)
-	if err != nil {
+	switch {
+	case err != nil:
 		return err
+	case dPeer == nil:
+		// local address can't be here
+		return throw.Impossible()
 	}
 
 	return p.bodyRq.Add(rqShipment{
@@ -468,26 +504,46 @@ func (p *controller) sendBodyRq(from ReturnAddress, rq ShipmentRequest) error {
 	})
 }
 
-func (p *controller) onStarted() {
+func (p *Controller) rejectBodyRq(from ReturnAddress) error {
+	dPeer, err := p.peer(from.returnTo)
+	switch {
+	case err != nil:
+		return err
+	case dPeer == nil:
+		// local address can't be here
+		return throw.Impossible()
+	}
+
+	sid := AsShipmentID(uint32(dPeer.peerID), from.returnID)
+	if rq, _ := p.bodyRq.RemoveByID(sid); !rq.isEmpty() {
+		dPeer.addReject(from.returnID)
+	}
+	return nil
+}
+
+func (p *Controller) onStarted() {
 	p.maxSmallSize = p.starter.peers.MaxSmallPayloadSize()
 	p.localID = p.starter.peers.LocalPeer().GetNodeID()
 
 	if p.maxHeadSize > p.maxSmallSize || p.maxHeadSize == 0 {
 		p.maxHeadSize = p.maxSmallSize
 	}
-	if p.maxIgnoreHeadSize > p.maxSmallSize || p.maxIgnoreHeadSize == 0 {
-		p.maxIgnoreHeadSize = p.maxSmallSize
-	}
 
 	p.stopSignal = make(synckit.ClosableSignalChannel)
 	go p.runWorker()
+
+	// TODO
+	//p.bodyRq.startWorker()
+	//for i := 2; i > 0; i-- {
+	//	p.sender.startWorker()
+	//}
 }
 
-func (p *controller) onStopped() {
+func (p *Controller) onStopped() {
 	close(p.stopSignal)
 }
 
-func (p *controller) runWorker() {
+func (p *Controller) runWorker() {
 	ticker := time.Tick(p.timeCycle)
 	for {
 		select {
@@ -498,5 +554,23 @@ func (p *controller) runWorker() {
 		}
 		p.bodyRq.NextTimeCycle()
 		p.sender.NextTimeCycle()
+	}
+}
+
+func (p *Controller) sendLoopback(msg *msgShipment) {
+	data := msg.shipment.Body
+	if data == nil {
+		data = msg.shipment.Head
+	}
+
+	peer := p.starter.peers.LocalPeer()
+	retAddr := ReturnAddress{
+		returnTo: peer.GetLocalUID(),
+		expires:  msg.expires,
+	}
+
+	err := p.receiveFn(retAddr, nwapi.CompletePayload, data)
+	if err != nil {
+		p.reportError(err)
 	}
 }
