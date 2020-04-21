@@ -19,7 +19,7 @@ test_func: ## run functest FUNCTEST_COUNT times
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag
 	make clean
-	FUNCTEST_COUNT=10 TEST_ARGS='-timeout 1200s -race' make test_func
+	GOBUILD='go build -race' FUNCTEST_COUNT=10 TEST_ARGS='-timeout 1200s -race' make test_func
 
 .PHONY: test_slow
 test_slow: ## run tests with slowtest tag
