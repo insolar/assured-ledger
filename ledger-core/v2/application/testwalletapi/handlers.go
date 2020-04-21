@@ -85,7 +85,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = throw.W(err, "Failed to process create wallet contract call request", nil).Error()
 		return
 	}
 
@@ -96,9 +96,9 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
 	switch {
 	case err != nil:
-		result.Error = errors.Wrap(err, "Failed to unmarshal request").Error()
+		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
 	case contractCallErr != nil:
-		result.Error = contractCallErr.S
+		result.Error = contractCallErr.Error()
 	default:
 		result.Reference = ref.String()
 	}
@@ -175,7 +175,50 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		TraceID: traceID,
 		Error:   "",
 	}
-	defer func() { s.mustWriteResult(w, result) }()
+
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
+
+	ref, err := insolar.NewReferenceFromString(params.WalletRef)
+
+	if err != nil {
+		result.Error = throw.W(err,
+			fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef), nil,
+		).Error()
+		return
+	}
+
+	walletReq := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		Callee:         *ref,
+		CallSiteMethod: getBalance,
+	}
+
+	walletRes, err := s.runWalletRequest(ctx, walletReq)
+
+	if err != nil {
+		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
+		return
+	}
+
+	var (
+		amount          uint32
+		contractCallErr *foundation.Error
+	)
+
+	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &amount, &contractCallErr)
+	switch {
+	case err != nil:
+		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
+	case contractCallErr != nil:
+		result.Error = contractCallErr.Error()
+	default:
+		result.Amount = uint(amount)
+	}
 }
 
 type AddAmountParams struct {
@@ -211,7 +254,52 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		TraceID: traceID,
 		Error:   "",
 	}
-	defer func() { s.mustWriteResult(w, result) }()
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Errorm(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
+
+	ref, err := insolar.NewReferenceFromString(params.To)
+	if err != nil {
+		result.Error = throw.W(err,
+			fmt.Sprintf("Failed to create reference from string (%s)", params.To), nil,
+		).Error()
+
+		return
+	}
+
+	param, err := insolar.Serialize(params.Amount)
+	if err != nil {
+		result.Error = throw.W(err, "Failed to marshall amount", nil).Error()
+		return
+	}
+
+	walletReq := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		Callee:         *ref,
+		Arguments:      param,
+		CallSiteMethod: addAmount,
+	}
+
+	walletRes, err := s.runWalletRequest(ctx, walletReq)
+	if err != nil {
+		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
+		return
+	}
+
+	var contractCallErr *foundation.Error
+	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+
+	switch {
+	case err != nil:
+		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
+	case contractCallErr != nil:
+		result.Error = contractCallErr.Error()
+	default:
+
+	}
 }
 
 func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) (*payload.VCallResult, error) {

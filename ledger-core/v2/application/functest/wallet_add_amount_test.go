@@ -17,6 +17,8 @@ import (
 
 // Creates wallet, calls /wallet/add_amount and checks it's response body.
 func TestWalletAddAmount(t *testing.T) {
+	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-273")
+
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
@@ -33,6 +35,8 @@ func TestWalletAddAmount(t *testing.T) {
 
 // Creates wallet and calls /wallet/add_amount concurrently.
 func TestWalletAddAmountConcurrently(t *testing.T) {
+	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-273")
+
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
