@@ -1,6 +1,6 @@
 # Assured Ledger
 
-[![codecov](https://codecov.io/gh/insolar/assured-ledger/branch/master/graph/badge.svg)](https://codecov.io/gh/insolar/assured-ledger)
+[![all-checks](https://github.com/insolar/assured-ledger/workflows/all-checks/badge.svg)](https://github.com/insolar/assured-ledger/actions?query=workflow%3Aall-checks+branch%3Amaster)[![codecov](https://codecov.io/gh/insolar/assured-ledger/branch/master/graph/badge.svg)](https://codecov.io/gh/insolar/assured-ledger)
 
 Assured Ledger is a byzantine fault tolerant distributed application server.
 
