@@ -8,11 +8,9 @@ This project is currently under development. It's the next generation of [Insola
 
 ## Quick start
 
-How to build the project:
+To build the project run:
 
 ```
 cd ledger-core/v2
 make vendor pre-build build
 ````
-
-For more details please see .github/workflows/common.yaml.
