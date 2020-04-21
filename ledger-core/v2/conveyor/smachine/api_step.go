@@ -33,11 +33,11 @@ type SlotStep struct {
 	// Function to be called for migration of this step. Overrides SetDefaultMigration() when not nil.
 	Migration MigrateFunc
 
-	// Step will be executed with the given flags. When StepResetAllFlags is specified, then SetDefaultFlags() is ignored, otherwise ORed.
-	Flags StepFlags
-
 	// Function to be called to handler errors of this step. Overrides SetDefaultErrorHandler() when not nil.
 	Handler ErrorHandlerFunc
+
+	// Step will be executed with the given flags. When StepResetAllFlags is specified, then SetDefaultFlags() is ignored, otherwise ORed.
+	Flags StepFlags
 }
 
 func (s *SlotStep) IsZero() bool {
