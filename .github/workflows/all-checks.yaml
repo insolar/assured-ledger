@@ -13,7 +13,7 @@ env:
   GOTEST: 'gotestsum --'
 jobs:
   all-checks:
-    name: all-checks
+    name: checks # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
