@@ -18,7 +18,7 @@ import (
 func TestWalletTransfer(t *testing.T) {
 	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-269")
 
-	var startAmount, transferAmount = 1000, 100
+	var transferAmount = 100
 
 	walletRefFrom, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
@@ -39,9 +39,9 @@ func TestWalletTransfer(t *testing.T) {
 
 	walletFromBalance, err := getWalletBalance(getBalanceURL, walletRefFrom)
 	require.NoError(t, err, "failed to get balance")
-	require.Equal(t, startAmount-transferAmount, walletFromBalance, "wrong balance")
+	require.Equal(t, startBalance-transferAmount, walletFromBalance, "wrong balance")
 
 	walletToBalance, err := getWalletBalance(getBalanceURL, walletRefTo)
 	require.NoError(t, err, "failed to get balance")
-	require.Equal(t, startAmount+transferAmount, walletToBalance, "wrong balance")
+	require.Equal(t, startBalance+transferAmount, walletToBalance, "wrong balance")
 }

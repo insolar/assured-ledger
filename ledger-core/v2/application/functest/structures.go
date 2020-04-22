@@ -12,6 +12,9 @@ import (
 )
 
 // nolint:unused
+const startBalance = 1000000000
+
+// nolint:unused
 type walletCreateResponse struct {
 	Err     string `json:"error"`
 	Ref     string `json:"reference"`

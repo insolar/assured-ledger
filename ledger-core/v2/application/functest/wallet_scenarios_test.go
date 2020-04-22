@@ -17,7 +17,10 @@ import (
 func TestCreateUpdateWallet(t *testing.T) {
 	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-273")
 
-	var ref string
+	var (
+		ref    string
+		amount = 100
+	)
 
 	t.Log("1.Create wallet")
 	{
@@ -32,12 +35,12 @@ func TestCreateUpdateWallet(t *testing.T) {
 		getBalanceURL := getURL(walletGetBalancePath, "", "")
 		balance, err := getWalletBalance(getBalanceURL, ref)
 		require.NoError(t, err)
-		require.Equal(t, 1000, balance, "wrong balance amount")
+		require.Equal(t, startBalance, balance, "wrong balance amount")
 	}
 	t.Log("3.Add amount to wallet")
 	{
 		addAmountURL := getURL(walletAddAmountPath, "", "")
-		err := addAmountToWallet(addAmountURL, ref, 100)
+		err := addAmountToWallet(addAmountURL, ref, amount)
 		require.NoError(t, err)
 	}
 	t.Log("4.Get wallet balance")
@@ -45,7 +48,7 @@ func TestCreateUpdateWallet(t *testing.T) {
 		getBalanceURL := getURL(walletGetBalancePath, "", "")
 		balance, err := getWalletBalance(getBalanceURL, ref)
 		require.NoError(t, err)
-		require.Equal(t, 1100, balance, "wrong balance amount")
+		require.Equal(t, startBalance+amount, balance, "wrong balance amount")
 	}
 }
 
@@ -56,7 +59,7 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 		ref             string
 		count           = 10 // Number of concurrent requests per node.
 		amount          = 100
-		expectedBalance = 1000 + amount*count*len(nodesPorts)*2
+		expectedBalance = startBalance + amount*count*len(nodesPorts)*2
 		outChan         = make(chan error)
 	)
 
@@ -81,7 +84,7 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 
 				go func(port string) {
 					addAmountURL := getURL(walletAddAmountPath, "", port)
-					resultErr := addAmountToWallet(addAmountURL, ref, uint(amount))
+					resultErr := addAmountToWallet(addAmountURL, ref, amount)
 					// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 					outChan <- resultErr
 				}(port)
