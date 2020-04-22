@@ -19,7 +19,7 @@ func TestCreateUpdateWallet(t *testing.T) {
 
 	var (
 		ref    string
-		amount = 100
+		amount uint = 100
 	)
 
 	t.Log("1.Create wallet")
@@ -57,10 +57,10 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 
 	var (
 		ref             string
-		count           = 10 // Number of concurrent requests per node.
-		amount          = 100
-		expectedBalance = startBalance + amount*count*len(nodesPorts)*2
-		outChan         = make(chan error)
+		count                = 10 // Number of concurrent requests per node.
+		amount          uint = 100
+		expectedBalance      = startBalance + amount*uint(count*len(nodesPorts)*2)
+		outChan              = make(chan error)
 	)
 
 	t.Log("1.Create wallet")

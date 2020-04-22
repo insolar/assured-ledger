@@ -36,7 +36,7 @@ type walletGetBalanceRequestBody struct {
 // nolint:unused,deadcode
 type walletGetBalanceResponse struct {
 	Err     string `json:"error"`
-	Amount  int    `json:"amount"`
+	Amount  uint   `json:"amount"`
 	TraceID string `json:"traceID"`
 }
 

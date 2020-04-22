@@ -43,7 +43,7 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 	count := 10 // Number of concurrent requests per node.
 
 	type result struct {
-		balance int
+		balance uint
 		err     error
 	}
 	outChan := make(chan result)

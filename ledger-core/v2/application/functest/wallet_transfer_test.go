@@ -18,7 +18,7 @@ import (
 func TestWalletTransfer(t *testing.T) {
 	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-269")
 
-	var transferAmount = 100
+	var transferAmount uint = 100
 
 	walletRefFrom, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
@@ -27,7 +27,7 @@ func TestWalletTransfer(t *testing.T) {
 	require.NoError(t, err, "failed to create wallet")
 
 	transferURL := getURL(walletTransferPath, "", "")
-	rawResp, err := sendAPIRequest(transferURL, walletTransferRequestBody{From: walletRefFrom, To: walletRefTo, Amount: uint(transferAmount)})
+	rawResp, err := sendAPIRequest(transferURL, walletTransferRequestBody{From: walletRefFrom, To: walletRefTo, Amount: transferAmount})
 	require.NoError(t, err, "failed to send request or get response body")
 
 	resp, err := unmarshalWalletTransferResponse(rawResp)
