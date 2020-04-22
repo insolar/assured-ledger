@@ -33,7 +33,7 @@ func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference insolar.R
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		ctx.SetTracerID(fmt.Sprintf("object-%s", objectReference.String()))
-		return NewStateMachineObject(objectReference, false)
+		return NewStateMachineObject(objectReference, true)
 	})
 
 	accessor, _ := p.TryGet(ctx, objectReference)

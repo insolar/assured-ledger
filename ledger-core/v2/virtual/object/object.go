@@ -6,10 +6,13 @@
 package object
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
@@ -24,7 +27,7 @@ type Info struct {
 
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
-	ReadyToWork      smachine.SyncLink
+	ReadyToWork      smachine.SyncLink // expected, that this will be switch after getting VStateReport
 
 	PreviousExecutorState payload.PreviousExecutorState
 }
@@ -47,12 +50,12 @@ type SharedState struct {
 	Info
 }
 
-func NewStateMachineObject(objectReference insolar.Reference, exists bool) *SMObject {
+func NewStateMachineObject(objectReference insolar.Reference, initByCallConstructor bool) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{Reference: objectReference},
 		},
-		oldObject: exists,
+		initByCallConstructor: initByCallConstructor,
 	}
 }
 
@@ -61,14 +64,21 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl smsync.BoolConditionalLink
+	stateRequestWasSent   bool
+	readyToWorkCtl        smsync.BoolConditionalLink
+	initByCallConstructor bool
 
-	oldObject bool
+	// dependencies
+	messageSender *messageSenderAdapter.MessageSender
+	pulseSlot     *conveyor.PulseSlot
 }
 
 /* -------- Declaration ------------- */
 
-func (sm *SMObject) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := stateMachine.(*SMObject)
+	injector.MustInject(&s.messageSender)
+	injector.MustInject(&s.pulseSlot)
 }
 
 func (sm *SMObject) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
@@ -88,11 +98,37 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
+	sm.stateRequestWasSent = false
+
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
 	}
-	return ctx.Jump(sm.stepReadyToWork)
+
+	if sm.initByCallConstructor {
+		return ctx.Jump(sm.stepReadyToWork)
+	}
+
+	return ctx.Jump(sm.stepCheckPreviousExecutor)
+}
+
+func (sm *SMObject) stepCheckPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.ObjectLatestDescriptor != nil { // TODO наверное это неправильно, надо вывешивать барджин в нижний иф, а этот убирать?
+		return ctx.Jump(sm.stepReadyToWork)
+	}
+
+	if sm.stateRequestWasSent {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	msg := payload.VStateRequest{Callee: sm.Reference}
+	goCtx := ctx.GetContext()
+	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
+	}).Send()
+
+	sm.stateRequestWasSent = true
+	return ctx.Sleep().ThenRepeat()
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
