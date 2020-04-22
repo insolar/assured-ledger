@@ -6,31 +6,44 @@
 package msgdelivery
 
 import (
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type DedupID uint32
 
-const maxReceiveWindow = 1 << 16
+const (
+	maxReceiveExceptions = 1 << 8
+	maxReceiveWindow     = 1 << 16
+	minReceiveWindow     = maxReceiveWindow - maxReceiveExceptions>>1
+
+	// TODO support overlap/overflow of DedupID
+	overlapLimit = ^DedupID(0) - maxReceiveWindow - 1
+)
 
 type receiveDeduplicator struct {
-	maxReceived   DedupID
+	mutex         sync.Mutex
+	maxReceived   DedupID // >= minReceived
 	received      map[DedupID]struct{}
-	minReceived   DedupID // >= minContinuous
+	minReceived   DedupID // >= maxContinuous
 	excepts       map[DedupID]struct{}
-	minContinuous DedupID
+	maxContinuous DedupID
 
-	prevCount int
+	peakSize int
 }
 
 func (p *receiveDeduplicator) Has(id DedupID) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	switch {
 	case id > p.minReceived:
-		if id >= p.maxReceived {
-			return id == p.maxReceived
+		if id < p.maxReceived {
+			return p.hasReceived(id)
 		}
-		return p.hasReceived(id)
-	case id <= p.minContinuous:
+		return id == p.maxReceived
+	case id <= p.maxContinuous:
 		return id != 0
 	case id == p.minReceived:
 		return true
@@ -50,131 +63,231 @@ func (p *receiveDeduplicator) hasExcept(id DedupID) bool {
 }
 
 func (p *receiveDeduplicator) Add(id DedupID) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	switch {
 	case id >= p.maxReceived:
 		switch {
+		case id == p.maxReceived:
+			return false
 		case id > p.maxReceived+1:
-			if p.minReceived+maxReceiveWindow < id {
-				panic(throw.IllegalValue()) // TODO force relocation to continuous area
-			}
 			//
-		case id == p.minContinuous+1:
-			p.minReceived = id
-			p.minContinuous = id
+		case id == p.maxContinuous+1:
+			p.maxContinuous = id
+			fallthrough
 		case id == p.minReceived+1:
+			p.maxReceived = id
 			p.minReceived = id
+			return true
 		}
 		p.maxReceived = id
-		return true
 
-	case id <= p.minContinuous:
+	case id <= p.maxContinuous:
 		return false
 
 	case id < p.minReceived:
-		switch {
-		case id == p.minContinuous+1:
-			switch len(p.excepts) {
-			case 1:
-				p.minContinuous = p.minReceived
-				p.excepts = nil
-				return true
-			case 0:
-				//
-			default:
-				for next := id + 1; next < p.minReceived; next++ {
-					if p.hasExcept(next) {
-						delete(p.excepts, id)
-						p.minContinuous = next - 1
-						return true
-					}
-				}
-			}
+		return p._addToExcepts(id)
 
-			panic(throw.Impossible())
-
-		case !p.hasExcept(id):
-			return false
-		default:
-			delete(p.excepts, id)
-			return true
-		}
-
-	//case id == 0: //  covered by id <= p.minContinuous
+	//case id == 0: //  covered by id <= p.maxContinuous
 	//	panic(throw.Impossible())
 
 	case id == p.minReceived:
 		return false
+
 	case id == p.minReceived+1:
-		p.minReceived = id
+		if p.hasReceived(id) {
+			panic(throw.Impossible())
+		}
+		if p.maxContinuous == p.minReceived {
+			p._addToReceivedAndTrim()
+			p.maxContinuous = p.minReceived
+		} else {
+			p._addToReceivedAndTrim()
+		}
+
+		return true
+
 	case p.hasReceived(id):
 		return false
-	default:
 	}
 
+	if p.received == nil {
+		p.received = make(map[DedupID]struct{}, p.peakSize>>2)
+		p.received[id] = struct{}{}
+		p.updatePeakSize(1)
+		return true
+	}
+
+	p.received[id] = struct{}{}
+	n := len(p.received)
+	p.updatePeakSize(n)
+	if n > minReceiveWindow && p.minReceived+maxReceiveWindow < p.maxReceived {
+		p._forceMinReceived(p.maxReceived - minReceiveWindow)
+	}
+	return true
+
+}
+
+func (p *receiveDeduplicator) _addToExcepts(id DedupID) bool {
+	switch {
+	case id == p.maxContinuous+1:
+		switch len(p.excepts) {
+		case 1:
+			p.maxContinuous = p.minReceived
+			p.excepts = nil
+			return true
+		case 0:
+			panic(throw.Impossible())
+		default:
+			p._trimExceptsAfter(id)
+			return true
+		}
+
+	case !p.hasExcept(id):
+		return false
+	default:
+		delete(p.excepts, id)
+		return true
+	}
+}
+
+func (p *receiveDeduplicator) _trimExceptsAfter(id DedupID) {
+	for next := id + 1; next < p.minReceived; next++ {
+		if p.hasExcept(next) {
+			delete(p.excepts, id)
+			p.maxContinuous = next - 1
+			return
+		}
+	}
+	panic(throw.Impossible())
+}
+
+func (p *receiveDeduplicator) _addToReceivedAndTrim() {
 	delta := uint64(p.maxReceived - p.minReceived)
 	if delta <= 1 {
 		panic(throw.Impossible())
 	}
-	delta -= 2
+	delta--
 
 	switch n := uint64(len(p.received)); {
 	case n == delta:
 		// full house
-		if p.minReceived == p.minContinuous {
-			p.minContinuous = p.maxReceived
-		}
 		p.minReceived = p.maxReceived
 		p.received = nil
-		return true
+		return
 
 	case n > delta:
 		panic(throw.Impossible())
-
-	case id > p.minReceived:
-		p.received[id] = struct{}{}
-
-	default:
-		for next := id + 1; next < p.maxReceived; next++ {
-			if !p.hasReceived(next) {
-				p.received[id] = struct{}{}
-				p.minReceived = next - 1
-				break
-			}
-		}
-		panic(throw.Impossible())
 	}
 
-	// TODO estimate and relocated p.received to p.excepts
-	return true
+	p.minReceived++
+	if !p.hasReceived(p.minReceived + 1) {
+		return
+	}
+
+	p.minReceived++
+	for {
+		delete(p.received, p.minReceived)
+		p.minReceived++
+		switch {
+		case p.minReceived == p.maxReceived:
+			p.received = nil
+			return
+		case !p.hasReceived(p.minReceived):
+			return
+		}
+	}
 }
 
-func (p *receiveDeduplicator) Reset( /* minCutoff DedupID */ ) {
-	const minCutoff = 0
-	//switch {
-	//case minCutoff == 0 || minCutoff >= p.maxReceived:
-	p.excepts = nil
-	p.minReceived = minCutoff
-	p.maxReceived = minCutoff
-	p.minContinuous = minCutoff
-	//case minCutoff <= p.minContinuous:
-	//	//
-	//}
+func (p *receiveDeduplicator) updatePeakSize(n int) {
+	if p.peakSize < n {
+		p.peakSize = n
+	}
+}
 
-	const minCount = 32
-	n := len(p.received)
-	switch h := p.prevCount >> 1; {
-	case n > h:
-		//
-	case h < minCount>>1:
-		p.prevCount = minCount
-	default:
-		n = h
+func (p *receiveDeduplicator) _putExcept(id DedupID) {
+	if p.excepts == nil {
+		p.excepts = make(map[DedupID]struct{})
+	}
+	p.excepts[id] = struct{}{}
+}
+
+func (p *receiveDeduplicator) _forceMinReceived(min DedupID) {
+	for i := min - 1; i > p.minReceived; i-- {
+		if p.hasReceived(i) {
+			delete(p.received, i)
+			continue
+		}
+		p._putExcept(i)
 	}
 
-	if p.prevCount <= minCount {
-		p.received = nil
+	if p.hasReceived(min) {
+		delete(p.received, min)
+		// find last received
+		for min++; min < p.maxReceived; min++ {
+			if !p.hasReceived(min) {
+				min--
+				break
+			}
+			delete(p.received, min)
+		}
 	} else {
-		p.received = make(map[DedupID]struct{}, n)
+		p._putExcept(min)
+
+		// find first received
+		for min++; min < p.maxReceived; min++ {
+			if p.hasReceived(min) {
+				delete(p.received, min)
+				break
+			}
+			p.excepts[min] = struct{}{}
+		}
 	}
-	p.prevCount = n
+	p.minReceived = min
+
+	switch {
+	case p.maxContinuous >= p.minReceived:
+		panic(throw.Impossible())
+	case len(p.excepts) <= maxReceiveExceptions:
+		return
+	}
+
+	for p.maxContinuous++; p.maxContinuous < p.minReceived; p.maxContinuous++ {
+		delete(p.excepts, p.maxContinuous)
+		if len(p.excepts) < maxReceiveExceptions {
+			return
+		}
+	}
+
+	if len(p.excepts) != 0 {
+		panic(throw.Impossible())
+	}
+	p.excepts = nil
+}
+
+func (p *receiveDeduplicator) TrimBuffer() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	n := len(p.received)
+	switch {
+	case n == 0:
+		p.received = nil
+		p.peakSize = 0
+		return
+	case n >= p.peakSize>>1:
+		p.peakSize = n
+		return
+	case p.peakSize <= maxReceiveExceptions:
+		p.peakSize = 0
+		return
+	}
+
+	p.peakSize = n
+	m := make(map[DedupID]struct{}, n)
+	for k, v := range p.received {
+		m[k] = v
+	}
+	p.received = m
 }
