@@ -133,7 +133,7 @@ func createSimpleWallet() (string, error) {
 }
 
 // Returns wallet balance.
-func getWalletBalance(url, ref string) (int, error) {
+func getWalletBalance(url, ref string) (uint, error) {
 	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to send request or get response body")
