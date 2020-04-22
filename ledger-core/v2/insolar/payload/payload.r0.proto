@@ -134,24 +134,24 @@ message VStateReport {
     bytes LatestDirtyCode = 35 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 
     message  ProvidedContentBody {
-        ObjectState LatestValidatedState = 1;
-        ObjectState LatestDirtyState = 2;
-        ObjectState LatestValidatedCode = 3;
-        ObjectState LatestDirtyCode = 4;
-        repeated bytes MutableQueue = 5 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
-        repeated bytes ImmutableQueue = 6 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+        ObjectState LatestValidatedState = 24;
+        ObjectState LatestDirtyState = 25;
+        ObjectState LatestValidatedCode = 26;
+        ObjectState LatestDirtyCode = 27;
+        repeated bytes MutableQueue = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+        repeated bytes ImmutableQueue = 29 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
     }
 
     ProvidedContentBody ProvidedContent = 36;
 }
 
 message ObjectState {
-    bytes Reference = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
-    bytes Parent = 2 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
-    bytes Prototype = 3 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
-    bytes State = 4;
-    bytes PreviousState = 5;
-    bool Deactivated = 6;
+    bytes Reference = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes Parent = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes Prototype = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes State = 27;
+    bytes PreviousState = 28;
+    bool Deactivated = 29;
 }
 
 message VPendingDelegationRequest {
