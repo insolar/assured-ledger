@@ -6,6 +6,8 @@
 package object
 
 import (
+	"errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
@@ -14,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -29,7 +32,7 @@ type Info struct {
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink // expected, that this will be switch after getting VStateReport
 
-	PreviousExecutorState payload.PreviousExecutorState
+	PreviousExecutorState payload.PreviousExecutorState // TODO unused, remove?
 }
 
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
@@ -109,26 +112,54 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
-	return ctx.Jump(sm.stepCheckPreviousExecutor)
+	return ctx.Jump(sm.stepPrepare)
 }
 
-func (sm *SMObject) stepCheckPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.ObjectLatestDescriptor != nil { // TODO наверное это неправильно, надо вывешивать барджин в нижний иф, а этот убирать?
+type BarginStepCheckIsReady struct{Reference insolar.Reference}
+
+
+func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.ObjectLatestDescriptor != nil {
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
-	if sm.stateRequestWasSent {
-		return ctx.Sleep().ThenRepeat()
+	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+		res, ok := param.(*payload.VStateReport)
+		if !ok || res == nil {
+			panic(throw.IllegalValue())
+		}
+
+		// TODO actually we need to unwrap res.ProvidedContent through protobuff
+		sm.SetDescriptor(&res.Callee, res.ProvidedContent)
+		// fill mutable
+		// fill immutable
+
+		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			return ctx.WakeUp()
+		}
+	})
+
+	if !ctx.PublishGlobalAliasAndBargeIn(BarginStepCheckIsReady{Reference: sm.Reference}, bargeInCallback) {
+		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
 
-	msg := payload.VStateRequest{Callee: sm.Reference}
+	if sm.stateRequestWasSent {
+		return ctx.Sleep().ThenJump(sm.stepReadyToWork)
+	}
+
+	msg := payload.VStateRequest{
+		Callee: sm.Reference,
+		RequestedContent: 010000, // TODO how to do it right? i wanna only 'Latest Dirty State'
+	}
+
 	goCtx := ctx.GetContext()
 	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
 	}).Send()
 
 	sm.stateRequestWasSent = true
-	return ctx.Sleep().ThenRepeat()
+
+	return ctx.Sleep().ThenJump(sm.stepReadyToWork)
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
