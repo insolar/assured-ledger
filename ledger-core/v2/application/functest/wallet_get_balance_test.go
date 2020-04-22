@@ -8,7 +8,6 @@
 package functest
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,33 +40,29 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
-	var wg sync.WaitGroup
 	count := 10 // Number of concurrent requests per node.
 
 	type result struct {
 		balance int
 		err     error
 	}
-	responses := make([]result, 0, count*len(nodesPorts))
+	outChan := make(chan result)
 
 	for i := 0; i < count; i++ {
 		for _, port := range nodesPorts {
-			wg.Add(1)
-			go func(wg *sync.WaitGroup, port string) {
-				defer wg.Done()
-
+			go func(port string) {
 				getBalanceURL := getURL(walletGetBalancePath, "", port)
 				balance, err := getWalletBalance(getBalanceURL, walletRef)
-				// testing.T isn't goroutine save, so that we will check responses in main goroutine
-				responses = append(responses, result{balance: balance, err: err})
-			}(&wg, port)
+				// testing.T isn't goroutine safe, so that we will check responses in main goroutine
+				outChan <- result{balance: balance, err: err}
+			}(port)
 		}
 	}
 
-	wg.Wait()
-
-	for _, res := range responses {
+	for i := 0; i < count*len(nodesPorts); i++ {
+		res := <-outChan
 		assert.NoError(t, res.err)
 		assert.Equal(t, 1000, res.balance, "wrong balance amount")
 	}
+	close(outChan)
 }
