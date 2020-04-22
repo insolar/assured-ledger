@@ -14,7 +14,7 @@ import (
 func SizeTag(fieldId int) int {
 	switch {
 	case fieldId <= 0:
-	case fieldId > MaxFieldId:
+	case fieldId > MaxFieldID:
 	default:
 		return SizeVarint32(uint32(fieldId))
 	}
