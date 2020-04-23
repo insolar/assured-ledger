@@ -117,7 +117,7 @@ type BarginStepCheckIsReady struct{Reference insolar.Reference}
 
 
 func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.ObjectLatestDescriptor != nil {
+	if sm.descriptor != nil {
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
@@ -127,8 +127,7 @@ func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpd
 			panic(throw.IllegalValue())
 		}
 
-		// TODO actually we need to unwrap res.ProvidedContent through protobuff
-		sm.SetDescriptor(&res.Callee, res.ProvidedContent)
+		sm.SetDescriptor(&res.Callee, res.ProvidedContent.LatestDirtyState.State)
 		// fill mutable
 		// fill immutable
 
