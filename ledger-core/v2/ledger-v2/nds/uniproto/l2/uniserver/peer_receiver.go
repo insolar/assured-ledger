@@ -13,9 +13,9 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"

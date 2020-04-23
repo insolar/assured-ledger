@@ -8,8 +8,8 @@ package msgdelivery
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 

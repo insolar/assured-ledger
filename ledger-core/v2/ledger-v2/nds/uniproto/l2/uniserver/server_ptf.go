@@ -6,8 +6,8 @@
 package uniserver
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto/l1"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
