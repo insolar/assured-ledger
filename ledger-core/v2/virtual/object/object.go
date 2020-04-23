@@ -25,7 +25,12 @@ type Info struct {
 
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
-	ReadyToWork      smachine.SyncLink // expected, that this will be switch after getting VStateReport
+	ReadyToWork      smachine.SyncLink
+
+	ActiveImmutablePendingCount    uint8
+	ActiveMutablePendingCount      uint8
+	PotentialImmutablePendingCount uint8
+	PotentialMutablePendingCount   uint8
 }
 
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
