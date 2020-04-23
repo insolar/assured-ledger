@@ -55,12 +55,21 @@ type SharedState struct {
 	Info
 }
 
-func NewStateMachineObject(objectReference insolar.Reference, withoutState bool) *SMObject {
+// StackRelation shows relevance of 2 stacks
+type InitReason int8
+
+const (
+	InitReasonCTConstructor InitReason = iota
+	InitReasonCTMethod
+	InitReasonVStateReport
+)
+
+func NewStateMachineObject(objectReference insolar.Reference, reason InitReason) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{Reference: objectReference},
 		},
-		withoutState: withoutState,
+		initReason: reason,
 	}
 }
 
@@ -69,8 +78,9 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl smsync.BoolConditionalLink
-	withoutState   bool
+	readyToWorkCtl           smsync.BoolConditionalLink
+	initReason               InitReason
+	alreadySendVStateRequest bool
 
 	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
@@ -102,19 +112,33 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
+	sm.alreadySendVStateRequest = false
+
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
 	}
 
-	if sm.withoutState {
+	switch sm.initReason {
+	case InitReasonCTConstructor:
 		return ctx.Jump(sm.stepReadyToWork)
+	case InitReasonCTMethod:
+		return ctx.Jump(sm.stepGetObjectState)
+	case InitReasonVStateReport:
+		sm.alreadySendVStateRequest = true
+		return ctx.Jump(sm.stepWaitState)
+	default:
+		panic("Not implemented")
 	}
-
-	return ctx.Jump(sm.stepPrepare)
 }
 
-func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
+// we get CallMethod but we have no object data
+// we need to ask previous executor
+func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.alreadySendVStateRequest {
+		return ctx.Jump(sm.stepWaitState)
+	}
+
 	msg := payload.VStateRequest{
 		Callee:           sm.Reference,
 		RequestedContent: payload.RequestLatestDirtyState,
@@ -125,6 +149,7 @@ func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpd
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
 	}).Send()
 
+	sm.alreadySendVStateRequest = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
