@@ -14,7 +14,7 @@ import (
 
 type msgSender struct {
 	stages retries.StagedController
-	tracks msgMap
+	tracks ttlMap
 
 	jobs chan retryJob
 	oob  chan *msgShipment
@@ -35,8 +35,8 @@ func (p *msgSender) init(oobQueue, jobQueue int) {
 }
 
 // ATTN! This method MUST return asap
-func (p *msgSender) sendHead(msg *msgShipment, sz uint) {
-	p.tracks.put(msg)
+func (p *msgSender) sendHead(msg *msgShipment, sz uint, currentCycle uint32) {
+	p.tracks.put(msg, currentCycle)
 
 	if !msg.isImmediateSend() || !p.sendHeadNoRetry(msg) {
 		p.stages.Add(retries.RetryID(msg.id), sz, p)
@@ -64,15 +64,11 @@ func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID))
 }
 
 func (p *msgSender) CheckState(id retries.RetryID) retries.RetryState {
-	if msg := p.getHeads(ShipmentID(id)); msg != nil {
+	if msg := p.get(ShipmentID(id)); msg != nil {
 		return msg.getHeadRetryState()
 	}
 	// TODO move handling of retries.RemoveCompletely into Retry
 	return retries.RemoveCompletely
-}
-
-func (p *msgSender) getHeads(shid ShipmentID) *msgShipment {
-	return p.tracks.get(shid)
 }
 
 func (p *msgSender) get(shid ShipmentID) *msgShipment {

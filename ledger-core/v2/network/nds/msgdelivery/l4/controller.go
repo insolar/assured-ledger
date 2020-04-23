@@ -173,16 +173,16 @@ func (p *Controller) reportError(err error) {
 	println(throw.ErrorWithStack(err))
 }
 
-func (p *Controller) nextPulseCycle(pn pulse.Number) bool {
+func (p *Controller) nextPulseCycle(pn pulse.Number) (bool, uint32) {
 	for {
 		v := p.pulseCycle.Load()
 		if pulse.Number(v) >= pn {
-			return false
+			return false, uint32(v >> 32)
 		}
 
 		n := uint64(pn) | v&^math.MaxUint32 + 1<<32
 		if p.pulseCycle.CompareAndSwap(v, n) {
-			return true
+			return true, uint32(n >> 32)
 		}
 	}
 }
@@ -285,7 +285,7 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	duplicate := !dPeer.dedup.Add(DedupID(payload.ParcelID))
 
 	ok := false
-	if ok, retAddr.expires, err = p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true); !ok {
+	if ok, _, retAddr.expires, err = p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true); !ok {
 		dPeer.addReject(payload.ParcelID)
 		return err
 	}
@@ -414,24 +414,24 @@ func (p *Controller) peer(to nwapi.Address) (*DeliveryPeer, error) {
 	}
 }
 
-func (p *Controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (bool, uint32, error) {
+func (p *Controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (bool, uint32, uint32, error) {
 	cycle, cyclePN := p.getPulseCycle()
 	switch {
 	case cyclePN == pn:
 		//
 	case cyclePN < pn:
-		return false, 0, throw.IllegalState()
+		return false, 0, 0, throw.IllegalState()
 	case inbound:
-		return false, 0, throw.FailHere("past pulse")
+		return false, 0, 0, throw.FailHere("past pulse")
 	case pn == 0:
 		// use current
 	case ttl == 0:
 		// expired
-		return false, 0, nil
+		return false, 0, 0, nil
 	default:
-		cycle--
+		return true, cycle, cycle + uint32(ttl) - 1, nil
 	}
-	return true, cycle + uint32(ttl), nil
+	return true, cycle, cycle + uint32(ttl), nil
 }
 
 func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) error {
@@ -460,13 +460,15 @@ func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 		shipment: shipment,
 	}
 
-	switch ok, expiry, err := p.adjustedExpiry(shipment.PN, shipment.TTL, false); {
+	var currentCycle uint32
+	switch ok, cur, expiry, err := p.adjustedExpiry(shipment.PN, shipment.TTL, false); {
 	case err != nil:
 		return err
 	case !ok:
 		// expired
 		return nil
 	default:
+		currentCycle = cur
 		msg.expires = expiry
 	}
 
@@ -485,7 +487,7 @@ func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	case msg.shipment.Body == nil && msg.isFireAndForget():
 		p.sender.sendHeadNoRetry(msg)
 	default:
-		p.sender.sendHead(msg, sendSize)
+		p.sender.sendHead(msg, sendSize, currentCycle)
 	}
 	return nil
 }

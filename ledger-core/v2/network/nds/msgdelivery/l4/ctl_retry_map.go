@@ -11,83 +11,100 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
 )
 
-type msgMap struct {
-	mx sync.RWMutex
-	mp map[ShipmentID]*msgShipment
+type ttlMap struct {
+	mutex sync.RWMutex
+	ttl0  map[ShipmentID]*msgShipment
+	ttl1  map[ShipmentID]*msgShipment
+	ttlN  map[ShipmentID]*msgShipment
 }
 
-func (p *msgMap) put(msg *msgShipment) {
-	p.mx.Lock()
-	if p.mp == nil {
-		p.mp = make(map[ShipmentID]*msgShipment)
+func (p *ttlMap) put(msg *msgShipment, currentCycle uint32) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	switch {
+	case msg.expires <= currentCycle:
+		if p.ttl0 == nil {
+			p.ttl0 = make(map[ShipmentID]*msgShipment)
+		}
+		p.ttl0[msg.id] = msg
+	case msg.expires == currentCycle+1:
+		if p.ttl1 == nil {
+			p.ttl1 = make(map[ShipmentID]*msgShipment)
+		}
+		p.ttl1[msg.id] = msg
+	default:
+		if p.ttlN == nil {
+			p.ttlN = make(map[ShipmentID]*msgShipment)
+		}
+		p.ttlN[msg.id] = msg
 	}
-	p.mp[msg.id] = msg
-	p.mx.Unlock()
 }
 
-//func (p *msgMap) putAll(msgs []*msgShipment) {
-//	if len(msgs) == 0 {
-//		return
-//	}
-//	p.mx.Lock()
-//	defer p.mx.Unlock()
-//	for _, msg := range msgs {
-//		p.mp[msg.id] = msg
-//	}
-//}
-
-func (p *msgMap) get(id ShipmentID) *msgShipment {
-	p.mx.RLock()
-	msg := p.mp[id]
-	p.mx.RUnlock()
+func (p *ttlMap) get(id ShipmentID) *msgShipment {
+	p.mutex.RLock()
+	msg := p.ttl0[id]
+	if msg == nil {
+		if msg = p.ttl1[id]; msg == nil {
+			msg = p.ttlN[id]
+		}
+	}
+	p.mutex.RUnlock()
 	return msg
 }
 
-func (p *msgMap) delete(id ShipmentID) {
-	p.mx.Lock()
-	delete(p.mp, id)
-	p.mx.Unlock()
+func (p *ttlMap) delete(id ShipmentID) {
+	p.mutex.Lock()
+	delete(p.ttl0, id)
+	delete(p.ttl1, id)
+	delete(p.ttlN, id)
+	p.mutex.Unlock()
 }
 
-func (p *msgMap) deleteAll(ids []retries.RetryID) {
+func (p *ttlMap) deleteAll(ids []retries.RetryID) {
 	if len(ids) == 0 {
 		return
 	}
-	p.mx.Lock()
+	p.mutex.Lock()
 	for _, id := range ids {
-		delete(p.mp, ShipmentID(id))
+		sid := ShipmentID(id)
+		delete(p.ttl0, sid)
+		delete(p.ttl1, sid)
+		delete(p.ttlN, sid)
 	}
-	p.mx.Unlock()
+	p.mutex.Unlock()
 }
 
-//func (p *msgMap) deleteMsgList(msgs []*msgShipment) {
-//	if len(msgs) == 0 {
-//		return
-//	}
-//	p.mx.Lock()
-//	defer p.mx.Unlock()
-//	for _, msg := range msgs {
-//		delete(p.mp, msg.id)
-//	}
-//}
+func (p *ttlMap) nextTTLCycle(currentCycle uint32) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
-func (p *msgMap) deleteAllAndShrink(ids []retries.RetryID) []retries.RetryID {
-	if len(ids) == 0 {
-		return nil
+	p.ttl0 = p.ttl1
+	p.ttl1 = nil
+	if len(p.ttl0) > 16 {
+		p.ttl1 = make(map[ShipmentID]*msgShipment, len(p.ttl0)>>1)
 	}
-	p.mx.Lock()
-	j := 0
-	for i, id := range ids {
-		shid := ShipmentID(id)
-		if _, ok := p.mp[shid]; ok {
-			delete(p.mp, shid)
+
+	if len(p.ttlN) == 0 {
+		p.ttlN = nil
+		return
+	}
+
+	for id, msg := range p.ttlN {
+		switch {
+		case msg.expires <= currentCycle:
+			if p.ttl0 == nil {
+				p.ttl0 = make(map[ShipmentID]*msgShipment)
+			}
+			p.ttl0[id] = msg
+		case msg.expires == currentCycle+1:
+			if p.ttl1 == nil {
+				p.ttl1 = make(map[ShipmentID]*msgShipment)
+			}
+			p.ttl1[id] = msg
+		default:
 			continue
 		}
-		if i != j {
-			ids[j] = id
-		}
-		j++
+		delete(p.ttlN, id)
 	}
-	p.mx.Unlock()
-	return ids[:j]
 }
