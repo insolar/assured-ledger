@@ -6,8 +6,6 @@
 package object
 
 import (
-	"errors"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
@@ -16,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -113,40 +110,10 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	return ctx.Jump(sm.stepPrepare)
 }
 
-type BarginStepCheckIsReady struct{Reference insolar.Reference}
-
-
 func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.descriptor != nil {
-		return ctx.Jump(sm.stepReadyToWork)
-	}
-
-	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VStateReport)
-		if !ok || res == nil {
-			panic(throw.IllegalValue())
-		}
-
-		sm.SetDescriptor(&res.Callee, res.ProvidedContent.LatestDirtyState.State)
-		// fill mutable
-		// fill immutable
-
-		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			return ctx.WakeUp()
-		}
-	})
-
-	if !ctx.PublishGlobalAliasAndBargeIn(BarginStepCheckIsReady{Reference: sm.Reference}, bargeInCallback) {
-		return ctx.Error(errors.New("failed to publish bargeInCallback"))
-	}
-
-	if sm.stateRequestWasSent {
-		return ctx.Sleep().ThenJump(sm.stepReadyToWork)
-	}
-
 	msg := payload.VStateRequest{
-		Callee: sm.Reference,
-		RequestedContent: 010000, // TODO how to do it right? i wanna only 'Latest Dirty State'
+		Callee:           sm.Reference,
+		RequestedContent: payload.RequestLatestDirtyState,
 	}
 
 	goCtx := ctx.GetContext()
@@ -154,17 +121,18 @@ func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpd
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
 	}).Send()
 
-	sm.stateRequestWasSent = true
-
-	return ctx.Sleep().ThenJump(sm.stepReadyToWork)
+	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.ApplyAdjustment(sm.readyToWorkCtl.NewValue(true))
-
+	sm.SetReady(ctx)
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
+}
+
+func (sm *SMObject) SetReady(ctx smachine.ExecutionContext) {
+	ctx.ApplyAdjustment(sm.readyToWorkCtl.NewValue(true))
 }
