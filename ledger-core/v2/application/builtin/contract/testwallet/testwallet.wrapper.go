@@ -415,9 +415,18 @@ func Initialize() insolar.ContractWrapper {
 		GetCode:      INSMETHOD_GetCode,
 		GetPrototype: INSMETHOD_GetPrototype,
 		Methods: insolar.ContractMethods{
-			"GetBalance": INSMETHOD_GetBalance,
-			"Accept":     INSMETHOD_Accept,
-			"Transfer":   INSMETHOD_Transfer,
+			"GetBalance": insolar.ContractMethod{
+				Func:      INSMETHOD_GetBalance,
+				Unordered: true,
+			},
+			"Accept": insolar.ContractMethod{
+				Func:      INSMETHOD_Accept,
+				Unordered: false,
+			},
+			"Transfer": insolar.ContractMethod{
+				Func:      INSMETHOD_Transfer,
+				Unordered: false,
+			},
 		},
 		Constructors: insolar.ContractConstructors{
 			"New": INSCONSTRUCTOR_New,

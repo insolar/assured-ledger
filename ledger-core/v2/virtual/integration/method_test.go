@@ -21,6 +21,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
@@ -50,7 +53,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 	pl := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           nil,
+		CallFlags:           0,
 		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
 		Callee:              insolar.Reference{},
@@ -116,7 +119,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
-			CallFlags:           nil,
+			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
@@ -159,6 +162,104 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	}
 }
 
+func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
+	server := utils.NewServer(t)
+	ctx := inslogger.TestContext(t)
+
+	var (
+		waitInputChannel  = make(chan struct{}, 2)
+		waitOutputChannel = make(chan struct{}, 0)
+	)
+
+	executorMock := testutils.NewMachineLogicExecutorMock(t)
+	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
+	executorMock.CallMethodMock.Set(func(
+		ctx context.Context, callContext *insolar.LogicCallContext, code insolar.Reference,
+		data []byte, method string, args insolar.Arguments,
+	) (
+		newObjectState []byte, methodResults insolar.Arguments, err error,
+	) {
+		// tell the test that we know about next request
+		waitInputChannel <- struct{}{}
+
+		// wait the test result
+		<-waitOutputChannel
+
+		return []byte("456"), []byte("345"), nil
+	})
+
+	manager := executor.NewManager()
+	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+	require.NoError(t, err)
+	server.ReplaceMachinesManager(manager)
+
+	prototype := gen.Reference()
+	cacheMock := utils.NewDescriptorsCacheMockWrapper(t)
+	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.ID(), gen.Reference())
+	cacheMock.IntenselyPanic = true
+	server.ReplaceCache(cacheMock)
+
+	objectLocal := gen.ID()
+	err = Method_PrepareObject(ctx, server, prototype, objectLocal)
+	require.NoError(t, err)
+
+	{
+		requestIsDone := make(chan struct{}, 2)
+		server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+			defer func() { requestIsDone <- struct{}{} }()
+
+			pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
+			require.NoError(t, err)
+
+			switch pl.(type) {
+			case *payload.VCallResult:
+			default:
+				require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
+			}
+
+			return nil
+		}
+
+		for i := 0; i < 2; i++ {
+			pl := payload.VCallRequest{
+				Polymorph:           uint32(payload.TypeVCallRequest),
+				CallType:            payload.CTMethod,
+				CallFlags:           callflag.Unordered,
+				CallAsOf:            0,
+				Caller:              server.GlobalCaller(),
+				Callee:              reference.NewGlobalSelf(objectLocal),
+				CallSiteDeclaration: prototype,
+				CallSiteMethod:      "GetBalance",
+				CallRequestFlags:    0,
+				CallOutgoing:        server.RandomLocalWithPulse(),
+				Arguments:           insolar.MustSerialize([]interface{}{}),
+			}
+			msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
+			require.NoError(t, err)
+
+			server.SendMessage(ctx, msg)
+		}
+
+		for i := 0; i < 2; i++ {
+			select {
+			case <-waitInputChannel:
+			case <-time.After(3 * time.Second):
+				require.Failf(t, "", "timeout")
+			}
+		}
+
+		for i := 0; i < 2; i++ {
+			waitOutputChannel <- struct{}{}
+
+			select {
+			case <-requestIsDone:
+			case <-time.After(3 * time.Second):
+				require.Failf(t, "", "timeout")
+			}
+		}
+	}
+}
+
 func TestVirtual_Method_WithExecutor(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
@@ -168,7 +269,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
-			CallFlags:           nil,
+			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              insolar.Reference{},
 			Callee:              gen.Reference(),
