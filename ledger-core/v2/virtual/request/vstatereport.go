@@ -3,12 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package stateexchange
+package request
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
@@ -50,22 +50,24 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	incomingObjectState := s.Payload.ProvidedContent.LatestDirtyCode
 
 	objectRef := incomingObjectState.Reference
-	smObject := catalog.GetOrCreate(ctx, objectRef)
+	sharedObjectState := catalog.GetOrCreate(ctx, objectRef)
 
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if state.Descriptor() != nil {
 			state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
 		} else {
-			inslogger.FromContext(ctx.GetContext()).Infom(struct{ Msg string }{Msg: "State already exists"})
+			ctx.Log().Trace(struct {
+				*log.Msg `txt:"State already exists"`
+			}{})
 		}
 		return true
 	}
 
-	switch smObject.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
+	switch sharedObjectState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
 	case smachine.Passed:
 	case smachine.NotPassed:
-		return ctx.WaitShared(smObject.SharedDataLink).ThenRepeat()
+		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
 	default:
 		panic(throw.NotImplemented())
 	}

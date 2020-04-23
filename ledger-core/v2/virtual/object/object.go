@@ -92,6 +92,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
 	}
+
 	return ctx.Jump(sm.stepReadyToWork)
 }
 
