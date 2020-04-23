@@ -252,7 +252,7 @@ func (a Address) HostString() string {
 		if !hid.IsAbsent() {
 			s = "[#" + hid.String() + "]"
 		}
-		return "(UID)" + hex.EncodeToString(a.data0[:8]) + s
+		return "(UID)" + hex.EncodeToString(a.data0[8:]) + s
 	default:
 		return "(" + strconv.Itoa(int(a.network)) + ")" + a.data1.String()
 	}
