@@ -25,8 +25,11 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 	receiveFn ReceiverFunc, resolverFn ResolverFunc,
 ) *Controller {
 	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
+	c.sender.init(10, 10)
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
-	c.bodyRq.stages.InitStages(0, [...]int{5, 10, 50})
+	c.bodyRq.init(10, 10)
+	c.bodyRq.stages.InitStages(1, [...]int{5, 10, 50})
+	c.receiver.ctl = c
 	return c
 }
 
@@ -47,8 +50,9 @@ type Controller struct {
 	stopSignal   synckit.ClosableSignalChannel
 	maxSmallSize uint
 	maxHeadSize  uint // <= maxSmallSize
-	localID      nwapi.ShortNodeID
 }
+
+// TODO send status packets aggregated on hosts - may be register packets somewhere? or scan hosts
 
 // for initialization only
 func (p *Controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [retries.RetryStages]time.Duration) {
@@ -101,7 +105,7 @@ func (p *Controller) shipTo(to DeliveryAddress, shipment Shipment) error {
 		case to.dataSelector != 0:
 			return throw.IllegalValue()
 		}
-		return p.send(nwapi.NewHostId(nwapi.HostID(to.nodeSelector)), 0, shipment)
+		return p.send(nwapi.NewHostID(nwapi.HostID(to.nodeSelector)), 0, shipment)
 	}
 
 	addr, err := p.resolverFn(to.addrType, to.nodeSelector, to.dataSelector)
@@ -206,7 +210,7 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 			case msg == nil:
 				dPeer.addReject(id)
 			case msg.markBodyRq():
-				p.sender.sendBodyNoWait(msg)
+				p.sender.sendBodyOnly(msg)
 			}
 		}
 	}
@@ -233,7 +237,6 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 				go fn()
 			}
 		}
-
 	}
 
 	return nil
@@ -477,11 +480,11 @@ func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	switch {
 	case msg.shipment.Head == nil:
 		msg.markBodyRq()
-		p.sender.sendBodyNoWait(msg)
+		p.sender.sendBodyOnly(msg)
 	case msg.shipment.Body == nil && msg.isFireAndForget():
-		p.sender.sendHeadNoRetryNoWait(msg)
+		p.sender.sendHeadNoRetry(msg)
 	default:
-		p.sender.sendHeadNoWait(msg, sendSize)
+		p.sender.sendHead(msg, sendSize)
 	}
 	return nil
 }
@@ -521,9 +524,12 @@ func (p *Controller) rejectBodyRq(from ReturnAddress) error {
 	return nil
 }
 
+func (p *Controller) getLocalID() nwapi.ShortNodeID {
+	return p.starter.peers.LocalPeer().GetNodeID()
+}
+
 func (p *Controller) onStarted() {
 	p.maxSmallSize = p.starter.peers.MaxSmallPayloadSize()
-	p.localID = p.starter.peers.LocalPeer().GetNodeID()
 
 	if p.maxHeadSize > p.maxSmallSize || p.maxHeadSize == 0 {
 		p.maxHeadSize = p.maxSmallSize
@@ -532,10 +538,9 @@ func (p *Controller) onStarted() {
 	p.stopSignal = make(synckit.ClosableSignalChannel)
 	go p.runWorker()
 
-	// TODO
-	//p.bodyRq.startWorker()
+	p.bodyRq.startWorker(5)
 	//for i := 2; i > 0; i-- {
-	//	p.sender.startWorker()
+	p.sender.startWorker(5)
 	//}
 }
 

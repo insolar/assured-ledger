@@ -49,7 +49,7 @@ func (v ShortShipmentID) SimpleWriteTo(writer io.Writer) error {
 }
 
 func (v ShortShipmentID) PutTo(b []byte) int {
-	binary.LittleEndian.PutUint64(b, uint64(v))
+	binary.LittleEndian.PutUint32(b, uint32(v))
 	return ShortShipmentIDByteSize
 }
 

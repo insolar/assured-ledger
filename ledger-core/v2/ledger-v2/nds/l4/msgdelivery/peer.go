@@ -32,6 +32,7 @@ type DeliveryPeer struct {
 func (p *DeliveryPeer) NextShipmentId() ShipmentID {
 	id := p.nextSSID.Add(1)
 	for id == 0 {
+		// receiveDeduplicator can't handle zero
 		id = p.nextSSID.Add(1)
 	}
 	return AsShipmentID(uint32(p.peerID), ShortShipmentID(id))
@@ -189,7 +190,8 @@ func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket, che
 }
 
 func (p *DeliveryPeer) _setPacketForSend(template *uniproto.PacketTemplate) {
-	template.Header.SourceID = uint32(p.ctl.localID)
+	template.Header.SourceID = uint32(p.ctl.getLocalID())
 	template.Header.ReceiverID = uint32(p.peerID)
 	template.Header.TargetID = uint32(p.peerID)
+	template.Header.SetRelayRestricted(true)
 }

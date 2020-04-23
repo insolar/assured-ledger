@@ -52,6 +52,9 @@ func (p *packetReceiver) receiveDispatcher(packet *uniproto.ReceivedPacket, read
 	default:
 		err = throw.Impossible()
 	}
+	if err == nil {
+		return nil
+	}
 	p.ctl.reportError(throw.WithDetails(err, uniserver.PacketErrDetails{Header: packet.Header, Pulse: packet.PulseNumber}))
 	return err
 }

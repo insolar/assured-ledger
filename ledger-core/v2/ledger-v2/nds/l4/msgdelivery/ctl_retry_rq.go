@@ -23,6 +23,20 @@ type rqSender struct {
 	suspends map[ShipmentID]struct{}
 }
 
+func (p *rqSender) init(oobQueue, jobQueue int) {
+	switch {
+	case oobQueue <= 0:
+		panic(throw.IllegalValue())
+	case jobQueue <= 0:
+		panic(throw.IllegalValue())
+	case p.jobs != nil:
+		panic(throw.IllegalState())
+	}
+
+	p.oob = make(chan rqShipment, oobQueue)
+	p.jobs = make(chan retryJob, jobQueue)
+}
+
 func (p *rqSender) Add(rq rqShipment) error {
 	if err := p.put(rq); err != nil {
 		return err
@@ -146,6 +160,9 @@ func (p *rqSender) Remove(ids []retries.RetryID) {
 }
 
 func (p *rqSender) startWorker(parallel int) {
+	if p.jobs == nil {
+		panic(throw.IllegalState())
+	}
 	worker := newRetryRqWorker(p, parallel)
 	go worker.runRetry()
 }

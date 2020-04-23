@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type msgSender struct {
@@ -19,17 +20,31 @@ type msgSender struct {
 	oob  chan *msgShipment
 }
 
+func (p *msgSender) init(oobQueue, jobQueue int) {
+	switch {
+	case oobQueue <= 0:
+		panic(throw.IllegalValue())
+	case jobQueue <= 0:
+		panic(throw.IllegalValue())
+	case p.jobs != nil:
+		panic(throw.IllegalState())
+	}
+
+	p.oob = make(chan *msgShipment, oobQueue)
+	p.jobs = make(chan retryJob, jobQueue)
+}
+
 // ATTN! This method MUST return asap
-func (p *msgSender) sendHeadNoWait(msg *msgShipment, sz uint) {
+func (p *msgSender) sendHead(msg *msgShipment, sz uint) {
 	p.tracks.put(msg)
 
-	if !msg.isImmediateSend() || !p.sendHeadNoRetryNoWait(msg) {
+	if !msg.isImmediateSend() || !p.sendHeadNoRetry(msg) {
 		p.stages.Add(retries.RetryID(msg.id), sz, p)
 	}
 }
 
 // ATTN! This method MUST return asap
-func (p *msgSender) sendHeadNoRetryNoWait(msg *msgShipment) bool {
+func (p *msgSender) sendHeadNoRetry(msg *msgShipment) bool {
 	select {
 	case p.oob <- msg:
 		return true
@@ -39,7 +54,7 @@ func (p *msgSender) sendHeadNoRetryNoWait(msg *msgShipment) bool {
 }
 
 // ATTN! This method MUST return asap
-func (p *msgSender) sendBodyNoWait(msg *msgShipment) {
+func (p *msgSender) sendBodyOnly(msg *msgShipment) {
 	// TODO get rid of "go", use limiter somehow?
 	go msg.sendBody()
 }
@@ -76,6 +91,9 @@ func (p *msgSender) NextTimeCycle() {
 }
 
 func (p *msgSender) startWorker(parallel int) {
+	if p.jobs == nil {
+		panic(throw.IllegalState())
+	}
 	worker := newRetryMsgWorker(p, parallel)
 	go worker.runRetry()
 }

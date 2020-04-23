@@ -18,6 +18,9 @@ type msgMap struct {
 
 func (p *msgMap) put(msg *msgShipment) {
 	p.mx.Lock()
+	if p.mp == nil {
+		p.mp = make(map[ShipmentID]*msgShipment)
+	}
 	p.mp[msg.id] = msg
 	p.mx.Unlock()
 }

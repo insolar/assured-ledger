@@ -146,7 +146,7 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 		p.Data = nil
 
 		f := ctx.GetPayloadFactory()
-		d, err := f.DeserializePayloadFrom(p.ParcelType, reader)
+		d, err := f.DeserializePayloadFrom(ctx, p.ParcelType, reader)
 		if err != nil {
 			return err
 		}
