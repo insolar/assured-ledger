@@ -15,8 +15,6 @@ import (
 )
 
 func TestCreateUpdateWallet(t *testing.T) {
-	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-273")
-
 	var (
 		ref    string
 		amount uint = 100
@@ -53,13 +51,11 @@ func TestCreateUpdateWallet(t *testing.T) {
 }
 
 func TestGetUpdateBalanceConcurrently(t *testing.T) {
-	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-273")
-
 	var (
 		ref             string
 		count                = 10 // Number of concurrent requests per node.
 		amount          uint = 100
-		expectedBalance      = startBalance + amount*uint(count*len(nodesPorts)*2)
+		expectedBalance      = startBalance + amount*uint(count*len(nodesPorts))
 		outChan              = make(chan error)
 	)
 

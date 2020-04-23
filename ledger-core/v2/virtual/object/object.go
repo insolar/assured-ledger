@@ -20,8 +20,6 @@ type Info struct {
 	Deactivated   bool
 	IsReadyToWork bool
 
-	ObjectLatestDescriptor descriptor.ObjectDescriptor
-
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink

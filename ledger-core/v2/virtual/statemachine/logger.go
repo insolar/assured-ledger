@@ -77,7 +77,6 @@ func prepareStepName(sd *smachine.StepDeclaration) {
 }
 
 func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logfmt.LogFieldMarshaller) {
-	fmt.Println(msg)
 	c.logger.Errorm(msg, fields...)
 }
 

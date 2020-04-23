@@ -6,11 +6,9 @@
 package small
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,13 +19,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
-func TestVirtual_BasicOperations_WithoutExecutor(t *testing.T) {
-	server := NewServer(t)
+func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
+	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
 	prototype := gen.Reference()
@@ -122,8 +121,8 @@ func TestVirtual_BasicOperations_WithoutExecutor(t *testing.T) {
 	<-testIsDone
 }
 
-func TestVirtual_BasicOperations_WithExecutor(t *testing.T) {
-	server := NewServer(t)
+func TestVirtual_Constructor_WithExecutor(t *testing.T) {
+	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
 	for i := 0; i < 10; i++ {
@@ -196,120 +195,5 @@ func TestVirtual_BasicOperations_WithExecutor(t *testing.T) {
 		server.SendMessage(ctx, msg)
 
 		<-testIsDone
-	}
-}
-
-// nolint:unused
-type walletCreateResponse struct {
-	Err     string `json:"error"`
-	Ref     string `json:"reference"`
-	TraceID string `json:"traceID"`
-}
-
-func unmarshalWalletCreateResponse(resp []byte) (walletCreateResponse, error) { // nolint:unused,deadcode
-	result := walletCreateResponse{}
-	if err := json.Unmarshal(resp, &result); err != nil {
-		return walletCreateResponse{}, errors.Wrap(err, "problem with unmarshaling response")
-	}
-	return result, nil
-}
-
-func TestAPICreate(t *testing.T) {
-	server := NewServer(t)
-	ctx := inslogger.TestContext(t)
-
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		// verify and decode incoming message
-		require.Len(t, messages, 1)
-
-		metaPl := messages[0].Payload
-
-		metaPlType, err := payload.UnmarshalType(metaPl)
-		assert.NoError(t, err)
-		assert.Equal(t, payload.TypeMeta, metaPlType)
-
-		metaPayload, err := payload.Unmarshal(metaPl)
-		assert.NoError(t, err)
-		assert.IsType(t, &payload.Meta{}, metaPayload)
-
-		callRequestPl := metaPayload.(*payload.Meta).Payload
-		callRequestPlType, err := payload.UnmarshalType(callRequestPl)
-		assert.NoError(t, err)
-		assert.Equal(t, payload.TypeVCallRequest, callRequestPlType)
-
-		callRequestPayloadBase, err := payload.Unmarshal(callRequestPl)
-		assert.NoError(t, err)
-		assert.IsType(t, &payload.VCallRequest{}, callRequestPayloadBase)
-
-		callRequestPayload := callRequestPayloadBase.(*payload.VCallRequest)
-
-		// construct and send VCallResult message to SMs
-		callResultPayload := payload.VCallResult{
-			Polymorph:          uint32(payload.TypeVCallResult),
-			CallType:           callRequestPayload.CallType,
-			CallFlags:          callRequestPayload.CallFlags,
-			CallAsOf:           callRequestPayload.CallAsOf,
-			Caller:             callRequestPayload.Caller,
-			Callee:             callRequestPayload.Callee,
-			ResultFlags:        nil,
-			CallOutgoing:       callRequestPayload.CallOutgoing,
-			CallIncoming:       reference.Local{},
-			CallIncomingResult: reference.Local{},
-			ReturnArguments:    nil,
-		}
-
-		callResultPayloadBytes, err := callResultPayload.Marshal()
-		require.NoError(t, err)
-
-		msg := payload.MustNewMessage(&payload.Meta{
-			Polymorph:  uint32(payload.TypeMeta),
-			Payload:    callResultPayloadBytes,
-			Sender:     insolar.Reference{},
-			Receiver:   insolar.Reference{},
-			Pulse:      server.GetPulse().PulseNumber,
-			ID:         nil,
-			OriginHash: payload.MessageHash{},
-		})
-
-		server.SendMessage(ctx, msg)
-
-		return nil
-	}
-
-	code, byteBuffer := server.CallCreateWallet()
-	if !assert.Equal(t, 200, code) {
-		t.Log(string(byteBuffer))
-	} else {
-		walletResponse, err := unmarshalWalletCreateResponse(byteBuffer)
-		require.NoError(t, err)
-		assert.NotEmpty(t, walletResponse.Err)
-		assert.Empty(t, walletResponse.Ref)
-		assert.NotEmpty(t, walletResponse.TraceID)
-	}
-
-}
-
-func TestAPICreate_WithExecutor(t *testing.T) {
-	server := NewServer(t)
-	ctx := inslogger.TestContext(t)
-
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		// verify and decode incoming message
-		assert.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-
-		return nil
-	}
-
-	code, byteBuffer := server.CallCreateWallet()
-	if !assert.Equal(t, 200, code) {
-		t.Log(string(byteBuffer))
-	} else {
-		walletResponse, err := unmarshalWalletCreateResponse(byteBuffer)
-		require.NoError(t, err)
-		assert.Empty(t, walletResponse.Err)
-		assert.NotEmpty(t, walletResponse.Ref)
-		assert.NotEmpty(t, walletResponse.TraceID)
 	}
 }

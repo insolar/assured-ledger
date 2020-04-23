@@ -68,14 +68,15 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
+	s.requestPayload.Caller = *APICaller
+	s.requestPayload.CallOutgoing = gen.IDWithPulse(pulseNumber)
+
 	var obj insolar.Reference
 	switch s.requestPayload.CallType {
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee
 
 	case payload.CTConstructor:
-		s.requestPayload.Caller = *APICaller
-		s.requestPayload.CallOutgoing = gen.IDWithPulse(pulseNumber)
 		obj = reference.NewGlobalSelf(s.requestPayload.CallOutgoing)
 
 	default:
