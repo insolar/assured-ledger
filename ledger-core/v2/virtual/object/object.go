@@ -62,7 +62,6 @@ type SMObject struct {
 
 	SharedState
 
-	stateRequestWasSent   bool
 	readyToWorkCtl        smsync.BoolConditionalLink
 	initByCallConstructor bool
 
@@ -95,8 +94,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
-
-	sm.stateRequestWasSent = false
 
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
