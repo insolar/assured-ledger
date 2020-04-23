@@ -77,6 +77,7 @@ func EncodeVarintToBytes(b []byte, u uint64) (n int) {
 		u >>= 7
 	}
 	b[n] = byte(u)
+	n++
 	return
 }
 
