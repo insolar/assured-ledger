@@ -101,7 +101,7 @@ func (p *Dispatcher) Start(manager uniproto.PeerManager) {
 
 	mode := p.GetMode()
 	mode = mode.SetAllowedSet(mode.AllowedSet() & p.registered)
-	p._startProtocols(mode.AllowedSet())
+	mode = mode.SetAllowedSet(p._startProtocols(mode.AllowedSet()))
 	p.mode.Store(uint32(mode))
 	p.state.Store(started)
 }

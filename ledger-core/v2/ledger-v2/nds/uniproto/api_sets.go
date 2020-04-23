@@ -20,14 +20,14 @@ type ProtocolSet uint16
 const AllProtocols ProtocolSet = ^ProtocolSet(0)
 
 func (v ProtocolSet) Has(pt ProtocolType) bool {
-	return v&1<<pt != 0
+	return v&(1<<pt) != 0
 }
 
 func (v ProtocolSet) Set(pt ProtocolType, val bool) ProtocolSet {
 	if val {
-		return v | 1<<pt
+		return v | (1 << pt)
 	}
-	return v &^ 1 << pt
+	return v &^ (1 << pt)
 }
 
 func (v ProtocolSet) ForEach(fn func(pt ProtocolType) bool) bool {

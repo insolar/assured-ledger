@@ -106,14 +106,15 @@ type nodeMarks struct {
 }
 
 func (p *nodeMarks) unmark(id ShipmentID) {
-	p.mutex.Lock()
-	delete(p.marks, id.NodeID())
-	p.mutex.Unlock()
+	p.unmarkNode(id.NodeID())
 }
 
 func (p *nodeMarks) mark(id ShipmentID) bool {
+	return p.markNode(id.NodeID())
+}
+
+func (p *nodeMarks) markNode(nid uint32) bool {
 	p.mutex.Lock()
-	nid := id.NodeID()
 	if _, ok := p.marks[nid]; ok {
 		p.mutex.Unlock()
 		return false
@@ -121,4 +122,10 @@ func (p *nodeMarks) mark(id ShipmentID) bool {
 	p.marks[nid] = struct{}{}
 	p.mutex.Unlock()
 	return true
+}
+
+func (p *nodeMarks) unmarkNode(nid uint32) {
+	p.mutex.Lock()
+	delete(p.marks, nid)
+	p.mutex.Unlock()
 }

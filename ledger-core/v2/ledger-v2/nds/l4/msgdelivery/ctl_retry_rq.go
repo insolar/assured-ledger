@@ -9,21 +9,25 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type rqSender struct {
+type stateSender struct {
 	stages retries.StagedController
 
-	oob  chan rqShipment
-	jobs chan retryJob
+	oob    chan rqShipment
+	jobs   chan retryJob
+	states chan stateJob
+
+	peers peerMap
 
 	mutex    sync.Mutex
 	requests map[ShipmentID]rqShipment
 	suspends map[ShipmentID]struct{}
 }
 
-func (p *rqSender) init(oobQueue, jobQueue int) {
+func (p *stateSender) init(oobQueue, jobQueue int) {
 	switch {
 	case oobQueue <= 0:
 		panic(throw.IllegalValue())
@@ -34,10 +38,11 @@ func (p *rqSender) init(oobQueue, jobQueue int) {
 	}
 
 	p.oob = make(chan rqShipment, oobQueue)
+	p.states = make(chan stateJob, oobQueue)
 	p.jobs = make(chan retryJob, jobQueue)
 }
 
-func (p *rqSender) Add(rq rqShipment) error {
+func (p *stateSender) Add(rq rqShipment) error {
 	if err := p.put(rq); err != nil {
 		return err
 	}
@@ -46,7 +51,7 @@ func (p *rqSender) Add(rq rqShipment) error {
 	return nil
 }
 
-func (p *rqSender) put(rq rqShipment) error {
+func (p *stateSender) put(rq rqShipment) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -57,7 +62,7 @@ func (p *rqSender) put(rq rqShipment) error {
 	return nil
 }
 
-func (p *rqSender) get(id ShipmentID) (rqShipment, retries.RetryState) {
+func (p *stateSender) get(id ShipmentID) (rqShipment, retries.RetryState) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -71,11 +76,11 @@ func (p *rqSender) get(id ShipmentID) (rqShipment, retries.RetryState) {
 	return rq, retries.KeepRetrying
 }
 
-func (p *rqSender) RemoveRq(peer *DeliveryPeer, id ShortShipmentID) (rqShipment, bool) {
+func (p *stateSender) RemoveRq(peer *DeliveryPeer, id ShortShipmentID) (rqShipment, bool) {
 	return p.RemoveByID(AsShipmentID(uint32(peer.peerID), id))
 }
 
-func (p *rqSender) RemoveByID(sid ShipmentID) (rqShipment, bool) {
+func (p *stateSender) RemoveByID(sid ShipmentID) (rqShipment, bool) {
 	p.mutex.Lock()
 	rq, ok := p.requests[sid]
 	if ok {
@@ -90,7 +95,7 @@ func (p *rqSender) RemoveByID(sid ShipmentID) (rqShipment, bool) {
 	return rq, ok
 }
 
-func (p *rqSender) suspendRetry(id ShipmentID) func() {
+func (p *stateSender) suspendRetry(id ShipmentID) func() {
 	p.mutex.Lock()
 	if _, ok := p.requests[id]; !ok {
 		p.mutex.Unlock()
@@ -107,11 +112,13 @@ func (p *rqSender) suspendRetry(id ShipmentID) func() {
 	}
 }
 
-func (p *rqSender) NextTimeCycle() {
+func (p *stateSender) NextTimeCycle() {
+	p.peers.MarkFlush()
 	p.stages.NextCycle(p)
+	p.peers.RunFlush(p)
 }
 
-func (p *rqSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
+func (p *stateSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
 
 	keepCount, removeStart := p.retry(ids)
 
@@ -124,7 +131,7 @@ func (p *rqSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) 
 	}
 }
 
-func (p *rqSender) retry(ids []retries.RetryID) (keepCount, removeStart int) {
+func (p *stateSender) retry(ids []retries.RetryID) (keepCount, removeStart int) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -145,11 +152,11 @@ func (p *rqSender) retry(ids []retries.RetryID) (keepCount, removeStart int) {
 	})
 }
 
-func (p *rqSender) CheckState(retries.RetryID) (r retries.RetryState) {
+func (p *stateSender) CheckState(retries.RetryID) (r retries.RetryState) {
 	return retries.KeepRetrying
 }
 
-func (p *rqSender) Remove(ids []retries.RetryID) {
+func (p *stateSender) Remove(ids []retries.RetryID) {
 	p.mutex.Lock()
 	for _, id := range ids {
 		sid := ShipmentID(id)
@@ -159,10 +166,92 @@ func (p *rqSender) Remove(ids []retries.RetryID) {
 	p.mutex.Unlock()
 }
 
-func (p *rqSender) startWorker(parallel int) {
+func (p *stateSender) startWorker(parallel int) {
 	if p.jobs == nil {
 		panic(throw.IllegalState())
 	}
 	worker := newRetryRqWorker(p, parallel)
 	go worker.runRetry()
+}
+
+func (p *stateSender) AddPeer(peer *DeliveryPeer) {
+	p.peers.Put(peer)
+}
+
+type stateJob struct {
+	peer   *DeliveryPeer
+	packet StatePacket
+}
+
+func (p *stateSender) AddState(peer *DeliveryPeer, packet StatePacket) {
+	p.states <- stateJob{peer, packet}
+}
+
+/***********************************/
+
+type peerMap struct {
+	mutex    sync.Mutex
+	running  bool
+	peers    map[nwapi.LocalUniqueID]*DeliveryPeer
+	pendings []*DeliveryPeer
+}
+
+func (p *peerMap) Put(peer *DeliveryPeer) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if p.peers == nil {
+		p.peers = make(map[nwapi.LocalUniqueID]*DeliveryPeer)
+	}
+	p.peers[peer.uid] = peer
+}
+
+func (p *peerMap) MarkFlush() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.pendings == nil {
+		p.pendings = make([]*DeliveryPeer, 0, len(p.peers))
+	} else {
+		p.pendings = p.pendings[:0]
+	}
+
+	for id, peer := range p.peers {
+		switch isValid, hasUpdates := peer.markFlush(); {
+		case !isValid:
+			delete(p.peers, id)
+		case hasUpdates:
+			p.pendings = append(p.pendings, peer)
+		}
+	}
+}
+
+func (p *peerMap) RunFlush(sender *stateSender) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if p.running || len(p.pendings) == 0 {
+		return
+	}
+	pendings := p.pendings
+	p.pendings = nil
+	p.running = true
+	go p._runFlush(sender, pendings)
+}
+
+func (p *peerMap) _runFlush(sender *stateSender, pendings []*DeliveryPeer) {
+	defer func() {
+		p.mutex.Lock()
+		p.running = false
+		if p.pendings == nil {
+			// recycle the slice
+			p.pendings = pendings
+		}
+		p.mutex.Unlock()
+	}()
+
+	for _, peer := range pendings {
+		packet := peer.flushState()
+		if packet != nil {
+			sender.AddState(peer, *packet)
+		}
+	}
 }

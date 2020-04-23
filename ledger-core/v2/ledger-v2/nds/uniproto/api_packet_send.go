@@ -55,7 +55,7 @@ type SendingPacket struct {
 }
 
 func (p *SendingPacket) GetContext() nwapi.SerializationContext {
-	return nil
+	return nil // TODO GetContext() nwapi.SerializationContext
 }
 
 func (p *SendingPacket) preparePacketSize(dataSize uint) uint {

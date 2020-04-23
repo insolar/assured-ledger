@@ -10,7 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
-func newRetryRqWorker(sender *rqSender, parallel int) *retryRqWorker {
+func newRetryRqWorker(sender *stateSender, parallel int) *retryRqWorker {
 	return &retryRqWorker{
 		sender:    sender,
 		sema:      synckit.NewSemaphore(parallel),
@@ -20,7 +20,7 @@ func newRetryRqWorker(sender *rqSender, parallel int) *retryRqWorker {
 }
 
 type retryRqWorker struct {
-	sender *rqSender
+	sender *stateSender
 	sema   synckit.Semaphore
 	marks  nodeMarks
 
@@ -39,20 +39,30 @@ type postponedRq struct {
 func (p *retryRqWorker) runRetry() {
 	p.wakeup = make(chan struct{}, 1)
 	for {
-		job := retryJob{}
 		ok := false
 
 		var oob rqShipment
+		var state stateJob
 		select {
+		// NB! separate select ensures prioritized handling of channels
 		case oob, ok = <-p.sender.oob:
+		case state, ok = <-p.sender.states:
 		default:
 			select {
 			case oob, ok = <-p.sender.oob:
-			case job, ok = <-p.sender.jobs:
-			case <-p.wakeup:
-				if p.isEmptyPostponed() {
-					continue
+			case state, ok = <-p.sender.states:
+
+			case job, ok := <-p.sender.jobs:
+				if !ok {
+					return
 				}
+				p.processJob(job)
+				continue
+			case <-p.wakeup:
+				if !p.isEmptyPostponed() {
+					p.processPostponed()
+				}
+				continue
 			}
 		}
 
@@ -61,17 +71,8 @@ func (p *retryRqWorker) runRetry() {
 			return
 		case !oob.isEmpty():
 			p.processOoB(oob)
-		case !p.isEmptyPostponed():
-			p.processPostponed()
-		}
-
-		for _, id := range job.ids {
-			switch rq, m := p.sender.get(ShipmentID(id)); m {
-			case retries.KeepRetrying:
-				p.processRq(rq, job.repeatFn)
-			case retries.StopRetrying:
-				job.repeatFn(id)
-			}
+		case state.peer != nil:
+			p.processState(state)
 		}
 	}
 }
@@ -80,7 +81,7 @@ func (p *retryRqWorker) processOoB(rq rqShipment) {
 	switch {
 	case p.marks.mark(rq.id):
 		p.sema.Lock()
-		go p.sendRq(rq, p.sender.stages.AddHeadForRetry, true)
+		go p._sendRq(rq, p.sender.stages.AddHeadForRetry, true)
 	case rq.isValid():
 		p.pushPostponed(rq, p.sender.stages.AddHeadForRetry)
 	}
@@ -93,7 +94,7 @@ func (p *retryRqWorker) processRq(rq rqShipment, repeatFn func(retries.RetryID))
 	case !p.sema.TryLock():
 		p.marks.unmark(rq.id)
 	default:
-		go p.sendRq(rq, repeatFn, false)
+		go p._sendRq(rq, repeatFn, false)
 		return
 	}
 
@@ -133,19 +134,26 @@ func (p *retryRqWorker) _processPostponedItem() {
 	prq := p.postponed[p.read]
 	p.postponed[p.read] = postponedRq{}
 	p.read++
-	p.processRq(prq.rq, prq.repeatFn)
+	switch {
+	case prq.rq.peer != nil:
+		p.processRq(prq.rq, prq.repeatFn)
+	case prq.repeatFn != nil:
+		p._processState(prq.rq.id.NodeID(), prq.repeatFn)
+	}
 }
 
-func (p *retryRqWorker) sendRq(rq rqShipment, repeatFn func(id retries.RetryID), sendNow bool) {
-	defer func() {
-		p.sema.Unlock()
-		p.marks.unmark(rq.id)
+func (p *retryRqWorker) _afterSend(nid uint32) {
+	p.sema.Unlock()
+	p.marks.unmarkNode(nid)
 
-		select {
-		case p.wakeup <- struct{}{}:
-		default:
-		}
-	}()
+	select {
+	case p.wakeup <- struct{}{}:
+	default:
+	}
+}
+
+func (p *retryRqWorker) _sendRq(rq rqShipment, repeatFn func(id retries.RetryID), sendNow bool) {
+	defer p._afterSend(rq.id.NodeID())
 
 	if !sendNow {
 		rq.peer.addBodyRq(rq.id.ShortID())
@@ -153,4 +161,49 @@ func (p *retryRqWorker) sendRq(rq rqShipment, repeatFn func(id retries.RetryID),
 		rq.peer.sendBodyRq(rq.id.ShortID())
 	}
 	repeatFn(retries.RetryID(rq.id))
+}
+
+func (p *retryRqWorker) processJob(job retryJob) {
+	for _, id := range job.ids {
+		switch rq, m := p.sender.get(ShipmentID(id)); m {
+		case retries.KeepRetrying:
+			p.processRq(rq, job.repeatFn)
+		case retries.StopRetrying:
+			job.repeatFn(id)
+		}
+	}
+}
+
+func (p *retryRqWorker) processState(state stateJob) {
+	if !state.peer.isValid() {
+		return
+	}
+
+	nid := uint32(state.peer.peerID)
+
+	// NB! Here we wrap send as retry call to reuse the postpone buffer
+	p._processState(nid, func(retries.RetryID) {
+		p._sendState(nid, state.peer, state.packet)
+	})
+}
+
+func (p *retryRqWorker) _processState(nid uint32, fn func(retries.RetryID)) {
+	switch {
+	case !p.marks.markNode(nid):
+		//
+	case !p.sema.TryLock():
+		p.marks.unmarkNode(nid)
+	default:
+		go fn(0)
+		return
+	}
+
+	p.pushPostponed(rqShipment{
+		id: AsShipmentID(nid, 1),
+	}, fn)
+}
+
+func (p *retryRqWorker) _sendState(nid uint32, peer *DeliveryPeer, packet StatePacket) {
+	defer p._afterSend(nid)
+	peer.sendState(packet)
 }

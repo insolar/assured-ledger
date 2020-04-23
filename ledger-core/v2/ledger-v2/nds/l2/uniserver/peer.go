@@ -290,6 +290,7 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 			tp = uniproto.Sessionless
 			break
 		}
+		tp = uniproto.SessionfulSmall
 		fallthrough
 	case uniproto.SessionfulSmall:
 		if packetSize > uniproto.MaxNonExcessiveLength {

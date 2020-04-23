@@ -6,6 +6,8 @@
 package msgdelivery
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
@@ -82,6 +84,9 @@ func listToBytes(list []ShortShipmentID, b []byte) ([]byte, error) {
 		if id == 0 {
 			return nil, throw.IllegalValue()
 		}
+		if len(b) < ShortShipmentIDByteSize {
+			return nil, io.ErrShortBuffer
+		}
 		id.PutTo(b)
 		b = b[ShortShipmentIDByteSize:]
 	}
@@ -94,7 +99,8 @@ func countedListToBytes(list []ShortShipmentID, b []byte) ([]byte, error) {
 }
 
 func (p *StatePacket) SerializePayload(_ nwapi.SerializationContext, _ *uniproto.Packet, writer *iokit.LimitedWriter) (err error) {
-	b := make([]byte, writer.RemainingBytes())
+	out := make([]byte, writer.RemainingBytes())
+	b := out
 
 	if list := p.BodyRq; len(list) > 0 {
 		if b, err = countedListToBytes(list, b); err != nil {
@@ -118,7 +124,7 @@ func (p *StatePacket) SerializePayload(_ nwapi.SerializationContext, _ *uniproto
 		return err
 	}
 
-	_, err = writer.Write(b)
+	_, err = writer.Write(out[:len(out)-len(b)])
 	return err
 }
 

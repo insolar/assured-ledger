@@ -28,7 +28,7 @@ const (
 const AllowAll = ^ConnectionMode(0)
 
 func (v ConnectionMode) IsProtocolAllowed(pt ProtocolType) bool {
-	return v&1<<(pt+16) != 0
+	return v.AllowedSet().Has(pt)
 }
 
 func (v ConnectionMode) IsUnknownPeerAllowed() bool {

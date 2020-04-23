@@ -17,14 +17,16 @@ import (
 )
 
 type DeliveryPeer struct {
-	nextSSID atomickit.Uint32 // ShortShipmentID
 	ctl      *Controller
+	uid      nwapi.LocalUniqueID
+	nextSSID atomickit.Uint32 // ShortShipmentID
 	peerID   nwapi.ShortNodeID
 	isDead   atomickit.OnceFlag
 
 	dedup receiveDeduplicator
 
 	mutex    sync.Mutex
+	canFlush bool
 	prepared StatePacket
 	peer     uniproto.Peer
 }
@@ -43,14 +45,19 @@ func (p *DeliveryPeer) Close() error {
 	return nil
 }
 
+func (p *DeliveryPeer) init() {
+	p.uid = p.peer.GetLocalUID().AsLocalUID()
+	p.ctl.stater.AddPeer(p)
+}
+
 func (p *DeliveryPeer) _close() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	p.prepared = StatePacket{}
-	//p.peer.SetProtoInfo(p.ctl.pType, nil)
-	p.ctl = nil
-	p.peer = nil
+	p.canFlush = false
+	//p.ctl = nil
+	//p.peer = nil
 }
 
 func (p *DeliveryPeer) isValid() bool {
@@ -63,19 +70,23 @@ func (p *DeliveryPeer) addToStatePacket(needed int, fn func(*StatePacket)) {
 
 	switch n := p.prepared.remainingSpace(maxStatePacketDataSize); {
 	case n > needed:
-		fn(&p.prepared)
+		if !p.canFlush {
+			fn(&p.prepared)
+			return
+		}
+		fallthrough
 	case n == needed:
 		fn(&p.prepared)
 		packet := p.prepared
+		p.canFlush = false
 		p.prepared = StatePacket{}
-		// TODO "go" is insecure because sender can potentially flood us
-		go p.sendState(packet)
+		p.ctl.stater.AddState(p, packet)
 	default:
 		packet := p.prepared
+		p.canFlush = false
 		p.prepared = StatePacket{}
 		fn(&p.prepared)
-		// TODO "go" is insecure because sender can potentially flood us
-		go p.sendState(packet)
+		p.ctl.stater.AddState(p, packet)
 	}
 }
 
@@ -104,24 +115,44 @@ func (p *DeliveryPeer) addAck(id ShortShipmentID) {
 }
 
 func (p *DeliveryPeer) sendBodyRq(id ShortShipmentID) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	if id == 0 {
+		panic(throw.IllegalValue())
+	}
 
-	if id == 0 && p.prepared.isEmpty() {
+	p.mutex.Lock()
+	if p.prepared.isEmpty() {
+		p.mutex.Unlock()
 		return
 	}
 
 	packet := p.prepared
 	p.prepared = StatePacket{}
 	packet.BodyRq = append(packet.BodyRq, id)
+	p.mutex.Unlock()
+
 	p.sendState(packet)
+}
+
+func (p *DeliveryPeer) flushState() *StatePacket {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	if !p.canFlush || p.prepared.isEmpty() {
+		return nil
+	}
+	packet := p.prepared
+	p.canFlush = false
+	p.prepared = StatePacket{}
+	return &packet
 }
 
 func (p *DeliveryPeer) sendState(packet StatePacket) {
 	if !p.isValid() {
 		return
 	}
+
 	template, dataSize, writeFn := packet.PreparePacket()
+	_, template.PulseNumber = p.ctl.getPulseCycle()
+
 	p._setPacketForSend(&template)
 	if err := p.peer.SendPreparedPacket(uniproto.SmallAny, &template.Packet, dataSize, writeFn, nil); err != nil {
 		p.ctl.reportError(err)
@@ -194,4 +225,15 @@ func (p *DeliveryPeer) _setPacketForSend(template *uniproto.PacketTemplate) {
 	template.Header.ReceiverID = uint32(p.peerID)
 	template.Header.TargetID = uint32(p.peerID)
 	template.Header.SetRelayRestricted(true)
+}
+
+func (p *DeliveryPeer) markFlush() (isValid, hasUpdates bool) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.isDead.IsSet() {
+		return false, false
+	}
+	p.canFlush = !p.prepared.isEmpty()
+	return true, p.canFlush
 }

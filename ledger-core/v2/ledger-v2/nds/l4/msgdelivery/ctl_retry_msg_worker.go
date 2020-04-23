@@ -49,6 +49,7 @@ func (p *retryMsgWorker) runRetry() {
 
 		var oob *msgShipment
 		select {
+		// NB! separate select ensures prioritized handling of channels
 		case oob, ok = <-p.sender.oob:
 		default:
 			select {

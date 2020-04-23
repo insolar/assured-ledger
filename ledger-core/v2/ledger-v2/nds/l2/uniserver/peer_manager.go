@@ -254,7 +254,7 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 			case !remapTo.IsZero():
 				switch idx, remapPeer := p.peers.get(remapTo); {
 				case remapPeer == nil:
-					//
+					peer.transport.addAliases([]nwapi.Address{remapTo})
 				case idx == 0:
 					return throw.FailHere("remap to loopback")
 				default:

@@ -27,8 +27,8 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
 	c.sender.init(10, 10)
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
-	c.bodyRq.init(10, 10)
-	c.bodyRq.stages.InitStages(1, [...]int{5, 10, 50})
+	c.stater.init(10, 10)
+	c.stater.stages.InitStages(1, [...]int{5, 10, 50})
 	c.receiver.ctl = c
 	return c
 }
@@ -43,7 +43,7 @@ type Controller struct {
 	starter  protoStarter
 	receiver packetReceiver
 	sender   msgSender
-	bodyRq   rqSender
+	stater   stateSender
 
 	pulseCycle atomickit.Uint64
 
@@ -65,7 +65,7 @@ func (p *Controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [r
 	p.timeCycle = timeCycle
 
 	p.sender.stages.InitStages(minHeadBatchWeight, calcPeriods(timeCycle, sendStages))
-	p.bodyRq.stages.InitStages(maxStatePacketEntries, calcPeriods(timeCycle, rqStages))
+	p.stater.stages.InitStages(maxStatePacketEntries, calcPeriods(timeCycle, rqStages))
 }
 
 // for initialization only
@@ -232,7 +232,7 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 		if msg := p.sender.get(sid); msg != nil {
 			msg.markReject()
 		}
-		if rq, ok := p.bodyRq.RemoveByID(sid); ok {
+		if rq, ok := p.stater.RemoveByID(sid); ok {
 			if fn := rq.requestRejectedFn(); fn != nil {
 				go fn()
 			}
@@ -301,7 +301,7 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	}
 
 	var rq rqShipment
-	switch rq, ok = p.bodyRq.RemoveRq(dPeer, payload.ParcelID); {
+	switch rq, ok = p.stater.RemoveRq(dPeer, payload.ParcelID); {
 	case ok:
 		// Body ignores peer-based deduplication when served per-request
 		if rq.isValid() {
@@ -329,7 +329,7 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 
 func (p *Controller) receiveParcelBeforeData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
 	sid := AsShipmentID(packet.Header.SourceID, payload.ParcelID)
-	if fn := p.bodyRq.suspendRetry(sid); fn != nil {
+	if fn := p.stater.suspendRetry(sid); fn != nil {
 		defer fn()
 	}
 
@@ -347,6 +347,7 @@ func (p *Controller) createProtoPeer(peer uniproto.Peer) io.Closer {
 		peerID: id,
 		peer:   peer,
 	}
+	dp.init()
 	return dp
 }
 
@@ -499,7 +500,7 @@ func (p *Controller) sendBodyRq(from ReturnAddress, rq ShipmentRequest) error {
 		return throw.Impossible()
 	}
 
-	return p.bodyRq.Add(rqShipment{
+	return p.stater.Add(rqShipment{
 		id:      AsShipmentID(uint32(dPeer.peerID), from.returnID),
 		expires: from.expires,
 		peer:    dPeer,
@@ -518,7 +519,7 @@ func (p *Controller) rejectBodyRq(from ReturnAddress) error {
 	}
 
 	sid := AsShipmentID(uint32(dPeer.peerID), from.returnID)
-	if rq, _ := p.bodyRq.RemoveByID(sid); !rq.isEmpty() {
+	if rq, _ := p.stater.RemoveByID(sid); !rq.isEmpty() {
 		dPeer.addReject(from.returnID)
 	}
 	return nil
@@ -538,7 +539,7 @@ func (p *Controller) onStarted() {
 	p.stopSignal = make(synckit.ClosableSignalChannel)
 	go p.runWorker()
 
-	p.bodyRq.startWorker(5)
+	p.stater.startWorker(5)
 	//for i := 2; i > 0; i-- {
 	p.sender.startWorker(5)
 	//}
@@ -557,7 +558,7 @@ func (p *Controller) runWorker() {
 		case <-ticker:
 			//
 		}
-		p.bodyRq.NextTimeCycle()
+		p.stater.NextTimeCycle()
 		p.sender.NextTimeCycle()
 	}
 }
