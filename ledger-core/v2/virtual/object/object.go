@@ -44,6 +44,10 @@ func (i *Info) Descriptor() descriptor.ObjectDescriptor {
 	return i.descriptor
 }
 
+func (i *Info) SetReady() {
+	i.IsReadyToWork = true
+}
+
 type SharedState struct {
 	Info
 }
@@ -122,14 +126,10 @@ func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpd
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	sm.SetReady(ctx)
+	sm.SharedState.SetReady()
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
-}
-
-func (sm *SMObject) SetReady(ctx smachine.ExecutionContext) {
-	ctx.ApplyAdjustment(sm.readyToWorkCtl.NewValue(true))
 }
