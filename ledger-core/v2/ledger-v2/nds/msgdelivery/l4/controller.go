@@ -3,14 +3,14 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package msgdelivery
+package l4
 
 import (
 	"io"
 	"math"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/l4/msgdelivery/retries"
+	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
