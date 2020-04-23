@@ -24,6 +24,11 @@ type Info struct {
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
 
+	ActiveImmutablePendingCount    uint8
+	ActiveMutablePendingCount      uint8
+	PotentialImmutablePendingCount uint8
+	PotentialMutablePendingCount   uint8
+
 	PreviousExecutorState payload.PreviousExecutorState
 }
 
