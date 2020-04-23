@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/stateexchange"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -73,6 +74,16 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 			return &SMVCallResult{Meta: payloadMeta, Payload: &pl}
 		}
 
+	case payload.TypeVStateReport:
+		pl := payload.VStateReport{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &stateexchange.SMVStateReport{Meta: payloadMeta, Payload: &pl}
+		}
 	default:
 		panic(errNoHandler{MessageType: payloadType})
 	}

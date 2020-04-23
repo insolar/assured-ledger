@@ -10,15 +10,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type Info struct {
-	Reference     insolar.Reference
-	descriptor    descriptor.ObjectDescriptor
-	Deactivated   bool
-	IsReadyToWork bool
+	Reference   reference.Global
+	descriptor  descriptor.ObjectDescriptor
+	Deactivated bool
 
 	ObjectLatestDescriptor descriptor.ObjectDescriptor
 
