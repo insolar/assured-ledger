@@ -14,9 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
-// Stores information about Executor (key) and its pending execution requests (value)
-type PendingExecutionInfo map[insolar.Reference][]insolar.Reference
-
 type Info struct {
 	Reference     insolar.Reference
 	descriptor    descriptor.ObjectDescriptor
@@ -33,7 +30,6 @@ type Info struct {
 	ActiveMutablePendingCount      uint8
 	PotentialImmutablePendingCount uint8
 	PotentialMutablePendingCount   uint8
-	CurrentPendingExecution        PendingExecutionInfo
 
 	PreviousExecutorState payload.PreviousExecutorState
 }
@@ -59,7 +55,7 @@ type SharedState struct {
 func NewStateMachineObject(objectReference insolar.Reference, exists bool) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
-			Info: Info{Reference: objectReference, CurrentPendingExecution: make(PendingExecutionInfo)},
+			Info: Info{Reference: objectReference},
 		},
 		oldObject: exists,
 	}
