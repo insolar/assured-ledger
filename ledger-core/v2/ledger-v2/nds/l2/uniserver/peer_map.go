@@ -18,9 +18,13 @@ type PeerMap struct {
 }
 
 func (p *PeerMap) ensureEmpty() {
-	if len(p.aliases) > 0 {
+	if !p.isEmpty() {
 		panic(throw.IllegalState())
 	}
+}
+
+func (p *PeerMap) isEmpty() bool {
+	return len(p.aliases) == 0
 }
 
 func (p *PeerMap) get(a nwapi.Address) (uint32, *Peer) {
@@ -58,7 +62,27 @@ func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []nwapi.Add
 			}{primary, a, p.peers[conflictIndex].GetPrimary()})
 		}
 	}
-	return aliases[:j], nil
+
+	aliases = removeDuplicates(aliases[:j])
+	return aliases, nil
+}
+
+func removeDuplicates(aliases []nwapi.Address) []nwapi.Address {
+	j := 1
+outer:
+	for i := 1; i < len(aliases); i++ {
+		a := aliases[i]
+		for k := 0; k < j; k++ {
+			if a == aliases[k] {
+				continue outer
+			}
+		}
+		if i != j {
+			aliases[j] = aliases[i]
+		}
+		j++
+	}
+	return aliases[:j]
 }
 
 func (p *PeerMap) remove(idx uint32) {

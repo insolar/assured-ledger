@@ -54,5 +54,5 @@ const (
 )
 
 type DeserializationFactory interface {
-	DeserializePayloadFrom(PayloadCompleteness, *iokit.LimitedReader) (Serializable, error)
+	DeserializePayloadFrom(DeserializationContext, PayloadCompleteness, *iokit.LimitedReader) (Serializable, error)
 }

@@ -8,6 +8,7 @@ package uniserver
 import (
 	"crypto/tls"
 	"io"
+	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/nds/uniproto"
@@ -39,7 +40,8 @@ type Peer struct {
 
 	// HostIds for indirectly accessible hosts?
 
-	protoInfo [uniproto.ProtocolTypeCount]io.Closer
+	protoMutex sync.RWMutex
+	protoInfo  [uniproto.ProtocolTypeCount]io.Closer
 }
 
 func (p *Peer) GetPrimary() nwapi.Address {
@@ -216,6 +218,13 @@ func (p *Peer) GetLocalUID() nwapi.Address {
 	return nwapi.NewLocalUID(p.transport.uid, nwapi.HostID(p.nodeID))
 }
 
+func (p *Peer) GetHostID() nwapi.Address {
+	p.transport.mutex.RLock()
+	defer p.transport.mutex.RUnlock()
+
+	return nwapi.NewHostID(nwapi.HostID(p.nodeID))
+}
+
 func (p *Peer) SetProtoInfo(pt uniproto.ProtocolType, info io.Closer) {
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
@@ -230,8 +239,8 @@ func (p *Peer) GetOrCreateProtoInfo(pt uniproto.ProtocolType, factoryFn func(uni
 	if r := p.GetProtoInfo(pt); r != nil {
 		return r
 	}
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
+	p.protoMutex.Lock()
+	defer p.protoMutex.Unlock()
 	if r := p.protoInfo[pt]; r != nil {
 		return r
 	}
@@ -241,8 +250,8 @@ func (p *Peer) GetOrCreateProtoInfo(pt uniproto.ProtocolType, factoryFn func(uni
 }
 
 func (p *Peer) GetProtoInfo(pt uniproto.ProtocolType) io.Closer {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
+	p.protoMutex.RLock()
+	defer p.protoMutex.RUnlock()
 	return p.protoInfo[pt]
 }
 

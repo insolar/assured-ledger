@@ -240,7 +240,7 @@ func (p PeerReceiver) resolvePeer(remote nwapi.Address, isIncoming bool, conn io
 	return nil, nil, err
 }
 
-func toHostId(id uint32, supp uniproto.Supporter) nwapi.HostID {
+func toHostID(id uint32, supp uniproto.Supporter) nwapi.HostID {
 	switch {
 	case id == 0:
 		return 0
@@ -257,7 +257,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 	if err = func() (err error) {
 		if header.ReceiverID != 0 {
 			// ReceiverID must match Local
-			if rid := toHostId(header.ReceiverID, supp); !p.isLocalHostId(rid) {
+			if rid := toHostID(header.ReceiverID, supp); !p.isLocalHostId(rid) {
 				return throw.RemoteBreach("wrong ReceiverID")
 			}
 		} else {
@@ -269,7 +269,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 			if header.IsRelayRestricted() || header.IsForRelay() {
 				// SourceID must match Peer
 				// Signature must match Peer
-				if sid := toHostId(header.SourceID, supp); p.hasHostId(sid, peer) {
+				if sid := toHostID(header.SourceID, supp); p.hasHostID(sid, peer) {
 					dsv, err = peer.GetDataVerifier()
 				} else {
 					return throw.RemoteBreach("wrong SourceID")
@@ -281,8 +281,8 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 					return err
 				}
 
-				sid := toHostId(header.SourceID, supp)
-				if peer, err = p.PeerManager.peerNotLocal(nwapi.NewHostId(sid)); err == nil {
+				sid := toHostID(header.SourceID, supp)
+				if peer, err = p.PeerManager.peerNotLocal(nwapi.NewHostID(sid)); err == nil {
 					dsv, err = peer.GetDataVerifier()
 				}
 			}
@@ -304,13 +304,13 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 	return
 }
 
-func (p PeerReceiver) hasHostId(id nwapi.HostID, peer *Peer) bool {
-	_, pr := p.PeerManager.peer(nwapi.NewHostId(id))
+func (p PeerReceiver) hasHostID(id nwapi.HostID, peer *Peer) bool {
+	_, pr := p.PeerManager.peer(nwapi.NewHostID(id))
 	return peer == pr
 }
 
 func (p PeerReceiver) isLocalHostId(id nwapi.HostID) bool {
-	idx, pr := p.PeerManager.peer(nwapi.NewHostId(id))
+	idx, pr := p.PeerManager.peer(nwapi.NewHostID(id))
 	return idx == 0 && pr != nil
 }
 
@@ -319,8 +319,8 @@ func (p PeerReceiver) checkTarget(supp uniproto.Supporter, header *uniproto.Head
 	case !header.IsTargeted():
 		return nil, nil
 	case header.IsForRelay():
-		tid := toHostId(header.TargetID, supp)
-		relayTo, err = p.PeerManager.peerNotLocal(nwapi.NewHostId(tid))
+		tid := toHostID(header.TargetID, supp)
+		relayTo, err = p.PeerManager.peerNotLocal(nwapi.NewHostID(tid))
 		switch {
 		case err != nil:
 			//
@@ -332,7 +332,7 @@ func (p PeerReceiver) checkTarget(supp uniproto.Supporter, header *uniproto.Head
 		return
 	default:
 		// TargetID must match Local
-		if tid := toHostId(header.TargetID, supp); !p.isLocalHostId(tid) {
+		if tid := toHostID(header.TargetID, supp); !p.isLocalHostId(tid) {
 			return nil, throw.RemoteBreach("wrong TargetID")
 		}
 		return nil, err

@@ -56,7 +56,7 @@ type PeerManager struct {
 }
 
 type PeerQuotaFactoryFunc = func([]nwapi.Address) ratelimiter.RWRateQuota
-type OfflinePeerFactoryFunc = func(*Peer) error
+type OfflinePeerFactoryFunc = func(*Peer) (remapTo nwapi.Address, err error)
 
 func (p *PeerManager) SetPeerConnectionLimit(n uint8) {
 	p.peerMutex.Lock()
@@ -239,31 +239,61 @@ func (p *PeerManager) addAliases(to nwapi.Address, aliases ...nwapi.Address) err
 	return p.peers.addAliases(peerIndex, aliases)
 }
 
-func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Address, aliases []nwapi.Address) (uint32, *Peer, error) {
-	peer := &Peer{}
+func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Address, aliases []nwapi.Address) (index uint32, peer *Peer, err error) {
+	peer = &Peer{}
 	peer.transport.uid = NextPeerUID()
 	peer.transport.central = &p.central
 	peer.transport.setAddresses(primary, aliases)
-	aliases = peer.transport.aliases
 
-	if p.peerFactory != nil {
-		if err := p.peerFactory(peer); err != nil {
-			return 0, nil, err
+	remapped := false
+	if err = func() error {
+		if p.peerFactory != nil && !p.peers.isEmpty() {
+			switch remapTo, err := p.peerFactory(peer); {
+			case err != nil:
+				return err
+			case !remapTo.IsZero():
+				switch idx, remapPeer := p.peers.get(remapTo); {
+				case remapPeer == nil:
+					//
+				case idx == 0:
+					return throw.FailHere("remap to loopback")
+				default:
+					moreAliases := make([]nwapi.Address, 0, 1+len(aliases))
+					moreAliases = append(moreAliases, primary)
+					moreAliases = append(moreAliases, aliases...)
+					if err := p.peers.addAliases(idx, moreAliases); err != nil {
+						return err
+					}
+					peer = remapPeer
+					index = idx
+					remapped = true
+					return nil
+				}
+			}
 		}
-	}
 
-	if newPeerFn != nil {
-		if err := newPeerFn(peer); err != nil {
-			return 0, nil, err
+		if newPeerFn != nil {
+			if err := newPeerFn(peer); err != nil {
+				return err
+			}
 		}
-	}
 
-	if _, err := p.peers.checkAliases(nil, math.MaxUint32, aliases); err != nil {
+		if !peer.nodeID.IsAbsent() {
+			peer.transport.addAliases([]nwapi.Address{nwapi.NewHostID(nwapi.HostID(peer.nodeID))})
+		}
+
+		peer.transport.aliases, err = p.peers.checkAliases(nil, math.MaxUint32, peer.transport.aliases)
+		return err
+
+	}(); err != nil {
 		return 0, nil, err
+	}
+	if remapped {
+		return
 	}
 
 	if p.quotaFactory != nil {
-		peer.transport.rateQuota = p.quotaFactory(aliases)
+		peer.transport.rateQuota = p.quotaFactory(peer.transport.aliases)
 	}
 
 	return p.peers.addPeer(peer), peer, nil
@@ -291,7 +321,7 @@ func (p *PeerManager) connectionFrom(remote nwapi.Address, newPeerFn func(*Peer)
 	return peer, err
 }
 
-func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostID) (bool, error) {
+func (p *PeerManager) AddHostID(to nwapi.Address, id nwapi.HostID) (bool, error) {
 	peerIndex, peer, err := p.getPeer(to)
 	if err != nil {
 		return false, err
@@ -307,7 +337,7 @@ func (p *PeerManager) AddHostId(to nwapi.Address, id nwapi.HostID) (bool, error)
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
-	err = p.peers.addAliases(peerIndex, []nwapi.Address{nwapi.NewHostId(id)})
+	err = p.peers.addAliases(peerIndex, []nwapi.Address{nwapi.NewHostID(id)})
 	return err == nil, err
 }
 

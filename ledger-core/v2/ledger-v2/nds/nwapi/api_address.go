@@ -111,7 +111,7 @@ func NewHostPort(hostport string) Address {
 	}
 }
 
-func NewHostId(id HostID) Address {
+func NewHostID(id HostID) Address {
 	a := Address{network: uint8(nwaddr.HostID)}
 	binary.LittleEndian.PutUint64(a.data0[:], uint64(id))
 	return a

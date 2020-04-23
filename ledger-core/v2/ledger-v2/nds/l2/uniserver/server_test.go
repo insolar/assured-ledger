@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 	dispatcher1.SetMode(uniproto.AllowAll)
 
 	pm1 := ups1.PeerManager()
-	_, err := pm1.AddHostId(pm1.Local().GetPrimary(), 1)
+	_, err := pm1.AddHostID(pm1.Local().GetPrimary(), 1)
 	require.NoError(t, err)
 
 	var dispatcher2 Dispatcher
@@ -73,7 +73,7 @@ func TestServer(t *testing.T) {
 	ups2.StartNoListen()
 
 	pm2 := ups2.PeerManager()
-	_, err = pm2.AddHostId(pm2.Local().GetPrimary(), 2)
+	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
 	require.NoError(t, err)
 
 	conn21, err := pm2.Manager().ConnectPeer(nwapi.NewHostPort(Server1))
