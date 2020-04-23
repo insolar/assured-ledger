@@ -78,9 +78,9 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl           smsync.BoolConditionalLink
-	initReason               InitReason
-	alreadySendVStateRequest bool
+	readyToWorkCtl   smsync.BoolConditionalLink
+	initReason       InitReason
+	stateRequestSent bool
 
 	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
@@ -112,8 +112,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
-	sm.alreadySendVStateRequest = false
-
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
@@ -125,7 +123,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	case InitReasonCTMethod:
 		return ctx.Jump(sm.stepGetObjectState)
 	case InitReasonVStateReport:
-		sm.alreadySendVStateRequest = true
+		sm.stateRequestSent = true
 		return ctx.Jump(sm.stepWaitState)
 	default:
 		panic("Not implemented")
@@ -135,7 +133,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 // we get CallMethod but we have no object data
 // we need to ask previous executor
 func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.alreadySendVStateRequest {
+	if sm.stateRequestSent {
 		return ctx.Jump(sm.stepWaitState)
 	}
 
@@ -149,7 +147,7 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
 	}).Send()
 
-	sm.alreadySendVStateRequest = true
+	sm.stateRequestSent = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
