@@ -50,4 +50,3 @@ func (d *codeDescriptor) MachineType() insolar.MachineType {
 func (d *codeDescriptor) Code() ([]byte, error) {
 	return d.code, nil
 }
-

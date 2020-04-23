@@ -6,6 +6,8 @@
 package execute
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -17,11 +19,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/calltype"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
 /* -------- Utilities ------------- */
@@ -83,7 +88,7 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
-	s.execution.Object = s.Payload.Caller
+	s.execution.Object = s.Payload.Callee
 	s.execution.Incoming = reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
 	s.execution.Outgoing = reference.NewGlobal(*s.Payload.Callee.GetLocal(), s.Payload.CallOutgoing)
 }
@@ -109,16 +114,20 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		isConstructor = true
 		isOrdered = true
 		s.execution.Object = reference.NewGlobalSelf(s.Payload.CallOutgoing)
-		objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object)
 
-	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTMethod, payload.CTNotifyCall:
+	case payload.CTMethod:
+		isConstructor = false
+		isOrdered = true
+
+	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTNotifyCall:
 		fallthrough
 	case payload.CTSAGACall, payload.CTParallelCall, payload.CTScheduleCall:
-		objectSharedState = objectCatalog.Get(ctx, s.execution.Object)
-
+		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
 	}
+
+	objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object)
 
 	var (
 		semaphoreReadyToWork    smachine.SyncLink
@@ -129,9 +138,12 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	action := func(state *object.SharedState) {
 		semaphoreReadyToWork = state.ReadyToWork
-		objectDescriptorIsEmpty = state.ObjectLatestDescriptor == nil
+
 		semaphoreOrdered = state.MutableExecute
 		semaphoreUnordered = state.ImmutableExecute
+
+		objectDescriptor := state.Descriptor()
+		objectDescriptorIsEmpty = objectDescriptor == nil
 	}
 
 	switch objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -166,8 +178,29 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// TODO[bigbes]: we should classify call here
-	var executionSemaphore = s.semaphoreOrdered
+	var (
+		executionSemaphore smachine.SyncLink
+		callType           calltype.ContractCallType
+
+		goCtx = ctx.GetContext()
+	)
+
+	// it'll be sync call, since it doesn't make any outgoing requests and may be
+	// replaced as simple call to function, if we can use Service and not Adapter
+	s.runner.PrepareSync(ctx, func(svc runner.Service) {
+		callType = svc.ExecutionClassify(goCtx, s.execution)
+	}).Call()
+
+	switch callType {
+	case calltype.ContractCallOrdered:
+		executionSemaphore = s.semaphoreOrdered
+	case calltype.ContractCallUnordered:
+		executionSemaphore = s.semaphoreUnordered
+	case calltype.ContractCallSaga:
+		panic(throw.NotImplemented())
+	default:
+		panic(throw.IllegalValue())
+	}
 
 	if ctx.Acquire(executionSemaphore).IsNotPassed() {
 		if s.isConstructor {
@@ -178,14 +211,43 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	return ctx.Jump(s.stepGetObjectDescriptor)
+}
+
+func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var objectDescriptor descriptor.ObjectDescriptor
+
+	action := func(state *object.SharedState) {
+		objectDescriptor = state.Descriptor()
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+		// go further
+	default:
+		// TODO[bigbes]: handle object is gone here the right way
+		panic(throw.NotImplemented())
+	}
+
+	s.execution.ObjectDescriptor = objectDescriptor
+
 	return ctx.Jump(s.stepExecute)
 }
 
 func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	executionContext := s.execution
+	var (
+		executionContext = s.execution
+		asyncLogger      = ctx.LogAsync()
+		goCtx            = ctx.GetContext()
+	)
 
-	goCtx := ctx.GetContext()
 	return s.runner.PrepareAsync(ctx, func(svc runner.Service) smachine.AsyncResultFunc {
+		defer statemachine.LogAsyncTime(asyncLogger, time.Now(), "ExecutionStart")
+
 		newState, id, err := svc.ExecutionStart(goCtx, executionContext)
 
 		return func(ctx smachine.AsyncResultContext) {
@@ -202,14 +264,13 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
 	case executionupdate.TypeError:
-		ctx.Log().Error("failed to execute: "+s.executionNewState.Error.Error(), nil)
-		fallthrough
+		panic(throw.W(s.executionNewState.Error, "failed to execute request", nil))
 	case executionupdate.TypeAborted:
 		fallthrough
 	case executionupdate.TypeOutgoingCall:
-		fallthrough
+		panic(throw.NotImplemented())
 	default:
-		panic(throw.W(throw.NotImplemented(), s.executionNewState.Type.String(), nil))
+		panic(throw.IllegalValue())
 	}
 }
 
@@ -219,37 +280,42 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 		memory    []byte
 		prototype insolar.Reference
+		action    func(state *object.SharedState)
 	)
-
-	action := func(state *object.SharedState) {
-		state.Info.SetDescriptor(&prototype, memory)
-	}
 
 	switch s.executionNewState.Result.Type() {
 	case insolar.RequestSideEffectNone:
 	case insolar.RequestSideEffectActivate:
 		_, prototype, memory = executionNewState.Activate()
+		action = func(state *object.SharedState) {
+			state.Info.SetDescriptor(&prototype, memory)
+		}
+
 	case insolar.RequestSideEffectAmend:
 		_, prototype, memory = executionNewState.Amend()
-	case insolar.RequestSideEffectDeactivate:
-		s.execution.Deactivate = true
 		action = func(state *object.SharedState) {
-			state.Info.Deactivate()
+			ctx.Log().Trace("applying new state")
+			state.Info.SetDescriptor(&prototype, memory)
 		}
+
+	case insolar.RequestSideEffectDeactivate:
+		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
 	}
 
-	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
-	case smachine.Passed:
-		// go further
-	default:
-		// TODO[bigbes]: handle object is gone here the right way
-		panic(throw.NotImplemented())
+	if action != nil {
+		switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+		case smachine.NotPassed:
+			return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+		case smachine.Impossible:
+			ctx.Log().Fatal("failed to get object state: already dead")
+		case smachine.Passed:
+			// go further
+		default:
+			// TODO[bigbes]: handle object is gone here the right way
+			panic(throw.NotImplemented())
+		}
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
@@ -266,7 +332,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallFlags:          s.Payload.CallFlags,
 		CallAsOf:           s.Payload.CallAsOf,
 		Caller:             s.Payload.Caller,
-		Callee:             s.Payload.Callee,
+		Callee:             s.execution.Object,
 		ResultFlags:        nil,
 		CallOutgoing:       s.Payload.CallOutgoing,
 		CallIncoming:       reference.Local{},

@@ -11,6 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const startBalance uint = 1000000000 // nolint:unused,deadcode,varcheck
+
 // nolint:unused
 type walletCreateResponse struct {
 	Err     string `json:"error"`
@@ -34,7 +36,7 @@ type walletGetBalanceRequestBody struct {
 // nolint:unused,deadcode
 type walletGetBalanceResponse struct {
 	Err     string `json:"error"`
-	Amount  int    `json:"amount"`
+	Amount  uint   `json:"amount"`
 	TraceID string `json:"traceID"`
 }
 
