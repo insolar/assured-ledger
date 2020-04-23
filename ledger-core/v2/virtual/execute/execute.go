@@ -109,11 +109,14 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		objectSharedState object.SharedStateAccessor
 	)
 
+	var withoutState = false
+
 	switch callType {
 	case payload.CTConstructor:
 		isConstructor = true
 		isOrdered = true
 		s.execution.Object = reference.NewGlobalSelf(s.Payload.CallOutgoing)
+		withoutState = true
 
 	case payload.CTMethod:
 		isConstructor = false
@@ -127,7 +130,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		panic(throw.IllegalValue())
 	}
 
-	objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object)
+	objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object, withoutState)
 
 	var (
 		semaphoreReadyToWork    smachine.SyncLink

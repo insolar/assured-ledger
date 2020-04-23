@@ -55,12 +55,12 @@ type SharedState struct {
 	Info
 }
 
-func NewStateMachineObject(objectReference insolar.Reference, initByCallConstructor bool) *SMObject {
+func NewStateMachineObject(objectReference insolar.Reference, withoutState bool) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{Reference: objectReference},
 		},
-		initByCallConstructor: initByCallConstructor,
+		withoutState: withoutState,
 	}
 }
 
@@ -69,8 +69,8 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl        smsync.BoolConditionalLink
-	initByCallConstructor bool
+	readyToWorkCtl smsync.BoolConditionalLink
+	withoutState   bool
 
 	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
@@ -107,7 +107,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
-	if sm.initByCallConstructor {
+	if sm.withoutState {
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
@@ -125,7 +125,15 @@ func (sm *SMObject) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpd
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
 	}).Send()
 
-	return ctx.Jump(sm.stepWaitIndefinitely)
+	return ctx.Jump(sm.stepWaitState)
+}
+
+func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.SharedState.descriptor != nil {
+		return ctx.Jump(sm.stepReadyToWork)
+	}
+
+	return ctx.Sleep().ThenRepeat()
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
