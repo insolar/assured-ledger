@@ -56,7 +56,8 @@ func TestRetentionByByteString(t *testing.T) {
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond)
 	runtime.GC()
-	require.Equal(t, uint32(1), finMark)
+	fm := atomic.LoadUint32(&finMark)
+	require.Equal(t, uint32(1), fm)
 }
 
 // In accordance with unsafe Rule (6) this behavior is NOT guaranteed. Yet it is valid for gc compiler.
@@ -94,5 +95,6 @@ func TestRetentionBySlice(t *testing.T) {
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond)
 	runtime.GC()
-	require.Equal(t, uint32(1), finMark)
+	fm := atomic.LoadUint32(&finMark)
+	require.Equal(t, uint32(1), fm)
 }
