@@ -26,8 +26,6 @@ type Info struct {
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink // expected, that this will be switch after getting VStateReport
-
-	PreviousExecutorState payload.PreviousExecutorState // TODO unused, remove?
 }
 
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
