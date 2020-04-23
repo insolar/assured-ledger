@@ -75,39 +75,6 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: node")
 	}
 
-	err = rpcServer.RegisterService(NewContractService(ar), "contract")
-	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: contract")
-	}
-
-	return nil
-}
-
-func (ar *Runner) registerAdminServices(rpcServer *rpc.Server) error {
-	err := rpcServer.RegisterService(NewInfoService(ar), "network")
-	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: network")
-	}
-
-	err = rpcServer.RegisterService(NewNodeCertService(ar), "cert")
-	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: cert")
-	}
-
-	err = rpcServer.RegisterService(NewNodeService(ar), "node")
-	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: node")
-	}
-
-	err = rpcServer.RegisterService(NewAdminContractService(ar), "contract")
-	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: contract")
-	}
-
-	err = rpcServer.RegisterService(NewFuncTestContractService(ar), "funcTestContract")
-	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: funcTestContract")
-	}
 	return nil
 }
 
@@ -150,14 +117,8 @@ func NewRunner(cfg *configuration.APIRunner,
 
 	rpcServer.RegisterCodec(jsonrpc.NewCodec(), "application/json")
 
-	if cfg.IsAdmin {
-		if err := ar.registerAdminServices(rpcServer); err != nil {
-			return nil, errors.Wrap(err, "[ NewAPIRunner ] Can't register admin services:")
-		}
-	} else {
-		if err := ar.registerPublicServices(rpcServer); err != nil {
-			return nil, errors.Wrap(err, "[ NewAPIRunner ] Can't register public services:")
-		}
+	if err := ar.registerPublicServices(rpcServer); err != nil {
+		return nil, errors.Wrap(err, "[ NewAPIRunner ] Can't register public services:")
 	}
 
 	// init handler

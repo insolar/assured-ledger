@@ -10,6 +10,7 @@ package functest
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,4 +20,16 @@ func TestGetSeed(t *testing.T) {
 
 	require.NotEqual(t, seed1, seed2)
 
+}
+
+func getSeed(t testing.TB) string {
+	body := getRPSResponseBody(t, launchnet.TestRPCUrl, postParams{
+		"jsonrpc": "2.0",
+		"method":  "node.getSeed",
+		"id":      "",
+	})
+	getSeedResponse := &getSeedResponse{}
+	unmarshalRPCResponse(t, body, getSeedResponse)
+	require.NotNil(t, getSeedResponse.Result)
+	return getSeedResponse.Result.Seed
 }

@@ -2,7 +2,6 @@ BUILD_TAGS ?=
 
 INSOLAR          = insolar
 INSOLARD         = insolard
-INSOLARD_HEADLESS= insolard_headless
 PULSARD          = pulsard
 TESTPULSARD      = testpulsard
 INSGORUND        = insgorund
@@ -18,7 +17,7 @@ HEAVY_BADGER_TOOL= heavy-badger
 GOBUILD ?= go build
 
 .PHONY: build
-build: $(BIN_DIR) $(INSOLARD) $(INSOLARD_HEADLESS) $(INSOLAR) $(INSGOCC) $(PULSARD)      \
+build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD)      \
 		$(TESTPULSARD) $(INSGORUND) $(HEALTHCHECK) $(BENCHMARK)     \
 		$(APIREQUESTER) $(PULSEWATCHER) $(BACKUPMANAGER) $(KEEPERD) \
 		$(HEAVY_BADGER_TOOL) ## build all binaries
@@ -29,10 +28,6 @@ $(BIN_DIR):
 .PHONY: $(INSOLARD)
 $(INSOLARD):
 	$(GOBUILD) -o $(BIN_DIR)/$(INSOLARD) ${BUILD_TAGS} -ldflags "${LDFLAGS}" ./cmd/insolard
-
-.PHONY: $(INSOLARD_HEADLESS)
-$(INSOLARD_HEADLESS):
-	$(GOBUILD) -o $(BIN_DIR)/$(INSOLARD_HEADLESS) ${BUILD_TAGS} -ldflags "${LDFLAGS}" ./cmd/insolard_headless
 
 .PHONY: $(INSOLAR)
 $(INSOLAR):

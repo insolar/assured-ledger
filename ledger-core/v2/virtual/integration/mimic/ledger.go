@@ -14,8 +14,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesis"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -746,29 +744,6 @@ func (p *mimicLedger) AddCode(ctx context.Context, code []byte) (*insolar.ID, er
 }
 
 func (p *mimicLedger) LoadGenesis(ctx context.Context, dirPath string) error {
-	genesisContractsConfig, err := ReadGenesisContractsConfig(dirPath)
-	if err != nil {
-		return errors.Wrap(err, "failed to load genesis config")
-	}
-
-	genesisObject := &genesis.Genesis{
-		ArtifactManager: NewClient(p.storage),
-		BaseRecord: &genesis.BaseRecord{
-			DB:             p.storage,
-			DropModifier:   &dropModifierMock{},
-			PulseAppender:  p.pAppender,
-			PulseAccessor:  p.pAccessor,
-			RecordModifier: &recordModifierMock{},
-			IndexModifier:  &indexModifierMock{},
-		},
-		DiscoveryNodes:  []application.DiscoveryNodeRegister{},
-		ContractsConfig: *genesisContractsConfig,
-	}
-
-	if err := genesisObject.Start(ctx); err != nil {
-		return errors.Wrap(err, "failed to load genesis")
-	}
-
 	return nil
 }
 

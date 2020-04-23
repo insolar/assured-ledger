@@ -22,7 +22,7 @@ package testwallet
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/pkg/errors"
 )
 
@@ -86,20 +86,20 @@ func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) 
 	return state, ret, err
 }
 
-func INSMETHOD_Balance(object []byte, data []byte) (newState []byte, result []byte, err error) {
+func INSMETHOD_GetBalance(object []byte, data []byte) (newState []byte, result []byte, err error) {
 	ph := common.CurrentProxyCtx
 	ph.SetSystemError(nil)
 
 	self := new(Wallet)
 
 	if len(object) == 0 {
-		err = &foundation.Error{S: "[ FakeBalance ] ( INSMETHOD_* ) ( Generated Method ) Object is nil"}
+		err = &foundation.Error{S: "[ FakeGetBalance ] ( INSMETHOD_* ) ( Generated Method ) Object is nil"}
 		return
 	}
 
 	err = ph.Deserialize(object, self)
 	if err != nil {
-		err = &foundation.Error{S: "[ FakeBalance ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Data: " + err.Error()}
+		err = &foundation.Error{S: "[ FakeGetBalance ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Data: " + err.Error()}
 		return
 	}
 
@@ -107,7 +107,7 @@ func INSMETHOD_Balance(object []byte, data []byte) (newState []byte, result []by
 
 	err = ph.Deserialize(data, &args)
 	if err != nil {
-		err = &foundation.Error{S: "[ FakeBalance ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Arguments: " + err.Error()}
+		err = &foundation.Error{S: "[ FakeGetBalance ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Arguments: " + err.Error()}
 		return
 	}
 
@@ -144,7 +144,7 @@ func INSMETHOD_Balance(object []byte, data []byte) (newState []byte, result []by
 		}
 	}()
 
-	ret0, ret1 = self.Balance()
+	ret0, ret1 = self.GetBalance()
 
 	needRecover = false
 
@@ -415,9 +415,9 @@ func Initialize() insolar.ContractWrapper {
 		GetCode:      INSMETHOD_GetCode,
 		GetPrototype: INSMETHOD_GetPrototype,
 		Methods: insolar.ContractMethods{
-			"Balance":  INSMETHOD_Balance,
-			"Accept":   INSMETHOD_Accept,
-			"Transfer": INSMETHOD_Transfer,
+			"GetBalance": INSMETHOD_GetBalance,
+			"Accept":     INSMETHOD_Accept,
+			"Transfer":   INSMETHOD_Transfer,
 		},
 		Constructors: insolar.ContractConstructors{
 			"New": INSCONSTRUCTOR_New,

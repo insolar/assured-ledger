@@ -696,6 +696,7 @@ func (s *PreprocessorSuite) TestProxyGeneration() {
 }
 
 func TestPreprocessor(t *testing.T) {
+	t.Skip()
 	if useLeakTest {
 		defer leaktest.Check(t)()
 	} else {

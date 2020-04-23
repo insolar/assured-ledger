@@ -26,7 +26,7 @@ import (
 {{- end }}
 
     XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-    XXX_artifacts "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
+    XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
@@ -65,12 +65,12 @@ func InitializePrototypeRefs() map[XXX_insolar.Reference]string {
     return rv
 }
 
-func InitializeCodeDescriptors() []XXX_artifacts.CodeDescriptor {
-    rv := make([]XXX_artifacts.CodeDescriptor, 0, {{ len .Contracts }})
+func InitializeCodeDescriptors() []XXX_descriptor.CodeDescriptor {
+    rv := make([]XXX_descriptor.CodeDescriptor, 0, {{ len .Contracts }})
 
     {{ range $contract := .Contracts -}}
     // {{ $contract.Name }}
-    rv = append(rv, XXX_artifacts.NewCodeDescriptor(
+    rv = append(rv, XXX_descriptor.NewCodeDescriptor(
         /* code:        */ nil,
         /* machineType: */ XXX_insolar.MachineTypeBuiltin,
         /* ref:         */ shouldLoadRef("{{ $contract.CodeReference }}"),
@@ -79,14 +79,14 @@ func InitializeCodeDescriptors() []XXX_artifacts.CodeDescriptor {
     return rv
 }
 
-func InitializePrototypeDescriptors() []XXX_artifacts.PrototypeDescriptor {
-    rv := make([]XXX_artifacts.PrototypeDescriptor, 0, {{ len .Contracts }})
+func InitializePrototypeDescriptors() []XXX_descriptor.PrototypeDescriptor {
+    rv := make([]XXX_descriptor.PrototypeDescriptor, 0, {{ len .Contracts }})
 
     {{ range $contract := .Contracts }}
     { // {{ $contract.Name }}
         pRef := shouldLoadRef("{{ $contract.PrototypeReference }}")
         cRef := shouldLoadRef("{{ $contract.CodeReference }}")
-        rv = append(rv, XXX_artifacts.NewPrototypeDescriptor(
+        rv = append(rv, XXX_descriptor.NewPrototypeDescriptor(
             /* head:         */ pRef,
             /* state:        */ *pRef.GetLocal(),
             /* code:         */ cRef,

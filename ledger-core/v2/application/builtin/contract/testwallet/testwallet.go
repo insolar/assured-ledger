@@ -17,28 +17,29 @@ import (
 // Wallet - basic wallet contract.
 type Wallet struct {
 	foundation.BaseContract
-	balance uint32
+
+	Balance uint32
 }
 
-const initialBalance = 1000000000
+const initialBalance uint32 = 1000000000
 
 // New creates new wallet.
 func New() (*Wallet, error) {
-	return &Wallet{balance: initialBalance}, nil
+	return &Wallet{Balance: initialBalance}, nil
 }
 
 // ins:immutable
-func (w *Wallet) Balance() (uint32, error) {
-	return w.balance, nil
+func (w *Wallet) GetBalance() (uint32, error) {
+	return w.Balance, nil
 }
 
 func (w *Wallet) Accept(amount uint32) error {
-	w.balance += amount
+	w.Balance += amount
 	return nil
 }
 
 func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
-	if amount > w.balance {
+	if amount > w.Balance {
 		return errors.New("wallet balance doesn't have enough amount")
 	}
 
@@ -52,7 +53,7 @@ func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
 		return fmt.Errorf("toWallet failed to accept trasfer with error: %s", err.Error())
 	}
 
-	w.balance -= amount
+	w.Balance -= amount
 
 	return nil
 }

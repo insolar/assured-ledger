@@ -22,7 +22,7 @@ package testwallet
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 )
 
 // PrototypeReference to prototype of this contract
@@ -160,8 +160,8 @@ func (r *Wallet) GetCode() (insolar.Reference, error) {
 	return r.Code, nil
 }
 
-// Balance is proxy generated method
-func (r *Wallet) BalanceAsMutable() (uint32, error) {
+// GetBalance is proxy generated method
+func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 	var args [0]interface{}
 
 	var argsSerialized []byte
@@ -177,7 +177,7 @@ func (r *Wallet) BalanceAsMutable() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Balance", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetBalance", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -199,8 +199,8 @@ func (r *Wallet) BalanceAsMutable() (uint32, error) {
 	return ret0, nil
 }
 
-// BalanceAsImmutable is proxy generated method
-func (r *Wallet) Balance() (uint32, error) {
+// GetBalanceAsImmutable is proxy generated method
+func (r *Wallet) GetBalance() (uint32, error) {
 	var args [0]interface{}
 
 	var argsSerialized []byte
@@ -216,7 +216,7 @@ func (r *Wallet) Balance() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Balance", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "GetBalance", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}

@@ -45,6 +45,7 @@ func (r *One) Recursive() (error) {
 `
 
 func TestContractsBuilder_Build(t *testing.T) {
+	t.Skip()
 
 	insgocc, err := BuildPreprocessor()
 	assert.NoError(t, err)

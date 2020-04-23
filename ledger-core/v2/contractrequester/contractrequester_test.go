@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -321,57 +320,6 @@ func TestReceiveResult_WantedResult(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, len(cReq.ResultMap))
 	require.Equal(t, msgPayload, <-chanResult)
-}
-
-func TestReceiveResult_UnwantedResultWithError(t *testing.T) {
-	ctx := context.Background()
-	ctx, cancelFunc := context.WithTimeout(ctx, time.Second*10)
-	defer cancelFunc()
-
-	cReq, err := New(bus.NewSenderMock(t),
-		insolarPulse.NewAccessorMock(t),
-		jet.NewCoordinatorMock(t),
-		testutils.NewPlatformCryptographyScheme())
-	require.NoError(t, err)
-
-	mc := minimock.NewController(t)
-	defer mc.Finish()
-
-	reqRef := gen.Reference()
-	var reqHash [insolar.RecordHashSize]byte
-	copy(reqHash[:], reqRef.GetLocal().Hash())
-
-	msgPayload := &payload.ReturnResults{
-		RequestRef: reqRef,
-	}
-
-	msg := payload.MustNewMessage(msgPayload)
-
-	sp, err := instracer.Serialize(ctx)
-	require.NoError(t, err)
-	msg.Metadata.Set(meta.SpanData, string(sp))
-
-	msg.Metadata.Set(meta.TraceID, "handle_flow_cancelled")
-	cReq.LR = testutils.NewLogicRunnerMock(t).AddUnwantedResponseMock.Set(
-		func(ctx context.Context, msg insolar.Payload) error {
-			return flow.ErrCancelled
-		})
-	cReq.Sender = bus.NewSenderMock(t).ReplyMock.Set(
-		func(_ context.Context, origin payload.Meta, replyMsg *message.Message) {
-			payloadError := &payload.Error{}
-			err := payloadError.Unmarshal(replyMsg.Payload)
-			require.NoError(t, err)
-			require.Equal(t, &payload.Error{
-				Polymorph: uint32(payload.TypeError),
-				Code:      payload.CodeFlowCanceled,
-				Text:      errors.Wrap(flow.ErrCancelled, "[ ReceiveResult ]").Error(),
-			}, payloadError)
-		})
-
-	res, err := serializeReply(msg)
-	require.NoError(t, err)
-	err = cReq.ReceiveResult(ctx, res)
-	require.Error(t, err)
 }
 
 func serializeReply(msg *message.Message) (*message.Message, error) {

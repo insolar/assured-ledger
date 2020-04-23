@@ -10,6 +10,7 @@ package functest
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -21,15 +22,20 @@ import (
 
 var (
 	httpClient *http.Client
-	nodesPorts = [5]string{"32301", "32302", "32303", "32304", "32305"}
+	nodesPorts = [2]string{"32302", "32304"}
 )
 
 const (
 	requestTimeout = 30 * time.Second
 	contentType    = "Content-Type"
 
-	defaultHost      = "127.0.0.1"
-	createWalletPath = "/wallet/create"
+	defaultHost = "127.0.0.1"
+	walletPath  = "/wallet"
+
+	walletCreatePath     = walletPath + "/create"
+	walletGetBalancePath = walletPath + "/get_balance"
+	walletAddAmountPath  = walletPath + "/add_amount"
+	walletTransferPath   = walletPath + "/transfer"
 )
 
 func init() {
@@ -106,4 +112,56 @@ func sendAPIRequest(url string, body interface{}) ([]byte, error) {
 	}
 
 	return doReq(req)
+}
+
+// Creates wallet and returns it's reference.
+func createSimpleWallet() (string, error) {
+	createURL := getURL(walletCreatePath, "", "")
+	rawResp, err := sendAPIRequest(createURL, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to send request or get response body")
+	}
+
+	resp, err := unmarshalWalletCreateResponse(rawResp)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal response")
+	}
+	if resp.Err != "" {
+		return "", fmt.Errorf("problem during execute request: %s", resp.Err)
+	}
+	return resp.Ref, nil
+}
+
+// Returns wallet balance.
+func getWalletBalance(url, ref string) (uint, error) {
+	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to send request or get response body")
+	}
+
+	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to unmarshal response")
+	}
+	if resp.Err != "" {
+		return 0, fmt.Errorf("problem during execute request: %s", resp.Err)
+	}
+	return resp.Amount, nil
+}
+
+// Adds amount to wallet.
+func addAmountToWallet(url, ref string, amount uint) error {
+	rawResp, err := sendAPIRequest(url, walletAddAmountRequestBody{To: ref, Amount: amount})
+	if err != nil {
+		return errors.Wrap(err, "failed to send request or get response body")
+	}
+
+	resp, err := unmarshalWalletAddAmountResponse(rawResp)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal response")
+	}
+	if resp.Err != "" {
+		return fmt.Errorf("problem during execute request: %s", resp.Err)
+	}
+	return nil
 }

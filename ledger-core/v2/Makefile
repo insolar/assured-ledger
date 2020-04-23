@@ -51,11 +51,12 @@ clean: ## run all cleanup tasks
 	go clean $(ALL_PACKAGES)
 	rm -f $(COVERPROFILE)
 	rm -rf $(BIN_DIR)
+	rm -rf $(ARTIFACTS_DIR)
 	./scripts/insolard/launchnet.sh -l
 
 .PHONY: install-build-tools
 install-build-tools: ## install tools for codegen
-	./scripts/build/ls-tools.go | xargs -tI % go install -v %
+	go run ./scripts/build/ls-tools.go | xargs -tI % go install -v %
 
 .PHONY: pre-build
 pre-build: install-build-tools generate regen-builtin ## install dependencies, (re)generates all code

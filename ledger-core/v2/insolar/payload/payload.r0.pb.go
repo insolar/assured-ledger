@@ -76,7 +76,7 @@ type VCallRequest struct {
 	Callee                      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Callee"`
 	CallSiteDeclaration         github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,25,opt,name=CallSiteDeclaration,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallSiteDeclaration"`
 	CallSiteMethod              string                                                               `protobuf:"bytes,26,opt,name=CallSiteMethod,proto3" json:"CallSiteMethod,omitempty"`
-	CallSequence                []byte                                                               `protobuf:"bytes,27,opt,name=CallSequence,proto3" json:"CallSequence,omitempty"`
+	CallSequence                uint32                                                               `protobuf:"varint,27,opt,name=CallSequence,proto3" json:"CallSequence,omitempty"`
 	CallReason                  github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,28,opt,name=CallReason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallReason"`
 	RootTX                      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,29,opt,name=RootTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"RootTX"`
 	CallTX                      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,30,opt,name=CallTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallTX"`
@@ -194,7 +194,7 @@ type VStateRequest struct {
 	Polymorph             uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
 	AsOf                  github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,20,opt,name=AsOf,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"AsOf"`
 	Callee                github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Callee"`
-	RequestedContent      int32                                                                `protobuf:"varint,22,opt,name=RequestedContent,proto3" json:"RequestedContent,omitempty"`
+	RequestedContent      StateRequestContentFlags                                             `protobuf:"varint,22,opt,name=RequestedContent,proto3,customtype=StateRequestContentFlags" json:"RequestedContent"`
 	RequestedContentLimit []byte                                                               `protobuf:"bytes,23,opt,name=RequestedContentLimit,proto3" json:"RequestedContentLimit,omitempty"`
 	SupportedExtensions   []byte                                                               `protobuf:"bytes,24,opt,name=SupportedExtensions,proto3" json:"SupportedExtensions,omitempty"`
 	DelegationSpec        []byte                                                               `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec,omitempty"`
@@ -239,7 +239,7 @@ type VStateReport struct {
 	Polymorph                     uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
 	AsOf                          github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,20,opt,name=AsOf,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"AsOf"`
 	Callee                        github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Callee"`
-	ResultFlags                   []byte                                                               `protobuf:"bytes,22,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
+	ResultFlags                   uint32                                                               `protobuf:"varint,22,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
 	DelegationSpec                []byte                                                               `protobuf:"bytes,23,opt,name=DelegationSpec,proto3" json:"DelegationSpec,omitempty"`
 	DelegatorSignature            []byte                                                               `protobuf:"bytes,24,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature,omitempty"`
 	ImmutablePendingCount         int32                                                                `protobuf:"varint,25,opt,name=ImmutablePendingCount,proto3" json:"ImmutablePendingCount,omitempty"`
@@ -253,7 +253,7 @@ type VStateReport struct {
 	LatestValidatedCode           github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,33,opt,name=LatestValidatedCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"LatestValidatedCode"`
 	LatestDirtyState              github_com_insolar_assured_ledger_ledger_core_v2_reference.Local     `protobuf:"bytes,34,opt,name=LatestDirtyState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"LatestDirtyState"`
 	LatestDirtyCode               github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,35,opt,name=LatestDirtyCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"LatestDirtyCode"`
-	ProvidedContent               []byte                                                               `protobuf:"bytes,36,opt,name=ProvidedContent,proto3" json:"ProvidedContent,omitempty"`
+	ProvidedContent               *VStateReport_ProvidedContentBody                                    `protobuf:"bytes,36,opt,name=ProvidedContent,proto3" json:"ProvidedContent,omitempty"`
 }
 
 func (m *VStateReport) Reset()      { *m = VStateReport{} }
@@ -288,6 +288,88 @@ func (m *VStateReport) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VStateReport proto.InternalMessageInfo
 
+type VStateReport_ProvidedContentBody struct {
+	LatestValidatedState *ObjectState                                                         `protobuf:"bytes,24,opt,name=LatestValidatedState,proto3" json:"LatestValidatedState,omitempty"`
+	LatestDirtyState     *ObjectState                                                         `protobuf:"bytes,25,opt,name=LatestDirtyState,proto3" json:"LatestDirtyState,omitempty"`
+	LatestValidatedCode  *ObjectState                                                         `protobuf:"bytes,26,opt,name=LatestValidatedCode,proto3" json:"LatestValidatedCode,omitempty"`
+	LatestDirtyCode      *ObjectState                                                         `protobuf:"bytes,27,opt,name=LatestDirtyCode,proto3" json:"LatestDirtyCode,omitempty"`
+	MutableQueue         []github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,28,rep,name=MutableQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"MutableQueue"`
+	ImmutableQueue       []github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,29,rep,name=ImmutableQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"ImmutableQueue"`
+}
+
+func (m *VStateReport_ProvidedContentBody) Reset()      { *m = VStateReport_ProvidedContentBody{} }
+func (*VStateReport_ProvidedContentBody) ProtoMessage() {}
+func (*VStateReport_ProvidedContentBody) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7337ffe8f992c543, []int{3, 0}
+}
+func (m *VStateReport_ProvidedContentBody) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VStateReport_ProvidedContentBody) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_VStateReport_ProvidedContentBody.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *VStateReport_ProvidedContentBody) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VStateReport_ProvidedContentBody.Merge(m, src)
+}
+func (m *VStateReport_ProvidedContentBody) XXX_Size() int {
+	return m.Size()
+}
+func (m *VStateReport_ProvidedContentBody) XXX_DiscardUnknown() {
+	xxx_messageInfo_VStateReport_ProvidedContentBody.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VStateReport_ProvidedContentBody proto.InternalMessageInfo
+
+type ObjectState struct {
+	Reference     github_com_insolar_assured_ledger_ledger_core_v2_reference.Local `protobuf:"bytes,24,opt,name=Reference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"Reference"`
+	Parent        github_com_insolar_assured_ledger_ledger_core_v2_reference.Local `protobuf:"bytes,25,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"Parent"`
+	Prototype     github_com_insolar_assured_ledger_ledger_core_v2_reference.Local `protobuf:"bytes,26,opt,name=Prototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"Prototype"`
+	State         []byte                                                           `protobuf:"bytes,27,opt,name=State,proto3" json:"State,omitempty"`
+	PreviousState []byte                                                           `protobuf:"bytes,28,opt,name=PreviousState,proto3" json:"PreviousState,omitempty"`
+	Deactivated   bool                                                             `protobuf:"varint,29,opt,name=Deactivated,proto3" json:"Deactivated,omitempty"`
+}
+
+func (m *ObjectState) Reset()      { *m = ObjectState{} }
+func (*ObjectState) ProtoMessage() {}
+func (*ObjectState) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7337ffe8f992c543, []int{4}
+}
+func (m *ObjectState) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ObjectState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ObjectState.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ObjectState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ObjectState.Merge(m, src)
+}
+func (m *ObjectState) XXX_Size() int {
+	return m.Size()
+}
+func (m *ObjectState) XXX_DiscardUnknown() {
+	xxx_messageInfo_ObjectState.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ObjectState proto.InternalMessageInfo
+
 type VPendingDelegationRequest struct {
 	Polymorph          uint32                                                             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
 	Object             github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Object"`
@@ -299,7 +381,7 @@ type VPendingDelegationRequest struct {
 func (m *VPendingDelegationRequest) Reset()      { *m = VPendingDelegationRequest{} }
 func (*VPendingDelegationRequest) ProtoMessage() {}
 func (*VPendingDelegationRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7337ffe8f992c543, []int{4}
+	return fileDescriptor_7337ffe8f992c543, []int{5}
 }
 func (m *VPendingDelegationRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -345,7 +427,7 @@ type VDelegatedRequestFinished struct {
 func (m *VDelegatedRequestFinished) Reset()      { *m = VDelegatedRequestFinished{} }
 func (*VDelegatedRequestFinished) ProtoMessage() {}
 func (*VDelegatedRequestFinished) Descriptor() ([]byte, []int) {
-	return fileDescriptor_7337ffe8f992c543, []int{5}
+	return fileDescriptor_7337ffe8f992c543, []int{6}
 }
 func (m *VDelegatedRequestFinished) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -380,6 +462,8 @@ func init() {
 	proto.RegisterType((*VCallResult)(nil), "payload.VCallResult")
 	proto.RegisterType((*VStateRequest)(nil), "payload.VStateRequest")
 	proto.RegisterType((*VStateReport)(nil), "payload.VStateReport")
+	proto.RegisterType((*VStateReport_ProvidedContentBody)(nil), "payload.VStateReport.ProvidedContentBody")
+	proto.RegisterType((*ObjectState)(nil), "payload.ObjectState")
 	proto.RegisterType((*VPendingDelegationRequest)(nil), "payload.VPendingDelegationRequest")
 	proto.RegisterType((*VDelegatedRequestFinished)(nil), "payload.VDelegatedRequestFinished")
 }
@@ -387,99 +471,111 @@ func init() {
 func init() { proto.RegisterFile("insolar/payload/payload.r0.proto", fileDescriptor_7337ffe8f992c543) }
 
 var fileDescriptor_7337ffe8f992c543 = []byte{
-	// 1462 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x59, 0x4b, 0x6f, 0xdb, 0xc6,
-	0x16, 0x16, 0x73, 0x6d, 0x27, 0x39, 0x7e, 0x44, 0x99, 0xf8, 0x41, 0xbf, 0x68, 0x45, 0x79, 0xe9,
-	0xfa, 0xc6, 0xb2, 0x6f, 0x1a, 0x14, 0x59, 0xc6, 0x96, 0xdd, 0xc6, 0xad, 0x13, 0xab, 0x94, 0x60,
-	0x78, 0x59, 0x4a, 0x3c, 0x96, 0x19, 0x50, 0x1c, 0x75, 0x38, 0x4c, 0x2c, 0x20, 0x8b, 0x6e, 0x0b,
-	0xb4, 0x45, 0xd1, 0xff, 0x50, 0xa0, 0x7f, 0xa1, 0x8b, 0x76, 0x9d, 0x65, 0x96, 0x41, 0x0b, 0x04,
-	0xb5, 0xb2, 0xe9, 0x32, 0x3f, 0xa1, 0xe0, 0x0c, 0x25, 0x53, 0x14, 0xe5, 0x58, 0xa9, 0x14, 0x14,
-	0x68, 0x57, 0xa2, 0xbe, 0x33, 0x9a, 0x6f, 0x0e, 0xe7, 0xcc, 0xf7, 0x9d, 0xb1, 0x21, 0x65, 0x39,
-	0x2e, 0xb5, 0x0d, 0xb6, 0x5a, 0x33, 0xea, 0x36, 0x35, 0xcc, 0xe6, 0x67, 0x96, 0xad, 0x65, 0x6b,
-	0x8c, 0x72, 0x4a, 0xce, 0x07, 0xc8, 0xdc, 0x4a, 0xc5, 0xe2, 0x87, 0x5e, 0x29, 0x5b, 0xa6, 0xd5,
-	0xd5, 0x0a, 0xad, 0xd0, 0x55, 0x11, 0x2f, 0x79, 0x07, 0xe2, 0x9b, 0xf8, 0x22, 0x9e, 0xe4, 0xef,
-	0xd2, 0xbf, 0x24, 0x61, 0x6c, 0x2f, 0x67, 0xd8, 0xb6, 0x8e, 0x5f, 0x78, 0xe8, 0x72, 0xb2, 0x00,
-	0x17, 0xf3, 0xd4, 0xae, 0x57, 0x29, 0xab, 0x1d, 0xaa, 0xc9, 0x94, 0x92, 0x19, 0xd7, 0x4f, 0x00,
-	0xb2, 0x06, 0x17, 0xfc, 0xc1, 0xc5, 0x7a, 0x0d, 0xd5, 0xc9, 0x94, 0x92, 0x99, 0xb8, 0x33, 0x99,
-	0x6d, 0xae, 0xa5, 0x19, 0x78, 0x84, 0x4f, 0xf5, 0xd6, 0x28, 0x7f, 0x3e, 0xff, 0xf9, 0x23, 0xdb,
-	0xa8, 0xb8, 0xea, 0x54, 0x4a, 0xc9, 0x8c, 0xe9, 0x27, 0x00, 0x39, 0x94, 0xf3, 0xad, 0xbb, 0xbb,
-	0x07, 0xea, 0xb4, 0x1f, 0xdc, 0xd8, 0x79, 0xfe, 0x6a, 0x29, 0xf1, 0xeb, 0xab, 0xa5, 0xcd, 0x50,
-	0x1e, 0xcd, 0xec, 0x0d, 0xd7, 0xf5, 0x18, 0x9a, 0x2b, 0x36, 0x9a, 0x15, 0x64, 0xab, 0xf2, 0x63,
-	0xa5, 0x4c, 0x19, 0xae, 0x3e, 0xb9, 0xd3, 0x1c, 0x95, 0xcd, 0x7b, 0xb6, 0x8b, 0x8f, 0xbc, 0x6a,
-	0x09, 0x99, 0xde, 0x9a, 0x9d, 0x94, 0x60, 0xc4, 0x7f, 0x46, 0xa6, 0xce, 0x08, 0x9e, 0x4f, 0x02,
-	0x9e, 0x8d, 0x77, 0xe6, 0xd1, 0xf1, 0x00, 0x19, 0x3a, 0x65, 0xd4, 0x83, 0x99, 0x5b, 0x1c, 0xa8,
-	0xaa, 0x03, 0xe2, 0x40, 0xf2, 0x0c, 0xae, 0xf8, 0x4f, 0x05, 0x8b, 0xe3, 0x26, 0x96, 0x6d, 0x83,
-	0x19, 0xdc, 0xa2, 0x8e, 0x3a, 0xdb, 0x77, 0xc2, 0x38, 0x1a, 0x72, 0x13, 0x26, 0x9a, 0xf0, 0x43,
-	0xe4, 0x87, 0xd4, 0x54, 0xe7, 0x52, 0x4a, 0xe6, 0xa2, 0x1e, 0x41, 0x49, 0x1a, 0xc6, 0x04, 0xe2,
-	0x17, 0x95, 0x53, 0x46, 0x75, 0x5e, 0x6c, 0x7c, 0x1b, 0x46, 0x1e, 0x03, 0xc8, 0xc2, 0x33, 0x5c,
-	0xea, 0xa8, 0x0b, 0x7d, 0x4f, 0x20, 0x34, 0xbb, 0xbf, 0x33, 0x3a, 0xa5, 0xbc, 0xb8, 0xaf, 0x2e,
-	0xf6, 0x7f, 0x67, 0xe4, 0xcc, 0xcd, 0xdd, 0x2f, 0xee, 0xab, 0xda, 0x60, 0x76, 0xbf, 0xb8, 0x4f,
-	0x6a, 0x30, 0xbe, 0x75, 0x54, 0x43, 0xc7, 0xc5, 0x1c, 0x3a, 0x1c, 0x99, 0xba, 0xd4, 0x77, 0xaa,
-	0x76, 0x02, 0xc2, 0x60, 0x42, 0x47, 0x97, 0x7a, 0xac, 0xdc, 0xa4, 0x4c, 0xf5, 0x9d, 0x32, 0xc2,
-	0x40, 0x52, 0x30, 0x9a, 0x97, 0xa2, 0xf2, 0xc0, 0x70, 0x0f, 0xd5, 0xab, 0xa2, 0x78, 0xc2, 0x90,
-	0x5f, 0x87, 0x9b, 0x68, 0x63, 0x45, 0x54, 0x65, 0xa1, 0x86, 0x65, 0x35, 0x2d, 0x06, 0x45, 0x50,
-	0x92, 0x05, 0x12, 0x20, 0x94, 0x15, 0xac, 0x8a, 0x63, 0x70, 0x8f, 0xa1, 0x7a, 0x4d, 0x8c, 0x8d,
-	0x89, 0x90, 0xdb, 0x70, 0x39, 0xcf, 0xa8, 0xe9, 0x95, 0x31, 0x34, 0xfc, 0xba, 0x18, 0xde, 0x19,
-	0xf0, 0x67, 0xd7, 0xb1, 0x62, 0xb9, 0x9c, 0x19, 0xa1, 0xe1, 0x37, 0xe4, 0xec, 0x9d, 0x11, 0x72,
-	0x0f, 0x66, 0x5a, 0x68, 0x64, 0xf9, 0x37, 0xc5, 0x8f, 0xba, 0x85, 0xc9, 0x7d, 0x98, 0x8f, 0x86,
-	0xc2, 0x09, 0xdd, 0x12, 0xbf, 0x3e, 0x6d, 0x08, 0x59, 0x86, 0x64, 0x48, 0xe6, 0xa5, 0x1c, 0x67,
-	0x52, 0x4a, 0x66, 0x58, 0xef, 0xc0, 0x7d, 0x8d, 0xf9, 0xd4, 0xa1, 0x4f, 0x1d, 0x29, 0x39, 0xdb,
-	0x4e, 0x99, 0x56, 0x2d, 0xa7, 0xa2, 0xfe, 0xb7, 0xff, 0x1a, 0x13, 0x43, 0x43, 0xae, 0xc3, 0xf8,
-	0x96, 0xc3, 0x59, 0xfd, 0x01, 0x06, 0xfb, 0xbf, 0x2c, 0xb2, 0x6b, 0x07, 0x89, 0x2d, 0x15, 0x66,
-	0xd7, 0xe3, 0x15, 0xea, 0x2f, 0xee, 0x7f, 0x62, 0x71, 0x0f, 0x82, 0xc5, 0xdd, 0xef, 0x79, 0x71,
-	0xac, 0xb9, 0xa8, 0xec, 0x0e, 0x2d, 0x1b, 0xb6, 0xde, 0x36, 0xbb, 0xef, 0x53, 0xc5, 0xfd, 0xad,
-	0xa3, 0x9a, 0xc5, 0xea, 0xea, 0xed, 0x41, 0xf8, 0x54, 0x73, 0x76, 0x92, 0x81, 0x4b, 0x05, 0x2c,
-	0x7b, 0xcc, 0xe2, 0xf5, 0x1c, 0x75, 0x38, 0x1e, 0x71, 0x75, 0x45, 0xe4, 0x1f, 0x85, 0x7d, 0x67,
-	0x2d, 0xee, 0x37, 0xc7, 0x64, 0xa5, 0xb3, 0xb6, 0x00, 0x3f, 0xba, 0xce, 0x2a, 0x5e, 0x15, 0x1d,
-	0xee, 0xaa, 0xab, 0x32, 0xda, 0x02, 0x7c, 0x96, 0xad, 0x23, 0x8e, 0x8e, 0x6b, 0x51, 0xc7, 0x7f,
-	0x9d, 0xe8, 0xaa, 0x6b, 0x92, 0x25, 0x02, 0x13, 0x0d, 0xa0, 0x05, 0xb9, 0xea, 0xff, 0xc5, 0xa0,
-	0x10, 0x92, 0xfe, 0x19, 0x60, 0x34, 0x68, 0x20, 0x5c, 0xcf, 0xfe, 0xb7, 0x7f, 0xf8, 0xbb, 0xf7,
-	0x0f, 0x29, 0x18, 0x95, 0x3b, 0x25, 0xdf, 0xe8, 0xac, 0xd4, 0xd6, 0x10, 0xd4, 0x71, 0xb2, 0xe6,
-	0x06, 0x7a, 0xb2, 0x02, 0xb6, 0x96, 0xc8, 0xcc, 0x0f, 0x82, 0xad, 0xa5, 0x2d, 0x11, 0x67, 0x59,
-	0x38, 0x8b, 0xb3, 0x2c, 0xf6, 0xe0, 0x2c, 0x5a, 0x57, 0x67, 0x39, 0x02, 0x12, 0x5e, 0x89, 0x7c,
-	0xe1, 0x81, 0x7d, 0xf7, 0x2f, 0xdb, 0x18, 0x8e, 0x78, 0x4f, 0x4b, 0xf5, 0xe6, 0x69, 0x57, 0xdf,
-	0xc5, 0xd3, 0xd2, 0x7f, 0xc9, 0xd3, 0xae, 0xbd, 0xdd, 0xd3, 0x3a, 0x9c, 0xe2, 0x7a, 0x9c, 0x53,
-	0xc4, 0x28, 0xea, 0x8d, 0x78, 0x45, 0xcd, 0xc0, 0x25, 0x1d, 0xb9, 0xc7, 0x9c, 0x13, 0xe5, 0x94,
-	0xbe, 0x1c, 0x85, 0xe3, 0xf4, 0xf3, 0xd6, 0x59, 0xf4, 0x33, 0xd3, 0xa1, 0x9f, 0x3f, 0x0d, 0xc1,
-	0xf8, 0x5e, 0x81, 0x1b, 0x1c, 0xcf, 0x76, 0x03, 0xfb, 0x1c, 0x86, 0x84, 0xda, 0x4d, 0x0e, 0x40,
-	0xed, 0x86, 0xda, 0x94, 0x0e, 0xa5, 0xdc, 0x0e, 0x44, 0x85, 0x96, 0x21, 0x19, 0xa4, 0x8b, 0xa6,
-	0x78, 0xfb, 0x0e, 0x17, 0xfa, 0x3d, 0xac, 0x77, 0xe0, 0xe4, 0x2e, 0x4c, 0x45, 0xb1, 0x1d, 0xab,
-	0x6a, 0x71, 0x29, 0xc4, 0x7a, 0x7c, 0x90, 0xac, 0xc1, 0x95, 0x82, 0x57, 0xab, 0x51, 0xc6, 0xd1,
-	0x0c, 0x6d, 0x80, 0x10, 0x56, 0x3d, 0x2e, 0x14, 0x73, 0xf2, 0x67, 0x7b, 0x38, 0xf9, 0x73, 0xbd,
-	0xf5, 0x94, 0xf3, 0xdd, 0xce, 0x5f, 0x5c, 0x9f, 0xb6, 0x10, 0xdf, 0xa7, 0xa5, 0xbf, 0x19, 0x83,
-	0xb1, 0x66, 0xed, 0xf8, 0xe9, 0xfc, 0x23, 0x4a, 0x27, 0x62, 0x60, 0xd3, 0x9d, 0x06, 0xd6, 0xb9,
-	0x91, 0x33, 0x3d, 0x6c, 0xa4, 0xda, 0x75, 0x23, 0xef, 0xc2, 0xd4, 0x76, 0xb5, 0xea, 0x71, 0xa3,
-	0x64, 0x63, 0x1e, 0x1d, 0xd3, 0x72, 0x2a, 0x39, 0xea, 0x39, 0x5c, 0xd4, 0xc9, 0xb0, 0x1e, 0x1f,
-	0x24, 0xdf, 0x2b, 0xb0, 0x18, 0x8d, 0x6c, 0x19, 0xcc, 0xb6, 0xd0, 0xe5, 0xe2, 0x0d, 0x06, 0x06,
-	0xdb, 0xdf, 0xfd, 0x38, 0x9d, 0xd2, 0x3f, 0x1d, 0x0f, 0x63, 0x12, 0x99, 0x17, 0x89, 0xc4, 0x85,
-	0xc8, 0xb7, 0x0a, 0xcc, 0x3f, 0x3c, 0x25, 0x89, 0x85, 0x01, 0x24, 0x71, 0x1a, 0xa1, 0x6f, 0x3c,
-	0x79, 0x86, 0xd2, 0x1e, 0x90, 0xa1, 0xf9, 0x99, 0x87, 0x1e, 0xca, 0x34, 0x16, 0x45, 0x1a, 0xdd,
-	0xc2, 0xe4, 0x6b, 0x05, 0xe6, 0xda, 0x62, 0xed, 0x99, 0x68, 0x03, 0xc8, 0xe4, 0x14, 0x3e, 0xf2,
-	0x21, 0x4c, 0xe7, 0x99, 0x45, 0x85, 0x11, 0x19, 0xb6, 0x1d, 0xca, 0x63, 0x49, 0xe4, 0xd1, 0x25,
-	0x4a, 0x9e, 0xc1, 0xe4, 0x8e, 0xc1, 0xd1, 0xe5, 0x7b, 0x86, 0x6d, 0x99, 0x06, 0x47, 0x53, 0x48,
-	0x41, 0x70, 0x3f, 0xef, 0x5f, 0x4f, 0x11, 0xcb, 0xe2, 0xdf, 0x11, 0x23, 0x78, 0x8e, 0x9a, 0x41,
-	0xa3, 0xd0, 0xdf, 0x3b, 0x62, 0x0c, 0x0d, 0xe1, 0x90, 0x94, 0xf0, 0xa6, 0xc5, 0x78, 0x5d, 0xe6,
-	0x9d, 0xee, 0x73, 0xde, 0x1d, 0x0c, 0x84, 0xc3, 0xa5, 0x10, 0x26, 0xf2, 0xbd, 0xd6, 0xf7, 0x7c,
-	0xa3, 0x14, 0x7e, 0xaf, 0x91, 0x67, 0xf4, 0x89, 0x65, 0x9e, 0x58, 0xa5, 0xec, 0x73, 0xa2, 0x70,
-	0xfa, 0xb7, 0x73, 0x30, 0xbb, 0x17, 0x1c, 0x96, 0x13, 0xad, 0x3b, 0x5b, 0x5f, 0x51, 0x82, 0x91,
-	0xdd, 0xd2, 0x63, 0x2c, 0xf3, 0xc0, 0x1e, 0xfa, 0x2a, 0xdd, 0x72, 0x66, 0x62, 0xc2, 0xf9, 0x60,
-	0x31, 0x03, 0xf0, 0x87, 0xe6, 0xd4, 0x31, 0xf2, 0x3f, 0xdd, 0x83, 0xfc, 0xcf, 0x74, 0x93, 0xff,
-	0xf4, 0x57, 0xc3, 0x30, 0xbb, 0x17, 0xe0, 0x68, 0x36, 0x8d, 0xd8, 0x72, 0x2c, 0xf7, 0x10, 0xcd,
-	0xf7, 0x7c, 0xef, 0x3d, 0x31, 0xda, 0xe9, 0xf7, 0x65, 0xb4, 0x33, 0x6f, 0xbf, 0x29, 0xaa, 0xef,
-	0xf5, 0xa6, 0x38, 0x3b, 0xd0, 0x9b, 0x62, 0x67, 0x15, 0xcd, 0xf5, 0x50, 0x45, 0xf3, 0x5d, 0x9b,
-	0x88, 0x8e, 0x3b, 0xcb, 0x42, 0xdc, 0x9d, 0x45, 0x03, 0x90, 0x67, 0x66, 0x83, 0x9a, 0xf5, 0xe0,
-	0x06, 0x1a, 0x42, 0x96, 0x7f, 0x50, 0x60, 0x34, 0x54, 0x37, 0x64, 0x12, 0x92, 0xb9, 0xe2, 0xb6,
-	0x53, 0xa2, 0x9e, 0x63, 0xae, 0xe7, 0xb7, 0xfd, 0x50, 0x32, 0x41, 0xa6, 0xe0, 0x72, 0xae, 0xb8,
-	0xeb, 0xf1, 0x36, 0x58, 0x21, 0x63, 0x70, 0x21, 0x57, 0x94, 0x7f, 0xa8, 0x4f, 0x9e, 0x23, 0x97,
-	0x61, 0x3c, 0x57, 0xcc, 0x51, 0xc7, 0xe5, 0xcc, 0x2b, 0x73, 0xca, 0x92, 0xff, 0x21, 0x49, 0x18,
-	0xcb, 0x15, 0x1f, 0x51, 0x6e, 0x1d, 0x08, 0xcf, 0x49, 0x0e, 0x91, 0x09, 0x80, 0x5c, 0xb1, 0xb0,
-	0xfe, 0xf1, 0xba, 0xf8, 0x3e, 0x4c, 0x08, 0x4c, 0xe4, 0x8a, 0x79, 0x83, 0xf9, 0x95, 0x62, 0x0b,
-	0x6c, 0x44, 0x62, 0x85, 0xf2, 0x21, 0x9a, 0x9e, 0x8d, 0x02, 0x3b, 0xbf, 0x71, 0xef, 0xf9, 0xb1,
-	0x96, 0x78, 0x71, 0xac, 0x25, 0x5e, 0x1e, 0x6b, 0x89, 0x37, 0xc7, 0x9a, 0xf2, 0x65, 0x43, 0x53,
-	0x7e, 0x6c, 0x68, 0xca, 0xf3, 0x86, 0xa6, 0xbc, 0x68, 0x68, 0xca, 0xef, 0x0d, 0x4d, 0xf9, 0xa3,
-	0xa1, 0x25, 0xde, 0x34, 0x34, 0xe5, 0xbb, 0xd7, 0x5a, 0xe2, 0xc5, 0x6b, 0x2d, 0xf1, 0xf2, 0xb5,
-	0x96, 0x28, 0x8d, 0x88, 0xff, 0x4f, 0x7d, 0xf0, 0x67, 0x00, 0x00, 0x00, 0xff, 0xff, 0x58, 0xf6,
-	0x1f, 0x07, 0xfb, 0x1a, 0x00, 0x00,
+	// 1661 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x59, 0x4d, 0x6f, 0xdb, 0x46,
+	0x13, 0x16, 0x13, 0xdb, 0x49, 0xc6, 0x5f, 0xca, 0xc6, 0x1f, 0xb4, 0x64, 0xd3, 0x8a, 0xf2, 0xa5,
+	0xe4, 0x8d, 0x65, 0xbf, 0x79, 0x83, 0x17, 0x39, 0x15, 0xb1, 0x65, 0xa7, 0x76, 0xeb, 0xc4, 0x2a,
+	0x25, 0x18, 0x3e, 0x86, 0x12, 0xd7, 0x32, 0x03, 0x8a, 0xab, 0x2e, 0x97, 0x8e, 0x05, 0xe4, 0xd0,
+	0x6b, 0x81, 0xb6, 0x28, 0x7a, 0xef, 0xb1, 0x40, 0xff, 0x44, 0x7b, 0xf6, 0x31, 0xc7, 0xa0, 0x01,
+	0x82, 0xda, 0xb9, 0xf4, 0x98, 0x9f, 0x50, 0x70, 0x97, 0x92, 0x28, 0x8a, 0x52, 0xac, 0x94, 0x0a,
+	0x0a, 0xb4, 0x27, 0x4b, 0xcf, 0xac, 0xe6, 0xd9, 0xd9, 0x19, 0x3e, 0x33, 0x4b, 0x43, 0xca, 0xb0,
+	0x6c, 0x62, 0x6a, 0x74, 0xb9, 0xa6, 0xd5, 0x4d, 0xa2, 0xe9, 0x8d, 0xbf, 0x59, 0xba, 0x92, 0xad,
+	0x51, 0xc2, 0x08, 0xba, 0xe0, 0x21, 0x89, 0xa5, 0x8a, 0xc1, 0x0e, 0x9c, 0x52, 0xb6, 0x4c, 0xaa,
+	0xcb, 0x15, 0x52, 0x21, 0xcb, 0xdc, 0x5e, 0x72, 0xf6, 0xf9, 0x37, 0xfe, 0x85, 0x7f, 0x12, 0xbf,
+	0x4b, 0xff, 0x1a, 0x87, 0xb1, 0xdd, 0x9c, 0x66, 0x9a, 0x2a, 0xfe, 0xd2, 0xc1, 0x36, 0x43, 0xf3,
+	0x70, 0x29, 0x4f, 0xcc, 0x7a, 0x95, 0xd0, 0xda, 0x81, 0x1c, 0x4f, 0x49, 0x99, 0x71, 0xb5, 0x05,
+	0xa0, 0x15, 0xb8, 0xe8, 0x2e, 0x2e, 0xd6, 0x6b, 0x58, 0x9e, 0x4a, 0x49, 0x99, 0x89, 0x7b, 0x53,
+	0xd9, 0xc6, 0x5e, 0x1a, 0x86, 0x27, 0xf8, 0xb9, 0xda, 0x5c, 0xe5, 0xfa, 0x73, 0x3f, 0x3f, 0x32,
+	0xb5, 0x8a, 0x2d, 0x4f, 0xa7, 0xa4, 0xcc, 0x98, 0xda, 0x02, 0xd0, 0x81, 0xf0, 0xb7, 0x6a, 0xef,
+	0xec, 0xcb, 0x33, 0xae, 0x71, 0x6d, 0xfb, 0xf8, 0xcd, 0x62, 0xec, 0xb7, 0x37, 0x8b, 0xeb, 0xbe,
+	0x38, 0x1a, 0xd1, 0x6b, 0xb6, 0xed, 0x50, 0xac, 0x2f, 0x99, 0x58, 0xaf, 0x60, 0xba, 0x2c, 0xfe,
+	0x2c, 0x95, 0x09, 0xc5, 0xcb, 0x87, 0xf7, 0x1a, 0xab, 0xb2, 0x79, 0xc7, 0xb4, 0xf1, 0x13, 0xa7,
+	0x5a, 0xc2, 0x54, 0x6d, 0x7a, 0x47, 0x25, 0x18, 0x71, 0x3f, 0x63, 0x2a, 0xcf, 0x72, 0x9e, 0xcf,
+	0x3c, 0x9e, 0xb5, 0x0f, 0xe6, 0x51, 0xf1, 0x3e, 0xa6, 0xd8, 0x2a, 0x63, 0xd5, 0xf3, 0xdc, 0xe4,
+	0xc0, 0xb2, 0x3c, 0x20, 0x0e, 0x8c, 0x5e, 0xc0, 0x15, 0xf7, 0x53, 0xc1, 0x60, 0x78, 0x1d, 0x97,
+	0x4d, 0x8d, 0x6a, 0xcc, 0x20, 0x96, 0x3c, 0x17, 0x39, 0x61, 0x18, 0x0d, 0xba, 0x09, 0x13, 0x0d,
+	0xf8, 0x31, 0x66, 0x07, 0x44, 0x97, 0x13, 0x29, 0x29, 0x73, 0x49, 0x0d, 0xa0, 0x28, 0x0d, 0x63,
+	0x1c, 0x71, 0x8b, 0xca, 0x2a, 0x63, 0x39, 0xc9, 0x0b, 0xa9, 0x0d, 0x43, 0xcf, 0x00, 0x44, 0xe1,
+	0x69, 0x36, 0xb1, 0xe4, 0xf9, 0xc8, 0x03, 0xf0, 0x79, 0x77, 0x33, 0xa3, 0x12, 0xc2, 0x8a, 0x7b,
+	0xf2, 0x42, 0xf4, 0x99, 0x11, 0x9e, 0x1b, 0xd9, 0x2f, 0xee, 0xc9, 0xca, 0x60, 0xb2, 0x5f, 0xdc,
+	0x43, 0x35, 0x18, 0xdf, 0x38, 0xaa, 0x61, 0xcb, 0xc6, 0x39, 0x6c, 0x31, 0x4c, 0xe5, 0xc5, 0xc8,
+	0xa9, 0xda, 0x09, 0x10, 0x85, 0x09, 0x15, 0xdb, 0xc4, 0xa1, 0xe5, 0x06, 0x65, 0x2a, 0x72, 0xca,
+	0x00, 0x03, 0x4a, 0xc1, 0x68, 0x5e, 0x88, 0xca, 0xa6, 0x66, 0x1f, 0xc8, 0x57, 0xb9, 0x6a, 0xf8,
+	0x21, 0xb7, 0x0e, 0xd7, 0xb1, 0x89, 0x2b, 0xbc, 0x2a, 0x0b, 0x35, 0x5c, 0x96, 0xd3, 0x7c, 0x51,
+	0x00, 0x45, 0x59, 0x40, 0x1e, 0x42, 0x68, 0xc1, 0xa8, 0x58, 0x1a, 0x73, 0x28, 0x96, 0xaf, 0xf1,
+	0xb5, 0x21, 0x16, 0x74, 0x17, 0x2e, 0xe7, 0x29, 0xd1, 0x9d, 0x32, 0xf6, 0x2d, 0xbf, 0xce, 0x97,
+	0x77, 0x1a, 0x5c, 0xef, 0x2a, 0xae, 0x18, 0x36, 0xa3, 0x9a, 0x6f, 0xf9, 0x0d, 0xe1, 0xbd, 0xd3,
+	0x82, 0x1e, 0xc0, 0x6c, 0x13, 0x0d, 0x6c, 0xff, 0x26, 0xff, 0x51, 0x37, 0x33, 0x7a, 0x08, 0xc9,
+	0xa0, 0xc9, 0x1f, 0xd0, 0x2d, 0xfe, 0xeb, 0x5e, 0x4b, 0xd0, 0x1d, 0x88, 0xfb, 0x64, 0x5e, 0xc8,
+	0x71, 0x26, 0x25, 0x65, 0x86, 0xd5, 0x0e, 0xdc, 0xd5, 0x98, 0xcf, 0x2d, 0xf2, 0xdc, 0x12, 0x92,
+	0xb3, 0x65, 0x95, 0x49, 0xd5, 0xb0, 0x2a, 0xf2, 0xed, 0xe8, 0x35, 0x26, 0x84, 0x06, 0x5d, 0x87,
+	0xf1, 0x0d, 0x8b, 0xd1, 0xfa, 0x26, 0xf6, 0xf2, 0x7f, 0x87, 0x47, 0xd7, 0x0e, 0x22, 0x53, 0x28,
+	0xcc, 0x8e, 0xc3, 0x2a, 0xc4, 0xdd, 0xdc, 0x7f, 0xf8, 0xe6, 0x36, 0xbd, 0xcd, 0x3d, 0xec, 0x7b,
+	0x73, 0xb4, 0xb1, 0xa9, 0xec, 0x36, 0x29, 0x6b, 0xa6, 0xda, 0xe6, 0xdd, 0xed, 0x53, 0xc5, 0xbd,
+	0x8d, 0xa3, 0x9a, 0x41, 0xeb, 0xf2, 0xdd, 0x41, 0xf4, 0xa9, 0x86, 0x77, 0x94, 0x81, 0xc9, 0x02,
+	0x2e, 0x3b, 0xd4, 0x60, 0xf5, 0x1c, 0xb1, 0x18, 0x3e, 0x62, 0xf2, 0x12, 0x8f, 0x3f, 0x08, 0xbb,
+	0x9d, 0xb5, 0xb8, 0xd7, 0x58, 0x93, 0x15, 0x9d, 0xb5, 0x09, 0xb8, 0xd6, 0x55, 0x5a, 0x71, 0xaa,
+	0xd8, 0x62, 0xb6, 0xbc, 0x2c, 0xac, 0x4d, 0xc0, 0x65, 0xd9, 0x38, 0x62, 0xd8, 0xb2, 0x0d, 0x62,
+	0xb9, 0xc7, 0x89, 0x6d, 0x79, 0x45, 0xb0, 0x04, 0x60, 0xa4, 0x00, 0x34, 0x21, 0x5b, 0xfe, 0x2f,
+	0x5f, 0xe4, 0x43, 0xd2, 0xbf, 0x00, 0x8c, 0x7a, 0x03, 0x84, 0xed, 0x98, 0xff, 0xce, 0x0f, 0x7f,
+	0xf7, 0xf9, 0x21, 0x05, 0xa3, 0x22, 0x53, 0xe2, 0x44, 0xe7, 0x84, 0xb6, 0xfa, 0xa0, 0x8e, 0x27,
+	0x2b, 0x31, 0xd0, 0x27, 0xcb, 0x63, 0x6b, 0x8a, 0x4c, 0x72, 0x10, 0x6c, 0x4d, 0x6d, 0x09, 0x74,
+	0x96, 0xf9, 0xb3, 0x74, 0x96, 0x85, 0x3e, 0x3a, 0x8b, 0xd2, 0xb5, 0xb3, 0x1c, 0x01, 0xf2, 0xef,
+	0x44, 0x1c, 0xb8, 0xd7, 0xbe, 0xa3, 0x8b, 0x36, 0x84, 0x23, 0xbc, 0xa7, 0xa5, 0xfa, 0xeb, 0x69,
+	0x57, 0x3f, 0xa4, 0xa7, 0xa5, 0xff, 0x52, 0x4f, 0xbb, 0xf6, 0xfe, 0x9e, 0xd6, 0xd1, 0x29, 0xae,
+	0x87, 0x75, 0x8a, 0x10, 0x45, 0xbd, 0x11, 0xae, 0xa8, 0x19, 0x98, 0x54, 0x31, 0x73, 0xa8, 0xd5,
+	0x52, 0x4e, 0xd1, 0x97, 0x83, 0x70, 0x98, 0x7e, 0xde, 0x3a, 0x8b, 0x7e, 0x66, 0x3a, 0xf4, 0xf3,
+	0xf5, 0x10, 0x8c, 0xef, 0x16, 0x98, 0xc6, 0xf0, 0xd9, 0x6e, 0x60, 0x4f, 0x61, 0x88, 0xab, 0xdd,
+	0xd4, 0x00, 0xd4, 0x6e, 0xa8, 0x4d, 0xe9, 0xb0, 0x90, 0xdb, 0x81, 0xa8, 0xd0, 0x36, 0xc4, 0xbd,
+	0x70, 0xb1, 0xce, 0x4f, 0xdf, 0x62, 0x5c, 0xbf, 0x87, 0xd7, 0x52, 0x1e, 0x9b, 0xec, 0x3f, 0x13,
+	0x6f, 0x09, 0xd7, 0x27, 0xb5, 0xe3, 0x97, 0xe8, 0x3e, 0x4c, 0x07, 0xb1, 0x6d, 0xa3, 0x6a, 0x30,
+	0x21, 0xd5, 0x6a, 0xb8, 0x11, 0xad, 0xc0, 0x95, 0x82, 0x53, 0xab, 0x11, 0xca, 0xb0, 0xee, 0x4b,
+	0x11, 0x97, 0x5e, 0x35, 0xcc, 0x14, 0xa2, 0x0d, 0x73, 0x7d, 0x68, 0x43, 0xa2, 0xbf, 0xa9, 0x33,
+	0xd9, 0xed, 0x09, 0x0d, 0x9b, 0xe4, 0xe6, 0xc3, 0x27, 0xb9, 0xf4, 0xb1, 0x7b, 0xbd, 0xf7, 0x4e,
+	0xd2, 0x0d, 0xe7, 0x1f, 0x51, 0x5c, 0x81, 0x16, 0x37, 0xc3, 0xa3, 0x6c, 0x6b, 0x71, 0x9d, 0x89,
+	0x9c, 0xed, 0x23, 0x91, 0x72, 0xd7, 0x44, 0xde, 0x87, 0xe9, 0xad, 0x6a, 0xd5, 0x61, 0x5a, 0xc9,
+	0xc4, 0x79, 0x6c, 0xe9, 0x86, 0x55, 0xc9, 0x11, 0xc7, 0x62, 0xbc, 0x4e, 0x86, 0xd5, 0x70, 0x23,
+	0xfa, 0x41, 0x82, 0x85, 0xa0, 0x65, 0x43, 0xa3, 0xa6, 0x81, 0x6d, 0xc6, 0x4f, 0xd0, 0x6b, 0xc1,
+	0xd1, 0xe6, 0xa3, 0x37, 0xa5, 0xfb, 0x74, 0x3c, 0x0e, 0x09, 0x24, 0xc9, 0x03, 0x09, 0x33, 0xa1,
+	0xef, 0x24, 0x48, 0x3e, 0xee, 0x11, 0xc4, 0xfc, 0x00, 0x82, 0xe8, 0x45, 0xe8, 0xb6, 0xa6, 0x3c,
+	0xc5, 0xa2, 0x81, 0x60, 0x8a, 0xf5, 0x2f, 0x1c, 0xec, 0x60, 0x11, 0xc6, 0x02, 0x0f, 0xa3, 0x9b,
+	0x19, 0x7d, 0x23, 0x41, 0xa2, 0xcd, 0xd6, 0x1e, 0x89, 0x32, 0x80, 0x48, 0x7a, 0xf0, 0xa1, 0xff,
+	0xc3, 0x4c, 0x9e, 0x1a, 0x84, 0xb7, 0x2a, 0xcd, 0x34, 0x7d, 0x71, 0x2c, 0xf2, 0x38, 0xba, 0x58,
+	0xd1, 0x0b, 0x98, 0xda, 0xd6, 0x18, 0xb6, 0xd9, 0xae, 0x66, 0x1a, 0xba, 0xc6, 0xb0, 0xce, 0xa5,
+	0xc0, 0xbb, 0xc1, 0x47, 0x37, 0x75, 0x84, 0xb2, 0xb8, 0xb7, 0xc8, 0x00, 0x9e, 0x23, 0xba, 0x37,
+	0x4a, 0x44, 0x7b, 0x8b, 0x0c, 0xa1, 0x41, 0x0c, 0xe2, 0x02, 0x5e, 0x37, 0x28, 0xab, 0x8b, 0xb8,
+	0xd3, 0x11, 0xc7, 0xdd, 0xc1, 0x80, 0x18, 0x4c, 0xfa, 0x30, 0x1e, 0xef, 0xb5, 0xc8, 0xe3, 0x0d,
+	0x52, 0xa0, 0x02, 0x4c, 0xe6, 0x29, 0x39, 0x34, 0xf4, 0x56, 0x33, 0x75, 0x27, 0xa1, 0xd1, 0x7b,
+	0xb7, 0x9b, 0x97, 0x2b, 0x7f, 0x13, 0xc8, 0x06, 0x16, 0xaf, 0x11, 0xbd, 0xae, 0x06, 0x3d, 0x24,
+	0xbe, 0x1d, 0x82, 0x2b, 0x21, 0x0b, 0xd1, 0x66, 0x97, 0xa2, 0x92, 0x39, 0x63, 0xeb, 0x3a, 0xb7,
+	0x53, 0x7a, 0x86, 0xcb, 0x4c, 0xd0, 0x86, 0x17, 0xc8, 0xc3, 0x90, 0x14, 0xcd, 0xf5, 0xf0, 0xd2,
+	0x79, 0xdc, 0x8f, 0xc2, 0x4b, 0x2c, 0xd1, 0xc3, 0x49, 0x68, 0xb1, 0x7c, 0xd2, 0x99, 0xb6, 0x64,
+	0x0f, 0x1f, 0x1d, 0x09, 0xb0, 0x60, 0xcc, 0x13, 0x22, 0xfe, 0xf4, 0xc9, 0xf3, 0xa9, 0xf3, 0x11,
+	0xe7, 0xbc, 0xcd, 0x3f, 0xa2, 0x30, 0xd1, 0x54, 0x6f, 0xc1, 0xb8, 0x10, 0x39, 0x63, 0x80, 0x21,
+	0xfd, 0xe3, 0x79, 0x18, 0xf5, 0x1d, 0x02, 0xda, 0x87, 0x4b, 0xcd, 0xc5, 0xde, 0x7d, 0x35, 0xba,
+	0x27, 0xab, 0xe5, 0x1a, 0x3d, 0x85, 0x91, 0xbc, 0x46, 0xb1, 0xd7, 0x44, 0xa3, 0x24, 0xf1, 0xfc,
+	0xba, 0x91, 0xe4, 0x29, 0x61, 0x84, 0xd5, 0x6b, 0x38, 0xf2, 0xdb, 0x6e, 0xcb, 0x35, 0x9a, 0x82,
+	0x61, 0x51, 0xe4, 0x62, 0xb4, 0x13, 0x5f, 0xdc, 0x4b, 0x4c, 0x9e, 0xe2, 0x43, 0x83, 0x38, 0xb6,
+	0xb0, 0x8a, 0x4b, 0x69, 0x3b, 0xe8, 0xce, 0x34, 0xeb, 0x58, 0x2b, 0x33, 0xe3, 0xd0, 0x2d, 0x5a,
+	0xde, 0xbf, 0x2e, 0xaa, 0x7e, 0x28, 0xfd, 0xfa, 0x1c, 0xcc, 0xed, 0x7a, 0x7d, 0xb0, 0x35, 0xc6,
+	0x9c, 0xed, 0x52, 0x51, 0x82, 0x11, 0x91, 0x5a, 0x6f, 0xf2, 0x8b, 0x74, 0x2a, 0x13, 0x9e, 0x91,
+	0x0e, 0x17, 0xbc, 0xcd, 0x0c, 0x60, 0xf4, 0x6b, 0xb8, 0x0e, 0x99, 0xec, 0x66, 0xfa, 0x98, 0xec,
+	0x66, 0xbb, 0x4d, 0x76, 0xe9, 0xaf, 0x87, 0x61, 0x6e, 0xd7, 0xc3, 0xb1, 0xde, 0x98, 0xb1, 0x0d,
+	0xcb, 0xb0, 0x0f, 0xb0, 0xfe, 0x91, 0x5f, 0x7a, 0xb5, 0x66, 0xe8, 0x99, 0x8f, 0x35, 0x43, 0xcf,
+	0xbe, 0xff, 0x35, 0x91, 0xfc, 0x51, 0x5f, 0x13, 0xcd, 0x0d, 0xf4, 0x35, 0x51, 0x67, 0x15, 0x25,
+	0xfa, 0xa8, 0xa2, 0x64, 0xd7, 0xfb, 0x41, 0xc7, 0x0b, 0x8b, 0xf9, 0xb0, 0x17, 0x16, 0x0a, 0x80,
+	0x78, 0x66, 0xdc, 0x7e, 0xeb, 0xbd, 0x7e, 0xf2, 0x21, 0x77, 0x7e, 0x92, 0x60, 0xd4, 0x57, 0x37,
+	0x68, 0x0a, 0xe2, 0xb9, 0xe2, 0x96, 0x55, 0x22, 0x8e, 0xa5, 0xaf, 0xe6, 0xb7, 0x5c, 0x53, 0x3c,
+	0x86, 0xa6, 0xe1, 0x72, 0xae, 0xb8, 0xe3, 0xb0, 0x36, 0x58, 0x42, 0x63, 0x70, 0x31, 0x57, 0x14,
+	0xff, 0xa5, 0x8b, 0x9f, 0x43, 0x97, 0x61, 0x3c, 0x57, 0xcc, 0x11, 0xcb, 0x66, 0xd4, 0x29, 0x33,
+	0x42, 0xe3, 0xe7, 0x51, 0x1c, 0xc6, 0x72, 0xc5, 0x27, 0x84, 0x19, 0xfb, 0x7c, 0x9c, 0x8c, 0x0f,
+	0xa1, 0x09, 0x80, 0x5c, 0xb1, 0xb0, 0xfa, 0xe9, 0x2a, 0xff, 0x3e, 0x8c, 0x10, 0x4c, 0xe4, 0x8a,
+	0x79, 0x8d, 0xba, 0x95, 0x62, 0x72, 0x6c, 0x44, 0x60, 0x85, 0xf2, 0x01, 0xd6, 0x1d, 0x13, 0x73,
+	0xec, 0xc2, 0xda, 0x83, 0xe3, 0x13, 0x25, 0xf6, 0xf2, 0x44, 0x89, 0xbd, 0x3a, 0x51, 0x62, 0xef,
+	0x4e, 0x14, 0xe9, 0xab, 0x53, 0x45, 0xfa, 0xf9, 0x54, 0x91, 0x8e, 0x4f, 0x15, 0xe9, 0xe5, 0xa9,
+	0x22, 0xfd, 0x7e, 0xaa, 0x48, 0x7f, 0x9c, 0x2a, 0xb1, 0x77, 0xa7, 0x8a, 0xf4, 0xfd, 0x5b, 0x25,
+	0xf6, 0xf2, 0xad, 0x12, 0x7b, 0xf5, 0x56, 0x89, 0x95, 0x46, 0xf8, 0x3f, 0xa7, 0xff, 0xf7, 0x67,
+	0x00, 0x00, 0x00, 0xff, 0xff, 0x96, 0xae, 0x51, 0x52, 0xf8, 0x1e, 0x00, 0x00,
 }
 
 func (x CallTypeNew) String() string {
@@ -532,7 +628,7 @@ func (this *VCallRequest) Equal(that interface{}) bool {
 	if this.CallSiteMethod != that1.CallSiteMethod {
 		return false
 	}
-	if !bytes.Equal(this.CallSequence, that1.CallSequence) {
+	if this.CallSequence != that1.CallSequence {
 		return false
 	}
 	if !this.CallReason.Equal(that1.CallReason) {
@@ -718,7 +814,7 @@ func (this *VStateRequest) Equal(that interface{}) bool {
 	if !this.Callee.Equal(that1.Callee) {
 		return false
 	}
-	if this.RequestedContent != that1.RequestedContent {
+	if !this.RequestedContent.Equal(that1.RequestedContent) {
 		return false
 	}
 	if !bytes.Equal(this.RequestedContentLimit, that1.RequestedContentLimit) {
@@ -769,7 +865,7 @@ func (this *VStateReport) Equal(that interface{}) bool {
 	if !this.Callee.Equal(that1.Callee) {
 		return false
 	}
-	if !bytes.Equal(this.ResultFlags, that1.ResultFlags) {
+	if this.ResultFlags != that1.ResultFlags {
 		return false
 	}
 	if !bytes.Equal(this.DelegationSpec, that1.DelegationSpec) {
@@ -811,7 +907,95 @@ func (this *VStateReport) Equal(that interface{}) bool {
 	if !this.LatestDirtyCode.Equal(that1.LatestDirtyCode) {
 		return false
 	}
-	if !bytes.Equal(this.ProvidedContent, that1.ProvidedContent) {
+	if !this.ProvidedContent.Equal(that1.ProvidedContent) {
+		return false
+	}
+	return true
+}
+func (this *VStateReport_ProvidedContentBody) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VStateReport_ProvidedContentBody)
+	if !ok {
+		that2, ok := that.(VStateReport_ProvidedContentBody)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.LatestValidatedState.Equal(that1.LatestValidatedState) {
+		return false
+	}
+	if !this.LatestDirtyState.Equal(that1.LatestDirtyState) {
+		return false
+	}
+	if !this.LatestValidatedCode.Equal(that1.LatestValidatedCode) {
+		return false
+	}
+	if !this.LatestDirtyCode.Equal(that1.LatestDirtyCode) {
+		return false
+	}
+	if len(this.MutableQueue) != len(that1.MutableQueue) {
+		return false
+	}
+	for i := range this.MutableQueue {
+		if !this.MutableQueue[i].Equal(that1.MutableQueue[i]) {
+			return false
+		}
+	}
+	if len(this.ImmutableQueue) != len(that1.ImmutableQueue) {
+		return false
+	}
+	for i := range this.ImmutableQueue {
+		if !this.ImmutableQueue[i].Equal(that1.ImmutableQueue[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *ObjectState) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ObjectState)
+	if !ok {
+		that2, ok := that.(ObjectState)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Reference.Equal(that1.Reference) {
+		return false
+	}
+	if !this.Parent.Equal(that1.Parent) {
+		return false
+	}
+	if !this.Prototype.Equal(that1.Prototype) {
+		return false
+	}
+	if !bytes.Equal(this.State, that1.State) {
+		return false
+	}
+	if !bytes.Equal(this.PreviousState, that1.PreviousState) {
+		return false
+	}
+	if this.Deactivated != that1.Deactivated {
 		return false
 	}
 	return true
@@ -1019,7 +1203,47 @@ func (this *VStateReport) GoString() string {
 	s = append(s, "LatestValidatedCode: "+fmt.Sprintf("%#v", this.LatestValidatedCode)+",\n")
 	s = append(s, "LatestDirtyState: "+fmt.Sprintf("%#v", this.LatestDirtyState)+",\n")
 	s = append(s, "LatestDirtyCode: "+fmt.Sprintf("%#v", this.LatestDirtyCode)+",\n")
-	s = append(s, "ProvidedContent: "+fmt.Sprintf("%#v", this.ProvidedContent)+",\n")
+	if this.ProvidedContent != nil {
+		s = append(s, "ProvidedContent: "+fmt.Sprintf("%#v", this.ProvidedContent)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *VStateReport_ProvidedContentBody) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&payload.VStateReport_ProvidedContentBody{")
+	if this.LatestValidatedState != nil {
+		s = append(s, "LatestValidatedState: "+fmt.Sprintf("%#v", this.LatestValidatedState)+",\n")
+	}
+	if this.LatestDirtyState != nil {
+		s = append(s, "LatestDirtyState: "+fmt.Sprintf("%#v", this.LatestDirtyState)+",\n")
+	}
+	if this.LatestValidatedCode != nil {
+		s = append(s, "LatestValidatedCode: "+fmt.Sprintf("%#v", this.LatestValidatedCode)+",\n")
+	}
+	if this.LatestDirtyCode != nil {
+		s = append(s, "LatestDirtyCode: "+fmt.Sprintf("%#v", this.LatestDirtyCode)+",\n")
+	}
+	s = append(s, "MutableQueue: "+fmt.Sprintf("%#v", this.MutableQueue)+",\n")
+	s = append(s, "ImmutableQueue: "+fmt.Sprintf("%#v", this.ImmutableQueue)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ObjectState) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&payload.ObjectState{")
+	s = append(s, "Reference: "+fmt.Sprintf("%#v", this.Reference)+",\n")
+	s = append(s, "Parent: "+fmt.Sprintf("%#v", this.Parent)+",\n")
+	s = append(s, "Prototype: "+fmt.Sprintf("%#v", this.Prototype)+",\n")
+	s = append(s, "State: "+fmt.Sprintf("%#v", this.State)+",\n")
+	s = append(s, "PreviousState: "+fmt.Sprintf("%#v", this.PreviousState)+",\n")
+	s = append(s, "Deactivated: "+fmt.Sprintf("%#v", this.Deactivated)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1150,13 +1374,12 @@ func (m *VCallRequest) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.CallSiteMethod)))
 		i += copy(dAtA[i:], m.CallSiteMethod)
 	}
-	if len(m.CallSequence) > 0 {
-		dAtA[i] = 0xda
+	if m.CallSequence != 0 {
+		dAtA[i] = 0xd8
 		i++
 		dAtA[i] = 0x1
 		i++
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.CallSequence)))
-		i += copy(dAtA[i:], m.CallSequence)
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallSequence))
 	}
 	dAtA[i] = 0xe2
 	i++
@@ -1697,13 +1920,12 @@ func (m *VStateReport) MarshalTo(dAtA []byte) (int, error) {
 		return 0, err
 	}
 	i += n22
-	if len(m.ResultFlags) > 0 {
-		dAtA[i] = 0xb2
+	if m.ResultFlags != 0 {
+		dAtA[i] = 0xb0
 		i++
 		dAtA[i] = 0x1
 		i++
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ResultFlags)))
-		i += copy(dAtA[i:], m.ResultFlags)
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.ResultFlags))
 	}
 	if len(m.DelegationSpec) > 0 {
 		dAtA[i] = 0xba
@@ -1819,13 +2041,187 @@ func (m *VStateReport) MarshalTo(dAtA []byte) (int, error) {
 		return 0, err
 	}
 	i += n29
-	if len(m.ProvidedContent) > 0 {
+	if m.ProvidedContent != nil {
 		dAtA[i] = 0xa2
 		i++
 		dAtA[i] = 0x2
 		i++
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProvidedContent)))
-		i += copy(dAtA[i:], m.ProvidedContent)
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.ProvidedContent.Size()))
+		n30, err := m.ProvidedContent.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n30
+	}
+	return i, nil
+}
+
+func (m *VStateReport_ProvidedContentBody) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VStateReport_ProvidedContentBody) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.LatestValidatedState != nil {
+		dAtA[i] = 0xc2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestValidatedState.Size()))
+		n31, err := m.LatestValidatedState.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n31
+	}
+	if m.LatestDirtyState != nil {
+		dAtA[i] = 0xca
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestDirtyState.Size()))
+		n32, err := m.LatestDirtyState.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n32
+	}
+	if m.LatestValidatedCode != nil {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestValidatedCode.Size()))
+		n33, err := m.LatestValidatedCode.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n33
+	}
+	if m.LatestDirtyCode != nil {
+		dAtA[i] = 0xda
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestDirtyCode.Size()))
+		n34, err := m.LatestDirtyCode.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n34
+	}
+	if len(m.MutableQueue) > 0 {
+		for _, msg := range m.MutableQueue {
+			dAtA[i] = 0xe2
+			i++
+			dAtA[i] = 0x1
+			i++
+			i = encodeVarintPayloadR0(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	if len(m.ImmutableQueue) > 0 {
+		for _, msg := range m.ImmutableQueue {
+			dAtA[i] = 0xea
+			i++
+			dAtA[i] = 0x1
+			i++
+			i = encodeVarintPayloadR0(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *ObjectState) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectState) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	dAtA[i] = 0xc2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Reference.Size()))
+	n35, err := m.Reference.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n35
+	dAtA[i] = 0xca
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Parent.Size()))
+	n36, err := m.Parent.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n36
+	dAtA[i] = 0xd2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Prototype.Size()))
+	n37, err := m.Prototype.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n37
+	if len(m.State) > 0 {
+		dAtA[i] = 0xda
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.State)))
+		i += copy(dAtA[i:], m.State)
+	}
+	if len(m.PreviousState) > 0 {
+		dAtA[i] = 0xe2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PreviousState)))
+		i += copy(dAtA[i:], m.PreviousState)
+	}
+	if m.Deactivated {
+		dAtA[i] = 0xe8
+		i++
+		dAtA[i] = 0x1
+		i++
+		if m.Deactivated {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i++
 	}
 	return i, nil
 }
@@ -1857,21 +2253,21 @@ func (m *VPendingDelegationRequest) MarshalTo(dAtA []byte) (int, error) {
 	dAtA[i] = 0x1
 	i++
 	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Object.Size()))
-	n30, err := m.Object.MarshalTo(dAtA[i:])
+	n38, err := m.Object.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n30
+	i += n38
 	dAtA[i] = 0xaa
 	i++
 	dAtA[i] = 0x1
 	i++
 	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Request.Size()))
-	n31, err := m.Request.MarshalTo(dAtA[i:])
+	n39, err := m.Request.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n31
+	i += n39
 	if len(m.DelegationSpec) > 0 {
 		dAtA[i] = 0xb2
 		i++
@@ -1933,11 +2329,11 @@ func (m *VDelegatedRequestFinished) MarshalTo(dAtA []byte) (int, error) {
 	dAtA[i] = 0x1
 	i++
 	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Callee.Size()))
-	n32, err := m.Callee.MarshalTo(dAtA[i:])
+	n40, err := m.Callee.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n32
+	i += n40
 	if len(m.ResultFlags) > 0 {
 		dAtA[i] = 0xba
 		i++
@@ -1951,21 +2347,21 @@ func (m *VDelegatedRequestFinished) MarshalTo(dAtA []byte) (int, error) {
 	dAtA[i] = 0x1
 	i++
 	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallOutgoing.Size()))
-	n33, err := m.CallOutgoing.MarshalTo(dAtA[i:])
+	n41, err := m.CallOutgoing.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n33
+	i += n41
 	dAtA[i] = 0xca
 	i++
 	dAtA[i] = 0x1
 	i++
 	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallIncoming.Size()))
-	n34, err := m.CallIncoming.MarshalTo(dAtA[i:])
+	n42, err := m.CallIncoming.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n34
+	i += n42
 	if len(m.DelegationSpec) > 0 {
 		dAtA[i] = 0xd2
 		i++
@@ -2038,9 +2434,8 @@ func (m *VCallRequest) Size() (n int) {
 	if l > 0 {
 		n += 2 + l + sovPayloadR0(uint64(l))
 	}
-	l = len(m.CallSequence)
-	if l > 0 {
-		n += 2 + l + sovPayloadR0(uint64(l))
+	if m.CallSequence != 0 {
+		n += 2 + sovPayloadR0(uint64(m.CallSequence))
 	}
 	l = m.CallReason.Size()
 	n += 2 + l + sovPayloadR0(uint64(l))
@@ -2254,9 +2649,8 @@ func (m *VStateReport) Size() (n int) {
 	n += 2 + l + sovPayloadR0(uint64(l))
 	l = m.Callee.Size()
 	n += 2 + l + sovPayloadR0(uint64(l))
-	l = len(m.ResultFlags)
-	if l > 0 {
-		n += 2 + l + sovPayloadR0(uint64(l))
+	if m.ResultFlags != 0 {
+		n += 2 + sovPayloadR0(uint64(m.ResultFlags))
 	}
 	l = len(m.DelegationSpec)
 	if l > 0 {
@@ -2292,9 +2686,72 @@ func (m *VStateReport) Size() (n int) {
 	n += 2 + l + sovPayloadR0(uint64(l))
 	l = m.LatestDirtyCode.Size()
 	n += 2 + l + sovPayloadR0(uint64(l))
-	l = len(m.ProvidedContent)
+	if m.ProvidedContent != nil {
+		l = m.ProvidedContent.Size()
+		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	return n
+}
+
+func (m *VStateReport_ProvidedContentBody) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.LatestValidatedState != nil {
+		l = m.LatestValidatedState.Size()
+		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	if m.LatestDirtyState != nil {
+		l = m.LatestDirtyState.Size()
+		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	if m.LatestValidatedCode != nil {
+		l = m.LatestValidatedCode.Size()
+		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	if m.LatestDirtyCode != nil {
+		l = m.LatestDirtyCode.Size()
+		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	if len(m.MutableQueue) > 0 {
+		for _, e := range m.MutableQueue {
+			l = e.Size()
+			n += 2 + l + sovPayloadR0(uint64(l))
+		}
+	}
+	if len(m.ImmutableQueue) > 0 {
+		for _, e := range m.ImmutableQueue {
+			l = e.Size()
+			n += 2 + l + sovPayloadR0(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *ObjectState) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.Reference.Size()
+	n += 2 + l + sovPayloadR0(uint64(l))
+	l = m.Parent.Size()
+	n += 2 + l + sovPayloadR0(uint64(l))
+	l = m.Prototype.Size()
+	n += 2 + l + sovPayloadR0(uint64(l))
+	l = len(m.State)
 	if l > 0 {
 		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	l = len(m.PreviousState)
+	if l > 0 {
+		n += 2 + l + sovPayloadR0(uint64(l))
+	}
+	if m.Deactivated {
+		n += 3
 	}
 	return n
 }
@@ -2493,7 +2950,37 @@ func (this *VStateReport) String() string {
 		`LatestValidatedCode:` + fmt.Sprintf("%v", this.LatestValidatedCode) + `,`,
 		`LatestDirtyState:` + fmt.Sprintf("%v", this.LatestDirtyState) + `,`,
 		`LatestDirtyCode:` + fmt.Sprintf("%v", this.LatestDirtyCode) + `,`,
-		`ProvidedContent:` + fmt.Sprintf("%v", this.ProvidedContent) + `,`,
+		`ProvidedContent:` + strings.Replace(fmt.Sprintf("%v", this.ProvidedContent), "VStateReport_ProvidedContentBody", "VStateReport_ProvidedContentBody", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *VStateReport_ProvidedContentBody) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&VStateReport_ProvidedContentBody{`,
+		`LatestValidatedState:` + strings.Replace(fmt.Sprintf("%v", this.LatestValidatedState), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestDirtyState:` + strings.Replace(fmt.Sprintf("%v", this.LatestDirtyState), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestValidatedCode:` + strings.Replace(fmt.Sprintf("%v", this.LatestValidatedCode), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestDirtyCode:` + strings.Replace(fmt.Sprintf("%v", this.LatestDirtyCode), "ObjectState", "ObjectState", 1) + `,`,
+		`MutableQueue:` + fmt.Sprintf("%v", this.MutableQueue) + `,`,
+		`ImmutableQueue:` + fmt.Sprintf("%v", this.ImmutableQueue) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ObjectState) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ObjectState{`,
+		`Reference:` + fmt.Sprintf("%v", this.Reference) + `,`,
+		`Parent:` + fmt.Sprintf("%v", this.Parent) + `,`,
+		`Prototype:` + fmt.Sprintf("%v", this.Prototype) + `,`,
+		`State:` + fmt.Sprintf("%v", this.State) + `,`,
+		`PreviousState:` + fmt.Sprintf("%v", this.PreviousState) + `,`,
+		`Deactivated:` + fmt.Sprintf("%v", this.Deactivated) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -2806,10 +3293,10 @@ func (m *VCallRequest) Unmarshal(dAtA []byte) error {
 			m.CallSiteMethod = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 27:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallSequence", wireType)
 			}
-			var byteLen int
+			m.CallSequence = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowPayloadR0
@@ -2819,26 +3306,11 @@ func (m *VCallRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				m.CallSequence |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPayloadR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPayloadR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CallSequence = append(m.CallSequence[:0], dAtA[iNdEx:postIndex]...)
-			if m.CallSequence == nil {
-				m.CallSequence = []byte{}
-			}
-			iNdEx = postIndex
 		case 28:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallReason", wireType)
@@ -4481,7 +4953,7 @@ func (m *VStateRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.RequestedContent |= int32(b&0x7F) << shift
+				m.RequestedContent |= StateRequestContentFlags(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4814,10 +5286,10 @@ func (m *VStateReport) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 22:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ResultFlags", wireType)
 			}
-			var byteLen int
+			m.ResultFlags = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowPayloadR0
@@ -4827,26 +5299,11 @@ func (m *VStateReport) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				m.ResultFlags |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPayloadR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPayloadR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ResultFlags = append(m.ResultFlags[:0], dAtA[iNdEx:postIndex]...)
-			if m.ResultFlags == nil {
-				m.ResultFlags = []byte{}
-			}
-			iNdEx = postIndex
 		case 23:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
@@ -5226,6 +5683,239 @@ func (m *VStateReport) Unmarshal(dAtA []byte) error {
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProvidedContent", wireType)
 			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ProvidedContent == nil {
+				m.ProvidedContent = &VStateReport_ProvidedContentBody{}
+			}
+			if err := m.ProvidedContent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPayloadR0(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VStateReport_ProvidedContentBody) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPayloadR0
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ProvidedContentBody: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ProvidedContentBody: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 24:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedState", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LatestValidatedState == nil {
+				m.LatestValidatedState = &ObjectState{}
+			}
+			if err := m.LatestValidatedState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 25:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyState", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LatestDirtyState == nil {
+				m.LatestDirtyState = &ObjectState{}
+			}
+			if err := m.LatestDirtyState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 26:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedCode", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LatestValidatedCode == nil {
+				m.LatestValidatedCode = &ObjectState{}
+			}
+			if err := m.LatestValidatedCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 27:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyCode", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.LatestDirtyCode == nil {
+				m.LatestDirtyCode = &ObjectState{}
+			}
+			if err := m.LatestDirtyCode.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 28:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MutableQueue", wireType)
+			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
@@ -5251,11 +5941,287 @@ func (m *VStateReport) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ProvidedContent = append(m.ProvidedContent[:0], dAtA[iNdEx:postIndex]...)
-			if m.ProvidedContent == nil {
-				m.ProvidedContent = []byte{}
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+			m.MutableQueue = append(m.MutableQueue, v)
+			if err := m.MutableQueue[len(m.MutableQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
+		case 29:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImmutableQueue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+			m.ImmutableQueue = append(m.ImmutableQueue, v)
+			if err := m.ImmutableQueue[len(m.ImmutableQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPayloadR0(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ObjectState) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPayloadR0
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 24:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reference", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Reference.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 25:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Parent", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Parent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 26:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prototype", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Prototype.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 27:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.State = append(m.State[:0], dAtA[iNdEx:postIndex]...)
+			if m.State == nil {
+				m.State = []byte{}
+			}
+			iNdEx = postIndex
+		case 28:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreviousState", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayloadR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PreviousState = append(m.PreviousState[:0], dAtA[iNdEx:postIndex]...)
+			if m.PreviousState == nil {
+				m.PreviousState = []byte{}
+			}
+			iNdEx = postIndex
+		case 29:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deactivated", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayloadR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Deactivated = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipPayloadR0(dAtA[iNdEx:])

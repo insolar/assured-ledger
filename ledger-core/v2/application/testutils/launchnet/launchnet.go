@@ -7,7 +7,6 @@ package launchnet
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,18 +16,15 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
@@ -48,21 +44,11 @@ var testRPCUrlVar = "INSOLAR_FUNC_RPC_URL"
 var testRPCUrlPublicVar = "INSOLAR_FUNC_RPC_URL_PUBLIC"
 var keysPathVar = "INSOLAR_FUNC_KEYS_PATH"
 
-const insolarRootMemberKeys = "root_member_keys.json"
-const insolarMigrationAdminMemberKeys = "migration_admin_member_keys.json"
-const insolarFeeMemberKeys = "fee_member_keys.json"
-
 var cmd *exec.Cmd
 var cmdCompleted = make(chan error, 1)
 var stdin io.WriteCloser
 var stdout io.ReadCloser
 var stderr io.ReadCloser
-
-var ApplicationIncentives [application.GenesisAmountApplicationIncentivesMembers]*User
-var NetworkIncentives [application.GenesisAmountNetworkIncentivesMembers]*User
-var Enterprise [application.GenesisAmountEnterpriseMembers]*User
-var Foundation [application.GenesisAmountFoundationMembers]*User
-var Funds [application.GenesisAmountFundsMembers]*User
 
 var projectRoot string
 var rootOnce sync.Once
@@ -114,12 +100,6 @@ func Run(cb func() int) int {
 	}
 	return code
 }
-
-var info *requester.InfoResponse
-var Root User
-var MigrationAdmin User
-var FeeMember User
-var MigrationDaemons [application.GenesisAmountMigrationDaemonMembers]*User
 
 type User struct {
 	Ref              string
@@ -174,164 +154,6 @@ func GetNodesCount() (int, error) {
 	return len(conf.DiscoverNodes) + len(conf.Nodes), nil
 }
 
-func GetNumShards() (int, error) {
-	type bootstrapConf struct {
-		PKShardCount int `yaml:"ma_shard_count"`
-	}
-
-	var conf bootstrapConf
-
-	path, err := launchnetPath("bootstrap.yaml")
-	if err != nil {
-		return 0, err
-	}
-	buff, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, errors.Wrap(err, "[ GetNumShards ] Can't read bootstrap config")
-	}
-
-	err = yaml.Unmarshal(buff, &conf)
-	if err != nil {
-		return 0, errors.Wrap(err, "[ GetNumShards ] Can't parse bootstrap config")
-	}
-
-	return conf.PKShardCount, nil
-}
-
-func loadMemberKeys(keysPath string, member *User) error {
-	text, err := ioutil.ReadFile(keysPath)
-	if err != nil {
-		return errors.Wrapf(err, "[ loadMemberKeys ] could't load member keys")
-	}
-	var data map[string]string
-	err = json.Unmarshal(text, &data)
-	if err != nil {
-		return errors.Wrapf(err, "[ loadMemberKeys ] could't unmarshal member keys")
-	}
-	if data["private_key"] == "" || data["public_key"] == "" {
-		return errors.New("[ loadMemberKeys ] could't find any keys")
-	}
-	member.PrivKey = data["private_key"]
-	member.PubKey = data["public_key"]
-
-	return nil
-}
-
-func loadAllMembersKeys() error {
-	path, err := launchnetPath("configs", insolarRootMemberKeys)
-	if err != nil {
-		return err
-	}
-	err = loadMemberKeys(path, &Root)
-	if err != nil {
-		return err
-	}
-	path, err = launchnetPath("configs", insolarFeeMemberKeys)
-	if err != nil {
-		return err
-	}
-	err = loadMemberKeys(path, &FeeMember)
-	if err != nil {
-		return err
-	}
-	path, err = launchnetPath("configs", insolarMigrationAdminMemberKeys)
-	if err != nil {
-		return err
-	}
-	err = loadMemberKeys(path, &MigrationAdmin)
-	if err != nil {
-		return err
-	}
-	for i := range MigrationDaemons {
-		path, err := launchnetPath("configs", "migration_daemon_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		MigrationDaemons[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountApplicationIncentivesMembers; i++ {
-		path, err := launchnetPath("configs", "application_incentives_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		ApplicationIncentives[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountNetworkIncentivesMembers; i++ {
-		path, err := launchnetPath("configs", "network_incentives_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		NetworkIncentives[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountFoundationMembers; i++ {
-		path, err := launchnetPath("configs", "foundation_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		Foundation[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountFundsMembers; i++ {
-		path, err := launchnetPath("configs", "funds_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		Funds[i] = &md
-	}
-
-	for i := 0; i < application.GenesisAmountEnterpriseMembers; i++ {
-		path, err := launchnetPath("configs", "enterprise_"+strconv.Itoa(i)+"_member_keys.json")
-		if err != nil {
-			return err
-		}
-		var md User
-		err = loadMemberKeys(path, &md)
-		if err != nil {
-			return err
-		}
-		Enterprise[i] = &md
-	}
-
-	return nil
-}
-
-func setInfo() error {
-	var err error
-	info, err = requester.Info(TestRPCUrl)
-	if err != nil {
-		return errors.Wrap(err, "[ setInfo ] error sending request")
-	}
-	return nil
-}
-
 func stopInsolard() error {
 	if stdin != nil {
 		defer stdin.Close()
@@ -359,7 +181,7 @@ func stopInsolard() error {
 	return nil
 }
 
-func waitForNet() error {
+func waitForNetworkState(state insolar.NetworkState) error {
 	numAttempts := 270
 	// TODO: read ports from bootstrap config
 	ports := []string{
@@ -377,6 +199,7 @@ func waitForNet() error {
 	}
 	numNodes := len(ports)
 	currentOk := 0
+	fmt.Println("Waiting for Network state: ", state.String())
 	for i := 0; i < numAttempts; i++ {
 		currentOk = 0
 		for _, port := range ports {
@@ -385,7 +208,7 @@ func waitForNet() error {
 				fmt.Println("[ waitForNet ] Problem with port " + port + ". Err: " + err.Error())
 				break
 			}
-			if resp.NetworkState != insolar.CompleteNetworkState.String() {
+			if resp.NetworkState != state.String() {
 				fmt.Println("[ waitForNet ] Good response from port " + port + ". Net is not ready. Response: " + resp.NetworkState)
 				break
 			}
@@ -393,7 +216,6 @@ func waitForNet() error {
 			currentOk++
 		}
 		if currentOk == numNodes {
-			fmt.Printf("[ waitForNet ] All %d nodes have started\n", numNodes)
 			break
 		}
 
@@ -403,6 +225,34 @@ func waitForNet() error {
 
 	if currentOk != numNodes {
 		return errors.New("[ waitForNet ] Can't Start net: No attempts left")
+	}
+	fmt.Println("All nodes have state", state.String())
+
+	return nil
+}
+
+func runPulsar() error {
+	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard -o -c .artifacts/launchnet/pulsar.yaml")
+	output, err := pulsarCmd.CombinedOutput()
+	fmt.Println("Pulsar launch output: ", string(output))
+
+	return errors.Wrap(err, "failed to launch pulsar")
+}
+
+func waitForNet() error {
+	err := waitForNetworkState(insolar.WaitPulsar)
+	if err != nil {
+		return errors.Wrap(err, "Can't wait for NetworkState "+insolar.WaitPulsar.String())
+	}
+
+	err = runPulsar()
+	if err != nil {
+		return errors.Wrap(err, "Can't run pulsar")
+	}
+
+	err = waitForNetworkState(insolar.CompleteNetworkState)
+	if err != nil {
+		return errors.Wrap(err, "Can't wait for NetworkState "+insolar.CompleteNetworkState.String())
 	}
 
 	return nil
@@ -427,7 +277,7 @@ func startNet() error {
 	// be eventually started with --log-level=debug. Otherwise someone will spent
 	// a lot of time trying to figure out why insgorund debug logs are missing
 	// during execution of functests.
-	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gw")
+	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gwp")
 	stdout, _ = cmd.StdoutPipe()
 
 	stderr, err = cmd.StderrPipe()
@@ -518,31 +368,6 @@ func setup() error {
 		AdminHostPort = strings.Join(url[0:len(url)-1], "/")
 		disableLaunchnet = true
 	}
-
-	err := loadAllMembersKeys()
-	if err != nil {
-		return errors.Wrap(err, "[ setup ] could't load keys: ")
-	}
-	fmt.Println("[ setup ] all keys successfully loaded")
-
-	numAttempts := 60
-	for i := 0; i < numAttempts; i++ {
-		err = setInfo()
-		if err != nil {
-			fmt.Printf("[ setup ] Couldn't setInfo. Attempt %d/%d. Err: %s\n", i, numAttempts, err)
-		} else {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-	if err != nil {
-		return errors.Wrap(err, "[ setup ] could't receive Root reference ")
-	}
-
-	fmt.Println("[ setup ] references successfully received")
-	Root.Ref = info.RootMember
-	MigrationAdmin.Ref = info.MigrationAdminMember
-
 	return nil
 }
 

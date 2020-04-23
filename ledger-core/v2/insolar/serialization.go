@@ -26,6 +26,7 @@ func Serialize(o interface{}) ([]byte, error) {
 func Deserialize(data []byte, to interface{}) error {
 	ch := new(codec.CborHandle)
 	ch.MapType = mapType
+
 	err := codec.NewDecoderBytes(data, ch).Decode(&to)
 	return errors.Wrap(err, "[ Deserialize ]")
 }

@@ -19,7 +19,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/gofuzz v1.0.0
 	github.com/google/gops v0.3.6
-	github.com/google/uuid v1.1.1 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-gateway v1.9.6
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/insolar/component-manager v0.2.1-0.20191028200619-751a91771d2f
@@ -27,6 +27,7 @@ require (
 	github.com/insolar/rpc v1.2.2-0.20190812143745-c27e1d218f1f
 	github.com/insolar/x-crypto v0.0.0-20191031140942-75fab8a325f6
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
+	github.com/json-iterator/go v1.1.6
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
@@ -56,7 +57,6 @@ require (
 	go.opencensus.io v0.22.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
 	golang.org/x/tools v0.0.0-20200312153518-5e2df02acb1e
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
