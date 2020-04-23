@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pulsewatcher
+  namespace: insolar
+spec:
+  clusterIP: None
+  selector:
+    scope: pulsewatcher
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pulsewatcher-config
+  namespace: insolar
+data:
+  pulsewatcher.yaml: |
+    nodes:
+      - heavy-0.platform-network.insolar:19001
+      - light-0.platform-network.insolar:19001
+      - light-1.platform-network.insolar:19001
+      - virtual-0.platform-network.insolar:19001
+      - virtual-1.platform-network.insolar:19001
+    interval: 500ms
+    timeout: 1s
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulsewatcher
+  namespace: insolar
+spec:
+  selector:
+    matchLabels:
+      app: pulsewatcher
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pulsewatcher
+        role: pulsewatcher
+        scope: pulsewatcher
+    spec:
+      containers:
+        - name: pulsewatcher
+          image: insolar/assured-ledger:latest
+          imagePullPolicy: IfNotPresent
+          command: ["pulsewatcher"]
+          args: ["-c", "/etc/pulsewatcher/pulsewatcher.yaml"]
+          volumeMounts:
+            - name: pulsewatcher-config
+              mountPath: /etc/pulsewatcher
+              readOnly: true
+      volumes:
+        - name: pulsewatcher-config
+          configMap:
+            name: pulsewatcher-config

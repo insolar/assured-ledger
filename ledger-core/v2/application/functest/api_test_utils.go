@@ -14,15 +14,18 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
 )
 
 var (
-	httpClient *http.Client
-	nodesPorts = [2]string{"32302", "32304"}
+	httpClient   *http.Client
+	defaultPorts = [2]string{"32302", "32304"}
 )
 
 const (
@@ -99,7 +102,14 @@ func getURL(path, host, port string) string {
 		host = defaultHost
 	}
 	if port == "" {
-		port = nodesPorts[rand.Intn(len(nodesPorts))]
+		port = defaultPorts[rand.Intn(len(defaultPorts))]
+	}
+
+	// todo refactor this
+	hostOverride := os.Getenv(launchnet.TestWalletHost)
+	if hostOverride != "" {
+		host = hostOverride
+		port = "80"
 	}
 	res := "http://" + host + ":" + port + path
 	return res

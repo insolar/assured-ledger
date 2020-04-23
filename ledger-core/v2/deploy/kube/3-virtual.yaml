@@ -1,0 +1,186 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: virtual-config
+  namespace: insolar
+data:
+  virtual-config.yaml: |
+    host:
+      transport:
+        protocol: TCP
+        address: 127.0.0.1:0
+        fixedpublicaddress: ""
+      mintimeout: 10
+      maxtimeout: 2000
+      timeoutmult: 2
+      signmessages: false
+      handshakesessionttl: 5000
+      pulsewatchdogtimeout: 2592000
+    service:
+      cachedirectory: network_cache
+    ledger:
+      storage:
+        datadirectory: ./
+        badgervalueloggcdiscardratio: 0.4
+        gcrunfrequency: 1
+      jetsplit:
+        thresholdrecordscount: 1
+        thresholdoverflowcount: 0
+        depthlimit: 4
+      lightchainlimit: 5
+      backup:
+        enabled: false
+        tmpdirectory: ""
+        targetdirectory: ""
+        metainfofile: meta.json
+        confirmfile: BACKUPED
+        backupfile: incr.bkp
+        dirnametemplate: pulse-%d
+        backupwaitperiod: 60
+        postprocessbackupcmd: []
+      cleanerdelay: 3
+      maxnotificationsperpulse: 100
+      filamentcachelimit: 3000
+    log:
+      level: Debug
+      adapter: zerolog
+      formatter: json
+      outputtype: stderr
+      outputparallellimit: ""
+      outputparams: ""
+      buffersize: 0
+      llbuffersize: 0
+    metrics:
+      listenaddress: 0.0.0.0:9091
+      namespace: insolar
+      zpagesenabled: true
+      reportingperiod: 0s
+    logicrunner:
+      rpclisten: 0.0.0.0:33315
+      rpcprotocol: tcp
+      goplugin:
+        runnerlisten: 0.0.0.0:33314
+        runnerprotocol: tcp
+      pulselrusize: 100
+    apirunner:
+      address: localhost:19101
+      rpc: /api/rpc
+      isadmin: false
+      swaggerpath: /app/api-exported.yaml
+    adminapirunner:
+      address: 0.0.0.0:19001
+      rpc: /admin-api/rpc
+      isadmin: true
+      swaggerpath: /app/api-exported.yaml
+    testwalletapi:
+      address: 0.0.0.0:32303
+    availabilitychecker:
+      enabled: false
+      keeperurl: ""
+      requesttimeout: 15
+      checkperiod: 5
+    tracer:
+      jaeger:
+        collectorendpoint: ""
+        agentendpoint: ""
+        probabilityrate: 1
+      samplingrules: {}
+    introspection:
+      addr: 0.0.0.0:55503
+    exporter:
+      addr: :5678
+    bus:
+      replytimeout: 15s
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: virtual
+  namespace: insolar
+spec:
+  selector:
+    matchLabels:
+      app: virtual
+  replicas: 2
+  serviceName: platform-network
+  template:
+    metadata:
+      labels:
+        app: virtual
+        role: virtual_material
+        scope: platform
+    spec:
+      initContainers:
+        - name: wait
+          image: "debian:buster-slim"
+          command: ['bash']
+          args: ['-c', 'until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done']
+          volumeMounts:
+            - name: node-keys
+              mountPath: /etc/insolar/keys
+              readOnly: true
+      containers:
+        - name: insolar
+          image: insolar/assured-ledger:latest
+          imagePullPolicy: IfNotPresent
+          command: ["insolard"]
+          args: [
+            "test", "node",
+            "--role=virtual",
+            "--config=/etc/insolar/virtual-config.yaml",
+          ]
+          env:
+            - name: INSOLAR_LOG_LEVEL
+              value: debug
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: "status.podIP"
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: INSOLAR_KEYSPATH
+              value: /etc/insolar/keys/$(NODENAME).json
+            - name: INSOLAR_CERTIFICATEPATH
+              value: /etc/insolar/certs/$(NODENAME).json
+            - name: INSOLAR_HOST_TRANSPORT_ADDRESS
+              value: "$(POD_IP):13831"
+            - name: INSOLAR_METRICS_LISTENADDRESS
+              value: "$(POD_IP):8001"
+            - name: INSOLAR_APIRUNNER_ADDRESS
+              value: "$(POD_IP):19101"
+            - name: INSOLAR_ADMINAPIRUNNER_ADDRESS
+              value: "$(POD_IP):19001"
+            - name: INSOLAR_TESTWALLETAPI_ADDRESS
+              value: "$(POD_IP):32301"
+          ports:
+            - containerPort: 13831
+              name: discovery
+            - containerPort: 19101
+              name: public-api
+            - containerPort: 19001
+              name: admin-api
+            - containerPort: 32301
+              name: testwallet-api
+          volumeMounts:
+            - name: virtual-config
+              mountPath: /etc/insolar
+              readOnly: true
+            - name: node-certs
+              mountPath: /etc/insolar/certs
+              readOnly: true
+            - name: node-keys
+              mountPath: /etc/insolar/keys
+              readOnly: true
+      volumes:
+        - name: virtual-config
+          configMap:
+            name: virtual-config
+        - name: node-keys
+          secret:
+            secretName: node-keys
+        - name: node-certs
+          secret:
+            secretName: node-certs

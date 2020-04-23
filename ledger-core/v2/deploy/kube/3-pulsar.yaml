@@ -1,0 +1,109 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pulsar-config
+  namespace: insolar
+data:
+  pulsard.yaml: |
+    log:
+      level: info
+    pulsar:
+      pulsetime: 10000
+      receivingsigntimeout: 1000
+      receivingnumbertimeout: 1000
+      receivingvectortimeout: 1000
+      receivingsignsforchosentimeout: 0
+      neighbours: []
+      numberdelta: 10
+      distributiontransport:
+        protocol: TCP
+    #    address: 127.0.0.1:58091
+    #    fixedpublicaddress: ""
+      pulsedistributor:
+        bootstraphosts:
+          - heavy-0.platform-network.insolar:13831
+          - light-0.platform-network.insolar:13831
+          - light-1.platform-network.insolar:13831
+          - virtual-0.platform-network.insolar:13831
+          - virtual-1.platform-network.insolar:13831
+        pingrequesttimeout: 1000
+        randomhostsrequesttimeout: 1000
+        pulserequesttimeout: 1000
+        randomnodescount: 5
+    keyspath: "/etc/insolar/keys/pulsar-0.json" # TODO after https://insolar.atlassian.net/browse/PENV-123
+    tracer:
+      jaeger:
+        collectorendpoint: ""
+        agentendpoint: ""
+        probabilityrate: 1
+    metrics:
+      listenaddress: 0.0.0.0:9090
+      namespace: insolar
+      zpagesenabled: false
+      reportingperiod: 0s
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pulsar
+  namespace: insolar
+spec:
+  selector:
+    matchLabels:
+      app: pulsar
+  replicas: 1
+  serviceName: platform-network
+  template:
+    metadata:
+      labels:
+        app: pulsar
+        role: pulsar
+        scope: platform
+    spec:
+      initContainers:
+        - name: wait
+          image: "debian:buster-slim"
+          command: ['bash']
+          args: ['-c', 'until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done']
+          volumeMounts:
+            - name: node-keys
+              mountPath: /etc/insolar/keys
+              readOnly: true
+      containers:
+        - name: pulsar
+          image: insolar/assured-ledger:latest
+          imagePullPolicy: IfNotPresent
+          command: ["pulsard"]
+          args: ["--config", "/etc/pulsar/pulsard.yaml"]
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: "status.podIP"
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: INSOLAR_KEYSPATH
+              value: /etc/insolar/keys/$(NODENAME).json
+            - name: INSOLAR_PULSAR_DISTRIBUTIONTRANSPORT_ADDRESS
+              value: "$(POD_IP):58091"
+          ports:
+            - containerPort: 58091
+              name: pulsar
+          volumeMounts:
+            - name: pulsar-config
+              mountPath: /etc/pulsar
+              readOnly: true
+            - name: node-keys
+              mountPath: /etc/insolar/keys
+              readOnly: true
+      volumes:
+        - name: pulsar-config
+          configMap:
+            name: pulsar-config
+        - name: node-keys
+          secret:
+            secretName: node-keys

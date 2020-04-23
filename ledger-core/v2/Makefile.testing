@@ -22,6 +22,15 @@ test_with_coverage: ## run `test_slow` with generation of coverage file
 test_func: ## run functest FUNCTEST_COUNT times
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
+.PHONY: test_func_kubernetes
+test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster
+	./deploy/kube/run.sh
+	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
+	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
+	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \
+	INSOLAR_FUNC_TESTWALLET_HOST="localhost" \
+	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
+
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag
 	make clean
