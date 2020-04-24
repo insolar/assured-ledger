@@ -8,6 +8,7 @@ package l4
 import (
 	"hash/crc32"
 	"io"
+	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -159,4 +160,18 @@ func (TestDeserializationFactory) DeserializePayloadFrom(ctx nwapi.Deserializati
 		return nil, err
 	}
 	return &s, nil
+}
+
+/****************************************/
+
+type TestLogAdapter struct {
+	t *testing.T
+}
+
+func (t TestLogAdapter) LogError(err error) {
+	t.t.Error(err)
+}
+
+func (t TestLogAdapter) LogTrace(m interface{}) {
+	t.t.Log(m)
 }

@@ -7,6 +7,7 @@ package l4
 
 import (
 	"sync"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
@@ -27,14 +28,26 @@ type stateSender struct {
 	suspends map[ShipmentID]struct{}
 }
 
+func (p *stateSender) setConfig(batchSize uint, cycle time.Duration, c SenderConfig) {
+	switch {
+	case c.MaxPostponedPerWorker <= 0:
+		panic(throw.IllegalValue())
+	case c.ParallelPeersPerWorker <= 0:
+		panic(throw.IllegalValue())
+	case c.ParallelWorkers <= 0:
+		panic(throw.IllegalValue())
+	}
+
+	p.init(c.FastQueue, c.RetryQueue)
+	p.stages.InitStages(batchSize, calcPeriods(cycle, c.RetryIntervals))
+}
+
 func (p *stateSender) init(oobQueue, jobQueue int) {
 	switch {
 	case oobQueue <= 0:
 		panic(throw.IllegalValue())
 	case jobQueue <= 0:
 		panic(throw.IllegalValue())
-	case p.jobs != nil:
-		panic(throw.IllegalState())
 	}
 
 	p.oob = make(chan rqShipment, oobQueue)
@@ -166,11 +179,11 @@ func (p *stateSender) Remove(ids []retries.RetryID) {
 	p.mutex.Unlock()
 }
 
-func (p *stateSender) startWorker(parallel int) {
+func (p *stateSender) startWorker(parallel, postponed int) {
 	if p.jobs == nil {
 		panic(throw.IllegalState())
 	}
-	worker := newRetryRqWorker(p, parallel)
+	worker := newRetryRqWorker(p, parallel, postponed)
 	go worker.runRetry()
 }
 
@@ -185,6 +198,10 @@ type stateJob struct {
 
 func (p *stateSender) AddState(peer *DeliveryPeer, packet StatePacket) {
 	p.states <- stateJob{peer, packet}
+}
+
+func (p *stateSender) stop() {
+	close(p.oob)
 }
 
 /***********************************/

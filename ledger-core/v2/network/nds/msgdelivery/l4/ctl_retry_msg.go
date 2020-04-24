@@ -7,6 +7,7 @@ package l4
 
 import (
 	"sync"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -18,6 +19,33 @@ type msgSender struct {
 
 	jobs chan retryJob
 	oob  chan *msgShipment
+}
+
+func (p *msgSender) setConfig(batchSize uint, cycle time.Duration, c SenderConfig) {
+	switch {
+	case c.MaxPostponedPerWorker <= 0:
+		panic(throw.IllegalValue())
+	case c.ParallelPeersPerWorker <= 0:
+		panic(throw.IllegalValue())
+	case c.ParallelWorkers <= 0:
+		panic(throw.IllegalValue())
+	}
+
+	p.init(c.FastQueue, c.RetryQueue)
+	p.stages.InitStages(batchSize, calcPeriods(cycle, c.RetryIntervals))
+}
+
+func calcPeriods(timeCycle time.Duration, stages [retries.RetryStages]time.Duration) (periods [retries.RetryStages]int) {
+	last := 1
+	for i, ts := range stages {
+		n := int(ts / timeCycle)
+		if n < last {
+			panic(throw.IllegalValue())
+		}
+		last = n
+		periods[i] = n
+	}
+	return
 }
 
 func (p *msgSender) init(oobQueue, jobQueue int) {
@@ -82,16 +110,20 @@ func (p *msgSender) Remove(ids []retries.RetryID) {
 	p.tracks.deleteAll(ids)
 }
 
-func (p *msgSender) NextTimeCycle() {
+func (p *msgSender) nextTimeCycle() {
 	p.stages.NextCycle(p)
 }
 
-func (p *msgSender) startWorker(parallel int) {
+func (p *msgSender) startWorker(parallel, postponed int) {
 	if p.jobs == nil {
 		panic(throw.IllegalState())
 	}
-	worker := newRetryMsgWorker(p, parallel)
+	worker := newRetryMsgWorker(p, parallel, postponed)
 	go worker.runRetry()
+}
+
+func (p *msgSender) stop() {
+	close(p.oob)
 }
 
 /**********************************/

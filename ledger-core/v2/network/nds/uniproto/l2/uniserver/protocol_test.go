@@ -8,6 +8,7 @@ package uniserver
 import (
 	"hash/crc32"
 	"io"
+	"testing"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
@@ -249,4 +250,18 @@ func (p *TestPacket) DeserializePayload(_ nwapi.DeserializationContext, _ *unipr
 	n, err := io.ReadFull(reader, b)
 	p.Text = string(b[:n])
 	return err
+}
+
+/****************************************/
+
+type TestLogAdapter struct {
+	t *testing.T
+}
+
+func (t TestLogAdapter) LogError(err error) {
+	t.t.Error(err)
+}
+
+func (t TestLogAdapter) LogTrace(m interface{}) {
+	t.t.Log(m)
 }

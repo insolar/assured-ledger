@@ -8,14 +8,22 @@ package l4
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func newRetryMsgWorker(sender *msgSender, parallel int) *retryMsgWorker {
+func newRetryMsgWorker(sender *msgSender, parallel, postponed int) *retryMsgWorker {
+	switch {
+	case parallel <= 0:
+		panic(throw.IllegalValue())
+	case postponed <= 0:
+		panic(throw.IllegalValue())
+	}
+
 	return &retryMsgWorker{
 		sender:    sender,
 		sema:      synckit.NewSemaphore(parallel),
 		marks:     nodeMarks{marks: make(map[uint32]struct{}, parallel)},
-		postponed: make([]postponedMsg, 0, 100),
+		postponed: make([]postponedMsg, postponed),
 	}
 }
 

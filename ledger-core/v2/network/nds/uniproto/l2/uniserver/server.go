@@ -24,19 +24,25 @@ type ServerConfig struct {
 	BindingAddress string
 	PublicAddress  string
 	NetPreference  nwapi.NetworkPreference
-	TlsConfig      *tls.Config
-	UdpMaxSize     int
+	TLSConfig      *tls.Config
+	UDPMaxSize     int
+	UDPParallelism int
 	PeerLimit      int
 }
 
-func NewUnifiedServer(dispatcher uniproto.Dispatcher, updParallelism int) *UnifiedServer {
-	if dispatcher == nil {
+type MiniLogger interface {
+	LogError(error)
+	LogTrace(interface{})
+}
+
+func NewUnifiedServer(dispatcher uniproto.Dispatcher, logger MiniLogger) *UnifiedServer {
+	switch {
+	case dispatcher == nil:
+		panic(throw.IllegalValue())
+	case logger == nil:
 		panic(throw.IllegalValue())
 	}
-	if updParallelism <= 0 {
-		updParallelism = 4
-	}
-	s := &UnifiedServer{udpSema: synckit.NewSemaphore(updParallelism)}
+	s := &UnifiedServer{logger: logger}
 	s.receiver.Parser.Dispatcher = dispatcher
 	return s
 }
@@ -44,6 +50,7 @@ func NewUnifiedServer(dispatcher uniproto.Dispatcher, updParallelism int) *Unifi
 type UnifiedServer struct {
 	config    ServerConfig
 	blacklist BlacklistManager
+	logger    MiniLogger
 
 	ptf      peerTransportFactory
 	peers    PeerManager
@@ -71,11 +78,24 @@ func (p *UnifiedServer) SetBlacklistManager(blacklist BlacklistManager) {
 	p.blacklist = blacklist
 }
 
+func (p *UnifiedServer) SetRelayer(r Relayer) {
+	p.receiver.Relayer = r
+}
+
 func (p *UnifiedServer) StartNoListen() {
+	if p.peers.central.factory != nil {
+		panic(throw.IllegalState())
+	}
 
 	p.receiver.Parser.SigSizeHint = p.peers.central.sigFactory.GetMaxSignatureSize()
 	if p.receiver.Parser.SigSizeHint <= 0 {
 		panic(throw.IllegalState())
+	}
+
+	if p.config.UDPParallelism > 0 {
+		p.udpSema = synckit.NewSemaphore(p.config.UDPParallelism)
+	} else {
+		p.udpSema = synckit.NewSemaphore(4)
 	}
 
 	p.peers.central.factory = &p.ptf
@@ -112,19 +132,19 @@ func (p *UnifiedServer) StartNoListen() {
 		panic(err)
 	}
 
-	udpSize := p.config.UdpMaxSize
+	udpSize := p.config.UDPMaxSize
 	switch {
 	case udpSize < 0:
-		udpSize = l1.MaxUdpSize
+		udpSize = l1.MaxUDPSize
 	case udpSize > math.MaxUint16:
 		udpSize = math.MaxUint16
 	}
-	p.ptf.SetSessionless(l1.NewUdp(binding, uint16(udpSize)), p.receiveSessionless)
+	p.ptf.SetSessionless(l1.NewUDP(binding, uint16(udpSize)), p.receiveSessionless)
 
-	if p.config.TlsConfig == nil {
-		p.ptf.SetSessionful(l1.NewTcp(binding), p.connectSessionful)
+	if p.config.TLSConfig == nil {
+		p.ptf.SetSessionful(l1.NewTCP(binding), p.connectSessionful)
 	} else {
-		p.ptf.SetSessionful(l1.NewTls(binding, p.config.TlsConfig), p.connectSessionful)
+		p.ptf.SetSessionful(l1.NewTLS(binding, p.config.TLSConfig), p.connectSessionful)
 	}
 
 	p.receiver.PeerManager = &p.peers
@@ -221,7 +241,5 @@ func (p *UnifiedServer) reportToBlacklist(remote nwapi.Address, err error) {
 }
 
 func (p *UnifiedServer) reportError(err error) {
-	// TODO
-	println()
-	println(throw.ErrorWithStack(err))
+	p.logger.LogError(err)
 }

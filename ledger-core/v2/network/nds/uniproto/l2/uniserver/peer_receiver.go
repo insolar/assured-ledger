@@ -24,6 +24,7 @@ import (
 
 type PeerReceiver struct {
 	PeerManager *PeerManager
+	Relayer     Relayer
 	Parser      uniproto.Parser
 }
 
@@ -135,9 +136,14 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 
 				switch {
 				case packet.Header.IsForRelay():
-					// TODO relay via sessionful
-					// relaying doesn't need decryption
-					err = throw.NotImplemented()
+					switch {
+					case p.Relayer == nil:
+						err = throw.Unsupported()
+					case more == 0:
+						err = p.Relayer.RelaySmallPacket(&packet.Packet, preRead)
+					default:
+						err = p.Relayer.RelayLargePacket(&packet.Packet, preRead, io.LimitedReader{R: r, N: more})
+					}
 				case packet.Header.IsBodyEncrypted():
 					packet.Decrypter, err = p.PeerManager.GetLocalDataDecrypter()
 					if err != nil {
@@ -181,12 +187,14 @@ func (p PeerReceiver) ReceiveDatagram(remote nwapi.Address, b []byte) (err error
 	n := -1
 	packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
 	if n, err = p.Parser.ReceiveDatagram(&packet, fn, b); err == nil {
-		if !packet.Header.IsForRelay() {
+		switch {
+		case !packet.Header.IsForRelay():
 			receiver := p.Parser.Dispatcher.GetReceiver(packet.Header.GetProtocolType())
 			receiver.ReceiveSmallPacket(&packet, b)
-		} else {
-			// TODO relay via sessionless
-			err = throw.NotImplemented()
+		case p.Relayer == nil:
+			err = throw.Unsupported()
+		default:
+			err = p.Relayer.RelaySessionlessPacket(&packet.Packet, b)
 		}
 
 		switch {

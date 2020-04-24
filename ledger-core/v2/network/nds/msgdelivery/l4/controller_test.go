@@ -34,24 +34,25 @@ func TestController(t *testing.T) {
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
 			fmt.Println(a.String(), v)
 			return nil
-		}, nil)
+		}, nil, TestLogAdapter{t})
 
 	var dispatcher1 uniserver.Dispatcher
 	controller1.RegisterWith(dispatcher1.RegisterProtocol)
 
-	ups1 := uniserver.NewUnifiedServer(&dispatcher1, 2)
+	ups1 := uniserver.NewUnifiedServer(&dispatcher1, TestLogAdapter{t})
 	ups1.SetConfig(uniserver.ServerConfig{
 		BindingAddress: Server1,
-		UdpMaxSize:     1400,
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
 		PeerLimit:      -1,
 	})
+
 	ups1.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		peer.SetSignatureKey(sk)
 		peer.SetNodeID(2)
 		return addr2, nil
 	})
 	ups1.SetSignatureFactory(vf)
-	//	ups1.Set
 
 	ups1.StartListen()
 	dispatcher1.SetMode(uniproto.AllowAll)
@@ -69,19 +70,21 @@ func TestController(t *testing.T) {
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
 			fmt.Println(a.String(), v)
 			return nil
-		}, nil)
+		}, nil, TestLogAdapter{t})
 
 	var dispatcher2 uniserver.Dispatcher
 	dispatcher2.SetMode(uniproto.NewConnectionMode(0, Protocol))
 	controller2.RegisterWith(dispatcher2.RegisterProtocol)
 	dispatcher2.Seal()
 
-	ups2 := uniserver.NewUnifiedServer(&dispatcher2, 2)
+	ups2 := uniserver.NewUnifiedServer(&dispatcher2, TestLogAdapter{t})
 	ups2.SetConfig(uniserver.ServerConfig{
 		BindingAddress: Server2,
-		UdpMaxSize:     1400,
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
 		PeerLimit:      -1,
 	})
+
 	ups2.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		peer.SetSignatureKey(sk)
 		peer.SetNodeID(1)

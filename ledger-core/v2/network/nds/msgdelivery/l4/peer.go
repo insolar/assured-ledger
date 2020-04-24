@@ -64,7 +64,7 @@ func (p *DeliveryPeer) isValid() bool {
 	return p != nil && !p.isDead.IsSet()
 }
 
-func (p *DeliveryPeer) addToStatePacket(needed int, fn func(*StatePacket)) {
+func (p *DeliveryPeer) _addToStatePacket(needed int, fn func(*StatePacket)) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -91,25 +91,25 @@ func (p *DeliveryPeer) addToStatePacket(needed int, fn func(*StatePacket)) {
 }
 
 func (p *DeliveryPeer) addReject(id ShortShipmentID) {
-	p.addToStatePacket(2, func(packet *StatePacket) {
+	p._addToStatePacket(2, func(packet *StatePacket) {
 		packet.RejectList = append(packet.RejectList, id)
 	})
 }
 
 func (p *DeliveryPeer) addBodyAck(id ShortShipmentID) {
-	p.addToStatePacket(2, func(packet *StatePacket) {
+	p._addToStatePacket(2, func(packet *StatePacket) {
 		packet.BodyAckList = append(packet.BodyAckList, id)
 	})
 }
 
 func (p *DeliveryPeer) addBodyRq(id ShortShipmentID) {
-	p.addToStatePacket(2, func(packet *StatePacket) {
+	p._addToStatePacket(2, func(packet *StatePacket) {
 		packet.BodyRq = append(packet.BodyRq, id)
 	})
 }
 
 func (p *DeliveryPeer) addAck(id ShortShipmentID) {
-	p.addToStatePacket(1, func(packet *StatePacket) {
+	p._addToStatePacket(1, func(packet *StatePacket) {
 		packet.AckList = append(packet.AckList, id)
 	})
 }

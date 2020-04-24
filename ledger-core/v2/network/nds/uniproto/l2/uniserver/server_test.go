@@ -40,10 +40,11 @@ func TestServer(t *testing.T) {
 	buffer1 := NewReceiveBuffer(5, 0, 2, &dispatcher1)
 	buffer1.RunWorkers(1, false)
 
-	ups1 := NewUnifiedServer(&buffer1, 2)
+	ups1 := NewUnifiedServer(&buffer1, TestLogAdapter{t})
 	ups1.SetConfig(ServerConfig{
 		BindingAddress: Server1,
-		UdpMaxSize:     1400,
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
 		PeerLimit:      -1,
 	})
 	ups1.SetPeerFactory(peerProfileFn)
@@ -61,10 +62,11 @@ func TestServer(t *testing.T) {
 	dispatcher2.RegisterProtocol(0, TestProtocolDescriptor, marshaller, marshaller)
 	dispatcher2.Seal()
 
-	ups2 := NewUnifiedServer(&dispatcher2, 2)
+	ups2 := NewUnifiedServer(&dispatcher2, TestLogAdapter{t})
 	ups2.SetConfig(ServerConfig{
 		BindingAddress: Server2,
-		UdpMaxSize:     1400,
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
 		PeerLimit:      -1,
 	})
 	ups2.SetPeerFactory(peerProfileFn)

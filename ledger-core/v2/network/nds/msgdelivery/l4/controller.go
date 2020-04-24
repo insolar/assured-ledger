@@ -10,8 +10,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
@@ -22,13 +22,30 @@ import (
 const minHeadBatchWeight = 1 << 20
 
 func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactory,
-	receiveFn ReceiverFunc, resolverFn ResolverFunc,
+	receiveFn ReceiverFunc, resolverFn ResolverFunc, logger uniserver.MiniLogger,
 ) *Controller {
-	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond, receiveFn: receiveFn, resolverFn: resolverFn}
+	switch {
+	case factory == nil:
+		panic(throw.IllegalValue())
+	case receiveFn == nil:
+		panic(throw.IllegalValue())
+	//case resolverFn == nil:
+	//	panic(throw.IllegalValue())
+	case logger == nil:
+		panic(throw.IllegalValue())
+	}
+
+	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond,
+		receiveFn: receiveFn, resolverFn: resolverFn, logger: logger}
+
+	c.senderConfig = SenderWorkerConfig{1, 5, 100}
 	c.sender.init(10, 10)
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
+
+	c.staterConfig = SenderWorkerConfig{1, 5, 100}
 	c.stater.init(10, 10)
 	c.stater.stages.InitStages(1, [...]int{5, 10, 50})
+
 	c.receiver.ctl = c
 	return c
 }
@@ -38,12 +55,17 @@ type Controller struct {
 	factory    nwapi.DeserializationFactory
 	receiveFn  ReceiverFunc
 	resolverFn ResolverFunc
-	timeCycle  time.Duration
+	logger     uniserver.MiniLogger
+
+	timeCycle time.Duration
 
 	starter  protoStarter
 	receiver packetReceiver
 	sender   msgSender
 	stater   stateSender
+
+	senderConfig SenderWorkerConfig
+	staterConfig SenderWorkerConfig
 
 	pulseCycle atomickit.Uint64
 
@@ -52,20 +74,21 @@ type Controller struct {
 	maxHeadSize  uint // <= maxSmallSize
 }
 
-// TODO send status packets aggregated on hosts - may be register packets somewhere? or scan hosts
-
 // for initialization only
-func (p *Controller) SetTimings(timeCycle time.Duration, sendStages, rqStages [retries.RetryStages]time.Duration) {
+func (p *Controller) SetConfig(c Config) {
 	switch {
-	case timeCycle < time.Microsecond:
-		panic(throw.IllegalValue())
 	case !p.isConfigurable():
 		panic(throw.IllegalState())
+	case c.TimeCycle <= 0:
+		panic(throw.IllegalValue())
 	}
-	p.timeCycle = timeCycle
 
-	p.sender.stages.InitStages(minHeadBatchWeight, calcPeriods(timeCycle, sendStages))
-	p.stater.stages.InitStages(maxStatePacketEntries, calcPeriods(timeCycle, rqStages))
+	p.timeCycle = c.TimeCycle
+	p.sender.setConfig(c.MessageBatchSize, c.TimeCycle, c.MessageSender)
+	p.stater.setConfig(1, c.TimeCycle, c.StateSender)
+
+	p.senderConfig = c.MessageSender.SenderWorkerConfig
+	p.staterConfig = c.StateSender.SenderWorkerConfig
 }
 
 // for initialization only
@@ -82,19 +105,6 @@ func (p *Controller) RegisterWith(regFn uniproto.RegisterControllerFunc) {
 
 func (p *Controller) NewFacade() Service {
 	return facade{p}
-}
-
-func calcPeriods(timeCycle time.Duration, stages [retries.RetryStages]time.Duration) (periods [retries.RetryStages]int) {
-	last := 1
-	for i, ts := range stages {
-		n := int(ts / timeCycle)
-		if n < last {
-			panic(throw.IllegalValue())
-		}
-		last = n
-		periods[i] = n
-	}
-	return
 }
 
 func (p *Controller) shipTo(to DeliveryAddress, shipment Shipment) error {
@@ -169,8 +179,7 @@ func (p *Controller) checkActive() error {
 }
 
 func (p *Controller) reportError(err error) {
-	// TODO
-	println(throw.ErrorWithStack(err))
+	p.logger.LogError(err)
 }
 
 func (p *Controller) nextPulseCycle(pn pulse.Number) (bool, uint32) {
@@ -537,14 +546,18 @@ func (p *Controller) onStarted() {
 	if p.maxHeadSize > p.maxSmallSize || p.maxHeadSize == 0 {
 		p.maxHeadSize = p.maxSmallSize
 	}
-
 	p.stopSignal = make(synckit.ClosableSignalChannel)
-	go p.runWorker()
 
-	p.stater.startWorker(5)
-	//for i := 2; i > 0; i-- {
-	p.sender.startWorker(5)
-	//}
+	startWorkerByConfig(p.staterConfig, p.stater.startWorker)
+	startWorkerByConfig(p.senderConfig, p.sender.startWorker)
+
+	go p.runWorker()
+}
+
+func startWorkerByConfig(c SenderWorkerConfig, startFn func(parallel int, postponed int)) {
+	for i := c.ParallelWorkers; i > 0; i-- {
+		startFn(c.ParallelPeersPerWorker, c.MaxPostponedPerWorker)
+	}
 }
 
 func (p *Controller) onStopped() {
@@ -556,12 +569,15 @@ func (p *Controller) runWorker() {
 	for {
 		select {
 		case <-p.stopSignal:
+			p.sender.stop()
+			p.stater.stop()
 			return
+
 		case <-ticker:
 			//
 		}
 		p.stater.NextTimeCycle()
-		p.sender.NextTimeCycle()
+		p.sender.nextTimeCycle()
 	}
 }
 
