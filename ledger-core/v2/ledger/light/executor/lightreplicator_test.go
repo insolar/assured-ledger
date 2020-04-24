@@ -12,6 +12,8 @@ import (
 
 	message2 "github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -21,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_NotifyAboutPulse(t *testing.T) {

@@ -8,8 +8,9 @@ package storage
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 func TestInMemoryCloudHashStorage(t *testing.T) {

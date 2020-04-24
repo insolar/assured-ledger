@@ -13,10 +13,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
-	"github.com/stretchr/testify/require"
 )
 
 // Send msg, bus.Sender gets error and closes resp chan

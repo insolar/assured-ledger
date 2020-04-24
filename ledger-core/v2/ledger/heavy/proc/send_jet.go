@@ -8,10 +8,11 @@ package proc
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/pkg/errors"
 )
 
 type SendJet struct {

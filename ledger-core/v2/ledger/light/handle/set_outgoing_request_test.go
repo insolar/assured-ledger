@@ -9,6 +9,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -17,9 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/handle"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/proc"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSetOutgoingRequest_NilMsgPayload(t *testing.T) {

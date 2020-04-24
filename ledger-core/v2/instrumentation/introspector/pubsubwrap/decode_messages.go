@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 )
 

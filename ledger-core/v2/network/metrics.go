@@ -6,10 +6,11 @@
 package network
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 )
 
 var (

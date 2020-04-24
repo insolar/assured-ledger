@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"go.opencensus.io/stats"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -20,9 +21,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/extractor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
-	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"

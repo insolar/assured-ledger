@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
@@ -20,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/stretchr/testify/require"
 )
 
 var (

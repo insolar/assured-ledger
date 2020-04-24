@@ -8,11 +8,12 @@ package internal
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy/internal/hash"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy/internal/sign"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEcdsaMarshalUnmarshal(t *testing.T) {

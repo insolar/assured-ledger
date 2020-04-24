@@ -10,7 +10,6 @@ import (
 	"go.opencensus.io/stats/view"
 )
 
-
 var (
 	statPulse = stats.Int64(
 		"current_pulse",

@@ -8,6 +8,8 @@ package proc
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -16,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
 	pulse_core "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/pkg/errors"
 )
 
 type SearchIndex struct {

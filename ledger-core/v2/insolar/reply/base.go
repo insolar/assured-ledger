@@ -11,9 +11,10 @@ import (
 	"encoding/gob"
 	"io"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/pkg/errors"
 )
 
 const (
