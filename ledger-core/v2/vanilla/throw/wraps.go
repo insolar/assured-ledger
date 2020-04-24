@@ -28,8 +28,8 @@ func (v msgWrap) DeepestStackTrace() (StackTrace, DeepestStackMode) {
 	return v.st, 0
 }
 
-func (v msgWrap) ExtraInfo() (string, interface{}) {
-	return v.msg, nil
+func (v msgWrap) ExtraInfo() (string, Severity, interface{}) {
+	return v.msg, 0, nil
 }
 
 func (v msgWrap) LogString() string {
@@ -37,7 +37,7 @@ func (v msgWrap) LogString() string {
 }
 
 func (v msgWrap) Error() string {
-	return joinStack(v.msg, v.st)
+	return v.msg
 }
 
 type errString string
@@ -102,10 +102,11 @@ func (v stackWrap) LogString() string {
 }
 
 func (v stackWrap) Error() string {
-	if v.st == nil || v.stDeepest != nil {
-		return v.LogString()
-	}
-	return joinStack(v.LogString(), v.st)
+	//if v.stDeepest != nil {
+	//	return joinStack(v.LogString(), v.stDeepest)
+	//}
+	//return joinStack(v.LogString(), v.st)
+	return v.LogString()
 }
 
 /*******************************************************************/
@@ -153,9 +154,10 @@ func (v panicWrap) Unwrap() error {
 }
 
 func (v panicWrap) Error() string {
-	if v.stDeepest == nil {
-		return joinStack(v.LogString(), v.st)
-	}
+	//if v.stDeepest != nil {
+	//	return joinStack(v.LogString(), v.stDeepest)
+	//}
+	//return joinStack(v.LogString(), v.st)
 	return v.LogString()
 }
 
@@ -164,6 +166,7 @@ func (v panicWrap) Error() string {
 type fmtWrap struct {
 	msg      string
 	extra    interface{}
+	severity Severity
 	useExtra bool // indicates that extra part is included into msg
 }
 
@@ -185,17 +188,20 @@ func (v fmtWrap) Error() string {
 	return v.LogString()
 }
 
-func (v fmtWrap) ExtraInfo() (string, interface{}) {
+func (v fmtWrap) ExtraInfo() (string, Severity, interface{}) {
 	if !v.useExtra {
-		return "", v.extra
+		return "", v.severity, v.extra
 	}
-	return v.msg, v.extra
+	return v.msg, v.severity, v.extra
+}
+
+func (v fmtWrap) AsDetail(target interface{}) bool {
+	return asDetail(v.extra, target)
 }
 
 /*******************************************************************/
 
 type detailsWrap struct {
-	//_logignore   struct{} // will be ignored by struct-logger
 	err          error
 	details      fmtWrap
 	isComparable bool
@@ -231,10 +237,42 @@ func (v detailsWrap) As(target interface{}) bool {
 	return false
 }
 
+func (v detailsWrap) AsDetail(target interface{}) bool {
+	return v.details.AsDetail(target)
+}
+
 func (v detailsWrap) Error() string {
 	return joinErrString(v.details.LogString(), v.err.Error())
 }
 
-func (v detailsWrap) ExtraInfo() (string, interface{}) {
+func (v detailsWrap) ExtraInfo() (string, Severity, interface{}) {
 	return v.details.ExtraInfo()
+}
+
+/*******************************************************************/
+
+type severityWrap struct {
+	err      error
+	severity Severity
+}
+
+func (v severityWrap) bypassWrapper() {}
+
+func (v severityWrap) Unwrap() error {
+	return v.err
+}
+
+func (v severityWrap) LogString() string {
+	if vv, ok := v.err.(logStringer); ok {
+		return vv.LogString()
+	}
+	return v.err.Error()
+}
+
+func (v severityWrap) Error() string {
+	return v.err.Error()
+}
+
+func (v severityWrap) ExtraInfo() (string, Severity, interface{}) {
+	return "", v.severity, nil
 }

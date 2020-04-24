@@ -18,7 +18,7 @@ func (s SigningMethod) String() string {
 	return string(s)
 }
 
-type SignatureMethod string /* Digest + Sign methods */
+type SignatureMethod string /* Digest + Signing methods */
 
 func (s SignatureMethod) DigestMethod() DigestMethod {
 	parts := strings.Split(string(s), "/")
@@ -51,10 +51,12 @@ type SignatureHolder interface {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureKeyHolder -o . -s _mock.go -g
 
+// TODO rename to SigningKeyHolder
 type SignatureKeyHolder interface {
 	longbits.FoldableReader
 	GetSigningMethod() SigningMethod
 	GetSignatureKeyMethod() SignatureMethod
+	// TODO rename to GetSigningKeyType
 	GetSignatureKeyType() SignatureKeyType
 	Equals(other SignatureKeyHolder) bool
 }
@@ -81,20 +83,20 @@ type DigestSigner interface {
 type DataSigner interface {
 	DigestSigner
 	DataDigester
-	SignData(reader io.Reader) SignedDigest
-	GetSignatureMethod() SignatureMethod
+	//GetSignatureMethod() SignatureMethod
 }
 
 type SequenceSigner interface {
 	DigestSigner
 	NewSequenceDigester() SequenceDigester
-	GetSignatureMethod() SignatureMethod
+	//GetSignatureMethod() SignatureMethod
 }
 
 type SignedEvidenceHolder interface {
 	GetEvidence() SignedData
 }
 
+// TODO rename to SigningKeyType
 type SignatureKeyType uint8
 
 const (
@@ -109,6 +111,12 @@ func (v SignatureKeyType) IsSymmetric() bool {
 
 func (v SignatureKeyType) IsSecret() bool {
 	return v != PublicAsymmetricKey
+}
+
+type DataSignatureVerifier interface {
+	DataDigester
+	GetSignatureMethod() SignatureMethod
+	SignatureVerifier
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.SignatureVerifier -o . -s _mock.go -g
@@ -126,4 +134,15 @@ type SignatureVerifier interface {
 
 type SignatureVerifierFactory interface {
 	CreateSignatureVerifierWithPKS(pks PublicKeyStore) SignatureVerifier
+	// TODO Add	CreateDataSignatureVerifier(k SignatureKey, m SignatureMethod) DataSignatureVerifier
+}
+
+type DataSignatureVerifierFactory interface {
+	IsSignatureKeySupported(SignatureKey) bool
+	CreateDataSignatureVerifier(SignatureKey) DataSignatureVerifier
+}
+
+type DataSignerFactory interface {
+	IsSignatureKeySupported(SignatureKey) bool
+	CreateDataSigner(SignatureKey) DataSigner
 }

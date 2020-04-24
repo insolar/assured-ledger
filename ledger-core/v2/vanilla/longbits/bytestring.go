@@ -6,8 +6,10 @@
 package longbits
 
 import (
+	"encoding/hex"
 	"io"
 	"math/bits"
+	"strings"
 )
 
 const EmptyByteString = ByteString("")
@@ -55,8 +57,8 @@ func (v ByteString) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-func (v ByteString) Read(b []byte) (n int, err error) {
-	return copy(b, v), nil
+func (v ByteString) CopyTo(b []byte) int {
+	return copy(b, v)
 }
 
 func (v ByteString) ReadAt(b []byte, off int64) (n int, err error) {
@@ -209,4 +211,17 @@ func (v ByteString) FoldToBits64() (folded Bits64) {
 
 func (v ByteString) String() string {
 	return bitsToStringDefault(&v)
+}
+
+func (v ByteString) NewIoReader() io.Reader {
+	return strings.NewReader(string(v))
+}
+
+func (v ByteString) Hex() string {
+	if v == "" {
+		return ""
+	}
+	b := make([]byte, hex.EncodedLen(len(v)))
+	hex.Encode(b, []byte(v))
+	return string(b)
 }

@@ -83,7 +83,7 @@ func (p *SignalVersion) signal() {
 	}
 	p.next.signal() // older signals must fire first
 
-	var closedSignal *signalChannel // explicit type decl to avoid passing of something wrong into unsafe.Pointer conversion
+	var closedSignal *SignalChannel // explicit type decl to avoid passing of something wrong into unsafe.Pointer conversion
 	closedSignal = &closedChan
 
 	atomic.CompareAndSwapPointer(p._signalChannel(), nil, (unsafe.Pointer)(closedSignal))

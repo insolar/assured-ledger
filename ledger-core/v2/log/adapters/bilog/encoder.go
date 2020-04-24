@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
@@ -23,6 +24,7 @@ type objectEncoder struct {
 	content      []byte
 	reportedAt   time.Time
 	allowTrace   bool
+	level        logcommon.Level
 }
 
 func (p *objectEncoder) AddIntField(key string, v int64, fmt logfmt.LogFieldFormat) {
@@ -61,10 +63,24 @@ func (p *objectEncoder) AddTimeField(key string, v time.Time, fmt logfmt.LogFiel
 	p.content = p.fieldEncoder.AppendTimeField(p.content, key, v, fmt)
 }
 
-func (p *objectEncoder) AddErrorField(msg string, stack throw.StackTrace, hasPanic bool) {
+func (p *objectEncoder) AddErrorField(msg string, stack throw.StackTrace, severity throw.Severity, hasPanic bool) {
 	if msg != "" {
 		p.content = p.fieldEncoder.AppendStrField(p.content, logoutput.ErrorMsgFieldName, msg, logfmt.LogFieldFormat{})
 	}
+
+	override := logcommon.Level(0)
+	switch {
+	case severity.IsFatal():
+		override = logcommon.FatalLevel
+	case severity.IsError():
+		override = logcommon.ErrorLevel
+	case severity.IsWarn():
+		override = logcommon.WarnLevel
+	}
+	if p.level < override {
+		p.level = override
+	}
+
 	if !p.allowTrace || stack == nil {
 		return
 	}

@@ -35,6 +35,12 @@ type MemberAnnouncementSignatureMock struct {
 	beforeCopyOfSignatureCounter uint64
 	CopyOfSignatureMock          mMemberAnnouncementSignatureMockCopyOfSignature
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mMemberAnnouncementSignatureMockCopyTo
+
 	funcEquals          func(other cryptkit.SignatureHolder) (b1 bool)
 	inspectFuncEquals   func(other cryptkit.SignatureHolder)
 	afterEqualsCounter  uint64
@@ -59,12 +65,6 @@ type MemberAnnouncementSignatureMock struct {
 	beforeGetSignatureMethodCounter uint64
 	GetSignatureMethodMock          mMemberAnnouncementSignatureMockGetSignatureMethod
 
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mMemberAnnouncementSignatureMockRead
-
 	funcWriteTo          func(w io.Writer) (n int64, err error)
 	inspectFuncWriteTo   func(w io.Writer)
 	afterWriteToCounter  uint64
@@ -85,6 +85,9 @@ func NewMemberAnnouncementSignatureMock(t minimock.Tester) *MemberAnnouncementSi
 
 	m.CopyOfSignatureMock = mMemberAnnouncementSignatureMockCopyOfSignature{mock: m}
 
+	m.CopyToMock = mMemberAnnouncementSignatureMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*MemberAnnouncementSignatureMockCopyToParams{}
+
 	m.EqualsMock = mMemberAnnouncementSignatureMockEquals{mock: m}
 	m.EqualsMock.callArgs = []*MemberAnnouncementSignatureMockEqualsParams{}
 
@@ -93,9 +96,6 @@ func NewMemberAnnouncementSignatureMock(t minimock.Tester) *MemberAnnouncementSi
 	m.FoldToUint64Mock = mMemberAnnouncementSignatureMockFoldToUint64{mock: m}
 
 	m.GetSignatureMethodMock = mMemberAnnouncementSignatureMockGetSignatureMethod{mock: m}
-
-	m.ReadMock = mMemberAnnouncementSignatureMockRead{mock: m}
-	m.ReadMock.callArgs = []*MemberAnnouncementSignatureMockReadParams{}
 
 	m.WriteToMock = mMemberAnnouncementSignatureMockWriteTo{mock: m}
 	m.WriteToMock.callArgs = []*MemberAnnouncementSignatureMockWriteToParams{}
@@ -529,6 +529,436 @@ func (m *MemberAnnouncementSignatureMock) MinimockCopyOfSignatureInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcCopyOfSignature != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
 		m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyOfSignature")
+	}
+}
+
+type mMemberAnnouncementSignatureMockCopyTo struct {
+	mock               *MemberAnnouncementSignatureMock
+	defaultExpectation *MemberAnnouncementSignatureMockCopyToExpectation
+	expectations       []*MemberAnnouncementSignatureMockCopyToExpectation
+
+	callArgs []*MemberAnnouncementSignatureMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// MemberAnnouncementSignatureMockCopyToExpectation specifies expectation struct of the MemberAnnouncementSignature.CopyTo
+type MemberAnnouncementSignatureMockCopyToExpectation struct {
+	mock    *MemberAnnouncementSignatureMock
+	params  *MemberAnnouncementSignatureMockCopyToParams
+	results *MemberAnnouncementSignatureMockCopyToResults
+	Counter uint64
+}
+
+// MemberAnnouncementSignatureMockCopyToParams contains parameters of the MemberAnnouncementSignature.CopyTo
+type MemberAnnouncementSignatureMockCopyToParams struct {
+	p []byte
+}
+
+// MemberAnnouncementSignatureMockCopyToResults contains results of the MemberAnnouncementSignature.CopyTo
+type MemberAnnouncementSignatureMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for MemberAnnouncementSignature.CopyTo
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Expect(p []byte) *mMemberAnnouncementSignatureMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &MemberAnnouncementSignatureMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &MemberAnnouncementSignatureMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the MemberAnnouncementSignature.CopyTo
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Inspect(f func(p []byte)) *mMemberAnnouncementSignatureMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for MemberAnnouncementSignatureMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by MemberAnnouncementSignature.CopyTo
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Return(i1 int) *MemberAnnouncementSignatureMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &MemberAnnouncementSignatureMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &MemberAnnouncementSignatureMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the MemberAnnouncementSignature.CopyTo method
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Set(f func(p []byte) (i1 int)) *MemberAnnouncementSignatureMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the MemberAnnouncementSignature.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the MemberAnnouncementSignature.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the MemberAnnouncementSignature.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) When(p []byte) *MemberAnnouncementSignatureMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &MemberAnnouncementSignatureMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &MemberAnnouncementSignatureMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up MemberAnnouncementSignature.CopyTo return parameters for the expectation previously defined by the When method
+func (e *MemberAnnouncementSignatureMockCopyToExpectation) Then(i1 int) *MemberAnnouncementSignatureMock {
+	e.results = &MemberAnnouncementSignatureMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements MemberAnnouncementSignature
+func (mmCopyTo *MemberAnnouncementSignatureMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &MemberAnnouncementSignatureMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := MemberAnnouncementSignatureMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("MemberAnnouncementSignatureMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the MemberAnnouncementSignatureMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to MemberAnnouncementSignatureMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished MemberAnnouncementSignatureMock.CopyTo invocations
+func (mmCopyTo *MemberAnnouncementSignatureMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of MemberAnnouncementSignatureMock.CopyTo invocations
+func (mmCopyTo *MemberAnnouncementSignatureMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to MemberAnnouncementSignatureMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Calls() []*MemberAnnouncementSignatureMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*MemberAnnouncementSignatureMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *MemberAnnouncementSignatureMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *MemberAnnouncementSignatureMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MemberAnnouncementSignatureMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to MemberAnnouncementSignatureMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyTo")
+	}
+}
+
+type mMemberAnnouncementSignatureMockCopyTo struct {
+	mock               *MemberAnnouncementSignatureMock
+	defaultExpectation *MemberAnnouncementSignatureMockCopyToExpectation
+	expectations       []*MemberAnnouncementSignatureMockCopyToExpectation
+
+	callArgs []*MemberAnnouncementSignatureMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// MemberAnnouncementSignatureMockCopyToExpectation specifies expectation struct of the MemberAnnouncementSignature.CopyTo
+type MemberAnnouncementSignatureMockCopyToExpectation struct {
+	mock    *MemberAnnouncementSignatureMock
+	params  *MemberAnnouncementSignatureMockCopyToParams
+	results *MemberAnnouncementSignatureMockCopyToResults
+	Counter uint64
+}
+
+// MemberAnnouncementSignatureMockCopyToParams contains parameters of the MemberAnnouncementSignature.CopyTo
+type MemberAnnouncementSignatureMockCopyToParams struct {
+	p []byte
+}
+
+// MemberAnnouncementSignatureMockCopyToResults contains results of the MemberAnnouncementSignature.CopyTo
+type MemberAnnouncementSignatureMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for MemberAnnouncementSignature.CopyTo
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Expect(p []byte) *mMemberAnnouncementSignatureMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &MemberAnnouncementSignatureMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &MemberAnnouncementSignatureMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the MemberAnnouncementSignature.CopyTo
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Inspect(f func(p []byte)) *mMemberAnnouncementSignatureMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for MemberAnnouncementSignatureMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by MemberAnnouncementSignature.CopyTo
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Return(i1 int) *MemberAnnouncementSignatureMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &MemberAnnouncementSignatureMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &MemberAnnouncementSignatureMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the MemberAnnouncementSignature.CopyTo method
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Set(f func(p []byte) (i1 int)) *MemberAnnouncementSignatureMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the MemberAnnouncementSignature.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the MemberAnnouncementSignature.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the MemberAnnouncementSignature.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) When(p []byte) *MemberAnnouncementSignatureMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &MemberAnnouncementSignatureMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &MemberAnnouncementSignatureMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up MemberAnnouncementSignature.CopyTo return parameters for the expectation previously defined by the When method
+func (e *MemberAnnouncementSignatureMockCopyToExpectation) Then(i1 int) *MemberAnnouncementSignatureMock {
+	e.results = &MemberAnnouncementSignatureMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements MemberAnnouncementSignature
+func (mmCopyTo *MemberAnnouncementSignatureMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &MemberAnnouncementSignatureMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := MemberAnnouncementSignatureMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("MemberAnnouncementSignatureMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the MemberAnnouncementSignatureMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to MemberAnnouncementSignatureMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished MemberAnnouncementSignatureMock.CopyTo invocations
+func (mmCopyTo *MemberAnnouncementSignatureMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of MemberAnnouncementSignatureMock.CopyTo invocations
+func (mmCopyTo *MemberAnnouncementSignatureMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to MemberAnnouncementSignatureMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mMemberAnnouncementSignatureMockCopyTo) Calls() []*MemberAnnouncementSignatureMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*MemberAnnouncementSignatureMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *MemberAnnouncementSignatureMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *MemberAnnouncementSignatureMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MemberAnnouncementSignatureMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to MemberAnnouncementSignatureMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyTo")
 	}
 }
 
@@ -1176,222 +1606,6 @@ func (m *MemberAnnouncementSignatureMock) MinimockGetSignatureMethodInspect() {
 	}
 }
 
-type mMemberAnnouncementSignatureMockRead struct {
-	mock               *MemberAnnouncementSignatureMock
-	defaultExpectation *MemberAnnouncementSignatureMockReadExpectation
-	expectations       []*MemberAnnouncementSignatureMockReadExpectation
-
-	callArgs []*MemberAnnouncementSignatureMockReadParams
-	mutex    sync.RWMutex
-}
-
-// MemberAnnouncementSignatureMockReadExpectation specifies expectation struct of the MemberAnnouncementSignature.Read
-type MemberAnnouncementSignatureMockReadExpectation struct {
-	mock    *MemberAnnouncementSignatureMock
-	params  *MemberAnnouncementSignatureMockReadParams
-	results *MemberAnnouncementSignatureMockReadResults
-	Counter uint64
-}
-
-// MemberAnnouncementSignatureMockReadParams contains parameters of the MemberAnnouncementSignature.Read
-type MemberAnnouncementSignatureMockReadParams struct {
-	p []byte
-}
-
-// MemberAnnouncementSignatureMockReadResults contains results of the MemberAnnouncementSignature.Read
-type MemberAnnouncementSignatureMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for MemberAnnouncementSignature.Read
-func (mmRead *mMemberAnnouncementSignatureMockRead) Expect(p []byte) *mMemberAnnouncementSignatureMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("MemberAnnouncementSignatureMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &MemberAnnouncementSignatureMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &MemberAnnouncementSignatureMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the MemberAnnouncementSignature.Read
-func (mmRead *mMemberAnnouncementSignatureMockRead) Inspect(f func(p []byte)) *mMemberAnnouncementSignatureMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for MemberAnnouncementSignatureMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by MemberAnnouncementSignature.Read
-func (mmRead *mMemberAnnouncementSignatureMockRead) Return(n int, err error) *MemberAnnouncementSignatureMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("MemberAnnouncementSignatureMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &MemberAnnouncementSignatureMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &MemberAnnouncementSignatureMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the MemberAnnouncementSignature.Read method
-func (mmRead *mMemberAnnouncementSignatureMockRead) Set(f func(p []byte) (n int, err error)) *MemberAnnouncementSignatureMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the MemberAnnouncementSignature.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the MemberAnnouncementSignature.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the MemberAnnouncementSignature.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mMemberAnnouncementSignatureMockRead) When(p []byte) *MemberAnnouncementSignatureMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("MemberAnnouncementSignatureMock.Read mock is already set by Set")
-	}
-
-	expectation := &MemberAnnouncementSignatureMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &MemberAnnouncementSignatureMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up MemberAnnouncementSignature.Read return parameters for the expectation previously defined by the When method
-func (e *MemberAnnouncementSignatureMockReadExpectation) Then(n int, err error) *MemberAnnouncementSignatureMock {
-	e.results = &MemberAnnouncementSignatureMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements MemberAnnouncementSignature
-func (mmRead *MemberAnnouncementSignatureMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &MemberAnnouncementSignatureMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := MemberAnnouncementSignatureMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("MemberAnnouncementSignatureMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the MemberAnnouncementSignatureMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to MemberAnnouncementSignatureMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished MemberAnnouncementSignatureMock.Read invocations
-func (mmRead *MemberAnnouncementSignatureMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of MemberAnnouncementSignatureMock.Read invocations
-func (mmRead *MemberAnnouncementSignatureMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to MemberAnnouncementSignatureMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mMemberAnnouncementSignatureMockRead) Calls() []*MemberAnnouncementSignatureMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*MemberAnnouncementSignatureMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *MemberAnnouncementSignatureMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *MemberAnnouncementSignatureMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to MemberAnnouncementSignatureMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to MemberAnnouncementSignatureMock.Read")
-		} else {
-			m.t.Errorf("Expected call to MemberAnnouncementSignatureMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to MemberAnnouncementSignatureMock.Read")
-	}
-}
-
 type mMemberAnnouncementSignatureMockWriteTo struct {
 	mock               *MemberAnnouncementSignatureMock
 	defaultExpectation *MemberAnnouncementSignatureMockWriteToExpectation
@@ -1617,6 +1831,8 @@ func (m *MemberAnnouncementSignatureMock) MinimockFinish() {
 
 		m.MinimockCopyOfSignatureInspect()
 
+		m.MinimockCopyToInspect()
+
 		m.MinimockEqualsInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -1624,8 +1840,6 @@ func (m *MemberAnnouncementSignatureMock) MinimockFinish() {
 		m.MinimockFoldToUint64Inspect()
 
 		m.MinimockGetSignatureMethodInspect()
-
-		m.MinimockReadInspect()
 
 		m.MinimockWriteToInspect()
 		m.t.FailNow()
@@ -1654,10 +1868,10 @@ func (m *MemberAnnouncementSignatureMock) minimockDone() bool {
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfSignatureDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
 		m.MinimockGetSignatureMethodDone() &&
-		m.MinimockReadDone() &&
 		m.MinimockWriteToDone()
 }

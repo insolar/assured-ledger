@@ -14,7 +14,7 @@ import (
 )
 
 func GoMapHash(v longbits.ByteString) uint32 {
-	return uint32(Str(string(v)))
+	return uint32(ByteStr(v))
 }
 
 func GoMapHashWithSeed(v longbits.ByteString, seed uint32) uint32 {
@@ -43,6 +43,10 @@ func SliceWithSeed(b []byte, seed uint) uint {
 		sh := (*reflect.SliceHeader)(p)
 		return hash(sh.Data, sh.Len, seed)
 	}))
+}
+
+func ByteStr(v longbits.ByteString) uint {
+	return Str(string(v))
 }
 
 func hash(data uintptr, len int, seed uint) uintptr {
