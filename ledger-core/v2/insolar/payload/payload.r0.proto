@@ -138,17 +138,17 @@ message VStateReport {
         ObjectState LatestDirtyState = 25;
         ObjectState LatestValidatedCode = 26;
         ObjectState LatestDirtyCode = 27;
-        repeated bytes MutableQueue = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
-        repeated bytes ImmutableQueue = 29 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
+        repeated bytes MutableQueue = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+        repeated bytes ImmutableQueue = 29 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     }
 
     ProvidedContentBody ProvidedContent = 36;
 }
 
 message ObjectState {
-    bytes Reference = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
-    bytes Parent = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
-    bytes Prototype = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes Reference = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes Parent = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes Prototype = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     bytes State = 27;
     bytes PreviousState = 28;
     bool Deactivated = 29;
