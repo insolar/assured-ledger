@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 )
 
 func TestSMExecute_Init_Increase_Pending_Counter(t *testing.T) {
@@ -23,7 +24,7 @@ func TestSMExecute_Init_Increase_Pending_Counter(t *testing.T) {
 	pulse, _ := insolar.NewPulseNumberFromStr("123456")
 	smObjectID := gen.IDWithPulse(pulse)
 	smGlobalRef := reference.NewGlobalSelf(smObjectID)
-	// sm := object.NewStateMachineObject(smGlobalRef, true)
+	sm := object.NewStateMachineObject(smGlobalRef, true)
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
@@ -38,7 +39,7 @@ func TestSMExecute_Init_Increase_Pending_Counter(t *testing.T) {
 		},
 	}
 	execCtx := smachine.NewExecutionContextMock(mc)
-	execCtx.GetPublishedLinkMock.Expect(smGlobalRef).Return(smachine.SharedDataLink{})
+	execCtx.GetPublishedLinkMock.Expect(smGlobalRef).Return(smachine.NewUnboundSharedData(&sm.SharedState))
 	smExecute.stepWaitObjectReady(execCtx)
 
 }
