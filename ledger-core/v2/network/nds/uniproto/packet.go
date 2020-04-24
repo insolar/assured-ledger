@@ -38,13 +38,10 @@ type Packet struct {
 	*/
 }
 
-func (p *Packet) SerializeMinToBytes(b []byte) (uint, error) {
-	n, err := p.Header.SerializeToBytes(b)
-	if err != nil {
-		return 0, err
-	}
+func (p *Packet) SerializeMinToBytes(b []byte) uint {
+	n := p.Header.SerializeToBytes(b)
 	SerializePulseNumberToBytes(p.PulseNumber, b[n:])
-	return n + pulse.NumberSize, nil
+	return n + pulse.NumberSize
 }
 
 func (p *Packet) SerializePayload(ctx nwapi.SerializationContext, writer *iokit.LimitedWriter, dataSize uint, encrypter cryptkit.Encrypter, fn PayloadSerializerFunc) error {
@@ -59,7 +56,9 @@ func (p *Packet) SerializePayload(ctx nwapi.SerializationContext, writer *iokit.
 	}
 	if cw, ok := encWriter.(io.Closer); ok {
 		// enables use of AEAD-like encryption with extra data on closing
-		return cw.Close()
+		if err := cw.Close(); err != nil {
+			panic(throw.W(err, "AEAD finalization"))
+		}
 	}
 	return nil
 }

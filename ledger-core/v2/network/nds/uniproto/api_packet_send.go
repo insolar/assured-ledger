@@ -91,10 +91,7 @@ func (p *SendingPacket) preSerialize(dataSize uint, alwaysComplete bool) ([]byte
 		preBufSize = LargePacketBaselineWithoutSignatureSize + p.signer.GetSignatureSize()
 	}
 	preBuf := make([]byte, preBufSize)
-	n, err := p.Packet.SerializeMinToBytes(preBuf)
-	if err != nil {
-		panic(err)
-	}
+	n := p.Packet.SerializeMinToBytes(preBuf)
 
 	return preBuf, n, packetSize
 }
@@ -114,9 +111,7 @@ func (p *SendingPacket) SerializeToBytes(dataSize uint, fn PayloadSerializerFunc
 		payloadSize -= sigSize
 	}
 
-	if err := p.serializeToBytes(preBuf[:n], dataSize, payloadSize, fn, hasher); err != nil {
-		return nil, err
-	}
+	p.serializeToBytes(preBuf[:n], dataSize, payloadSize, fn, hasher)
 	return preBuf, nil
 }
 
@@ -134,9 +129,7 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 				return false, nil
 			}
 			if !isRepeated {
-				if err := p.serializeToBytes(preBuf[:n], dataSize, payloadSize, fn, hasher); err != nil {
-					return false, err
-				}
+				p.serializeToBytes(preBuf[:n], dataSize, payloadSize, fn, hasher)
 				isRepeated = true
 			}
 			return true, t.SendBytes(preBuf)
@@ -165,8 +158,13 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 		}
 
 		pw := packetWriterTo{p: p, dSize: dataSize, pSize: payloadSize, fn: fn, hash: hasher}
-		if err := t.Send(&pw); err != nil {
-			return pw.tErr.e != nil, err
+		switch err := t.Send(&pw); {
+		case err == nil:
+			//
+		case pw.tErr.e != nil:
+			return true, err
+		default:
+			panic(throw.W(err, "serializer error"))
 		}
 		err := t.Send(hasher.SumToSignature(p.signer.Signer))
 		return err != nil, err
@@ -177,14 +175,13 @@ func (p *SendingPacket) GetSignatureSize() uint {
 	return p.signer.GetSignatureSize()
 }
 
-func (p *SendingPacket) serializeToBytes(b []byte, dataSize, payloadSize uint, fn PayloadSerializerFunc, hasher cryptkit.DigestHasher) error {
+func (p *SendingPacket) serializeToBytes(b []byte, dataSize, payloadSize uint, fn PayloadSerializerFunc, hasher cryptkit.DigestHasher) {
 	buf := bytes.NewBuffer(b)
 	n, err := p.writePayload(buf, dataSize, payloadSize, fn, hasher)
 	if err != nil {
-		return err
+		panic(throw.W(err, "unexpected"))
 	}
 	p.signer.SumToSignatureBytes(hasher, b[int64(len(b))+n:cap(b)])
-	return nil
 }
 
 func (p *SendingPacket) writePayload(w io.Writer, dataSize, payloadSize uint, fn PayloadSerializerFunc, hasher cryptkit.DigestHasher) (int64, error) {
@@ -192,7 +189,7 @@ func (p *SendingPacket) writePayload(w io.Writer, dataSize, payloadSize uint, fn
 
 	err := p.Packet.SerializePayload(p.GetContext(), writer, dataSize, p.encrypter, fn)
 	if err == nil && writer.RemainingBytes() != 0 {
-		err = throw.FailHere("size mismatch")
+		panic(throw.FailHere("size mismatch"))
 	}
 	return int64(payloadSize) - writer.RemainingBytes(), err
 }

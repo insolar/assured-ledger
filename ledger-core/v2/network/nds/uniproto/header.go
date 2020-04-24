@@ -320,9 +320,9 @@ func (h *Header) deserializeExtraFromBytes(b []byte) error {
 	return nil
 }
 
-func (h *Header) SerializeToBytes(b []byte) (uint, error) {
+func (h *Header) SerializeToBytes(b []byte) uint {
 	if !h.IsValid() {
-		return 0, throw.IllegalState()
+		panic(throw.IllegalState())
 	}
 	_ = b[HeaderByteSizeMin-1]
 
@@ -330,11 +330,11 @@ func (h *Header) SerializeToBytes(b []byte) (uint, error) {
 	case ' ':
 		// Compatibility with HTTP: "POST /" and "HEAD /"
 		if h.PacketFlags >= ' ' {
-			return 0, ErrPossibleHTTPRequest
+			panic(ErrPossibleHTTPRequest)
 		}
 	case '/':
 		// Compatibility with HTTP: "PUT /" and "GET /"
-		return 0, ErrPossibleHTTPRequest
+		panic(ErrPossibleHTTPRequest)
 	}
 
 	byteOrder := binary.LittleEndian
@@ -351,27 +351,8 @@ func (h *Header) SerializeToBytes(b []byte) (uint, error) {
 		}
 		byteOrder.PutUint32(b[HeaderByteSizeMin:], h.ExcessiveLength)
 	}
-	return size, nil
+	return size
 }
-
-//func (h *Header) SerializeTo(writer io.Writer) error {
-//	if !h.IsValid() {
-//		return throw.IllegalState()
-//	}
-//	b := make([]byte, HeaderByteSizeMax)
-//	sz, err := h.SerializeToBytes(b)
-//	if err != nil {
-//		return err
-//	}
-//
-//	switch n, err := writer.Write(b[:sz]); {
-//	case err != nil:
-//		return err
-//	case uint(n) != sz:
-//		return io.ErrShortWrite
-//	}
-//	return nil
-//}
 
 func (h *Header) DeserializeFrom(reader io.Reader) error {
 	b := make([]byte, HeaderByteSizeMin)

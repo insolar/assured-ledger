@@ -266,10 +266,7 @@ func (p *Peer) SendPacket(tp uniproto.OutType, packet uniproto.PacketPreparer) e
 
 func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc, checkFn func() bool) error {
 
-	sp, err := p.createSendingPacket(packet)
-	if err != nil {
-		return err
-	}
+	sp := p.createSendingPacket(packet)
 
 	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn, checkFn)
 	switch tp {
@@ -294,17 +291,17 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 		fallthrough
 	case uniproto.SessionfulSmall:
 		if packetSize > uniproto.MaxNonExcessiveLength {
-			return throw.E("too big for non-excessive packet")
+			panic(throw.FailHere("too big for non-excessive packet"))
 		}
 	case uniproto.Sessionless, uniproto.SessionlessNoQuota:
 		if packetSize > uint(p.transport.central.maxSessionlessSize) {
-			return throw.E("too big for sessionless packet")
+			panic(throw.FailHere("too big for sessionless packet"))
 		}
 	}
 	return p.transport.sendPacket(tp, sendFn)
 }
 
-func (p *Peer) createSendingPacket(packet *uniproto.Packet) (*uniproto.SendingPacket, error) {
+func (p *Peer) createSendingPacket(packet *uniproto.Packet) *uniproto.SendingPacket {
 	var (
 		sig cryptkit.DataSigner
 		enc cryptkit.Encrypter
@@ -313,15 +310,14 @@ func (p *Peer) createSendingPacket(packet *uniproto.Packet) (*uniproto.SendingPa
 
 	if packet.Header.IsBodyEncrypted() {
 		if enc, err = p.GetDataEncrypter(); err != nil {
-			return nil, err
+			panic(err)
 		}
 	}
 	if sig, err = p.GetDataSigner(); err != nil {
-		return nil, err
+		panic(err)
 	}
 	sp := uniproto.NewSendingPacket(sig, enc)
 	sp.Packet = *packet
 	sp.Peer = p
-
-	return sp, nil
+	return sp
 }

@@ -6,8 +6,6 @@
 package l4
 
 import (
-	"io"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
@@ -79,21 +77,18 @@ func (p *StatePacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize 
 	return packet, dataSize, p.SerializePayload
 }
 
-func listToBytes(list []ShortShipmentID, b []byte) ([]byte, error) {
+func listToBytes(list []ShortShipmentID, b []byte) []byte {
 	for _, id := range list {
 		if id == 0 {
-			return nil, throw.IllegalValue()
-		}
-		if len(b) < ShortShipmentIDByteSize {
-			return nil, io.ErrShortBuffer
+			panic(throw.IllegalValue())
 		}
 		id.PutTo(b)
 		b = b[ShortShipmentIDByteSize:]
 	}
-	return b, nil
+	return b
 }
 
-func countedListToBytes(list []ShortShipmentID, b []byte) ([]byte, error) {
+func countedListToBytes(list []ShortShipmentID, b []byte) []byte {
 	sz := uint(protokit.EncodeVarintToBytes(b, uint64(len(list))))
 	return listToBytes(list, b[sz:])
 }
@@ -103,26 +98,18 @@ func (p *StatePacket) SerializePayload(_ nwapi.SerializationContext, _ *uniproto
 	b := out
 
 	if list := p.BodyRq; len(list) > 0 {
-		if b, err = countedListToBytes(list, b); err != nil {
-			return err
-		}
+		b = countedListToBytes(list, b)
 	}
 
 	if list := p.BodyAckList; len(list) > 0 {
-		if b, err = countedListToBytes(list, b); err != nil {
-			return err
-		}
+		b = countedListToBytes(list, b)
 	}
 
 	if list := p.RejectList; len(list) > 0 {
-		if b, err = countedListToBytes(list, b); err != nil {
-			return err
-		}
+		b = countedListToBytes(list, b)
 	}
 
-	if b, err = listToBytes(p.AckList, b); err != nil {
-		return err
-	}
+	b = listToBytes(p.AckList, b)
 
 	_, err = writer.Write(out[:len(out)-len(b)])
 	return err

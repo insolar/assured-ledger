@@ -72,6 +72,10 @@ func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize
 }
 
 func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, packet *uniproto.Packet, writer *iokit.LimitedWriter) error {
+	if p.ParcelID == 0 {
+		panic(throw.IllegalValue())
+	}
+
 	if err := p.ParcelID.SimpleWriteTo(writer); err != nil {
 		return err
 	}
@@ -81,6 +85,9 @@ func (p *ParcelPacket) SerializePayload(ctx nwapi.SerializationContext, packet *
 		}
 	}
 	if packet.Header.GetPacketType() == uint8(DeliveryParcelHead) {
+		if p.BodyScale == 0 {
+			panic(throw.IllegalValue())
+		}
 		if _, err := writer.Write([]byte{p.BodyScale, p.TTLCycles}); err != nil {
 			return err
 		}
