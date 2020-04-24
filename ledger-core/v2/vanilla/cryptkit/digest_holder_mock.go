@@ -34,6 +34,12 @@ type DigestHolderMock struct {
 	beforeCopyOfDigestCounter uint64
 	CopyOfDigestMock          mDigestHolderMockCopyOfDigest
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mDigestHolderMockCopyTo
+
 	funcEquals          func(other DigestHolder) (b1 bool)
 	inspectFuncEquals   func(other DigestHolder)
 	afterEqualsCounter  uint64
@@ -57,12 +63,6 @@ type DigestHolderMock struct {
 	afterGetDigestMethodCounter  uint64
 	beforeGetDigestMethodCounter uint64
 	GetDigestMethodMock          mDigestHolderMockGetDigestMethod
-
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mDigestHolderMockRead
 
 	funcSignWith          func(signer DigestSigner) (s1 SignedDigestHolder)
 	inspectFuncSignWith   func(signer DigestSigner)
@@ -90,6 +90,9 @@ func NewDigestHolderMock(t minimock.Tester) *DigestHolderMock {
 
 	m.CopyOfDigestMock = mDigestHolderMockCopyOfDigest{mock: m}
 
+	m.CopyToMock = mDigestHolderMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*DigestHolderMockCopyToParams{}
+
 	m.EqualsMock = mDigestHolderMockEquals{mock: m}
 	m.EqualsMock.callArgs = []*DigestHolderMockEqualsParams{}
 
@@ -98,9 +101,6 @@ func NewDigestHolderMock(t minimock.Tester) *DigestHolderMock {
 	m.FoldToUint64Mock = mDigestHolderMockFoldToUint64{mock: m}
 
 	m.GetDigestMethodMock = mDigestHolderMockGetDigestMethod{mock: m}
-
-	m.ReadMock = mDigestHolderMockRead{mock: m}
-	m.ReadMock.callArgs = []*DigestHolderMockReadParams{}
 
 	m.SignWithMock = mDigestHolderMockSignWith{mock: m}
 	m.SignWithMock.callArgs = []*DigestHolderMockSignWithParams{}
@@ -537,6 +537,221 @@ func (m *DigestHolderMock) MinimockCopyOfDigestInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
 		m.t.Error("Expected call to DigestHolderMock.CopyOfDigest")
+	}
+}
+
+type mDigestHolderMockCopyTo struct {
+	mock               *DigestHolderMock
+	defaultExpectation *DigestHolderMockCopyToExpectation
+	expectations       []*DigestHolderMockCopyToExpectation
+
+	callArgs []*DigestHolderMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// DigestHolderMockCopyToExpectation specifies expectation struct of the DigestHolder.CopyTo
+type DigestHolderMockCopyToExpectation struct {
+	mock    *DigestHolderMock
+	params  *DigestHolderMockCopyToParams
+	results *DigestHolderMockCopyToResults
+	Counter uint64
+}
+
+// DigestHolderMockCopyToParams contains parameters of the DigestHolder.CopyTo
+type DigestHolderMockCopyToParams struct {
+	p []byte
+}
+
+// DigestHolderMockCopyToResults contains results of the DigestHolder.CopyTo
+type DigestHolderMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for DigestHolder.CopyTo
+func (mmCopyTo *mDigestHolderMockCopyTo) Expect(p []byte) *mDigestHolderMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("DigestHolderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &DigestHolderMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &DigestHolderMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the DigestHolder.CopyTo
+func (mmCopyTo *mDigestHolderMockCopyTo) Inspect(f func(p []byte)) *mDigestHolderMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for DigestHolderMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by DigestHolder.CopyTo
+func (mmCopyTo *mDigestHolderMockCopyTo) Return(i1 int) *DigestHolderMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("DigestHolderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &DigestHolderMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &DigestHolderMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the DigestHolder.CopyTo method
+func (mmCopyTo *mDigestHolderMockCopyTo) Set(f func(p []byte) (i1 int)) *DigestHolderMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the DigestHolder.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the DigestHolder.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the DigestHolder.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mDigestHolderMockCopyTo) When(p []byte) *DigestHolderMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("DigestHolderMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &DigestHolderMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &DigestHolderMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up DigestHolder.CopyTo return parameters for the expectation previously defined by the When method
+func (e *DigestHolderMockCopyToExpectation) Then(i1 int) *DigestHolderMock {
+	e.results = &DigestHolderMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements DigestHolder
+func (mmCopyTo *DigestHolderMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &DigestHolderMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := DigestHolderMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("DigestHolderMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the DigestHolderMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to DigestHolderMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished DigestHolderMock.CopyTo invocations
+func (mmCopyTo *DigestHolderMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of DigestHolderMock.CopyTo invocations
+func (mmCopyTo *DigestHolderMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to DigestHolderMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mDigestHolderMockCopyTo) Calls() []*DigestHolderMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*DigestHolderMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *DigestHolderMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *DigestHolderMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to DigestHolderMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to DigestHolderMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to DigestHolderMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to DigestHolderMock.CopyTo")
 	}
 }
 
@@ -1184,222 +1399,6 @@ func (m *DigestHolderMock) MinimockGetDigestMethodInspect() {
 	}
 }
 
-type mDigestHolderMockRead struct {
-	mock               *DigestHolderMock
-	defaultExpectation *DigestHolderMockReadExpectation
-	expectations       []*DigestHolderMockReadExpectation
-
-	callArgs []*DigestHolderMockReadParams
-	mutex    sync.RWMutex
-}
-
-// DigestHolderMockReadExpectation specifies expectation struct of the DigestHolder.Read
-type DigestHolderMockReadExpectation struct {
-	mock    *DigestHolderMock
-	params  *DigestHolderMockReadParams
-	results *DigestHolderMockReadResults
-	Counter uint64
-}
-
-// DigestHolderMockReadParams contains parameters of the DigestHolder.Read
-type DigestHolderMockReadParams struct {
-	p []byte
-}
-
-// DigestHolderMockReadResults contains results of the DigestHolder.Read
-type DigestHolderMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for DigestHolder.Read
-func (mmRead *mDigestHolderMockRead) Expect(p []byte) *mDigestHolderMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("DigestHolderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &DigestHolderMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &DigestHolderMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the DigestHolder.Read
-func (mmRead *mDigestHolderMockRead) Inspect(f func(p []byte)) *mDigestHolderMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for DigestHolderMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by DigestHolder.Read
-func (mmRead *mDigestHolderMockRead) Return(n int, err error) *DigestHolderMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("DigestHolderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &DigestHolderMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &DigestHolderMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the DigestHolder.Read method
-func (mmRead *mDigestHolderMockRead) Set(f func(p []byte) (n int, err error)) *DigestHolderMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the DigestHolder.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the DigestHolder.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the DigestHolder.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mDigestHolderMockRead) When(p []byte) *DigestHolderMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("DigestHolderMock.Read mock is already set by Set")
-	}
-
-	expectation := &DigestHolderMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &DigestHolderMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up DigestHolder.Read return parameters for the expectation previously defined by the When method
-func (e *DigestHolderMockReadExpectation) Then(n int, err error) *DigestHolderMock {
-	e.results = &DigestHolderMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements DigestHolder
-func (mmRead *DigestHolderMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &DigestHolderMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := DigestHolderMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("DigestHolderMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the DigestHolderMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to DigestHolderMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished DigestHolderMock.Read invocations
-func (mmRead *DigestHolderMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of DigestHolderMock.Read invocations
-func (mmRead *DigestHolderMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to DigestHolderMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mDigestHolderMockRead) Calls() []*DigestHolderMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*DigestHolderMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *DigestHolderMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *DigestHolderMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to DigestHolderMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to DigestHolderMock.Read")
-		} else {
-			m.t.Errorf("Expected call to DigestHolderMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to DigestHolderMock.Read")
-	}
-}
-
 type mDigestHolderMockSignWith struct {
 	mock               *DigestHolderMock
 	defaultExpectation *DigestHolderMockSignWithExpectation
@@ -1840,6 +1839,8 @@ func (m *DigestHolderMock) MinimockFinish() {
 
 		m.MinimockCopyOfDigestInspect()
 
+		m.MinimockCopyToInspect()
+
 		m.MinimockEqualsInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -1847,8 +1848,6 @@ func (m *DigestHolderMock) MinimockFinish() {
 		m.MinimockFoldToUint64Inspect()
 
 		m.MinimockGetDigestMethodInspect()
-
-		m.MinimockReadInspect()
 
 		m.MinimockSignWithInspect()
 
@@ -1879,11 +1878,11 @@ func (m *DigestHolderMock) minimockDone() bool {
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
 		m.MinimockGetDigestMethodDone() &&
-		m.MinimockReadDone() &&
 		m.MinimockSignWithDone() &&
 		m.MinimockWriteToDone()
 }
