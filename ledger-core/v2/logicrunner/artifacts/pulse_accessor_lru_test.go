@@ -10,9 +10,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewPulseAccessorLRU_NewPulseAccessorLRU(t *testing.T) {

@@ -8,10 +8,11 @@ package executor
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/pkg/errors"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor.headTruncater -o ./ -s _gen_mock.go -g

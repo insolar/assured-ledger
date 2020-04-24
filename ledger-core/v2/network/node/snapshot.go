@@ -8,10 +8,11 @@ package node
 import (
 	"reflect"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	protonode "github.com/insolar/assured-ledger/ledger-core/v2/network/node/internal/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/pkg/errors"
 )
 
 type ListType int

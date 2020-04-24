@@ -8,11 +8,12 @@ package cryptography
 import (
 	"crypto"
 
+	"github.com/insolar/component-manager"
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/insolar/component-manager"
-	"github.com/pkg/errors"
 )
 
 type NodeCryptographyService struct {

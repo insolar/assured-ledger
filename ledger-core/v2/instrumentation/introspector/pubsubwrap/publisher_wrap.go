@@ -9,8 +9,9 @@ import (
 	"fmt"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 )
 
 // FilterMiddleware an interface for message filtering and modification.

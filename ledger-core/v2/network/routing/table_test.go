@@ -14,10 +14,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 )
 
 func newNode(ref insolar.Reference, id int) insolar.NetworkNode {

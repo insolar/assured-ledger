@@ -8,8 +8,9 @@ package certificate
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 // CertificateManager is a component for working with current node certificate

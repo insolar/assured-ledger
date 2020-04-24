@@ -8,9 +8,10 @@ package storage
 import (
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
-	"github.com/pkg/errors"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/storage.SnapshotStorage -o ../../testutils/network -s _mock.go -g

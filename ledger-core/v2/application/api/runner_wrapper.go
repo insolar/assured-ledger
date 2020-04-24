@@ -8,8 +8,9 @@ package api
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/component-manager"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type RunnerWrapper struct {

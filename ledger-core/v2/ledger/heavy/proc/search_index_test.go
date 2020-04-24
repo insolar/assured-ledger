@@ -10,6 +10,8 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -20,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/proc"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
 	pulse_core "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSearchIndex_Proceed(t *testing.T) {

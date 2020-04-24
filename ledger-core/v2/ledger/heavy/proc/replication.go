@@ -9,12 +9,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
+	"go.opencensus.io/stats"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor"
-	"github.com/pkg/errors"
-	"go.opencensus.io/stats"
 )
 
 type Replication struct {
