@@ -33,9 +33,9 @@ type Slot struct {
 	nextInQueue *Slot
 	queue       *QueueHead
 
-	/* SYNC: this portion of slot can ONLY be accessed by
-	- the same goroutine that either has set BUSY
-	- or for non-BUSY - by the goroutine of the machine
+	/* SYNC: this portion of slot can ONLY be accessed by:
+	- the same goroutine that has set BUSY
+	- or for non-BUSY - the goroutine of the machine
 	*/
 	slotData
 }
@@ -82,7 +82,7 @@ type slotData struct {
 	defResult  interface{}
 
 	lastTouchNano  int64
-	migrationCount uint32 // can be wrapped by overflow
+	migrationCount uint32 // can be wrapped on overflow
 	asyncCallCount uint16 // pending calls, overflow panics
 	lastWorkScan   uint8  // to check if a slot was executed in this cycle
 	slotFlags      slotFlags
