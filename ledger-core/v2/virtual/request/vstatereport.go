@@ -46,15 +46,14 @@ func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.State
 
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	catalog := object.Catalog{}
-
 	incomingObjectState := s.Payload.ProvidedContent.LatestDirtyCode
 
 	objectRef := incomingObjectState.Reference
-	sharedObjectState := catalog.GetOrCreate(ctx, objectRef)
+	sharedObjectState := catalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
 
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
-		if state.Descriptor() != nil {
+		if state.Descriptor() == nil {
 			state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
 		} else {
 			ctx.Log().Trace(struct {

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
@@ -60,9 +59,9 @@ func checkBalance(t *testing.T, server *utils.Server, objectRef reference.Global
 
 	response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
 	require.NoError(t, err)
-	assert.Empty(t, response.Err)
-	assert.NotEmpty(t, response.TraceID)
-	assert.Equal(t, uint(testBalance), response.Amount)
+	require.Empty(t, response.Err)
+	require.NotEmpty(t, response.TraceID)
+	require.Equal(t, uint(testBalance), response.Amount)
 }
 
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
@@ -70,7 +69,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	ctx := inslogger.TestContext(t)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		assert.Len(t, messages, 1)
+		require.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 		return nil
@@ -88,29 +87,12 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	checkBalance(t, server, objectRef, testBalance)
 }
 
-func TestVirtual_VStateReport_WithoutState(t *testing.T) {
+func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		assert.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	}
-
-	testBalance := uint32(555)
-	objectRef := gen.Reference()
-
-	checkBalance(t, server, objectRef, testBalance)
-}
-
-func TestVirtual_VStateReport_DontRewriteState(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
-
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		assert.Len(t, messages, 1)
+		require.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 		return nil

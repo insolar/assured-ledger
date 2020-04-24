@@ -6,12 +6,18 @@
 package object
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -28,8 +34,6 @@ type Info struct {
 	ActiveMutablePendingCount      uint8
 	PotentialImmutablePendingCount uint8
 	PotentialMutablePendingCount   uint8
-
-	PreviousExecutorState payload.PreviousExecutorState
 }
 
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
@@ -50,12 +54,21 @@ type SharedState struct {
 	Info
 }
 
-func NewStateMachineObject(objectReference insolar.Reference, exists bool) *SMObject {
+// StackRelation shows relevance of 2 stacks
+type InitReason int8
+
+const (
+	InitReasonCTConstructor InitReason = iota
+	InitReasonCTMethod
+	InitReasonVStateReport
+)
+
+func NewStateMachineObject(objectReference insolar.Reference, reason InitReason) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{Reference: objectReference},
 		},
-		oldObject: exists,
+		initReason: reason,
 	}
 }
 
@@ -65,13 +78,19 @@ type SMObject struct {
 	SharedState
 
 	readyToWorkCtl smsync.BoolConditionalLink
+	initReason     InitReason
 
-	oldObject bool
+	// dependencies
+	messageSender *messageSenderAdapter.MessageSender
+	pulseSlot     *conveyor.PulseSlot
 }
 
 /* -------- Declaration ------------- */
 
-func (sm *SMObject) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := stateMachine.(*SMObject)
+	injector.MustInject(&s.messageSender)
+	injector.MustInject(&s.pulseSlot)
 }
 
 func (sm *SMObject) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
@@ -96,12 +115,47 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
-	return ctx.Jump(sm.stepReadyToWork)
+	switch sm.initReason {
+	case InitReasonCTConstructor:
+		return ctx.Jump(sm.stepReadyToWork)
+	case InitReasonCTMethod:
+		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will jump to stepWaitState
+	case InitReasonVStateReport:
+		return ctx.Jump(sm.stepWaitState)
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
+// we get CallMethod but we have no object data
+// we need to ask previous executor
+func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	msg := payload.VStateRequest{
+		Callee:           sm.Reference,
+		RequestedContent: payload.RequestLatestDirtyState,
+	}
+
+	goCtx := ctx.GetContext()
+	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
+	ref := sm.Reference
+
+	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
+	}).Send()
+
+	return ctx.Jump(sm.stepWaitState)
+}
+
+func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.SharedState.descriptor != nil {
+		return ctx.Jump(sm.stepReadyToWork)
+	}
+
+	return ctx.Sleep().ThenRepeat()
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.ApplyAdjustment(sm.readyToWorkCtl.NewValue(true))
-
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
