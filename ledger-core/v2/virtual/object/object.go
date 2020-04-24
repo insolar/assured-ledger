@@ -80,7 +80,6 @@ type SMObject struct {
 
 	readyToWorkCtl   smsync.BoolConditionalLink
 	initReason       InitReason
-	stateRequestSent bool
 
 	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
@@ -121,9 +120,8 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	case InitReasonCTConstructor:
 		return ctx.Jump(sm.stepReadyToWork)
 	case InitReasonCTMethod:
-		return ctx.Jump(sm.stepGetObjectState)
+		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will be jump to stepWaitState
 	case InitReasonVStateReport:
-		sm.stateRequestSent = true
 		return ctx.Jump(sm.stepWaitState)
 	default:
 		panic("Not implemented")
@@ -133,10 +131,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 // we get CallMethod but we have no object data
 // we need to ask previous executor
 func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.stateRequestSent {
-		return ctx.Jump(sm.stepWaitState)
-	}
-
 	msg := payload.VStateRequest{
 		Callee:           sm.Reference,
 		RequestedContent: payload.RequestLatestDirtyState,
@@ -147,7 +141,6 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
 	}).Send()
 
-	sm.stateRequestSent = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
