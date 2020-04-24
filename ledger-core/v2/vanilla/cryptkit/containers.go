@@ -27,6 +27,13 @@ func (d Digest) IsEmpty() bool {
 	return d.hFoldReader == nil
 }
 
+func (d Digest) FixedByteSize() int {
+	if d.hFoldReader != nil {
+		return d.hFoldReader.FixedByteSize()
+	}
+	return 0
+}
+
 func (d Digest) CopyOfDigest() Digest {
 	return Digest{hFoldReader: longbits.CopyToMutable(d.hFoldReader), digestMethod: d.digestMethod}
 }
@@ -68,6 +75,13 @@ type Signature struct {
 
 func (p Signature) IsEmpty() bool {
 	return p.hFoldReader == nil
+}
+
+func (p Signature) FixedByteSize() int {
+	if p.hFoldReader != nil {
+		return p.hFoldReader.FixedByteSize()
+	}
+	return 0
 }
 
 func (p Signature) CopyOfSignature() Signature {
@@ -158,39 +172,40 @@ func (r SignedDigest) AsSignedDigestHolder() SignedDigestHolder {
 
 /*****************************************************************/
 
-func NewSignedData(data io.Reader, digest Digest, signature Signature) SignedData {
+func NewSignedData(data io.WriterTo, digest Digest, signature Signature) SignedData {
 	return SignedData{SignedDigest{digest, signature}, data}
 }
 
-func SignDataByDataSigner(data io.Reader, signer DataSigner) SignedData {
-	sd := signer.SignData(data)
-	return NewSignedData(data, sd.digest, sd.signature)
+func SignDataByDataSigner(data io.WriterTo, signer DataSigner) SignedData {
+	hasher := signer.NewHasher()
+	if _, err := data.WriteTo(hasher); err != nil {
+		panic(err)
+	}
+	digest := hasher.SumToDigest()
+	signature := signer.SignDigest(digest)
+	return NewSignedData(data, digest, signature)
 }
 
-type hReader = io.Reader
+type hWriterTo = io.WriterTo
 type hSignedDigest = SignedDigest
 
 var _ io.WriterTo = SignedData{}
 
 type SignedData struct {
 	hSignedDigest
-	hReader
+	hWriterTo
 }
 
 func (r SignedData) IsEmpty() bool {
-	return r.hReader == nil && r.hSignedDigest.IsEmpty()
+	return r.hWriterTo == nil && r.hSignedDigest.IsEmpty()
 }
 
 func (r SignedData) GetSignedDigest() SignedDigest {
 	return r.hSignedDigest
 }
 
-func (r SignedData) WriteTo(w io.Writer) (int64, error) {
-	return io.Copy(w, r.hReader)
-}
-
 func (r SignedData) String() string {
-	return fmt.Sprintf("[bytes=%v]%v", r.hReader, r.hSignedDigest)
+	return fmt.Sprintf("[bytes=%v]%v", r.hWriterTo, r.hSignedDigest)
 }
 
 /*****************************************************************/
@@ -205,6 +220,7 @@ func NewSignatureKey(data longbits.FoldableReader, signatureMethod SignatureMeth
 
 var _ SignatureKeyHolder = SignatureKey{}
 
+// TODO Rename to SigningKey
 type SignatureKey struct {
 	hFoldReader
 	signatureMethod SignatureMethod
@@ -225,6 +241,13 @@ func (p SignatureKey) GetSignatureKeyMethod() SignatureMethod {
 
 func (p SignatureKey) GetSignatureKeyType() SignatureKeyType {
 	return p.keyType
+}
+
+func (p SignatureKey) FixedByteSize() int {
+	if p.hFoldReader != nil {
+		return p.hFoldReader.FixedByteSize()
+	}
+	return 0
 }
 
 func (p SignatureKey) Equals(o SignatureKeyHolder) bool {

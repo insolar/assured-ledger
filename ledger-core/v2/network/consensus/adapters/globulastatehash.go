@@ -37,7 +37,7 @@ func (d *SequenceDigester) addNext(state uint64) {
 
 func (d *SequenceDigester) FinishSequence() cryptkit.Digest {
 	bits64 := longbits.NewBits64(d.state)
-	return d.dataDigester.DigestData(&bits64)
+	return d.dataDigester.NewHasher().DigestOf(&bits64).SumToDigest()
 }
 
 func (d *SequenceDigester) GetDigestMethod() cryptkit.DigestMethod {

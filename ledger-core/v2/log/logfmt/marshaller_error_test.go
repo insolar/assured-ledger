@@ -82,7 +82,7 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 	err = throw.WithStack(err)
 
 	err = fmt.Errorf("wrapper %w", err) // mess up the chain - get stack and other parts to be blended-in
-	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
+	assert.Equal(t, 1, strings.Count(throw.ErrorWithStack(err), "TestErrorMarshaller_MarshalLogObject_mixed"))
 
 	err = throw.WithDetails(err, throw.E("panicMsg", struct{ f3 uint }{3}))
 	err = throw.WithStack(err) // repeated stack trace capture should not pollute the output
@@ -91,7 +91,7 @@ func TestErrorMarshaller_MarshalLogObject_mixed(t *testing.T) {
 	assert.Equal(t, "panicMsg", s)
 	assert.Contains(t, o, "f0:1:int,f1:ABC:string,errorMsg:main,errorMsg:start,f2:2:int,errorMsg:ext,errorMsg:wrapper %w,f3:3:uint,errorStack:")
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_mixed"))
-	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_mixed"))
+	assert.Equal(t, 1, strings.Count(throw.ErrorWithStack(err), "TestErrorMarshaller_MarshalLogObject_mixed"))
 }
 
 func TestErrorMarshaller_MarshalLogObject_repeated(t *testing.T) {
@@ -110,7 +110,7 @@ func TestErrorMarshaller_MarshalLogObject_repeated(t *testing.T) {
 	assert.Equal(t, "mmmm %w", s)
 	assert.Contains(t, o, "errorMsg:m,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mm,errorMsg:mmm %w,errorMsg:mm,errorMsg:mmmm %w,errorStack:")
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_repeated"))
-	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_repeated"))
+	assert.Equal(t, 1, strings.Count(throw.ErrorWithStack(err), "TestErrorMarshaller_MarshalLogObject_repeated"))
 }
 
 func TestErrorMarshaller_MarshalLogObject_skipTop(t *testing.T) {
@@ -120,7 +120,7 @@ func TestErrorMarshaller_MarshalLogObject_skipTop(t *testing.T) {
 	assert.Equal(t, "illegal state", s)
 	assert.True(t, strings.HasPrefix(o, "errorStack:"))
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_skipTop"))
-	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_skipTop"))
+	assert.Equal(t, 1, strings.Count(throw.ErrorWithStack(err), "TestErrorMarshaller_MarshalLogObject_skipTop"))
 }
 
 func TestErrorMarshaller_MarshalLogObject_stackTop(t *testing.T) {
@@ -129,16 +129,15 @@ func TestErrorMarshaller_MarshalLogObject_stackTop(t *testing.T) {
 	assert.Equal(t, "illegal state", s)
 	assert.True(t, strings.HasPrefix(o, "errorStack:"))
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_stackTop"))
-	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_stackTop"))
+	assert.Equal(t, 1, strings.Count(throw.ErrorWithStack(err), "TestErrorMarshaller_MarshalLogObject_stackTop"))
 
 	err = throw.WithDetails(err, struct{ string }{"mm"})
 	err = throw.WithStack(err)
 	s, o = fmtError(t, err)
 	assert.Equal(t, "illegal state", s)
 	assert.Contains(t, o, "errorMsg:mm,errorStack:")
-	//fmt.Println(o)
 	assert.Equal(t, 1, strings.Count(o, "TestErrorMarshaller_MarshalLogObject_stackTop"))
-	assert.Equal(t, 1, strings.Count(err.Error(), "TestErrorMarshaller_MarshalLogObject_stackTop"))
+	assert.Equal(t, 1, strings.Count(throw.ErrorWithStack(err), "TestErrorMarshaller_MarshalLogObject_stackTop"))
 }
 
 func TestErrorMarshaller_MarshalLogObject_namedStruct(t *testing.T) {

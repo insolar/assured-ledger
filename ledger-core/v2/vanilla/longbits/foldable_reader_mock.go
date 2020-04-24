@@ -27,6 +27,12 @@ type FoldableReaderMock struct {
 	beforeAsBytesCounter uint64
 	AsBytesMock          mFoldableReaderMockAsBytes
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mFoldableReaderMockCopyTo
+
 	funcFixedByteSize          func() (i1 int)
 	inspectFuncFixedByteSize   func()
 	afterFixedByteSizeCounter  uint64
@@ -38,12 +44,6 @@ type FoldableReaderMock struct {
 	afterFoldToUint64Counter  uint64
 	beforeFoldToUint64Counter uint64
 	FoldToUint64Mock          mFoldableReaderMockFoldToUint64
-
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mFoldableReaderMockRead
 
 	funcWriteTo          func(w io.Writer) (n int64, err error)
 	inspectFuncWriteTo   func(w io.Writer)
@@ -63,12 +63,12 @@ func NewFoldableReaderMock(t minimock.Tester) *FoldableReaderMock {
 
 	m.AsBytesMock = mFoldableReaderMockAsBytes{mock: m}
 
+	m.CopyToMock = mFoldableReaderMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*FoldableReaderMockCopyToParams{}
+
 	m.FixedByteSizeMock = mFoldableReaderMockFixedByteSize{mock: m}
 
 	m.FoldToUint64Mock = mFoldableReaderMockFoldToUint64{mock: m}
-
-	m.ReadMock = mFoldableReaderMockRead{mock: m}
-	m.ReadMock.callArgs = []*FoldableReaderMockReadParams{}
 
 	m.WriteToMock = mFoldableReaderMockWriteTo{mock: m}
 	m.WriteToMock.callArgs = []*FoldableReaderMockWriteToParams{}
@@ -362,6 +362,221 @@ func (m *FoldableReaderMock) MinimockAsBytesInspect() {
 	}
 }
 
+type mFoldableReaderMockCopyTo struct {
+	mock               *FoldableReaderMock
+	defaultExpectation *FoldableReaderMockCopyToExpectation
+	expectations       []*FoldableReaderMockCopyToExpectation
+
+	callArgs []*FoldableReaderMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// FoldableReaderMockCopyToExpectation specifies expectation struct of the FoldableReader.CopyTo
+type FoldableReaderMockCopyToExpectation struct {
+	mock    *FoldableReaderMock
+	params  *FoldableReaderMockCopyToParams
+	results *FoldableReaderMockCopyToResults
+	Counter uint64
+}
+
+// FoldableReaderMockCopyToParams contains parameters of the FoldableReader.CopyTo
+type FoldableReaderMockCopyToParams struct {
+	p []byte
+}
+
+// FoldableReaderMockCopyToResults contains results of the FoldableReader.CopyTo
+type FoldableReaderMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for FoldableReader.CopyTo
+func (mmCopyTo *mFoldableReaderMockCopyTo) Expect(p []byte) *mFoldableReaderMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("FoldableReaderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &FoldableReaderMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &FoldableReaderMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the FoldableReader.CopyTo
+func (mmCopyTo *mFoldableReaderMockCopyTo) Inspect(f func(p []byte)) *mFoldableReaderMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for FoldableReaderMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by FoldableReader.CopyTo
+func (mmCopyTo *mFoldableReaderMockCopyTo) Return(i1 int) *FoldableReaderMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("FoldableReaderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &FoldableReaderMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &FoldableReaderMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the FoldableReader.CopyTo method
+func (mmCopyTo *mFoldableReaderMockCopyTo) Set(f func(p []byte) (i1 int)) *FoldableReaderMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the FoldableReader.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the FoldableReader.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the FoldableReader.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mFoldableReaderMockCopyTo) When(p []byte) *FoldableReaderMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("FoldableReaderMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &FoldableReaderMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &FoldableReaderMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up FoldableReader.CopyTo return parameters for the expectation previously defined by the When method
+func (e *FoldableReaderMockCopyToExpectation) Then(i1 int) *FoldableReaderMock {
+	e.results = &FoldableReaderMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements FoldableReader
+func (mmCopyTo *FoldableReaderMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &FoldableReaderMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := FoldableReaderMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("FoldableReaderMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the FoldableReaderMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to FoldableReaderMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished FoldableReaderMock.CopyTo invocations
+func (mmCopyTo *FoldableReaderMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of FoldableReaderMock.CopyTo invocations
+func (mmCopyTo *FoldableReaderMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to FoldableReaderMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mFoldableReaderMockCopyTo) Calls() []*FoldableReaderMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*FoldableReaderMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *FoldableReaderMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *FoldableReaderMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to FoldableReaderMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to FoldableReaderMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to FoldableReaderMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to FoldableReaderMock.CopyTo")
+	}
+}
+
 type mFoldableReaderMockFixedByteSize struct {
 	mock               *FoldableReaderMock
 	defaultExpectation *FoldableReaderMockFixedByteSizeExpectation
@@ -648,222 +863,6 @@ func (m *FoldableReaderMock) MinimockFoldToUint64Inspect() {
 	}
 }
 
-type mFoldableReaderMockRead struct {
-	mock               *FoldableReaderMock
-	defaultExpectation *FoldableReaderMockReadExpectation
-	expectations       []*FoldableReaderMockReadExpectation
-
-	callArgs []*FoldableReaderMockReadParams
-	mutex    sync.RWMutex
-}
-
-// FoldableReaderMockReadExpectation specifies expectation struct of the FoldableReader.Read
-type FoldableReaderMockReadExpectation struct {
-	mock    *FoldableReaderMock
-	params  *FoldableReaderMockReadParams
-	results *FoldableReaderMockReadResults
-	Counter uint64
-}
-
-// FoldableReaderMockReadParams contains parameters of the FoldableReader.Read
-type FoldableReaderMockReadParams struct {
-	p []byte
-}
-
-// FoldableReaderMockReadResults contains results of the FoldableReader.Read
-type FoldableReaderMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for FoldableReader.Read
-func (mmRead *mFoldableReaderMockRead) Expect(p []byte) *mFoldableReaderMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("FoldableReaderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &FoldableReaderMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &FoldableReaderMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the FoldableReader.Read
-func (mmRead *mFoldableReaderMockRead) Inspect(f func(p []byte)) *mFoldableReaderMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for FoldableReaderMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by FoldableReader.Read
-func (mmRead *mFoldableReaderMockRead) Return(n int, err error) *FoldableReaderMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("FoldableReaderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &FoldableReaderMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &FoldableReaderMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the FoldableReader.Read method
-func (mmRead *mFoldableReaderMockRead) Set(f func(p []byte) (n int, err error)) *FoldableReaderMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the FoldableReader.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the FoldableReader.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the FoldableReader.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mFoldableReaderMockRead) When(p []byte) *FoldableReaderMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("FoldableReaderMock.Read mock is already set by Set")
-	}
-
-	expectation := &FoldableReaderMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &FoldableReaderMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up FoldableReader.Read return parameters for the expectation previously defined by the When method
-func (e *FoldableReaderMockReadExpectation) Then(n int, err error) *FoldableReaderMock {
-	e.results = &FoldableReaderMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements FoldableReader
-func (mmRead *FoldableReaderMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &FoldableReaderMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := FoldableReaderMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("FoldableReaderMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the FoldableReaderMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to FoldableReaderMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished FoldableReaderMock.Read invocations
-func (mmRead *FoldableReaderMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of FoldableReaderMock.Read invocations
-func (mmRead *FoldableReaderMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to FoldableReaderMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mFoldableReaderMockRead) Calls() []*FoldableReaderMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*FoldableReaderMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *FoldableReaderMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *FoldableReaderMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to FoldableReaderMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to FoldableReaderMock.Read")
-		} else {
-			m.t.Errorf("Expected call to FoldableReaderMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to FoldableReaderMock.Read")
-	}
-}
-
 type mFoldableReaderMockWriteTo struct {
 	mock               *FoldableReaderMock
 	defaultExpectation *FoldableReaderMockWriteToExpectation
@@ -1087,11 +1086,11 @@ func (m *FoldableReaderMock) MinimockFinish() {
 
 		m.MinimockAsBytesInspect()
 
+		m.MinimockCopyToInspect()
+
 		m.MinimockFixedByteSizeInspect()
 
 		m.MinimockFoldToUint64Inspect()
-
-		m.MinimockReadInspect()
 
 		m.MinimockWriteToInspect()
 		m.t.FailNow()
@@ -1119,8 +1118,8 @@ func (m *FoldableReaderMock) minimockDone() bool {
 	return done &&
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
-		m.MinimockReadDone() &&
 		m.MinimockWriteToDone()
 }

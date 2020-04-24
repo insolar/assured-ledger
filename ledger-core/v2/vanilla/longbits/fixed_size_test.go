@@ -98,11 +98,8 @@ func TestRead(t *testing.T) {
 	item := byte(3)
 	fs := fixedSize{data: []byte{item}}
 	buf := make([]byte, 2)
-	n, err := fs.Read(buf)
+	n := fs.CopyTo(buf)
 	require.Equal(t, 1, n)
-
-	require.Nil(t, err)
-
 	require.Equal(t, item, buf[0])
 }
 

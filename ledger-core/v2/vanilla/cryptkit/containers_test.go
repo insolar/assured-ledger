@@ -16,6 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
+func TestCompareNil(t *testing.T) {
+	var s1, s2 Signature
+	require.True(t, s1.Equals(s2))
+}
+
 func TestIsSymmetric(t *testing.T) {
 	require.True(t, SymmetricKey.IsSymmetric())
 
@@ -80,7 +85,7 @@ func TestCopyOfDigest(t *testing.T) {
 	d := &Digest{digestMethod: "test"}
 	fd := longbits.NewFoldableReaderMock(t)
 	fd.FixedByteSizeMock.Set(func() int { return 0 })
-	fd.ReadMock.Set(func(p []byte) (n int, err error) { return 0, nil })
+	fd.CopyToMock.Set(func(p []byte) int { return 0 })
 	d.hFoldReader = fd
 	cd := d.CopyOfDigest()
 	require.Equal(t, cd.digestMethod, d.digestMethod)
@@ -89,31 +94,8 @@ func TestCopyOfDigest(t *testing.T) {
 func TestDigestEquals(t *testing.T) {
 	bits := longbits.NewBits64(0)
 	d := NewDigest(&bits, "")
-	dh := NewDigestHolderMock(t)
-	dh.FixedByteSizeMock.Set(func() int { return 1 })
-
-	require.False(t, d.Equals(nil))
-
-	require.False(t, d.Equals(dh))
-
-	dh.FixedByteSizeMock.Set(func() int { return 0 })
-
-	require.False(t, d.Equals(dh))
-
 	dc := NewDigest(&bits, "")
 	require.True(t, d.Equals(dc.AsDigestHolder()))
-}
-
-func TestAsDigestHolder(t *testing.T) {
-	d := Digest{digestMethod: "test"}
-	dh := d.AsDigestHolder()
-	require.Nil(t, dh)
-
-	d.hFoldReader = NewDigestHolderMock(t)
-	dh = d.AsDigestHolder()
-	require.Equal(t, dh.GetDigestMethod(), d.digestMethod)
-
-	require.Implements(t, (*DigestHolder)(nil), dh)
 }
 
 func TestNewDigest(t *testing.T) {
@@ -142,7 +124,7 @@ func TestCopyOfSignature(t *testing.T) {
 	s := &Signature{signatureMethod: "test"}
 	fd := longbits.NewFoldableReaderMock(t)
 	fd.FixedByteSizeMock.Set(func() int { return 0 })
-	fd.ReadMock.Set(func(p []byte) (n int, err error) { return 0, nil })
+	fd.CopyToMock.Set(func(p []byte) int { return 0 })
 	s.hFoldReader = fd
 	cs := s.CopyOfSignature()
 	require.Equal(t, cs.signatureMethod, s.signatureMethod)
@@ -160,17 +142,6 @@ func TestNewSignature(t *testing.T) {
 func TestSignatureEquals(t *testing.T) {
 	bits := longbits.NewBits64(0)
 	s := NewSignature(&bits, "")
-	sh := NewSignatureHolderMock(t)
-	sh.FixedByteSizeMock.Set(func() int { return 1 })
-
-	require.False(t, s.Equals(nil))
-
-	require.False(t, s.Equals(sh))
-
-	sh.FixedByteSizeMock.Set(func() int { return 0 })
-
-	require.False(t, s.Equals(sh))
-
 	sc := NewSignature(&bits, "")
 	require.True(t, s.Equals(sc.AsSignatureHolder()))
 }
@@ -207,13 +178,13 @@ func TestCopyOfSignedDigest(t *testing.T) {
 	d := Digest{digestMethod: "testDigest"}
 	fd1 := longbits.NewFoldableReaderMock(t)
 	fd1.FixedByteSizeMock.Set(func() int { return 0 })
-	fd1.ReadMock.Set(func(p []byte) (n int, err error) { return 0, nil })
+	fd1.CopyToMock.Set(func(p []byte) int { return 0 })
 	d.hFoldReader = fd1
 
 	s := Signature{signatureMethod: "testSignature"}
 	fd2 := longbits.NewFoldableReaderMock(t)
 	fd2.FixedByteSizeMock.Set(func() int { return 0 })
-	fd2.ReadMock.Set(func(p []byte) (n int, err error) { return 0, nil })
+	fd2.CopyToMock.Set(func(p []byte) int { return 0 })
 	s.hFoldReader = fd2
 	sd := NewSignedDigest(d, s)
 	sdc := sd.CopyOfSignedDigest()
@@ -323,27 +294,11 @@ func TestNewSignedData(t *testing.T) {
 	d := Digest{digestMethod: "testDigest"}
 	s := Signature{signatureMethod: "testSignature"}
 	sd := NewSignedData(&bits, d, s)
-	require.Equal(t, &bits, sd.hReader)
+	require.Equal(t, &bits, sd.hWriterTo)
 
 	require.Equal(t, d, sd.hSignedDigest.digest)
 
 	require.Equal(t, s, sd.hSignedDigest.signature)
-}
-
-func TestSignDataByDataSigner(t *testing.T) {
-	bits := longbits.NewBits64(0)
-	ds := NewDataSignerMock(t)
-	td := DigestMethod("testDigest")
-	ts := SignatureMethod("testSign")
-	ds.SignDataMock.Set(func(io.Reader) SignedDigest {
-		return SignedDigest{digest: Digest{digestMethod: td}, signature: Signature{signatureMethod: ts}}
-	})
-	sd := SignDataByDataSigner(&bits, ds)
-	require.Equal(t, &bits, sd.hReader)
-
-	require.Equal(t, td, sd.digest.digestMethod)
-
-	require.Equal(t, ts, sd.signature.signatureMethod)
 }
 
 func TestGetSignedDigest(t *testing.T) {
@@ -413,7 +368,7 @@ func TestEquals(t *testing.T) {
 	fd.WriteToMock.Set(func(io.Writer) (int64, error) { return 0, nil })
 	sk1 := NewSignatureKey(fd, "test", PublicAsymmetricKey)
 	sk2 := NewSignatureKey(fd, "test", PublicAsymmetricKey)
-	require.False(t, sk1.Equals(&sk2))
+	require.True(t, sk1.Equals(&sk2))
 }
 
 func TestSignatureKeyString(t *testing.T) {

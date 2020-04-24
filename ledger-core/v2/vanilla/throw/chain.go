@@ -76,6 +76,22 @@ func NearestStackOf(errChain, target error) (error, StackTraceHolder, bool) {
 	return nil, sth, false
 }
 
+func DeepestStackTraceOf(errChain error) StackTrace {
+	for errChain != nil {
+		if sw, ok := errChain.(StackTraceHolder); ok {
+			if st, _ := sw.DeepestStackTrace(); st != nil {
+				return st
+			}
+		}
+		errChain = errors.Unwrap(errChain)
+	}
+	return nil
+}
+
+func ErrorWithStack(errChain error) string {
+	return joinStack(errChain.Error(), DeepestStackTraceOf(errChain))
+}
+
 // OutermostStack returns the closest StackTraceHolder with non-nil ShallowStackTrace from errChain
 func OutermostStack(errChain error) StackTraceHolder {
 	for errChain != nil {
@@ -87,7 +103,7 @@ func OutermostStack(errChain error) StackTraceHolder {
 	return nil
 }
 
-// InnermostStack returns the most distant StackTraceHolder with non-nil StackTrace from errChain
+// InnermostStack returns the most distant StackTraceHolder with non-nil ShallowStackTrace from errChain
 func InnermostStack(errChain error) (sth StackTraceHolder) {
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok && sw.ShallowStackTrace() != nil {
@@ -98,7 +114,7 @@ func InnermostStack(errChain error) (sth StackTraceHolder) {
 	return
 }
 
-// InnermostFullStack returns the most distant StackTraceHolder with non-nil StackTrace and IsFullStack from errChain
+// InnermostFullStack returns the most distant StackTraceHolder with non-nil ShallowStackTrace and IsFullStack from errChain
 func InnermostFullStack(errChain error) (sth StackTraceHolder) {
 	for errChain != nil {
 		if sw, ok := errChain.(StackTraceHolder); ok && sw.ShallowStackTrace() != nil && sw.ShallowStackTrace().IsFullStack() {

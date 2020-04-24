@@ -54,6 +54,10 @@ func (pd *Sha3512Digester) DigestBytes(bytes []byte) cryptkit.Digest {
 	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
 }
 
+func (pd *Sha3512Digester) NewHasher() cryptkit.DigestHasher {
+	return cryptkit.DigestHasher{BasicDigester: pd, Hash: pd.scheme.IntegrityHasher()}
+}
+
 func (pd *Sha3512Digester) GetDigestSize() int {
 	return 64
 }

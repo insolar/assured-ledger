@@ -73,6 +73,26 @@ func DecodeFixed32(r io.ByteReader) (v uint64, err error) {
 	return v, nil
 }
 
+func DecodeVarintFromBytes(bb []byte) (u uint64, n int) {
+	b := bb[0]
+
+	v := uint64(b & 0x7F)
+
+	for i := uint8(7); i < 64; i += 7 {
+		n++
+		if b&0x80 == 0 {
+			return v, n
+		}
+		b = bb[n]
+		v |= uint64(b&0x7F) << i
+	}
+
+	if b > 1 {
+		return 0, 0 // errOverflow
+	}
+	return v, n
+}
+
 func IsValidFirstByteOfTag(firstByte byte) bool {
 	return firstByte > maskWireType && WireType(firstByte&maskWireType).IsValid()
 }
