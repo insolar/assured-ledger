@@ -236,6 +236,11 @@ func (v *Global) unmarshalJSON(data []byte) error {
 
 // deprecated
 func (v *Global) Unmarshal(data []byte) (err error) {
+	if len(data) == 0 {
+		*v = Global{}
+		return nil
+	}
+
 	if err := v.addressLocal.Unmarshal(data[:LocalBinarySize]); err != nil {
 		return err
 	}
