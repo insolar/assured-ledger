@@ -16,26 +16,26 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewTls(binding nwapi.Address, config *tls.Config) SessionfulTransport {
-	return &TlsTransport{addr: binding.AsTCPAddr(), config: config}
+func NewTLS(binding nwapi.Address, config *tls.Config) SessionfulTransport {
+	return &TLSTransport{addr: binding.AsTCPAddr(), config: config}
 }
 
-func NewTlsTransport(binding nwapi.Address, config *tls.Config) TlsTransport {
-	return TlsTransport{addr: binding.AsTCPAddr(), config: config}
+func NewTLSTransport(binding nwapi.Address, config *tls.Config) TLSTransport {
+	return TLSTransport{addr: binding.AsTCPAddr(), config: config}
 }
 
-type TlsTransport struct {
+type TLSTransport struct {
 	config    *tls.Config
 	addr      net.TCPAddr
 	conn      net.Listener
 	receiveFn SessionfulConnectFunc
 }
 
-func (p *TlsTransport) IsZero() bool {
+func (p *TLSTransport) IsZero() bool {
 	return p.conn == nil && p.addr.IP == nil
 }
 
-func (p *TlsTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (p *TLSTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -56,26 +56,26 @@ func (p *TlsTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 	}
 	p.conn = tls.NewListener(conn, p.config)
 	p.receiveFn = receiveFn
-	go runTcpListener(p.conn, p.tlsConnect)
+	go runTCPListener(p.conn, p.tlsConnect)
 	return p, nil
 }
 
-func (p *TlsTransport) Outgoing(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
-	return &TlsTransport{p.config, p.addr, nil, receiveFn}, nil
+func (p *TLSTransport) Outgoing(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+	return &TLSTransport{p.config, p.addr, nil, receiveFn}, nil
 }
 
-func (p *TlsTransport) Close() error {
+func (p *TLSTransport) Close() error {
 	if p.conn == nil {
 		return throw.IllegalState()
 	}
 	return p.conn.Close()
 }
 
-func (p *TlsTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *TLSTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	return p.ConnectToExt(to, nil)
 }
 
-func (p *TlsTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
+func (p *TLSTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver)
 	if err != nil {
@@ -112,7 +112,7 @@ func (p *TlsTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCerti
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
-func (p *TlsTransport) tlsConnect(local, remote nwapi.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
+func (p *TLSTransport) tlsConnect(local, remote nwapi.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
 	if err != nil {
 		return p.receiveFn(local, remote, conn, w, err)
 	}
@@ -138,7 +138,7 @@ func (p *TlsTransport) tlsConnect(local, remote nwapi.Address, conn io.ReadWrite
 	return p.receiveFn(local, remote, nil, nil, err)
 }
 
-func (p *TlsTransport) checkProtos(tlsConn *tls.Conn) error {
+func (p *TLSTransport) checkProtos(tlsConn *tls.Conn) error {
 	if len(p.config.NextProtos) == 0 {
 		return nil
 	}

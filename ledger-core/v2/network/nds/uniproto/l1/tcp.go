@@ -16,25 +16,25 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewTcp(binding nwapi.Address) SessionfulTransport {
-	return &TcpTransport{addr: binding.AsTCPAddr()}
+func NewTCP(binding nwapi.Address) SessionfulTransport {
+	return &TCPTransport{addr: binding.AsTCPAddr()}
 }
 
-func NewTcpTransport(binding nwapi.Address) TcpTransport {
-	return TcpTransport{addr: binding.AsTCPAddr()}
+func NewTCPTransport(binding nwapi.Address) TCPTransport {
+	return TCPTransport{addr: binding.AsTCPAddr()}
 }
 
-type TcpTransport struct {
+type TCPTransport struct {
 	addr      net.TCPAddr
 	conn      *net.TCPListener
 	receiveFn SessionfulConnectFunc
 }
 
-func (p *TcpTransport) IsZero() bool {
+func (p *TCPTransport) IsZero() bool {
 	return p.conn == nil && p.addr.IP == nil
 }
 
-func (p *TcpTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (p *TCPTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -49,22 +49,22 @@ func (p *TcpTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 		return nil, err
 	}
 	p.receiveFn = receiveFn
-	go runTcpListener(p.conn, receiveFn)
+	go runTCPListener(p.conn, receiveFn)
 	return p, nil
 }
 
-func (p *TcpTransport) Outgoing(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
-	return &TcpTransport{p.addr, nil, receiveFn}, nil
+func (p *TCPTransport) Outgoing(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+	return &TCPTransport{p.addr, nil, receiveFn}, nil
 }
 
-func (p *TcpTransport) Close() error {
+func (p *TCPTransport) Close() error {
 	if p.conn == nil {
 		return throw.IllegalState()
 	}
 	return p.conn.Close()
 }
 
-func (p *TcpTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *TCPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver)
 	if err != nil {
@@ -90,7 +90,7 @@ func (p *TcpTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
-func runTcpReceive(local *net.TCPAddr, remote nwapi.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
+func runTCPReceive(local *net.TCPAddr, remote nwapi.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
 	if !receiveFn(nwapi.FromTcpAddr(local), remote, conn, nil, nil) {
 		_ = conn.Close()
 		if parentConn != nil {
@@ -99,7 +99,7 @@ func runTcpReceive(local *net.TCPAddr, remote nwapi.Address, conn io.ReadWriteCl
 	}
 }
 
-func runTcpListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
+func runTCPListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
 	defer func() {
 		_ = listenConn.Close()
 		recover()

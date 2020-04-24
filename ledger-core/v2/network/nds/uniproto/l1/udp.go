@@ -18,34 +18,34 @@ import (
 )
 
 //const MinUdpSize = 1300
-const MaxUdpSize = 2048
+const MaxUDPSize = 2048
 
-func NewUdp(binding nwapi.Address, maxByteSize uint16) SessionlessTransport {
+func NewUDP(binding nwapi.Address, maxByteSize uint16) SessionlessTransport {
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
-	return &UdpTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
+	return &UDPTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
 }
 
-func NewUdpTransport(binding nwapi.Address, maxByteSize uint16) UdpTransport {
+func NewUDPTransport(binding nwapi.Address, maxByteSize uint16) UDPTransport {
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
-	return UdpTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
+	return UDPTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
 }
 
-type UdpTransport struct {
+type UDPTransport struct {
 	addr        net.UDPAddr
 	conn        *net.UDPConn
 	maxByteSize uint16
 }
 
-func (p *UdpTransport) IsZero() bool {
+func (p *UDPTransport) IsZero() bool {
 	return p.conn == nil && p.addr.IP == nil
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
-func (p *UdpTransport) Listen(receiveFn SessionlessReceiveFunc) (OutTransportFactory, error) {
+func (p *UDPTransport) Listen(receiveFn SessionlessReceiveFunc) (OutTransportFactory, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -63,14 +63,14 @@ func (p *UdpTransport) Listen(receiveFn SessionlessReceiveFunc) (OutTransportFac
 	return p, nil
 }
 
-func (p *UdpTransport) Outgoing() (OutTransportFactory, error) {
+func (p *UDPTransport) Outgoing() (OutTransportFactory, error) {
 	switch {
 	case p.conn != nil:
 		return p, nil
 	case p.addr.IP == nil:
 		return nil, throw.IllegalState()
 	}
-	cp := &UdpTransport{p.addr, nil, p.maxByteSize}
+	cp := &UDPTransport{p.addr, nil, p.maxByteSize}
 	var err error
 	cp.conn, err = net.DialUDP("udp", &cp.addr, nil)
 	if err != nil {
@@ -79,11 +79,11 @@ func (p *UdpTransport) Outgoing() (OutTransportFactory, error) {
 	return cp, nil
 }
 
-func (p *UdpTransport) MaxByteSize() uint16 {
+func (p *UDPTransport) MaxByteSize() uint16 {
 	return p.maxByteSize
 }
 
-func (p *UdpTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	if p.conn == nil {
 		return nil, throw.IllegalState()
 	}
@@ -95,14 +95,14 @@ func (p *UdpTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	}
 }
 
-func (p *UdpTransport) Close() error {
+func (p *UDPTransport) Close() error {
 	if p.conn == nil {
 		return throw.IllegalState()
 	}
 	return p.conn.Close()
 }
 
-func (p *UdpTransport) run(receiveFn SessionlessReceiveFunc) {
+func (p *UDPTransport) run(receiveFn SessionlessReceiveFunc) {
 	if p.conn == nil {
 		panic(throw.IllegalState())
 	}
@@ -132,7 +132,7 @@ var _ OutTransport = &udpOutTransport{}
 type udpOutTransport struct {
 	addr  net.UDPAddr
 	quota ratelimiter.RateQuota
-	conn  *UdpTransport
+	conn  *UDPTransport
 	tag   int
 }
 
