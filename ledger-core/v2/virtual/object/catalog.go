@@ -55,14 +55,14 @@ func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference insolar.R
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		ctx.SetTracerID(formatSMTraceID(objectReference))
 
-		return NewStateMachineObject(objectReference, false)
+		return NewStateMachineObject(objectReference, InitReasonCTConstructor)
 	})
 
 	accessor, _ := p.TryGet(ctx, objectReference)
 	return accessor
 }
 
-func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference insolar.Reference) SharedStateAccessor {
+func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference insolar.Reference, reason InitReason) SharedStateAccessor {
 	if v, ok := p.TryGet(ctx, objectReference); ok {
 		return v
 	}
@@ -70,7 +70,7 @@ func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference inso
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		ctx.SetTracerID(formatSMTraceID(objectReference))
 
-		return NewStateMachineObject(objectReference, true)
+		return NewStateMachineObject(objectReference, reason)
 	})
 
 	accessor, _ := p.TryGet(ctx, objectReference)

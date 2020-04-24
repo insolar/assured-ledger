@@ -84,7 +84,7 @@ func TestVirtual_Method_API(t *testing.T) {
 	})
 
 	t.Run("Transfer", func(t *testing.T) {
-		t.Skip("NYI")
+		t.Skip("Not implemented yet")
 
 		code, byteBuffer := server.CallAPITransfer(walletReference1, walletReference2, 500)
 		require.Equal(t, 200, code, string(byteBuffer))
