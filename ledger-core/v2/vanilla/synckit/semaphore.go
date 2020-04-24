@@ -58,7 +58,7 @@ func (v Semaphore) LockExt(d time.Duration, done <-chan struct{}) bool {
 }
 
 func (v Semaphore) Unlock() {
-	_ = <-v.sema
+	<-v.sema
 }
 
 func (v Semaphore) Close() {

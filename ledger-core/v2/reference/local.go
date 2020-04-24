@@ -281,11 +281,10 @@ func MarshalLocalHolderJSON(v LocalHolder) (b []byte, err error) {
 	if v == nil {
 		return json.Marshal(nil)
 	}
-	if l := v.GetLocal(); l == nil {
-		return json.Marshal(nil)
-	} else {
+	if l := v.GetLocal(); l != nil {
 		return json.Marshal(l.Encode(DefaultEncoder()))
 	}
+	return json.Marshal(nil)
 }
 
 // deprecated

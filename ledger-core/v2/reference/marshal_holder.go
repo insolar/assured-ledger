@@ -36,11 +36,11 @@ func Marshal(h Holder) ([]byte, error) {
 	}
 
 	b := make([]byte, LocalBinarySize+base.ProtoSize())
-	if n, err := _marshal(h.GetLocal(), base, b); err != nil {
+	n, err := _marshal(h.GetLocal(), base, b)
+	if err != nil {
 		return nil, err
-	} else {
-		return b[:n], err
 	}
+	return b[:n], err
 }
 
 func Encode(h Holder) (string, error) {
@@ -55,11 +55,11 @@ func MarshalJSON(h Holder) ([]byte, error) {
 	if h == nil {
 		return json.Marshal(nil)
 	}
-	if s, err := Encode(h); err != nil {
+	s, err := Encode(h)
+	if err != nil {
 		return nil, err
-	} else {
-		return json.Marshal(s)
 	}
+	return json.Marshal(s)
 }
 
 func UnmarshalJSON(b []byte) (Holder, error) {

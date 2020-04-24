@@ -174,10 +174,12 @@ func (v Global) Bytes() []byte {
 }
 
 // deprecated
+// nolint:interfacer
 func (v Global) Equal(other Global) bool {
 	return Equal(v, other)
 }
 
+// nolint:interfacer
 func (v Global) Compare(other Global) int {
 	return Compare(v, other)
 }

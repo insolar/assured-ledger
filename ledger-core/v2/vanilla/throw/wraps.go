@@ -14,8 +14,6 @@ type msgWrap struct {
 	msg string
 }
 
-func (v msgWrap) bypassWrapper() {} // nolint:unused
-
 func (v msgWrap) Cause() error {
 	return errString(v.msg)
 }
@@ -73,8 +71,6 @@ type stackWrap struct {
 	err       error
 }
 
-func (v stackWrap) bypassWrapper() {} // nolint:unused
-
 func (v stackWrap) ShallowStackTrace() StackTrace {
 	return v.st
 }
@@ -118,8 +114,6 @@ type panicWrap struct {
 	fmtWrap
 	stDeepMod DeepestStackMode
 }
-
-func (v fmtWrap) bypassWrapper() {} // nolint:unused
 
 func (v panicWrap) Cause() error {
 	if err := v.Unwrap(); err != nil {
@@ -255,8 +249,6 @@ type severityWrap struct {
 	err      error
 	severity Severity
 }
-
-func (v severityWrap) bypassWrapper() {}
 
 func (v severityWrap) Unwrap() error {
 	return v.err

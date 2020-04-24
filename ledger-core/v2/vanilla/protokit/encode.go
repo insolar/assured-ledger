@@ -11,12 +11,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func SizeTag(fieldId int) int {
+func SizeTag(fieldID int) int {
 	switch {
-	case fieldId <= 0:
-	case fieldId > MaxFieldID:
+	case fieldID <= 0:
+	case fieldID > MaxFieldID:
 	default:
-		return SizeVarint32(uint32(fieldId))
+		return SizeVarint32(uint32(fieldID))
 	}
 	panic(throw.IllegalValue())
 }

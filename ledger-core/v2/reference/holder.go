@@ -46,10 +46,10 @@ func IsGlobalScope(ref Holder) bool {
 }
 
 func Equal(ref0, ref1 Holder) bool {
-	if p := ref1.GetLocal(); p == nil || !(*p).EqualPtr(ref0.GetLocal()) {
+	if p := ref1.GetLocal(); p == nil || !p.EqualPtr(ref0.GetLocal()) {
 		return false
 	}
-	if p := ref1.GetBase(); p == nil || !(*p).EqualPtr(ref0.GetBase()) {
+	if p := ref1.GetBase(); p == nil || !p.EqualPtr(ref0.GetBase()) {
 		return false
 	}
 	return true

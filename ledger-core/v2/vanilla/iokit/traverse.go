@@ -59,7 +59,7 @@ func traverseLimitReaders(r io.Reader, min int64) (io.Reader, int64) {
 			return r, 0
 		}
 
-		n := min
+		var n int64
 		switch v := r.(type) {
 		case *RateLimitedReader:
 			_, min = traverseLimitReaders(v.R, min)
@@ -138,7 +138,7 @@ func traverseLimitWriters(w io.Writer, min int64) (io.Writer, int64) {
 			return w, 0
 		}
 
-		n := min
+		var n int64
 		switch v := w.(type) {
 		case *RateLimitedWriter:
 			_, min = traverseLimitWriters(v.W, min)

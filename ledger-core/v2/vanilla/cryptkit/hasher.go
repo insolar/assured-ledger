@@ -106,22 +106,22 @@ func (v *HashingTeeReader) ReadSignatureBytes() ([]byte, error) {
 }
 
 func (v *HashingTeeReader) ReadSignature(m SigningMethod) (Signature, error) {
-	if b, err := v.ReadSignatureBytes(); err != nil {
+	b, err := v.ReadSignatureBytes()
+	if err != nil {
 		return Signature{}, err
-	} else {
-		return NewSignature(longbits.NewMutableFixedSize(b), v.GetDigestMethod().SignedBy(m)), nil
 	}
+	return NewSignature(longbits.NewMutableFixedSize(b), v.GetDigestMethod().SignedBy(m)), nil
 }
 
 func (v *HashingTeeReader) ReadAndVerifySignature(verifier DataSignatureVerifier) ([]byte, error) {
 	d := DigestOfHash(v.BasicDigester, v.CopyTo.(hash.Hash))
-	if b, err := v.ReadSignatureBytes(); err != nil {
+	b, err := v.ReadSignatureBytes()
+	if err != nil {
 		return nil, err
-	} else {
-		s := NewSignature(longbits.NewMutableFixedSize(b), verifier.GetSignatureMethod())
-		if !verifier.IsValidDigestSignature(d, s) {
-			err = throw.RemoteBreach("packet signature mismatch")
-		}
-		return b, err
 	}
+	s := NewSignature(longbits.NewMutableFixedSize(b), verifier.GetSignatureMethod())
+	if !verifier.IsValidDigestSignature(d, s) {
+		err = throw.RemoteBreach("packet signature mismatch")
+	}
+	return b, err
 }

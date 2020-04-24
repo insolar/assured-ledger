@@ -14,7 +14,7 @@ import (
 func TestDefaultPercent(t *testing.T) {
 	require.Equal(t, 20, LevelMinimal.DefaultPercent())
 
-	require.Panics(t, func() { LevelCount.DefaultPercent() })
+	require.Panics(t, func() { Level(LevelCount).DefaultPercent() })
 }
 
 func TestChooseInt(t *testing.T) {
@@ -23,5 +23,5 @@ func TestChooseInt(t *testing.T) {
 	options[l] = 5
 	require.Equal(t, 5, l.ChooseInt(options))
 
-	require.Panics(t, func() { LevelCount.ChooseInt(options) })
+	require.Panics(t, func() { Level(LevelCount).ChooseInt(options) })
 }
