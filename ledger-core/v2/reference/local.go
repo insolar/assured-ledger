@@ -436,6 +436,11 @@ func (v Local) Equal(o Local) bool {
 	return o == v
 }
 
+// deprecated
+func (v Local) Size() int {
+	return v.ProtoSize()
+}
+
 func (v Local) EqualHolder(o LocalHolder) bool {
 	return o != nil && v.EqualPtr(o.GetLocal())
 }
