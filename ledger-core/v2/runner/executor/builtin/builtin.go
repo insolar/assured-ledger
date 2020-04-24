@@ -8,7 +8,8 @@ package builtin
 
 import (
 	"context"
-	"errors"
+
+	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -86,12 +87,26 @@ func (b *Runner) CallMethod(
 	}
 	contract := b.CodeRegistry[contractName]
 
-	methodFunc, ok := contract.Methods[method]
+	methodObject, ok := contract.Methods[method]
 	if !ok {
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	return methodFunc(data, args)
+	if methodObject.Unordered != callCtx.Unordered {
+		orderedUnordered := func(unordered bool) string {
+			if unordered {
+				return "Unordered"
+			}
+			return "Ordered"
+		}
+
+		return nil, nil, errors.Errorf("calling %s method as %s",
+			orderedUnordered(methodObject.Unordered),
+			orderedUnordered(callCtx.Unordered),
+		)
+	}
+
+	return methodObject.Func(data, args)
 }
 
 func (b *Runner) GetDescriptor(ref insolar.Reference) (interface{}, error) {

@@ -91,12 +91,19 @@ type LogicCallContext struct {
 	Caller          *Reference // Contract that made the call
 	CallerPrototype *Reference // Prototype (base class) of the caller
 
-	TraceID string // trace mark for Jaeger and friends
-	Pulse   Pulse  // prefetched pulse for call context
+	TraceID   string // trace mark for Jaeger and friends
+	Pulse     Pulse  // prefetched pulse for call context
+	Unordered bool
 }
 
-// ContractConstructor is a typedef for wrapper contract header
-type ContractMethod func(oldState []byte, args []byte) (newState []byte, result []byte, err error)
+// ContractMethodFunc is a typedef for wrapper contract header
+type ContractMethodFunc func(oldState []byte, args []byte) (newState []byte, result []byte, err error)
+
+// ContractMethod is a struct for Method and it's properties
+type ContractMethod struct {
+	Func      ContractMethodFunc
+	Unordered bool
+}
 
 // ContractMethods maps name to contract method
 type ContractMethods map[string]ContractMethod
@@ -109,8 +116,8 @@ type ContractConstructors map[string]ContractConstructor
 
 // ContractWrapper stores all needed about contract wrapper (it's methods/constructors)
 type ContractWrapper struct {
-	GetCode      ContractMethod
-	GetPrototype ContractMethod
+	GetCode      ContractMethodFunc
+	GetPrototype ContractMethodFunc
 
 	Methods      ContractMethods
 	Constructors ContractConstructors

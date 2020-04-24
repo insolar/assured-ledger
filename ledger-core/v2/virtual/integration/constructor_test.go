@@ -52,7 +52,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	pl := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           nil,
+		CallFlags:           0,
 		CallAsOf:            0,
 		Caller:              insolar.Reference{},
 		Callee:              gen.Reference(),
@@ -130,7 +130,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
-			CallFlags:           nil,
+			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              insolar.Reference{},
 			Callee:              gen.Reference(),

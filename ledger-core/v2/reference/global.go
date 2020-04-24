@@ -71,7 +71,6 @@ func (v Global) AsBytes() []byte {
 	_, _ = v.addressLocal.Read(val)
 	_, _ = v.addressBase.Read(val[LocalBinarySize:])
 	return val
-
 }
 
 func (v Global) IsEmpty() bool {

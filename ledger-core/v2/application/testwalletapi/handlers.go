@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 )
 
 type logIncomingRequest struct {
@@ -244,6 +245,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
+		CallFlags:      callflag.Unordered,
 		Callee:         *ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
