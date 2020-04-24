@@ -5,6 +5,18 @@
 
 package reference
 
+type SubScope uint8
+
+const (
+	SubScopeSelf   SubScope = baseScopeLifeline
+	SubScopeLocal  SubScope = baseScopeLocalDomain
+	SubScopeGlobal SubScope = baseScopeGlobal
+)
+
+func (v SubScope) AsBaseOf(o SubScope) Scope {
+	return Scope(v<<2 | o)
+}
+
 type Scope uint8
 
 const ( // super-scopes
