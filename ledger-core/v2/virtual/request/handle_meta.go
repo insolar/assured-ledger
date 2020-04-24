@@ -73,6 +73,16 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 			return &SMVCallResult{Meta: payloadMeta, Payload: &pl}
 		}
 
+	case payload.TypeVStateReport:
+		pl := payload.VStateReport{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVStateReport{Meta: payloadMeta, Payload: &pl}
+		}
 	default:
 		panic(errNoHandler{MessageType: payloadType})
 	}
