@@ -29,11 +29,11 @@ func newAddResolver(resolver *net.Resolver) resolverFunc {
 		if !address.IsNetCompatible() {
 			return nil, throw.Unsupported()
 		}
-		if list, err := resolver.LookupIPAddr(ctx, address.HostString()); err != nil {
+		list, err := resolver.LookupIPAddr(ctx, address.HostString())
+		if err != nil {
 			return nil, err
-		} else {
-			return newAddresses(list, address.port), nil
 		}
+		return newAddresses(list, address.port), nil
 	}
 }
 

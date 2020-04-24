@@ -298,6 +298,7 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 		peer.transport.rateQuota = p.quotaFactory(peer.transport.aliases)
 	}
 
+	p.peers.addPeer(peer)
 	return peer, nil
 }
 

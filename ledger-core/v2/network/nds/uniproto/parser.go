@@ -61,7 +61,7 @@ func (p Parser) ReceivePacket(packet *ReceivedPacket, headerFn VerifyHeaderFunc,
 				}
 				more = int64(fullLen) - int64(len(preRead))
 				return nil
-			//case h.: // marker-delimited stream
+			// case h.: // marker-delimited stream
 			//	return p.receiveFlowPacket(from, packet, header, r)
 			default:
 				ofs := len(preRead)
@@ -81,7 +81,7 @@ func (p Parser) ReceivePacket(packet *ReceivedPacket, headerFn VerifyHeaderFunc,
 			}
 		}
 	}()
-	return
+	return preRead, more, err
 }
 
 func (p Parser) ReceiveDatagram(packet *ReceivedPacket, headerFn VerifyHeaderFunc, b []byte) (int, error) {

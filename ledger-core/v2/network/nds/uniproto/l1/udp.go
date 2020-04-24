@@ -88,11 +88,11 @@ func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 		return nil, throw.IllegalState()
 	}
 
-	if resolved, err := to.Resolve(context.Background(), net.DefaultResolver); err != nil {
+	resolved, err := to.Resolve(context.Background(), net.DefaultResolver)
+	if err != nil {
 		return nil, err
-	} else {
-		return &udpOutTransport{resolved.AsUDPAddr(), nil, p, 0}, nil
 	}
+	return &udpOutTransport{resolved.AsUDPAddr(), nil, p, 0}, nil
 }
 
 func (p *UDPTransport) Close() error {

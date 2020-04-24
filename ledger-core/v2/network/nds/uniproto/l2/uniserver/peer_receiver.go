@@ -418,14 +418,14 @@ func (p PeerReceiver) receiveHTTPStream(preRead []byte, r io.ReadCloser, fn unip
 		if err != nil {
 			return err
 		}
-		err = p.processHTTP(req)
+		err = p.processHTTP(req, fn, limit)
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func (p PeerReceiver) processHTTP(req *http.Request) error {
+func (p PeerReceiver) processHTTP(req *http.Request, _ uniproto.VerifyHeaderFunc, _ TransportStreamFormat) error {
 	// TODO Read packet from HTTP body
 	runtime.KeepAlive(req)
 	return throw.NotImplemented()

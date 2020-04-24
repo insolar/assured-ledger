@@ -68,11 +68,11 @@ func (p *Packet) DeserializeMinFrom(reader io.Reader) error {
 		return err
 	}
 
-	if pn, err := DeserializePulseNumber(reader); err != nil {
+	pn, err := DeserializePulseNumber(reader)
+	if err != nil {
 		return err
-	} else {
-		p.PulseNumber = pn
 	}
+	p.PulseNumber = pn
 
 	return nil
 }
