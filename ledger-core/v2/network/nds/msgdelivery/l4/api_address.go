@@ -26,6 +26,8 @@ func NewRoleAddress(roleId uint8, dataSelector uint64) DeliveryAddress {
 	return DeliveryAddress{addrType: RoleAddress, nodeSelector: uint32(roleId), dataSelector: dataSelector}
 }
 
+type ResolverFunc func(addrType AddressFlags, nodeSelector uint32, dataSelector uint64) nwapi.Address
+
 type DeliveryAddress struct {
 	addrType     AddressFlags
 	nodeSelector uint32
@@ -34,6 +36,27 @@ type DeliveryAddress struct {
 
 func (v DeliveryAddress) IsZero() bool {
 	return v.addrType == 0 && v.nodeSelector == 0
+}
+
+func (v DeliveryAddress) AsDirect() nwapi.Address {
+	if v.addrType != DirectAddress {
+		panic(throw.IllegalState())
+	}
+	return v.ResolveWith(nil)
+}
+
+func (v DeliveryAddress) ResolveWith(fn ResolverFunc) nwapi.Address {
+	if v.addrType == DirectAddress {
+		switch {
+		case v.nodeSelector == 0:
+			panic(throw.IllegalValue())
+		case v.dataSelector != 0:
+			panic(throw.IllegalValue())
+		}
+		return nwapi.NewHostID(nwapi.HostID(v.nodeSelector))
+	}
+
+	return fn(v.addrType, v.nodeSelector, v.dataSelector)
 }
 
 //func (v DeliveryAddress) String() string {

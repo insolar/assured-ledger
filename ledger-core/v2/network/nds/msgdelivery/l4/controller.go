@@ -108,20 +108,7 @@ func (p *Controller) NewFacade() Service {
 }
 
 func (p *Controller) shipTo(to DeliveryAddress, shipment Shipment) error {
-	if to.addrType == DirectAddress {
-		switch {
-		case to.nodeSelector == 0:
-			return throw.IllegalValue()
-		case to.dataSelector != 0:
-			return throw.IllegalValue()
-		}
-		return p.send(nwapi.NewHostID(nwapi.HostID(to.nodeSelector)), 0, shipment)
-	}
-
-	addr, err := p.resolverFn(to.addrType, to.nodeSelector, to.dataSelector)
-	if err != nil {
-		return err
-	}
+	addr := to.ResolveWith(p.resolverFn)
 	return p.send(addr, 0, shipment)
 }
 

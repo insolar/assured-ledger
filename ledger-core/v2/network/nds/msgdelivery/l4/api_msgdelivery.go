@@ -15,7 +15,6 @@ type Service interface {
 }
 
 type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, interface{}) error
-type ResolverFunc func(addrType AddressFlags, nodeSelector uint32, dataSelector uint64) (nwapi.Address, error)
 
 type DeliveryPolicies uint8
 
