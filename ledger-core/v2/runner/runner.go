@@ -37,7 +37,8 @@ type Service interface {
 }
 
 type DefaultService struct {
-	Cache   descriptor.Cache
+	Cache descriptor.Cache
+
 	Manager executor.Manager
 
 	eventSinkMap     map[uuid.UUID]*executionEventSink
@@ -87,7 +88,7 @@ func (r *DefaultService) createExecutionSink(execution execution.Context) uuid.U
 	// TODO[bigbes]: think how to change from UUID to natural key, here (execution deduplication)
 	var id uuid.UUID
 	for {
-		id := uuid.New()
+		id = uuid.New()
 
 		if _, ok := r.eventSinkMap[id]; !ok {
 			break
@@ -146,6 +147,8 @@ func generateCallContext(
 	} else {
 		res.Callee = &execution.Object
 	}
+
+	res.Unordered = execution.Unordered
 
 	return res
 }
@@ -229,7 +232,6 @@ func (r *DefaultService) executeConstructor(
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't get executor")
-
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
@@ -273,10 +275,13 @@ func (r *DefaultService) execute(ctx context.Context, id uuid.UUID) {
 		panic(throw.Unsupported())
 	}
 
-	if err != nil {
+	switch {
+	case err != nil:
 		executionSink.Error(err)
-	} else {
+	case result != nil:
 		executionSink.Result(result)
+	default:
+		panic(throw.IllegalValue())
 	}
 }
 
@@ -319,6 +324,7 @@ func (r *DefaultService) Init() error {
 	if err := r.Manager.RegisterExecutor(insolar.MachineTypeBuiltin, exec); err != nil {
 		panic(throw.W(err, "failed to register executor", nil))
 	}
+
 	r.Cache.RegisterCallback(exec.GetDescriptor)
 
 	return nil

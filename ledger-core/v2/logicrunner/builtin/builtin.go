@@ -121,5 +121,5 @@ func (b *BuiltIn) CallMethod(ctx context.Context, callCtx *insolar.LogicCallCont
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	return methodFunc(data, args)
+	return methodFunc.Func(data, args)
 }

@@ -263,7 +263,10 @@ func Initialize() insolar.ContractWrapper {
 		GetPrototype: INSMETHOD_GetPrototype,
 		Methods: insolar.ContractMethods{
 			{{ range $method := .Methods -}}
-					"{{ $method.Name }}": INSMETHOD_{{ $method.Name }},
+					"{{ $method.Name }}": insolar.ContractMethod{
+					    Func: INSMETHOD_{{ $method.Name }},
+					    Unordered: {{ $method.Immutable }},
+					},
 			{{ end }}
 		},
 		Constructors: insolar.ContractConstructors{

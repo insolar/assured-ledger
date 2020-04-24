@@ -26,5 +26,7 @@ type Context struct {
 	Incoming insolar.Reference
 	Outgoing insolar.Reference
 
+	Unordered bool
+
 	LogicContext insolar.LogicCallContext
 }
