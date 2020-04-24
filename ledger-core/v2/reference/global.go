@@ -71,7 +71,7 @@ func (v *Global) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
 
-func (v *Global) AsBytes() []byte {
+func (v Global) AsBytes() []byte {
 	prefix := v.addressLocal.len()
 	val := make([]byte, prefix+v.addressBase.len())
 	_, _ = v.addressLocal.Read(val)

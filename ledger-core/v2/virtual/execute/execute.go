@@ -19,11 +19,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/calltype"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
@@ -181,28 +181,13 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		executionSemaphore smachine.SyncLink
-		callType           calltype.ContractCallType
+	var executionSemaphore smachine.SyncLink
 
-		goCtx = ctx.GetContext()
-	)
-
-	// it'll be sync call, since it doesn't make any outgoing requests and may be
-	// replaced as simple call to function, if we can use Service and not Adapter
-	s.runner.PrepareSync(ctx, func(svc runner.Service) {
-		callType = svc.ExecutionClassify(goCtx, s.execution)
-	}).Call()
-
-	switch callType {
-	case calltype.ContractCallOrdered:
-		executionSemaphore = s.semaphoreOrdered
-	case calltype.ContractCallUnordered:
+	if s.Payload.CallFlags&callflag.Unordered > 0 {
+		s.execution.Unordered = true
 		executionSemaphore = s.semaphoreUnordered
-	case calltype.ContractCallSaga:
-		panic(throw.NotImplemented())
-	default:
-		panic(throw.IllegalValue())
+	} else {
+		executionSemaphore = s.semaphoreOrdered
 	}
 
 	if ctx.Acquire(executionSemaphore).IsNotPassed() {

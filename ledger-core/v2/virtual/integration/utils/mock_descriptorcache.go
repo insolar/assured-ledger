@@ -11,8 +11,9 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -41,11 +42,6 @@ func NewDescriptorsCacheMockWrapper(t *testing.T) *DescriptorCacheMockWrapper {
 	return &mock
 }
 
-type errPrototypeNotFound struct {
-	*log.Msg `txt:"object not found"`
-	id       reference.Global
-}
-
 func (w *DescriptorCacheMockWrapper) byPrototypeRefImpl(
 	_ context.Context,
 	protoRef reference.Global,
@@ -59,14 +55,14 @@ func (w *DescriptorCacheMockWrapper) byPrototypeRefImpl(
 	}
 
 	if w.IntenselyPanic {
-		panic(errPrototypeNotFound{id: protoRef})
+		panic(throw.E("object not found", struct{ id string }{id: protoRef.String()}))
 	}
 
 	return nil, nil, errors.New("object not found")
 }
 
 // nolint:unused
-func (w *DescriptorCacheMockWrapper) addPrototypeCodeDescriptor(
+func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
 	head reference.Global,
 	state reference.Local,
 	code reference.Global,
@@ -77,6 +73,6 @@ func (w *DescriptorCacheMockWrapper) addPrototypeCodeDescriptor(
 
 	w.Prototypes[head] = descriptorPair{
 		proto: descriptor.NewPrototypeDescriptor(head, state, code),
-		code:  descriptor.NewCodeDescriptor(nil, insolar.MachineTypeBuiltin, code),
+		code:  descriptor.NewCodeDescriptor(gen.Reference().AsBytes(), insolar.MachineTypeBuiltin, code),
 	}
 }
