@@ -67,8 +67,8 @@ func (sm *futureEventSM) stepTerminate(ctx smachine.ExecutionContext) smachine.S
 	//return sm.wrapEventSM.stepTerminateEvent(ctx)
 }
 
-func (sm *futureEventSM) IsConsecutive(_, _ smachine.StateFunc) (bool, *smachine.StepDeclaration) {
+func (sm *futureEventSM) IsConsecutive(_, _ smachine.StateFunc) bool {
 	// WARNING! DO NOT DO THIS ANYWHERE ELSE
 	// Without CLEAR understanding of consequences this can lead to infinite loops
-	return true, nil // allow faster transition between steps
+	return true // allow faster transition between steps
 }

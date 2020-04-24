@@ -92,12 +92,12 @@ type slotFlags uint8
 
 const (
 	slotWokenUp slotFlags = 1 << iota
-	slotHasBargeIn
-	slotHasAliases
-	slotHadAsync
+	slotHadBargeIn
+	slotHadAliases
+	slotHadAsync // purely diagnostic
 	slotIsTracing
 	slotIsBoosted
-	slotStepCantMigrate
+	slotStepSuspendMigrate
 )
 
 type SlotDependency interface {
@@ -331,7 +331,7 @@ func (s *Slot) stopWorking() (prevStepNo uint32) {
 
 func (s *Slot) canMigrateWorking(prevStepNo uint32, migrateIsNeeded bool) bool {
 	switch {
-	case s.slotFlags&slotStepCantMigrate != 0:
+	case s.slotFlags&slotStepSuspendMigrate != 0:
 		return false
 	case prevStepNo > 1:
 		return migrateIsNeeded
@@ -463,7 +463,7 @@ func (s *Slot) getErrorHandler() ErrorHandlerFunc {
 }
 
 func (s *Slot) hasAsyncOrBargeIn() bool {
-	return s.asyncCallCount > 0 || s.slotFlags&slotHasBargeIn != 0
+	return s.asyncCallCount > 0 || s.slotFlags&slotHadBargeIn != 0
 }
 
 func (s *Slot) addAsyncCount(asyncCnt uint16) {
@@ -531,22 +531,22 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
-	s._logStepUpdate(StepLoggerUpdate, 0, durationUnknownNano, durationUnknownNano, stateUpdate, flags, err)
+	s._logStepUpdate(StepLoggerUpdate, durationUnknownNano, durationUnknownNano, stateUpdate, flags, err)
 }
 
-func (s *Slot) logStepUpdate(prevStepNo uint32, stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
 	flags := StepLoggerFlags(0)
 	if wasAsync {
 		flags |= StepLoggerDetached
 	}
-	s._logStepUpdate(StepLoggerUpdate, prevStepNo, inactivityNano, activityNano, stateUpdate, flags, nil)
+	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, flags, nil)
 }
 
-func (s *Slot) logStepMigrate(prevStepNo uint32, stateUpdate StateUpdate, inactivityNano, activityNano time.Duration) {
-	s._logStepUpdate(StepLoggerMigrate, prevStepNo, inactivityNano, activityNano, stateUpdate, 0, nil)
+func (s *Slot) logStepMigrate(stateUpdate StateUpdate, inactivityNano, activityNano time.Duration) {
+	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, 0, nil)
 }
 
-func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, prevStepNo uint32, inactivityNano, activityNano time.Duration,
+func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activityNano time.Duration,
 	stateUpdate StateUpdate, flags StepLoggerFlags, err error) {
 	if s.stepLogger == nil {
 		return
@@ -569,7 +569,6 @@ func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, prevStepNo uint32, inac
 	stepData.Error = err
 
 	updData := StepLoggerUpdateData{
-		PrevStepNo:     prevStepNo,
 		InactivityNano: inactivityNano,
 		ActivityNano:   activityNano,
 	}
