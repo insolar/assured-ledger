@@ -116,7 +116,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	case InitReasonCTConstructor:
 		return ctx.Jump(sm.stepReadyToWork)
 	case InitReasonCTMethod:
-		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will be jump to stepWaitState
+		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will jump to stepWaitState
 	case InitReasonVStateReport:
 		return ctx.Jump(sm.stepWaitState)
 	default:
