@@ -3,13 +3,10 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package small
+package utils
 
 import (
 	"context"
-	"io/ioutil"
-	"net/http/httptest"
-	"strings"
 	"sync"
 	"testing"
 
@@ -23,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
@@ -64,12 +62,17 @@ type Server struct {
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
+
+	// top-level caller ID
+	caller reference.Global
 }
 
 func NewServer(t *testing.T) *Server {
 	ctx := context.Background()
 
-	s := Server{}
+	s := Server{
+		caller: gen.Reference(),
+	}
 
 	// Pulse-related components
 	var (
@@ -129,11 +132,12 @@ func NewServer(t *testing.T) *Server {
 
 	s.virtual = virtualDispatcher
 
-	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
-	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
-
 	PulseManager.AddDispatcher(s.virtual.FlowDispatcher)
 	s.IncrementPulse(ctx)
+
+	// re HTTP testing
+	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
+	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
 
 	return &s
 }
@@ -175,24 +179,10 @@ func (s *Server) AddInput(msg interface{}) error {
 	return s.virtual.AddInput(context.Background(), s.GetPulse().PulseNumber, msg)
 }
 
-// Utility function RE wallet creation
+func (s *Server) GlobalCaller() reference.Global {
+	return s.caller
+}
 
-func (s *Server) CallCreateWallet() (int, []byte) {
-	var (
-		responseWriter = httptest.NewRecorder()
-		httpRequest    = httptest.NewRequest("POST", "/wallet/request", strings.NewReader(""))
-	)
-
-	s.testWalletServer.Create(responseWriter, httpRequest)
-
-	var (
-		statusCode = responseWriter.Result().StatusCode
-		body, err  = ioutil.ReadAll(responseWriter.Result().Body)
-	)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return statusCode, body
+func (s *Server) RandomLocalWithPulse() reference.Local {
+	return gen.IDWithPulse(s.GetPulse().PulseNumber)
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const startBalance = 1000000000 // nolint:unused,deadcode,varcheck
+const startBalance uint = 1000000000 // nolint:unused,deadcode,varcheck
 
 // nolint:unused
 type walletCreateResponse struct {

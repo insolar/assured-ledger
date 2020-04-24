@@ -20,7 +20,6 @@ type Context struct {
 	Context          context.Context
 	Request          *payload.VCallRequest
 	Sequence         uint32
-	Deactivate       bool
 	Pulse            pulse.Data
 
 	Object   insolar.Reference

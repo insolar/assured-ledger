@@ -57,7 +57,6 @@ require (
 	go.opencensus.io v0.22.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
 	golang.org/x/tools v0.0.0-20200312153518-5e2df02acb1e
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
