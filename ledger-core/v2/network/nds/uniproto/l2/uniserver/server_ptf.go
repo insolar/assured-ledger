@@ -103,11 +103,11 @@ func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTra
 	if p.listen.IsActive() {
 		return p.udpListen.ConnectTo(to)
 	}
-	if out, err := p.udp.Outgoing(); err != nil {
+	out, err := p.udp.Outgoing()
+	if err != nil {
 		return nil, err
-	} else {
-		return out.ConnectTo(to)
 	}
+	return out.ConnectTo(to)
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
@@ -115,11 +115,11 @@ func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTran
 	if p.listen.IsActive() {
 		return p.tcpListen.ConnectTo(to)
 	}
-	if out, err := p.tcp.Outgoing(p.tcpConnect); err != nil {
+	out, err := p.tcp.Outgoing(p.tcpConnect)
+	if err != nil {
 		return nil, err
-	} else {
-		return out.ConnectTo(to)
 	}
+	return out.ConnectTo(to)
 }
 
 func (p *peerTransportFactory) IsActive() bool {

@@ -269,12 +269,12 @@ func (p *PeerTransport) getSessionfulSmallTransport() (l1.OutTransport, error) {
 	if p.sessionful != nil {
 		return p.sessionful, nil
 	}
-	if t, err := p._newSessionfulTransport(true); err != nil {
+	t, err := p._newSessionfulTransport(true)
+	if err != nil {
 		return nil, err
-	} else {
-		p.sessionful = t
-		return t, nil
 	}
+	p.sessionful = t
+	return t, nil
 }
 
 func (p *PeerTransport) getSessionfulLargeTransport() (l1.OutTransport, error) {
