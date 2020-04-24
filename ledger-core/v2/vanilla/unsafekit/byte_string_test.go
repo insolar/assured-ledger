@@ -18,6 +18,7 @@ import (
 
 // In accordance with unsafe Rule (6) this behavior is NOT guaranteed. Yet it is valid for gc compiler.
 // So one should be careful with Wrap/Unwrap operations.
+//go:nocheckptr
 func TestRetentionByByteString(t *testing.T) {
 	type testPtr [8912]byte // enforce off-stack allocation
 	b := make([]byte, 2048)
@@ -27,8 +28,8 @@ func TestRetentionByByteString(t *testing.T) {
 
 	finMark := uint32(0)
 
-	up := (*reflect.SliceHeader)(unsafe.Pointer(&b)).Data
-	runtime.SetFinalizer((*testPtr)(unsafe.Pointer(up)), func(_ *testPtr) {
+	shd := unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&b)).Data)
+	runtime.SetFinalizer((*testPtr)(shd), func(_ *testPtr) {
 		atomic.StoreUint32(&finMark, 1)
 	})
 
@@ -44,7 +45,7 @@ func TestRetentionByByteString(t *testing.T) {
 	// an internal Data reference of ByteString/string
 
 	require.Equal(t, uint32(0), finMark)
-	tp := (*testPtr)(unsafe.Pointer(up))
+	tp := (*testPtr)(shd)
 	require.Equal(t, byte('A'), tp[0])
 	require.Equal(t, byte('B'), tp[1])
 	tp = nil
@@ -55,7 +56,8 @@ func TestRetentionByByteString(t *testing.T) {
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond)
 	runtime.GC()
-	require.Equal(t, uint32(1), finMark)
+	fm := atomic.LoadUint32(&finMark)
+	require.Equal(t, uint32(1), fm)
 }
 
 // In accordance with unsafe Rule (6) this behavior is NOT guaranteed. Yet it is valid for gc compiler.
@@ -93,5 +95,6 @@ func TestRetentionBySlice(t *testing.T) {
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond)
 	runtime.GC()
-	require.Equal(t, uint32(1), finMark)
+	fm := atomic.LoadUint32(&finMark)
+	require.Equal(t, uint32(1), fm)
 }

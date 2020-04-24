@@ -207,5 +207,12 @@ func FieldValueGetter(index int, fd reflect.StructField, useAddr bool, baseOffse
 }
 
 func offsetFieldGetter(v reflect.Value, fieldOffset uintptr, fieldType reflect.Type) reflect.Value {
-	return reflect.NewAt(fieldType, unsafe.Pointer(v.UnsafeAddr()+fieldOffset)).Elem()
+	// base has to be here as a separate variable because of new checkptr check in go 1.14
+	// By default it is enabled when -race flag is present.
+	// It checks the following: If the result of pointer arithmetic points into
+	// a Go heap object, one of the unsafe.Pointer-typed operands must point
+	// into the same object.
+	// See go release notes for details: https://golang.org/doc/go1.14#compiler
+	base := unsafe.Pointer(v.UnsafeAddr())
+	return reflect.NewAt(fieldType, unsafe.Pointer(uintptr(base)+fieldOffset)).Elem()
 }
