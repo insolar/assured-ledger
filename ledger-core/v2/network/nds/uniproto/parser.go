@@ -46,39 +46,40 @@ func (p Parser) ReceivePacket(packet *ReceivedPacket, headerFn VerifyHeaderFunc,
 	}
 
 	err = func() error {
-		if verifier, fullLen, err := p.verifyPacket(&packet.Packet, headerFn, false); err != nil {
+		verifier, fullLen, err := p.verifyPacket(&packet.Packet, headerFn, false)
+		if err != nil {
 			return err
-		} else {
-			packet.verifier.Verifier = verifier
+		}
+		packet.verifier.Verifier = verifier
 
-			switch {
-			case packet.Header.IsExcessiveLength():
-				if !allowExcessive {
-					return throw.Violation("non-excessive connection")
-				}
-				if err := packet.VerifyExcessivePayload(packet.verifier, &preRead, r); err != nil {
-					return err
-				}
-				more = int64(fullLen) - int64(len(preRead))
-				return nil
-			// case h.: // marker-delimited stream
-			//	return p.receiveFlowPacket(from, packet, header, r)
-			default:
-				ofs := len(preRead)
-				if extra := int(fullLen) - ofs; extra < 0 {
-					return throw.Violation("insufficient length")
-				} else {
-					preRead = append(preRead, make([]byte, extra)...)
-				}
-				if _, err := io.ReadFull(r, preRead[ofs:]); err != nil {
-					return err
-				}
-				if err := packet.VerifyNonExcessivePayload(packet.verifier, preRead); err != nil {
-					return err
-				}
-				more = 0
-				return nil
+		switch {
+		case packet.Header.IsExcessiveLength():
+			if !allowExcessive {
+				return throw.Violation("non-excessive connection")
 			}
+			if err := packet.VerifyExcessivePayload(packet.verifier, &preRead, r); err != nil {
+				return err
+			}
+			more = int64(fullLen) - int64(len(preRead))
+			return nil
+		// case h.: // marker-delimited stream
+		//	return p.receiveFlowPacket(from, packet, header, r)
+		default:
+			ofs := len(preRead)
+			extra := int(fullLen) - ofs
+			if extra < 0 {
+				return throw.Violation("insufficient length")
+			}
+
+			preRead = append(preRead, make([]byte, extra)...)
+			if _, err := io.ReadFull(r, preRead[ofs:]); err != nil {
+				return err
+			}
+			if err := packet.VerifyNonExcessivePayload(packet.verifier, preRead); err != nil {
+				return err
+			}
+			more = 0
+			return nil
 		}
 	}()
 	return preRead, more, err

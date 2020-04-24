@@ -132,11 +132,11 @@ func (p *PeerManager) peerNotLocal(a nwapi.Address) (*Peer, error) {
 }
 
 func (p *PeerManager) _peerNotLocal(a nwapi.Address) (*Peer, error) {
-	if idx, peer := p.peers.get(a); idx == 0 && peer != nil {
+	idx, peer := p.peers.get(a)
+	if idx == 0 && peer != nil {
 		return nil, throw.Violation("loopback is not allowed")
-	} else {
-		return peer, nil
 	}
+	return peer, nil
 }
 
 func (p *PeerManager) HasAddress(a nwapi.Address) bool {
