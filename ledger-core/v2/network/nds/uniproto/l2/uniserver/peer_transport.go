@@ -36,7 +36,7 @@ type PeerTransportCentral struct {
 
 	maxSessionlessSize uint16
 	maxPeerConn        uint8
-	preferHttp         bool
+	preferHTTP         bool
 }
 
 func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
@@ -46,17 +46,17 @@ func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
 	return nil
 }
 
-func (p *PeerTransportCentral) getTransportStreamFormat(limitedLength bool, peerPreferHttp bool) TransportStreamFormat {
+func (p *PeerTransportCentral) getTransportStreamFormat(limitedLength bool, peerPreferHTTP bool) TransportStreamFormat {
 	switch {
-	case !p.preferHttp && !peerPreferHttp:
+	case !p.preferHTTP && !peerPreferHTTP:
 		if limitedLength {
 			return BinaryLimitedLength
 		}
 		return BinaryUnlimitedLength
 	case limitedLength:
-		return HttpLimitedLength
+		return HTTPLimitedLength
 	default:
-		return HttpUnlimitedLength
+		return HTTPUnlimitedLength
 	}
 }
 
@@ -121,6 +121,7 @@ func (p *PeerTransport) checkActive() error {
 	return p.central.checkActive(p.dead.IsSet())
 }
 
+// nolint:interfacer
 func (p *PeerTransport) resetTransport(t l1.OutTransport, discardCurrentAddr bool) (ok bool, hasMore bool) {
 	return p.resetConnection(t, discardCurrentAddr)
 }

@@ -68,7 +68,7 @@ func (p *BucketState) addResidual(residual uint64) {
 }
 
 func (p *BucketState) TakeQuotaNoScale(max uint32, refillFn BucketRefillFunc) uint32 {
-	if max <= 0 {
+	if max == 0 {
 		return 0
 	}
 	return p.takeFilled(max, refillFn)

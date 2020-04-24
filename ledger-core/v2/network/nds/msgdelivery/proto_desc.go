@@ -18,7 +18,6 @@ var protoDescriptor = uniproto.Descriptor{
 }
 
 const maxStatePacketDataSize = uniproto.MaxNonExcessiveLength - uniproto.PacketByteSizeMin - 512 /* reserved for signature */
-const maxStatePacketEntries = (maxStatePacketDataSize - 4) / ShortShipmentIDByteSize
 
 type PacketType uint8
 

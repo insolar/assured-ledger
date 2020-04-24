@@ -32,7 +32,7 @@ type ParcelPacket struct {
 }
 
 const ( // Flags for ParcelPacket
-	ReturnIdFlag uniproto.FlagIndex = iota
+	ReturnIDFlag uniproto.FlagIndex = iota
 	RepeatedSendFlag
 	HasBody
 )
@@ -61,7 +61,7 @@ func (p *ParcelPacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize
 
 	if p.ReturnID != 0 {
 		dataSize += uint(ShortShipmentIDByteSize)
-		packet.Header.SetFlag(ReturnIdFlag, true)
+		packet.Header.SetFlag(ReturnIDFlag, true)
 	}
 	dataSize += p.Data.ByteSize()
 
@@ -112,7 +112,7 @@ func (p *ParcelPacket) DeserializePayload(ctx nwapi.DeserializationContext, pack
 		if pt == DeliveryParcelHead {
 			bufSize += 2
 		}
-		hasReturn := packet.Header.HasFlag(ReturnIdFlag)
+		hasReturn := packet.Header.HasFlag(ReturnIDFlag)
 		if hasReturn {
 			bufSize += ShortShipmentIDByteSize
 		}

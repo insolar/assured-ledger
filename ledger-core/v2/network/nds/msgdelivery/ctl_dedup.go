@@ -19,7 +19,7 @@ const (
 	minReceiveWindow     = maxReceiveWindow - maxReceiveExceptions>>1
 
 	// TODO support overlap/overflow of DedupID
-	overlapLimit = ^DedupID(0) - maxReceiveWindow - 1
+	// overlapLimit = ^DedupID(0) - maxReceiveWindow - 1
 )
 
 type receiveDeduplicator struct {

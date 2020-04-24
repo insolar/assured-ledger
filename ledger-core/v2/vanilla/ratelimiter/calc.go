@@ -23,7 +23,7 @@ func BucketConfigByThroughput(bytePerS int, refillUnit uint64, burst int, quantu
 	}
 
 	refillAmount := uint64(bytePerS) / refillUnit
-	if refillAmount <= 0 {
+	if refillAmount == 0 {
 		refillAmount = 1
 	}
 	if burst <= 0 {

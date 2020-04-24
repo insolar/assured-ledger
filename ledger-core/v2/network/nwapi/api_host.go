@@ -24,7 +24,7 @@ type HostID uint64
 
 func (v HostID) IsAbsent() bool { return v == 0 }
 
-func (v HostID) IsNodeID() bool { return v > 0 && v <= maxShortNodeId }
+func (v HostID) IsNodeID() bool { return v > 0 && v <= maxShortNodeID }
 
 func (v HostID) AsNodeID() ShortNodeID {
 	if v.IsNodeID() {
@@ -34,10 +34,10 @@ func (v HostID) AsNodeID() ShortNodeID {
 }
 
 func (v HostID) String() string {
-	if v <= maxShortNodeId {
+	if v <= maxShortNodeID {
 		return strconv.FormatUint(uint64(v), 10)
 	}
-	return strconv.FormatUint(uint64(v&maxShortNodeId), 10) +
+	return strconv.FormatUint(uint64(v&maxShortNodeID), 10) +
 		"@[" + strconv.FormatUint(uint64(v>>(ShortNodeIDByteSize*8)), 10) + "]"
 }
 
@@ -52,7 +52,7 @@ type ShortNodeID uint32
 const (
 	AbsentShortNodeID   ShortNodeID = 0
 	ShortNodeIDByteSize             = 4
-	maxShortNodeId                  = math.MaxUint32
+	maxShortNodeID                  = math.MaxUint32
 )
 
 func (v ShortNodeID) IsAbsent() bool { return v == AbsentShortNodeID }

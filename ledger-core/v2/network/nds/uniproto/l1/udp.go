@@ -109,16 +109,16 @@ func (p *UDPTransport) run(receiveFn SessionlessReceiveFunc) {
 
 	defer func() {
 		_ = p.conn.Close()
-		recover()
+		_ = recover()
 	}()
 
-	to := nwapi.FromUdpAddr(p.conn.LocalAddr().(*net.UDPAddr))
+	to := nwapi.FromUDPAddr(p.conn.LocalAddr().(*net.UDPAddr))
 	buf := make([]byte, p.maxByteSize)
 
 	for {
 		n, addr, err := p.conn.ReadFromUDP(buf)
 
-		if !receiveFn(to, nwapi.FromUdpAddr(addr), buf[:n], err) {
+		if !receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], err) {
 			break
 		}
 		if ne, ok := err.(net.Error); !ok || !ne.Temporary() {

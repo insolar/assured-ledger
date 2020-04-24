@@ -100,11 +100,12 @@ func NewHostPort(hostport string) Address {
 		panic(err)
 	}
 
-	if portN, err := strconv.ParseUint(port, 10, 16); err != nil {
+	switch portN, err := strconv.ParseUint(port, 10, 16); {
+	case err != nil:
 		panic(err)
-	} else if portN == 0 {
+	case portN == 0:
 		panic(throw.IllegalValue())
-	} else {
+	default:
 		a := NewHost(host)
 		a.port = uint16(portN)
 		return a
@@ -209,7 +210,7 @@ func (a Address) WithoutPort() Address {
 }
 
 func (a Address) WithPort(port uint16) Address {
-	if port <= 0 || port > math.MaxUint16 {
+	if port == 0 {
 		panic(throw.IllegalValue())
 	}
 

@@ -13,14 +13,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewController(trafficUnit uint32, refillPeriod time.Duration) Controller {
+func NewController(trafficUnit uint32, refillPeriod time.Duration) *Controller {
 	switch {
-	case trafficUnit <= 0:
+	case trafficUnit == 0:
 		panic(throw.IllegalValue())
 	case refillPeriod <= 0:
 		panic(throw.IllegalValue())
 	}
-	c := Controller{}
+	c := &Controller{}
 	c.root.amountScale = trafficUnit
 	c.period = refillPeriod
 	c.root.init()
@@ -65,10 +65,12 @@ func (p *Controller) Root() *PeriodManager {
 }
 
 func (p *Controller) run(ctx context.Context) {
-	ticker := time.Tick(p.period)
+	ticker := time.NewTicker(p.period)
+	defer ticker.Stop()
+
 	for {
 		select {
-		case <-ticker:
+		case <-ticker.C:
 			step := p.throttle.Load()
 			if step > 0 {
 				p.root.nextPeriod(uint(step))

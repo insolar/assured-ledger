@@ -65,7 +65,7 @@ func (p *Peer) onRemoved() []nwapi.Address {
 	return p.transport.kill()
 }
 
-func (p *Peer) verifyByTls(_ *tls.Conn) (verified bool, err error) {
+func (p *Peer) verifyByTLS(_ *tls.Conn) (verified bool, err error) {
 	return false, nil
 }
 

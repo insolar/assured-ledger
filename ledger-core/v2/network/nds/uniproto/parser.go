@@ -135,7 +135,6 @@ func (p Parser) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagr
 			if packetDesc.Flags&OptionalTarget == 0 {
 				return throw.Violation("non-targeted packet")
 			}
-			break
 		case h.IsRelayRestricted():
 			return throw.RemoteBreach("relay is restricted by source")
 		case packetDesc.Flags&DisableRelay != 0:
@@ -144,12 +143,12 @@ func (p Parser) verifyPacket(packet *Packet, headerFn VerifyHeaderFunc, isDatagr
 
 		switch {
 		case h.SourceID == 0:
-			if packetDesc.Flags&NoSourceId == 0 {
+			if packetDesc.Flags&NoSourceID == 0 {
 				return throw.Violation("non-sourced packet")
 			}
 		case h.SourceID == h.ReceiverID || h.SourceID == h.TargetID:
 			return throw.Violation("loopback")
-		case packetDesc.Flags&NoSourceId != 0:
+		case packetDesc.Flags&NoSourceID != 0:
 			return throw.Violation("sourced packet")
 		}
 

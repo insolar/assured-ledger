@@ -92,7 +92,7 @@ func ExpandAddresses(ctx context.Context, skipError bool, resolverFn func(contex
 		}
 	}
 
-	return
+	return result, resolved, err
 }
 
 func ResolveAddresses(ctx context.Context, skipError bool, resolverFn func(context.Context, Address) ([]Address, error), a ...Address) (result []Address, err error) {
@@ -113,5 +113,5 @@ func ResolveAddresses(ctx context.Context, skipError bool, resolverFn func(conte
 		}
 		result = append(result, list...)
 	}
-	return
+	return result, err
 }

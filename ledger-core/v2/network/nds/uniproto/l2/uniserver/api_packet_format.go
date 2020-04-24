@@ -12,15 +12,15 @@ const (
 	DetectByFirstPacket                       // considered as Unrestricted
 	BinaryLimitedLength
 	BinaryUnlimitedLength
-	HttpLimitedLength
-	HttpUnlimitedLength
+	HTTPLimitedLength
+	HTTPUnlimitedLength
 )
 
 func (v TransportStreamFormat) IsBinary() bool {
 	return v>>1 == 1
 }
 
-func (v TransportStreamFormat) IsHttp() bool {
+func (v TransportStreamFormat) IsHTTP() bool {
 	return v>>1 == 2
 }
 

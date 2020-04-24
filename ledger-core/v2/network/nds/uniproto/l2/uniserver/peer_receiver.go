@@ -61,7 +61,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 		return nil, err
 	}
 
-	isHTTP := limit.IsHttp()
+	isHTTP := limit.IsHTTP()
 	if isIncoming {
 		if tlsConn, ok := conn.(*tls.Conn); ok {
 			state := tlsConn.ConnectionState()
@@ -74,7 +74,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 			}
 		}
 
-		if limit.IsDefined() && limit.IsHttp() != isHTTP {
+		if limit.IsDefined() && limit.IsHTTP() != isHTTP {
 			return nil, errors.New("expected HTTP")
 		}
 	}
@@ -93,7 +93,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 		}
 
 		if isHTTP {
-			return p.receiveHttpStream(nil, r, fn, limit)
+			return p.receiveHTTPStream(nil, r, fn, limit)
 		}
 
 		for {
@@ -106,11 +106,10 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 				case io.EOF:
 					return nil
 				case uniproto.ErrPossibleHTTPRequest:
-					if !limit.IsDefined() || limit.IsHttp() {
-						return p.receiveHttpStream(preRead, r, fn, limit)
+					if !limit.IsDefined() || limit.IsHTTP() {
+						return p.receiveHTTPStream(preRead, r, fn, limit)
 					}
 				}
-				break
 			case err == io.EOF:
 				isEOF = true
 				fallthrough
@@ -183,8 +182,11 @@ func (p PeerReceiver) ReceiveDatagram(remote nwapi.Address, b []byte) (err error
 		peer *Peer
 	)
 	fn, peer, err = p.resolvePeer(remote, true, nil)
+	if err != nil {
+		return err
+	}
 
-	n := -1
+	var n int
 	packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
 	if n, err = p.Parser.ReceiveDatagram(&packet, fn, b); err == nil {
 		switch {
@@ -265,11 +267,11 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 	if err = func() (err error) {
 		if header.ReceiverID != 0 {
 			// ReceiverID must match Local
-			if rid := toHostID(header.ReceiverID, supp); !p.isLocalHostId(rid) {
+			if rid := toHostID(header.ReceiverID, supp); !p.isLocalHostID(rid) {
 				return throw.RemoteBreach("wrong ReceiverID")
 			}
 		} else {
-			header.ReceiverID = p.getLocalHostId(supp)
+			header.ReceiverID = p.getLocalHostID(supp)
 		}
 
 		switch {
@@ -309,7 +311,7 @@ func (p PeerReceiver) checkSourceAndReceiver(peer *Peer, supp uniproto.Supporter
 	}(); err != nil {
 		return false, nil, err
 	}
-	return
+	return selfVerified, dsv, err
 }
 
 func (p PeerReceiver) hasHostID(id nwapi.HostID, peer *Peer) bool {
@@ -317,7 +319,7 @@ func (p PeerReceiver) hasHostID(id nwapi.HostID, peer *Peer) bool {
 	return peer == pr
 }
 
-func (p PeerReceiver) isLocalHostId(id nwapi.HostID) bool {
+func (p PeerReceiver) isLocalHostID(id nwapi.HostID) bool {
 	idx, pr := p.PeerManager.peer(nwapi.NewHostID(id))
 	return idx == 0 && pr != nil
 }
@@ -340,7 +342,7 @@ func (p PeerReceiver) checkTarget(supp uniproto.Supporter, header *uniproto.Head
 		return
 	default:
 		// TargetID must match Local
-		if tid := toHostID(header.TargetID, supp); !p.isLocalHostId(tid) {
+		if tid := toHostID(header.TargetID, supp); !p.isLocalHostID(tid) {
 			return nil, throw.RemoteBreach("wrong TargetID")
 		}
 		return nil, err
@@ -350,7 +352,7 @@ func (p PeerReceiver) checkTarget(supp uniproto.Supporter, header *uniproto.Head
 func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyHeaderFunc, error) {
 	tlsStatus := 0 // TLS is not present
 	if tlsConn != nil {
-		switch ok, err := peer.verifyByTls(tlsConn); {
+		switch ok, err := peer.verifyByTLS(tlsConn); {
 		case err != nil:
 			return nil, err
 		case ok:
@@ -375,10 +377,10 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyH
 		case err != nil:
 			return nil, err
 		case relayTo != nil:
-			// Relayed packet must always have a signature of source hence OmitSignatureOverTls is ignored
+			// Relayed packet must always have a signature of source hence OmitSignatureOverTLS is ignored
 			// Actual relay operation will be performed after packet parsing
 		default:
-			if tlsStatus != 0 && flags&uniproto.OmitSignatureOverTls != 0 {
+			if tlsStatus != 0 && flags&uniproto.OmitSignatureOverTLS != 0 {
 				if tlsStatus < 0 {
 					return nil, throw.RemoteBreach("unidentified TLS cert")
 				}
@@ -394,7 +396,7 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyH
 	}, nil
 }
 
-func (p PeerReceiver) receiveHttpStream(preRead []byte, r io.ReadCloser, fn uniproto.VerifyHeaderFunc, limit TransportStreamFormat) error {
+func (p PeerReceiver) receiveHTTPStream(preRead []byte, r io.ReadCloser, fn uniproto.VerifyHeaderFunc, limit TransportStreamFormat) error {
 	defer func() {
 		_ = r.Close()
 	}()
@@ -416,13 +418,20 @@ func (p PeerReceiver) receiveHttpStream(preRead []byte, r io.ReadCloser, fn unip
 		if err != nil {
 			return err
 		}
-		runtime.KeepAlive(req)
-		// TODO Read packet from HTTP body
-		return throw.NotImplemented()
+		err = p.processHTTP(req)
+		if err != nil {
+			return err
+		}
 	}
 }
 
-func (p PeerReceiver) getLocalHostId(supp uniproto.Supporter) uint32 {
+func (p PeerReceiver) processHTTP(req *http.Request) error {
+	// TODO Read packet from HTTP body
+	runtime.KeepAlive(req)
+	return throw.NotImplemented()
+}
+
+func (p PeerReceiver) getLocalHostID(supp uniproto.Supporter) uint32 {
 	id := uint32(p.PeerManager.Local().GetNodeID())
 	if supp == nil {
 		return id

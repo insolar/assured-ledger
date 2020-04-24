@@ -61,7 +61,7 @@ func NewTrafficController(cfg TrafficConfig) *TrafficController {
 }
 
 type TrafficController struct {
-	ctl          ratelimiter.Controller
+	ctl          *ratelimiter.Controller
 	levels       capacity.Uint8Levels
 	total        *ratelimiter.RWBucket
 	maxIncrement uint32

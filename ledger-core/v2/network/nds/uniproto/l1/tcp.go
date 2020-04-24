@@ -90,29 +90,20 @@ func (p *TCPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
-func runTCPReceive(local *net.TCPAddr, remote nwapi.Address, conn io.ReadWriteCloser, parentConn io.Closer, receiveFn SessionfulConnectFunc) {
-	if !receiveFn(nwapi.FromTcpAddr(local), remote, conn, nil, nil) {
-		_ = conn.Close()
-		if parentConn != nil {
-			_ = parentConn.Close()
-		}
-	}
-}
-
 func runTCPListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
 	defer func() {
 		_ = listenConn.Close()
-		recover()
+		_ = recover()
 	}()
 
-	local := nwapi.FromTcpAddr(listenConn.Addr().(*net.TCPAddr))
+	local := nwapi.FromTCPAddr(listenConn.Addr().(*net.TCPAddr))
 
 	for {
 		conn, err := listenConn.Accept()
 		switch {
 		case err == nil:
 			w := &tcpOutTransport{conn, nil, 0}
-			if !receiveFn(local, nwapi.FromTcpAddr(conn.RemoteAddr().(*net.TCPAddr)), conn, w, nil) {
+			if !receiveFn(local, nwapi.FromTCPAddr(conn.RemoteAddr().(*net.TCPAddr)), conn, w, nil) {
 				break
 			}
 			continue

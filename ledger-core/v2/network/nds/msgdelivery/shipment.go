@@ -60,21 +60,6 @@ func (p *msgShipment) getHeadRetryState() retries.RetryState {
 	}
 }
 
-func (p *msgShipment) getBodyRetryState() retries.RetryState {
-	switch state := p.getState(); {
-	case state >= Done:
-		return retries.RemoveCompletely
-	case p._isExpired():
-		return retries.RemoveCompletely
-	case !p.peer.isValid():
-		return retries.RemoveCompletely
-	case p.canSendBody():
-		return retries.KeepRetrying
-	default:
-		return retries.StopRetrying
-	}
-}
-
 func (p *msgShipment) canSendHead() bool {
 	return p.getState() <= WaitAck
 }

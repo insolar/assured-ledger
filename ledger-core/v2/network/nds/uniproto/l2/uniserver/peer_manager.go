@@ -188,7 +188,7 @@ func (p *PeerManager) addLocal(primary nwapi.Address, aliases []nwapi.Address, n
 		panic(throw.IllegalValue())
 	}
 
-	_, _, err := p._newPeer(newPeerFn, primary, aliases)
+	_, err := p._newPeer(newPeerFn, primary, aliases)
 	return err
 }
 
@@ -206,7 +206,7 @@ func (p *PeerManager) addPeer(primary nwapi.Address, aliases ...nwapi.Address) e
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
-	if _, _, err := p._newPeer(nil, primary, aliases); err != nil {
+	if _, err := p._newPeer(nil, primary, aliases); err != nil {
 		return err
 	}
 	return nil
@@ -242,7 +242,7 @@ func (p *PeerManager) addAliases(to nwapi.Address, aliases ...nwapi.Address) err
 	return p.peers.addAliases(peerIndex, aliases)
 }
 
-func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Address, aliases []nwapi.Address) (index uint32, peer *Peer, err error) {
+func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Address, aliases []nwapi.Address) (peer *Peer, err error) {
 	peer = &Peer{}
 	peer.transport.uid = NextPeerUID()
 	peer.transport.central = &p.central
@@ -268,7 +268,6 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 						return err
 					}
 					peer = remapPeer
-					index = idx
 					remapped = true
 					return nil
 				}
@@ -289,7 +288,7 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 		return err
 
 	}(); err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 	if remapped {
 		return
@@ -299,7 +298,7 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 		peer.transport.rateQuota = p.quotaFactory(peer.transport.aliases)
 	}
 
-	return p.peers.addPeer(peer), peer, nil
+	return peer, nil
 }
 
 func (p *PeerManager) Close() error {
@@ -319,7 +318,7 @@ func (p *PeerManager) connectionFrom(remote nwapi.Address, newPeerFn func(*Peer)
 
 	peer, err := p._peerNotLocal(remote)
 	if err == nil && peer == nil {
-		_, peer, err = p._newPeer(newPeerFn, remote, nil)
+		peer, err = p._newPeer(newPeerFn, remote, nil)
 	}
 	return peer, err
 }
@@ -367,7 +366,7 @@ func (p *PeerManager) connectPeer(remote nwapi.Address) (*Peer, error) {
 		return nil, nil
 
 	}
-	if _, peer, err = p._newPeer(nil, remote, nil); err != nil {
+	if peer, err = p._newPeer(nil, remote, nil); err != nil {
 		return nil, err
 	}
 	if err = peer.transport.EnsureConnect(); err != nil {

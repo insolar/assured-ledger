@@ -11,8 +11,8 @@ const (
 	DatagramOnly Flags = 1 << iota
 	DatagramAllowed
 	DisableRelay
-	OmitSignatureOverTls
+	OmitSignatureOverTLS
 	SourcePK
 	OptionalTarget
-	NoSourceId
+	NoSourceID
 )

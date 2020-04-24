@@ -46,6 +46,7 @@ func (p *PeriodManager) waitNextPeriod(x uint64) {
 		return
 	}
 	p.signal.Lock()
+	p.currentPeriod.Load() // to avoid lint:staticcheck
 	p.signal.Unlock()
 }
 

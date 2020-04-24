@@ -31,7 +31,7 @@ type RetryStrategy interface {
 // for initialization only
 func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetryStages]int) {
 	switch {
-	case minHeadBatchWeight <= 0:
+	case minHeadBatchWeight == 0:
 		panic(throw.IllegalValue())
 	case periods[0] <= 0:
 		panic(throw.IllegalValue())
@@ -228,7 +228,7 @@ func (p *retryStage) nextCycle(prev []RetryID) (hic [][]RetryID, post []RetryID)
 	}
 	post = p.post
 	p.post = nil
-	return
+	return hic, post
 }
 
 func (p *retryStage) addPreList(v []RetryID) {

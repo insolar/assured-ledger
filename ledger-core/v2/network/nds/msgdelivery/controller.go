@@ -430,7 +430,7 @@ func (p *Controller) adjustedExpiry(pn pulse.Number, ttl uint8, inbound bool) (b
 	return true, cycle, cycle + uint32(ttl), nil
 }
 
-func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment Shipment) error {
+func (p *Controller) send(to nwapi.Address, returnID ShortShipmentID, shipment Shipment) error {
 	dPeer, err := p.peer(to)
 	if err != nil {
 		return err
@@ -452,7 +452,7 @@ func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 
 	msg := &msgShipment{
 		peer:     dPeer,
-		returnID: returnId,
+		returnID: returnID,
 		shipment: shipment,
 	}
 
@@ -474,7 +474,7 @@ func (p *Controller) send(to nwapi.Address, returnId ShortShipmentID, shipment S
 	}
 
 	// ATTN! Avoid gaps in numbering
-	msg.id = dPeer.NextShipmentId()
+	msg.id = dPeer.NextShipmentID()
 
 	switch {
 	case msg.shipment.Head == nil:
@@ -552,7 +552,8 @@ func (p *Controller) onStopped() {
 }
 
 func (p *Controller) runWorker() {
-	ticker := time.Tick(p.timeCycle)
+	ticker := time.NewTicker(p.timeCycle)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-p.stopSignal:
@@ -560,7 +561,7 @@ func (p *Controller) runWorker() {
 			p.stater.stop()
 			return
 
-		case <-ticker:
+		case <-ticker.C:
 			//
 		}
 		p.stater.NextTimeCycle()

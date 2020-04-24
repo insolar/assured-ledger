@@ -53,14 +53,6 @@ func (p *ttlMap) get(id ShipmentID) *msgShipment {
 	return msg
 }
 
-func (p *ttlMap) delete(id ShipmentID) {
-	p.mutex.Lock()
-	delete(p.ttl0, id)
-	delete(p.ttl1, id)
-	delete(p.ttlN, id)
-	p.mutex.Unlock()
-}
-
 func (p *ttlMap) deleteAll(ids []retries.RetryID) {
 	if len(ids) == 0 {
 		return

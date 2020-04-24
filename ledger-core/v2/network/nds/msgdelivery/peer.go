@@ -31,7 +31,7 @@ type DeliveryPeer struct {
 	peer     uniproto.Peer
 }
 
-func (p *DeliveryPeer) NextShipmentId() ShipmentID {
+func (p *DeliveryPeer) NextShipmentID() ShipmentID {
 	id := p.nextSSID.Add(1)
 	for id == 0 {
 		// receiveDeduplicator can't handle zero

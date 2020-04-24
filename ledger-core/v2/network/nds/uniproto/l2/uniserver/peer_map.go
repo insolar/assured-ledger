@@ -28,13 +28,13 @@ func (p *PeerMap) isEmpty() bool {
 }
 
 func (p *PeerMap) get(a nwapi.Address) (uint32, *Peer) {
-	if idx, ok := p.aliases[mapId(a)]; ok {
+	if idx, ok := p.aliases[mapID(a)]; ok {
 		return idx, p.peers[idx]
 	}
 	return 0, nil
 }
 
-func mapId(a nwapi.Address) nwapi.Address {
+func mapID(a nwapi.Address) nwapi.Address {
 	if a.IsLoopback() {
 		return a.WithoutName()
 	}
@@ -44,7 +44,7 @@ func mapId(a nwapi.Address) nwapi.Address {
 func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []nwapi.Address) ([]nwapi.Address, error) {
 	j := 0
 	for i, a := range aliases {
-		switch conflictIndex, hasConflict := p.aliases[mapId(a)]; {
+		switch conflictIndex, hasConflict := p.aliases[mapID(a)]; {
 		case !hasConflict:
 			if i != j {
 				aliases[j] = a
@@ -88,7 +88,7 @@ outer:
 func (p *PeerMap) remove(idx uint32) {
 	peer := p.peers[idx]
 	for _, a := range peer.onRemoved() {
-		delete(p.aliases, mapId(a))
+		delete(p.aliases, mapID(a))
 	}
 	p.peers[idx] = nil
 	p.unusedCount++
@@ -104,7 +104,7 @@ func (p *PeerMap) removeAlias(a nwapi.Address) bool {
 	}
 
 	if peer.removeAlias(a) {
-		delete(p.aliases, mapId(a))
+		delete(p.aliases, mapID(a))
 		return true
 	}
 	return false
@@ -123,7 +123,7 @@ func (p *PeerMap) addAliases(peerIndex uint32, aliases []nwapi.Address) error {
 			p.aliases = make(map[nwapi.Address]uint32)
 		}
 		for _, a := range aliases {
-			p.aliases[mapId(a)] = peerIndex
+			p.aliases[mapID(a)] = peerIndex
 		}
 	}
 	return nil
@@ -160,7 +160,7 @@ func (p *PeerMap) addPeer(peer *Peer) uint32 {
 		p.aliases = make(map[nwapi.Address]uint32)
 	}
 	for _, a := range peer.transport.aliases {
-		p.aliases[mapId(a)] = peerIndex
+		p.aliases[mapID(a)] = peerIndex
 	}
 	return peerIndex
 }

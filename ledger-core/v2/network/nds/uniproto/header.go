@@ -44,8 +44,8 @@ type Header struct {
 	_	N	N	Invalid, loopback
 	N	N	_   Invalid, loopback
 	_	_	0	Invalid without OptionalTarget
-	_   N   _   Invalid with NoSourceId
-	_	0	_	Invalid without NoSourceId
+	_   N   _   Invalid with NoSourceID
+	_	0	_	Invalid without NoSourceID
 	N	_	K	Invalid when IsRelayRestricted == true
 */
 
@@ -156,11 +156,10 @@ func (h *Header) GetPayloadLength() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if sz := uint64(h.ByteSize()); l < sz {
-		return 0, throw.IllegalValue()
-	} else {
+	if sz := uint64(h.ByteSize()); l >= sz {
 		return l - sz, nil
 	}
+	return 0, throw.IllegalValue()
 }
 
 func CalcExcessivePayloadLength(baseLength uint16, excessive uint32) uint64 {
