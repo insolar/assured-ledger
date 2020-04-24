@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -74,8 +75,8 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl   smsync.BoolConditionalLink
-	initReason       InitReason
+	readyToWorkCtl smsync.BoolConditionalLink
+	initReason     InitReason
 
 	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
@@ -120,7 +121,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	case InitReasonVStateReport:
 		return ctx.Jump(sm.stepWaitState)
 	default:
-		panic("Not implemented")
+		panic(throw.IllegalValue())
 	}
 }
 
@@ -133,8 +134,11 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 	}
 
 	goCtx := ctx.GetContext()
+	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
+	ref := sm.Reference
+
 	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
-		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, sm.pulseSlot.PulseData().PrevPulseNumber())
+		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
 	}).Send()
 
 	return ctx.Jump(sm.stepWaitState)
