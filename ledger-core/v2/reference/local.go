@@ -99,9 +99,6 @@ func (v Local) Read(p []byte) (n int, err error) {
 
 	byteOrder.PutUint32(p, v.pulseAndScope)
 	n = v.hash.CopyTo(p[LocalBinaryPulseAndScopeSize:])
-	if err != nil {
-		return 0, err
-	}
 	return LocalBinaryPulseAndScopeSize + n, nil
 }
 
