@@ -343,6 +343,11 @@ func MarshalLocalHolderTo(v LocalHolder, data []byte) (int, error) {
 
 // deprecated
 func (v *Local) Unmarshal(data []byte) error {
+	if len(data) == 0 {
+		// backward compatibility
+		*v = Local{}
+		return nil
+	}
 	return v.unmarshal(data)
 }
 
