@@ -32,7 +32,7 @@ LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.BuildTime
 LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.GitHash=${BUILD_HASH}
 
 .PHONY: all
-all: clean submodule pre-build build ## cleanup, install deps, (re)generate all code and build all binaries
+all: vendor clean submodule pre-build build ## cleanup, install deps, (re)generate all code and build all binaries
 
 include Makefile.build
 include Makefile.testing
