@@ -145,6 +145,12 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreOrdered = state.MutableExecute
 		semaphoreUnordered = state.ImmutableExecute
 
+		if isOrdered {
+			state.PotentialMutablePendingCount++
+		} else {
+			state.PotentialImmutablePendingCount++
+		}
+
 		objectDescriptor := state.Descriptor()
 		objectDescriptorIsEmpty = objectDescriptor == nil
 	}
