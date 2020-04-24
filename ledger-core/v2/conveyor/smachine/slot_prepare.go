@@ -120,7 +120,7 @@ func (s *Slot) prepareSubroutineInit(sm SubroutineStateMachine, tracerID TracerI
 
 func (s *Slot) prepareReplace(fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) StateFunc {
 	if initFn := s.prepareSlotInit(s, fn, sm, defValues); initFn != nil {
-		s.slotFlags |= slotStepCantMigrate
+		s.slotFlags |= slotStepSuspendMigrate
 		return initFn.defaultInit
 	}
 	panic("replacing SM didn't initialize")

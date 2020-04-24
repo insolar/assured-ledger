@@ -84,7 +84,7 @@ func (s *Slot) registerBoundAlias(k, v interface{}) bool {
 	default:
 		sa := isa.(*slotAliases)
 		sa.keys = append(sa.keys, k)
-		s.slotFlags |= slotHasAliases
+		s.slotFlags |= slotHadAliases
 	}
 
 	if sar := s.machine.config.SlotAliasRegistry; sar != nil {
@@ -207,6 +207,7 @@ func (m *SlotMachine) _unregisterSlotBoundAlias(slotID SlotID, k interface{}) bo
 
 			if i == 0 && len(sa.keys) == 1 {
 				m.localRegistry.Delete(key)
+				// slot.slotFlags &^= slotHadAliases
 			} else {
 				switch last := len(sa.keys) - 1; {
 				case i < last:
