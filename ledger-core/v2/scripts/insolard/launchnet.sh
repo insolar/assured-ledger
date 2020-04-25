@@ -488,19 +488,8 @@ fi
 
 trap 'handle_sigchld' SIGCHLD
 
-echo "start heavy node"
-set -x
-$INSOLARD test node \
-    --role=heavy_material \
-    --config ${DISCOVERY_NODES_DATA}1/insolard.yaml \
-    --heavy-genesis ${HEAVY_GENESIS_CONFIG_FILE} \
-    2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}1/output.log > /dev/null &
-{ set +x; } 2>/dev/null
-echo "heavy node started in background"
-echo "log: ${DISCOVERY_NODE_LOGS}1/output.log"
-
 echo "start discovery nodes ..."
-for i in `seq 2 $NUM_DISCOVERY_NODES`
+for i in `seq 1 $NUM_DISCOVERY_NODES`
 do
     ROLE="virtual"
 

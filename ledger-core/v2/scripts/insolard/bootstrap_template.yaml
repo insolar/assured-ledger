@@ -17,7 +17,7 @@ vesting_pulse_period: 10
 vesting_pulse_step: 10
 majority_rule: 5
 min_roles:
-  heavy_material: 1
+  heavy_material: 0
   virtual:  3
   light_material: 0
 # TODO: check pulsar_public_keys usage
@@ -26,7 +26,7 @@ pulsar_public_keys:
 discovery_nodes:
   -
     host: "127.0.0.1:13831"
-    role: "heavy_material"
+    role: "virtual"
     cert_name: "discovery_cert_1.json"
   -
     host: "127.0.0.1:23832"

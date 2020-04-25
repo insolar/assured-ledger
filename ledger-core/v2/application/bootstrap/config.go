@@ -84,7 +84,6 @@ type Config struct {
 func hasMinimumRolesSet(conf *Config) error {
 	minRequiredRolesSet := map[string]bool{
 		"virtual":        true,
-		"heavy_material": true,
 	}
 
 	for _, discNode := range conf.DiscoveryNodes {
