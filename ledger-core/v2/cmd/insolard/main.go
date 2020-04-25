@@ -51,6 +51,7 @@ func main() {
 // psAgentLauncher is a stub for gops agent launcher (available with 'debug' build tag)
 var psAgentLauncher = func() error { return nil }
 
+// nolint:unparam
 func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	jww.SetStdoutThreshold(jww.LevelDebug)
 

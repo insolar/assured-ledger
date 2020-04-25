@@ -20,7 +20,7 @@ type StateMachineUpdateJet struct {
 	sender     *s_sender.SenderServiceAdapter
 	jetStorage *s_jet_storage.JetStorageServiceAdapter
 
-	externalError error
+	// externalError error
 }
 
 var declUpdateJet smachine.StateMachineDeclaration = &declarationUpdateJet{}

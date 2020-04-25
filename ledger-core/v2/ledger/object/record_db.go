@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"sync"
 
 	"github.com/dgraph-io/badger"
 	"github.com/pkg/errors"
@@ -22,7 +21,7 @@ import (
 
 // RecordDB is a DB storage implementation. It saves records to disk and does not allow removal.
 type RecordDB struct {
-	batchLock sync.Mutex
+	// batchLock sync.Mutex
 
 	db *store.BadgerDB
 }
@@ -134,24 +133,6 @@ func getLastKnownPosition(txn *badger.Txn, pn insolar.PulseNumber) (uint32, erro
 	}
 
 	return binary.BigEndian.Uint32(buff), nil
-}
-
-// setLastKnownPosition is a helper method for setting last known position of record to db in scope of txn and pulse.
-func setLastKnownPosition(txn *badger.Txn, pn insolar.PulseNumber, position uint32) error {
-	lastPositionKey := lastKnownRecordPositionKey{pn: pn}
-	parsedPosition := make([]byte, 4)
-	binary.BigEndian.PutUint32(parsedPosition, position)
-
-	fullKey := append(lastPositionKey.Scope().Bytes(), lastPositionKey.ID()...)
-
-	return txn.Set(fullKey, parsedPosition)
-}
-
-func setPosition(txn *badger.Txn, recID insolar.ID, position uint32) error {
-	positionKey := newRecordPositionKey(recID.Pulse(), position)
-	fullKey := append(positionKey.Scope().Bytes(), positionKey.ID()...)
-
-	return txn.Set(fullKey, recID.Bytes())
 }
 
 func (r *RecordDB) truncateRecordsHead(ctx context.Context, from insolar.PulseNumber) error {

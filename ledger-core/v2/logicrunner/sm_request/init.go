@@ -35,7 +35,7 @@ func HandlerFactoryMeta(message *common.DispatcherMessage) smachine.CreateFunc {
 	}
 
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
-	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
+	_, logger := inslogger.WithField(goCtx, "component", "sm")
 
 	logger.Error(logProcessing{messageType: payloadType.String()})
 

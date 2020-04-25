@@ -94,19 +94,3 @@ func reverseInts(a []int) {
 		a[i], a[opp] = a[opp], a[i]
 	}
 }
-
-type pairFormatter struct {
-	width int
-}
-
-func (p pairFormatter) Pairs(pairs ...string) string {
-	format := "%" + fmt.Sprintf("%ds", p.width) + ": %s"
-	lines := make([]string, 0, len(pairs)/2)
-	for i := range pairs {
-		if i%2 == 1 {
-			continue
-		}
-		lines = append(lines, fmt.Sprintf(format, pairs[i], pairs[i+1]))
-	}
-	return strings.Join(lines, "\n")
-}

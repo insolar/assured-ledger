@@ -53,7 +53,7 @@ func (s *Init) Present(ctx context.Context, f flow.Flow) error {
 	return err
 }
 
-func (s *Init) handle(ctx context.Context, f flow.Flow) error {
+func (s *Init) handle(ctx context.Context, _ flow.Flow) error {
 	var err error
 
 	meta := payload.Meta{}

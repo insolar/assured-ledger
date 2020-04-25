@@ -11,8 +11,6 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
@@ -63,25 +61,4 @@ func (b *BadgerGCRunInfo) RunGCIfNeeded(ctx context.Context) (doneWaiter <-chan 
 	}()
 
 	return done
-}
-
-func shouldStartFinalization(ctx context.Context, jetKeeper JetKeeper, pulses pulse.Calculator, pulseToFinalize insolar.PulseNumber) bool {
-	logger := inslogger.FromContext(ctx)
-	if !jetKeeper.HasAllJetConfirms(ctx, pulseToFinalize) {
-		logger.Debug("not all jets confirmed. Do nothing. Pulse: ", pulseToFinalize)
-		return false
-	}
-
-	nextTop, err := pulses.Forwards(ctx, jetKeeper.TopSyncPulse(), 1)
-	if err != nil {
-		logger.Warn("Can't get next pulse for topSynk: ", jetKeeper.TopSyncPulse())
-		return false
-	}
-
-	if !nextTop.PulseNumber.Equal(pulseToFinalize) {
-		logger.Infof("Try to finalize not sequential pulse. newTop: %d, target: %d", nextTop.PulseNumber, pulseToFinalize)
-		return false
-	}
-
-	return true
 }
