@@ -34,23 +34,26 @@ type (
 	Reference = reference.Global
 )
 
-// NewReference returns Reference composed from domain and record.
+// deprecated
 func NewReference(id ID) *Reference {
 	global := reference.NewGlobalSelf(id)
 	return &global
 }
 
+// deprecated
 func NewRecordReference(local ID) *Reference {
 	global := reference.NewRecordRef(local)
 	return &global
 }
 
+// deprecated
 func NewGlobalReference(local ID, base ID) *Reference {
 	global := reference.NewGlobal(base, local)
 	return &global
 }
 
 // NewObjectReferenceFromString deserializes reference from base64 encoded string and checks if it object reference
+// deprecated
 func NewObjectReferenceFromString(input string) (*Reference, error) {
 	global, err := NewReferenceFromString(input)
 	if err != nil {
@@ -66,6 +69,7 @@ func NewObjectReferenceFromString(input string) (*Reference, error) {
 }
 
 // NewRecordReferenceFromString deserializes reference from base64 encoded string and checks if it record reference
+// deprecated
 func NewRecordReferenceFromString(input string) (*Reference, error) {
 	global, err := NewReferenceFromString(input)
 	if err != nil {
@@ -78,6 +82,7 @@ func NewRecordReferenceFromString(input string) (*Reference, error) {
 }
 
 // NewReferenceFromString deserializes reference from base64 encoded string
+// deprecated
 func NewReferenceFromString(input string) (*Reference, error) {
 	global, err := reference.DefaultDecoder().Decode(input)
 	if err != nil {
@@ -87,12 +92,14 @@ func NewReferenceFromString(input string) (*Reference, error) {
 }
 
 // IsObjectReferenceString checks the validity of the reference
+// deprecated
 func IsObjectReferenceString(input string) bool {
 	_, err := NewObjectReferenceFromString(input)
 	return err == nil
 }
 
 // NewReferenceFromBytes : After CBOR Marshal/Unmarshal Ref can be converted to byte slice, this converts it back
+// deprecated
 func NewReferenceFromBytes(byteReference []byte) *Reference {
 	g := reference.Global{}
 	if err := g.Unmarshal(byteReference); err != nil {
@@ -102,11 +109,13 @@ func NewReferenceFromBytes(byteReference []byte) *Reference {
 }
 
 // NewEmptyReference returns empty Reference.
+// deprecated
 func NewEmptyReference() *Reference {
 	return &Reference{}
 }
 
 // NewID generates ID byte representation
+// deprecated
 func NewID(p PulseNumber, hash []byte) *ID {
 	hashB := longbits.Bits224{}
 	copy(hashB[:], hash)
@@ -116,6 +125,7 @@ func NewID(p PulseNumber, hash []byte) *ID {
 }
 
 // NewIDFromString deserializes ID from base64 encoded string
+// deprecated
 func NewIDFromString(input string) (*ID, error) {
 	global, err := reference.DefaultDecoder().Decode(input)
 	if err != nil {
@@ -125,6 +135,7 @@ func NewIDFromString(input string) (*ID, error) {
 }
 
 // NewIDFromBytes converts byte slice to ID
+// deprecated
 func NewIDFromBytes(hash []byte) *ID {
 	if hash == nil {
 		return NewEmptyID()
@@ -133,6 +144,7 @@ func NewIDFromBytes(hash []byte) *ID {
 	return NewID(pn, hash[reference.LocalBinaryPulseAndScopeSize:])
 }
 
+// deprecated
 func NewEmptyID() *ID {
 	return &ID{}
 }

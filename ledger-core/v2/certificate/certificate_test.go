@@ -10,10 +10,11 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/stretchr/testify/require"
 )
 
 const TestCert = "testdata/cert.json"
@@ -25,8 +26,8 @@ const TestDifferentKeys = "testdata/different_keys.json"
 
 func TestNewCertificate_NoCert(t *testing.T) {
 	_, err := ReadCertificate(nil, nil, TestInvalidFileCert)
-	require.EqualError(t, err, "[ ReadCertificate ] failed to read certificate from: "+
-		"testdata/bad_cert11111.json: open testdata/bad_cert11111.json: no such file or directory")
+	require.Contains(t, err.Error(), "[ ReadCertificate ] failed to read certificate from: "+
+		"testdata/bad_cert11111.json: ")
 }
 
 func TestNewCertificate_BadCert(t *testing.T) {

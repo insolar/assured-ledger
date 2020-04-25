@@ -69,70 +69,9 @@ func (s *Init) handle(ctx context.Context, f flow.Flow) error {
 	logger := inslogger.FromContext(ctx)
 	logger.Debug("Start to handle new message")
 
-	switch payloadType {
-	case payload.TypeGetObject:
-		h := NewGetObject(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetRequest:
-		h := NewGetRequest(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetRequestInfo:
-		h := NewGetRequestInfo(s.dep, meta)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetFilament:
-		h := NewGetFilament(s.dep, meta)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypePassState:
-		h := NewPassState(s.dep, meta)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetCode:
-		h := NewGetCode(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetCode:
-		h := NewSetCode(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetIncomingRequest:
-		h := NewSetIncomingRequest(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetOutgoingRequest:
-		h := NewSetOutgoingRequest(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetResult:
-		h := NewSetResult(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeActivate:
-		h := NewActivateObject(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeDeactivate:
-		h := NewDeactivateObject(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeUpdate:
-		h := NewUpdateObject(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetPendings:
-		h := NewGetPendings(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeHasPendings:
-		h := NewHasPendings(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetJet:
-		h := NewGetJet(s.dep, meta, false)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypePass:
-		err = s.handlePass(ctx, f, meta)
-	case payload.TypeError:
-		err = f.Handle(ctx, NewError(s.message).Present)
-	case payload.TypeHotObjects:
-		err = f.Handle(ctx, NewHotObjects(s.dep, meta).Present)
-	case payload.TypeGetPulse:
-		err = f.Handle(ctx, NewGetPulse(s.dep, meta).Present)
-	default:
-		err = fmt.Errorf("no handler for message type %s", payloadType.String())
-	}
-	if err != nil {
-		bus.ReplyError(ctx, s.sender, meta, err)
-		s.errorMetrics(ctx, payloadType.String(), err)
-	}
+	err = fmt.Errorf("no handler for message type %s", payloadType.String())
+	bus.ReplyError(ctx, s.sender, meta, err)
+	s.errorMetrics(ctx, payloadType.String(), err)
 	return err
 }
 
@@ -155,86 +94,6 @@ func (s *Init) errorMetrics(ctx context.Context, msgType string, err error) {
 	stats.Record(ctx, statHandlerError.M(1))
 }
 
-func (s *Init) handlePass(ctx context.Context, f flow.Flow, meta payload.Meta) error {
-	var err error
-	pl, err := payload.Unmarshal(meta.Payload)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal pass payload")
-	}
-	pass, ok := pl.(*payload.Pass)
-	if !ok {
-		return errors.New("wrong pass payload")
-	}
-
-	originMeta := payload.Meta{}
-	err = originMeta.Unmarshal(pass.Origin)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal payload type")
-	}
-
-	payloadType, err := payload.UnmarshalType(originMeta.Payload)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal payload type")
-	}
-
-	ctx, _ = inslogger.WithField(ctx, "msg_type_original", payloadType.String())
-
-	if originMeta.Pulse != meta.Pulse {
-		bus.ReplyError(ctx, s.sender, originMeta, flow.ErrCancelled)
-		return flow.ErrCancelled
-	}
-
-	switch payloadType {
-	case payload.TypeGetObject:
-		h := NewGetObject(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetCode:
-		h := NewGetCode(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetCode:
-		h := NewSetCode(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetIncomingRequest:
-		h := NewSetIncomingRequest(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetOutgoingRequest:
-		h := NewSetOutgoingRequest(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeSetResult:
-		h := NewSetResult(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeActivate:
-		h := NewActivateObject(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeDeactivate:
-		h := NewDeactivateObject(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeUpdate:
-		h := NewUpdateObject(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetPendings:
-		h := NewGetPendings(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeHasPendings:
-		h := NewHasPendings(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetJet:
-		h := NewGetJet(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	case payload.TypeGetRequest:
-		h := NewGetRequest(s.dep, originMeta, true)
-		err = f.Handle(ctx, h.Present)
-	default:
-		err = fmt.Errorf("no handler for message type %s", payloadType.String())
-	}
-	if err != nil {
-		bus.ReplyError(ctx, s.sender, originMeta, err)
-		s.errorMetrics(ctx, payloadType.String(), err)
-	}
-
-	return err
-}
-
 func (s *Init) Past(ctx context.Context, f flow.Flow) error {
 	msgType := s.message.Metadata.Get(meta.Type)
 	if msgType != "" {
@@ -245,50 +104,6 @@ func (s *Init) Past(ctx context.Context, f flow.Flow) error {
 	err := meta.Unmarshal(s.message.Payload)
 	if err != nil {
 		return errors.Wrap(err, "failed to unmarshal meta")
-	}
-
-	payloadType, err := payload.UnmarshalType(meta.Payload)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal payload type")
-	}
-
-	if payloadType == payload.TypePass {
-		pl, err := payload.Unmarshal(meta.Payload)
-		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal pass payload")
-		}
-		pass, ok := pl.(*payload.Pass)
-		if !ok {
-			return fmt.Errorf("unexpected pass type %T", pl)
-		}
-		originMeta := payload.Meta{}
-		err = originMeta.Unmarshal(pass.Origin)
-		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal payload type")
-		}
-
-		pt, err := payload.UnmarshalType(originMeta.Payload)
-		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal payload type")
-		}
-		payloadType = pt
-		meta = originMeta
-	}
-
-	// Only allow read operations in the past.
-	switch payloadType {
-	case
-		payload.TypeGetObject,
-		payload.TypeGetCode,
-		payload.TypeGetPendings,
-		payload.TypeHasPendings,
-		payload.TypeGetJet,
-		payload.TypeGetRequest,
-		payload.TypePassState,
-		payload.TypeGetRequestInfo,
-		payload.TypeGetFilament,
-		payload.TypeGetPulse:
-		return s.Present(ctx, f)
 	}
 
 	bus.ReplyError(ctx, s.sender, meta, flow.ErrCancelled)

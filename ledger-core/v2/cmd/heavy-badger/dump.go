@@ -14,8 +14,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 )
 
 func (app *appCtx) valueHexDumpCommand() *cobra.Command {
@@ -54,40 +52,8 @@ func (app *appCtx) valueHexDumpCommand() *cobra.Command {
 		},
 	}
 
-	var dumpRecordCmd = &cobra.Command{
-		Use:   "record",
-		Short: "dump record protobuf by key",
-		Args:  keyArgCheck,
-		Run: func(_ *cobra.Command, _ []string) {
-			db, close := openDB(app.dataDir)
-			defer close()
-			value, err := readValueByKey(db, key)
-			if err != nil {
-				fatalf("failed to get key from badger: %v", err)
-			}
-			var material record.Material
-			err = material.Unmarshal(value)
-			if err != nil {
-				fatalf("failed to decode value to record.Material: %v", err)
-			}
-
-			printLine("-")
-			fmt.Println("Material Record:")
-			fmt.Println(pairFormatter{width: 20}.Pairs(
-				"ID", material.ID.String(),
-				"JetID", material.JetID.DebugString(),
-				"ObjectID", material.ObjectID.String(),
-			))
-
-			fmt.Println("\nVirtual Record:")
-			fmt.Println(prettyPrintVirtual(&material.Virtual))
-			printLine("-")
-		},
-	}
-
 	dumpCmd.AddCommand(
 		dumpBinaryCmd,
-		dumpRecordCmd,
 	)
 
 	return dumpCmd

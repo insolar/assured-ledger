@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
@@ -113,99 +112,6 @@ func (k lastKnownRecordPositionKey) ID() []byte {
 // NewRecordDB creates new DB storage instance.
 func NewRecordDB(db *store.BadgerDB) *RecordDB {
 	return &RecordDB{db: db}
-}
-
-// Set saves new record-value in storage.
-func (r *RecordDB) Set(ctx context.Context, rec record.Material) error {
-	return r.BatchSet(ctx, []record.Material{rec})
-}
-
-// BatchSet saves a batch of records to storage with order-processing.
-func (r *RecordDB) BatchSet(ctx context.Context, recs []record.Material) error {
-	if len(recs) == 0 {
-		return nil
-	}
-
-	r.batchLock.Lock()
-	defer r.batchLock.Unlock()
-
-	// It's possible, that in the batch can be records from different pulses
-	// because of that we need to track a current pulse and position
-	// for different pulses position is requested from db
-	// We can get position on every loop, but we SHOULDN'T do this
-	// Because it isn't efficient
-	lastKnowPulse := insolar.PulseNumber(0)
-	position := uint32(0)
-
-	err := r.db.Backend().Update(func(txn *badger.Txn) error {
-		for _, rec := range recs {
-			if rec.ID.IsEmpty() {
-				return errors.New("id is empty")
-			}
-
-			err := setRecord(txn, recordKey(rec.ID), rec)
-			if err != nil {
-				return err
-			}
-
-			// For cross-pulse batches
-			if lastKnowPulse != rec.ID.Pulse() {
-				// Set last known before changing pulse/position
-				err := setLastKnownPosition(txn, lastKnowPulse, position)
-				if err != nil {
-					return err
-				}
-
-				// fetch position for a new pulse
-				position, err = getLastKnownPosition(txn, rec.ID.Pulse())
-				if err != nil && err != ErrNotFound {
-					return err
-				}
-				lastKnowPulse = rec.ID.Pulse()
-			}
-
-			position++
-
-			err = setPosition(txn, rec.ID, position)
-			if err != nil {
-				return err
-			}
-
-		}
-
-		// set position for last record
-		err := setLastKnownPosition(txn, lastKnowPulse, position)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// setRecord is a helper method for storaging record to db in scope of txn.
-func setRecord(txn *badger.Txn, key store.Key, record record.Material) error {
-	data, err := record.Marshal()
-	if err != nil {
-		return err
-	}
-
-	fullKey := append(key.Scope().Bytes(), key.ID()...)
-
-	_, err = txn.Get(fullKey)
-	if err != nil && err != badger.ErrKeyNotFound {
-		return err
-	}
-	if err == nil {
-		return ErrOverride
-	}
-
-	return txn.Set(fullKey, data)
 }
 
 // setRecord is a helper method for getting last known position of record to db in scope of txn and pulse.
@@ -327,40 +233,6 @@ func (r *RecordDB) TruncateHead(ctx context.Context, from insolar.PulseNumber) e
 	}
 
 	return nil
-}
-
-// ForID returns record for provided id.
-func (r *RecordDB) ForID(ctx context.Context, id insolar.ID) (record.Material, error) {
-	return r.get(id)
-}
-
-// get loads record.Material from DB
-func (r *RecordDB) get(id insolar.ID) (record.Material, error) {
-	var buff []byte
-	var err error
-	err = r.db.Backend().View(func(txn *badger.Txn) error {
-		key := recordKey(id)
-		fullKey := append(key.Scope().Bytes(), key.ID()...)
-
-		item, err := txn.Get(fullKey)
-		if err != nil {
-			if err == badger.ErrKeyNotFound {
-				return ErrNotFound
-			}
-			return err
-		}
-
-		buff, err = item.ValueCopy(nil)
-		return err
-	})
-	if err != nil {
-		return record.Material{}, err
-	}
-
-	rec := record.Material{}
-	err = rec.Unmarshal(buff)
-
-	return rec, err
 }
 
 // LastKnownPosition returns last known position of record in Pulse.

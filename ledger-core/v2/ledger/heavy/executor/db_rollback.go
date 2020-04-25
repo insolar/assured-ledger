@@ -8,10 +8,10 @@ package executor
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/pkg/errors"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/ledger/heavy/executor.headTruncater -o ./ -s _gen_mock.go -g
@@ -44,12 +44,6 @@ func (d *DBRollback) Start(ctx context.Context) error {
 		err := db.TruncateHead(ctx, nextPulse)
 		if err != nil {
 			return errors.Wrapf(err, "can't truncate %d db since pulse: %d", idx, nextPulse)
-		}
-
-		if indexDB, ok := db.(object.IndexModifier); ok {
-			if err := indexDB.UpdateLastKnownPulse(ctx, lastSyncPulseNumber); err != nil {
-				return errors.Wrap(err, "can't update last sync pulse")
-			}
 		}
 	}
 

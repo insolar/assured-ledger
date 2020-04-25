@@ -14,23 +14,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/artifact"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/drop"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // BaseRecord provides methods for genesis base record manipulation.
 type BaseRecord struct {
-	DB             store.DB
-	DropModifier   drop.Modifier
-	PulseAppender  insolarPulse.Appender
-	PulseAccessor  insolarPulse.Accessor
-	RecordModifier object.RecordModifier
-	IndexModifier  object.IndexModifier
+	DB            store.DB
+	PulseAppender insolarPulse.Appender
+	PulseAccessor insolarPulse.Accessor
 }
 
 // Key is genesis key.
@@ -75,14 +67,6 @@ func (br *BaseRecord) Create(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "fail to set genesis pulse")
 	}
-	// Add initial drop
-	err = br.DropModifier.Set(ctx, drop.Drop{
-		Pulse: insolar.GenesisPulse.PulseNumber,
-		JetID: insolar.ZeroJetID,
-	})
-	if err != nil {
-		return errors.Wrap(err, "fail to set initial drop")
-	}
 
 	lastPulse, err := br.PulseAccessor.Latest(ctx)
 	if err != nil {
@@ -96,34 +80,6 @@ func (br *BaseRecord) Create(ctx context.Context) error {
 		)
 	}
 
-	genesisID := application.GenesisRecord.ID()
-	genesisRecord := record.Genesis{Hash: application.GenesisRecord}
-	virtRec := record.Wrap(&genesisRecord)
-	rec := record.Material{
-		Virtual: virtRec,
-		ID:      genesisID,
-		JetID:   insolar.ZeroJetID,
-	}
-	err = br.RecordModifier.Set(ctx, rec)
-	if err != nil {
-		return errors.Wrap(err, "can't save genesis record into storage")
-	}
-
-	err = br.IndexModifier.SetIndex(
-		ctx,
-		pulse.MinTimePulse,
-		record.Index{
-			ObjID: genesisID,
-			Lifeline: record.Lifeline{
-				LatestState: &genesisID,
-			},
-			PendingRecords: []insolar.ID{},
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "fail to set genesis index")
-	}
-
 	return br.DB.Set(Key{}, nil)
 }
 
@@ -134,8 +90,7 @@ func (br *BaseRecord) Done(ctx context.Context) error {
 
 // Genesis holds data and objects required for genesis on heavy node.
 type Genesis struct {
-	ArtifactManager artifact.Manager
-	BaseRecord      *BaseRecord
+	BaseRecord *BaseRecord
 
 	PluginsDir string
 }
@@ -161,10 +116,6 @@ func (g *Genesis) Start(ctx context.Context) error {
 	err = g.BaseRecord.Create(ctx)
 	if err != nil {
 		return err
-	}
-
-	if err := g.BaseRecord.IndexModifier.UpdateLastKnownPulse(ctx, pulse.MinTimePulse); err != nil {
-		panic("can't update last known pulse on genesis")
 	}
 
 	inslog.Info("[genesis] finalize genesis record")

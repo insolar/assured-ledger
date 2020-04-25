@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
@@ -75,22 +74,6 @@ func mockReply(t *testing.T) []byte {
 	return node
 }
 
-func mockContractRequester(t *testing.T, nodeRef insolar.Reference, ok bool, r []byte) insolar.ContractRequester {
-	cr := testutils.NewContractRequesterMock(t)
-	cr.CallMock.Set(func(ctx context.Context, ref *insolar.Reference, method string, argsIn []interface{}, p insolar.PulseNumber) (r1 insolar.Reply, r2 *insolar.Reference, err error) {
-		require.Equal(t, nodeRef, *ref)
-		require.Equal(t, "GetNodeInfo", method)
-		require.Equal(t, 0, len(argsIn))
-		if ok {
-			return &reply.CallMethod{
-				Result: r,
-			}, nil, nil
-		}
-		return nil, nil, errors.New("test_error")
-	})
-	return cr
-}
-
 func mockPulseManager(t *testing.T) insolar.PulseManager {
 	pm := testutils.NewPulseManagerMock(t)
 	return pm
@@ -104,7 +87,6 @@ func TestComplete_GetCert(t *testing.T) {
 	nodekeeper := mock.NewNodeKeeperMock(t)
 	hn := mock.NewHostNetworkMock(t)
 
-	cr := mockContractRequester(t, nodeRef, true, mockReply(t))
 	cm := mockCertificateManager(t, &certNodeRef, &certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
@@ -115,7 +97,6 @@ func TestComplete_GetCert(t *testing.T) {
 		Gatewayer:           gatewayer,
 		NodeKeeper:          nodekeeper,
 		HostNetwork:         hn,
-		ContractRequester:   cr,
 		CertificateManager:  cm,
 		CryptographyService: cs,
 		PulseManager:        pm,
@@ -153,7 +134,6 @@ func TestComplete_handler(t *testing.T) {
 	gatewayer := mock.NewGatewayerMock(t)
 	nodekeeper := mock.NewNodeKeeperMock(t)
 
-	cr := mockContractRequester(t, nodeRef, true, mockReply(t))
 	cm := mockCertificateManager(t, &certNodeRef, &certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
@@ -166,7 +146,6 @@ func TestComplete_handler(t *testing.T) {
 		Gatewayer:           gatewayer,
 		NodeKeeper:          nodekeeper,
 		HostNetwork:         hn,
-		ContractRequester:   cr,
 		CertificateManager:  cm,
 		CryptographyService: cs,
 		PulseManager:        pm,

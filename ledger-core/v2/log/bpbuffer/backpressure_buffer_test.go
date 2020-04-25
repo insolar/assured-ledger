@@ -241,12 +241,12 @@ func testBackpressureBufferLimit(t *testing.T, parWriters int, hasBuffer bool, s
 	}
 
 	wgFinished.Wait()
-	//cw.wgBefore.Wait()
-	//cw.wgAfter.Wait()
+	// cw.wgBefore.Wait()
+	// cw.wgAfter.Wait()
 	//
-	//require.Equal(t, 0, len(bb.buffer), "buffer is flushed and no marks left")
-	//require.Equal(t, producersCount*2+1-expectedMiss, int(atomic.LoadUint32(&cw.total)), "producers + miss message")
-	//require.Equal(t, 0, int(atomic.LoadUint32(&cw.parallel)), "io.Writer is hit by exactly the number of write slots after LL")
+	// require.Equal(t, 0, len(bb.buffer), "buffer is flushed and no marks left")
+	// require.Equal(t, producersCount*2+1-expectedMiss, int(atomic.LoadUint32(&cw.total)), "producers + miss message")
+	// require.Equal(t, 0, int(atomic.LoadUint32(&cw.parallel)), "io.Writer is hit by exactly the number of write slots after LL")
 
 	expectedWrites := 0
 	if startWorker {
@@ -295,9 +295,9 @@ func TestBackpressureBuffer_mute_on_fatal(t *testing.T) {
 			assert.Equal(t, 0, tw.CloseCount)
 
 			// MUST hang. Tested by logwriter.Adapter
-			//_, _ = writer.LogLevelWrite(logcommon.WarnLevel, []byte("WARN must NOT pass\n"))
-			//_, _ = writer.LogLevelWrite(logcommon.ErrorLevel, []byte("ERROR must NOT pass\n"))
-			//_, _ = writer.LogLevelWrite(logcommon.PanicLevel, []byte("PANIC must NOT pass\n"))
+			// _, _ = writer.LogLevelWrite(logcommon.WarnLevel, []byte("WARN must NOT pass\n"))
+			// _, _ = writer.LogLevelWrite(logcommon.ErrorLevel, []byte("ERROR must NOT pass\n"))
+			// _, _ = writer.LogLevelWrite(logcommon.PanicLevel, []byte("PANIC must NOT pass\n"))
 			//
 			testLog := tw.String()
 			assert.Contains(t, testLog, "WARN must pass")
@@ -344,10 +344,10 @@ func (c *chanWriter) Write(p []byte) (int, error) {
 	atomic.AddUint32(&c.total, 1)
 	// maxParallel :=
 	atomic.AddUint32(&c.parallel, 1)
-	//fmt.Println("before: ", string(p))//, "\n", string(debug.Stack()))
+	// fmt.Println("before: ", string(p))//, "\n", string(debug.Stack()))
 	c.wgBefore.Done()
 	c.out <- p
-	//fmt.Println(" after: ", string(p))
+	// fmt.Println(" after: ", string(p))
 	atomic.AddUint32(&c.parallel, ^uint32(0))
 	c.wgAfter.Done()
 	return len(p), nil

@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
@@ -18,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
@@ -32,11 +30,7 @@ type PulseManager struct {
 	pulseAccessor    pulse.Accessor
 	pulseAppender    pulse.Appender
 	jetReleaser      JetReleaser
-	jetSplitter      JetSplitter
-	lightReplicator  LightReplicator
-	hotSender        HotSender
 	writeManager     WriteManager
-	stateIniter      StateIniter
 	hotStatusChecker HotDataStatusChecker
 	registry         MetricsRegistry
 }
@@ -49,26 +43,18 @@ func NewPulseManager(
 	pulseAccessor pulse.Accessor,
 	pulseAppender pulse.Appender,
 	jetReleaser JetReleaser,
-	jetSplitter JetSplitter,
-	lightReplicator LightReplicator,
-	hotSender HotSender,
 	writeManager WriteManager,
-	stateIniter StateIniter,
 	hotStatusChecker HotDataStatusChecker,
 	registry MetricsRegistry,
 ) *PulseManager {
 	pm := &PulseManager{
 		nodeNet:          nodeNet,
 		dispatchers:      dispatchers,
-		jetSplitter:      jetSplitter,
 		nodeSetter:       nodeSetter,
 		pulseAccessor:    pulseAccessor,
 		pulseAppender:    pulseAppender,
 		jetReleaser:      jetReleaser,
-		lightReplicator:  lightReplicator,
-		hotSender:        hotSender,
 		writeManager:     writeManager,
-		stateIniter:      stateIniter,
 		hotStatusChecker: hotStatusChecker,
 		registry:         registry,
 	}
@@ -108,14 +94,6 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 		}
 	}
 
-	logger.Debug("before preparing state")
-	justJoined, jets, err := m.stateIniter.PrepareState(ctx, newPulse.PulseNumber)
-	if err != nil {
-		logger.Panic(errors.Wrap(err, "failed to prepare light for start"))
-	}
-
-	stats.Record(ctx, statJets.M(int64(len(jets))))
-
 	endedPulse, err := m.pulseAccessor.Latest(ctx)
 	if err != nil {
 		logger.Panic(errors.Wrap(err, "failed to fetch ended pulse"))
@@ -127,30 +105,6 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 		logger.Debug("before dispatcher closePulse")
 		for _, d := range m.dispatchers {
 			d.ClosePulse(ctx, newPulse)
-		}
-
-		if !justJoined {
-			logger.Debug("before parsing jets")
-			for _, jet := range jets {
-
-				logger.WithFields(map[string]interface{}{
-					"jet_id":     jet.DebugString(),
-					"endedPulse": endedPulse.PulseNumber,
-				}).Debug("before hotStatusChecker.IsReceived")
-
-				if !m.hotStatusChecker.IsReceived(ctx, jet, endedPulse.PulseNumber) {
-					global.Fatalf("hot data for jet: %s and pulse: %d wasn't received", jet.DebugString(), endedPulse.PulseNumber)
-				}
-			}
-
-			logger.WithFields(map[string]interface{}{
-				"newPulse":   newPulse.PulseNumber,
-				"endedPulse": endedPulse.PulseNumber,
-			}).Debug("before jetSplitter.Do")
-			jets, err = m.jetSplitter.Do(ctx, endedPulse.PulseNumber, newPulse.PulseNumber, jets, true)
-			if err != nil {
-				logger.Panic(errors.Wrap(err, "failed to split jets"))
-			}
 		}
 
 		logger.WithFields(map[string]interface{}{
@@ -181,18 +135,6 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 		for _, d := range m.dispatchers {
 			d.BeginPulse(ctx, newPulse)
 		}
-	}
-
-	if !justJoined {
-		logger.Info("going to send hots")
-		go func() {
-			err = m.hotSender.SendHot(ctx, endedPulse.PulseNumber, newPulse.PulseNumber, jets)
-			if err != nil {
-				logger.Error("send Hot failed: ", err)
-			}
-		}()
-		logger.Info("going to notify cleaner about new pulse")
-		go m.lightReplicator.NotifyAboutPulse(ctx, newPulse.PulseNumber)
 	}
 
 	// set metrics and reset all counters

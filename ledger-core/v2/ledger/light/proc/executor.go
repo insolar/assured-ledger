@@ -8,100 +8,12 @@ package proc
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/ledger/light/executor"
 )
-
-type FetchJet struct {
-	target  insolar.ID
-	pulse   insolar.PulseNumber
-	message payload.Meta
-	pass    bool
-
-	Result struct {
-		Jet insolar.JetID
-	}
-
-	dep struct {
-		jetAccessor jet.Accessor
-		jetFetcher  executor.JetFetcher
-		coordinator jet.Coordinator
-		sender      bus.Sender
-	}
-}
-
-func NewFetchJet(target insolar.ID, pn insolar.PulseNumber, msg payload.Meta, pass bool) *FetchJet {
-	return &FetchJet{
-		target:  target,
-		pulse:   pn,
-		message: msg,
-		pass:    pass,
-	}
-}
-
-func (p *FetchJet) Dep(
-	jets jet.Accessor,
-	fetcher executor.JetFetcher,
-	c jet.Coordinator,
-	s bus.Sender,
-) {
-	p.dep.jetAccessor = jets
-	p.dep.jetFetcher = fetcher
-	p.dep.coordinator = c
-	p.dep.sender = s
-}
-
-func (p *FetchJet) Proceed(ctx context.Context) error {
-	jetID, err := p.dep.jetFetcher.Fetch(ctx, p.target, p.pulse)
-	if err != nil {
-		return errors.Wrap(err, "failed to fetch jet")
-	}
-
-	worker, err := p.dep.coordinator.LightExecutorForJet(ctx, *jetID, p.pulse)
-	if err != nil {
-		return errors.Wrap(err, "failed to calculate executor for jet")
-	}
-	if *worker != p.dep.coordinator.Me() {
-		inslogger.FromContext(ctx).Warn("virtual node missed jet")
-		if !p.pass {
-			return ErrNotExecutor
-		}
-
-		buf, err := p.message.Marshal()
-		if err != nil {
-			return errors.Wrap(err, "failed to marshal origin meta message")
-		}
-		msg, err := payload.NewMessage(&payload.Pass{
-			Origin: buf,
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to create reply")
-		}
-		_, done := p.dep.sender.SendTarget(ctx, msg, *worker)
-		done()
-
-		// Send calculated jet to virtual node.
-		msg, err = payload.NewMessage(&payload.UpdateJet{
-			Pulse: p.pulse,
-			JetID: insolar.JetID(*jetID),
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to create jet message")
-		}
-		_, done = p.dep.sender.SendTarget(ctx, msg, p.message.Sender)
-		done()
-		return ErrNotExecutor
-	}
-
-	p.Result.Jet = insolar.JetID(*jetID)
-	return nil
-}
 
 type WaitHot struct {
 	jetID   insolar.JetID

@@ -16,7 +16,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	pulsedb "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 )
 
@@ -421,15 +420,6 @@ func valuesExceedSize(scope store.Scope, size int64) iteration {
 
 		info := []string{fmt.Sprintf("key=%x - FOUND VALUE: size=%v", k, humanize.Bytes(uint64(valueSize)))}
 		if scope == store.ScopeRecord {
-			var matRec record.Material
-			err := matRec.Unmarshal(v)
-			if err != nil {
-				panic(err)
-			}
-			virtual := record.Unwrap(&matRec.Virtual)
-			info = append(info, fmt.Sprintf("type=%T", virtual))
-		}
-		if scope == store.ScopeRecord {
 			id := insolar.NewIDFromBytes(k)
 			info = append(info, "id="+id.String(), "pulse="+id.Pulse().String())
 		}
@@ -449,21 +439,7 @@ func newRecordsStatByType() *recordsStatByType {
 	}
 }
 
-func (rs *recordsStatByType) iter(k, v []byte) error {
-	var matRec record.Material
-	err := matRec.Unmarshal(v)
-	if err != nil {
-		return err
-	}
-	virtual := record.Unwrap(&matRec.Virtual)
-	recType := fmt.Sprintf("	%T", virtual)
-
-	hist, ok := rs.stats[recType]
-	if !ok {
-		hist = newHistogram(recType)
-		rs.stats[recType] = hist
-	}
-	hist.values.Update(int64(len(v)))
+func (rs *recordsStatByType) iter(_, _ []byte) error {
 	return nil
 }
 

@@ -32,38 +32,6 @@ import (
 
 var defaultConfig = configuration.Bus{ReplyTimeout: 15 * time.Second}
 
-func TestMessageBus_SendTarget(t *testing.T) {
-	ctx := context.Background()
-	logger := logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
-	pubsub := gochannel.NewGoChannel(gochannel.Config{}, logger)
-	defer pubsub.Close()
-
-	pulseMock := pulse.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(*insolar.GenesisPulse, nil)
-
-	coordinatorMock := jet.NewCoordinatorMock(t)
-	coordinatorMock.MeMock.Return(gen.Reference())
-
-	pcs := testutils.NewPlatformCryptographyScheme()
-
-	b := NewBus(defaultConfig, pubsub, pulseMock, coordinatorMock, pcs)
-	externalMsgCh, err := pubsub.Subscribe(ctx, TopicOutgoing)
-	require.NoError(t, err)
-
-	msg, err := payload.NewMessage(&payload.CallMethod{})
-	require.NoError(t, err)
-
-	mapSizeBefore := len(b.replies)
-	results, done := b.SendTarget(ctx, msg, gen.Reference())
-	defer done()
-
-	require.NotNil(t, results)
-	require.NotNil(t, done)
-	require.Equal(t, mapSizeBefore+1, len(b.replies))
-	externalMsg := <-externalMsgCh
-	require.Equal(t, msg.UUID, externalMsg.UUID)
-}
-
 type PublisherMock struct {
 	pubErr error
 }

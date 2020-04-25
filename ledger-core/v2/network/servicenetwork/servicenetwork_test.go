@@ -11,10 +11,13 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
+
+	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
@@ -27,7 +30,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	networkUtils "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/insolar/component-manager"
 )
 
 type PublisherMock struct{}
@@ -234,7 +236,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 
 	cm.Inject(serviceNetwork, nk, certManager, testutils.NewCryptographyServiceMock(t), pulse.NewAccessorMock(t),
 		testutils.NewTerminationHandlerMock(t), testutils.NewPulseManagerMock(t), &PublisherMock{},
-		testutils.NewContractRequesterMock(t), bus.NewSenderMock(t), &stater{},
+		bus.NewSenderMock(t), &stater{},
 		testutils.NewPlatformCryptographyScheme(), testutils.NewKeyProcessorMock(t))
 	err = serviceNetwork.Init(ctx)
 	require.NoError(t, err)

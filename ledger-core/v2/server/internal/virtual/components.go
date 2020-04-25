@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/contractrequester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
@@ -33,7 +32,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
@@ -124,10 +122,6 @@ func initComponents(
 	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, *certManager.GetCertificate().GetNodeRef())
 	pulses := pulse.NewStorageMem()
 
-	b := bus.NewBus(cfg.Bus, publisher, pulses, jc, pcs)
-	artifactsClient := artifacts.NewClient(b)
-	cachedPulses := artifacts.NewPulseAccessorLRU(pulses, artifactsClient, cfg.LogicRunner.PulseLRUSize)
-
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 
 	runnerService := runner.NewService()
@@ -138,24 +132,14 @@ func initComponents(
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 
-	contractRequester, err := contractrequester.New(
-		b,
-		pulses,
-		jc,
-		pcs,
-	)
-	checkError(ctx, err, "failed to start ContractRequester")
-
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
 	API, err := api.NewRunner(
 		&cfg.APIRunner,
 		certManager,
-		contractRequester,
 		nw,
 		nw,
 		pulses,
-		artifactsClient,
 		jc,
 		nw,
 		availabilityChecker,
@@ -165,11 +149,9 @@ func initComponents(
 	AdminAPIRunner, err := api.NewRunner(
 		&cfg.AdminAPIRunner,
 		certManager,
-		contractRequester,
 		nw,
 		nw,
 		pulses,
-		artifactsClient,
 		jc,
 		nw,
 		availabilityChecker,
@@ -193,14 +175,10 @@ func initComponents(
 		availabilityChecker,
 		nw,
 		pm,
-		cachedPulses,
 	)
 
 	components := []interface{}{
-		b,
 		publisher,
-		contractRequester,
-		artifactsClient,
 		jc,
 		pulses,
 
@@ -222,7 +200,7 @@ func initComponents(
 	pm.AddDispatcher(virtualDispatcher.FlowDispatcher)
 
 	return cm, startWatermill(
-		ctx, wmLogger, subscriber, b,
+		ctx, wmLogger, subscriber,
 		nw.SendMessageHandler,
 		virtualDispatcher.FlowDispatcher.Process,
 	)
@@ -232,7 +210,6 @@ func startWatermill(
 	ctx context.Context,
 	logger watermill.LoggerAdapter,
 	sub message.Subscriber,
-	b *bus.Bus,
 	outHandler, inHandler message.NoPublishHandlerFunc,
 ) func() {
 	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
@@ -249,10 +226,6 @@ func startWatermill(
 		bus.TopicOutgoing,
 		sub,
 		outHandler,
-	)
-
-	inRouter.AddMiddleware(
-		b.IncomingMessageRouter,
 	)
 
 	inRouter.AddNoPublisherHandler(

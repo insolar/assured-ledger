@@ -26,41 +26,30 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin"
 	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/machinesmanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/metrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_artifact"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_contract_requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_contract_runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_jet_storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/s_sender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/shutdown"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/sm_object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/statemachine"
 )
 
 // LogicRunner is a general interface of contract executor
 type LogicRunner struct {
-	ContractRequester insolar.ContractRequester `inject:""`
-	PulseAccessor     insolarPulse.Accessor     `inject:""`
-	ArtifactManager   artifacts.Client          `inject:""`
-	JetStorage        jet.Storage               `inject:""`
+	PulseAccessor insolarPulse.Accessor `inject:""`
+	JetStorage    jet.Storage           `inject:""`
 
 	MachinesManager machinesmanager.MachinesManager
 	Sender          bus.Sender
 	FlowDispatcher  dispatcher.Dispatcher
 	ShutdownFlag    shutdown.Flag
-	ContractRunner  s_contract_runner.ContractRunnerService
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker lrCommon.ConveyorWorker
 
-	ObjectCatalog            *sm_object.LocalObjectCatalog
-	ArtifactClientService    *s_artifact.ArtifactClientServiceAdapter
 	ContractRequesterService *s_contract_requester.ContractRequesterServiceAdapter
-	ContractRunnerService    *s_contract_runner.ContractRunnerServiceAdapter
 	SenderService            *s_sender.SenderServiceAdapter
 	JetStorageService        *s_jet_storage.JetStorageServiceAdapter
 
@@ -91,8 +80,6 @@ func (lr *LogicRunner) Init(ctx context.Context) error {
 		global.Error("New MachinesManager")
 		lr.MachinesManager = machinesmanager.NewMachinesManager()
 	}
-	lr.ContractRunner = s_contract_runner.CreateContractRunner(lr.MachinesManager, lr.ArtifactManager)
-	lr.rpc = lrCommon.NewRPC(lr.ContractRunner, lr.Cfg)
 
 	// configuration steps for slot machine
 	machineConfig := smachine.SlotMachineConfig{
@@ -103,10 +90,6 @@ func (lr *LogicRunner) Init(ctx context.Context) error {
 		SlotMachineLogger: statemachine.ConveyorLoggerFactory{},
 	}
 
-	lr.ObjectCatalog = &sm_object.LocalObjectCatalog{}
-	lr.ArtifactClientService = s_artifact.CreateArtifactClientService(lr.ArtifactManager)
-	lr.ContractRequesterService = s_contract_requester.CreateContractRequesterService(lr.ContractRequester)
-	lr.ContractRunnerService = s_contract_runner.CreateContractRunnerService(lr.ContractRunner)
 	lr.SenderService = s_sender.CreateSenderService(lr.Sender, lr.PulseAccessor)
 	lr.JetStorageService = s_jet_storage.CreateJetStorageService(lr.JetStorage)
 
@@ -120,10 +103,7 @@ func (lr *LogicRunner) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, defaultHandlers, nil)
 
-	lr.Conveyor.AddDependency(lr.ObjectCatalog)
-	lr.Conveyor.AddDependency(lr.ArtifactClientService)
 	lr.Conveyor.AddDependency(lr.ContractRequesterService)
-	lr.Conveyor.AddDependency(lr.ContractRunnerService)
 	lr.Conveyor.AddDependency(lr.SenderService)
 	lr.Conveyor.AddDependency(lr.JetStorageService)
 
@@ -140,24 +120,6 @@ func (lr *LogicRunner) Start(ctx context.Context) error {
 	if lr.Cfg.RPCListen != "" {
 		lr.rpc.Start(ctx)
 	}
-
-	bi := builtin.NewBuiltIn(lr.ArtifactManager, lr.ContractRunner)
-
-	err := lr.MachinesManager.RegisterExecutor(insolar.MachineTypeBuiltin, bi)
-	if err != nil {
-		return err
-	}
-
-	// if lr.Cfg.GoPlugin != nil {
-	// 	gp := goplugin.NewGoPlugin(lr.Cfg)
-	//
-	// 	err := lr.MachinesManager.RegisterExecutor(insolar.MachineTypeGoPlugin, gp)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	lr.ArtifactManager.InjectFinish()
 
 	return nil
 }
@@ -225,8 +187,4 @@ func (lr *LogicRunner) sendOnPulseMessage(ctx context.Context, objectRef insolar
 	// so flow canceled should not happened, if it does, somebody already restarted
 	_, done := lr.Sender.SendRole(ctx, msg, insolar.DynamicRoleVirtualExecutor, objectRef)
 	done()
-}
-
-func (lr *LogicRunner) AddUnwantedResponse(ctx context.Context, msg insolar.Payload) error {
-	return nil
 }

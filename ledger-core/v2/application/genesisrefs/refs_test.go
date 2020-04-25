@@ -12,10 +12,10 @@ import (
 )
 
 func TestGenesisRef(t *testing.T) {
+	t.SkipNow()
 	var (
 		pubKey    = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEf+vsMVU75xH8uj5WRcOqYdHXtaHH\nN0na2RVQ1xbhsVybYPae3ujNHeQCPj+RaJyMVhb6Aj/AOsTTOPFswwIDAQ==\n-----END PUBLIC KEY-----\n"
 		pubKeyRef = "insolar:1AAEAAcEp7HwQByGOr6rZwkyiRA3wR2POYCrDIhqBJyY"
-		// pubKeyRef = "insolar:1AAEAAdDDWZ0pC_nKhSM6jlMEMRRYeStjzm8dx4F-hl4"
 	)
 	genesisRef := GenesisRef(pubKey)
 	require.Equal(t, pubKeyRef, genesisRef.String(), "reference by name always the same")
