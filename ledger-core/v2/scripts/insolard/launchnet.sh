@@ -502,14 +502,7 @@ echo "log: ${DISCOVERY_NODE_LOGS}1/output.log"
 echo "start discovery nodes ..."
 for i in `seq 2 $NUM_DISCOVERY_NODES`
 do
-    ROLE=""
-    # even - lme, odd - vm
-    if [ $((i%2)) -eq 0 ]
-    then
-      ROLE="virtual"
-    else
-      ROLE="light_material"
-    fi
+    ROLE="virtual"
 
     set -x
     $INSOLARD test node \
