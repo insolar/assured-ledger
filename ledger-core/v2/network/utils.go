@@ -122,6 +122,33 @@ func IsDiscovery(nodeID insolar.Reference, cert insolar.Certificate) bool {
 	return FindDiscoveryByRef(cert, nodeID) != nil
 }
 
+func JoinAssistant(cert insolar.Certificate)  insolar.DiscoveryNode {
+	bNodes := cert.GetDiscoveryNodes()
+	if len(bNodes) == 0 {
+		return nil
+	}
+
+	sort.Slice(bNodes, func(i, j int) bool {
+		a := bNodes[i].GetNodeRef().AsBytes()
+		b := bNodes[j].GetNodeRef().AsBytes()
+		return bytes.Compare(a, b) > 0
+	})
+	return bNodes[0]
+}
+
+func IsJoinAssistant(nodeID insolar.Reference, cert insolar.Certificate) bool {
+	assist := JoinAssistant(cert)
+	if assist == nil {
+		return false
+	}
+	return nodeID.Equal(*assist.GetNodeRef())
+}
+
+func OriginIsJoinAssistant(cert insolar.Certificate) bool {
+	return IsJoinAssistant(*cert.GetNodeRef(), cert)
+}
+
+
 func CloseVerbose(closer io.Closer) {
 	err := closer.Close()
 	if err != nil {

@@ -54,25 +54,17 @@ func (g *NoNetwork) Run(ctx context.Context, pulse insolar.Pulse) {
 		return
 	}
 
-	// run bootstrap
-	if !network.OriginIsDiscovery(cert) {
-		time.Sleep(g.pause())
-		g.Gatewayer.SwitchState(ctx, insolar.JoinerBootstrap, pulse)
+	if network.OriginIsJoinAssistant(cert) {
+		// Reset backoff if not insolar.JoinerBootstrap.
+		g.backoff = 0
+
+		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
+		g.Gatewayer.SwitchState(ctx, insolar.WaitConsensus, pulse)
 		return
 	}
 
-	// Simplified bootstrap
-	if origin.Role() != insolar.StaticRoleHeavyMaterial {
-		time.Sleep(g.pause())
-		g.Gatewayer.SwitchState(ctx, insolar.JoinerBootstrap, pulse)
-		return
-	}
-
-	// Reset backoff if not insolar.JoinerBootstrap.
-	g.backoff = 0
-
-	g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-	g.Gatewayer.SwitchState(ctx, insolar.WaitConsensus, pulse)
+	time.Sleep(g.pause())
+	g.Gatewayer.SwitchState(ctx, insolar.JoinerBootstrap, pulse)
 }
 
 func (g *NoNetwork) GetState() insolar.NetworkState {
