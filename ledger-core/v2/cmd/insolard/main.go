@@ -68,15 +68,11 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	}
 
 	switch role {
-	case insolar.StaticRoleHeavyMaterial:
-		s := server.NewHeavyServer(configPath, genesisConfigPath)
-		s.Serve()
-	case insolar.StaticRoleLightMaterial:
-		s := server.NewLightServer(configPath)
-		s.Serve()
 	case insolar.StaticRoleVirtual:
 		s := server.NewVirtualServer(configPath)
 		s.Serve()
+	default:
+		panic("unknown role")
 	}
 }
 
