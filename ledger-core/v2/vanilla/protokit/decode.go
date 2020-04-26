@@ -90,6 +90,7 @@ func DecodeVarintFromBytes(bb []byte) (u uint64, n int) {
 	if b > 1 {
 		return 0, 0 // errOverflow
 	}
+	n++
 	return v, n
 }
 

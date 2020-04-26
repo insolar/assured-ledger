@@ -83,13 +83,13 @@ type DigestSigner interface {
 type DataSigner interface {
 	DigestSigner
 	DataDigester
-	//GetSignatureMethod() SignatureMethod
+	// GetSignatureMethod() SignatureMethod
 }
 
 type SequenceSigner interface {
 	DigestSigner
 	NewSequenceDigester() SequenceDigester
-	//GetSignatureMethod() SignatureMethod
+	// GetSignatureMethod() SignatureMethod
 }
 
 type SignedEvidenceHolder interface {

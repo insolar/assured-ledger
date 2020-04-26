@@ -55,7 +55,7 @@ type errBuilder struct {
 
 func (v errBuilder) _err0() error {
 	err := WithDetails(v.bottomErr, Unsupported())
-	//fmt.Println("0>>>> ", err)
+	// fmt.Println("0>>>> ", err)
 	return err
 }
 
@@ -64,7 +64,7 @@ func (v errBuilder) _err1() error {
 		msg string
 		v0  int
 	}{"err1Txt", 1})
-	//fmt.Println("1>>>> ", err)
+	// fmt.Println("1>>>> ", err)
 	return err
 }
 
@@ -81,7 +81,7 @@ func (v errBuilder) _err3() error {
 func (v errBuilder) _err4() (err error) {
 	defer func() {
 		err = RW(recover(), err, "panicCatch", struct{ position int }{7})
-		//fmt.Println("4>>>> ", err)
+		// fmt.Println("4>>>> ", err)
 	}()
 	return v._err3()
 }
@@ -100,7 +100,11 @@ func TestWrapPanicExt(t *testing.T) {
 
 func TestStackOf(t *testing.T) {
 	errChain := newChain(io.EOF)
-	fmt.Println(errChain)
+	st := DeepestStackTraceOf(errChain)
+	require.NotNil(t, st)
+	s := ErrorWithStack(errChain)
+	methodName := "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.TestStackOf"
+	require.Contains(t, s, methodName)
 }
 
 func TestWalk(t *testing.T) {

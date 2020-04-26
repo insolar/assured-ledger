@@ -195,8 +195,8 @@ func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogO
 			output.AddErrorField(s, el.stack, 0, false)
 		}
 	}
-	if v.stack != nil {
-		output.AddErrorField("", v.stack, 0, v.hasPanic)
+	if v.stack != nil || v.severity != 0 {
+		output.AddErrorField("", v.stack, v.severity, v.hasPanic)
 	}
 	return v.msg, false
 }

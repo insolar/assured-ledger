@@ -7,6 +7,7 @@ package cryptkit
 
 import (
 	"bytes"
+	"hash/crc32"
 	"io"
 	"strings"
 	"testing"
@@ -18,7 +19,28 @@ import (
 
 func TestCompareNil(t *testing.T) {
 	var s1, s2 Signature
+	require.Equal(t, 0, s1.FixedByteSize())
 	require.True(t, s1.Equals(s2))
+}
+
+func TestCompareNilZero(t *testing.T) {
+	require.Equal(t, 0, Digest{}.FixedByteSize())
+	require.Equal(t, DigestMethod(""), Digest{}.GetDigestMethod())
+	require.Nil(t, Digest{}.AsDigestHolder())
+	require.True(t, Digest{}.IsEmpty())
+
+	require.Equal(t, 0, Signature{}.FixedByteSize())
+	require.Equal(t, SignatureMethod(""), Signature{}.GetSignatureMethod())
+	require.Nil(t, Signature{}.AsSignatureHolder())
+	require.True(t, Signature{}.IsEmpty())
+
+	require.Equal(t, 0, SignatureKey{}.FixedByteSize())
+	require.Equal(t, SignatureMethod(""), SignatureKey{}.GetSignatureKeyMethod())
+	require.Equal(t, SigningMethod(""), SignatureKey{}.GetSigningMethod())
+	require.True(t, SignatureKey{}.IsEmpty())
+
+	require.Equal(t, 0, SignedData{}.FixedByteSize())
+	require.True(t, SignedData{}.IsEmpty())
 }
 
 func TestIsSymmetric(t *testing.T) {
@@ -375,4 +397,19 @@ func TestSignatureKeyString(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
 	sk := NewSignatureKey(fd, "test", PublicAsymmetricKey)
 	require.NotEmpty(t, sk.String())
+}
+
+func TestSignDataByDataSigner(t *testing.T) {
+	signer := NewDataSignerMock(t)
+	signer.GetDigestSizeMock.Return(4)
+	signer.GetDigestMethodMock.Return("testMethod")
+	signer.NewHasherMock.Return(DigestHasher{BasicDigester: signer, Hash: crc32.NewIEEE()})
+	data := longbits.WrapStr("testString")
+	hasher := crc32.NewIEEE()
+	_, _ = data.WriteTo(hasher)
+
+	signer.SignDigestMock.Expect(NewDigest(longbits.NewMutableFixedSize(hasher.Sum(nil)), "testMethod"))
+	signer.SignDigestMock.Return(Signature{})
+	sdata := SignDataByDataSigner(data, signer)
+	require.True(t, longbits.Equal(data, sdata))
 }
