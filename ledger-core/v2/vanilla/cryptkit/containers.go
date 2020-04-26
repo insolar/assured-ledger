@@ -200,9 +200,9 @@ func (r SignedData) IsEmpty() bool {
 	return r.hWriterTo == nil && r.hSignedDigest.IsEmpty()
 }
 
-func (p SignedData) FixedByteSize() int {
-	if p.hWriterTo != nil {
-		return p.hWriterTo.FixedByteSize()
+func (r SignedData) FixedByteSize() int {
+	if r.hWriterTo != nil {
+		return r.hWriterTo.FixedByteSize()
 	}
 	return 0
 }
