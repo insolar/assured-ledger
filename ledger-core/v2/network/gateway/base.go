@@ -196,7 +196,8 @@ func (g *Base) createOriginCandidate() error {
 
 func (g *Base) StartConsensus(ctx context.Context) error {
 
-	if g.NodeKeeper.GetOrigin().Role() == insolar.StaticRoleHeavyMaterial {
+	cert := g.CertificateManager.GetCertificate()
+	if network.OriginIsJoinAssistant(cert) {
 		// one of the nodes has to be in consensus.ReadyNetwork state,
 		// all other nodes has to be in consensus.Joiner
 		g.ConsensusMode = consensus.ReadyNetwork
@@ -272,32 +273,21 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
-	origin := g.OriginProvider.GetOrigin()
-
-	if origin.Role() == insolar.StaticRoleHeavyMaterial && state >= insolar.WaitConsensus {
+	if state > insolar.WaitConsensus {
 		return nil
 	}
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
-	nodes := g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes()
-
-	var hasHeavy bool
-	for _, n := range nodes {
-		if n.Role() == insolar.StaticRoleHeavyMaterial {
-			hasHeavy = true
-			break
+	if state == insolar.WaitConsensus {
+		cert := g.CertificateManager.GetCertificate()
+		if network.OriginIsJoinAssistant(cert) {
+			return nil
 		}
 	}
 
-	if hasHeavy && state > insolar.WaitConsensus {
-		return nil
-	}
-
+	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
 	return errors.Errorf(
-		"can't announce candidate: role=%v pulse=%d hasHeavy=%t state=%s",
-		origin.Role(),
+		"can't announce candidate: pulse=%d state=%s",
 		bootstrapPulse.PulseNumber,
-		hasHeavy,
 		state,
 	)
 }

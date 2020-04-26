@@ -11,6 +11,7 @@ import (
 	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -24,7 +25,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Node struct {
 	NodeID         []byte `protobuf:"bytes,1,opt,name=NodeID,proto3" json:"NodeID,omitempty"`
@@ -50,7 +51,7 @@ func (m *Node) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Node.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +87,7 @@ func (m *NodeList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_NodeList.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func (m *Snapshot) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Snapshot.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -359,7 +360,7 @@ func valueToGoStringNode(v interface{}, typ string) string {
 func (m *Node) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -367,61 +368,70 @@ func (m *Node) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Node) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Node) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.NodeID) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.NodeID)))
-		i += copy(dAtA[i:], m.NodeID)
-	}
-	if m.NodeShortID != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(m.NodeShortID))
-	}
-	if m.NodeRole != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(m.NodeRole))
-	}
-	if len(m.NodePublicKey) > 0 {
-		dAtA[i] = 0x22
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.NodePublicKey)))
-		i += copy(dAtA[i:], m.NodePublicKey)
-	}
-	if len(m.NodeAddress) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.NodeAddress)))
-		i += copy(dAtA[i:], m.NodeAddress)
-	}
-	if len(m.NodeVersion) > 0 {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(len(m.NodeVersion)))
-		i += copy(dAtA[i:], m.NodeVersion)
+	if m.State != 0 {
+		i = encodeVarintNode(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.NodeLeavingETA != 0 {
-		dAtA[i] = 0x38
-		i++
 		i = encodeVarintNode(dAtA, i, uint64(m.NodeLeavingETA))
+		i--
+		dAtA[i] = 0x38
 	}
-	if m.State != 0 {
-		dAtA[i] = 0x40
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(m.State))
+	if len(m.NodeVersion) > 0 {
+		i -= len(m.NodeVersion)
+		copy(dAtA[i:], m.NodeVersion)
+		i = encodeVarintNode(dAtA, i, uint64(len(m.NodeVersion)))
+		i--
+		dAtA[i] = 0x32
 	}
-	return i, nil
+	if len(m.NodeAddress) > 0 {
+		i -= len(m.NodeAddress)
+		copy(dAtA[i:], m.NodeAddress)
+		i = encodeVarintNode(dAtA, i, uint64(len(m.NodeAddress)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.NodePublicKey) > 0 {
+		i -= len(m.NodePublicKey)
+		copy(dAtA[i:], m.NodePublicKey)
+		i = encodeVarintNode(dAtA, i, uint64(len(m.NodePublicKey)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.NodeRole != 0 {
+		i = encodeVarintNode(dAtA, i, uint64(m.NodeRole))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.NodeShortID != 0 {
+		i = encodeVarintNode(dAtA, i, uint64(m.NodeShortID))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.NodeID) > 0 {
+		i -= len(m.NodeID)
+		copy(dAtA[i:], m.NodeID)
+		i = encodeVarintNode(dAtA, i, uint64(len(m.NodeID)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *NodeList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -429,29 +439,36 @@ func (m *NodeList) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *NodeList) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *NodeList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if len(m.List) > 0 {
-		for _, msg := range m.List {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintNode(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.List) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.List[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintNode(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0xa
 		}
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Snapshot) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -459,58 +476,62 @@ func (m *Snapshot) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Snapshot) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Snapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.PulseNumber != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(m.PulseNumber))
-	}
-	if m.State != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintNode(dAtA, i, uint64(m.State))
-	}
 	if len(m.Nodes) > 0 {
-		for k, _ := range m.Nodes {
-			dAtA[i] = 0x1a
-			i++
+		for k := range m.Nodes {
 			v := m.Nodes[k]
-			msgSize := 0
+			baseI := i
 			if v != nil {
-				msgSize = v.Size()
-				msgSize += 1 + sovNode(uint64(msgSize))
-			}
-			mapSize := 1 + sovNode(uint64(k)) + msgSize
-			i = encodeVarintNode(dAtA, i, uint64(mapSize))
-			dAtA[i] = 0x8
-			i++
-			i = encodeVarintNode(dAtA, i, uint64(k))
-			if v != nil {
-				dAtA[i] = 0x12
-				i++
-				i = encodeVarintNode(dAtA, i, uint64(v.Size()))
-				n1, err := v.MarshalTo(dAtA[i:])
-				if err != nil {
-					return 0, err
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintNode(dAtA, i, uint64(size))
 				}
-				i += n1
+				i--
+				dAtA[i] = 0x12
 			}
+			i = encodeVarintNode(dAtA, i, uint64(k))
+			i--
+			dAtA[i] = 0x8
+			i = encodeVarintNode(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x1a
 		}
 	}
-	return i, nil
+	if m.State != 0 {
+		i = encodeVarintNode(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.PulseNumber != 0 {
+		i = encodeVarintNode(dAtA, i, uint64(m.PulseNumber))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintNode(dAtA []byte, offset int, v uint64) int {
+	offset -= sovNode(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Node) Size() (n int) {
 	if m == nil {
@@ -593,14 +614,7 @@ func (m *Snapshot) Size() (n int) {
 }
 
 func sovNode(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozNode(x uint64) (n int) {
 	return sovNode(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -626,8 +640,13 @@ func (this *NodeList) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForList := "[]*Node{"
+	for _, f := range this.List {
+		repeatedStringForList += strings.Replace(f.String(), "Node", "Node", 1) + ","
+	}
+	repeatedStringForList += "}"
 	s := strings.Join([]string{`&NodeList{`,
-		`List:` + strings.Replace(fmt.Sprintf("%v", this.List), "Node", "Node", 1) + `,`,
+		`List:` + repeatedStringForList + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1219,6 +1238,7 @@ func (m *Snapshot) Unmarshal(dAtA []byte) error {
 func skipNode(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -1250,10 +1270,8 @@ func skipNode(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -1274,55 +1292,30 @@ func skipNode(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthNode
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthNode
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowNode
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipNode(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthNode
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupNode
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthNode
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthNode = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowNode   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthNode        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowNode          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupNode = fmt.Errorf("proto: unexpected end of group")
 )
