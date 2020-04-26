@@ -39,7 +39,7 @@ func (d Digest) CopyOfDigest() Digest {
 }
 
 func (d Digest) Equals(o DigestHolder) bool {
-	return longbits.EqualFixedLenWriterTo(d, o)
+	return longbits.Equal(d, o)
 }
 
 func (d Digest) AsDigestHolder() DigestHolder {
@@ -89,7 +89,7 @@ func (p Signature) CopyOfSignature() Signature {
 }
 
 func (p Signature) Equals(o SignatureHolder) bool {
-	return longbits.EqualFixedLenWriterTo(p, o)
+	return longbits.Equal(p, o)
 }
 
 func (p Signature) GetSignatureMethod() SignatureMethod {
@@ -127,8 +127,8 @@ func (r SignedDigest) CopyOfSignedDigest() SignedDigest {
 }
 
 func (r SignedDigest) Equals(o SignedDigestHolder) bool {
-	return longbits.EqualFixedLenWriterTo(r.digest, o.GetDigestHolder()) &&
-		longbits.EqualFixedLenWriterTo(r.signature, o.GetSignatureHolder())
+	return longbits.Equal(r.digest, o.GetDigestHolder()) &&
+		longbits.Equal(r.signature, o.GetSignatureHolder())
 }
 
 func (r SignedDigest) GetDigest() Digest {
@@ -251,7 +251,7 @@ func (p SignatureKey) FixedByteSize() int {
 }
 
 func (p SignatureKey) Equals(o SignatureKeyHolder) bool {
-	return longbits.EqualFixedLenWriterTo(p, o)
+	return longbits.Equal(p, o)
 }
 
 func (p SignatureKey) String() string {

@@ -78,5 +78,5 @@ func (r *EmuNodeStateHash) GetDigestMethod() cryptkit.DigestMethod {
 }
 
 func (r *EmuNodeStateHash) Equals(o cryptkit.DigestHolder) bool {
-	return longbits.EqualFixedLenWriterTo(r, o)
+	return longbits.Equal(r, o)
 }

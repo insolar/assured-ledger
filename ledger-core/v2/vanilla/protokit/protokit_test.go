@@ -57,7 +57,7 @@ var testCases = []testCase{
 		Name:     "WireFixed32",
 		WireType: WireFixed32,
 		FieldId:  5,
-		Data:     []byte{1, 1, 1, 1, 1,},
+		Data:     []byte{1, 1, 1, 1, 1},
 		Result:   uint64(0x1010101),
 		Size:     5,
 	},
@@ -160,10 +160,10 @@ func TestEnsureFixedFieldSize(t *testing.T) {
 
 func TestEnsureFixedFieldSizeFailed(t *testing.T) {
 	tag := WireVarint.Tag(1)
-	require.PanicsWithValue(t, "illegal state - not fixed size", func(){tag.EnsureFixedFieldSize(12)})
+	require.PanicsWithValue(t, "illegal state - not fixed size", func() { tag.EnsureFixedFieldSize(12) })
 
 	tag = WireBytes.Tag(1)
-	require.PanicsWithValue(t, "illegal state - not fixed size", func(){tag.EnsureFixedFieldSize(12)})
+	require.PanicsWithValue(t, "illegal state - not fixed size", func() { tag.EnsureFixedFieldSize(12) })
 }
 
 func TestWireTagMustEncodeTo(t *testing.T) {
@@ -192,5 +192,25 @@ func TestWireTagFieldSize(t *testing.T) {
 			size := tag.FieldSize(0)
 			require.Equal(t, test.Size, size)
 		})
+	}
+}
+
+func TestSizeTag(t *testing.T) {
+	require.Equal(t, 1, SizeTag(1))
+	require.Panics(t, func() { SizeTag(0) })
+	require.Panics(t, func() { SizeTag(MaxFieldID + 1) })
+}
+
+func TestEncodeBytes(t *testing.T) {
+	for i := uint64(1); i != 0; i <<= 1 {
+		var b [MaxVarintSize]byte
+		n := EncodeVarintToBytes(b[:], i)
+		require.Equal(t, n, SizeVarint64(i))
+		x, n2 := DecodeVarintFromBytes(b[:])
+		if n != n2 {
+			DecodeVarintFromBytes(b[:])
+		}
+		require.Equal(t, n, n2)
+		require.Equal(t, i, x)
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/stretchr/testify/require"
 )
@@ -255,62 +256,38 @@ func (st SuiteTextualLog) TestBuildDynFields() {
 	require.Contains(t, s, "value-3")
 }
 
-func (st SuiteTextualLog) TestFatal() {
+func (st SuiteTextualLog) prepareSpecial(flushFn func()) (*bytes.Buffer, logm.Logger) {
 	t := st.T()
 	zc := logcommon.Config{}
 
 	var buf bytes.Buffer
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	zc.BareOutput = logcommon.BareOutput{
 		Writer: &buf,
 		FlushFn: func() error {
-			wg.Done()
-			select {} // hang up to stop zerolog's call to os.Exit
+			if flushFn != nil {
+				flushFn()
+			}
+			return nil
 		},
 	}
-	zc.Output = logcommon.OutputConfig{Format: logcommon.TextFormat}
+	zc.Output = logcommon.OutputConfig{Format: st.logFormat}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
 	zb := logm.NewBuilder(binLogFactory{}, zc, logcommon.InfoLevel)
-	log, err := zb.Build()
+	l, err := zb.Build()
 
 	require.NoError(t, err)
-	require.NotNil(t, log)
+	require.NotNil(t, l)
 
-	log.Error("errorMsgText")
-	go log.Fatal("fatalMsgText") // it will hang on flush
-	wg.Wait()
-
-	s := buf.String()
-	require.Contains(t, s, "errorMsgText")
-	require.Contains(t, s, "fatalMsgText")
+	return &buf, l
 }
 
 func (st SuiteTextualLog) TestPanic() {
 	t := st.T()
-	zc := logcommon.Config{}
-
-	var buf bytes.Buffer
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	zc.BareOutput = logcommon.BareOutput{
-		Writer: &buf,
-		FlushFn: func() error {
-			wg.Done()
-			return nil
-		},
-	}
-	zc.Output = logcommon.OutputConfig{Format: logcommon.TextFormat}
-	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
-	zc.Instruments.SkipFrameCountBaseline = 0
-
-	zb := logm.NewBuilder(binLogFactory{}, zc, logcommon.InfoLevel)
-	log, err := zb.Build()
-
-	require.NoError(t, err)
-	require.NotNil(t, log)
+	buf, log := st.prepareSpecial(wg.Done)
 
 	log.Error("errorMsgText")
 	require.PanicsWithValue(t, "panicMsgText", func() {
@@ -323,4 +300,52 @@ func (st SuiteTextualLog) TestPanic() {
 	require.Contains(t, s, "errorMsgText")
 	require.Contains(t, s, "panicMsgText")
 	require.Contains(t, s, "errorNextMsgText")
+}
+
+func (st SuiteTextualLog) TestFatal() {
+	t := st.T()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	buf, log := st.prepareSpecial(func() {
+		wg.Done()
+		select {} // hand up to avoid os.Exit
+	})
+
+	log.Error("errorMsgText")
+	go log.Fatal("fatalMsgText") // it will hang on flush
+	wg.Wait()
+
+	s := buf.String()
+	require.Contains(t, s, "errorMsgText")
+	require.Contains(t, s, "fatalMsgText")
+}
+
+func (st SuiteTextualLog) TestFatalSeverity() {
+	t := st.T()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	buf, log := st.prepareSpecial(func() {
+		wg.Done()
+		select {} // hand up to avoid os.Exit
+	})
+
+	log.Error("errorMsgText")
+	go log.Errorm(throw.Fatal("fatalMsgText")) // it will hang on flush
+	wg.Wait()
+
+	s := buf.String()
+	require.Contains(t, s, "errorMsgText")
+	require.Contains(t, s, "fatalMsgText")
+}
+
+func (st SuiteTextualLog) TestSeverityOverride() {
+	t := st.T()
+	buf, log := st.prepareSpecial(nil)
+
+	log.Error("errorMsgText")
+	log.Errorm(throw.WithSeverity(throw.Fatal("someMsgText"), throw.FraudSeverity))
+
+	s := buf.String()
+	require.Contains(t, s, "errorMsgText")
+	require.Contains(t, s, "someMsgText")
 }
