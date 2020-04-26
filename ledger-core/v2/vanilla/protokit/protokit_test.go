@@ -214,3 +214,30 @@ func TestEncodeBytes(t *testing.T) {
 		require.Equal(t, i, x)
 	}
 }
+
+func TestSizeVarint(t *testing.T) {
+	sz := 1
+	for i := uint32(1); i != 0; i <<= 1 {
+		n := SizeVarint32(i)
+		require.GreaterOrEqual(t, n, sz)
+		require.Equal(t, n, SizeVarint64(uint64(i)))
+		if n == sz {
+			continue
+		}
+		require.Equal(t, sz+1, n)
+		require.Equal(t, sz, SizeVarint32(i-1), i)
+		sz = n
+	}
+
+	for i := uint64(1 << 32); i != 0; i <<= 1 {
+		n := SizeVarint64(i)
+		require.GreaterOrEqual(t, n, sz)
+		if n == sz {
+			continue
+		}
+		require.Equal(t, sz+1, n)
+		require.Equal(t, sz, SizeVarint64(i-1), i)
+		sz = n
+	}
+	require.Equal(t, MaxVarintSize, sz)
+}

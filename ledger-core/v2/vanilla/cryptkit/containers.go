@@ -172,11 +172,11 @@ func (r SignedDigest) AsSignedDigestHolder() SignedDigestHolder {
 
 /*****************************************************************/
 
-func NewSignedData(data io.WriterTo, digest Digest, signature Signature) SignedData {
+func NewSignedData(data longbits.FixedReader, digest Digest, signature Signature) SignedData {
 	return SignedData{SignedDigest{digest, signature}, data}
 }
 
-func SignDataByDataSigner(data io.WriterTo, signer DataSigner) SignedData {
+func SignDataByDataSigner(data longbits.FixedReader, signer DataSigner) SignedData {
 	hasher := signer.NewHasher()
 	if _, err := data.WriteTo(hasher); err != nil {
 		panic(err)
@@ -186,7 +186,7 @@ func SignDataByDataSigner(data io.WriterTo, signer DataSigner) SignedData {
 	return NewSignedData(data, digest, signature)
 }
 
-type hWriterTo = io.WriterTo
+type hWriterTo = longbits.FixedReader
 type hSignedDigest = SignedDigest
 
 var _ io.WriterTo = SignedData{}
@@ -198,6 +198,13 @@ type SignedData struct {
 
 func (r SignedData) IsEmpty() bool {
 	return r.hWriterTo == nil && r.hSignedDigest.IsEmpty()
+}
+
+func (p SignedData) FixedByteSize() int {
+	if p.hWriterTo != nil {
+		return p.hWriterTo.FixedByteSize()
+	}
+	return 0
 }
 
 func (r SignedData) GetSignedDigest() SignedDigest {
