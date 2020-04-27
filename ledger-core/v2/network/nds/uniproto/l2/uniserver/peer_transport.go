@@ -213,11 +213,11 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 				t.SetTag(int(limit))
 				return index, t, nil
 			}
-		case nwaddr.HostPK:
-			// PK is addressable, but is not connectable
+		case nwaddr.HostPK, nwaddr.HostID, nwaddr.LocalUID:
+			// addressable, but is not connectable
 			continue
 		default:
-			err = throw.NotImplemented() // TODO redirected addresses
+			err = throw.NotImplemented()
 		}
 
 		if s := p.sessionless; s != nil {
