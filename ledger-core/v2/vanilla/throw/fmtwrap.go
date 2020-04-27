@@ -45,20 +45,40 @@ func NewDescription(description interface{}) error {
 }
 
 // New creates an error with the given message text and description. Log structs can be used
-func New(msg string, description interface{}) error {
-	if description == nil && msg == "" {
+func New(msg string, description ...interface{}) error {
+	return Severe(0, msg, description...)
+}
+
+func Severe(severity Severity, msg string, description ...interface{}) error {
+	if description == nil && msg == "" && severity == 0 {
 		return nil
 	}
 	if fmtFn := GetFormatter(); fmtFn != nil {
 		return _wrap(fmtFn(msg, description))
 	}
-	s := ""
-	if vv, ok := description.(logStringer); ok {
-		s = vv.LogString()
+
+	var err error
+	if len(description) > 0 {
+		d0 := description[0]
+		s := ""
+		if vv, ok := d0.(logStringer); ok {
+			s = vv.LogString()
+		} else {
+			s = defaultFmt(d0, false)
+		}
+		err = fmtWrap{msg: msg, severity: severity, extra: d0, useExtra: msg != s}
 	} else {
-		s = defaultFmt(description, false)
+		err = fmtWrap{msg: msg, severity: severity}
 	}
-	return fmtWrap{msg: msg, extra: description, useExtra: msg != s}
+
+	for i := 1; i < len(description); i++ {
+		if description[i] == nil {
+			continue
+		}
+		err = WithDetails(err, description[i])
+	}
+
+	return err
 }
 
 func NewFmt(msg string, errorDescription interface{}, fmtFn FormatterFunc) error {
@@ -91,12 +111,16 @@ func _wrap(msg string, extra interface{}, useExtra bool) fmtWrap {
 	return fmtWrap{msg: msg, extra: extra, useExtra: useExtra}
 }
 
-func UnwrapExtraInfo(err interface{}) (string, interface{}, bool) {
-	if e, ok := err.(interface{ ExtraInfo() (string, interface{}) }); ok {
-		s, ei := e.ExtraInfo()
-		return s, ei, true
+type extraInfo interface {
+	ExtraInfo() (string, Severity, interface{})
+}
+
+func UnwrapExtraInfo(err interface{}) (string, Severity, interface{}, bool) {
+	if e, ok := err.(extraInfo); ok {
+		st, sv, ei := e.ExtraInfo()
+		return st, sv, ei, true
 	}
-	return "", nil, false
+	return "", 0, nil, false
 }
 
 type logStringer interface{ LogString() string }

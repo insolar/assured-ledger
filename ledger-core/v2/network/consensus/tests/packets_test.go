@@ -68,7 +68,7 @@ func (r *EmuPulsarNetPacket) WriteTo(w io.Writer) (n int64, err error) {
 	panic("implement me")
 }
 
-func (r *EmuPulsarNetPacket) Read(p []byte) (n int, err error) {
+func (r *EmuPulsarNetPacket) CopyTo(p []byte) int {
 	panic("implement me")
 }
 

@@ -6,8 +6,9 @@
 package logfmt
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type FormatFunc func(...interface{}) string

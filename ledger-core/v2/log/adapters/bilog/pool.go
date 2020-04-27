@@ -9,27 +9,27 @@ import "sync"
 
 const poolEntrySize = minEventBuffer
 
+type poolBuffer *[poolEntrySize]byte
+
 var bufferPool = &sync.Pool{
 	New: func() interface{} {
-		return make([]byte, 0, poolEntrySize)
+		return poolBuffer(&[poolEntrySize]byte{})
 	},
 }
 
-func allocateBuffer(capacity int) []byte {
+func allocateBuffer(capacity int) poolBuffer {
 	switch {
 	case capacity > poolEntrySize:
-		return make([]byte, 0, capacity)
+		return nil
 	case capacity <= 0:
 		panic("illegal value")
 	}
-	return bufferPool.Get().([]byte)[:0]
+	return bufferPool.Get().(poolBuffer)
 }
 
-func reuseBuffer(buf []byte) {
-	if cap(buf) != poolEntrySize {
+func reuseBuffer(buf poolBuffer) {
+	if buf == nil {
 		return
 	}
-	// TODO: probably it is better to switch to buffer or *[]byte
-	// see details in https://staticcheck.io/docs/checks#SA6002
-	bufferPool.Put(buf[:0]) // nolint:staticcheck
+	bufferPool.Put(buf)
 }

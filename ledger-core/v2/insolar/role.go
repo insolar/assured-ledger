@@ -24,8 +24,8 @@ const (
 )
 
 // IsVirtualRole checks if node role is virtual (validator or executor).
-func (r DynamicRole) IsVirtualRole() bool {
-	switch r {
+func (i DynamicRole) IsVirtualRole() bool {
+	switch i {
 	case DynamicRoleVirtualExecutor:
 		return true
 	case DynamicRoleVirtualValidator:

@@ -35,6 +35,12 @@ type GlobulaStateHashMock struct {
 	beforeCopyOfDigestCounter uint64
 	CopyOfDigestMock          mGlobulaStateHashMockCopyOfDigest
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mGlobulaStateHashMockCopyTo
+
 	funcEquals          func(other cryptkit.DigestHolder) (b1 bool)
 	inspectFuncEquals   func(other cryptkit.DigestHolder)
 	afterEqualsCounter  uint64
@@ -58,12 +64,6 @@ type GlobulaStateHashMock struct {
 	afterGetDigestMethodCounter  uint64
 	beforeGetDigestMethodCounter uint64
 	GetDigestMethodMock          mGlobulaStateHashMockGetDigestMethod
-
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mGlobulaStateHashMockRead
 
 	funcSignWith          func(signer cryptkit.DigestSigner) (s1 cryptkit.SignedDigestHolder)
 	inspectFuncSignWith   func(signer cryptkit.DigestSigner)
@@ -91,6 +91,9 @@ func NewGlobulaStateHashMock(t minimock.Tester) *GlobulaStateHashMock {
 
 	m.CopyOfDigestMock = mGlobulaStateHashMockCopyOfDigest{mock: m}
 
+	m.CopyToMock = mGlobulaStateHashMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*GlobulaStateHashMockCopyToParams{}
+
 	m.EqualsMock = mGlobulaStateHashMockEquals{mock: m}
 	m.EqualsMock.callArgs = []*GlobulaStateHashMockEqualsParams{}
 
@@ -99,9 +102,6 @@ func NewGlobulaStateHashMock(t minimock.Tester) *GlobulaStateHashMock {
 	m.FoldToUint64Mock = mGlobulaStateHashMockFoldToUint64{mock: m}
 
 	m.GetDigestMethodMock = mGlobulaStateHashMockGetDigestMethod{mock: m}
-
-	m.ReadMock = mGlobulaStateHashMockRead{mock: m}
-	m.ReadMock.callArgs = []*GlobulaStateHashMockReadParams{}
 
 	m.SignWithMock = mGlobulaStateHashMockSignWith{mock: m}
 	m.SignWithMock.callArgs = []*GlobulaStateHashMockSignWithParams{}
@@ -538,6 +538,221 @@ func (m *GlobulaStateHashMock) MinimockCopyOfDigestInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
 		m.t.Error("Expected call to GlobulaStateHashMock.CopyOfDigest")
+	}
+}
+
+type mGlobulaStateHashMockCopyTo struct {
+	mock               *GlobulaStateHashMock
+	defaultExpectation *GlobulaStateHashMockCopyToExpectation
+	expectations       []*GlobulaStateHashMockCopyToExpectation
+
+	callArgs []*GlobulaStateHashMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// GlobulaStateHashMockCopyToExpectation specifies expectation struct of the GlobulaStateHash.CopyTo
+type GlobulaStateHashMockCopyToExpectation struct {
+	mock    *GlobulaStateHashMock
+	params  *GlobulaStateHashMockCopyToParams
+	results *GlobulaStateHashMockCopyToResults
+	Counter uint64
+}
+
+// GlobulaStateHashMockCopyToParams contains parameters of the GlobulaStateHash.CopyTo
+type GlobulaStateHashMockCopyToParams struct {
+	p []byte
+}
+
+// GlobulaStateHashMockCopyToResults contains results of the GlobulaStateHash.CopyTo
+type GlobulaStateHashMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for GlobulaStateHash.CopyTo
+func (mmCopyTo *mGlobulaStateHashMockCopyTo) Expect(p []byte) *mGlobulaStateHashMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("GlobulaStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &GlobulaStateHashMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &GlobulaStateHashMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the GlobulaStateHash.CopyTo
+func (mmCopyTo *mGlobulaStateHashMockCopyTo) Inspect(f func(p []byte)) *mGlobulaStateHashMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for GlobulaStateHashMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by GlobulaStateHash.CopyTo
+func (mmCopyTo *mGlobulaStateHashMockCopyTo) Return(i1 int) *GlobulaStateHashMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("GlobulaStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &GlobulaStateHashMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &GlobulaStateHashMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the GlobulaStateHash.CopyTo method
+func (mmCopyTo *mGlobulaStateHashMockCopyTo) Set(f func(p []byte) (i1 int)) *GlobulaStateHashMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the GlobulaStateHash.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the GlobulaStateHash.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the GlobulaStateHash.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mGlobulaStateHashMockCopyTo) When(p []byte) *GlobulaStateHashMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("GlobulaStateHashMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &GlobulaStateHashMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &GlobulaStateHashMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up GlobulaStateHash.CopyTo return parameters for the expectation previously defined by the When method
+func (e *GlobulaStateHashMockCopyToExpectation) Then(i1 int) *GlobulaStateHashMock {
+	e.results = &GlobulaStateHashMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements GlobulaStateHash
+func (mmCopyTo *GlobulaStateHashMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &GlobulaStateHashMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := GlobulaStateHashMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("GlobulaStateHashMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the GlobulaStateHashMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to GlobulaStateHashMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished GlobulaStateHashMock.CopyTo invocations
+func (mmCopyTo *GlobulaStateHashMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of GlobulaStateHashMock.CopyTo invocations
+func (mmCopyTo *GlobulaStateHashMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to GlobulaStateHashMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mGlobulaStateHashMockCopyTo) Calls() []*GlobulaStateHashMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*GlobulaStateHashMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *GlobulaStateHashMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *GlobulaStateHashMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to GlobulaStateHashMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to GlobulaStateHashMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to GlobulaStateHashMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to GlobulaStateHashMock.CopyTo")
 	}
 }
 
@@ -1185,222 +1400,6 @@ func (m *GlobulaStateHashMock) MinimockGetDigestMethodInspect() {
 	}
 }
 
-type mGlobulaStateHashMockRead struct {
-	mock               *GlobulaStateHashMock
-	defaultExpectation *GlobulaStateHashMockReadExpectation
-	expectations       []*GlobulaStateHashMockReadExpectation
-
-	callArgs []*GlobulaStateHashMockReadParams
-	mutex    sync.RWMutex
-}
-
-// GlobulaStateHashMockReadExpectation specifies expectation struct of the GlobulaStateHash.Read
-type GlobulaStateHashMockReadExpectation struct {
-	mock    *GlobulaStateHashMock
-	params  *GlobulaStateHashMockReadParams
-	results *GlobulaStateHashMockReadResults
-	Counter uint64
-}
-
-// GlobulaStateHashMockReadParams contains parameters of the GlobulaStateHash.Read
-type GlobulaStateHashMockReadParams struct {
-	p []byte
-}
-
-// GlobulaStateHashMockReadResults contains results of the GlobulaStateHash.Read
-type GlobulaStateHashMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for GlobulaStateHash.Read
-func (mmRead *mGlobulaStateHashMockRead) Expect(p []byte) *mGlobulaStateHashMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("GlobulaStateHashMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &GlobulaStateHashMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &GlobulaStateHashMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the GlobulaStateHash.Read
-func (mmRead *mGlobulaStateHashMockRead) Inspect(f func(p []byte)) *mGlobulaStateHashMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for GlobulaStateHashMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by GlobulaStateHash.Read
-func (mmRead *mGlobulaStateHashMockRead) Return(n int, err error) *GlobulaStateHashMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("GlobulaStateHashMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &GlobulaStateHashMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &GlobulaStateHashMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the GlobulaStateHash.Read method
-func (mmRead *mGlobulaStateHashMockRead) Set(f func(p []byte) (n int, err error)) *GlobulaStateHashMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the GlobulaStateHash.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the GlobulaStateHash.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the GlobulaStateHash.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mGlobulaStateHashMockRead) When(p []byte) *GlobulaStateHashMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("GlobulaStateHashMock.Read mock is already set by Set")
-	}
-
-	expectation := &GlobulaStateHashMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &GlobulaStateHashMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up GlobulaStateHash.Read return parameters for the expectation previously defined by the When method
-func (e *GlobulaStateHashMockReadExpectation) Then(n int, err error) *GlobulaStateHashMock {
-	e.results = &GlobulaStateHashMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements GlobulaStateHash
-func (mmRead *GlobulaStateHashMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &GlobulaStateHashMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := GlobulaStateHashMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("GlobulaStateHashMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the GlobulaStateHashMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to GlobulaStateHashMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished GlobulaStateHashMock.Read invocations
-func (mmRead *GlobulaStateHashMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of GlobulaStateHashMock.Read invocations
-func (mmRead *GlobulaStateHashMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to GlobulaStateHashMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mGlobulaStateHashMockRead) Calls() []*GlobulaStateHashMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*GlobulaStateHashMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *GlobulaStateHashMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *GlobulaStateHashMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to GlobulaStateHashMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to GlobulaStateHashMock.Read")
-		} else {
-			m.t.Errorf("Expected call to GlobulaStateHashMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to GlobulaStateHashMock.Read")
-	}
-}
-
 type mGlobulaStateHashMockSignWith struct {
 	mock               *GlobulaStateHashMock
 	defaultExpectation *GlobulaStateHashMockSignWithExpectation
@@ -1841,6 +1840,8 @@ func (m *GlobulaStateHashMock) MinimockFinish() {
 
 		m.MinimockCopyOfDigestInspect()
 
+		m.MinimockCopyToInspect()
+
 		m.MinimockEqualsInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -1848,8 +1849,6 @@ func (m *GlobulaStateHashMock) MinimockFinish() {
 		m.MinimockFoldToUint64Inspect()
 
 		m.MinimockGetDigestMethodInspect()
-
-		m.MinimockReadInspect()
 
 		m.MinimockSignWithInspect()
 
@@ -1880,11 +1879,11 @@ func (m *GlobulaStateHashMock) minimockDone() bool {
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
 		m.MinimockGetDigestMethodDone() &&
-		m.MinimockReadDone() &&
 		m.MinimockSignWithDone() &&
 		m.MinimockWriteToDone()
 }

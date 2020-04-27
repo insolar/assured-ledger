@@ -6,9 +6,10 @@
 package logfmt
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"reflect"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Presence of this interface indicates that this object can be used as a log event
@@ -58,7 +59,7 @@ type LogObjectWriter interface {
 	AddIntfField(key string, v interface{}, fmt LogFieldFormat)
 	AddTimeField(key string, v time.Time, fmt LogFieldFormat)
 	AddRawJSONField(key string, v interface{}, fmt LogFieldFormat)
-	AddErrorField(msg string, stack throw.StackTrace, hasPanic bool)
+	AddErrorField(msg string, stack throw.StackTrace, severity throw.Severity, hasPanic bool)
 }
 
 type LogObjectFields struct {

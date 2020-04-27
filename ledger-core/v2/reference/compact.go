@@ -61,7 +61,7 @@ func (v compact) IsEmpty() bool {
 }
 
 func (v compact) GetScope() Scope {
-	return Scope(v.addressBase.getScope()<<2 | v.addressLocal.getScope())
+	return v.addressBase.SubScope().AsBaseOf(v.addressLocal.SubScope())
 }
 
 func (v compact) GetBase() *Local {

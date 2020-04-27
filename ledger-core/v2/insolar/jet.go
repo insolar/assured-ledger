@@ -106,7 +106,7 @@ func (ids JetIDCollection) DebugString() string {
 }
 
 func (id JetID) Marshal() ([]byte, error) {
-	return ID(id).Marshal()
+	return ID(id).AsBytes(), nil
 }
 
 func (id *JetID) Equal(other JetID) bool {

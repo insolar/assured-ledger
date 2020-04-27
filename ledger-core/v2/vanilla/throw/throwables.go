@@ -35,8 +35,13 @@ func Impossible() error {
 	return newMsg("impossible", 0)
 }
 
-// FailsHere creates an error that captures the topmost entry of caller's stack.
-func FailsHere(msg string, skipFrames int) error {
+// FailHere creates an error that captures the topmost entry of caller's stack.
+func FailHere(msg string) error {
+	return newMsg(msg, 0)
+}
+
+// FailCaller creates an error that captures the entry of caller's stack after skipping (skipFrames).
+func FailCaller(msg string, skipFrames int) error {
 	return newMsg(msg, skipFrames)
 }
 

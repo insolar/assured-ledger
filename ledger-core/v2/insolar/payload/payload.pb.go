@@ -15,6 +15,7 @@ import (
 	github_com_insolar_assured_ledger_ledger_core_v2_log "github.com/insolar/assured-ledger/ledger-core/v2/log"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 	reflect "reflect"
 	strconv "strconv"
 	strings "strings"
@@ -29,7 +30,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type PreviousExecutorState int32
 
@@ -81,7 +82,7 @@ func (m *Meta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Meta.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +141,7 @@ func (m *Error) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Error.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +193,7 @@ func (m *GetObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetObject.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -236,7 +237,7 @@ func (m *GetCode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetCode.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +282,7 @@ func (m *PassState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_PassState.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -332,7 +333,7 @@ func (m *Pass) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Pass.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -383,7 +384,7 @@ func (m *SetCode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_SetCode.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +436,7 @@ func (m *Index) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Index.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -486,7 +487,7 @@ func (m *SearchIndexInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_SearchIndexInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -537,7 +538,7 @@ func (m *Code) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Code.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -588,7 +589,7 @@ func (m *State) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_State.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -639,7 +640,7 @@ func (m *ID) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ID.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -683,7 +684,7 @@ func (m *IDs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_IDs.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -728,7 +729,7 @@ func (m *Jet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Jet.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -779,7 +780,7 @@ func (m *SetIncomingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_SetIncomingRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -830,7 +831,7 @@ func (m *SetOutgoingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_SetOutgoingRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -887,7 +888,7 @@ func (m *SagaCallAcceptNotification) XXX_Marshal(b []byte, deterministic bool) (
 		return xxx_messageInfo_SagaCallAcceptNotification.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -938,7 +939,7 @@ func (m *SetResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_SetResult.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -990,7 +991,7 @@ func (m *Activate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Activate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1049,7 +1050,7 @@ func (m *Deactivate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Deactivate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1108,7 +1109,7 @@ func (m *Update) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Update.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1168,7 +1169,7 @@ func (m *GetFilament) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_GetFilament.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1213,7 +1214,7 @@ func (m *FilamentSegment) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_FilamentSegment.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1266,7 +1267,7 @@ func (m *GetRequestInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_GetRequestInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1314,7 +1315,7 @@ func (m *RequestInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_RequestInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1381,7 +1382,7 @@ func (m *GotHotConfirmation) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_GotHotConfirmation.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1433,7 +1434,7 @@ func (m *ResultInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_ResultInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1479,7 +1480,7 @@ func (m *ErrorResultExists) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_ErrorResultExists.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1533,7 +1534,7 @@ func (m *HotObjects) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_HotObjects.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1592,7 +1593,7 @@ func (m *GetRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1637,7 +1638,7 @@ func (m *Request) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Request.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1690,7 +1691,7 @@ func (m *ServiceData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_ServiceData.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1753,7 +1754,7 @@ func (m *ReturnResults) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return xxx_messageInfo_ReturnResults.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1819,7 +1820,7 @@ func (m *CallMethod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_CallMethod.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1872,7 +1873,7 @@ func (m *ExecutorResults) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_ExecutorResults.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1930,7 +1931,7 @@ func (m *PendingFinished) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_PendingFinished.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1978,7 +1979,7 @@ func (m *AdditionalCallFromPreviousExecutor) XXX_Marshal(b []byte, deterministic
 		return xxx_messageInfo_AdditionalCallFromPreviousExecutor.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2038,7 +2039,7 @@ func (m *StillExecuting) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return xxx_messageInfo_StillExecuting.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2084,7 +2085,7 @@ func (m *GetPendings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_GetPendings.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2135,7 +2136,7 @@ func (m *HasPendings) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_HasPendings.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2179,7 +2180,7 @@ func (m *PendingsInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_PendingsInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2234,7 +2235,7 @@ func (m *Replication) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_Replication.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2300,7 +2301,7 @@ func (m *GetJet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetJet.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2344,7 +2345,7 @@ func (m *AbandonedRequestsNotification) XXX_Marshal(b []byte, deterministic bool
 		return xxx_messageInfo_AbandonedRequestsNotification.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2388,7 +2389,7 @@ func (m *GetLightInitialState) XXX_Marshal(b []byte, deterministic bool) ([]byte
 		return xxx_messageInfo_GetLightInitialState.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2437,7 +2438,7 @@ func (m *LightInitialState) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_LightInitialState.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2516,7 +2517,7 @@ func (m *GetIndex) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetIndex.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2561,7 +2562,7 @@ func (m *SearchIndex) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_SearchIndex.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2606,7 +2607,7 @@ func (m *UpdateJet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_UpdateJet.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2650,7 +2651,7 @@ func (m *GetPulse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetPulse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2694,7 +2695,7 @@ func (m *Pulse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Pulse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -2748,7 +2749,7 @@ func (m *V2SetRequestResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, 
 		return xxx_messageInfo_V2SetRequestResult.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -4926,9 +4927,9 @@ func (this *FilamentSegment) GoString() string {
 	s = append(s, "Polymorph: "+fmt.Sprintf("%#v", this.Polymorph)+",\n")
 	s = append(s, "ObjectID: "+fmt.Sprintf("%#v", this.ObjectID)+",\n")
 	if this.Records != nil {
-		vs := make([]*record.CompositeFilamentRecord, len(this.Records))
+		vs := make([]record.CompositeFilamentRecord, len(this.Records))
 		for i := range vs {
-			vs[i] = &this.Records[i]
+			vs[i] = this.Records[i]
 		}
 		s = append(s, "Records: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -5012,9 +5013,9 @@ func (this *HotObjects) GoString() string {
 	s = append(s, "Pulse: "+fmt.Sprintf("%#v", this.Pulse)+",\n")
 	s = append(s, "Drop: "+strings.Replace(this.Drop.GoString(), `&`, ``, 1)+",\n")
 	if this.Indexes != nil {
-		vs := make([]*record.Index, len(this.Indexes))
+		vs := make([]record.Index, len(this.Indexes))
 		for i := range vs {
-			vs[i] = &this.Indexes[i]
+			vs[i] = this.Indexes[i]
 		}
 		s = append(s, "Indexes: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -5189,16 +5190,16 @@ func (this *Replication) GoString() string {
 	s = append(s, "JetID: "+fmt.Sprintf("%#v", this.JetID)+",\n")
 	s = append(s, "Pulse: "+fmt.Sprintf("%#v", this.Pulse)+",\n")
 	if this.Indexes != nil {
-		vs := make([]*record.Index, len(this.Indexes))
+		vs := make([]record.Index, len(this.Indexes))
 		for i := range vs {
-			vs[i] = &this.Indexes[i]
+			vs[i] = this.Indexes[i]
 		}
 		s = append(s, "Indexes: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	if this.Records != nil {
-		vs := make([]*record.Material, len(this.Records))
+		vs := make([]record.Material, len(this.Records))
 		for i := range vs {
-			vs[i] = &this.Records[i]
+			vs[i] = this.Records[i]
 		}
 		s = append(s, "Records: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -5250,16 +5251,16 @@ func (this *LightInitialState) GoString() string {
 	s = append(s, "NetworkStart: "+fmt.Sprintf("%#v", this.NetworkStart)+",\n")
 	s = append(s, "JetIDs: "+fmt.Sprintf("%#v", this.JetIDs)+",\n")
 	if this.Drops != nil {
-		vs := make([]*drop.Drop, len(this.Drops))
+		vs := make([]drop.Drop, len(this.Drops))
 		for i := range vs {
-			vs[i] = &this.Drops[i]
+			vs[i] = this.Drops[i]
 		}
 		s = append(s, "Drops: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
 	if this.Indexes != nil {
-		vs := make([]*record.Index, len(this.Indexes))
+		vs := make([]record.Index, len(this.Indexes))
 		for i := range vs {
-			vs[i] = &this.Indexes[i]
+			vs[i] = this.Indexes[i]
 		}
 		s = append(s, "Indexes: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -5354,7 +5355,7 @@ func valueToGoStringPayload(v interface{}, typ string) string {
 func (m *Meta) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5362,80 +5363,95 @@ func (m *Meta) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Meta) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Meta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.OriginHash.Size()
+		i -= size
+		if _, err := m.OriginHash.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	if len(m.Payload) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Payload)))
-		i += copy(dAtA[i:], m.Payload)
-	}
-	dAtA[i] = 0xaa
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Sender.Size()))
-	n1, err := m.Sender.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Receiver.Size()))
-	n2, err := m.Receiver.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
-	dAtA[i] = 0xba
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n3, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n3
-	if len(m.ID) > 0 {
-		dAtA[i] = 0xc2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.ID)))
-		i += copy(dAtA[i:], m.ID)
-	}
+	i--
 	dAtA[i] = 0xca
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.OriginHash.Size()))
-	n4, err := m.OriginHash.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	if len(m.ID) > 0 {
+		i -= len(m.ID)
+		copy(dAtA[i:], m.ID)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.ID)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc2
 	}
-	i += n4
-	return i, nil
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xba
+	{
+		size := m.Receiver.Size()
+		i -= size
+		if _, err := m.Receiver.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size := m.Sender.Size()
+		i -= size
+		if _, err := m.Sender.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	if len(m.Payload) > 0 {
+		i -= len(m.Payload)
+		copy(dAtA[i:], m.Payload)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Payload)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Error) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5443,39 +5459,45 @@ func (m *Error) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Error) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Error) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if len(m.Text) > 0 {
+		i -= len(m.Text)
+		copy(dAtA[i:], m.Text)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Text)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xaa
 	}
 	if m.Code != 0 {
-		dAtA[i] = 0xa0
-		i++
-		dAtA[i] = 0x1
-		i++
 		i = encodeVarintPayload(dAtA, i, uint64(m.Code))
-	}
-	if len(m.Text) > 0 {
-		dAtA[i] = 0xaa
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Text)))
-		i += copy(dAtA[i:], m.Text)
+		i--
+		dAtA[i] = 0xa0
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetObject) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5483,46 +5505,55 @@ func (m *GetObject) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetObject) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetObject) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n5, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n5
 	if m.RequestID != nil {
-		dAtA[i] = 0xaa
-		i++
+		{
+			size := m.RequestID.Size()
+			i -= size
+			if _, err := m.RequestID.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintPayload(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.RequestID.Size()))
-		n6, err := m.RequestID.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xaa
+	}
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n6
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetCode) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5530,34 +5561,41 @@ func (m *GetCode) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetCode) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetCode) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.CodeID.Size()
+		i -= size
+		if _, err := m.CodeID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.CodeID.Size()))
-	n7, err := m.CodeID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n7
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *PassState) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5565,42 +5603,50 @@ func (m *PassState) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PassState) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PassState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.StateID.Size()
+		i -= size
+		if _, err := m.StateID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	if len(m.Origin) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Origin)))
-		i += copy(dAtA[i:], m.Origin)
-	}
-	dAtA[i] = 0xaa
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.StateID.Size()))
-	n8, err := m.StateID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xaa
+	if len(m.Origin) > 0 {
+		i -= len(m.Origin)
+		copy(dAtA[i:], m.Origin)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Origin)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	i += n8
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Pass) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5608,32 +5654,38 @@ func (m *Pass) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Pass) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Pass) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Origin) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Origin)
+		copy(dAtA[i:], m.Origin)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Origin)))
-		i += copy(dAtA[i:], m.Origin)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *SetCode) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5641,32 +5693,38 @@ func (m *SetCode) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SetCode) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SetCode) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Record) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Record)
+		copy(dAtA[i:], m.Record)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Record)))
-		i += copy(dAtA[i:], m.Record)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Index) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5674,44 +5732,52 @@ func (m *Index) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Index) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Index) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.EarliestRequestID != nil {
+		{
+			size := m.EarliestRequestID.Size()
+			i -= size
+			if _, err := m.EarliestRequestID.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintPayload(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xaa
 	}
 	if len(m.Index) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Index)
+		copy(dAtA[i:], m.Index)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Index)))
-		i += copy(dAtA[i:], m.Index)
-	}
-	if m.EarliestRequestID != nil {
-		dAtA[i] = 0xaa
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.EarliestRequestID.Size()))
-		n9, err := m.EarliestRequestID.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n9
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *SearchIndexInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5719,36 +5785,43 @@ func (m *SearchIndexInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SearchIndexInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SearchIndexInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if m.Index != nil {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Index.Size()))
-		n10, err := m.Index.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Index.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPayload(dAtA, i, uint64(size))
 		}
-		i += n10
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Code) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5756,32 +5829,38 @@ func (m *Code) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Code) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Code) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Record) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Record)
+		copy(dAtA[i:], m.Record)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Record)))
-		i += copy(dAtA[i:], m.Record)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *State) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5789,32 +5868,38 @@ func (m *State) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *State) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *State) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Record) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Record)
+		copy(dAtA[i:], m.Record)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Record)))
-		i += copy(dAtA[i:], m.Record)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ID) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5822,34 +5907,41 @@ func (m *ID) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ID) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ID) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ID.Size()
+		i -= size
+		if _, err := m.ID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ID.Size()))
-	n11, err := m.ID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n11
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *IDs) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5857,38 +5949,45 @@ func (m *IDs) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *IDs) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IDs) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.IDs) > 0 {
-		for _, msg := range m.IDs {
-			dAtA[i] = 0xa2
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.IDs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size := m.IDs[iNdEx].Size()
+				i -= size
+				if _, err := m.IDs[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+					return 0, err
+				}
+				i = encodeVarintPayload(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
 		}
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Jet) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5896,46 +5995,53 @@ func (m *Jet) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Jet) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Jet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.JetID.Size()))
-	n12, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n12
 	if m.Actual {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.Actual {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
 	}
-	return i, nil
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *SetIncomingRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5943,34 +6049,41 @@ func (m *SetIncomingRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SetIncomingRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SetIncomingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Request.Size()))
-	n13, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n13
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *SetOutgoingRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -5978,34 +6091,41 @@ func (m *SetOutgoingRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SetOutgoingRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SetOutgoingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Request.Size()))
-	n14, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n14
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *SagaCallAcceptNotification) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6013,52 +6133,62 @@ func (m *SagaCallAcceptNotification) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SagaCallAcceptNotification) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SagaCallAcceptNotification) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n15, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n15
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.DetachedRequestID.Size()))
-	n16, err := m.DetachedRequestID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n16
 	if len(m.Request) > 0 {
-		dAtA[i] = 0xb2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Request)
+		copy(dAtA[i:], m.Request)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Request)))
-		i += copy(dAtA[i:], m.Request)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb2
 	}
-	return i, nil
+	{
+		size := m.DetachedRequestID.Size()
+		i -= size
+		if _, err := m.DetachedRequestID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *SetResult) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6066,32 +6196,38 @@ func (m *SetResult) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SetResult) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SetResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Result) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Result)
+		copy(dAtA[i:], m.Result)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
-		i += copy(dAtA[i:], m.Result)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Activate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6099,40 +6235,47 @@ func (m *Activate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Activate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Activate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if len(m.Result) > 0 {
+		i -= len(m.Result)
+		copy(dAtA[i:], m.Result)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xaa
 	}
 	if len(m.Record) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Record)
+		copy(dAtA[i:], m.Record)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Record)))
-		i += copy(dAtA[i:], m.Record)
-	}
-	if len(m.Result) > 0 {
-		dAtA[i] = 0xaa
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
-		i += copy(dAtA[i:], m.Result)
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Deactivate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6140,40 +6283,47 @@ func (m *Deactivate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Deactivate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Deactivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if len(m.Result) > 0 {
+		i -= len(m.Result)
+		copy(dAtA[i:], m.Result)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xaa
 	}
 	if len(m.Record) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Record)
+		copy(dAtA[i:], m.Record)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Record)))
-		i += copy(dAtA[i:], m.Record)
-	}
-	if len(m.Result) > 0 {
-		dAtA[i] = 0xaa
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
-		i += copy(dAtA[i:], m.Result)
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Update) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6181,40 +6331,47 @@ func (m *Update) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Update) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Update) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if len(m.Result) > 0 {
+		i -= len(m.Result)
+		copy(dAtA[i:], m.Result)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xaa
 	}
 	if len(m.Record) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Record)
+		copy(dAtA[i:], m.Record)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Record)))
-		i += copy(dAtA[i:], m.Record)
-	}
-	if len(m.Result) > 0 {
-		dAtA[i] = 0xaa
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
-		i += copy(dAtA[i:], m.Result)
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetFilament) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6222,54 +6379,65 @@ func (m *GetFilament) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetFilament) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetFilament) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ReadUntil.Size()
+		i -= size
+		if _, err := m.ReadUntil.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n17, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n17
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.StartFrom.Size()))
-	n18, err := m.StartFrom.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n18
+	i--
 	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ReadUntil.Size()))
-	n19, err := m.ReadUntil.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.StartFrom.Size()
+		i -= size
+		if _, err := m.StartFrom.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n19
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *FilamentSegment) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6277,48 +6445,57 @@ func (m *FilamentSegment) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *FilamentSegment) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *FilamentSegment) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n20, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n20
 	if len(m.Records) > 0 {
-		for _, msg := range m.Records {
-			dAtA[i] = 0xaa
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Records) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Records[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPayload(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
 		}
 	}
-	return i, nil
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetRequestInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6326,54 +6503,65 @@ func (m *GetRequestInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetRequestInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetRequestInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n21, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n21
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.RequestID.Size()))
-	n22, err := m.RequestID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n22
+	i--
 	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n23, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.RequestID.Size()
+		i -= size
+		if _, err := m.RequestID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n23
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *RequestInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6381,72 +6569,83 @@ func (m *RequestInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RequestInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RequestInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n24, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n24
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.RequestID.Size()))
-	n25, err := m.RequestID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n25
-	if len(m.Request) > 0 {
-		dAtA[i] = 0xb2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Request)))
-		i += copy(dAtA[i:], m.Request)
-	}
-	if len(m.Result) > 0 {
-		dAtA[i] = 0xba
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
-		i += copy(dAtA[i:], m.Result)
-	}
 	if m.OldestMutable {
-		dAtA[i] = 0xc0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.OldestMutable {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc0
 	}
-	return i, nil
+	if len(m.Result) > 0 {
+		i -= len(m.Result)
+		copy(dAtA[i:], m.Result)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	if len(m.Request) > 0 {
+		i -= len(m.Request)
+		copy(dAtA[i:], m.Request)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Request)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb2
+	}
+	{
+		size := m.RequestID.Size()
+		i -= size
+		if _, err := m.RequestID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GotHotConfirmation) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6454,56 +6653,65 @@ func (m *GotHotConfirmation) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GotHotConfirmation) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GotHotConfirmation) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.JetID.Size()))
-	n26, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n26
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n27, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n27
 	if m.Split {
-		dAtA[i] = 0xb0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.Split {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
 	}
-	return i, nil
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ResultInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6511,44 +6719,53 @@ func (m *ResultInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ResultInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ResultInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ResultID.Size()
+		i -= size
+		if _, err := m.ResultID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n28, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n28
+	i--
 	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ResultID.Size()))
-	n29, err := m.ResultID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n29
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ErrorResultExists) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6556,52 +6773,62 @@ func (m *ErrorResultExists) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ErrorResultExists) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ErrorResultExists) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n30, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n30
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ResultID.Size()))
-	n31, err := m.ResultID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n31
 	if len(m.Result) > 0 {
-		dAtA[i] = 0xb2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Result)
+		copy(dAtA[i:], m.Result)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Result)))
-		i += copy(dAtA[i:], m.Result)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb2
 	}
-	return i, nil
+	{
+		size := m.ResultID.Size()
+		i -= size
+		if _, err := m.ResultID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *HotObjects) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6609,68 +6836,81 @@ func (m *HotObjects) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *HotObjects) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *HotObjects) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.JetID.Size()))
-	n32, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n32
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Drop.Size()))
-	n33, err := m.Drop.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n33
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n34, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n34
 	if len(m.Indexes) > 0 {
-		for _, msg := range m.Indexes {
-			dAtA[i] = 0xba
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Indexes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPayload(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
 		}
 	}
-	return i, nil
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size, err := m.Drop.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6678,44 +6918,53 @@ func (m *GetRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.RequestID.Size()
+		i -= size
+		if _, err := m.RequestID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n35, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n35
+	i--
 	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.RequestID.Size()))
-	n36, err := m.RequestID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n36
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Request) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6723,44 +6972,53 @@ func (m *Request) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Request) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.RequestID.Size()))
-	n37, err := m.RequestID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n37
+	i--
 	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Request.Size()))
-	n38, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.RequestID.Size()
+		i -= size
+		if _, err := m.RequestID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n38
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ServiceData) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6768,47 +7026,54 @@ func (m *ServiceData) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ServiceData) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ServiceData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if len(m.TraceSpanData) > 0 {
+		i -= len(m.TraceSpanData)
+		copy(dAtA[i:], m.TraceSpanData)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.TraceSpanData)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	if len(m.LogTraceID) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.LogTraceID)))
-		i += copy(dAtA[i:], m.LogTraceID)
+		i--
+		dAtA[i] = 0xb2
 	}
 	if m.LogLevel != 0 {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
 		i = encodeVarintPayload(dAtA, i, uint64(m.LogLevel))
-	}
-	if len(m.TraceSpanData) > 0 {
-		dAtA[i] = 0xb2
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.TraceSpanData)))
-		i += copy(dAtA[i:], m.TraceSpanData)
+		i--
+		dAtA[i] = 0xa8
 	}
-	return i, nil
+	if len(m.LogTraceID) > 0 {
+		i -= len(m.LogTraceID)
+		copy(dAtA[i:], m.LogTraceID)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.LogTraceID)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ReturnResults) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6816,77 +7081,90 @@ func (m *ReturnResults) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ReturnResults) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ReturnResults) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.ResendCount != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.ResendCount))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Target.Size()))
-	n39, err := m.Target.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n39
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.RequestRef.Size()))
-	n40, err := m.RequestRef.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n40
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Reason.Size()))
-	n41, err := m.Reason.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n41
-	if len(m.Reply) > 0 {
-		dAtA[i] = 0xba
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Reply)))
-		i += copy(dAtA[i:], m.Reply)
+		i--
+		dAtA[i] = 0xc8
 	}
 	if len(m.Error) > 0 {
-		dAtA[i] = 0xc2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
 		i = encodeVarintPayload(dAtA, i, uint64(len(m.Error)))
-		i += copy(dAtA[i:], m.Error)
-	}
-	if m.ResendCount != 0 {
-		dAtA[i] = 0xc8
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.ResendCount))
+		i--
+		dAtA[i] = 0xc2
 	}
-	return i, nil
+	if len(m.Reply) > 0 {
+		i -= len(m.Reply)
+		copy(dAtA[i:], m.Reply)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Reply)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	{
+		size := m.Reason.Size()
+		i -= size
+		if _, err := m.Reason.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size := m.RequestRef.Size()
+		i -= size
+		if _, err := m.RequestRef.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.Target.Size()
+		i -= size
+		if _, err := m.Target.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *CallMethod) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6894,43 +7172,50 @@ func (m *CallMethod) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CallMethod) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *CallMethod) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.PulseNumber != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.PulseNumber))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xa8
 	}
 	if m.Request != nil {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Request.Size()))
-		n42, err := m.Request.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPayload(dAtA, i, uint64(size))
 		}
-		i += n42
-	}
-	if m.PulseNumber != 0 {
-		dAtA[i] = 0xa8
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.PulseNumber))
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *ExecutorResults) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6938,53 +7223,60 @@ func (m *ExecutorResults) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ExecutorResults) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ExecutorResults) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.State != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.State))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xb0
 	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectReference.Size()))
-	n43, err := m.ObjectReference.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n43
 	if m.LedgerHasMoreRequests {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.LedgerHasMoreRequests {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
-	}
-	if m.State != 0 {
-		dAtA[i] = 0xb0
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0xa8
 	}
-	return i, nil
+	{
+		size := m.ObjectReference.Size()
+		i -= size
+		if _, err := m.ObjectReference.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *PendingFinished) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -6992,34 +7284,41 @@ func (m *PendingFinished) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PendingFinished) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PendingFinished) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ObjectRef.Size()
+		i -= size
+		if _, err := m.ObjectRef.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectRef.Size()))
-	n44, err := m.ObjectRef.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n44
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *AdditionalCallFromPreviousExecutor) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7027,75 +7326,88 @@ func (m *AdditionalCallFromPreviousExecutor) Marshal() (dAtA []byte, err error) 
 }
 
 func (m *AdditionalCallFromPreviousExecutor) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AdditionalCallFromPreviousExecutor) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectReference.Size()))
-	n45, err := m.ObjectReference.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n45
-	if m.Pending != 0 {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Pending))
-	}
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.RequestRef.Size()))
-	n46, err := m.RequestRef.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n46
-	if m.Request != nil {
-		dAtA[i] = 0xba
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Request.Size()))
-		n47, err := m.Request.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n47
-	}
 	if m.ServiceData != nil {
-		dAtA[i] = 0xc2
-		i++
+		{
+			size, err := m.ServiceData.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPayload(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.ServiceData.Size()))
-		n48, err := m.ServiceData.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xc2
+	}
+	if m.Request != nil {
+		{
+			size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPayload(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	{
+		size := m.RequestRef.Size()
+		i -= size
+		if _, err := m.RequestRef.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n48
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	if m.Pending != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Pending))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	{
+		size := m.ObjectReference.Size()
+		i -= size
+		if _, err := m.ObjectReference.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *StillExecuting) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7103,58 +7415,69 @@ func (m *StillExecuting) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *StillExecuting) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *StillExecuting) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectRef.Size()))
-	n49, err := m.ObjectRef.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n49
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Executor.Size()))
-	n50, err := m.Executor.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n50
 	if len(m.RequestRefs) > 0 {
-		for _, msg := range m.RequestRefs {
-			dAtA[i] = 0xb2
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.RequestRefs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size := m.RequestRefs[iNdEx].Size()
+				i -= size
+				if _, err := m.RequestRefs[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+					return 0, err
+				}
+				i = encodeVarintPayload(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
 		}
 	}
-	return i, nil
+	{
+		size := m.Executor.Size()
+		i -= size
+		if _, err := m.Executor.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjectRef.Size()
+		i -= size
+		if _, err := m.ObjectRef.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetPendings) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7162,55 +7485,64 @@ func (m *GetPendings) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetPendings) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetPendings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n51, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n51
-	if m.Count != 0 {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Count))
-	}
 	if len(m.SkipRequestRefs) > 0 {
-		for _, msg := range m.SkipRequestRefs {
-			dAtA[i] = 0xb2
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.SkipRequestRefs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size := m.SkipRequestRefs[iNdEx].Size()
+				i -= size
+				if _, err := m.SkipRequestRefs[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+					return 0, err
+				}
+				i = encodeVarintPayload(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
 		}
 	}
-	return i, nil
+	if m.Count != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Count))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *HasPendings) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7218,34 +7550,41 @@ func (m *HasPendings) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *HasPendings) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *HasPendings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n52, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n52
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *PendingsInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7253,36 +7592,41 @@ func (m *PendingsInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PendingsInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PendingsInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
 	if m.HasPendings {
-		dAtA[i] = 0xa0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.HasPendings {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Replication) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7290,82 +7634,97 @@ func (m *Replication) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Replication) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Replication) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.JetID.Size()))
-	n53, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n53
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n54, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n54
-	if len(m.Indexes) > 0 {
-		for _, msg := range m.Indexes {
-			dAtA[i] = 0xb2
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
+	{
+		size, err := m.Drop.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
 		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	if len(m.Records) > 0 {
-		for _, msg := range m.Records {
-			dAtA[i] = 0xba
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
+	i--
+	dAtA[i] = 0x1
+	i--
 	dAtA[i] = 0xc2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Drop.Size()))
-	n55, err := m.Drop.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	if len(m.Records) > 0 {
+		for iNdEx := len(m.Records) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Records[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPayload(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
+		}
 	}
-	i += n55
-	return i, nil
+	if len(m.Indexes) > 0 {
+		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Indexes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPayload(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
+	}
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetJet) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7373,41 +7732,48 @@ func (m *GetJet) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetJet) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetJet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n56, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n56
 	if m.PulseNumber != 0 {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
 		i = encodeVarintPayload(dAtA, i, uint64(m.PulseNumber))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
 	}
-	return i, nil
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *AbandonedRequestsNotification) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7415,34 +7781,41 @@ func (m *AbandonedRequestsNotification) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AbandonedRequestsNotification) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AbandonedRequestsNotification) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n57, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n57
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *GetLightInitialState) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7450,34 +7823,41 @@ func (m *GetLightInitialState) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetLightInitialState) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetLightInitialState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xaa
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n58, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xaa
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n58
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *LightInitialState) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7485,95 +7865,108 @@ func (m *LightInitialState) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *LightInitialState) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *LightInitialState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.LightChainLimit != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.LightChainLimit))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xc8
+	}
+	{
+		size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xc2
+	if len(m.Indexes) > 0 {
+		for iNdEx := len(m.Indexes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Indexes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPayload(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
+		}
+	}
+	if len(m.Drops) > 0 {
+		for iNdEx := len(m.Drops) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Drops[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPayload(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
+	}
+	if len(m.JetIDs) > 0 {
+		for iNdEx := len(m.JetIDs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size := m.JetIDs[iNdEx].Size()
+				i -= size
+				if _, err := m.JetIDs[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+					return 0, err
+				}
+				i = encodeVarintPayload(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
 	if m.NetworkStart {
-		dAtA[i] = 0xa0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.NetworkStart {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
-	}
-	if len(m.JetIDs) > 0 {
-		for _, msg := range m.JetIDs {
-			dAtA[i] = 0xaa
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if len(m.Drops) > 0 {
-		for _, msg := range m.Drops {
-			dAtA[i] = 0xb2
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if len(m.Indexes) > 0 {
-		for _, msg := range m.Indexes {
-			dAtA[i] = 0xba
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintPayload(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	dAtA[i] = 0xc2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n59, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n59
-	if m.LightChainLimit != 0 {
-		dAtA[i] = 0xc8
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.LightChainLimit))
+		i--
+		dAtA[i] = 0xa0
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetIndex) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7581,34 +7974,41 @@ func (m *GetIndex) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetIndex) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetIndex) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n60, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n60
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *SearchIndex) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7616,44 +8016,53 @@ func (m *SearchIndex) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SearchIndex) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SearchIndex) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.Until.Size()
+		i -= size
+		if _, err := m.Until.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n61, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n61
+	i--
 	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Until.Size()))
-	n62, err := m.Until.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n62
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *UpdateJet) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7661,44 +8070,53 @@ func (m *UpdateJet) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *UpdateJet) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *UpdateJet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n63, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n63
+	i--
 	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.JetID.Size()))
-	n64, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	i += n64
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *GetPulse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7706,34 +8124,41 @@ func (m *GetPulse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetPulse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetPulse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.PulseNumber.Size()
+		i -= size
+		if _, err := m.PulseNumber.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.PulseNumber.Size()))
-	n65, err := m.PulseNumber.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n65
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Pulse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7741,34 +8166,41 @@ func (m *Pulse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Pulse) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Pulse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+	{
+		size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.Pulse.Size()))
-	n66, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	i += n66
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *V2SetRequestResult) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -7776,70 +8208,84 @@ func (m *V2SetRequestResult) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *V2SetRequestResult) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *V2SetRequestResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.SideEffect != nil {
+		{
+			size, err := m.SideEffect.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPayload(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintPayload(dAtA, i, uint64(m.ObjectID.Size()))
-	n67, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n67
-	if len(m.Request) > 0 {
-		dAtA[i] = 0xaa
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Request)))
-		i += copy(dAtA[i:], m.Request)
+		i--
+		dAtA[i] = 0xba
 	}
 	if m.Result != nil {
+		{
+			size, err := m.Result.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintPayload(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
 		dAtA[i] = 0xb2
-		i++
+	}
+	if len(m.Request) > 0 {
+		i -= len(m.Request)
+		copy(dAtA[i:], m.Request)
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Request)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.Result.Size()))
-		n68, err := m.Result.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xaa
+	}
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n68
+		i = encodeVarintPayload(dAtA, i, uint64(size))
 	}
-	if m.SideEffect != nil {
-		dAtA[i] = 0xba
-		i++
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintPayload(dAtA, i, uint64(m.SideEffect.Size()))
-		n69, err := m.SideEffect.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n69
+		i--
+		dAtA[i] = 0x80
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintPayload(dAtA []byte, offset int, v uint64) int {
+	offset -= sovPayload(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Meta) Size() (n int) {
 	if m == nil {
@@ -8825,14 +9271,7 @@ func (m *V2SetRequestResult) Size() (n int) {
 }
 
 func sovPayload(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozPayload(x uint64) (n int) {
 	return sovPayload(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -9007,7 +9446,7 @@ func (this *SetIncomingRequest) String() string {
 	}
 	s := strings.Join([]string{`&SetIncomingRequest{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
-		`Request:` + strings.Replace(strings.Replace(this.Request.String(), "Virtual", "record.Virtual", 1), `&`, ``, 1) + `,`,
+		`Request:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Request), "Virtual", "record.Virtual", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9018,7 +9457,7 @@ func (this *SetOutgoingRequest) String() string {
 	}
 	s := strings.Join([]string{`&SetOutgoingRequest{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
-		`Request:` + strings.Replace(strings.Replace(this.Request.String(), "Virtual", "record.Virtual", 1), `&`, ``, 1) + `,`,
+		`Request:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Request), "Virtual", "record.Virtual", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9100,10 +9539,15 @@ func (this *FilamentSegment) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForRecords := "[]CompositeFilamentRecord{"
+	for _, f := range this.Records {
+		repeatedStringForRecords += fmt.Sprintf("%v", f) + ","
+	}
+	repeatedStringForRecords += "}"
 	s := strings.Join([]string{`&FilamentSegment{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
 		`ObjectID:` + fmt.Sprintf("%v", this.ObjectID) + `,`,
-		`Records:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Records), "CompositeFilamentRecord", "record.CompositeFilamentRecord", 1), `&`, ``, 1) + `,`,
+		`Records:` + repeatedStringForRecords + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9178,12 +9622,17 @@ func (this *HotObjects) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForIndexes := "[]Index{"
+	for _, f := range this.Indexes {
+		repeatedStringForIndexes += fmt.Sprintf("%v", f) + ","
+	}
+	repeatedStringForIndexes += "}"
 	s := strings.Join([]string{`&HotObjects{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
 		`JetID:` + fmt.Sprintf("%v", this.JetID) + `,`,
-		`Drop:` + strings.Replace(strings.Replace(this.Drop.String(), "Drop", "drop.Drop", 1), `&`, ``, 1) + `,`,
+		`Drop:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Drop), "Drop", "drop.Drop", 1), `&`, ``, 1) + `,`,
 		`Pulse:` + fmt.Sprintf("%v", this.Pulse) + `,`,
-		`Indexes:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Indexes), "Index", "record.Index", 1), `&`, ``, 1) + `,`,
+		`Indexes:` + repeatedStringForIndexes + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9207,7 +9656,7 @@ func (this *Request) String() string {
 	s := strings.Join([]string{`&Request{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
 		`RequestID:` + fmt.Sprintf("%v", this.RequestID) + `,`,
-		`Request:` + strings.Replace(strings.Replace(this.Request.String(), "Virtual", "record.Virtual", 1), `&`, ``, 1) + `,`,
+		`Request:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Request), "Virtual", "record.Virtual", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9287,7 +9736,7 @@ func (this *AdditionalCallFromPreviousExecutor) String() string {
 		`Pending:` + fmt.Sprintf("%v", this.Pending) + `,`,
 		`RequestRef:` + fmt.Sprintf("%v", this.RequestRef) + `,`,
 		`Request:` + strings.Replace(fmt.Sprintf("%v", this.Request), "IncomingRequest", "record.IncomingRequest", 1) + `,`,
-		`ServiceData:` + strings.Replace(fmt.Sprintf("%v", this.ServiceData), "ServiceData", "ServiceData", 1) + `,`,
+		`ServiceData:` + strings.Replace(this.ServiceData.String(), "ServiceData", "ServiceData", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9344,13 +9793,23 @@ func (this *Replication) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForIndexes := "[]Index{"
+	for _, f := range this.Indexes {
+		repeatedStringForIndexes += fmt.Sprintf("%v", f) + ","
+	}
+	repeatedStringForIndexes += "}"
+	repeatedStringForRecords := "[]Material{"
+	for _, f := range this.Records {
+		repeatedStringForRecords += fmt.Sprintf("%v", f) + ","
+	}
+	repeatedStringForRecords += "}"
 	s := strings.Join([]string{`&Replication{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
 		`JetID:` + fmt.Sprintf("%v", this.JetID) + `,`,
 		`Pulse:` + fmt.Sprintf("%v", this.Pulse) + `,`,
-		`Indexes:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Indexes), "Index", "record.Index", 1), `&`, ``, 1) + `,`,
-		`Records:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Records), "Material", "record.Material", 1), `&`, ``, 1) + `,`,
-		`Drop:` + strings.Replace(strings.Replace(this.Drop.String(), "Drop", "drop.Drop", 1), `&`, ``, 1) + `,`,
+		`Indexes:` + repeatedStringForIndexes + `,`,
+		`Records:` + repeatedStringForRecords + `,`,
+		`Drop:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Drop), "Drop", "drop.Drop", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -9393,13 +9852,23 @@ func (this *LightInitialState) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForDrops := "[]Drop{"
+	for _, f := range this.Drops {
+		repeatedStringForDrops += fmt.Sprintf("%v", f) + ","
+	}
+	repeatedStringForDrops += "}"
+	repeatedStringForIndexes := "[]Index{"
+	for _, f := range this.Indexes {
+		repeatedStringForIndexes += fmt.Sprintf("%v", f) + ","
+	}
+	repeatedStringForIndexes += "}"
 	s := strings.Join([]string{`&LightInitialState{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
 		`NetworkStart:` + fmt.Sprintf("%v", this.NetworkStart) + `,`,
 		`JetIDs:` + fmt.Sprintf("%v", this.JetIDs) + `,`,
-		`Drops:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Drops), "Drop", "drop.Drop", 1), `&`, ``, 1) + `,`,
-		`Indexes:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Indexes), "Index", "record.Index", 1), `&`, ``, 1) + `,`,
-		`Pulse:` + strings.Replace(strings.Replace(this.Pulse.String(), "PulseProto", "pulse.PulseProto", 1), `&`, ``, 1) + `,`,
+		`Drops:` + repeatedStringForDrops + `,`,
+		`Indexes:` + repeatedStringForIndexes + `,`,
+		`Pulse:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "pulse.PulseProto", 1), `&`, ``, 1) + `,`,
 		`LightChainLimit:` + fmt.Sprintf("%v", this.LightChainLimit) + `,`,
 		`}`,
 	}, "")
@@ -9457,7 +9926,7 @@ func (this *Pulse) String() string {
 	}
 	s := strings.Join([]string{`&Pulse{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
-		`Pulse:` + strings.Replace(strings.Replace(this.Pulse.String(), "PulseProto", "pulse.PulseProto", 1), `&`, ``, 1) + `,`,
+		`Pulse:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "pulse.PulseProto", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -17009,6 +17478,7 @@ func (m *V2SetRequestResult) Unmarshal(dAtA []byte) error {
 func skipPayload(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -17040,10 +17510,8 @@ func skipPayload(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -17064,55 +17532,30 @@ func skipPayload(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthPayload
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthPayload
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowPayload
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipPayload(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthPayload
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupPayload
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthPayload
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthPayload = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowPayload   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthPayload        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowPayload          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupPayload = fmt.Errorf("proto: unexpected end of group")
 )
