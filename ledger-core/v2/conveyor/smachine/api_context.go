@@ -255,8 +255,6 @@ type PostInitStepContext interface {
 	InOrderStepContext
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.ExecutionContext -o ./ -s _mock.go -g
-
 type ExecutionContext interface {
 	PostInitStepContext
 
