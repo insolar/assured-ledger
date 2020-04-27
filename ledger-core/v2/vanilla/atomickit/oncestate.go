@@ -91,12 +91,19 @@ func (p *OnceFlag) doSlow(f func()) {
 
 /***********************************************************/
 
+const (
+	starting = -1
+	active   = 1
+	stopping = 2
+	stopped  = 3
+)
+
 type StartStopFlag struct {
 	done int32
 }
 
 func (p *StartStopFlag) IsActive() bool {
-	return atomic.LoadInt32(&p.done) == 1
+	return atomic.LoadInt32(&p.done) == active
 }
 
 func (p *StartStopFlag) IsStarting() bool {
@@ -108,35 +115,35 @@ func (p *StartStopFlag) WasStarted() bool {
 }
 
 func (p *StartStopFlag) WasStopped() bool {
-	return atomic.LoadInt32(&p.done) >= 2
+	return atomic.LoadInt32(&p.done) >= stopping
 }
 
 func (p *StartStopFlag) IsStopping() bool {
-	return atomic.LoadInt32(&p.done) == 2
+	return atomic.LoadInt32(&p.done) == stopping
 }
 
 func (p *StartStopFlag) IsStopped() bool {
-	return atomic.LoadInt32(&p.done) == 3
+	return atomic.LoadInt32(&p.done) == stopped
 }
 
-func (p *StartStopFlag) Status() (active, wasStarted bool) {
+func (p *StartStopFlag) Status() (isActive, wasStarted bool) {
 	n := atomic.LoadInt32(&p.done)
-	return n == 1, n != 0
+	return n == active, n != 0
 }
 
 func (p *StartStopFlag) DoStart(f func()) bool {
-	if !atomic.CompareAndSwapInt32(&p.done, 0, -1) {
+	if !atomic.CompareAndSwapInt32(&p.done, 0, starting) {
 		return false
 	}
-	p.doSlow(f, 1)
+	p.doSlow(f, active)
 	return true
 }
 
 func (p *StartStopFlag) DoStop(f func()) bool {
-	if !atomic.CompareAndSwapInt32(&p.done, 1, 2) {
+	if !atomic.CompareAndSwapInt32(&p.done, active, stopping) {
 		return false
 	}
-	p.doSlow(f, 3)
+	p.doSlow(f, stopped)
 	return true
 }
 
@@ -144,13 +151,13 @@ func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
 	for i := uint(0); ; i++ {
 		switch atomic.LoadInt32(&p.done) {
 		case 0:
-			if atomic.CompareAndSwapInt32(&p.done, 0, 2) {
-				p.doSlow(discardFn, 3)
+			if atomic.CompareAndSwapInt32(&p.done, 0, stopping) {
+				p.doSlow(discardFn, stopped)
 				return true
 			}
-		case 1:
+		case active:
 			return p.DoStop(stopFn)
-		case -1:
+		case starting:
 			switch {
 			case i < 10:
 				runtime.Gosched()
@@ -166,15 +173,15 @@ func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
 }
 
 func (p *StartStopFlag) Start() bool {
-	return !atomic.CompareAndSwapInt32(&p.done, 0, 1)
+	return !atomic.CompareAndSwapInt32(&p.done, 0, active)
 }
 
 func (p *StartStopFlag) Stop() bool {
-	return !atomic.CompareAndSwapInt32(&p.done, 1, 3)
+	return !atomic.CompareAndSwapInt32(&p.done, active, stopped)
 }
 
 func (p *StartStopFlag) doSlow(f func(), status int32) {
-	upd := int32(3) // stopped
+	upd := int32(stopped)
 	defer func() {
 		atomic.StoreInt32(&p.done, upd)
 	}()
