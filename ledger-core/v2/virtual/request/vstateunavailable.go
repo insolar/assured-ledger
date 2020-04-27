@@ -60,7 +60,9 @@ func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachin
 
 	setStateFunc := func(state *object.SharedState) {
 		if state.IsReady() {
-			panic(throw.IllegalState())
+			ctx.Log().Trace(struct {
+				*log.Msg `txt:"State already exists"`
+			}{})
 		}
 
 		switch s.Payload.Reason {

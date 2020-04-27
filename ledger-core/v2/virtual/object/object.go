@@ -24,10 +24,10 @@ import (
 type State int32
 
 const (
-	NotReady State = 0
-	Missing  State = 1
-	Inactive State = 2
-	HasState State = 3
+	Unknown State = iota
+	Missing
+	Inactive
+	HasState
 )
 
 type Info struct {
@@ -48,7 +48,7 @@ type Info struct {
 }
 
 func (i *Info) IsReady() bool {
-	return i.objectState != NotReady
+	return i.objectState != Unknown
 }
 
 func (i *Info) SetState(state State) {
