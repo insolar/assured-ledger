@@ -54,6 +54,7 @@ func NewIPAndPort(ip net.IPAddr, port int) Address {
 	return a
 }
 
+// NewHost checks if the string can be parsed into IP address, then returns either IP or DNS values accordingly.
 func NewHost(host string) Address {
 	if host == "" {
 		panic(throw.IllegalValue())
@@ -82,6 +83,7 @@ func parseIPZone(s string) (net.IP, string) {
 	return nil, ""
 }
 
+// NewHostAndPort checks if the string can be parsed into IP address, then returns either IP or DNS values accordingly. Port must be valid.
 func NewHostAndPort(host string, port int) Address {
 	if port <= 0 || port > math.MaxUint16 {
 		panic(throw.IllegalValue())
@@ -91,6 +93,7 @@ func NewHostAndPort(host string, port int) Address {
 	return a
 }
 
+// NewHostPort checks if the string can be parsed into IP address, then returns either IP or DNS values accordingly. Port must be present.
 func NewHostPort(hostport string) Address {
 	if hostport == "" {
 		panic(throw.IllegalValue())
@@ -161,6 +164,7 @@ func (a Address) AddrNetwork() nwaddr.Network {
 	return nwaddr.Network(a.network & networkMask)
 }
 
+// Network provides compatibility with net.Addr
 func (a Address) Network() string {
 	switch a.AddrNetwork() {
 	case nwaddr.DNS, nwaddr.IP:
@@ -170,6 +174,7 @@ func (a Address) Network() string {
 	}
 }
 
+// HostIdentity strips all additional data, like port or like a name for resolved address
 func (a Address) HostIdentity() Address {
 	switch {
 	case a.port != 0:
@@ -178,6 +183,7 @@ func (a Address) HostIdentity() Address {
 		//
 	case a.AddrNetwork() != nwaddr.LocalUID:
 		return a
+	// when Addr() == nwaddr.LocalUID, the it may contain HostID
 	case string(a.data0[:8]) == zero8Prefix:
 		return a
 	default:
@@ -190,6 +196,7 @@ func (a Address) HostIdentity() Address {
 	return a
 }
 
+// WithoutName returns address without a symbolic name. This does not apply to DNS (unresolved) address.
 func (a Address) WithoutName() Address {
 	if a.flags&data1isName == 0 {
 		// optimization
@@ -200,6 +207,7 @@ func (a Address) WithoutName() Address {
 	return a
 }
 
+// WithoutPort returns address without a port.
 func (a Address) WithoutPort() Address {
 	if a.port == 0 {
 		// optimization
@@ -209,6 +217,7 @@ func (a Address) WithoutPort() Address {
 	return a
 }
 
+// WithPort returns address with the given (port).
 func (a Address) WithPort(port uint16) Address {
 	if port == 0 {
 		panic(throw.IllegalValue())
@@ -222,6 +231,7 @@ func (a Address) WithPort(port uint16) Address {
 	return a
 }
 
+// String provides value compatible with net.Addr use
 func (a Address) String() string {
 	h := a.HostString()
 	if !a.HasPort() {
@@ -234,6 +244,7 @@ func (a Address) String() string {
 	return h + ":" + p
 }
 
+// HostString provides a readable string that describes the address/host. This string doesn't include port.
 func (a Address) HostString() string {
 	switch a.AddrNetwork() {
 	case 0:
@@ -259,22 +270,16 @@ func (a Address) HostString() string {
 	}
 }
 
-func (a Address) Resolve(ctx context.Context, resolver BasicAddressResolver) (Address, error) {
-	if a.IsResolved() {
-		return a, nil
-	}
-	ips, err := a.resolve(ctx, resolver)
+// Resolve applies the given (resolver) to this address only when this address is unresolved. One address is picked by the (preference).
+func (a Address) Resolve(ctx context.Context, resolver BasicAddressResolver, preference Preference) (Address, error) {
+	ips, err := a.ResolveAll(ctx, resolver)
 	if err != nil {
 		return Address{}, err
 	}
-
-	// TODO add host name to data1
-
-	aa := NewIP(ips[0])
-	aa.port = a.port
-	return aa, nil
+	return preference.ChooseOne(ips), nil
 }
 
+// ResolveAll applies the given (resolver) to this address only when this address is unresolved.
 func (a Address) ResolveAll(ctx context.Context, resolver BasicAddressResolver) ([]Address, error) {
 	if a.IsResolved() {
 		return []Address{a}, nil
@@ -288,7 +293,7 @@ func (a Address) ResolveAll(ctx context.Context, resolver BasicAddressResolver) 
 
 	aa := make([]Address, len(ips))
 	for i := range ips {
-		aa[i] = NewIP(ips[0])
+		aa[i] = NewIP(ips[i])
 		aa[i].port = a.port
 	}
 	return aa, nil
@@ -303,8 +308,6 @@ func (a Address) resolve(ctx context.Context, resolver BasicAddressResolver) ([]
 	}
 
 	switch n := a.AddrNetwork(); {
-	//case n.IsResolved():
-	//	return []net.IPAddr{a.AsIPAddr()}, nil
 	case n == nwaddr.DNS:
 		return resolver.LookupIPAddr(ctx, string(a.data1))
 	default:
@@ -315,10 +318,12 @@ func (a Address) resolve(ctx context.Context, resolver BasicAddressResolver) ([]
 	return nil, throw.NotImplemented()
 }
 
+// HasPort returns true when valid port is present
 func (a Address) HasPort() bool {
 	return a.port > 0
 }
 
+// Port returns a valid port or panics
 func (a Address) Port() int {
 	if a.HasPort() {
 		return int(a.port)
@@ -326,20 +331,24 @@ func (a Address) Port() int {
 	panic(throw.IllegalState())
 }
 
+// IsResolved indicates that this address doesn't require a resolver
 func (a Address) IsResolved() bool {
 	return a.AddrNetwork().IsResolved()
 }
 
+// IsResolved indicates that this address can be used for net.Addr
 func (a Address) IsNetCompatible() bool {
 	return a.AddrNetwork().IsNetCompatible()
 }
 
+// IsResolved indicates that this address can be connected
 func (a Address) CanConnect() bool {
 	return a.AddrNetwork().IsResolved() && a.HasPort()
 }
 
-// ptr receiver is to prevent copy on slice op
+// AsUDPAddr returns net.UDPAddr or panics
 func (a *Address) AsUDPAddr() net.UDPAddr {
+	// ptr receiver is to prevent copy on slice op
 	return net.UDPAddr{
 		IP:   a.asIP(),
 		Port: a.Port(),
@@ -347,8 +356,9 @@ func (a *Address) AsUDPAddr() net.UDPAddr {
 	}
 }
 
-// ptr receiver is to prevent copy on slice op
+// AsTCPAddr returns net.TCPAddr or panics
 func (a *Address) AsTCPAddr() net.TCPAddr {
+	// ptr receiver is to prevent copy on slice op
 	return net.TCPAddr{
 		IP:   a.asIP(),
 		Port: a.Port(),
@@ -356,22 +366,24 @@ func (a *Address) AsTCPAddr() net.TCPAddr {
 	}
 }
 
-// ptr receiver is to prevent copy on slice op
+// AsIPAddr returns net.IPAddr or panics
 func (a *Address) AsIPAddr() net.IPAddr {
+	// ptr receiver is to prevent copy on slice op
 	return net.IPAddr{
 		IP:   a.asIP(),
 		Zone: a.getIPv6Zone(),
 	}
 }
 
-// ptr receiver is to prevent copy on slice op
 func (a *Address) asIP() net.IP {
+	// ptr receiver is to prevent copy on slice op
 	if a.AddrNetwork() == nwaddr.IP {
 		return a.data0[:net.IPv6len]
 	}
 	panic(throw.IllegalState())
 }
 
+// Data provides a binary form of this address, only host part, excludes port
 func (a Address) Data() longbits.ByteString {
 	switch a.AddrNetwork() {
 	case 0:
@@ -388,6 +400,7 @@ func (a Address) Data() longbits.ByteString {
 	}
 }
 
+// Data provides size of the a binary form
 func (a Address) DataLen() int {
 	switch a.AddrNetwork() {
 	case 0:
@@ -416,34 +429,6 @@ func (a Address) data0Len() uint8 {
 	return n + 1
 }
 
-//func (a Address) AsUint16() uint16 {
-//	if a.data0Len() == 2 {
-//		return binary.LittleEndian.Uint16(a.data0[:])
-//	}
-//	panic(throw.IllegalState())
-//}
-//
-//func (a Address) AsUint32() uint32 {
-//	if a.data0Len() == 4 {
-//		return binary.LittleEndian.Uint32(a.data0[:])
-//	}
-//	panic(throw.IllegalState())
-//}
-//
-//func (a Address) AsUint64() uint64 {
-//	if a.data0Len() == 8 {
-//		return binary.LittleEndian.Uint64(a.data0[:])
-//	}
-//	panic(throw.IllegalState())
-//}
-//
-//func (a Address) AsBits128() longbits.Bits128 {
-//	if a.data0Len() == 16 {
-//		return a.data0
-//	}
-//	panic(throw.IllegalState())
-//}
-
 const zero4Prefix = "\x00\x00\x00\x00"
 const zero8Prefix = zero4Prefix + zero4Prefix
 const v4InV6Prefix = zero8Prefix + "\x00\x00\xFF\xFF"
@@ -468,10 +453,12 @@ func (a Address) getIPv6Zone() string {
 	return ""
 }
 
+// HasName returns true when this address has a textual name
 func (a Address) HasName() bool {
 	return a.AddrNetwork() == nwaddr.DNS || a.flags&data1isName != 0
 }
 
+// Name returns a textual name or panics
 func (a Address) Name() string {
 	if a.HasName() {
 		return string(a.data1)
@@ -479,6 +466,7 @@ func (a Address) Name() string {
 	panic(throw.IllegalState())
 }
 
+// AsHostID returns HostID or panics
 func (a Address) AsHostID() HostID {
 	switch a.AddrNetwork() {
 	case nwaddr.HostID, nwaddr.LocalUID:
@@ -487,6 +475,7 @@ func (a Address) AsHostID() HostID {
 	panic(throw.IllegalState())
 }
 
+// AsLocalUID returns LocalUniqueID  or panics
 func (a Address) AsLocalUID() LocalUniqueID {
 	if a.AddrNetwork() == nwaddr.LocalUID {
 		return LocalUniqueID(binary.LittleEndian.Uint64(a.data0[8:]))
@@ -494,6 +483,7 @@ func (a Address) AsLocalUID() LocalUniqueID {
 	panic(throw.IllegalState())
 }
 
+// IsLoopback returns true when address is IP and it is a loopback
 func (a Address) IsLoopback() bool {
 	switch {
 	case a.network != uint8(nwaddr.IP):

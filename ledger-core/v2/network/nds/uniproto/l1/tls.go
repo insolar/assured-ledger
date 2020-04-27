@@ -71,13 +71,13 @@ func (p *TLSTransport) Close() error {
 	return p.conn.Close()
 }
 
-func (p *TLSTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
-	return p.ConnectToExt(to, nil)
+func (p *TLSTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
+	return p.ConnectToExt(to, preference, nil)
 }
 
-func (p *TLSTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
+func (p *TLSTransport) ConnectToExt(to nwapi.Address, preference nwapi.Preference, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
 	var err error
-	to, err = to.Resolve(context.Background(), net.DefaultResolver)
+	to, err = to.Resolve(context.Background(), net.DefaultResolver, preference)
 	if err != nil {
 		return nil, err
 	}

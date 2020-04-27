@@ -83,12 +83,12 @@ func (p *UDPTransport) MaxByteSize() uint16 {
 	return p.maxByteSize
 }
 
-func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *UDPTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
 	if p.conn == nil {
 		return nil, throw.IllegalState()
 	}
 
-	resolved, err := to.Resolve(context.Background(), net.DefaultResolver)
+	resolved, err := to.Resolve(context.Background(), net.DefaultResolver, preference)
 	if err != nil {
 		return nil, err
 	}

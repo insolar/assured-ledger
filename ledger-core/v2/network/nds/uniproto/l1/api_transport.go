@@ -25,7 +25,7 @@ type SessionfulConnectFunc func(local, remote nwapi.Address, conn io.ReadWriteCl
 type VerifyPeerCertificateFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 
 type OutTransportFactory interface {
-	ConnectTo(to nwapi.Address) (OutTransport, error)
+	ConnectTo(nwapi.Address, nwapi.Preference) (OutTransport, error)
 	Close() error
 }
 

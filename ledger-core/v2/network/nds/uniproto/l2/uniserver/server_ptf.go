@@ -26,6 +26,8 @@ type peerTransportFactory struct {
 
 	udpListen l1.OutTransportFactory
 	tcpListen l1.OutTransportFactory
+
+	preference nwapi.Preference
 }
 
 func (p *peerTransportFactory) MaxSessionlessSize() uint16 {
@@ -101,25 +103,25 @@ func (p *peerTransportFactory) Close() (err error) {
 // LOCK: WARNING! This method is called under PeerTransport.mutex
 func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error) {
 	if p.listen.IsActive() {
-		return p.udpListen.ConnectTo(to)
+		return p.udpListen.ConnectTo(to, p.preference)
 	}
 	out, err := p.udp.Outgoing()
 	if err != nil {
 		return nil, err
 	}
-	return out.ConnectTo(to)
+	return out.ConnectTo(to, p.preference)
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
 func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error) {
 	if p.listen.IsActive() {
-		return p.tcpListen.ConnectTo(to)
+		return p.tcpListen.ConnectTo(to, p.preference)
 	}
 	out, err := p.tcp.Outgoing(p.tcpConnect)
 	if err != nil {
 		return nil, err
 	}
-	return out.ConnectTo(to)
+	return out.ConnectTo(to, p.preference)
 }
 
 func (p *peerTransportFactory) IsActive() bool {

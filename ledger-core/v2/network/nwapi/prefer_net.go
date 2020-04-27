@@ -9,15 +9,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type NetworkPreference uint8
+type Preference uint8
 
 const (
-	_ NetworkPreference = iota
+	_ Preference = iota
 	PreferV4
 	PreferV6
 )
 
-func (v NetworkPreference) suffux() string {
+func (v Preference) suffux() string {
 	switch v {
 	case PreferV4:
 		return "4"
@@ -28,7 +28,7 @@ func (v NetworkPreference) suffux() string {
 	}
 }
 
-func (v NetworkPreference) Default(name string) string {
+func (v Preference) Default(name string) string {
 	if v == 0 {
 		return name
 	}
@@ -40,7 +40,7 @@ func (v NetworkPreference) Default(name string) string {
 	}
 }
 
-func (v NetworkPreference) Override(name string) string {
+func (v Preference) Override(name string) string {
 	switch name {
 	case "udp", "tcp", "ip":
 		if v != 0 {
@@ -60,7 +60,7 @@ func (v NetworkPreference) Override(name string) string {
 	return name
 }
 
-func (v NetworkPreference) ChooseOne(a []Address) Address {
+func (v Preference) ChooseOne(a []Address) Address {
 	switch n := len(a); {
 	case n == 0:
 		panic(throw.IllegalValue())
@@ -82,7 +82,7 @@ func (v NetworkPreference) ChooseOne(a []Address) Address {
 	return a[0]
 }
 
-func (v NetworkPreference) String() string {
+func (v Preference) String() string {
 	if v == 0 {
 		return "noPrefer"
 	}

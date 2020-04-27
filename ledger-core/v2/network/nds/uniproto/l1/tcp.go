@@ -64,9 +64,9 @@ func (p *TCPTransport) Close() error {
 	return p.conn.Close()
 }
 
-func (p *TCPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *TCPTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
 	var err error
-	to, err = to.Resolve(context.Background(), net.DefaultResolver)
+	to, err = to.Resolve(context.Background(), net.DefaultResolver, preference)
 	if err != nil {
 		return nil, err
 	}

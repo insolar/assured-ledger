@@ -23,7 +23,7 @@ import (
 type ServerConfig struct {
 	BindingAddress string
 	PublicAddress  string
-	NetPreference  nwapi.NetworkPreference
+	NetPreference  nwapi.Preference
 	TLSConfig      *tls.Config
 	UDPMaxSize     int
 	UDPParallelism int
@@ -60,6 +60,7 @@ type UnifiedServer struct {
 
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
+	p.ptf.preference = config.NetPreference
 }
 
 func (p *UnifiedServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
