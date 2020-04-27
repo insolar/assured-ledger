@@ -141,7 +141,7 @@ func (p *StartStopFlag) DoStop(f func()) bool {
 }
 
 func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
-	for i := 0; ; i++ {
+	for i := uint(0); ; i++ {
 		switch atomic.LoadInt32(&p.done) {
 		case 0:
 			if atomic.CompareAndSwapInt32(&p.done, 0, 2) {
