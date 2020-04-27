@@ -18,14 +18,16 @@ var _ PeerTransportFactory = &peerTransportFactory{}
 type peerTransportFactory struct {
 	listen atomickit.StartStopFlag
 
-	udp        l1.SessionlessTransport
-	udpReceive l1.SessionlessReceiveFunc
-
 	tcp        l1.SessionfulTransport
 	tcpConnect l1.SessionfulConnectFunc
 
-	udpListen l1.OutTransportFactory
+	udp        l1.SessionlessTransport
+	udpReceive l1.SessionlessReceiveFunc
+
 	tcpListen l1.OutTransportFactory
+	udpListen l1.OutTransportFactory
+
+	updateLocalAddr func(nwapi.Address)
 
 	preference nwapi.Preference
 }
@@ -73,12 +75,21 @@ func (p *peerTransportFactory) Listen() (err error) {
 	}
 
 	if p.listen.DoStart(func() {
-		if p.udpListen, err = p.udp.Listen(p.udpReceive); err != nil {
-			return
-		}
 		if p.tcpListen, err = p.tcp.Listen(p.tcpConnect); err != nil {
 			return
 		}
+		if p.updateLocalAddr == nil {
+			p.udpListen, err = p.udp.Listen(p.udpReceive)
+			return
+		}
+
+		localAddr := p.tcpListen.LocalAddr()
+		p.updateLocalAddr(localAddr)
+
+		if p.udpListen, err = p.udp.ListenOverride(p.udpReceive, localAddr); err != nil {
+			return
+		}
+
 	}) {
 		return
 	}

@@ -109,7 +109,7 @@ func (p *UnifiedServer) StartNoListen() {
 		p.peers.central.maxPeerConn = uint8(n)
 	}
 
-	binding := nwapi.NewHostPort(p.config.BindingAddress)
+	binding := nwapi.NewHostPort(p.config.BindingAddress, true)
 	localAddrs, _, err := nwapi.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, binding)
 	if err != nil {
 		panic(err)
@@ -117,13 +117,17 @@ func (p *UnifiedServer) StartNoListen() {
 	binding = p.config.NetPreference.ChooseOne(localAddrs)
 
 	public := binding
-	if p.config.PublicAddress != "" {
-		public = nwapi.NewHostPort(p.config.PublicAddress)
+	switch {
+	case p.config.PublicAddress != "":
+		public = nwapi.NewHostPort(p.config.PublicAddress, false)
+
 		pubAddrs, _, err := nwapi.ExpandHostAddresses(context.Background(), false, net.DefaultResolver, public)
 		if err != nil {
 			panic(err)
 		}
 		localAddrs = nwapi.Join(localAddrs, pubAddrs)
+	case !binding.HasPort():
+		p.ptf.updateLocalAddr = p.peers.updateLocalPrimary
 	}
 
 	if err := p.peers.addLocal(public, localAddrs, func(peer *Peer) error {
@@ -184,6 +188,10 @@ func (p *UnifiedServer) checkConnection(_, remote nwapi.Address, err error) erro
 }
 
 func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte, err error) bool {
+	if !p.ptf.listen.IsActive() {
+		return true
+	}
+
 	if p.udpSema.LockTimeout(time.Second) {
 		go func() {
 			defer p.udpSema.Unlock()
@@ -208,6 +216,11 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 }
 
 func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+	if !p.ptf.listen.IsActive() {
+		_ = conn.Close()
+		return true
+	}
+
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()

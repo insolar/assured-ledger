@@ -21,11 +21,8 @@ import (
 )
 
 func TestController(t *testing.T) {
-	const Server1 = "127.0.0.1:10001"
-	const Server2 = "127.0.0.1:10002"
-
-	addr1 := nwapi.NewHostPort(Server1)
-	addr2 := nwapi.NewHostPort(Server2)
+	const Server1 = "127.0.0.1:0"
+	const Server2 = "127.0.0.1:0"
 
 	vf := TestVerifierFactory{}
 	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
@@ -50,7 +47,7 @@ func TestController(t *testing.T) {
 	ups1.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		peer.SetSignatureKey(sk)
 		peer.SetNodeID(2)
-		return addr2, nil
+		return nwapi.NewHostID(2), nil
 	})
 	ups1.SetSignatureFactory(vf)
 
@@ -64,7 +61,7 @@ func TestController(t *testing.T) {
 	pr := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
 	dispatcher1.NextPulse(pr)
 
-	//********************************
+	/********************************/
 
 	controller2 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
@@ -88,7 +85,7 @@ func TestController(t *testing.T) {
 	ups2.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		peer.SetSignatureKey(sk)
 		peer.SetNodeID(1)
-		return addr1, nil
+		return nwapi.NewHostID(1), nil
 	})
 	ups2.SetSignatureFactory(vf)
 
@@ -99,7 +96,7 @@ func TestController(t *testing.T) {
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
 	require.NoError(t, err)
 
-	conn21, err := pm2.Manager().ConnectPeer(addr1)
+	conn21, err := pm2.Manager().ConnectPeer(pm1.Local().GetPrimary())
 	require.NoError(t, err)
 	require.NotNil(t, conn21)
 	require.NoError(t, conn21.Transport().EnsureConnect())

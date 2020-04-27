@@ -192,6 +192,12 @@ func (p *PeerManager) addLocal(primary nwapi.Address, aliases []nwapi.Address, n
 	return err
 }
 
+func (p *PeerManager) updateLocalPrimary(primary nwapi.Address) {
+	p.peerMutex.Lock()
+	defer p.peerMutex.Unlock()
+	p.peers.updatePrimary(primary, 0)
+}
+
 func (p *PeerManager) AddPeer(primary nwapi.Address, aliases ...nwapi.Address) {
 	if err := p.addPeer(primary, aliases...); err != nil {
 		panic(err)

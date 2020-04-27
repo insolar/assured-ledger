@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-//const MinUdpSize = 1300
+// const MinUdpSize = 1300
 const MaxUDPSize = 2048
 
 func NewUDP(binding nwapi.Address, maxByteSize uint16) SessionlessTransport {
@@ -42,6 +42,15 @@ type UDPTransport struct {
 
 func (p *UDPTransport) IsZero() bool {
 	return p.conn == nil && p.addr.IP == nil
+}
+
+// SessionlessReceiveFunc MUST NOT reuse (b) after return
+func (p *UDPTransport) ListenOverride(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
+	if binding.IsZero() {
+		return p.Listen(receiveFn)
+	}
+	cp := &UDPTransport{binding.AsUDPAddr(), nil, p.maxByteSize}
+	return cp.Listen(receiveFn)
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
@@ -81,6 +90,13 @@ func (p *UDPTransport) Outgoing() (OutTransportFactory, error) {
 
 func (p *UDPTransport) MaxByteSize() uint16 {
 	return p.maxByteSize
+}
+
+func (p *UDPTransport) LocalAddr() nwapi.Address {
+	if p.conn != nil {
+		return nwapi.AsAddress(p.conn.LocalAddr())
+	}
+	return nwapi.AsAddress(&p.addr)
 }
 
 func (p *UDPTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {

@@ -25,6 +25,7 @@ type SessionfulConnectFunc func(local, remote nwapi.Address, conn io.ReadWriteCl
 type VerifyPeerCertificateFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 
 type OutTransportFactory interface {
+	LocalAddr() nwapi.Address
 	ConnectTo(nwapi.Address, nwapi.Preference) (OutTransport, error)
 	Close() error
 }
@@ -33,6 +34,7 @@ type OutTransportFactory interface {
 
 type SessionlessTransport interface {
 	Listen(SessionlessReceiveFunc) (OutTransportFactory, error)
+	ListenOverride(SessionlessReceiveFunc, nwapi.Address) (OutTransportFactory, error)
 	Outgoing() (OutTransportFactory, error)
 	Close() error
 	MaxByteSize() uint16

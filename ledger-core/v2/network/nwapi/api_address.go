@@ -94,7 +94,7 @@ func NewHostAndPort(host string, port int) Address {
 }
 
 // NewHostPort checks if the string can be parsed into IP address, then returns either IP or DNS values accordingly. Port must be present.
-func NewHostPort(hostport string) Address {
+func NewHostPort(hostport string, allowZero bool) Address {
 	if hostport == "" {
 		panic(throw.IllegalValue())
 	}
@@ -106,7 +106,7 @@ func NewHostPort(hostport string) Address {
 	switch portN, err := strconv.ParseUint(port, 10, 16); {
 	case err != nil:
 		panic(err)
-	case portN == 0:
+	case portN == 0 && !allowZero:
 		panic(throw.IllegalValue())
 	default:
 		a := NewHost(host)
@@ -351,7 +351,7 @@ func (a *Address) AsUDPAddr() net.UDPAddr {
 	// ptr receiver is to prevent copy on slice op
 	return net.UDPAddr{
 		IP:   a.asIP(),
-		Port: a.Port(),
+		Port: int(a.port),
 		Zone: a.getIPv6Zone(),
 	}
 }
@@ -361,7 +361,7 @@ func (a *Address) AsTCPAddr() net.TCPAddr {
 	// ptr receiver is to prevent copy on slice op
 	return net.TCPAddr{
 		IP:   a.asIP(),
-		Port: a.Port(),
+		Port: int(a.port),
 		Zone: a.getIPv6Zone(),
 	}
 }

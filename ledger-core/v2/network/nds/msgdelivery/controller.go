@@ -29,8 +29,6 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 		panic(throw.IllegalValue())
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
-	//case resolverFn == nil:
-	//	panic(throw.IllegalValue())
 	case logger == nil:
 		panic(throw.IllegalValue())
 	}

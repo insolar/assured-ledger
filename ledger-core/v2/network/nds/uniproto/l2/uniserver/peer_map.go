@@ -164,3 +164,25 @@ func (p *PeerMap) addPeer(peer *Peer) uint32 {
 	}
 	return peerIndex
 }
+
+func (p *PeerMap) updatePrimary(primary nwapi.Address, index uint32) {
+	peer := p.peers[index]
+	if peer == nil {
+		panic(throw.IllegalState())
+	}
+
+	addr := mapID(primary)
+	switch idx, ok := p.aliases[addr]; {
+	case !ok:
+		//
+	case idx == index:
+		// unexpected
+		panic(throw.IllegalValue())
+	default:
+		panic(throw.IllegalValue())
+	}
+	p.aliases[addr] = index
+	if prev := peer.updatePrimary(primary); !prev.IsZero() {
+		delete(p.aliases, mapID(prev))
+	}
+}

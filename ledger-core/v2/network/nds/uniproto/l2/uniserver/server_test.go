@@ -20,8 +20,8 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	const Server1 = "127.0.0.1:10001"
-	const Server2 = "127.0.0.1:10002"
+	const Server1 = "127.0.0.1:0"
+	const Server2 = "127.0.0.1:0"
 
 	marshaller := &TestProtocolMarshaller{}
 
@@ -78,7 +78,7 @@ func TestServer(t *testing.T) {
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
 	require.NoError(t, err)
 
-	conn21, err := pm2.Manager().ConnectPeer(nwapi.NewHostPort(Server1))
+	conn21, err := pm2.Manager().ConnectPeer(pm1.Local().GetPrimary())
 	require.NoError(t, err)
 	require.NotNil(t, conn21)
 	require.NoError(t, conn21.Transport().EnsureConnect())

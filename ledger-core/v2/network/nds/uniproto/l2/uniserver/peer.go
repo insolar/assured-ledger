@@ -54,6 +54,23 @@ func (p *Peer) GetPrimary() nwapi.Address {
 	return nwapi.Address{}
 }
 
+func (p *Peer) updatePrimary(addr nwapi.Address) nwapi.Address {
+	p.transport.mutex.Lock()
+	defer p.transport.mutex.Unlock()
+
+	switch aliases := p.transport.aliases; {
+	case len(aliases) == 0:
+		//
+	case aliases[0] == addr:
+		//
+	default:
+		prev := aliases[0]
+		aliases[0] = addr
+		return prev
+	}
+	return nwapi.Address{}
+}
+
 func (p *Peer) onRemoved() []nwapi.Address {
 	info := p.protoInfo
 	p.protoInfo = [uniproto.ProtocolTypeCount]io.Closer{}

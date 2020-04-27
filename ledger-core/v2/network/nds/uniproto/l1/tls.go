@@ -71,6 +71,13 @@ func (p *TLSTransport) Close() error {
 	return p.conn.Close()
 }
 
+func (p *TLSTransport) LocalAddr() nwapi.Address {
+	if p.conn != nil {
+		return nwapi.AsAddress(p.conn.Addr())
+	}
+	return nwapi.AsAddress(&p.addr)
+}
+
 func (p *TLSTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
 	return p.ConnectToExt(to, preference, nil)
 }

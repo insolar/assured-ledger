@@ -64,6 +64,13 @@ func (p *TCPTransport) Close() error {
 	return p.conn.Close()
 }
 
+func (p *TCPTransport) LocalAddr() nwapi.Address {
+	if p.conn != nil {
+		return nwapi.AsAddress(p.conn.Addr())
+	}
+	return nwapi.AsAddress(&p.addr)
+}
+
 func (p *TCPTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
 	var err error
 	to, err = to.Resolve(context.Background(), net.DefaultResolver, preference)
