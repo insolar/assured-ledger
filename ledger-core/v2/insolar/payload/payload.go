@@ -15,7 +15,7 @@ import (
 type Type uint32
 
 //go:generate stringer -type=Type
-// // go:generate protoc -I=. -I=$GOPATH/src --gogofaster_out=./ payload.proto
+//go:generate protoc -I=. -I=$GOPATH/src --gogoslick_out=./ payload.proto
 
 const (
 	TypeUnknown Type = iota
