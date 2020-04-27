@@ -37,7 +37,7 @@ func (*dSMVStateUnavailable) GetInitStateFor(sm smachine.StateMachine) smachine.
 /* -------- Instance ------------- */
 
 func (s *SMVStateUnavailable) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
-	return dSMVStateReportInstance
+	return dSMVStateUnavailableInstance
 }
 
 func (s *SMVStateUnavailable) Init(ctx smachine.InitializationContext) smachine.StateUpdate {

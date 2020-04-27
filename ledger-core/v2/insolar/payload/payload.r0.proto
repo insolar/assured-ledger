@@ -165,7 +165,6 @@ message VStateUnavailable {
 
     bytes Reference = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     UnavailableReason Reason = 21;
-    bytes Lifeline = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
 }
 
 message VPendingDelegationRequest {
