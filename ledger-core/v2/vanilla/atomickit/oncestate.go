@@ -44,9 +44,9 @@ func (p *Once) DoWithValue(f func() uint32) {
 func (p *Once) doSlow(f func() uint32) {
 	p.m.Lock()
 	defer p.m.Unlock()
-	if p.done == 0 {
+	if atomic.LoadUint32(&p.done) == 0 {
 		defer atomic.CompareAndSwapUint32(&p.done, 0, 1) // set 1 when f() has returned 0
-		p.done = f()
+		atomic.StoreUint32(&p.done, f())
 	}
 }
 
