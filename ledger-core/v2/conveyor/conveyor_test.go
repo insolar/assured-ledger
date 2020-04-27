@@ -183,7 +183,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			close(emerChan)
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
 
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
 
@@ -223,7 +223,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			close(emerChan)
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
 
 		require.NoError(t, conveyor.AddInput(ctx, startPn, InputEvent(nil)))
 	})
@@ -265,13 +265,13 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			close(emerChan)
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
 
 		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
 
 		require.NoError(t, conveyor.PreparePulseChange(nil))
 
-		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange()))
+		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now()))
 
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
 	})
