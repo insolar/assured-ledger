@@ -21,6 +21,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
+type State int32
+
+const (
+	NotReady State = 0
+	Missing  State = 1
+	Inactive State = 2
+	HasState State = 3
+)
+
 type Info struct {
 	Reference   reference.Global
 	descriptor  descriptor.ObjectDescriptor
@@ -34,6 +43,16 @@ type Info struct {
 	ActiveMutablePendingCount      uint8
 	PotentialImmutablePendingCount uint8
 	PotentialMutablePendingCount   uint8
+
+	objectState State
+}
+
+func (i *Info) IsReady() bool {
+	return i.objectState != NotReady
+}
+
+func (i *Info) SetState(state State) {
+	i.objectState = state
 }
 
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
@@ -147,7 +166,7 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.SharedState.descriptor != nil {
+	if sm.IsReady() {
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 

@@ -51,19 +51,18 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	objectRef := incomingObjectState.Reference
 	sharedObjectState := catalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
 
-	setStateFunc := func(data interface{}) (wakeup bool) {
-		state := data.(*object.SharedState)
-		if state.Descriptor() == nil {
+	setStateFunc := func(state *object.SharedState) {
+		if !state.IsReady() {
 			state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
+			state.SetState(object.HasState)
 		} else {
 			ctx.Log().Trace(struct {
 				*log.Msg `txt:"State already exists"`
 			}{})
 		}
-		return true
 	}
 
-	switch sharedObjectState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
+	switch sharedObjectState.PrepareAndWakeUp(setStateFunc).TryUse(ctx).GetDecision() {
 	case smachine.Passed:
 	case smachine.NotPassed:
 		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
