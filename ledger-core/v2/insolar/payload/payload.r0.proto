@@ -127,10 +127,10 @@ message VStateReport {
 
     int32 PriorityCallQueueCount = 31;
 
-    bytes LatestValidatedState = 32 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes LatestValidatedState = 32 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     bytes LatestValidatedCode = 33 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 
-    bytes LatestDirtyState = 34 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (gogoproto.nullable) = false];
+    bytes LatestDirtyState = 34 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     bytes LatestDirtyCode = 35 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 
     message  ProvidedContentBody {
@@ -152,19 +152,6 @@ message ObjectState {
     bytes State = 27;
     bytes PreviousState = 28;
     bool Deactivated = 29;
-}
-
-enum UnavailableReason {
-    Unknown = 0;
-    Missing = 1;
-    Inactive = 2;
-}
-
-message VStateUnavailable {
-    uint32 Polymorph = 16;
-
-    bytes Reference = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
-    UnavailableReason Reason = 21;
 }
 
 message VPendingDelegationRequest {
@@ -193,4 +180,17 @@ message VDelegatedRequestFinished {
 
     bytes EntryHeadHash = 28;
     bytes ObjectBody = 29;
+}
+
+message VStateUnavailable {
+    uint32 Polymorph = 16;
+
+    enum ReasonType {
+        Unknown = 0;
+        Missing = 1;
+        Inactive = 2;
+    }
+
+    ReasonType Reason = 20;
+    bytes Lifeline = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 }
