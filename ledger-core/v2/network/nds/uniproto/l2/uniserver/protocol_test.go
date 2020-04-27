@@ -259,7 +259,7 @@ type TestLogAdapter struct {
 }
 
 func (t TestLogAdapter) LogError(err error) {
-	t.t.Error(err)
+	t.t.Error(throw.ErrorWithStack(err))
 }
 
 func (t TestLogAdapter) LogTrace(m interface{}) {

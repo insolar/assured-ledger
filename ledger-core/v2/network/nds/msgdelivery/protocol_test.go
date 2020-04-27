@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var _ cryptkit.DataSigner = TestDataSigner{}
@@ -169,7 +170,7 @@ type TestLogAdapter struct {
 }
 
 func (t TestLogAdapter) LogError(err error) {
-	t.t.Error(err)
+	t.t.Error(throw.ErrorWithStack(err))
 }
 
 func (t TestLogAdapter) LogTrace(m interface{}) {
