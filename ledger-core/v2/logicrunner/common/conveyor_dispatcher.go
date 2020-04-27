@@ -7,6 +7,7 @@ package common
 
 import (
 	"context"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/pkg/errors"
@@ -57,7 +58,8 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar
 	}
 
 	logger.Errorf("BeginPulse -> [%d, %d]", c.previousPulse, pulseData.PulseNumber)
-	if err := c.conveyor.CommitPulseChange(pulseRange); err != nil {
+	// TODO pass proper pulse start time from consensus
+	if err := c.conveyor.CommitPulseChange(pulseRange, time.Now()); err != nil {
 		panic(err)
 	}
 }

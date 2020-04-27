@@ -8,8 +8,10 @@ package conveyor
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Cache that keeps (1) a PD younger than minRange (2) PD touched less than accessRotations ago.
@@ -165,7 +167,7 @@ func (p *PulseDataCache) Touch(pn pulse.Number) bool {
 func (p *PulseDataCache) Put(pd pulse.Data) {
 	switch epd, m := p.getRO(pd.PulseNumber); {
 	case m == miss:
-		//break
+		//
 	case pd != epd._cacheData():
 		panic(fmt.Errorf("duplicate pulseData: before=%v after=%v", epd._cacheData(), pd))
 	case m == hitNoTouch:
@@ -173,7 +175,7 @@ func (p *PulseDataCache) Put(pd pulse.Data) {
 		p._touch(pd.PulseNumber)
 		p.mutex.Unlock()
 		return
-	default: //m == hit:
+	default: // m == hit:
 		return
 	}
 
@@ -237,12 +239,16 @@ func (p cacheEntry) PulseRange() (pulse.Range, PulseSlotState) {
 	return p.pr, Antique
 }
 
-func (p cacheEntry) MakePresent(pulse.Range) {
-	panic("illegal state")
+func (p cacheEntry) MakePresent(pulse.Range, time.Time) {
+	panic(throw.IllegalState())
+}
+
+func (p *cacheEntry) PulseStartedAt() time.Time {
+	panic(throw.IllegalState())
 }
 
 func (p cacheEntry) MakePast() {
-	panic("illegal state")
+	panic(throw.IllegalState())
 }
 
 func (p *cacheEntry) _cacheData() pulse.Data {
