@@ -45,7 +45,10 @@ func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.State
 
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	catalog := object.Catalog{}
-	incomingObjectState := s.Payload.ProvidedContent.LatestDirtyCode
+	if s.Payload.ProvidedContent == nil || s.Payload.ProvidedContent.LatestDirtyState == nil {
+		panic(throw.IllegalValue())
+	}
+	incomingObjectState := s.Payload.ProvidedContent.LatestDirtyState
 
 	objectRef := incomingObjectState.Reference
 	sharedObjectState := catalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)

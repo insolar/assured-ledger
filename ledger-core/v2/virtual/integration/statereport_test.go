@@ -36,7 +36,7 @@ func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemach
 func makeVStateReportEvent(t *testing.T, ref insolar.Reference, rawState []byte) *statemachine.DispatcherMessage {
 	payLoadMeta := &payload.VStateReport{
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyCode: &payload.ObjectState{
+			LatestDirtyState: &payload.ObjectState{
 				Reference: ref,
 				Prototype: testwalletProxy.GetPrototype(),
 				State:     rawState,
