@@ -15,7 +15,7 @@ import (
 
 // Flags for StatePacket
 const (
-	BodyRqFlag uniproto.FlagIndex = iota
+	BodyRqListFlag uniproto.FlagIndex = iota
 	BodyAckListFlag
 	RejectListFlag
 )
@@ -24,7 +24,7 @@ var _ uniproto.ProtocolPacket = &ParcelPacket{}
 
 type StatePacket struct {
 	// From receiver to sender
-	BodyRq []ShortShipmentID `insolar-transport:"optional=PacketFlags[0]"` //
+	BodyRqList []ShortShipmentID `insolar-transport:"optional=PacketFlags[0]"` //
 	// From receiver to sender
 	BodyAckList []ShortShipmentID `insolar-transport:"optional=PacketFlags[1]"` // TODO serialization / deser
 	// From receiver to sender
@@ -35,7 +35,7 @@ type StatePacket struct {
 
 func (p *StatePacket) remainingSpace(maxSize int) int {
 	total := 0
-	if n := len(p.BodyRq); n > 0 {
+	if n := len(p.BodyRqList); n > 0 {
 		total += n + 1 // +1 for list length
 	}
 	if n := len(p.BodyAckList); n > 0 {
@@ -51,14 +51,14 @@ func (p *StatePacket) remainingSpace(maxSize int) int {
 }
 
 func (p *StatePacket) isEmpty() bool {
-	return len(p.AckList) == 0 && len(p.BodyRq) == 0 && len(p.BodyAckList) == 0 && len(p.RejectList) == 0
+	return len(p.AckList) == 0 && len(p.BodyRqList) == 0 && len(p.BodyAckList) == 0 && len(p.RejectList) == 0
 }
 
 func (p *StatePacket) PreparePacket() (packet uniproto.PacketTemplate, dataSize uint, fn uniproto.PayloadSerializerFunc) {
 	initPacket(DeliveryState, &packet.Packet)
 
-	if n := len(p.BodyRq); n > 0 {
-		packet.Header.SetFlag(BodyRqFlag, true)
+	if n := len(p.BodyRqList); n > 0 {
+		packet.Header.SetFlag(BodyRqListFlag, true)
 		dataSize += uint(protokit.SizeVarint64(uint64(n)))
 		dataSize += ShortShipmentIDByteSize * uint(n)
 	}
@@ -97,7 +97,7 @@ func (p *StatePacket) SerializePayload(_ nwapi.SerializationContext, _ *uniproto
 	out := make([]byte, writer.RemainingBytes())
 	b := out
 
-	if list := p.BodyRq; len(list) > 0 {
+	if list := p.BodyRqList; len(list) > 0 {
 		b = countedListToBytes(list, b)
 	}
 
@@ -166,8 +166,8 @@ func (p *StatePacket) DeserializePayload(_ nwapi.DeserializationContext, packet 
 		return err
 	}
 
-	if packet.Header.HasFlag(BodyRqFlag) {
-		if b, p.BodyRq, err = readCountedList(b); err != nil {
+	if packet.Header.HasFlag(BodyRqListFlag) {
+		if b, p.BodyRqList, err = readCountedList(b); err != nil {
 			return err
 		}
 	}

@@ -104,7 +104,7 @@ func (p *DeliveryPeer) addBodyAck(id ShortShipmentID) {
 
 func (p *DeliveryPeer) addBodyRq(id ShortShipmentID) {
 	p._addToStatePacket(2, func(packet *StatePacket) {
-		packet.BodyRq = append(packet.BodyRq, id)
+		packet.BodyRqList = append(packet.BodyRqList, id)
 	})
 }
 
@@ -127,7 +127,7 @@ func (p *DeliveryPeer) sendBodyRq(id ShortShipmentID) {
 
 	packet := p.prepared
 	p.prepared = StatePacket{}
-	packet.BodyRq = append(packet.BodyRq, id)
+	packet.BodyRqList = append(packet.BodyRqList, id)
 	p.mutex.Unlock()
 
 	p.sendState(packet)

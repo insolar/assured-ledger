@@ -193,13 +193,13 @@ func (p *Controller) receiveState(packet *uniproto.ReceivedPacket, payload *Stat
 
 	peerID := packet.Header.SourceID
 
-	if n := len(payload.BodyRq); n > 0 {
+	if n := len(payload.BodyRqList); n > 0 {
 		dPeer, ok := packet.Peer.GetProtoInfo(p.pType).(*DeliveryPeer)
 		if !ok {
 			return throw.RemoteBreach("peer is not a node")
 		}
 
-		for _, id := range payload.BodyRq {
+		for _, id := range payload.BodyRqList {
 			switch msg := p.sender.get(AsShipmentID(peerID, id)); {
 			case msg == nil:
 				dPeer.addReject(id)
@@ -321,7 +321,7 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	return receiveFn(retAddr, payload.ParcelType, payload.Data)
 }
 
-func (p *Controller) receiveParcelBeforeData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
+func (p *Controller) onReceiveLargeParcelData(packet *uniproto.Packet, payload *ParcelPacket, dataFn func() error) error {
 	sid := AsShipmentID(packet.Header.SourceID, payload.ParcelID)
 	if fn := p.stater.suspendRetry(sid); fn != nil {
 		defer fn()

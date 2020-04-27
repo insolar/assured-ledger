@@ -45,7 +45,7 @@ func (p *packetReceiver) receiveDispatcher(packet *uniproto.ReceivedPacket, read
 		}
 	case DeliveryParcelComplete:
 		payload := &ParcelPacket{}
-		payload.OnDataReceiveFn = p.ctl.receiveParcelBeforeData
+		payload.OnDataReceiveFn = p.ctl.onReceiveLargeParcelData
 		if err = readFn(packet.GetContext(p.ctl.factory), payload.DeserializePayload); err == nil {
 			err = p.ctl.receiveParcel(packet, payload)
 		}

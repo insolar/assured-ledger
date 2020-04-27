@@ -257,7 +257,7 @@ func toHostID(id uint32, supp uniproto.Supporter) nwapi.HostID {
 	case supp == nil:
 		return nwapi.HostID(id)
 	default:
-		return supp.ToHostId(id)
+		return supp.ToHostID(id)
 	}
 }
 
