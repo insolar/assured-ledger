@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/pkg/errors"
@@ -61,7 +62,7 @@ func NewDispatcher(conveyor *conveyor.PulseConveyor) *Dispatcher {
 }
 
 func (d *Dispatcher) BeginPulse(_ context.Context, pulseObject insolar.Pulse) {
-	if err := d.conveyor.CommitPulseChange(adapters.NewPulseData(pulseObject).AsRange()); err != nil {
+	if err := d.conveyor.CommitPulseChange(adapters.NewPulseData(pulseObject).AsRange(), time.Now()); err != nil {
 		panic(err)
 	}
 }

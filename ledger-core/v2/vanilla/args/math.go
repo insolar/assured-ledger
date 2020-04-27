@@ -76,10 +76,12 @@ func GCDListInt(min, a int, b ...int) int {
 	return a
 }
 
+// IsPowerOfTwo also returns true for (0)
 func IsPowerOfTwo(x uint) bool {
 	return x&(x-1) == 0
 }
 
+// CeilingPowerOfTwo returns 0 for (0)
 func CeilingPowerOfTwo(x uint) uint {
 	if IsPowerOfTwo(x) {
 		return x

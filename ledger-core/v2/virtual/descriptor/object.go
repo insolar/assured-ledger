@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // ObjectDescriptor represents meta info required to fetch all object data.
@@ -33,7 +34,7 @@ type ObjectDescriptor interface {
 }
 
 func NewObjectDescriptor(
-	head insolar.Reference, state insolar.ID, prototype *insolar.Reference, memory []byte, parent insolar.Reference, requestID *insolar.ID,
+	head reference.Global, state insolar.ID, prototype *insolar.Reference, memory []byte, parent insolar.Reference, requestID *insolar.ID,
 ) ObjectDescriptor {
 	return &objectDescriptor{
 		head:      head,

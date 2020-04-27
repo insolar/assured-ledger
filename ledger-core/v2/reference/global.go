@@ -191,7 +191,15 @@ func (v *Global) MarshalJSON() ([]byte, error) {
 
 // deprecated
 func (v *Global) Marshal() ([]byte, error) {
-	return Marshal(v)
+	if v.IsEmpty() {
+		return nil, nil
+	}
+	b := make([]byte, GlobalBinarySize)
+
+	copy(b[:LocalBinarySize], v.addressLocal.AsBytes())
+	copy(b[LocalBinarySize:], v.addressBase.AsBytes())
+
+	return b, nil
 }
 
 // deprecated
@@ -236,6 +244,11 @@ func (v *Global) unmarshalJSON(data []byte) error {
 
 // deprecated
 func (v *Global) Unmarshal(data []byte) (err error) {
+	if len(data) == 0 {
+		*v = Global{}
+		return nil
+	}
+
 	if err := v.addressLocal.Unmarshal(data[:LocalBinarySize]); err != nil {
 		return err
 	}

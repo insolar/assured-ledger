@@ -121,14 +121,18 @@ func wrapUnsafePtr(p uintptr, size uintptr) longbits.ByteString {
 // WARNING! This method violates unsafe pointer-conversion rules.
 // You MUST make sure that (p) stays alive while the resulting Pointer is in use.
 func _unwrapUnsafe(s longbits.ByteString) unsafe.Pointer {
-	return unsafe.Pointer(_unwrapUnsafeUintptr(s))
+	if len(s) == 0 {
+		return nil
+	}
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	return unsafe.Pointer(sh.Data)
 }
 
 func _unwrapUnsafeUintptr(s longbits.ByteString) uintptr {
 	if len(s) == 0 {
 		return 0
 	}
-	return ((*reflect.StringHeader)(unsafe.Pointer(&s))).Data
+	return uintptr(_unwrapUnsafe(s))
 }
 
 // nolint

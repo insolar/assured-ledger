@@ -21,10 +21,12 @@ var _ logfmt.LogObjectWriter = &objectEncoder{}
 
 type objectEncoder struct {
 	fieldEncoder msgencoder.Encoder
-	content      []byte
-	reportedAt   time.Time
-	allowTrace   bool
-	level        logcommon.Level
+
+	poolBuf    poolBuffer
+	content    []byte
+	reportedAt time.Time
+	allowTrace bool
+	level      logcommon.Level
 }
 
 func (p *objectEncoder) AddIntField(key string, v int64, fmt logfmt.LogFieldFormat) {

@@ -6,15 +6,15 @@ package candidate
 import (
 	bytes "bytes"
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strings "strings"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	github_com_insolar_insolar_network_consensus_gcpv2_api_member "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -26,17 +26,17 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Profile struct {
-	Address     string                                                                    `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
-	Ref         github_com_insolar_insolar_insolar.Reference                              `protobuf:"bytes,2,opt,name=Ref,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Ref"`
-	ShortID     github_com_insolar_insolar_insolar.ShortNodeID                            `protobuf:"varint,3,opt,name=ShortID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ShortNodeID" json:"ShortID"`
-	PrimaryRole github_com_insolar_insolar_network_consensus_gcpv2_api_member.PrimaryRole `protobuf:"varint,4,opt,name=PrimaryRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.PrimaryRole" json:"PrimaryRole"`
-	SpecialRole github_com_insolar_insolar_network_consensus_gcpv2_api_member.SpecialRole `protobuf:"varint,5,opt,name=SpecialRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.SpecialRole" json:"SpecialRole"`
-	Digest      []byte                                                                    `protobuf:"bytes,6,opt,name=Digest,proto3" json:"Digest,omitempty"`
-	Signature   []byte                                                                    `protobuf:"bytes,7,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	PublicKey   []byte                                                                    `protobuf:"bytes,8,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
+	Address     string                                                                                          `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
+	Ref         github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference                              `protobuf:"bytes,2,opt,name=Ref,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Ref"`
+	ShortID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.ShortNodeID                            `protobuf:"varint,3,opt,name=ShortID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ShortNodeID" json:"ShortID"`
+	PrimaryRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.PrimaryRole `protobuf:"varint,4,opt,name=PrimaryRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.PrimaryRole" json:"PrimaryRole"`
+	SpecialRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.SpecialRole `protobuf:"varint,5,opt,name=SpecialRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.SpecialRole" json:"SpecialRole"`
+	Digest      []byte                                                                                          `protobuf:"bytes,6,opt,name=Digest,proto3" json:"Digest,omitempty"`
+	Signature   []byte                                                                                          `protobuf:"bytes,7,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	PublicKey   []byte                                                                                          `protobuf:"bytes,8,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
 }
 
 func (m *Profile) Reset()      { *m = Profile{} }
@@ -52,7 +52,7 @@ func (m *Profile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Profile.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -80,32 +80,34 @@ func init() {
 }
 
 var fileDescriptor_596ab827efe14e1f = []byte{
-	// 400 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xb1, 0x8e, 0xd3, 0x30,
-	0x18, 0xc7, 0x6d, 0x0a, 0x2d, 0x35, 0xb0, 0x64, 0x40, 0x16, 0x42, 0xbe, 0x8a, 0xa9, 0x03, 0xc4,
-	0xd2, 0x81, 0x98, 0x58, 0xa8, 0x2a, 0xa4, 0x0a, 0x09, 0x05, 0xf7, 0x09, 0x9c, 0xe4, 0x4b, 0xce,
-	0x22, 0x89, 0x23, 0xdb, 0x01, 0xdd, 0xc6, 0x23, 0xf0, 0x18, 0x3c, 0x4a, 0xc7, 0x8e, 0x27, 0x86,
-	0x13, 0x49, 0x17, 0xc6, 0x1b, 0x91, 0x58, 0x50, 0xdc, 0x5e, 0x89, 0x40, 0x42, 0x0c, 0x4c, 0xc9,
-	0xff, 0xfb, 0xe7, 0xfb, 0xfd, 0xa4, 0xd8, 0xe4, 0xb4, 0x02, 0xf7, 0x41, 0x9b, 0x77, 0x3c, 0xd1,
-	0x95, 0x85, 0xca, 0x36, 0x96, 0xcb, 0x54, 0xd6, 0x0e, 0x8c, 0xe5, 0x89, 0xac, 0x52, 0x95, 0x4a,
-	0x07, 0xbc, 0x36, 0x3a, 0x53, 0x05, 0x84, 0xb5, 0xd1, 0x4e, 0x07, 0xd3, 0x63, 0xf1, 0xe0, 0x49,
-	0xae, 0xdc, 0x59, 0x13, 0x87, 0x89, 0x2e, 0x79, 0xae, 0x73, 0xcd, 0xfd, 0x17, 0x71, 0x93, 0xf9,
-	0xe4, 0x83, 0x7f, 0xdb, 0x6f, 0x3e, 0xfa, 0x31, 0x22, 0x93, 0x68, 0xcf, 0x0a, 0x28, 0x99, 0xbc,
-	0x4c, 0x53, 0x03, 0xd6, 0x52, 0x3c, 0xc3, 0xf3, 0xa9, 0xb8, 0x8e, 0xc1, 0x2b, 0x32, 0x12, 0x90,
-	0xd1, 0x1b, 0x33, 0x3c, 0xbf, 0xbb, 0x78, 0xb6, 0xb9, 0x3c, 0x41, 0x5f, 0x2e, 0x4f, 0x1e, 0x0f,
-	0x4c, 0xaa, 0xb2, 0xba, 0x90, 0xe6, 0xf7, 0x67, 0x28, 0x20, 0x03, 0x03, 0x55, 0x02, 0xa2, 0x07,
-	0x04, 0x11, 0x99, 0xac, 0xcf, 0xb4, 0x71, 0xab, 0x25, 0x1d, 0xcd, 0xf0, 0xfc, 0xde, 0xe2, 0xf9,
-	0x81, 0x15, 0xfe, 0x03, 0xcb, 0x6f, 0xbe, 0xd1, 0x29, 0xac, 0x96, 0xe2, 0x1a, 0x13, 0x58, 0x72,
-	0x27, 0x32, 0xaa, 0x94, 0xe6, 0x5c, 0xe8, 0x02, 0xe8, 0x4d, 0x4f, 0x7d, 0x7b, 0xa0, 0xae, 0xfe,
-	0x42, 0xfd, 0xf3, 0x2f, 0xe7, 0x49, 0xfd, 0xfe, 0x94, 0xcb, 0x5a, 0xf1, 0x12, 0xca, 0x18, 0x4c,
-	0x38, 0x00, 0x8b, 0xa1, 0xa5, 0x97, 0xae, 0x6b, 0x48, 0x94, 0x2c, 0xbc, 0xf4, 0xd6, 0xff, 0x94,
-	0x0e, 0xc0, 0x62, 0x68, 0x09, 0xee, 0x93, 0xf1, 0x52, 0xe5, 0x60, 0x1d, 0x1d, 0xf7, 0xc7, 0x20,
-	0x0e, 0x29, 0x78, 0x48, 0xa6, 0x6b, 0x95, 0x57, 0xd2, 0x35, 0x06, 0xe8, 0xc4, 0x57, 0xbf, 0x06,
-	0x7d, 0x1b, 0x35, 0x71, 0xa1, 0x92, 0xd7, 0x70, 0x4e, 0x6f, 0xef, 0xdb, 0xe3, 0x60, 0xf1, 0x62,
-	0xd3, 0x32, 0xb4, 0x6d, 0x19, 0xba, 0x68, 0x19, 0xba, 0x6a, 0x19, 0xfe, 0xde, 0x32, 0xf4, 0xb1,
-	0x63, 0xf8, 0x73, 0xc7, 0xf0, 0xa6, 0x63, 0x78, 0xdb, 0x31, 0xfc, 0xb5, 0x63, 0xf8, 0x5b, 0xc7,
-	0xd0, 0x55, 0xc7, 0xf0, 0xa7, 0x1d, 0x43, 0xdb, 0x1d, 0x43, 0x17, 0x3b, 0x86, 0xe2, 0xb1, 0xbf,
-	0x42, 0x4f, 0x7f, 0x06, 0x00, 0x00, 0xff, 0xff, 0x64, 0x96, 0x7b, 0x0e, 0xb2, 0x02, 0x00, 0x00,
+	// 419 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x92, 0xb1, 0x8f, 0xd3, 0x30,
+	0x14, 0xc6, 0x6d, 0xee, 0x68, 0x69, 0x80, 0x25, 0x03, 0x8a, 0x10, 0xf2, 0x55, 0x4c, 0x5d, 0x5a,
+	0x4b, 0x65, 0x65, 0xa1, 0xea, 0x72, 0x80, 0x50, 0xe5, 0xae, 0x48, 0xc8, 0xb1, 0x5f, 0x7c, 0x16,
+	0x69, 0x1c, 0xd9, 0xce, 0xa1, 0xdb, 0x58, 0xd9, 0xf8, 0x33, 0xf8, 0x53, 0x3a, 0x76, 0x41, 0x3a,
+	0x31, 0x9c, 0x48, 0xba, 0x30, 0xde, 0xc8, 0x88, 0xea, 0xb4, 0x25, 0x12, 0x13, 0x48, 0x4c, 0xf6,
+	0xf7, 0xbe, 0xe7, 0xef, 0xf7, 0xa4, 0xe7, 0x68, 0x5a, 0x80, 0xff, 0x60, 0xec, 0x7b, 0x2a, 0x4c,
+	0xe1, 0xa0, 0x70, 0x95, 0xa3, 0x5c, 0xf2, 0xd2, 0x83, 0x75, 0x54, 0xf0, 0x42, 0x6a, 0xc9, 0x3d,
+	0xd0, 0xd2, 0x9a, 0x4c, 0xe7, 0x30, 0x29, 0xad, 0xf1, 0x26, 0x1e, 0x1c, 0x8d, 0xc7, 0x63, 0xa5,
+	0xfd, 0x45, 0x95, 0x4e, 0x84, 0x59, 0x51, 0x65, 0x94, 0xa1, 0xa1, 0x23, 0xad, 0xb2, 0xa0, 0x82,
+	0x08, 0xb7, 0xf6, 0xe5, 0xd3, 0xaf, 0xa7, 0x51, 0x7f, 0xd1, 0x66, 0xc5, 0x49, 0xd4, 0x7f, 0x21,
+	0xa5, 0x05, 0xe7, 0x12, 0x3c, 0xc4, 0xa3, 0x01, 0x3b, 0xc8, 0xf8, 0x6d, 0x74, 0xc2, 0x20, 0x4b,
+	0xee, 0x0c, 0xf1, 0xe8, 0xc1, 0xec, 0xe5, 0xfa, 0xe6, 0x0c, 0x7d, 0xbb, 0x39, 0x9b, 0x75, 0x48,
+	0xba, 0x70, 0x26, 0xe7, 0x96, 0x72, 0xe7, 0x2a, 0x0b, 0x72, 0x9c, 0x83, 0x54, 0x60, 0x69, 0x7b,
+	0x8c, 0x85, 0xb1, 0x40, 0x2f, 0xa7, 0x87, 0xae, 0x09, 0x83, 0x0c, 0x2c, 0x14, 0x02, 0xd8, 0x2e,
+	0x36, 0xce, 0xa2, 0xfe, 0xf2, 0xc2, 0x58, 0x7f, 0x3e, 0x4f, 0x4e, 0x86, 0x78, 0xf4, 0x70, 0xf6,
+	0x7a, 0x4f, 0x98, 0xff, 0x33, 0x21, 0xe4, 0xbd, 0x31, 0x12, 0xce, 0xe7, 0xec, 0x10, 0x1e, 0x7f,
+	0xc2, 0xd1, 0xfd, 0x85, 0xd5, 0x2b, 0x6e, 0xaf, 0x98, 0xc9, 0x21, 0x39, 0x0d, 0x30, 0xb5, 0x87,
+	0xbd, 0xfb, 0x6b, 0xd8, 0x9f, 0x8b, 0x52, 0xa2, 0xbc, 0x9c, 0x52, 0x5e, 0x6a, 0xba, 0x82, 0x55,
+	0x0a, 0x76, 0xd2, 0xc1, 0xb1, 0x2e, 0x3b, 0xcc, 0xb2, 0x2c, 0x41, 0x68, 0x9e, 0x87, 0x59, 0xee,
+	0xfe, 0xff, 0x59, 0x3a, 0x38, 0xd6, 0x65, 0xc7, 0x8f, 0xa2, 0xde, 0x5c, 0x2b, 0x70, 0x3e, 0xe9,
+	0xed, 0x16, 0xcc, 0xf6, 0x2a, 0x7e, 0x12, 0x0d, 0x96, 0x5a, 0x15, 0xdc, 0x57, 0x16, 0x92, 0x7e,
+	0xb0, 0x7e, 0x17, 0x76, 0xee, 0xa2, 0x4a, 0x73, 0x2d, 0x5e, 0xc1, 0x55, 0x72, 0xaf, 0x75, 0x8f,
+	0x85, 0xd9, 0xf3, 0x75, 0x4d, 0xd0, 0xa6, 0x26, 0xe8, 0xba, 0x26, 0xe8, 0xb6, 0x26, 0xf8, 0x67,
+	0x4d, 0xd0, 0xc7, 0x86, 0xe0, 0x2f, 0x0d, 0xc1, 0xeb, 0x86, 0xe0, 0x4d, 0x43, 0xf0, 0xf7, 0x86,
+	0xe0, 0x1f, 0x0d, 0x41, 0xb7, 0x0d, 0xc1, 0x9f, 0xb7, 0x04, 0x6d, 0xb6, 0x04, 0x5d, 0x6f, 0x09,
+	0x4a, 0x7b, 0xe1, 0x73, 0x3e, 0xfb, 0x15, 0x00, 0x00, 0xff, 0xff, 0x9c, 0xf8, 0xfd, 0x7b, 0x0c,
+	0x03, 0x00, 0x00,
 }
 
 func (this *Profile) Equal(that interface{}) bool {
@@ -181,7 +183,7 @@ func valueToGoStringProfile(v interface{}, typ string) string {
 func (m *Profile) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -189,68 +191,81 @@ func (m *Profile) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Profile) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Profile) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Address) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintProfile(dAtA, i, uint64(len(m.Address)))
-		i += copy(dAtA[i:], m.Address)
-	}
-	dAtA[i] = 0x12
-	i++
-	i = encodeVarintProfile(dAtA, i, uint64(m.Ref.Size()))
-	n1, err := m.Ref.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	if m.ShortID != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintProfile(dAtA, i, uint64(m.ShortID))
-	}
-	if m.PrimaryRole != 0 {
-		dAtA[i] = 0x20
-		i++
-		i = encodeVarintProfile(dAtA, i, uint64(m.PrimaryRole))
-	}
-	if m.SpecialRole != 0 {
-		dAtA[i] = 0x28
-		i++
-		i = encodeVarintProfile(dAtA, i, uint64(m.SpecialRole))
-	}
-	if len(m.Digest) > 0 {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintProfile(dAtA, i, uint64(len(m.Digest)))
-		i += copy(dAtA[i:], m.Digest)
+	if len(m.PublicKey) > 0 {
+		i -= len(m.PublicKey)
+		copy(dAtA[i:], m.PublicKey)
+		i = encodeVarintProfile(dAtA, i, uint64(len(m.PublicKey)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if len(m.Signature) > 0 {
-		dAtA[i] = 0x3a
-		i++
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
 		i = encodeVarintProfile(dAtA, i, uint64(len(m.Signature)))
-		i += copy(dAtA[i:], m.Signature)
+		i--
+		dAtA[i] = 0x3a
 	}
-	if len(m.PublicKey) > 0 {
-		dAtA[i] = 0x42
-		i++
-		i = encodeVarintProfile(dAtA, i, uint64(len(m.PublicKey)))
-		i += copy(dAtA[i:], m.PublicKey)
+	if len(m.Digest) > 0 {
+		i -= len(m.Digest)
+		copy(dAtA[i:], m.Digest)
+		i = encodeVarintProfile(dAtA, i, uint64(len(m.Digest)))
+		i--
+		dAtA[i] = 0x32
 	}
-	return i, nil
+	if m.SpecialRole != 0 {
+		i = encodeVarintProfile(dAtA, i, uint64(m.SpecialRole))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.PrimaryRole != 0 {
+		i = encodeVarintProfile(dAtA, i, uint64(m.PrimaryRole))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.ShortID != 0 {
+		i = encodeVarintProfile(dAtA, i, uint64(m.ShortID))
+		i--
+		dAtA[i] = 0x18
+	}
+	{
+		size := m.Ref.Size()
+		i -= size
+		if _, err := m.Ref.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintProfile(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintProfile(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintProfile(dAtA []byte, offset int, v uint64) int {
+	offset -= sovProfile(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Profile) Size() (n int) {
 	if m == nil {
@@ -289,14 +304,7 @@ func (m *Profile) Size() (n int) {
 }
 
 func sovProfile(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozProfile(x uint64) (n int) {
 	return sovProfile(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -434,7 +442,7 @@ func (m *Profile) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ShortID |= github_com_insolar_insolar_insolar.ShortNodeID(b&0x7F) << shift
+				m.ShortID |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.ShortNodeID(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -453,7 +461,7 @@ func (m *Profile) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PrimaryRole |= github_com_insolar_insolar_network_consensus_gcpv2_api_member.PrimaryRole(b&0x7F) << shift
+				m.PrimaryRole |= github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.PrimaryRole(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -472,7 +480,7 @@ func (m *Profile) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.SpecialRole |= github_com_insolar_insolar_network_consensus_gcpv2_api_member.SpecialRole(b&0x7F) << shift
+				m.SpecialRole |= github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.SpecialRole(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -606,6 +614,7 @@ func (m *Profile) Unmarshal(dAtA []byte) error {
 func skipProfile(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -637,10 +646,8 @@ func skipProfile(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -661,55 +668,30 @@ func skipProfile(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthProfile
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthProfile
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowProfile
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipProfile(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthProfile
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupProfile
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthProfile
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthProfile = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowProfile   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthProfile        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowProfile          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupProfile = fmt.Errorf("proto: unexpected end of group")
 )

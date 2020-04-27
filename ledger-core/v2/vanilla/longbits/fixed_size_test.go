@@ -28,18 +28,18 @@ func TestFoldUint64(t *testing.T) {
 }
 
 func TestEqualFixedLenWriterTo(t *testing.T) {
-	require.False(t, EqualFixedLenWriterTo(nil, nil))
+	require.False(t, Equal(nil, nil))
 
 	bits1 := NewBits64(0)
-	require.False(t, EqualFixedLenWriterTo(&bits1, nil))
+	require.False(t, Equal(&bits1, nil))
 
-	require.False(t, EqualFixedLenWriterTo(nil, &bits1))
+	require.False(t, Equal(nil, &bits1))
 
 	bits2 := NewBits64(0)
-	require.True(t, EqualFixedLenWriterTo(&bits1, &bits2))
+	require.True(t, Equal(&bits1, &bits2))
 
 	bits2 = NewBits64(1)
-	require.False(t, EqualFixedLenWriterTo(&bits1, &bits2))
+	require.False(t, Equal(&bits1, &bits2))
 }
 
 func TestCompare(t *testing.T) {
@@ -157,4 +157,26 @@ func TestCopyFixedSize(t *testing.T) {
 	require.Equal(t, uint8(item), fr.AsBytes()[0])
 
 	require.Equal(t, bits[0], fr.AsBytes()[0])
+}
+
+func TestEqual(t *testing.T) {
+	empty0 := NewMutableFixedSize([]byte{})
+	empty1 := NewMutableFixedSize([]byte{})
+	require.False(t, Equal(nil, nil))
+	require.False(t, Equal(nil, empty1))
+	require.False(t, Equal(empty0, nil))
+	require.True(t, Equal(empty0, empty1))
+	require.False(t, Equal(empty0, NewMutableFixedSize([]byte{1})))
+	require.True(t, Equal(NewMutableFixedSize([]byte{1}), NewMutableFixedSize([]byte{1})))
+}
+
+func TestEqualToBytes(t *testing.T) {
+	empty0 := NewMutableFixedSize([]byte{})
+	empty1 := make([]byte, 0)
+	require.False(t, EqualToBytes(nil, nil))
+	require.False(t, EqualToBytes(nil, empty1))
+	require.True(t, EqualToBytes(empty0, nil))
+	require.True(t, EqualToBytes(empty0, empty1))
+	require.False(t, EqualToBytes(empty0, []byte{1}))
+	require.True(t, EqualToBytes(NewMutableFixedSize([]byte{1}), []byte{1}))
 }

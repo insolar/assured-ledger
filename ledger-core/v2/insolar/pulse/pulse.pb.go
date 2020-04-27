@@ -6,14 +6,14 @@ package pulse
 import (
 	bytes "bytes"
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strings "strings"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -25,17 +25,17 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type PulseProto struct {
-	PulseNumber      github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,1,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
-	PrevPulseNumber  github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,2,opt,name=PrevPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PrevPulseNumber"`
-	NextPulseNumber  github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,3,opt,name=NextPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"NextPulseNumber"`
-	PulseTimestamp   int64                                          `protobuf:"varint,4,opt,name=PulseTimestamp,proto3" json:"PulseTimestamp,omitempty"`
-	EpochPulseNumber int32                                          `protobuf:"varint,5,opt,name=EpochPulseNumber,proto3" json:"EpochPulseNumber,omitempty"`
-	OriginID         []byte                                         `protobuf:"bytes,6,opt,name=OriginID,proto3" json:"OriginID,omitempty"`
-	Entropy          github_com_insolar_insolar_insolar.Entropy     `protobuf:"bytes,7,opt,name=Entropy,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Entropy" json:"Entropy"`
-	Signs            []*PulseSenderConfirmationProto                `protobuf:"bytes,8,rep,name=Signs,proto3" json:"Signs,omitempty"`
+	PulseNumber      github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,1,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
+	PrevPulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,2,opt,name=PrevPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PrevPulseNumber"`
+	NextPulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,3,opt,name=NextPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"NextPulseNumber"`
+	PulseTimestamp   int64                                                                `protobuf:"varint,4,opt,name=PulseTimestamp,proto3" json:"PulseTimestamp,omitempty"`
+	EpochPulseNumber int32                                                                `protobuf:"varint,5,opt,name=EpochPulseNumber,proto3" json:"EpochPulseNumber,omitempty"`
+	OriginID         []byte                                                               `protobuf:"bytes,6,opt,name=OriginID,proto3" json:"OriginID,omitempty"`
+	Entropy          github_com_insolar_assured_ledger_ledger_core_v2_insolar.Entropy     `protobuf:"bytes,7,opt,name=Entropy,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Entropy" json:"Entropy"`
+	Signs            []*PulseSenderConfirmationProto                                      `protobuf:"bytes,8,rep,name=Signs,proto3" json:"Signs,omitempty"`
 }
 
 func (m *PulseProto) Reset()      { *m = PulseProto{} }
@@ -51,7 +51,7 @@ func (m *PulseProto) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_PulseProto.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -71,11 +71,11 @@ func (m *PulseProto) XXX_DiscardUnknown() {
 var xxx_messageInfo_PulseProto proto.InternalMessageInfo
 
 type PulseSenderConfirmationProto struct {
-	PublicKey       string                                         `protobuf:"bytes,1,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
-	PulseNumber     github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,2,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
-	ChosenPublicKey string                                         `protobuf:"bytes,3,opt,name=ChosenPublicKey,proto3" json:"ChosenPublicKey,omitempty"`
-	Entropy         github_com_insolar_insolar_insolar.Entropy     `protobuf:"bytes,4,opt,name=Entropy,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Entropy" json:"Entropy"`
-	Signature       []byte                                         `protobuf:"bytes,5,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	PublicKey       string                                                               `protobuf:"bytes,1,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
+	PulseNumber     github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,2,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
+	ChosenPublicKey string                                                               `protobuf:"bytes,3,opt,name=ChosenPublicKey,proto3" json:"ChosenPublicKey,omitempty"`
+	Entropy         github_com_insolar_assured_ledger_ledger_core_v2_insolar.Entropy     `protobuf:"bytes,4,opt,name=Entropy,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Entropy" json:"Entropy"`
+	Signature       []byte                                                               `protobuf:"bytes,5,opt,name=Signature,proto3" json:"Signature,omitempty"`
 }
 
 func (m *PulseSenderConfirmationProto) Reset()      { *m = PulseSenderConfirmationProto{} }
@@ -91,7 +91,7 @@ func (m *PulseSenderConfirmationProto) XXX_Marshal(b []byte, deterministic bool)
 		return xxx_messageInfo_PulseSenderConfirmationProto.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -118,35 +118,36 @@ func init() {
 func init() { proto.RegisterFile("insolar/pulse/pulse.proto", fileDescriptor_b4cb696fbf73183e) }
 
 var fileDescriptor_b4cb696fbf73183e = []byte{
-	// 442 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x53, 0x41, 0x8b, 0xd3, 0x40,
-	0x18, 0x9d, 0x69, 0x9a, 0xdd, 0xed, 0xec, 0xea, 0xca, 0x9c, 0xe2, 0x52, 0x66, 0xc3, 0x0a, 0x12,
-	0x16, 0x4c, 0x61, 0x05, 0x41, 0xf0, 0xd4, 0x75, 0x0f, 0xa2, 0xac, 0x61, 0xd6, 0x83, 0x47, 0x93,
-	0x3a, 0x4d, 0x07, 0x9a, 0x99, 0x30, 0x49, 0xc4, 0xde, 0xfc, 0x09, 0xfe, 0x07, 0x2f, 0x1e, 0xfc,
-	0x21, 0x3d, 0xf6, 0x58, 0x3c, 0x14, 0x93, 0x5e, 0x3c, 0xf6, 0xe8, 0x51, 0x32, 0x69, 0x6d, 0x88,
-	0x20, 0x42, 0xf7, 0x92, 0xe4, 0xbd, 0xc9, 0x7b, 0x6f, 0xe6, 0xcb, 0x0b, 0xba, 0xcf, 0x45, 0x22,
-	0xc7, 0xbe, 0xea, 0xc5, 0xd9, 0x38, 0x61, 0xd5, 0xd5, 0x8d, 0x95, 0x4c, 0x25, 0x36, 0x35, 0x38,
-	0x79, 0x14, 0xf2, 0x74, 0x94, 0x05, 0xee, 0x40, 0x46, 0xbd, 0x50, 0x86, 0xb2, 0xa7, 0x57, 0x83,
-	0x6c, 0xa8, 0x91, 0x06, 0xfa, 0xa9, 0x52, 0x9d, 0x7d, 0x69, 0x23, 0xe4, 0x95, 0x42, 0x4f, 0x9b,
-	0xbc, 0x45, 0x87, 0x1a, 0x5d, 0x67, 0x51, 0xc0, 0x94, 0x05, 0x6d, 0xe8, 0xdc, 0xe9, 0x3f, 0x99,
-	0x2e, 0x4e, 0xc1, 0xf7, 0xc5, 0xa9, 0x5b, 0xb3, 0xde, 0xec, 0xa3, 0x71, 0x77, 0x6b, 0x6a, 0x5a,
-	0xb7, 0xc2, 0xef, 0xd0, 0xb1, 0xa7, 0xd8, 0x87, 0xba, 0x7b, 0x6b, 0x27, 0xf7, 0xa6, 0x5d, 0x99,
-	0x70, 0xcd, 0x3e, 0xa6, 0xf5, 0x04, 0x63, 0xb7, 0x84, 0x86, 0x1d, 0x7e, 0x88, 0xee, 0x6a, 0xf8,
-	0x86, 0x47, 0x2c, 0x49, 0xfd, 0x28, 0xb6, 0xda, 0x36, 0x74, 0x0c, 0xda, 0x60, 0xf1, 0x39, 0xba,
-	0x77, 0x15, 0xcb, 0xc1, 0xa8, 0xbe, 0x15, 0xd3, 0x86, 0x8e, 0x49, 0xff, 0xe2, 0xf1, 0x09, 0x3a,
-	0x78, 0xad, 0x78, 0xc8, 0xc5, 0x8b, 0xe7, 0xd6, 0x9e, 0x0d, 0x9d, 0x23, 0xfa, 0x07, 0xe3, 0x57,
-	0x68, 0xff, 0x4a, 0xa4, 0x4a, 0xc6, 0x13, 0x6b, 0xbf, 0x5c, 0xea, 0x5f, 0xac, 0x4f, 0x72, 0xfe,
-	0x1f, 0x27, 0x59, 0x2b, 0xe9, 0xc6, 0x02, 0x3f, 0x45, 0xe6, 0x0d, 0x0f, 0x45, 0x62, 0x1d, 0xd8,
-	0x86, 0x73, 0x78, 0xf1, 0xc0, 0xad, 0xda, 0xa3, 0x37, 0x73, 0xc3, 0xc4, 0x7b, 0xa6, 0x2e, 0xa5,
-	0x18, 0x72, 0x15, 0xf9, 0x29, 0x97, 0x42, 0xf7, 0x81, 0x56, 0x8a, 0xb3, 0x6f, 0x2d, 0xd4, 0xfd,
-	0xd7, 0x7b, 0xb8, 0x8b, 0x3a, 0x5e, 0x16, 0x8c, 0xf9, 0xe0, 0x25, 0x9b, 0xe8, 0xd6, 0x74, 0xe8,
-	0x96, 0x68, 0xb6, 0xaa, 0x75, 0x7b, 0xad, 0x72, 0xd0, 0xf1, 0xe5, 0x48, 0x26, 0x4c, 0x6c, 0xd3,
-	0x0d, 0x9d, 0xde, 0xa4, 0xeb, 0xb3, 0x6c, 0xef, 0x3e, 0xcb, 0x2e, 0xea, 0x94, 0x93, 0xf1, 0xd3,
-	0x4c, 0x31, 0xfd, 0x69, 0x8f, 0xe8, 0x96, 0xe8, 0x3f, 0x9b, 0xe6, 0x04, 0xcc, 0x72, 0x02, 0xe6,
-	0x39, 0x01, 0xab, 0x9c, 0xc0, 0x5f, 0x39, 0x01, 0x9f, 0x0a, 0x02, 0xbf, 0x16, 0x04, 0x4e, 0x0b,
-	0x02, 0x67, 0x05, 0x81, 0x3f, 0x0a, 0x02, 0x7f, 0x16, 0x04, 0xac, 0x0a, 0x02, 0x3f, 0x2f, 0x09,
-	0x98, 0x2d, 0x09, 0x98, 0x2f, 0x09, 0x08, 0xf6, 0xf4, 0x9f, 0xf9, 0xf8, 0x77, 0x00, 0x00, 0x00,
-	0xff, 0xff, 0x7e, 0x64, 0xaf, 0x6f, 0xec, 0x03, 0x00, 0x00,
+	// 459 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x54, 0x4f, 0x6b, 0xdb, 0x30,
+	0x1c, 0x95, 0xf2, 0xa7, 0x6d, 0xd4, 0x6e, 0x1d, 0x3a, 0x79, 0x25, 0xa8, 0xa6, 0x83, 0x61, 0x06,
+	0x89, 0xa1, 0x3b, 0x0d, 0x76, 0x18, 0x69, 0x0b, 0x1b, 0x1b, 0x9d, 0x51, 0xf7, 0x05, 0x6c, 0x47,
+	0x75, 0x04, 0xb6, 0x64, 0x64, 0x3b, 0xac, 0xb7, 0x7d, 0x84, 0x7d, 0x8c, 0x7d, 0x94, 0x1c, 0x73,
+	0x0c, 0x3b, 0x94, 0xd9, 0xb9, 0xec, 0xd8, 0xe3, 0x60, 0x97, 0x61, 0xb9, 0x59, 0x8c, 0x07, 0x3b,
+	0x14, 0x7c, 0xb1, 0xfd, 0x9e, 0xa4, 0xf7, 0x9e, 0x7e, 0x3c, 0x8c, 0x9e, 0x72, 0x91, 0xc8, 0xd0,
+	0x55, 0x76, 0x9c, 0x85, 0x09, 0xab, 0x9e, 0xe3, 0x58, 0xc9, 0x54, 0xe2, 0xbe, 0x06, 0x47, 0xa3,
+	0x80, 0xa7, 0xb3, 0xcc, 0x1b, 0xfb, 0x32, 0xb2, 0x03, 0x19, 0x48, 0x5b, 0xaf, 0x7a, 0xd9, 0xb5,
+	0x46, 0x1a, 0xe8, 0xaf, 0xea, 0xd4, 0xc9, 0xef, 0x1e, 0x42, 0x4e, 0x79, 0xd0, 0xd1, 0x22, 0x02,
+	0xed, 0x6b, 0x74, 0x99, 0x45, 0x1e, 0x53, 0x06, 0x34, 0xa1, 0xf5, 0x68, 0xf2, 0x61, 0x71, 0x7b,
+	0x0c, 0xbe, 0xdf, 0x1e, 0x9f, 0xd7, 0xa4, 0x37, 0x39, 0xdc, 0x24, 0xc9, 0x14, 0x9b, 0x8e, 0x42,
+	0x36, 0x0d, 0x98, 0xb2, 0xab, 0xd7, 0xc8, 0x97, 0x8a, 0xd9, 0xf3, 0xd3, 0xcd, 0xae, 0x71, 0x4d,
+	0x93, 0xd6, 0x0d, 0xf0, 0x1c, 0x1d, 0x3a, 0x8a, 0xcd, 0xeb, 0x9e, 0x9d, 0x16, 0x3c, 0x9b, 0x26,
+	0xa5, 0xef, 0x25, 0xfb, 0x9c, 0xd6, 0x7d, 0xbb, 0x6d, 0xf8, 0x36, 0x4c, 0xf0, 0x73, 0xf4, 0x58,
+	0xc3, 0x4f, 0x3c, 0x62, 0x49, 0xea, 0x46, 0xb1, 0xd1, 0x33, 0xa1, 0xd5, 0xa5, 0x0d, 0x16, 0xbf,
+	0x40, 0x4f, 0x2e, 0x62, 0xe9, 0xcf, 0xea, 0x01, 0xfb, 0x26, 0xb4, 0xfa, 0xf4, 0x1f, 0x1e, 0x1f,
+	0xa1, 0xbd, 0x8f, 0x8a, 0x07, 0x5c, 0xbc, 0x3b, 0x37, 0x76, 0x4c, 0x68, 0x1d, 0xd0, 0xbf, 0x18,
+	0x7b, 0x68, 0xf7, 0x42, 0xa4, 0x4a, 0xc6, 0x37, 0xc6, 0x6e, 0xb9, 0x34, 0x79, 0x7b, 0x7f, 0xbf,
+	0x37, 0x0f, 0xbe, 0xdf, 0xbd, 0x1e, 0xdd, 0x08, 0xe3, 0x57, 0xa8, 0x7f, 0xc5, 0x03, 0x91, 0x18,
+	0x7b, 0x66, 0xd7, 0xda, 0x3f, 0x7d, 0x36, 0xae, 0x5a, 0xa9, 0x23, 0x5e, 0x31, 0x31, 0x65, 0xea,
+	0x4c, 0x8a, 0x6b, 0xae, 0x22, 0x37, 0xe5, 0x52, 0xe8, 0x9e, 0xd1, 0xea, 0xc4, 0xc9, 0xaa, 0x83,
+	0x86, 0xff, 0xdb, 0x87, 0x87, 0x68, 0xe0, 0x64, 0x5e, 0xc8, 0xfd, 0xf7, 0xec, 0x46, 0xb7, 0x71,
+	0x40, 0xb7, 0x44, 0xb3, 0xad, 0x9d, 0xb6, 0xdb, 0x6a, 0xa1, 0xc3, 0xb3, 0x99, 0x4c, 0x98, 0xd8,
+	0x66, 0xea, 0xea, 0x4c, 0x4d, 0xba, 0x3e, 0xf7, 0x5e, 0x5b, 0x73, 0x1f, 0xa2, 0x41, 0x39, 0x45,
+	0x37, 0xcd, 0x14, 0xd3, 0xe5, 0x38, 0xa0, 0x5b, 0x62, 0xf2, 0x7a, 0x91, 0x13, 0xb0, 0xcc, 0x09,
+	0x58, 0xe5, 0x04, 0xdc, 0xe5, 0x04, 0xfe, 0xca, 0x09, 0xf8, 0x52, 0x10, 0xf8, 0xad, 0x20, 0x70,
+	0x51, 0x10, 0xb8, 0x2c, 0x08, 0xfc, 0x51, 0x10, 0xf8, 0xb3, 0x20, 0xe0, 0xae, 0x20, 0xf0, 0xeb,
+	0x9a, 0x80, 0xe5, 0x9a, 0x80, 0xd5, 0x9a, 0x00, 0x6f, 0x47, 0xff, 0x1d, 0x5e, 0xfe, 0x09, 0x00,
+	0x00, 0xff, 0xff, 0x18, 0x27, 0x07, 0xdc, 0x70, 0x04, 0x00, 0x00,
 }
 
 func (this *PulseProto) Equal(that interface{}) bool {
@@ -279,7 +280,7 @@ func valueToGoStringPulse(v interface{}, typ string) string {
 func (m *PulseProto) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -287,68 +288,78 @@ func (m *PulseProto) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PulseProto) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PulseProto) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.PulseNumber != 0 {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(m.PulseNumber))
-	}
-	if m.PrevPulseNumber != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(m.PrevPulseNumber))
-	}
-	if m.NextPulseNumber != 0 {
-		dAtA[i] = 0x18
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(m.NextPulseNumber))
-	}
-	if m.PulseTimestamp != 0 {
-		dAtA[i] = 0x20
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(m.PulseTimestamp))
-	}
-	if m.EpochPulseNumber != 0 {
-		dAtA[i] = 0x28
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(m.EpochPulseNumber))
-	}
-	if len(m.OriginID) > 0 {
-		dAtA[i] = 0x32
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(len(m.OriginID)))
-		i += copy(dAtA[i:], m.OriginID)
-	}
-	dAtA[i] = 0x3a
-	i++
-	i = encodeVarintPulse(dAtA, i, uint64(m.Entropy.Size()))
-	n1, err := m.Entropy.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
 	if len(m.Signs) > 0 {
-		for _, msg := range m.Signs {
-			dAtA[i] = 0x42
-			i++
-			i = encodeVarintPulse(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Signs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Signs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintPulse(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x42
 		}
 	}
-	return i, nil
+	{
+		size := m.Entropy.Size()
+		i -= size
+		if _, err := m.Entropy.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPulse(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x3a
+	if len(m.OriginID) > 0 {
+		i -= len(m.OriginID)
+		copy(dAtA[i:], m.OriginID)
+		i = encodeVarintPulse(dAtA, i, uint64(len(m.OriginID)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.EpochPulseNumber != 0 {
+		i = encodeVarintPulse(dAtA, i, uint64(m.EpochPulseNumber))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.PulseTimestamp != 0 {
+		i = encodeVarintPulse(dAtA, i, uint64(m.PulseTimestamp))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.NextPulseNumber != 0 {
+		i = encodeVarintPulse(dAtA, i, uint64(m.NextPulseNumber))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.PrevPulseNumber != 0 {
+		i = encodeVarintPulse(dAtA, i, uint64(m.PrevPulseNumber))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.PulseNumber != 0 {
+		i = encodeVarintPulse(dAtA, i, uint64(m.PulseNumber))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *PulseSenderConfirmationProto) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -356,52 +367,64 @@ func (m *PulseSenderConfirmationProto) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PulseSenderConfirmationProto) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PulseSenderConfirmationProto) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.PublicKey) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(len(m.PublicKey)))
-		i += copy(dAtA[i:], m.PublicKey)
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintPulse(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	{
+		size := m.Entropy.Size()
+		i -= size
+		if _, err := m.Entropy.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPulse(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	if len(m.ChosenPublicKey) > 0 {
+		i -= len(m.ChosenPublicKey)
+		copy(dAtA[i:], m.ChosenPublicKey)
+		i = encodeVarintPulse(dAtA, i, uint64(len(m.ChosenPublicKey)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.PulseNumber != 0 {
-		dAtA[i] = 0x10
-		i++
 		i = encodeVarintPulse(dAtA, i, uint64(m.PulseNumber))
+		i--
+		dAtA[i] = 0x10
 	}
-	if len(m.ChosenPublicKey) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(len(m.ChosenPublicKey)))
-		i += copy(dAtA[i:], m.ChosenPublicKey)
+	if len(m.PublicKey) > 0 {
+		i -= len(m.PublicKey)
+		copy(dAtA[i:], m.PublicKey)
+		i = encodeVarintPulse(dAtA, i, uint64(len(m.PublicKey)))
+		i--
+		dAtA[i] = 0xa
 	}
-	dAtA[i] = 0x22
-	i++
-	i = encodeVarintPulse(dAtA, i, uint64(m.Entropy.Size()))
-	n2, err := m.Entropy.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
-	if len(m.Signature) > 0 {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintPulse(dAtA, i, uint64(len(m.Signature)))
-		i += copy(dAtA[i:], m.Signature)
-	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintPulse(dAtA []byte, offset int, v uint64) int {
+	offset -= sovPulse(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *PulseProto) Size() (n int) {
 	if m == nil {
@@ -466,14 +489,7 @@ func (m *PulseSenderConfirmationProto) Size() (n int) {
 }
 
 func sovPulse(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozPulse(x uint64) (n int) {
 	return sovPulse(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -482,6 +498,11 @@ func (this *PulseProto) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForSigns := "[]*PulseSenderConfirmationProto{"
+	for _, f := range this.Signs {
+		repeatedStringForSigns += strings.Replace(f.String(), "PulseSenderConfirmationProto", "PulseSenderConfirmationProto", 1) + ","
+	}
+	repeatedStringForSigns += "}"
 	s := strings.Join([]string{`&PulseProto{`,
 		`PulseNumber:` + fmt.Sprintf("%v", this.PulseNumber) + `,`,
 		`PrevPulseNumber:` + fmt.Sprintf("%v", this.PrevPulseNumber) + `,`,
@@ -490,7 +511,7 @@ func (this *PulseProto) String() string {
 		`EpochPulseNumber:` + fmt.Sprintf("%v", this.EpochPulseNumber) + `,`,
 		`OriginID:` + fmt.Sprintf("%v", this.OriginID) + `,`,
 		`Entropy:` + fmt.Sprintf("%v", this.Entropy) + `,`,
-		`Signs:` + strings.Replace(fmt.Sprintf("%v", this.Signs), "PulseSenderConfirmationProto", "PulseSenderConfirmationProto", 1) + `,`,
+		`Signs:` + repeatedStringForSigns + `,`,
 		`}`,
 	}, "")
 	return s
@@ -560,7 +581,7 @@ func (m *PulseProto) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -579,7 +600,7 @@ func (m *PulseProto) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PrevPulseNumber |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.PrevPulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -598,7 +619,7 @@ func (m *PulseProto) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.NextPulseNumber |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.NextPulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -841,7 +862,7 @@ func (m *PulseSenderConfirmationProto) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -972,6 +993,7 @@ func (m *PulseSenderConfirmationProto) Unmarshal(dAtA []byte) error {
 func skipPulse(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -1003,10 +1025,8 @@ func skipPulse(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -1027,55 +1047,30 @@ func skipPulse(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthPulse
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthPulse
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowPulse
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipPulse(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthPulse
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupPulse
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthPulse
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthPulse = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowPulse   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthPulse        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowPulse          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupPulse = fmt.Errorf("proto: unexpected end of group")
 )

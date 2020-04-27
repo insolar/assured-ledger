@@ -18,35 +18,39 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestTextFormat(t *testing.T) {
-	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.TextFormat})
 	// TODO PLAT-44 parsing for text
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.TextFormat})
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.TextFormat, recycleBuf: true})
 }
 
 func TestJsonFormat(t *testing.T) {
-	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.JSONFormat,
-		parseFn: func(t *testing.T, b []byte) map[string]interface{} {
-			fields := make(map[string]interface{})
-			err := json.Unmarshal(b, &fields)
-			require.NoError(t, err, "unmarshal %s", b)
-			return fields
-		},
-	})
+	parseFn := func(t *testing.T, b []byte) map[string]interface{} {
+		fields := make(map[string]interface{})
+		err := json.Unmarshal(b, &fields)
+		require.NoError(t, err, "unmarshal %s", b)
+		return fields
+	}
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.JSONFormat, parseFn: parseFn})
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.JSONFormat, parseFn: parseFn, recycleBuf: true})
 }
 
 func TestPbufFormat(t *testing.T) {
-	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.PbufFormat})
 	// TODO PLAT-44 parsing for pbuf
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.PbufFormat})
+	suite.Run(t, &SuiteTextualLog{logFormat: logcommon.PbufFormat, recycleBuf: true})
 }
 
 type SuiteTextualLog struct {
 	suite.Suite
-	logFormat logcommon.LogFormat
-	parseFn   func(*testing.T, []byte) map[string]interface{}
+	logFormat  logcommon.LogFormat
+	recycleBuf bool
+	parseFn    func(*testing.T, []byte) map[string]interface{}
 }
 
 func (st SuiteTextualLog) newAdapter(level logcommon.Level) logm.Logger {
@@ -64,7 +68,7 @@ func (st SuiteTextualLog) newAdapter(level logcommon.Level) logm.Logger {
 	}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 
-	zb := logm.NewBuilder(NewFactory(nil, false), zc, level)
+	zb := logm.NewBuilder(NewFactory(nil, st.recycleBuf), zc, level)
 
 	l, err := zb.Build()
 	require.NoError(t, err)
@@ -84,7 +88,6 @@ func (st SuiteTextualLog) TestFields() {
 		return
 	}
 
-	t.Log()
 	buf := bytes.Buffer{}
 	lg, _ := st.newAdapter(logcommon.InfoLevel).Copy().
 		WithOutput(&buf).
@@ -255,62 +258,37 @@ func (st SuiteTextualLog) TestBuildDynFields() {
 	require.Contains(t, s, "value-3")
 }
 
-func (st SuiteTextualLog) TestFatal() {
+func (st SuiteTextualLog) prepareSpecial(zc logcommon.Config, flushFn func()) (*bytes.Buffer, logm.Logger) {
 	t := st.T()
-	zc := logcommon.Config{}
 
 	var buf bytes.Buffer
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	zc.BareOutput = logcommon.BareOutput{
 		Writer: &buf,
 		FlushFn: func() error {
-			wg.Done()
-			select {} // hang up to stop zerolog's call to os.Exit
+			if flushFn != nil {
+				flushFn()
+			}
+			return nil
 		},
 	}
-	zc.Output = logcommon.OutputConfig{Format: logcommon.TextFormat}
+	zc.Output = logcommon.OutputConfig{Format: st.logFormat}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = 0
 
 	zb := logm.NewBuilder(binLogFactory{}, zc, logcommon.InfoLevel)
-	log, err := zb.Build()
+	l, err := zb.Build()
 
 	require.NoError(t, err)
-	require.NotNil(t, log)
+	require.NotNil(t, l)
 
-	log.Error("errorMsgText")
-	go log.Fatal("fatalMsgText") // it will hang on flush
-	wg.Wait()
-
-	s := buf.String()
-	require.Contains(t, s, "errorMsgText")
-	require.Contains(t, s, "fatalMsgText")
+	return &buf, l
 }
 
 func (st SuiteTextualLog) TestPanic() {
 	t := st.T()
-	zc := logcommon.Config{}
-
-	var buf bytes.Buffer
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	zc.BareOutput = logcommon.BareOutput{
-		Writer: &buf,
-		FlushFn: func() error {
-			wg.Done()
-			return nil
-		},
-	}
-	zc.Output = logcommon.OutputConfig{Format: logcommon.TextFormat}
-	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
-	zc.Instruments.SkipFrameCountBaseline = 0
-
-	zb := logm.NewBuilder(binLogFactory{}, zc, logcommon.InfoLevel)
-	log, err := zb.Build()
-
-	require.NoError(t, err)
-	require.NotNil(t, log)
+	buf, log := st.prepareSpecial(logcommon.Config{}, wg.Done)
 
 	log.Error("errorMsgText")
 	require.PanicsWithValue(t, "panicMsgText", func() {
@@ -323,4 +301,84 @@ func (st SuiteTextualLog) TestPanic() {
 	require.Contains(t, s, "errorMsgText")
 	require.Contains(t, s, "panicMsgText")
 	require.Contains(t, s, "errorNextMsgText")
+}
+
+func (st SuiteTextualLog) TestFatal() {
+	t := st.T()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	buf, log := st.prepareSpecial(logcommon.Config{}, func() {
+		wg.Done()
+		select {} // hand up to avoid os.Exit
+	})
+
+	log.Error("errorMsgText")
+	go log.Fatal("fatalMsgText") // it will hang on flush
+	wg.Wait()
+
+	s := buf.String()
+	require.Contains(t, s, "errorMsgText")
+	require.Contains(t, s, "fatalMsgText")
+}
+
+func (st SuiteTextualLog) TestFatalSeverity() {
+	t := st.T()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	buf, log := st.prepareSpecial(logcommon.Config{}, func() {
+		wg.Done()
+		select {} // hand up to avoid os.Exit
+	})
+
+	log.Error("errorMsgText")
+	go log.Errorm(throw.Fatal("fatalMsgText")) // it will hang on flush
+	wg.Wait()
+
+	s := buf.String()
+	require.Contains(t, s, "errorMsgText")
+	require.Contains(t, s, "fatalMsgText")
+}
+
+func (st SuiteTextualLog) TestSeverityOverride() {
+	t := st.T()
+	buf, log := st.prepareSpecial(logcommon.Config{}, func() {
+		t.FailNow()
+	})
+
+	log.Error("errorMsgText")
+	log.Errorm(throw.WithSeverity(throw.Fatal("someMsgText"), throw.FraudSeverity))
+
+	s := buf.String()
+	require.Contains(t, s, "errorMsgText")
+	require.Contains(t, s, "someMsgText")
+}
+
+func (st SuiteTextualLog) TestInternalError() {
+	t := st.T()
+	var capturedErr error
+
+	buf, log := st.prepareSpecial(
+		logcommon.Config{
+			ErrorFn: func(err error) {
+				require.Nil(t, capturedErr)
+				require.NotNil(t, err)
+				capturedErr = err
+			},
+		},
+		nil)
+
+	log.Errorm(struct {
+		msg    string
+		broken func() string
+	}{
+		msg: "errorMsgText",
+		broken: func() string {
+			panic("failFormat")
+		},
+	})
+
+	s := buf.String()
+	require.Equal(t, "", s)
+	require.NotNil(t, capturedErr)
+	require.Contains(t, capturedErr.Error(), "internal error (failFormat)")
 }

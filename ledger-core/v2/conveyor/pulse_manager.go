@@ -63,7 +63,7 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 	}
 }
 
-func (p *PulseDataManager) Init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8, pulseDataFn PulseDataServicePrepareFunc) {
+func (p *PulseDataManager) init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8, pulseDataFn PulseDataServicePrepareFunc) {
 	if minCachePulseAge == 0 || minCachePulseAge > pulse.MaxTimePulse {
 		panic("illegal value")
 	}

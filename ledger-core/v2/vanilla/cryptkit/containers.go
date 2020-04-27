@@ -39,7 +39,7 @@ func (d Digest) CopyOfDigest() Digest {
 }
 
 func (d Digest) Equals(o DigestHolder) bool {
-	return longbits.EqualFixedLenWriterTo(d, o)
+	return longbits.Equal(d, o)
 }
 
 func (d Digest) AsDigestHolder() DigestHolder {
@@ -89,7 +89,7 @@ func (p Signature) CopyOfSignature() Signature {
 }
 
 func (p Signature) Equals(o SignatureHolder) bool {
-	return longbits.EqualFixedLenWriterTo(p, o)
+	return longbits.Equal(p, o)
 }
 
 func (p Signature) GetSignatureMethod() SignatureMethod {
@@ -127,8 +127,8 @@ func (r SignedDigest) CopyOfSignedDigest() SignedDigest {
 }
 
 func (r SignedDigest) Equals(o SignedDigestHolder) bool {
-	return longbits.EqualFixedLenWriterTo(r.digest, o.GetDigestHolder()) &&
-		longbits.EqualFixedLenWriterTo(r.signature, o.GetSignatureHolder())
+	return longbits.Equal(r.digest, o.GetDigestHolder()) &&
+		longbits.Equal(r.signature, o.GetSignatureHolder())
 }
 
 func (r SignedDigest) GetDigest() Digest {
@@ -172,11 +172,11 @@ func (r SignedDigest) AsSignedDigestHolder() SignedDigestHolder {
 
 /*****************************************************************/
 
-func NewSignedData(data io.WriterTo, digest Digest, signature Signature) SignedData {
+func NewSignedData(data longbits.FixedReader, digest Digest, signature Signature) SignedData {
 	return SignedData{SignedDigest{digest, signature}, data}
 }
 
-func SignDataByDataSigner(data io.WriterTo, signer DataSigner) SignedData {
+func SignDataByDataSigner(data longbits.FixedReader, signer DataSigner) SignedData {
 	hasher := signer.NewHasher()
 	if _, err := data.WriteTo(hasher); err != nil {
 		panic(err)
@@ -186,7 +186,7 @@ func SignDataByDataSigner(data io.WriterTo, signer DataSigner) SignedData {
 	return NewSignedData(data, digest, signature)
 }
 
-type hWriterTo = io.WriterTo
+type hWriterTo = longbits.FixedReader
 type hSignedDigest = SignedDigest
 
 var _ io.WriterTo = SignedData{}
@@ -198,6 +198,13 @@ type SignedData struct {
 
 func (r SignedData) IsEmpty() bool {
 	return r.hWriterTo == nil && r.hSignedDigest.IsEmpty()
+}
+
+func (r SignedData) FixedByteSize() int {
+	if r.hWriterTo != nil {
+		return r.hWriterTo.FixedByteSize()
+	}
+	return 0
 }
 
 func (r SignedData) GetSignedDigest() SignedDigest {
@@ -251,7 +258,7 @@ func (p SignatureKey) FixedByteSize() int {
 }
 
 func (p SignatureKey) Equals(o SignatureKeyHolder) bool {
-	return longbits.EqualFixedLenWriterTo(p, o)
+	return longbits.Equal(p, o)
 }
 
 func (p SignatureKey) String() string {

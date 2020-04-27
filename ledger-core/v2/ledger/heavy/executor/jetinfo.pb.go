@@ -5,14 +5,14 @@ package executor
 
 import (
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strings "strings"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,16 +24,16 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type JetInfo struct {
-	Polymorph       int32                                      `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	JetID           github_com_insolar_insolar_insolar.JetID   `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	HotConfirmed    []github_com_insolar_insolar_insolar.JetID `protobuf:"bytes,21,rep,name=HotConfirmed,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"HotConfirmed"`
-	DropConfirmed   bool                                       `protobuf:"varint,22,opt,name=DropConfirmed,proto3" json:"DropConfirmed,omitempty"`
-	BackupConfirmed bool                                       `protobuf:"varint,23,opt,name=BackupConfirmed,proto3" json:"BackupConfirmed,omitempty"`
-	Split           bool                                       `protobuf:"varint,24,opt,name=Split,proto3" json:"Split,omitempty"`
-	IsSplitSet      bool                                       `protobuf:"varint,25,opt,name=IsSplitSet,proto3" json:"IsSplitSet,omitempty"`
+	Polymorph       int32                                                            `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	JetID           github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID   `protobuf:"bytes,20,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	HotConfirmed    []github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID `protobuf:"bytes,21,rep,name=HotConfirmed,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"HotConfirmed"`
+	DropConfirmed   bool                                                             `protobuf:"varint,22,opt,name=DropConfirmed,proto3" json:"DropConfirmed,omitempty"`
+	BackupConfirmed bool                                                             `protobuf:"varint,23,opt,name=BackupConfirmed,proto3" json:"BackupConfirmed,omitempty"`
+	Split           bool                                                             `protobuf:"varint,24,opt,name=Split,proto3" json:"Split,omitempty"`
+	IsSplitSet      bool                                                             `protobuf:"varint,25,opt,name=IsSplitSet,proto3" json:"IsSplitSet,omitempty"`
 }
 
 func (m *JetInfo) Reset()      { *m = JetInfo{} }
@@ -49,7 +49,7 @@ func (m *JetInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_JetInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +86,7 @@ func (m *JetsInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_JetsInfo.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -115,30 +115,32 @@ func init() {
 }
 
 var fileDescriptor_34fe369629dc8d07 = []byte{
-	// 362 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0xcd, 0x4e, 0xfa, 0x40,
-	0x14, 0xc5, 0x67, 0xfe, 0xc0, 0x5f, 0x1c, 0x31, 0xea, 0x04, 0xb5, 0x1a, 0x73, 0x69, 0xd0, 0x45,
-	0x13, 0x63, 0x6b, 0x74, 0xe3, 0xba, 0x12, 0x23, 0x2c, 0x8b, 0x3e, 0x00, 0x1f, 0xd3, 0x52, 0x2d,
-	0x9d, 0xa6, 0x4c, 0x8d, 0xec, 0x7c, 0x04, 0x1f, 0xc3, 0x47, 0x21, 0x71, 0xc3, 0x92, 0xb8, 0x20,
-	0xb6, 0x6c, 0x5c, 0xf2, 0x08, 0x86, 0x41, 0xc2, 0xc7, 0xca, 0xb8, 0x9a, 0x7b, 0xcf, 0xfd, 0xdd,
-	0x33, 0xc9, 0x3d, 0xe4, 0xd8, 0x63, 0x4d, 0x87, 0x85, 0x46, 0x8b, 0xd5, 0x9e, 0xba, 0x06, 0x7b,
-	0x66, 0x8d, 0x48, 0xf0, 0xd0, 0x78, 0x60, 0xc2, 0xf5, 0x6d, 0xae, 0x07, 0x21, 0x17, 0x9c, 0x66,
-	0x67, 0xfa, 0xe1, 0x99, 0xe3, 0x8a, 0x56, 0x54, 0xd7, 0x1b, 0xbc, 0x6d, 0x38, 0xdc, 0xe1, 0x86,
-	0x04, 0xea, 0x91, 0x2d, 0x3b, 0xd9, 0xc8, 0x6a, 0xba, 0x58, 0x7c, 0xff, 0x47, 0xd6, 0x2a, 0x4c,
-	0x94, 0x7d, 0x9b, 0xd3, 0x23, 0xb2, 0x1e, 0x70, 0xaf, 0xdb, 0xe6, 0x61, 0xd0, 0x52, 0xb6, 0x55,
-	0xac, 0x65, 0xac, 0xb9, 0x40, 0x6f, 0x48, 0x66, 0x02, 0x96, 0x94, 0xbc, 0x8a, 0xb5, 0x9c, 0x79,
-	0xde, 0x1b, 0x16, 0xd0, 0xc7, 0xb0, 0xa0, 0x2d, 0xfc, 0xe7, 0xfa, 0x1d, 0xee, 0xd5, 0xc2, 0xd5,
-	0x57, 0x97, 0x7b, 0xd6, 0x74, 0x9d, 0xde, 0x91, 0xdc, 0x2d, 0x17, 0xd7, 0xdc, 0xb7, 0xdd, 0xb0,
-	0xcd, 0x9a, 0xca, 0xae, 0x9a, 0xfa, 0x93, 0xdd, 0x92, 0x0b, 0x3d, 0x21, 0x9b, 0xa5, 0x90, 0x07,
-	0x73, 0xdb, 0x3d, 0x15, 0x6b, 0x59, 0x6b, 0x59, 0xa4, 0x1a, 0xd9, 0x32, 0x6b, 0x8d, 0xc7, 0x68,
-	0x81, 0xdb, 0x97, 0xdc, 0xaa, 0x4c, 0xf3, 0x24, 0x53, 0x0d, 0x3c, 0x57, 0x28, 0x8a, 0x9c, 0x4f,
-	0x1b, 0x0a, 0x84, 0x94, 0x3b, 0xb2, 0xac, 0x32, 0xa1, 0x1c, 0xc8, 0xd1, 0x82, 0x52, 0xbc, 0x27,
-	0xd9, 0x0a, 0x13, 0x9d, 0x5f, 0x5c, 0xf3, 0x94, 0xa4, 0x27, 0xa4, 0x92, 0x57, 0x53, 0xda, 0xc6,
-	0xc5, 0x8e, 0x3e, 0xcb, 0x4f, 0xff, 0x09, 0xc3, 0x4c, 0x4f, 0x0e, 0x62, 0x49, 0xc8, 0xbc, 0xea,
-	0xc5, 0x80, 0xfa, 0x31, 0xa0, 0x41, 0x0c, 0x68, 0x1c, 0x03, 0x7e, 0x49, 0x00, 0xbf, 0x25, 0x80,
-	0x7b, 0x09, 0xe0, 0x7e, 0x02, 0xf8, 0x33, 0x01, 0xfc, 0x95, 0x00, 0x1a, 0x27, 0x80, 0x5f, 0x47,
-	0x80, 0xfa, 0x23, 0x40, 0x83, 0x11, 0xa0, 0xfa, 0x7f, 0x99, 0xf2, 0xe5, 0x77, 0x00, 0x00, 0x00,
-	0xff, 0xff, 0x7c, 0xc0, 0xe9, 0x7a, 0x45, 0x02, 0x00, 0x00,
+	// 385 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x31, 0x6f, 0xda, 0x40,
+	0x14, 0xc7, 0xef, 0x0a, 0xb4, 0xf4, 0x4a, 0xd5, 0xf6, 0x44, 0x5b, 0xb7, 0xaa, 0x0e, 0x8b, 0x76,
+	0xb0, 0x54, 0x61, 0x4b, 0x64, 0xc9, 0x94, 0xc1, 0x41, 0x51, 0x60, 0x34, 0xca, 0x96, 0xc5, 0x98,
+	0xb3, 0x31, 0x31, 0x3e, 0xeb, 0x7c, 0x46, 0x61, 0xcb, 0x47, 0xc8, 0xc7, 0xc8, 0x47, 0x61, 0x64,
+	0x44, 0x19, 0x50, 0x6c, 0x96, 0x8c, 0x6c, 0x59, 0x23, 0xce, 0x20, 0x20, 0x53, 0x86, 0x4c, 0xf7,
+	0xde, 0xff, 0xfd, 0xee, 0xfd, 0x4f, 0xef, 0x1d, 0xfa, 0x1b, 0xd0, 0xbe, 0x47, 0xb9, 0x31, 0xa0,
+	0xf6, 0x78, 0x62, 0xd0, 0x6b, 0xea, 0x24, 0x82, 0x71, 0x63, 0x48, 0x85, 0x1f, 0xba, 0x4c, 0x8f,
+	0x38, 0x13, 0x0c, 0x97, 0xb7, 0xfa, 0xef, 0x86, 0xe7, 0x8b, 0x41, 0xd2, 0xd3, 0x1d, 0x36, 0x32,
+	0x3c, 0xe6, 0x31, 0x43, 0x02, 0xbd, 0xc4, 0x95, 0x99, 0x4c, 0x64, 0x94, 0x5f, 0xac, 0x3f, 0xbd,
+	0x43, 0x1f, 0x3a, 0x54, 0xb4, 0x43, 0x97, 0xe1, 0x3f, 0xe8, 0x63, 0xc4, 0x82, 0xc9, 0x88, 0xf1,
+	0x68, 0xa0, 0x7c, 0x55, 0xa1, 0x56, 0xb2, 0x76, 0x02, 0xbe, 0x44, 0xa5, 0x35, 0xd8, 0x52, 0xaa,
+	0x2a, 0xd4, 0x2a, 0xe6, 0xd9, 0x74, 0x51, 0x03, 0xf7, 0x8b, 0xda, 0xc9, 0x9e, 0x9f, 0x1f, 0xc6,
+	0x2c, 0xb0, 0xb9, 0x61, 0xc7, 0x71, 0xc2, 0x69, 0xbf, 0xb1, 0x79, 0x79, 0x7e, 0x34, 0x1c, 0xc6,
+	0xa9, 0x31, 0x6e, 0x6e, 0x29, 0x5d, 0x76, 0xb3, 0xf2, 0xa6, 0x78, 0x88, 0x2a, 0xe7, 0x4c, 0x9c,
+	0xb2, 0xd0, 0xf5, 0xf9, 0x88, 0xf6, 0x95, 0xef, 0x6a, 0xe1, 0x0d, 0x4d, 0x0e, 0x7a, 0xe3, 0x7f,
+	0xe8, 0x73, 0x8b, 0xb3, 0x68, 0x67, 0xf6, 0x43, 0x85, 0x5a, 0xd9, 0x3a, 0x14, 0xb1, 0x86, 0xbe,
+	0x98, 0xb6, 0x73, 0x95, 0xec, 0x71, 0x3f, 0x25, 0xf7, 0x52, 0xc6, 0x55, 0x54, 0xea, 0x46, 0x81,
+	0x2f, 0x14, 0x45, 0xd6, 0xf3, 0x04, 0x13, 0x84, 0xda, 0xb1, 0x0c, 0xbb, 0x54, 0x28, 0xbf, 0x64,
+	0x69, 0x4f, 0xa9, 0x5f, 0xa0, 0x72, 0x87, 0x8a, 0xf8, 0x15, 0x93, 0xff, 0x8f, 0x8a, 0x6b, 0x52,
+	0xa9, 0xaa, 0x05, 0xed, 0x53, 0xf3, 0x9b, 0xbe, 0xdd, 0xb5, 0xbe, 0x59, 0x9c, 0x59, 0x5c, 0x8f,
+	0xc9, 0x92, 0x90, 0x79, 0x3c, 0x4d, 0x09, 0x98, 0xa5, 0x04, 0xcc, 0x53, 0x02, 0x56, 0x29, 0x81,
+	0x37, 0x19, 0x81, 0x77, 0x19, 0x81, 0xd3, 0x8c, 0xc0, 0x59, 0x46, 0xe0, 0x43, 0x46, 0xe0, 0x63,
+	0x46, 0xc0, 0x2a, 0x23, 0xf0, 0x76, 0x49, 0xc0, 0x6c, 0x49, 0xc0, 0x7c, 0x49, 0x40, 0xef, 0xbd,
+	0xfc, 0x11, 0x47, 0xcf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xde, 0xbb, 0x9a, 0x52, 0x71, 0x02, 0x00,
+	0x00,
 }
 
 func (this *JetInfo) Equal(that interface{}) bool {
@@ -244,9 +246,9 @@ func (this *JetsInfo) GoString() string {
 	s = append(s, "&executor.JetsInfo{")
 	s = append(s, "Polymorph: "+fmt.Sprintf("%#v", this.Polymorph)+",\n")
 	if this.Jets != nil {
-		vs := make([]*JetInfo, len(this.Jets))
+		vs := make([]JetInfo, len(this.Jets))
 		for i := range vs {
-			vs[i] = &this.Jets[i]
+			vs[i] = this.Jets[i]
 		}
 		s = append(s, "Jets: "+fmt.Sprintf("%#v", vs)+",\n")
 	}
@@ -264,7 +266,7 @@ func valueToGoStringJetinfo(v interface{}, typ string) string {
 func (m *JetInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -272,96 +274,105 @@ func (m *JetInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *JetInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *JetInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJetinfo(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintJetinfo(dAtA, i, uint64(m.JetID.Size()))
-	n1, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	if len(m.HotConfirmed) > 0 {
-		for _, msg := range m.HotConfirmed {
-			dAtA[i] = 0xaa
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintJetinfo(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if m.DropConfirmed {
-		dAtA[i] = 0xb0
-		i++
-		dAtA[i] = 0x1
-		i++
-		if m.DropConfirmed {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.BackupConfirmed {
-		dAtA[i] = 0xb8
-		i++
-		dAtA[i] = 0x1
-		i++
-		if m.BackupConfirmed {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	if m.Split {
-		dAtA[i] = 0xc0
-		i++
-		dAtA[i] = 0x1
-		i++
-		if m.Split {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
 	if m.IsSplitSet {
-		dAtA[i] = 0xc8
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.IsSplitSet {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc8
 	}
-	return i, nil
+	if m.Split {
+		i--
+		if m.Split {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc0
+	}
+	if m.BackupConfirmed {
+		i--
+		if m.BackupConfirmed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
+	}
+	if m.DropConfirmed {
+		i--
+		if m.DropConfirmed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
+	if len(m.HotConfirmed) > 0 {
+		for iNdEx := len(m.HotConfirmed) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size := m.HotConfirmed[iNdEx].Size()
+				i -= size
+				if _, err := m.HotConfirmed[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+					return 0, err
+				}
+				i = encodeVarintJetinfo(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
+	}
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintJetinfo(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintJetinfo(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *JetsInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -369,42 +380,51 @@ func (m *JetsInfo) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *JetsInfo) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *JetsInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJetinfo(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Jets) > 0 {
-		for _, msg := range m.Jets {
-			dAtA[i] = 0xa2
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintJetinfo(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Jets) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Jets[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintJetinfo(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
 		}
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintJetinfo(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintJetinfo(dAtA []byte, offset int, v uint64) int {
+	offset -= sovJetinfo(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *JetInfo) Size() (n int) {
 	if m == nil {
@@ -457,14 +477,7 @@ func (m *JetsInfo) Size() (n int) {
 }
 
 func sovJetinfo(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozJetinfo(x uint64) (n int) {
 	return sovJetinfo(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -489,9 +502,14 @@ func (this *JetsInfo) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForJets := "[]JetInfo{"
+	for _, f := range this.Jets {
+		repeatedStringForJets += strings.Replace(strings.Replace(f.String(), "JetInfo", "JetInfo", 1), `&`, ``, 1) + ","
+	}
+	repeatedStringForJets += "}"
 	s := strings.Join([]string{`&JetsInfo{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
-		`Jets:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Jets), "JetInfo", "JetInfo", 1), `&`, ``, 1) + `,`,
+		`Jets:` + repeatedStringForJets + `,`,
 		`}`,
 	}, "")
 	return s
@@ -614,7 +632,7 @@ func (m *JetInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.JetID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID
 			m.HotConfirmed = append(m.HotConfirmed, v)
 			if err := m.HotConfirmed[len(m.HotConfirmed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -833,6 +851,7 @@ func (m *JetsInfo) Unmarshal(dAtA []byte) error {
 func skipJetinfo(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -864,10 +883,8 @@ func skipJetinfo(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -888,55 +905,30 @@ func skipJetinfo(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthJetinfo
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthJetinfo
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowJetinfo
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipJetinfo(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthJetinfo
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupJetinfo
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthJetinfo
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthJetinfo = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowJetinfo   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthJetinfo        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowJetinfo          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupJetinfo = fmt.Errorf("proto: unexpected end of group")
 )
