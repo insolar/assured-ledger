@@ -6,7 +6,6 @@
 package uniserver
 
 import (
-	"errors"
 	"io"
 	"time"
 
@@ -31,10 +30,11 @@ func NewReceiveBuffer(regularLimit, priorityLimit, largeLimit int, dispatcher un
 		priorityBuf = make(chan smallPacket, priorityLimit)
 	}
 	return ReceiveBuffer{
-		priorityBuf: priorityBuf,
-		regularBuf:  make(chan smallPacket, regularLimit),
-		largeSema:   synckit.NewSemaphore(largeLimit),
-		dispatcher:  dispatcher,
+		priorityBuf:  priorityBuf,
+		regularBuf:   make(chan smallPacket, regularLimit),
+		largeSema:    synckit.NewSemaphore(largeLimit),
+		largeTimeout: 10 * time.Second,
+		dispatcher:   dispatcher,
 	}
 }
 
@@ -165,7 +165,7 @@ func (p ReceiveBuffer) ReceiveLargePacket(rp *uniproto.ReceivedPacket, preRead [
 			if p.discardedFn != nil {
 				p.discardedFn(rp.From, pt)
 			}
-			return errors.New("timeout")
+			return throw.FailHere("timeout")
 		}
 		defer p.largeSema.Unlock()
 	}

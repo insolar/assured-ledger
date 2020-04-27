@@ -215,7 +215,6 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limi
 			}
 		case nwaddr.HostPK, nwaddr.HostID, nwaddr.LocalUID:
 			// addressable, but is not connectable
-			continue
 		default:
 			err = throw.NotImplemented()
 		}
