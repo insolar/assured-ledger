@@ -131,11 +131,11 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 	case pulseSlotMachine == nil || pulseState == 0:
 		return fmt.Errorf("slotMachine is missing: pn=%v", pn)
 	}
+
 	if prevPulse {
 		pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
 		return p.AddInputExt(ctx, pr.LeftBoundNumber(), event, false, createDefaults)
 	}
-	// pulseSlotMachine.pulseSlot.prevPulse
 
 	createFn := p.factoryFn(targetPN, event)
 
@@ -345,8 +345,7 @@ func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error 
 		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			return p.presentMachine.preparePulseChange(ctx, out)
 		}) {
-			// p.pdm.unsetPreparingPulse()
-			// close(out)
+			// TODO handle stuck PulseSlot - need to do p.pdm.unsetPreparingPulse(), then close(out) when relevant code is available on network side
 			panic("present slot is busy")
 		}
 	})
