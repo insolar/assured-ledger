@@ -54,10 +54,16 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 		preallocate += maxEventBufferIncrement
 	}
 
-	encoder := objectEncoder{v.encoder, nil, time.Now(), level == logcommon.DebugLevel, level}
-	if v.recycleBuf {
-		encoder.content = allocateBuffer(preallocate)
-	} else {
+	encoder := objectEncoder{v.encoder, nil, nil, time.Now(), level == logcommon.DebugLevel, level}
+	switch {
+	case v.recycleBuf:
+		encoder.poolBuf = allocateBuffer(preallocate)
+		if encoder.poolBuf != nil {
+			encoder.content = (*encoder.poolBuf)[:0]
+			break
+		}
+		fallthrough
+	default:
 		encoder.content = make([]byte, 0, preallocate)
 	}
 
@@ -126,10 +132,8 @@ func (v binLogAdapter) sendEvent(encoder objectEncoder, msgStr string, completed
 		defer os.Exit(1)
 	}
 
-	if v.recycleBuf {
-		// only non-finalized buffer can be recycled
-		// as finalization can cut a buffer's head
-		reuseBuffer(encoder.content)
+	if encoder.poolBuf != nil {
+		reuseBuffer(encoder.poolBuf)
 	}
 
 	switch {
@@ -271,7 +275,7 @@ func (v binLogAdapter) Is(level log.Level) bool {
 
 // NB! Reference receiver allows the builder to return the existing instance when nothing was changed, otherwise it will make a copy
 func (v *binLogAdapter) Copy() logcommon.EmbeddedLoggerBuilder {
-	return binLogTemplate{template: v}
+	return binLogTemplate{template: v, binLogFactory: binLogFactory{recycleBuf: v.recycleBuf}}
 }
 
 func (v binLogAdapter) GetLoggerOutput() logcommon.LoggerOutput {
@@ -287,7 +291,7 @@ func (v binLogAdapter) _prepareAppendFields(nExpected int) objectEncoder {
 		buf = make([]byte, 0, len(v.staticFields)+required)
 	}
 	buf = append(buf, v.staticFields...)
-	return objectEncoder{v.encoder, buf, time.Time{}, false, 0}
+	return objectEncoder{v.encoder, nil, buf, time.Time{}, false, 0}
 }
 
 // NB! Reference receiver allows return of the existing instance when nothing was changed, otherwise it will make a copy
@@ -336,7 +340,7 @@ func (v *binLogAdapter) _addFieldsByBuilder(fields map[string]interface{}) {
 		newFields = &v.staticFields
 	}
 
-	objEncoder := objectEncoder{v.encoder, *newFields, time.Time{}, false, 0}
+	objEncoder := objectEncoder{v.encoder, nil, *newFields, time.Time{}, false, 0}
 	objEncoder.addIntfFields(fields)
 	*newFields = objEncoder.content
 }
