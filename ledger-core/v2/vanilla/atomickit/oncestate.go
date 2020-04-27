@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Once struct {
@@ -140,7 +141,7 @@ func (p *StartStopFlag) DoStop(f func()) bool {
 }
 
 func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
-	for {
+	for i := 0; ; i++ {
 		switch atomic.LoadInt32(&p.done) {
 		case 0:
 			if atomic.CompareAndSwapInt32(&p.done, 0, 2) {
@@ -149,6 +150,15 @@ func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
 			}
 		case 1:
 			return p.DoStop(stopFn)
+		case -1:
+			switch {
+			case i < 10:
+				runtime.Gosched()
+			case i < 100:
+				time.Sleep(time.Microsecond)
+			default:
+				time.Sleep(time.Millisecond)
+			}
 		default:
 			return false
 		}
@@ -159,7 +169,7 @@ func (p *StartStopFlag) Start() bool {
 	return !atomic.CompareAndSwapInt32(&p.done, 0, 1)
 }
 
-func (p *StartStopFlag) Stop(f func()) bool {
+func (p *StartStopFlag) Stop() bool {
 	return !atomic.CompareAndSwapInt32(&p.done, 1, 3)
 }
 
