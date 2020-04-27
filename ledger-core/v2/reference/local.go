@@ -268,9 +268,6 @@ func UnmarshalLocalJSON(b []byte) (v Local, err error) {
 }
 
 func MarshalLocalJSON(v Local) (b []byte, err error) {
-	//if v == nil {
-	//	return json.Marshal(nil)
-	//}
 	return json.Marshal(v.Encode(DefaultEncoder()))
 }
 

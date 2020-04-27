@@ -34,6 +34,11 @@ func TestWithDefaultSeverity(t *testing.T) {
 	require.Equal(t, BlameSeverity, SeverityOf(WithDefaultSeverity(Blame("test"), NormalSeverity)))
 }
 
+func TestWithEscalatedSeverity(t *testing.T) {
+	require.Equal(t, FraudSeverity, SeverityOf(WithEscalatedSeverity(Blame("test"), FraudSeverity)))
+	require.Equal(t, BlameSeverity, SeverityOf(WithEscalatedSeverity(Blame("test"), NormalSeverity)))
+}
+
 func TestGetSeverity(t *testing.T) {
 	s, ok := GetSeverity(New("test"))
 	require.False(t, ok)

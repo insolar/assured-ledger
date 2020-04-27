@@ -68,7 +68,7 @@ func main() {
 			noError(conveyor.PreparePulseChange(nil))
 		}
 		time.Sleep(100 * time.Millisecond)
-		noError(conveyor.CommitPulseChange(pd.AsRange()))
+		noError(conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
 		fmt.Println("<<<================================== ", pd, " ====================================")
 		pd = pd.CreateNextPulsarPulse(10, func() longbits.Bits256 {
 			return longbits.Bits256{}

@@ -6,6 +6,8 @@
 package conveyor
 
 import (
+	"time"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
@@ -36,6 +38,19 @@ func (p *PulseSlot) PulseData() pulse.Data {
 		panic("illegal state - not initialized")
 	}
 	return pd
+}
+
+func (p *PulseSlot) PulseRange() (pulse.Range, PulseSlotState) {
+	pr, st := p.pulseData.PulseRange()
+	if pr == nil {
+		// possible incorrect injection for SM in the Antique slot
+		panic("illegal state - not initialized")
+	}
+	return pr, st
+}
+
+func (p *PulseSlot) PulseStartedAt() time.Time {
+	return p.pulseData.PulseStartedAt()
 }
 
 func (p *PulseSlot) isAcceptedFutureOrPresent(pn pulse.Number) (isFuture, isAccepted bool) {

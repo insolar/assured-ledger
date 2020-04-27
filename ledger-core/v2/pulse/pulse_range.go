@@ -10,16 +10,17 @@ import "math"
 type FindNumberFunc func(n Number, prevDelta, nextDelta uint16) bool
 
 type Range interface {
-	// Left bound of the range. It may be an expected pulse.
-	LeftPrevDelta() uint16
+	// LeftBoundNumber provides a left bound of the range. It may be an expected pulse.
 	LeftBoundNumber() Number
+	// LeftPrevDelta is PrevDelta associated with the left boundary (refers to a pulse _before_ the left boundary).
+	LeftPrevDelta() uint16
 
-	// Right bound of the range. MUST be a valid pulse data.
+	// RightBoundData returns a right bound of the range. MUST be a valid pulse data.
 	RightBoundData() Data
 
-	// Indicates that this range requires articulated pulses to be properly chained.
+	// IsArticulated indicates that this range requires articulated pulses to be properly chained.
 	IsArticulated() bool
-	// Indicates that this range is a singular and contains only one pulse.
+	// IsSingular indicates that this range is a singular and contains only one pulse.
 	IsSingular() bool
 
 	// Iterates from smaller to higher pulses, over both provided and articulated pulses within the range.

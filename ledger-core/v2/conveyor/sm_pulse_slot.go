@@ -7,6 +7,7 @@ package conveyor
 
 import (
 	"context"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
@@ -96,13 +97,13 @@ func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
 	}
 }
 
-func (p *PulseSlotMachine) setPresent(pr pulse.Range) {
+func (p *PulseSlotMachine) setPresent(pr pulse.Range, pulseStart time.Time) {
 	switch {
 	case p.pulseSlot.pulseData == nil || p.innerMachine.IsEmpty():
 		pr.RightBoundData().EnsurePulsarData()
-		p.pulseSlot.pulseData = &presentPulseDataHolder{pr: pr}
+		p.pulseSlot.pulseData = &presentPulseDataHolder{pr: pr, at: pulseStart}
 	default:
-		p.pulseSlot.pulseData.MakePresent(pr)
+		p.pulseSlot.pulseData.MakePresent(pr, pulseStart)
 	}
 }
 
