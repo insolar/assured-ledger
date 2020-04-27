@@ -112,7 +112,7 @@ func (t TestDataVerifier) IsSignOfSignatureMethodSupported(m cryptkit.SignatureM
 }
 
 func (t TestDataVerifier) IsValidDigestSignature(digest cryptkit.DigestHolder, signature cryptkit.SignatureHolder) bool {
-	return longbits.EqualFixedLenWriterTo(digest, signature)
+	return longbits.Equal(digest, signature)
 }
 
 func (t TestDataVerifier) IsValidDataSignature(data io.Reader, signature cryptkit.SignatureHolder) bool {
