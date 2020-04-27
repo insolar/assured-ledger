@@ -6,7 +6,6 @@
 package msgdelivery
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -29,7 +28,7 @@ func TestController(t *testing.T) {
 
 	controller1 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-			fmt.Println(a.String(), v)
+			t.Log(a.String(), v)
 			return nil
 		}, nil, TestLogAdapter{t})
 
@@ -65,7 +64,7 @@ func TestController(t *testing.T) {
 
 	controller2 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-			fmt.Println(a.String(), v)
+			t.Log(a.String(), v)
 			return nil
 		}, nil, TestLogAdapter{t})
 
