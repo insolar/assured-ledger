@@ -1,0 +1,1000 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: insolar
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: insolar-bootstrap
+  namespace: insolar
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: insolar-bootstrap
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: insolar-bootstrap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: insolar-bootstrap
+subjects:
+- kind: ServiceAccount
+  name: insolar-bootstrap
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  run.sh: |-
+    #!/bin/bash -e
+    # BE CAREFUL, THIS FILE DIFFERS FROM PL 1.X
+    apt-get update -qq
+    apt-get install curl -y -qq
+    curl -L https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl -o /usr/bin/kubectl
+    chmod +x /usr/bin/kubectl
+    if (kubectl get secret node-keys -o yaml | grep -q 'pulsar-0.json'); then echo "Bootstrap data already present, exiting"; exit; fi
+    kubectl -n insolar create secret generic node-certs
+    kubectl -n insolar create secret generic node-keys
+    INSOLAR_BIN=${INSOLAR_BIN:-"insolar"}
+    BOOTSTRAP_CONFIG=${BOOTSTRAP_CONFIG:-"/etc/bootstrap/bootstrap.yaml"}
+    CONFIGS_DIR=${CONFIGS_DIR:-"/var/data/bootstrap/configs/"}
+    PULSAR_KEYS=/var/data/bootstrap/discovery-keys/pulsar-0.json
+    generate_pulsar_keys() {
+        echo "generate pulsar keys: ${PULSAR_KEYS}"
+        ${INSOLAR_BIN} gen-key-pair > ${PULSAR_KEYS}
+    }
+    generate_root_member_keys() {
+        echo "generate members keys in dir: $CONFIGS_DIR"
+        ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}root_member_keys.json
+        ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}fee_member_keys.json
+        ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}migration_admin_member_keys.json
+        for b in {0..9}; do
+            ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}migration_daemon_${b}_member_keys.json
+        done
+        for b in {0..139}; do
+            ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}network_incentives_${b}_member_keys.json
+        done
+        for b in {0..39}; do
+            ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}application_incentives_${b}_member_keys.json
+        done
+        for b in {0..39}; do
+            ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}foundation_${b}_member_keys.json
+        done
+        ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}funds_0_member_keys.json
+        for b in {0..7}; do
+            ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}enterprise_${b}_member_keys.json
+        done
+    }
+    generate_migration_addresses() {
+        echo "generate migration addresses: ${CONFIGS_DIR}migration_addresses.json"
+        ${INSOLAR_BIN} gen-migration-addresses > ${CONFIGS_DIR}migration_addresses.json
+    }
+    bootstrap() {
+        echo "bootstrap start"
+        generate_pulsar_keys
+        generate_root_member_keys
+        generate_migration_addresses
+    }
+    mkdir -p ${CONFIGS_DIR} /var/data/bootstrap/certs
+    mkdir -p ${CONFIGS_DIR} /var/data/bootstrap/discovery-keys
+    bootstrap
+    $INSOLAR_BIN bootstrap -c $BOOTSTRAP_CONFIG --propernames=true
+    MY_BIN_DIR=$( dirname "${BASH_SOURCE[0]}" )
+    cd /var/data/bootstrap
+    #todo fix cert path configuration in insolar
+    kubectl -n insolar create secret generic node-certs --from-file=/go/src/github.com/insolar/assured-ledger --dry-run=client -o yaml | kubectl -n insolar apply -f -
+    kubectl -n insolar create secret generic node-keys  --from-file=/var/data/bootstrap/discovery-keys --dry-run=client -o yaml | kubectl -n insolar apply -f -
+kind: ConfigMap
+metadata:
+  name: app-bootstrap
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  bootstrap.yaml: |-
+    members_keys_dir: "/var/data/bootstrap/configs/"
+    discovery_keys_dir: "/var/data/bootstrap/discovery-keys/"
+    certificates_out_dir: "/var/data/bootstrap/certs/"
+    certificate_name_offset_from_zero: True
+    keys_name_format: "node-%d.json"
+    reuse_keys: false
+    heavy_genesis_config_file: "/var/data/bootstrap/heavy_genesis.json"
+    root_balance: "5000000000000000000"
+    md_balance: "5000000000000000000"
+    lockup_pulse_period: 20
+    pk_shard_count: 10000
+    ma_shard_count: 1000
+    vesting_pulse_period: 10
+    vesting_pulse_step: 10
+    majority_rule: 5
+    min_roles:
+      heavy_material: 1
+      virtual:  2
+      light_material: 2
+    discovery_nodes:
+    discovery_nodes:
+      -
+        host: "heavy-0.platform-network.insolar:13831"
+        role: "heavy_material"
+        cert_name: "heavy-0.json"
+      -
+        host: "virtual-0.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-0.json"
+      -
+        host: "virtual-1.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-1.json"
+      -
+        host: "light-0.platform-network.insolar:13831"
+        role: "light_material"
+        cert_name: "light-0.json"
+      -
+        host: "light-1.platform-network.insolar:13831"
+        role: "light_material"
+        cert_name: "light-1.json"
+kind: ConfigMap
+metadata:
+  name: bootstrap-yaml
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  heavy-config.yaml: |
+    host:
+      transport:
+        protocol: TCP
+        #address: 127.0.0.1:13831
+        fixedpublicaddress: ""
+      mintimeout: 10
+      maxtimeout: 2000
+      timeoutmult: 2
+      signmessages: false
+      handshakesessionttl: 5000
+      pulsewatchdogtimeout: 2592000
+    service:
+      cachedirectory: network_cache
+    ledger:
+      storage:
+        datadirectory: /var/data
+        badgervalueloggcdiscardratio: 0.4
+        gcrunfrequency: 1
+      jetsplit:
+        thresholdrecordscount: 100
+        thresholdoverflowcount: 3
+        depthlimit: 5
+      lightchainlimit: 5
+      backup:
+        enabled: false
+        tmpdirectory: ""
+        targetdirectory: ""
+        metainfofile: meta.json
+        confirmfile: BACKUPED
+        backupfile: incr.bkp
+        dirnametemplate: heavy-%d
+        backupwaitperiod: 60
+        postprocessbackupcmd: []
+      cleanerdelay: 3
+      maxnotificationsperpulse: 100
+      filamentcachelimit: 3000
+    log:
+      level: Debug
+      adapter: zerolog
+      formatter: json
+      outputtype: stderr
+      outputparallellimit: ""
+      outputparams: ""
+      buffersize: 0
+      llbuffersize: 0
+    metrics:
+      listenaddress: 0.0.0.0:8001
+      namespace: insolar
+      zpagesenabled: true
+      reportingperiod: 0s
+    logicrunner:
+      rpclisten: :33301
+      rpcprotocol: tcp
+      goplugin:
+        runnerlisten: :33300
+        runnerprotocol: tcp
+      pulselrusize: 100
+    apirunner:
+      address: 127.0.0.1:19101
+      rpc: /api/rpc
+      isadmin: false
+      swaggerpath: /app/api-exported.yaml
+    adminapirunner:
+      address: 127.0.0.1:19001
+      rpc: /admin-api/rpc
+      isadmin: true
+      swaggerpath: /app/api-exported.yaml
+    testwalletapi:
+      address: 0.0.0.0:32301
+    availabilitychecker:
+      enabled: false
+      keeperurl: http://127.0.0.1:12012/check
+      requesttimeout: 15
+      checkperiod: 5
+    tracer:
+      jaeger:
+        collectorendpoint: ""
+        agentendpoint: ""
+        probabilityrate: 1
+      samplingrules: {}
+    introspection:
+      addr: 127.0.0.1:55501
+    exporter:
+      addr: :5678
+    bus:
+      replytimeout: 15s
+kind: ConfigMap
+metadata:
+  name: heavy-config
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  light-config.yaml: |
+    host:
+      transport:
+        protocol: TCP
+        address: 127.0.0.1:0
+        fixedpublicaddress: ""
+      mintimeout: 10
+      maxtimeout: 2000
+      timeoutmult: 2
+      signmessages: false
+      handshakesessionttl: 5000
+      pulsewatchdogtimeout: 2592000
+    service:
+      cachedirectory: network_cache
+    ledger:
+      storage:
+        datadirectory: ./
+        badgervalueloggcdiscardratio: 0.4
+        gcrunfrequency: 1
+      jetsplit:
+        thresholdrecordscount: 100
+        thresholdoverflowcount: 3
+        depthlimit: 5
+      lightchainlimit: 5
+      backup:
+        enabled: false
+        tmpdirectory: ""
+        targetdirectory: ""
+        metainfofile: meta.json
+        confirmfile: BACKUPED
+        backupfile: incr.bkp
+        dirnametemplate: pulse-%d
+        backupwaitperiod: 60
+        postprocessbackupcmd: []
+      cleanerdelay: 3
+      maxnotificationsperpulse: 100
+      filamentcachelimit: 3000
+    log:
+      level: Debug
+      adapter: zerolog
+      formatter: json
+      outputtype: stderr
+      outputparallellimit: ""
+      outputparams: ""
+      buffersize: 0
+      llbuffersize: 0
+    metrics:
+      listenaddress: 0.0.0.0:9091
+      namespace: insolar
+      zpagesenabled: true
+      reportingperiod: 0s
+    logicrunner:
+      rpclisten: 0.0.0.0:33306
+      rpcprotocol: tcp
+      goplugin:
+        runnerlisten: 0.0.0.0:33305
+        runnerprotocol: tcp
+      pulselrusize: 100
+    apirunner:
+      address: localhost:19101
+      rpc: /api/rpc
+      isadmin: false
+      swaggerpath: /app/api-exported.yaml
+    adminapirunner:
+      address: 0.0.0.0:19001
+      rpc: /admin-api/rpc
+      isadmin: true
+      swaggerpath: /app/api-exported.yaml
+    testwalletapi:
+      address: 0.0.0.0:32302
+    availabilitychecker:
+      enabled: false
+      keeperurl: ""
+      requesttimeout: 15
+      checkperiod: 5
+    tracer:
+      jaeger:
+        collectorendpoint: ""
+        agentendpoint: ""
+        probabilityrate: 1
+      samplingrules: {}
+    introspection:
+      addr: 0.0.0.0:55502
+    exporter:
+      addr: :5678
+    bus:
+      replytimeout: 15s
+kind: ConfigMap
+metadata:
+  name: light-config
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  pulsard.yaml: |
+    log:
+      level: info
+    pulsar:
+      pulsetime: 10000
+      receivingsigntimeout: 1000
+      receivingnumbertimeout: 1000
+      receivingvectortimeout: 1000
+      receivingsignsforchosentimeout: 0
+      neighbours: []
+      numberdelta: 10
+      distributiontransport:
+        protocol: TCP
+    #    address: 127.0.0.1:58091
+    #    fixedpublicaddress: ""
+      pulsedistributor:
+        bootstraphosts:
+          - heavy-0.platform-network.insolar:13831
+          - light-0.platform-network.insolar:13831
+          - light-1.platform-network.insolar:13831
+          - virtual-0.platform-network.insolar:13831
+          - virtual-1.platform-network.insolar:13831
+        pingrequesttimeout: 1000
+        randomhostsrequesttimeout: 1000
+        pulserequesttimeout: 1000
+        randomnodescount: 5
+    keyspath: "/etc/insolar/keys/pulsar-0.json" # TODO after https://insolar.atlassian.net/browse/PENV-123
+    tracer:
+      jaeger:
+        collectorendpoint: ""
+        agentendpoint: ""
+        probabilityrate: 1
+    metrics:
+      listenaddress: 0.0.0.0:9090
+      namespace: insolar
+      zpagesenabled: false
+      reportingperiod: 0s
+kind: ConfigMap
+metadata:
+  name: pulsar-config
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  pulsewatcher.yaml: |
+    nodes:
+      - heavy-0.platform-network.insolar:19001
+      - light-0.platform-network.insolar:19001
+      - light-1.platform-network.insolar:19001
+      - virtual-0.platform-network.insolar:19001
+      - virtual-1.platform-network.insolar:19001
+    interval: 500ms
+    timeout: 1s
+kind: ConfigMap
+metadata:
+  name: pulsewatcher-config
+  namespace: insolar
+---
+apiVersion: v1
+data:
+  virtual-config.yaml: |
+    host:
+      transport:
+        protocol: TCP
+        address: 127.0.0.1:0
+        fixedpublicaddress: ""
+      mintimeout: 10
+      maxtimeout: 2000
+      timeoutmult: 2
+      signmessages: false
+      handshakesessionttl: 5000
+      pulsewatchdogtimeout: 2592000
+    service:
+      cachedirectory: network_cache
+    ledger:
+      storage:
+        datadirectory: ./
+        badgervalueloggcdiscardratio: 0.4
+        gcrunfrequency: 1
+      jetsplit:
+        thresholdrecordscount: 1
+        thresholdoverflowcount: 0
+        depthlimit: 4
+      lightchainlimit: 5
+      backup:
+        enabled: false
+        tmpdirectory: ""
+        targetdirectory: ""
+        metainfofile: meta.json
+        confirmfile: BACKUPED
+        backupfile: incr.bkp
+        dirnametemplate: pulse-%d
+        backupwaitperiod: 60
+        postprocessbackupcmd: []
+      cleanerdelay: 3
+      maxnotificationsperpulse: 100
+      filamentcachelimit: 3000
+    log:
+      level: Debug
+      adapter: zerolog
+      formatter: json
+      outputtype: stderr
+      outputparallellimit: ""
+      outputparams: ""
+      buffersize: 0
+      llbuffersize: 0
+    metrics:
+      listenaddress: 0.0.0.0:9091
+      namespace: insolar
+      zpagesenabled: true
+      reportingperiod: 0s
+    logicrunner:
+      rpclisten: 0.0.0.0:33315
+      rpcprotocol: tcp
+      goplugin:
+        runnerlisten: 0.0.0.0:33314
+        runnerprotocol: tcp
+      pulselrusize: 100
+    apirunner:
+      address: localhost:19101
+      rpc: /api/rpc
+      isadmin: false
+      swaggerpath: /app/api-exported.yaml
+    adminapirunner:
+      address: 0.0.0.0:19001
+      rpc: /admin-api/rpc
+      isadmin: true
+      swaggerpath: /app/api-exported.yaml
+    testwalletapi:
+      address: 0.0.0.0:32303
+    availabilitychecker:
+      enabled: false
+      keeperurl: ""
+      requesttimeout: 15
+      checkperiod: 5
+    tracer:
+      jaeger:
+        collectorendpoint: ""
+        agentendpoint: ""
+        probabilityrate: 1
+      samplingrules: {}
+    introspection:
+      addr: 0.0.0.0:55503
+    exporter:
+      addr: :5678
+    bus:
+      replytimeout: 15s
+kind: ConfigMap
+metadata:
+  name: virtual-config
+  namespace: insolar
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: insolard
+  name: platform-network
+  namespace: insolar
+spec:
+  clusterIP: None
+  ports:
+  - name: api
+    port: 19101
+    targetPort: public-api
+  - name: admin-api
+    port: 19001
+    targetPort: admin-api
+  - name: testwallet-api
+    port: 32301
+    targetPort: testwallet-api
+  selector:
+    scope: platform
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pulsewatcher
+  namespace: insolar
+spec:
+  clusterIP: None
+  selector:
+    scope: pulsewatcher
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulsewatcher
+  namespace: insolar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pulsewatcher
+  template:
+    metadata:
+      labels:
+        app: pulsewatcher
+        role: pulsewatcher
+        scope: pulsewatcher
+    spec:
+      containers:
+      - args:
+        - -c
+        - /etc/pulsewatcher/pulsewatcher.yaml
+        command:
+        - pulsewatcher
+        image: insolar/assured-ledger:latest
+        imagePullPolicy: IfNotPresent
+        name: pulsewatcher
+        volumeMounts:
+        - mountPath: /etc/pulsewatcher
+          name: pulsewatcher-config
+          readOnly: true
+      volumes:
+      - configMap:
+          name: pulsewatcher-config
+        name: pulsewatcher-config
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: heavy
+  namespace: insolar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heavy
+  serviceName: platform-network
+  template:
+    metadata:
+      labels:
+        app: heavy
+        role: heavy_material
+        scope: platform
+    spec:
+      containers:
+      - args:
+        - test
+        - node
+        - --role=heavy_material
+        - --config=/etc/insolar/heavy-config.yaml
+        - --heavy-genesis=/var/data/bootstrap/heavy_genesis.json
+        command:
+        - insolard
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: INSOLAR_KEYSPATH
+          value: /etc/insolar/keys/$(NODENAME).json
+        - name: INSOLAR_CERTIFICATEPATH
+          value: /etc/insolar/certs/$(NODENAME).json
+        - name: INSOLAR_HOST_TRANSPORT_ADDRESS
+          value: $(POD_IP):13831
+        - name: INSOLAR_METRICS_LISTENADDRESS
+          value: $(POD_IP):8001
+        - name: INSOLAR_APIRUNNER_ADDRESS
+          value: $(POD_IP):19101
+        - name: INSOLAR_ADMINAPIRUNNER_ADDRESS
+          value: $(POD_IP):19001
+        - name: INSOLAR_EXPORTER_ADDR
+          value: $(POD_IP):5678
+        - name: INSOLAR_TESTWALLETAPI_ADDRESS
+          value: $(POD_IP):32301
+        image: insolar/assured-ledger:latest
+        imagePullPolicy: IfNotPresent
+        name: insolar
+        ports:
+        - containerPort: 13831
+          name: discovery
+        - containerPort: 19101
+          name: public-api
+        - containerPort: 19001
+          name: admin-api
+        volumeMounts:
+        - mountPath: /var/data
+          name: database
+        - mountPath: /etc/insolar
+          name: heavy-config
+          readOnly: true
+        - mountPath: /etc/insolar/certs
+          name: node-certs
+          readOnly: true
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      initContainers:
+      - args:
+        - -c
+        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
+        command:
+        - bash
+        image: debian:buster-slim
+        name: wait
+        volumeMounts:
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      volumes:
+      - configMap:
+          name: heavy-config
+        name: heavy-config
+      - name: node-keys
+        secret:
+          secretName: node-keys
+      - name: node-certs
+        secret:
+          secretName: node-certs
+      - name: database
+        persistentVolumeClaim:
+          claimName: database-heavy-0
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: light
+  namespace: insolar
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: light
+  serviceName: platform-network
+  template:
+    metadata:
+      labels:
+        app: light
+        role: light_material
+        scope: platform
+    spec:
+      containers:
+      - args:
+        - test
+        - node
+        - --role=light_material
+        - --config=/etc/insolar/light-config.yaml
+        command:
+        - insolard
+        env:
+        - name: INSOLAR_LOG_LEVEL
+          value: debug
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: INSOLAR_KEYSPATH
+          value: /etc/insolar/keys/$(NODENAME).json
+        - name: INSOLAR_CERTIFICATEPATH
+          value: /etc/insolar/certs/$(NODENAME).json
+        - name: INSOLAR_HOST_TRANSPORT_ADDRESS
+          value: $(POD_IP):13831
+        - name: INSOLAR_METRICS_LISTENADDRESS
+          value: $(POD_IP):8001
+        - name: INSOLAR_APIRUNNER_ADDRESS
+          value: $(POD_IP):19101
+        - name: INSOLAR_ADMINAPIRUNNER_ADDRESS
+          value: $(POD_IP):19001
+        - name: INSOLAR_TESTWALLETAPI_ADDRESS
+          value: $(POD_IP):32301
+        image: insolar/assured-ledger:latest
+        imagePullPolicy: IfNotPresent
+        name: insolar
+        ports:
+        - containerPort: 13831
+          name: discovery
+        - containerPort: 19101
+          name: public-api
+        - containerPort: 19001
+          name: admin-api
+        volumeMounts:
+        - mountPath: /etc/insolar
+          name: light-config
+          readOnly: true
+        - mountPath: /etc/insolar/certs
+          name: node-certs
+          readOnly: true
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      initContainers:
+      - args:
+        - -c
+        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
+        command:
+        - bash
+        image: debian:buster-slim
+        name: wait
+        volumeMounts:
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      volumes:
+      - configMap:
+          name: light-config
+        name: light-config
+      - name: node-keys
+        secret:
+          secretName: node-keys
+      - name: node-certs
+        secret:
+          secretName: node-certs
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pulsar
+  namespace: insolar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pulsar
+  serviceName: platform-network
+  template:
+    metadata:
+      labels:
+        app: pulsar
+        role: pulsar
+        scope: platform
+    spec:
+      containers:
+      - args:
+        - --config
+        - /etc/pulsar/pulsard.yaml
+        command:
+        - pulsard
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: INSOLAR_KEYSPATH
+          value: /etc/insolar/keys/$(NODENAME).json
+        - name: INSOLAR_PULSAR_DISTRIBUTIONTRANSPORT_ADDRESS
+          value: $(POD_IP):58091
+        image: insolar/assured-ledger:latest
+        imagePullPolicy: IfNotPresent
+        name: pulsar
+        ports:
+        - containerPort: 58091
+          name: pulsar
+        volumeMounts:
+        - mountPath: /etc/pulsar
+          name: pulsar-config
+          readOnly: true
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      initContainers:
+      - args:
+        - -c
+        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
+        command:
+        - bash
+        image: debian:buster-slim
+        name: wait
+        volumeMounts:
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      volumes:
+      - configMap:
+          name: pulsar-config
+        name: pulsar-config
+      - name: node-keys
+        secret:
+          secretName: node-keys
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: virtual
+  namespace: insolar
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: virtual
+  serviceName: platform-network
+  template:
+    metadata:
+      labels:
+        app: virtual
+        role: virtual_material
+        scope: platform
+    spec:
+      containers:
+      - args:
+        - test
+        - node
+        - --role=virtual
+        - --config=/etc/insolar/virtual-config.yaml
+        command:
+        - insolard
+        env:
+        - name: INSOLAR_LOG_LEVEL
+          value: debug
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: INSOLAR_KEYSPATH
+          value: /etc/insolar/keys/$(NODENAME).json
+        - name: INSOLAR_CERTIFICATEPATH
+          value: /etc/insolar/certs/$(NODENAME).json
+        - name: INSOLAR_HOST_TRANSPORT_ADDRESS
+          value: $(POD_IP):13831
+        - name: INSOLAR_METRICS_LISTENADDRESS
+          value: $(POD_IP):8001
+        - name: INSOLAR_APIRUNNER_ADDRESS
+          value: $(POD_IP):19101
+        - name: INSOLAR_ADMINAPIRUNNER_ADDRESS
+          value: $(POD_IP):19001
+        - name: INSOLAR_TESTWALLETAPI_ADDRESS
+          value: $(POD_IP):32301
+        image: insolar/assured-ledger:latest
+        imagePullPolicy: IfNotPresent
+        name: insolar
+        ports:
+        - containerPort: 13831
+          name: discovery
+        - containerPort: 19101
+          name: public-api
+        - containerPort: 19001
+          name: admin-api
+        - containerPort: 32301
+          name: testwallet-api
+        volumeMounts:
+        - mountPath: /etc/insolar
+          name: virtual-config
+          readOnly: true
+        - mountPath: /etc/insolar/certs
+          name: node-certs
+          readOnly: true
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      initContainers:
+      - args:
+        - -c
+        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
+        command:
+        - bash
+        image: debian:buster-slim
+        name: wait
+        volumeMounts:
+        - mountPath: /etc/insolar/keys
+          name: node-keys
+          readOnly: true
+      volumes:
+      - configMap:
+          name: virtual-config
+        name: virtual-config
+      - name: node-keys
+        secret:
+          secretName: node-keys
+      - name: node-certs
+        secret:
+          secretName: node-certs
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+  name: api-proxy
+  namespace: insolar
+spec:
+  rules:
+  - host: localhost
+    http:
+      paths:
+      - backend:
+          serviceName: platform-network
+          servicePort: 19101
+        path: /api
+      - backend:
+          serviceName: platform-network
+          servicePort: 19001
+        path: /admin-api
+      - backend:
+          serviceName: platform-network
+          servicePort: 32301
+        path: /wallet
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers: []
+  name: database-heavy-0
+  namespace: insolar
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2G
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bootstrap
+  namespace: insolar
+spec:
+  containers:
+  - command:
+    - bash
+    - -c
+    - bash /app/bootstrap/run.sh
+    image: insolar/assured-ledger:latest
+    imagePullPolicy: IfNotPresent
+    name: gen
+    volumeMounts:
+    - mountPath: /var/data
+      name: database
+    - mountPath: /etc/bootstrap
+      name: bootstrap-yaml
+      readOnly: true
+    - mountPath: /app/bootstrap
+      name: app-bootstrap
+    - mountPath: /etc/insolar
+      name: heavy-config
+      readOnly: true
+  restartPolicy: Never
+  serviceAccountName: insolar-bootstrap
+  terminationGracePeriodSeconds: 10
+  volumes:
+  - configMap:
+      name: bootstrap-yaml
+    name: bootstrap-yaml
+  - configMap:
+      name: app-bootstrap
+    name: app-bootstrap
+  - name: database
+    persistentVolumeClaim:
+      claimName: database-heavy-0
+  - configMap:
+      name: heavy-config
+    name: heavy-config

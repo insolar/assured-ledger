@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 0-Namespace.yaml
+  - 1-bootstrap.yaml
+  - 1-heavy-PVC.yaml
+  - 2-platform-network-Service.yaml
+  - 3-heavy.yaml
+  - 3-light.yaml
+  - 3-pulsar.yaml
+  - 3-pulsewatcher.yaml
+  - 3-virtual.yaml
+  - 4-ingress.yaml

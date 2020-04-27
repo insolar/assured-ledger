@@ -105,7 +105,6 @@ func getURL(path, host, port string) string {
 		port = defaultPorts[rand.Intn(len(defaultPorts))]
 	}
 
-	// todo refactor this
 	hostOverride := os.Getenv(launchnet.TestWalletHost)
 	if hostOverride != "" {
 		host = hostOverride

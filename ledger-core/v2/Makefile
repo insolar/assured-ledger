@@ -128,18 +128,6 @@ docker_build: ## build image with binaries and files required for kubernetes dep
 	docker tag insolar/assured-ledger:$(DOCKER_IMAGE_TAG) insolar/assured-ledger:latest
 	docker images "insolar/assured-ledger"
 
-.PHONY: docker_build_tests
-docker_build_tests: ## build image with binaries and files required for kubernetes deployment.
-	docker build -t insolar/assured-ledger-tests:$(DOCKER_IMAGE_TAG) \
-		--build-arg BUILD_DATE="$(BUILD_DATE)" \
-		--build-arg BUILD_TIME="$(BUILD_TIME)" \
-		--build-arg BUILD_NUMBER="$(BUILD_NUMBER)" \
-		--build-arg BUILD_HASH="$(BUILD_HASH)" \
-		--build-arg BUILD_VERSION="$(BUILD_VERSION)" \
-		-f Dockerfile.tests .
-	docker tag insolar/assured-ledger-tests:$(DOCKER_IMAGE_TAG) insolar/assured-ledger-tests:latest
-	docker images "insolar/assured-ledger-tests"
-
 $(ARTIFACTS_DIR):
 	mkdir -p $(ARTIFACTS_DIR)
 

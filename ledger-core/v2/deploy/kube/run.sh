@@ -4,7 +4,7 @@ NUM_DISCOVERY_NODES=5
 INSOLAR_IMAGE="insolar/assured-ledger:latest"
 ARTIFACTS_DIR="/tmp/insolar"
 set -x
-check_environment() {
+check_dependencies() {
   command -v docker >/dev/null 2>&1 || {
     echo >&2 "docker is required. Aborting."
     exit 1
@@ -13,7 +13,8 @@ check_environment() {
     echo >&2 "kubectl is required. Aborting."
     exit 1
   }
- check_docker_images
+  check_docker_images
+  check_ingress_installation
 }
 
 # Delete this after image templating will be done, and images will be in insolar hub
@@ -24,8 +25,19 @@ check_docker_images(){
   fi
 }
 
+check_ingress_installation(){
+  if [ "$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+  fi
+}
+
+delete_ingress(){
+  kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+}
+
 run_network() {
-  kubectl apply -f $DIR 2>&1 || {
+  kubectl kustomize "$DIR" >"$DIR/generated.yaml"
+  kubectl apply -f "$DIR/generated.yaml" 2>&1 || {
     echo >&2 "kubectl apply failed. Aborting."
     exit 1
   }
@@ -58,10 +70,6 @@ copy_bootstrap_config_to_temp() {
   kubectl -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' >"$ARTIFACTS_DIR/bootstrap.yaml"
 }
 
-stop_network() {
-  kubectl delete -f $DIR
-}
-
 collect_logs() {
   log_dir="$ARTIFACTS_DIR/logs"
   rm -rf $log_dir
@@ -73,7 +81,7 @@ collect_logs() {
   kubectl -n insolar logs virtual-1 >"$log_dir/virtual-1"
 }
 
-check_environment
+check_dependencies
 echo "Starting insolar"
 run_network
 wait_for_complete_network_state
