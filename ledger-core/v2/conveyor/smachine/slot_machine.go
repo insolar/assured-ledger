@@ -298,11 +298,11 @@ func (m *SlotMachine) recycleSlotWithError(slot *Slot, worker FixedSlotWorker, e
 				slot.defResult, err})
 		}
 
-		if slot.slotFlags&(slotHadAsync|slotHasBargeIn|slotHasAliases) != 0 {
+		if slot.hasAsyncOrBargeIn() || slot.slotFlags&(slotHadAliases) != 0 {
 			defer m.syncQueue.FlushSlotDetachQueue(link.SlotLink)
 		}
 
-		if slot.slotFlags&slotHasAliases != 0 {
+		if slot.slotFlags&slotHadAliases != 0 {
 			// cleanup aliases associated with the slot
 			// MUST happen before releasing of dependencies
 			m.unregisterBoundAliases(link.SlotID())
