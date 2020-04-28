@@ -52,6 +52,16 @@ jobs:
         if: always()
         run: make test_func
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Aggregate logs in a single archive
+        if: always()
+        run: tar -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Apload logs to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: nodes-output
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/nodes-output.tgz
       - name: Upload coverage to Codecov  
         run: ./scripts/dev/codecov-upload.sh -f ./coverage.out -y ./.codecov.yml -n coverage-report -F
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
