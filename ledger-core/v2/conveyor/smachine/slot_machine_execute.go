@@ -281,7 +281,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 
 	if slot.canMigrateWorking(prevStepNo, wasAsync) {
 		_, migrateCount := m.getScanAndMigrateCounts()
-		if _, isAvailable := m._migrateSlot(migrateCount, slot, prevStepNo, worker); !isAvailable {
+		if _, isAvailable := m._migrateSlot(migrateCount, slot, worker); !isAvailable {
 			return false
 		}
 	}

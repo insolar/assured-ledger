@@ -78,14 +78,14 @@ func (m *SlotMachine) migrateSlot(migrateCount uint32, slot *Slot, w FixedSlotWo
 		return false, false
 	}
 
-	isEmptyOrWeak, isAvailable = m._migrateSlot(migrateCount, slot, prevStepNo, w)
+	isEmptyOrWeak, isAvailable = m._migrateSlot(migrateCount, slot, w)
 	if isAvailable {
 		m.stopSlotWorking(slot, prevStepNo, w)
 	}
 	return isEmptyOrWeak, isAvailable
 }
 
-func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevStepNo uint32, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
+func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
 
 	inactivityNano := slot.touch(time.Now().UnixNano())
 
