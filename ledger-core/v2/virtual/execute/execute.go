@@ -225,7 +225,7 @@ func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpd
 
 	objectSharedState := s.objectSharedState
 	switch objectSharedState.Prepare(func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounterOnce(!s.execution.Unordered)
+		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
 	}).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
 		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
