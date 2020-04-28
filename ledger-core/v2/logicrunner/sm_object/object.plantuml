@@ -1,0 +1,41 @@
+@startuml
+Init : migrateSendStateBeforeExecution
+Init -[#blue]-> migrateSendStateBeforeExecution
+Init --> [*]
+Init --> stepCheckPreviousExecutor : Jump
+migrateSendStateBeforeExecution : NIL
+migrateSendStateBeforeExecution --> stateSendStateBeforeExecution : Jump
+stepCheckPreviousExecutor : INHERITED
+stepCheckPreviousExecutor : migrateSendStateBeforeExecution
+stepCheckPreviousExecutor -[#blue]-> migrateSendStateBeforeExecution
+stepCheckPreviousExecutor --> stepGetPendingsInformation : Jump
+stepCheckPreviousExecutor --> stepCheckPreviousExecutor : ThenRepeat
+stepCheckPreviousExecutor --> stepGetLatestValidatedState : Jump
+stateSendStateBeforeExecution : INHERITED
+stateSendStateBeforeExecution --> [*]
+stepGetPendingsInformation : INHERITED
+stepGetPendingsInformation : migrateSendStateBeforeExecution
+stepGetPendingsInformation -[#blue]-> migrateSendStateBeforeExecution
+stepGetPendingsInformation --> stepCheckPreviousExecutor : ThenJump
+stepGetLatestValidatedState : migrateStop
+stepGetLatestValidatedState -[#blue]-> migrateStop
+stepGetLatestValidatedState --> stateGotLatestValidatedStatePrototypeAndCode : Jump
+stepGetLatestValidatedState --> stateGotLatestValidatedStatePrototypeAndCode : ThenJump
+migrateStop : INHERITED
+migrateStop --> [*]
+stateGotLatestValidatedStatePrototypeAndCode : INHERITED
+stateGotLatestValidatedStatePrototypeAndCode : migrateStop
+stateGotLatestValidatedStatePrototypeAndCode -[#blue]-> migrateStop
+stateGotLatestValidatedStatePrototypeAndCode --> stateGotLatestValidatedStatePrototypeAndCode : ThenJump
+stateGotLatestValidatedStatePrototypeAndCode --> waitForMigration : JumpExt
+stateGotLatestValidatedStatePrototypeAndCode -[#DarkGreen]-> migrateSendStateAfterExecution : JumpExt+(StepMigration)
+waitForMigration : INHERITED
+waitForMigration --> waitForMigration : ThenRepeat
+migrateSendStateAfterExecution : NIL
+migrateSendStateAfterExecution --> stateSendStateAfterExecution : Jump
+stateSendStateAfterExecution : INHERITED
+stateSendStateAfterExecution --> stateWaitFinishExecutionAfterMigration : Jump
+stateWaitFinishExecutionAfterMigration : INHERITED
+stateWaitFinishExecutionAfterMigration --> stateWaitFinishExecutionAfterMigration : ThenRepeat
+stateWaitFinishExecutionAfterMigration --> [*]
+@enduml
