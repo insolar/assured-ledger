@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Coordinator is responsible for all jet interactions
@@ -70,9 +69,6 @@ func (jc *Coordinator) QueryRole(
 
 	case insolar.DynamicRoleVirtualValidator:
 		return jc.VirtualValidatorsForObject(ctx, objID, pulseNumber)
-
-	default:
-		panic(throw.IllegalState())
 	}
 
 	inslogger.FromContext(ctx).Panicf("unexpected role %v", role.String())
