@@ -27,17 +27,17 @@ type FixedReaderMock struct {
 	beforeAsBytesCounter uint64
 	AsBytesMock          mFixedReaderMockAsBytes
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mFixedReaderMockCopyTo
+
 	funcFixedByteSize          func() (i1 int)
 	inspectFuncFixedByteSize   func()
 	afterFixedByteSizeCounter  uint64
 	beforeFixedByteSizeCounter uint64
 	FixedByteSizeMock          mFixedReaderMockFixedByteSize
-
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mFixedReaderMockRead
 
 	funcWriteTo          func(w io.Writer) (n int64, err error)
 	inspectFuncWriteTo   func(w io.Writer)
@@ -57,10 +57,10 @@ func NewFixedReaderMock(t minimock.Tester) *FixedReaderMock {
 
 	m.AsBytesMock = mFixedReaderMockAsBytes{mock: m}
 
-	m.FixedByteSizeMock = mFixedReaderMockFixedByteSize{mock: m}
+	m.CopyToMock = mFixedReaderMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*FixedReaderMockCopyToParams{}
 
-	m.ReadMock = mFixedReaderMockRead{mock: m}
-	m.ReadMock.callArgs = []*FixedReaderMockReadParams{}
+	m.FixedByteSizeMock = mFixedReaderMockFixedByteSize{mock: m}
 
 	m.WriteToMock = mFixedReaderMockWriteTo{mock: m}
 	m.WriteToMock.callArgs = []*FixedReaderMockWriteToParams{}
@@ -354,6 +354,221 @@ func (m *FixedReaderMock) MinimockAsBytesInspect() {
 	}
 }
 
+type mFixedReaderMockCopyTo struct {
+	mock               *FixedReaderMock
+	defaultExpectation *FixedReaderMockCopyToExpectation
+	expectations       []*FixedReaderMockCopyToExpectation
+
+	callArgs []*FixedReaderMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// FixedReaderMockCopyToExpectation specifies expectation struct of the FixedReader.CopyTo
+type FixedReaderMockCopyToExpectation struct {
+	mock    *FixedReaderMock
+	params  *FixedReaderMockCopyToParams
+	results *FixedReaderMockCopyToResults
+	Counter uint64
+}
+
+// FixedReaderMockCopyToParams contains parameters of the FixedReader.CopyTo
+type FixedReaderMockCopyToParams struct {
+	p []byte
+}
+
+// FixedReaderMockCopyToResults contains results of the FixedReader.CopyTo
+type FixedReaderMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for FixedReader.CopyTo
+func (mmCopyTo *mFixedReaderMockCopyTo) Expect(p []byte) *mFixedReaderMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("FixedReaderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &FixedReaderMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &FixedReaderMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the FixedReader.CopyTo
+func (mmCopyTo *mFixedReaderMockCopyTo) Inspect(f func(p []byte)) *mFixedReaderMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for FixedReaderMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by FixedReader.CopyTo
+func (mmCopyTo *mFixedReaderMockCopyTo) Return(i1 int) *FixedReaderMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("FixedReaderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &FixedReaderMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &FixedReaderMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the FixedReader.CopyTo method
+func (mmCopyTo *mFixedReaderMockCopyTo) Set(f func(p []byte) (i1 int)) *FixedReaderMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the FixedReader.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the FixedReader.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the FixedReader.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mFixedReaderMockCopyTo) When(p []byte) *FixedReaderMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("FixedReaderMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &FixedReaderMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &FixedReaderMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up FixedReader.CopyTo return parameters for the expectation previously defined by the When method
+func (e *FixedReaderMockCopyToExpectation) Then(i1 int) *FixedReaderMock {
+	e.results = &FixedReaderMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements FixedReader
+func (mmCopyTo *FixedReaderMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &FixedReaderMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := FixedReaderMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("FixedReaderMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the FixedReaderMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to FixedReaderMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished FixedReaderMock.CopyTo invocations
+func (mmCopyTo *FixedReaderMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of FixedReaderMock.CopyTo invocations
+func (mmCopyTo *FixedReaderMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to FixedReaderMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mFixedReaderMockCopyTo) Calls() []*FixedReaderMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*FixedReaderMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *FixedReaderMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *FixedReaderMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to FixedReaderMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to FixedReaderMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to FixedReaderMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to FixedReaderMock.CopyTo")
+	}
+}
+
 type mFixedReaderMockFixedByteSize struct {
 	mock               *FixedReaderMock
 	defaultExpectation *FixedReaderMockFixedByteSizeExpectation
@@ -494,222 +709,6 @@ func (m *FixedReaderMock) MinimockFixedByteSizeInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcFixedByteSize != nil && mm_atomic.LoadUint64(&m.afterFixedByteSizeCounter) < 1 {
 		m.t.Error("Expected call to FixedReaderMock.FixedByteSize")
-	}
-}
-
-type mFixedReaderMockRead struct {
-	mock               *FixedReaderMock
-	defaultExpectation *FixedReaderMockReadExpectation
-	expectations       []*FixedReaderMockReadExpectation
-
-	callArgs []*FixedReaderMockReadParams
-	mutex    sync.RWMutex
-}
-
-// FixedReaderMockReadExpectation specifies expectation struct of the FixedReader.Read
-type FixedReaderMockReadExpectation struct {
-	mock    *FixedReaderMock
-	params  *FixedReaderMockReadParams
-	results *FixedReaderMockReadResults
-	Counter uint64
-}
-
-// FixedReaderMockReadParams contains parameters of the FixedReader.Read
-type FixedReaderMockReadParams struct {
-	p []byte
-}
-
-// FixedReaderMockReadResults contains results of the FixedReader.Read
-type FixedReaderMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for FixedReader.Read
-func (mmRead *mFixedReaderMockRead) Expect(p []byte) *mFixedReaderMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("FixedReaderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &FixedReaderMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &FixedReaderMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the FixedReader.Read
-func (mmRead *mFixedReaderMockRead) Inspect(f func(p []byte)) *mFixedReaderMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for FixedReaderMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by FixedReader.Read
-func (mmRead *mFixedReaderMockRead) Return(n int, err error) *FixedReaderMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("FixedReaderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &FixedReaderMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &FixedReaderMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the FixedReader.Read method
-func (mmRead *mFixedReaderMockRead) Set(f func(p []byte) (n int, err error)) *FixedReaderMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the FixedReader.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the FixedReader.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the FixedReader.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mFixedReaderMockRead) When(p []byte) *FixedReaderMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("FixedReaderMock.Read mock is already set by Set")
-	}
-
-	expectation := &FixedReaderMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &FixedReaderMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up FixedReader.Read return parameters for the expectation previously defined by the When method
-func (e *FixedReaderMockReadExpectation) Then(n int, err error) *FixedReaderMock {
-	e.results = &FixedReaderMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements FixedReader
-func (mmRead *FixedReaderMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &FixedReaderMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := FixedReaderMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("FixedReaderMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the FixedReaderMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to FixedReaderMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished FixedReaderMock.Read invocations
-func (mmRead *FixedReaderMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of FixedReaderMock.Read invocations
-func (mmRead *FixedReaderMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to FixedReaderMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mFixedReaderMockRead) Calls() []*FixedReaderMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*FixedReaderMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *FixedReaderMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *FixedReaderMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to FixedReaderMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to FixedReaderMock.Read")
-		} else {
-			m.t.Errorf("Expected call to FixedReaderMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to FixedReaderMock.Read")
 	}
 }
 
@@ -936,9 +935,9 @@ func (m *FixedReaderMock) MinimockFinish() {
 
 		m.MinimockAsBytesInspect()
 
-		m.MinimockFixedByteSizeInspect()
+		m.MinimockCopyToInspect()
 
-		m.MinimockReadInspect()
+		m.MinimockFixedByteSizeInspect()
 
 		m.MinimockWriteToInspect()
 		m.t.FailNow()
@@ -966,7 +965,7 @@ func (m *FixedReaderMock) minimockDone() bool {
 	return done &&
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockFixedByteSizeDone() &&
-		m.MinimockReadDone() &&
 		m.MinimockWriteToDone()
 }

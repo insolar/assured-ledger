@@ -69,7 +69,7 @@ func NewPulseConveyor(
 	// shared SlotId sequence
 	r.slotConfig.config.SlotIDGenerateFn = r.slotMachine.CopyConfig().SlotIDGenerateFn
 
-	r.pdm.Init(config.MinCachePulseAge, config.MaxPastPulseAge, 1, config.PulseDataService)
+	r.pdm.init(config.MinCachePulseAge, config.MaxPastPulseAge, 1, config.PulseDataService)
 
 	return r
 }
@@ -118,6 +118,12 @@ func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smac
 }
 
 func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error {
+	return p.AddInputExt(ctx, pn, event, false, smachine.CreateDefaultValues{})
+}
+
+func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent, prevPulse bool,
+	createDefaults smachine.CreateDefaultValues,
+) error {
 	pulseSlotMachine, targetPN, pulseState, err := p.mapToPulseSlotMachine(pn)
 	switch {
 	case err != nil:
@@ -126,8 +132,12 @@ func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event Inp
 		return fmt.Errorf("slotMachine is missing: pn=%v", pn)
 	}
 
+	if prevPulse {
+		pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
+		return p.AddInputExt(ctx, pr.LeftBoundNumber(), event, false, createDefaults)
+	}
+
 	createFn := p.factoryFn(targetPN, event)
-	var createDefaults smachine.CreateDefaultValues
 
 	switch {
 	case createFn == nil:
@@ -335,8 +345,7 @@ func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error 
 		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			return p.presentMachine.preparePulseChange(ctx, out)
 		}) {
-			//p.pdm.unsetPreparingPulse()
-			//close(out)
+			// TODO handle stuck PulseSlot - need to do p.pdm.unsetPreparingPulse(), then close(out) when relevant code is available on network side
 			panic("present slot is busy")
 		}
 	})
@@ -355,7 +364,7 @@ func (p *PulseConveyor) CancelPulseChange() error {
 	})
 }
 
-func (p *PulseConveyor) CommitPulseChange(pr pulse.Range) error {
+func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) error {
 	pd := pr.RightBoundData()
 	pd.EnsurePulsarData()
 
@@ -394,12 +403,14 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range) error {
 		p.pdm.unsetPreparingPulse()
 
 		ctx.Migrate(func() {
-			p._migratePulseSlots(ctx, pr, prevPresentPN, prevFuturePN)
+			p._migratePulseSlots(ctx, pr, prevPresentPN, prevFuturePN, pulseStart.UTC())
 		})
 	})
 }
 
-func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr pulse.Range, _ /* prevPresentPN */, prevFuturePN pulse.Number) {
+func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr pulse.Range,
+	_ /* prevPresentPN */, prevFuturePN pulse.Number, pulseStart time.Time,
+) {
 	if p.unpublishPulse.IsTimePulse() {
 		// we know what we do - right!?
 		p.slotMachine.TryUnsafeUnpublish(p.unpublishPulse)
@@ -409,7 +420,7 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr p
 	pd := pr.RightBoundData()
 
 	prevFuture, activatePresent := p._publishUninitializedPulseSlotMachine(prevFuturePN)
-	prevFuture.setPresent(pr)
+	prevFuture.setPresent(pr, pulseStart)
 	p.presentMachine = prevFuture
 
 	if prevFuturePN != pd.PulseNumber {

@@ -6,16 +6,16 @@ package record
 import (
 	bytes "bytes"
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strconv "strconv"
-	strings "strings"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+	reflect "reflect"
+	strconv "strconv"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -27,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type CallType int32
 
@@ -97,7 +97,7 @@ func (m *Genesis) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Genesis.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -117,21 +117,21 @@ func (m *Genesis) XXX_DiscardUnknown() {
 var xxx_messageInfo_Genesis proto.InternalMessageInfo
 
 type IncomingRequest struct {
-	Polymorph       int32                                         `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	CallType        CallType                                      `protobuf:"varint,20,opt,name=CallType,proto3,enum=record.CallType" json:"CallType,omitempty"`
-	Caller          github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,21,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Caller"`
-	CallerPrototype github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,22,opt,name=CallerPrototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallerPrototype"`
-	Nonce           uint64                                        `protobuf:"varint,23,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	ReturnMode      ReturnMode                                    `protobuf:"varint,25,opt,name=ReturnMode,proto3,enum=record.ReturnMode" json:"ReturnMode,omitempty"`
-	Immutable       bool                                          `protobuf:"varint,26,opt,name=Immutable,proto3" json:"Immutable,omitempty"`
-	Base            *github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,27,opt,name=Base,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Base,omitempty"`
-	Object          *github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,28,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Object,omitempty"`
-	Prototype       *github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,29,opt,name=Prototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Prototype,omitempty"`
-	Method          string                                        `protobuf:"bytes,30,opt,name=Method,proto3" json:"Method,omitempty"`
-	Arguments       []byte                                        `protobuf:"bytes,31,opt,name=Arguments,proto3" json:"Arguments,omitempty"`
-	APIRequestID    string                                        `protobuf:"bytes,33,opt,name=APIRequestID,proto3" json:"APIRequestID,omitempty"`
-	Reason          github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,34,opt,name=Reason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Reason"`
-	APINode         github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,35,opt,name=APINode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"APINode"`
+	Polymorph       int32                                                               `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	CallType        CallType                                                            `protobuf:"varint,20,opt,name=CallType,proto3,enum=record.CallType" json:"CallType,omitempty"`
+	Caller          github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,21,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Caller"`
+	CallerPrototype github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,22,opt,name=CallerPrototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallerPrototype"`
+	Nonce           uint64                                                              `protobuf:"varint,23,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	ReturnMode      ReturnMode                                                          `protobuf:"varint,25,opt,name=ReturnMode,proto3,enum=record.ReturnMode" json:"ReturnMode,omitempty"`
+	Immutable       bool                                                                `protobuf:"varint,26,opt,name=Immutable,proto3" json:"Immutable,omitempty"`
+	Base            *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,27,opt,name=Base,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Base,omitempty"`
+	Object          *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,28,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Object,omitempty"`
+	Prototype       *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,29,opt,name=Prototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Prototype,omitempty"`
+	Method          string                                                              `protobuf:"bytes,30,opt,name=Method,proto3" json:"Method,omitempty"`
+	Arguments       []byte                                                              `protobuf:"bytes,31,opt,name=Arguments,proto3" json:"Arguments,omitempty"`
+	APIRequestID    string                                                              `protobuf:"bytes,33,opt,name=APIRequestID,proto3" json:"APIRequestID,omitempty"`
+	Reason          github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,34,opt,name=Reason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Reason"`
+	APINode         github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,35,opt,name=APINode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"APINode"`
 }
 
 func (m *IncomingRequest) Reset()      { *m = IncomingRequest{} }
@@ -147,7 +147,7 @@ func (m *IncomingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_IncomingRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -167,21 +167,21 @@ func (m *IncomingRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_IncomingRequest proto.InternalMessageInfo
 
 type OutgoingRequest struct {
-	Polymorph       int32                                         `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	CallType        CallType                                      `protobuf:"varint,20,opt,name=CallType,proto3,enum=record.CallType" json:"CallType,omitempty"`
-	Caller          github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,21,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Caller"`
-	CallerPrototype github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,22,opt,name=CallerPrototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallerPrototype"`
-	Nonce           uint64                                        `protobuf:"varint,23,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	ReturnMode      ReturnMode                                    `protobuf:"varint,25,opt,name=ReturnMode,proto3,enum=record.ReturnMode" json:"ReturnMode,omitempty"`
-	Immutable       bool                                          `protobuf:"varint,26,opt,name=Immutable,proto3" json:"Immutable,omitempty"`
-	Base            *github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,27,opt,name=Base,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Base,omitempty"`
-	Object          *github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,28,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Object,omitempty"`
-	Prototype       *github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,29,opt,name=Prototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Prototype,omitempty"`
-	Method          string                                        `protobuf:"bytes,30,opt,name=Method,proto3" json:"Method,omitempty"`
-	Arguments       []byte                                        `protobuf:"bytes,31,opt,name=Arguments,proto3" json:"Arguments,omitempty"`
-	APIRequestID    string                                        `protobuf:"bytes,33,opt,name=APIRequestID,proto3" json:"APIRequestID,omitempty"`
-	Reason          github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,34,opt,name=Reason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Reason"`
-	APINode         github_com_insolar_insolar_insolar.Reference  `protobuf:"bytes,35,opt,name=APINode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"APINode"`
+	Polymorph       int32                                                               `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	CallType        CallType                                                            `protobuf:"varint,20,opt,name=CallType,proto3,enum=record.CallType" json:"CallType,omitempty"`
+	Caller          github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,21,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Caller"`
+	CallerPrototype github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,22,opt,name=CallerPrototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"CallerPrototype"`
+	Nonce           uint64                                                              `protobuf:"varint,23,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	ReturnMode      ReturnMode                                                          `protobuf:"varint,25,opt,name=ReturnMode,proto3,enum=record.ReturnMode" json:"ReturnMode,omitempty"`
+	Immutable       bool                                                                `protobuf:"varint,26,opt,name=Immutable,proto3" json:"Immutable,omitempty"`
+	Base            *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,27,opt,name=Base,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Base,omitempty"`
+	Object          *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,28,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Object,omitempty"`
+	Prototype       *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,29,opt,name=Prototype,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Prototype,omitempty"`
+	Method          string                                                              `protobuf:"bytes,30,opt,name=Method,proto3" json:"Method,omitempty"`
+	Arguments       []byte                                                              `protobuf:"bytes,31,opt,name=Arguments,proto3" json:"Arguments,omitempty"`
+	APIRequestID    string                                                              `protobuf:"bytes,33,opt,name=APIRequestID,proto3" json:"APIRequestID,omitempty"`
+	Reason          github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,34,opt,name=Reason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Reason"`
+	APINode         github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference  `protobuf:"bytes,35,opt,name=APINode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"APINode"`
 }
 
 func (m *OutgoingRequest) Reset()      { *m = OutgoingRequest{} }
@@ -197,7 +197,7 @@ func (m *OutgoingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_OutgoingRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -217,10 +217,10 @@ func (m *OutgoingRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_OutgoingRequest proto.InternalMessageInfo
 
 type Result struct {
-	Polymorph int32                                        `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Object    github_com_insolar_insolar_insolar.ID        `protobuf:"bytes,20,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"Object"`
-	Request   github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,21,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
-	Payload   []byte                                       `protobuf:"bytes,22,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	Polymorph int32                                                              `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Object    github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID        `protobuf:"bytes,20,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"Object"`
+	Request   github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,21,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
+	Payload   []byte                                                             `protobuf:"bytes,22,opt,name=Payload,proto3" json:"Payload,omitempty"`
 }
 
 func (m *Result) Reset()      { *m = Result{} }
@@ -236,7 +236,7 @@ func (m *Result) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Result.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -256,10 +256,10 @@ func (m *Result) XXX_DiscardUnknown() {
 var xxx_messageInfo_Result proto.InternalMessageInfo
 
 type Code struct {
-	Polymorph   int32                                          `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Request     github_com_insolar_insolar_insolar.Reference   `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
-	Code        []byte                                         `protobuf:"bytes,21,opt,name=Code,proto3" json:"Code,omitempty"`
-	MachineType github_com_insolar_insolar_insolar.MachineType `protobuf:"varint,22,opt,name=MachineType,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.MachineType" json:"MachineType"`
+	Polymorph   int32                                                                `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Request     github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
+	Code        []byte                                                               `protobuf:"bytes,21,opt,name=Code,proto3" json:"Code,omitempty"`
+	MachineType github_com_insolar_assured_ledger_ledger_core_v2_insolar.MachineType `protobuf:"varint,22,opt,name=MachineType,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.MachineType" json:"MachineType"`
 }
 
 func (m *Code) Reset()      { *m = Code{} }
@@ -275,7 +275,7 @@ func (m *Code) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Code.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -295,12 +295,12 @@ func (m *Code) XXX_DiscardUnknown() {
 var xxx_messageInfo_Code proto.InternalMessageInfo
 
 type Activate struct {
-	Polymorph   int32                                        `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Request     github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
-	Memory      []byte                                       `protobuf:"bytes,21,opt,name=Memory,proto3" json:"Memory,omitempty"`
-	Image       github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,22,opt,name=Image,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Image"`
-	IsPrototype bool                                         `protobuf:"varint,23,opt,name=IsPrototype,proto3" json:"IsPrototype,omitempty"`
-	Parent      github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,24,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Parent"`
+	Polymorph   int32                                                              `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Request     github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
+	Memory      []byte                                                             `protobuf:"bytes,21,opt,name=Memory,proto3" json:"Memory,omitempty"`
+	Image       github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,22,opt,name=Image,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Image"`
+	IsPrototype bool                                                               `protobuf:"varint,23,opt,name=IsPrototype,proto3" json:"IsPrototype,omitempty"`
+	Parent      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,24,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Parent"`
 }
 
 func (m *Activate) Reset()      { *m = Activate{} }
@@ -316,7 +316,7 @@ func (m *Activate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Activate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -336,12 +336,12 @@ func (m *Activate) XXX_DiscardUnknown() {
 var xxx_messageInfo_Activate proto.InternalMessageInfo
 
 type Amend struct {
-	Polymorph   int32                                        `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Request     github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
-	Memory      []byte                                       `protobuf:"bytes,21,opt,name=Memory,proto3" json:"Memory,omitempty"`
-	Image       github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,22,opt,name=Image,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Image"`
-	IsPrototype bool                                         `protobuf:"varint,23,opt,name=IsPrototype,proto3" json:"IsPrototype,omitempty"`
-	PrevState   github_com_insolar_insolar_insolar.ID        `protobuf:"bytes,24,opt,name=PrevState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PrevState"`
+	Polymorph   int32                                                              `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Request     github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
+	Memory      []byte                                                             `protobuf:"bytes,21,opt,name=Memory,proto3" json:"Memory,omitempty"`
+	Image       github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,22,opt,name=Image,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Image"`
+	IsPrototype bool                                                               `protobuf:"varint,23,opt,name=IsPrototype,proto3" json:"IsPrototype,omitempty"`
+	PrevState   github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID        `protobuf:"bytes,24,opt,name=PrevState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PrevState"`
 }
 
 func (m *Amend) Reset()      { *m = Amend{} }
@@ -357,7 +357,7 @@ func (m *Amend) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Amend.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -377,9 +377,9 @@ func (m *Amend) XXX_DiscardUnknown() {
 var xxx_messageInfo_Amend proto.InternalMessageInfo
 
 type Deactivate struct {
-	Polymorph int32                                        `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Request   github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
-	PrevState github_com_insolar_insolar_insolar.ID        `protobuf:"bytes,21,opt,name=PrevState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PrevState"`
+	Polymorph int32                                                              `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Request   github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,20,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Request"`
+	PrevState github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID        `protobuf:"bytes,21,opt,name=PrevState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PrevState"`
 }
 
 func (m *Deactivate) Reset()      { *m = Deactivate{} }
@@ -395,7 +395,7 @@ func (m *Deactivate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Deactivate.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -415,9 +415,9 @@ func (m *Deactivate) XXX_DiscardUnknown() {
 var xxx_messageInfo_Deactivate proto.InternalMessageInfo
 
 type PendingFilament struct {
-	Polymorph      int32                                  `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	RecordID       github_com_insolar_insolar_insolar.ID  `protobuf:"bytes,20,opt,name=RecordID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RecordID"`
-	PreviousRecord *github_com_insolar_insolar_insolar.ID `protobuf:"bytes,21,opt,name=PreviousRecord,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PreviousRecord,omitempty"`
+	Polymorph      int32                                                        `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	RecordID       github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID  `protobuf:"bytes,20,opt,name=RecordID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RecordID"`
+	PreviousRecord *github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,21,opt,name=PreviousRecord,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PreviousRecord,omitempty"`
 }
 
 func (m *PendingFilament) Reset()      { *m = PendingFilament{} }
@@ -433,7 +433,7 @@ func (m *PendingFilament) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return xxx_messageInfo_PendingFilament.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -453,14 +453,14 @@ func (m *PendingFilament) XXX_DiscardUnknown() {
 var xxx_messageInfo_PendingFilament proto.InternalMessageInfo
 
 type Lifeline struct {
-	Polymorph   int32                                        `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	LatestState *github_com_insolar_insolar_insolar.ID       `protobuf:"bytes,20,opt,name=LatestState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"LatestState,omitempty"`
-	StateID     StateID                                      `protobuf:"varint,21,opt,name=StateID,proto3,customtype=StateID" json:"StateID"`
-	Parent      github_com_insolar_insolar_insolar.Reference `protobuf:"bytes,22,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Parent"`
+	Polymorph   int32                                                              `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	LatestState *github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID       `protobuf:"bytes,20,opt,name=LatestState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"LatestState,omitempty"`
+	StateID     StateID                                                            `protobuf:"varint,21,opt,name=StateID,proto3,customtype=StateID" json:"StateID"`
+	Parent      github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference `protobuf:"bytes,22,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Parent"`
 	// LatestRequest holds id of the last known request for the object
-	LatestRequest *github_com_insolar_insolar_insolar.ID `protobuf:"bytes,23,opt,name=LatestRequest,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"LatestRequest,omitempty"`
+	LatestRequest *github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,23,opt,name=LatestRequest,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"LatestRequest,omitempty"`
 	// EarliestOpenRequest holds the earliest pulse where there are open requests
-	EarliestOpenRequest *github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,24,opt,name=EarliestOpenRequest,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"EarliestOpenRequest,omitempty"`
+	EarliestOpenRequest *github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,24,opt,name=EarliestOpenRequest,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"EarliestOpenRequest,omitempty"`
 	// OpenRequestsCount holds the count of open requests for the object
 	OpenRequestsCount uint32 `protobuf:"varint,25,opt,name=OpenRequestsCount,proto3" json:"OpenRequestsCount,omitempty"`
 }
@@ -478,7 +478,7 @@ func (m *Lifeline) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Lifeline.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -498,11 +498,11 @@ func (m *Lifeline) XXX_DiscardUnknown() {
 var xxx_messageInfo_Lifeline proto.InternalMessageInfo
 
 type Index struct {
-	Polymorph        int32                                          `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	ObjID            github_com_insolar_insolar_insolar.ID          `protobuf:"bytes,20,opt,name=ObjID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjID"`
-	Lifeline         Lifeline                                       `protobuf:"bytes,21,opt,name=Lifeline,proto3" json:"Lifeline"`
-	LifelineLastUsed github_com_insolar_insolar_insolar.PulseNumber `protobuf:"varint,22,opt,name=LifelineLastUsed,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"LifelineLastUsed"`
-	PendingRecords   []github_com_insolar_insolar_insolar.ID        `protobuf:"bytes,23,rep,name=PendingRecords,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PendingRecords"`
+	Polymorph        int32                                                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ObjID            github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID          `protobuf:"bytes,20,opt,name=ObjID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjID"`
+	Lifeline         Lifeline                                                             `protobuf:"bytes,21,opt,name=Lifeline,proto3" json:"Lifeline"`
+	LifelineLastUsed github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"varint,22,opt,name=LifelineLastUsed,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"LifelineLastUsed"`
+	PendingRecords   []github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID        `protobuf:"bytes,23,rep,name=PendingRecords,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"PendingRecords"`
 }
 
 func (m *Index) Reset()      { *m = Index{} }
@@ -518,7 +518,7 @@ func (m *Index) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Index.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -566,7 +566,7 @@ func (m *Virtual) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Virtual.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -593,31 +593,31 @@ type isVirtual_Union interface {
 }
 
 type Virtual_Genesis struct {
-	Genesis *Genesis `protobuf:"bytes,101,opt,name=Genesis,proto3,oneof"`
+	Genesis *Genesis `protobuf:"bytes,101,opt,name=Genesis,proto3,oneof" json:"Genesis,omitempty"`
 }
 type Virtual_IncomingRequest struct {
-	IncomingRequest *IncomingRequest `protobuf:"bytes,102,opt,name=IncomingRequest,proto3,oneof"`
+	IncomingRequest *IncomingRequest `protobuf:"bytes,102,opt,name=IncomingRequest,proto3,oneof" json:"IncomingRequest,omitempty"`
 }
 type Virtual_OutgoingRequest struct {
-	OutgoingRequest *OutgoingRequest `protobuf:"bytes,103,opt,name=OutgoingRequest,proto3,oneof"`
+	OutgoingRequest *OutgoingRequest `protobuf:"bytes,103,opt,name=OutgoingRequest,proto3,oneof" json:"OutgoingRequest,omitempty"`
 }
 type Virtual_Result struct {
-	Result *Result `protobuf:"bytes,104,opt,name=Result,proto3,oneof"`
+	Result *Result `protobuf:"bytes,104,opt,name=Result,proto3,oneof" json:"Result,omitempty"`
 }
 type Virtual_Code struct {
-	Code *Code `protobuf:"bytes,105,opt,name=Code,proto3,oneof"`
+	Code *Code `protobuf:"bytes,105,opt,name=Code,proto3,oneof" json:"Code,omitempty"`
 }
 type Virtual_Activate struct {
-	Activate *Activate `protobuf:"bytes,106,opt,name=Activate,proto3,oneof"`
+	Activate *Activate `protobuf:"bytes,106,opt,name=Activate,proto3,oneof" json:"Activate,omitempty"`
 }
 type Virtual_Amend struct {
-	Amend *Amend `protobuf:"bytes,107,opt,name=Amend,proto3,oneof"`
+	Amend *Amend `protobuf:"bytes,107,opt,name=Amend,proto3,oneof" json:"Amend,omitempty"`
 }
 type Virtual_Deactivate struct {
-	Deactivate *Deactivate `protobuf:"bytes,108,opt,name=Deactivate,proto3,oneof"`
+	Deactivate *Deactivate `protobuf:"bytes,108,opt,name=Deactivate,proto3,oneof" json:"Deactivate,omitempty"`
 }
 type Virtual_PendingFilament struct {
-	PendingFilament *PendingFilament `protobuf:"bytes,109,opt,name=PendingFilament,proto3,oneof"`
+	PendingFilament *PendingFilament `protobuf:"bytes,109,opt,name=PendingFilament,proto3,oneof" json:"PendingFilament,omitempty"`
 }
 
 func (*Virtual_Genesis) isVirtual_Union()         {}
@@ -700,9 +700,9 @@ func (m *Virtual) GetPendingFilament() *PendingFilament {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Virtual) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Virtual_OneofMarshaler, _Virtual_OneofUnmarshaler, _Virtual_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Virtual) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Virtual_Genesis)(nil),
 		(*Virtual_IncomingRequest)(nil),
 		(*Virtual_OutgoingRequest)(nil),
@@ -715,205 +715,13 @@ func (*Virtual) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error
 	}
 }
 
-func _Virtual_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Virtual)
-	// union
-	switch x := m.Union.(type) {
-	case *Virtual_Genesis:
-		_ = b.EncodeVarint(101<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Genesis); err != nil {
-			return err
-		}
-	case *Virtual_IncomingRequest:
-		_ = b.EncodeVarint(102<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.IncomingRequest); err != nil {
-			return err
-		}
-	case *Virtual_OutgoingRequest:
-		_ = b.EncodeVarint(103<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.OutgoingRequest); err != nil {
-			return err
-		}
-	case *Virtual_Result:
-		_ = b.EncodeVarint(104<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Result); err != nil {
-			return err
-		}
-	case *Virtual_Code:
-		_ = b.EncodeVarint(105<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Code); err != nil {
-			return err
-		}
-	case *Virtual_Activate:
-		_ = b.EncodeVarint(106<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Activate); err != nil {
-			return err
-		}
-	case *Virtual_Amend:
-		_ = b.EncodeVarint(107<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Amend); err != nil {
-			return err
-		}
-	case *Virtual_Deactivate:
-		_ = b.EncodeVarint(108<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Deactivate); err != nil {
-			return err
-		}
-	case *Virtual_PendingFilament:
-		_ = b.EncodeVarint(109<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.PendingFilament); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Virtual.Union has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Virtual_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Virtual)
-	switch tag {
-	case 101: // union.Genesis
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Genesis)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_Genesis{msg}
-		return true, err
-	case 102: // union.IncomingRequest
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(IncomingRequest)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_IncomingRequest{msg}
-		return true, err
-	case 103: // union.OutgoingRequest
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(OutgoingRequest)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_OutgoingRequest{msg}
-		return true, err
-	case 104: // union.Result
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Result)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_Result{msg}
-		return true, err
-	case 105: // union.Code
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Code)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_Code{msg}
-		return true, err
-	case 106: // union.Activate
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Activate)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_Activate{msg}
-		return true, err
-	case 107: // union.Amend
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Amend)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_Amend{msg}
-		return true, err
-	case 108: // union.Deactivate
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(Deactivate)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_Deactivate{msg}
-		return true, err
-	case 109: // union.PendingFilament
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(PendingFilament)
-		err := b.DecodeMessage(msg)
-		m.Union = &Virtual_PendingFilament{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Virtual_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Virtual)
-	// union
-	switch x := m.Union.(type) {
-	case *Virtual_Genesis:
-		s := proto.Size(x.Genesis)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_IncomingRequest:
-		s := proto.Size(x.IncomingRequest)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_OutgoingRequest:
-		s := proto.Size(x.OutgoingRequest)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_Result:
-		s := proto.Size(x.Result)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_Code:
-		s := proto.Size(x.Code)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_Activate:
-		s := proto.Size(x.Activate)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_Amend:
-		s := proto.Size(x.Amend)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_Deactivate:
-		s := proto.Size(x.Deactivate)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Virtual_PendingFilament:
-		s := proto.Size(x.PendingFilament)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
 type Material struct {
-	Polymorph int32                                    `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Virtual   Virtual                                  `protobuf:"bytes,20,opt,name=Virtual,proto3" json:"Virtual"`
-	ID        github_com_insolar_insolar_insolar.ID    `protobuf:"bytes,21,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ID"`
-	ObjectID  github_com_insolar_insolar_insolar.ID    `protobuf:"bytes,22,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
-	JetID     github_com_insolar_insolar_insolar.JetID `protobuf:"bytes,23,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	Signature []byte                                   `protobuf:"bytes,200,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	Polymorph int32                                                          `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Virtual   Virtual                                                        `protobuf:"bytes,20,opt,name=Virtual,proto3" json:"Virtual"`
+	ID        github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID    `protobuf:"bytes,21,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ID"`
+	ObjectID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID    `protobuf:"bytes,22,opt,name=ObjectID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"ObjectID"`
+	JetID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID `protobuf:"bytes,23,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	Signature []byte                                                         `protobuf:"bytes,200,opt,name=Signature,proto3" json:"Signature,omitempty"`
 }
 
 func (m *Material) Reset()      { *m = Material{} }
@@ -929,7 +737,7 @@ func (m *Material) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Material.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -949,11 +757,11 @@ func (m *Material) XXX_DiscardUnknown() {
 var xxx_messageInfo_Material proto.InternalMessageInfo
 
 type CompositeFilamentRecord struct {
-	Polymorph int32                                 `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	RecordID  github_com_insolar_insolar_insolar.ID `protobuf:"bytes,20,opt,name=RecordID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RecordID"`
-	Record    Material                              `protobuf:"bytes,21,opt,name=Record,proto3" json:"Record"`
-	MetaID    github_com_insolar_insolar_insolar.ID `protobuf:"bytes,22,opt,name=MetaID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"MetaID"`
-	Meta      Material                              `protobuf:"bytes,23,opt,name=Meta,proto3" json:"Meta"`
+	Polymorph int32                                                       `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	RecordID  github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,20,opt,name=RecordID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"RecordID"`
+	Record    Material                                                    `protobuf:"bytes,21,opt,name=Record,proto3" json:"Record"`
+	MetaID    github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID `protobuf:"bytes,22,opt,name=MetaID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID" json:"MetaID"`
+	Meta      Material                                                    `protobuf:"bytes,23,opt,name=Meta,proto3" json:"Meta"`
 }
 
 func (m *CompositeFilamentRecord) Reset()      { *m = CompositeFilamentRecord{} }
@@ -969,7 +777,7 @@ func (m *CompositeFilamentRecord) XXX_Marshal(b []byte, deterministic bool) ([]b
 		return xxx_messageInfo_CompositeFilamentRecord.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1010,92 +818,94 @@ func init() {
 func init() { proto.RegisterFile("insolar/record/record.proto", fileDescriptor_0c86cc3f6f53fe45) }
 
 var fileDescriptor_0c86cc3f6f53fe45 = []byte{
-	// 1346 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x58, 0x4f, 0x6f, 0x1b, 0x45,
-	0x14, 0xdf, 0x75, 0xed, 0xd8, 0x79, 0x89, 0x13, 0x77, 0x48, 0x9b, 0xa5, 0x7f, 0x36, 0xc6, 0xa8,
-	0x92, 0x29, 0xad, 0x53, 0x95, 0xaa, 0x42, 0x48, 0x1c, 0xfc, 0xa7, 0xc5, 0x5b, 0xf2, 0xc7, 0x4c,
-	0x52, 0xc4, 0x09, 0x69, 0x6c, 0x4f, 0xec, 0x2d, 0xeb, 0x5d, 0xb3, 0x3b, 0x5b, 0x91, 0x1b, 0x1f,
-	0x81, 0x8f, 0xc0, 0x05, 0xd4, 0x6f, 0x42, 0x84, 0x38, 0xb4, 0xb7, 0x82, 0x44, 0x21, 0xee, 0xa5,
-	0xc7, 0x7e, 0x04, 0xb4, 0x33, 0xb3, 0x7f, 0xe2, 0x00, 0x4e, 0xec, 0xaa, 0x1c, 0xe8, 0x69, 0x67,
-	0xde, 0xcc, 0xfb, 0xcd, 0xbc, 0x37, 0xef, 0xf7, 0xde, 0xcc, 0xc2, 0x45, 0xd3, 0xf6, 0x1c, 0x8b,
-	0xb8, 0xeb, 0x2e, 0xed, 0x38, 0x6e, 0x57, 0x7e, 0x2a, 0x43, 0xd7, 0x61, 0x0e, 0x9a, 0x13, 0xbd,
-	0x0b, 0xd7, 0x7b, 0x26, 0xeb, 0xfb, 0xed, 0x4a, 0xc7, 0x19, 0xac, 0xf7, 0x9c, 0x9e, 0xb3, 0xce,
-	0x87, 0xdb, 0xfe, 0x1e, 0xef, 0xf1, 0x0e, 0x6f, 0x09, 0xb5, 0x52, 0x15, 0xb2, 0x9f, 0x50, 0x9b,
-	0x7a, 0xa6, 0x87, 0x2e, 0xc1, 0xfc, 0xd0, 0xb1, 0xf6, 0x07, 0x8e, 0x3b, 0xec, 0x6b, 0x85, 0xa2,
-	0x5a, 0xce, 0xe0, 0x58, 0x80, 0x10, 0xa4, 0x9b, 0xc4, 0xeb, 0x6b, 0x2b, 0x45, 0xb5, 0xbc, 0x88,
-	0x79, 0xfb, 0xa3, 0xf4, 0xa3, 0xef, 0xd7, 0xd4, 0xd2, 0x93, 0x39, 0x58, 0x36, 0xec, 0x8e, 0x33,
-	0x30, 0xed, 0x1e, 0xa6, 0x5f, 0xfb, 0xd4, 0x63, 0x13, 0xb0, 0xae, 0x41, 0xae, 0x4e, 0x2c, 0x6b,
-	0x77, 0x7f, 0x48, 0x39, 0xde, 0xd2, 0xcd, 0x42, 0x45, 0x1a, 0x13, 0xca, 0x71, 0x34, 0x03, 0x6d,
-	0xc0, 0x5c, 0xd0, 0xa6, 0xae, 0x76, 0x2e, 0x58, 0xbb, 0x76, 0xeb, 0xe0, 0xd9, 0x9a, 0xf2, 0xdb,
-	0xb3, 0xb5, 0x6b, 0x09, 0x4b, 0x43, 0xcf, 0x8c, 0x7d, 0x2b, 0x98, 0xee, 0x51, 0x97, 0xda, 0x1d,
-	0x8a, 0x25, 0x06, 0xfa, 0x12, 0x96, 0x45, 0xab, 0x15, 0xd8, 0xcf, 0x82, 0x2d, 0x9c, 0x9f, 0x01,
-	0x76, 0x1c, 0x0c, 0xad, 0x40, 0x66, 0xcb, 0xb1, 0x3b, 0x54, 0x5b, 0x2d, 0xaa, 0xe5, 0x34, 0x16,
-	0x1d, 0x74, 0x13, 0x00, 0x53, 0xe6, 0xbb, 0xf6, 0xa6, 0xd3, 0xa5, 0xda, 0xdb, 0xdc, 0x66, 0x14,
-	0xda, 0x1c, 0x8f, 0xe0, 0xc4, 0xac, 0xc0, 0x87, 0xc6, 0x60, 0xe0, 0x33, 0xd2, 0xb6, 0xa8, 0x76,
-	0xa1, 0xa8, 0x96, 0x73, 0x38, 0x16, 0xa0, 0x06, 0xa4, 0x6b, 0xc4, 0xa3, 0xda, 0x45, 0xbe, 0xf9,
-	0x1b, 0xa7, 0xde, 0x38, 0xd7, 0x46, 0x4d, 0x98, 0xdb, 0x6e, 0x3f, 0xa0, 0x1d, 0xa6, 0x5d, 0x9a,
-	0x12, 0x47, 0xea, 0xa3, 0x2d, 0x98, 0x8f, 0x3d, 0x7a, 0x79, 0x4a, 0xb0, 0x18, 0x02, 0x9d, 0x87,
-	0xb9, 0x4d, 0xca, 0xfa, 0x4e, 0x57, 0xd3, 0x8b, 0x6a, 0x79, 0x1e, 0xcb, 0x5e, 0xe0, 0x95, 0xaa,
-	0xdb, 0xf3, 0x07, 0xd4, 0x66, 0x9e, 0xb6, 0xc6, 0x83, 0x31, 0x16, 0xa0, 0x12, 0x2c, 0x56, 0x5b,
-	0x86, 0x8c, 0x42, 0xa3, 0xa1, 0xbd, 0xc3, 0x75, 0x8f, 0xc8, 0x82, 0x78, 0xc2, 0x94, 0x78, 0x8e,
-	0xad, 0x95, 0x66, 0x89, 0x27, 0x81, 0x81, 0xb6, 0x20, 0x5b, 0x6d, 0x19, 0x5b, 0xc1, 0xb1, 0xbe,
-	0x3b, 0x03, 0x5c, 0x08, 0x92, 0xe0, 0xd4, 0xb6, 0xcf, 0x7a, 0xce, 0x1b, 0x4e, 0xbd, 0xe1, 0xd4,
-	0x1b, 0x4e, 0xbd, 0x12, 0x4e, 0xfd, 0xae, 0x06, 0x9b, 0xf4, 0x7c, 0x6b, 0x12, 0x95, 0xee, 0x44,
-	0x07, 0xc8, 0x8b, 0x5d, 0xed, 0xba, 0x5c, 0xfd, 0xca, 0x09, 0x56, 0x37, 0x1a, 0x89, 0xd3, 0xcb,
-	0x4a, 0x07, 0xcd, 0x44, 0xb2, 0x10, 0x04, 0x69, 0x90, 0x6d, 0x91, 0x7d, 0xcb, 0x21, 0x5d, 0xc1,
-	0x2e, 0x1c, 0x76, 0xa5, 0x7d, 0x2f, 0x54, 0x48, 0xd7, 0x65, 0x90, 0xff, 0x8b, 0x75, 0x89, 0x6d,
-	0xad, 0xbc, 0x8a, 0x6d, 0x21, 0xb1, 0xaa, 0xb0, 0x11, 0x8b, 0x1d, 0x7c, 0x01, 0x0b, 0x9b, 0xa4,
-	0xd3, 0x37, 0x6d, 0xba, 0x1b, 0x26, 0x83, 0x7c, 0xed, 0xb6, 0x5c, 0xa7, 0x72, 0x82, 0x75, 0x12,
-	0xda, 0x38, 0x09, 0x25, 0x4d, 0xfd, 0x25, 0x05, 0xb9, 0x6a, 0x87, 0x99, 0x0f, 0x09, 0x7b, 0xdd,
-	0xe6, 0x72, 0x0e, 0x0d, 0x1c, 0x77, 0x5f, 0x1a, 0x2c, 0x7b, 0xe8, 0x1e, 0x64, 0x8c, 0x01, 0xe9,
-	0xcd, 0x96, 0xf9, 0x04, 0x04, 0x2a, 0xc2, 0x82, 0xe1, 0xc5, 0xcc, 0x5f, 0xe5, 0x79, 0x2a, 0x29,
-	0x0a, 0xf8, 0xd6, 0x22, 0x2e, 0xb5, 0x99, 0xa6, 0xcd, 0xc2, 0x37, 0x81, 0x51, 0x3a, 0x48, 0x41,
-	0xa6, 0x3a, 0xa0, 0x76, 0xf7, 0x7f, 0xe9, 0xcb, 0x4f, 0x83, 0x2c, 0x4b, 0x1f, 0xee, 0x30, 0xc2,
-	0xa8, 0x74, 0xe7, 0x29, 0x19, 0x1f, 0xeb, 0x97, 0x7e, 0x52, 0x01, 0x1a, 0x94, 0xfc, 0x37, 0xb1,
-	0x79, 0xc4, 0x92, 0x73, 0x33, 0x5a, 0xf2, 0x44, 0x85, 0xe5, 0x16, 0xb5, 0xbb, 0xa6, 0xdd, 0xbb,
-	0x6b, 0x5a, 0x24, 0xa8, 0x05, 0x13, 0xcc, 0x31, 0x20, 0x87, 0x79, 0xf5, 0x35, 0x1a, 0xd3, 0x65,
-	0xce, 0x48, 0x1d, 0xdd, 0x87, 0xa5, 0x60, 0x27, 0xa6, 0xe3, 0x7b, 0x42, 0x96, 0x30, 0x47, 0x3d,
-	0x39, 0xe0, 0x18, 0x48, 0xe9, 0x8f, 0x33, 0x90, 0xdb, 0x30, 0xf7, 0xa8, 0x65, 0xda, 0xfc, 0x6c,
-	0x5a, 0xe3, 0xc6, 0x44, 0x02, 0xb4, 0x0d, 0x0b, 0x1b, 0x84, 0x51, 0x8f, 0x09, 0x6f, 0xae, 0x4c,
-	0xb3, 0x7c, 0x12, 0x01, 0xbd, 0x07, 0x59, 0xde, 0x30, 0x1a, 0xdc, 0x96, 0x7c, 0x6d, 0x59, 0x3a,
-	0x27, 0x14, 0xe3, 0xb0, 0x91, 0x60, 0xf7, 0xf9, 0xd9, 0xd9, 0x8d, 0x76, 0x20, 0x2f, 0xf6, 0x11,
-	0xc6, 0xda, 0xea, 0x34, 0xb6, 0x1c, 0xc5, 0x40, 0x7d, 0x78, 0xeb, 0x0e, 0x71, 0x2d, 0x93, 0x7a,
-	0x6c, 0x7b, 0x48, 0xed, 0x10, 0x5a, 0xd0, 0xe7, 0xb6, 0x84, 0x3e, 0x49, 0xa6, 0x6f, 0xf9, 0x96,
-	0x47, 0xb7, 0xfc, 0x41, 0x9b, 0xba, 0xf8, 0xef, 0x20, 0xd1, 0x35, 0x38, 0x9b, 0xe8, 0x7a, 0x75,
-	0xc7, 0xb7, 0x19, 0xbf, 0xed, 0xe5, 0xf1, 0xf1, 0x81, 0xd2, 0xaf, 0x29, 0xc8, 0x18, 0x76, 0x97,
-	0x7e, 0x33, 0xe1, 0x78, 0xeb, 0x90, 0xd9, 0x6e, 0x3f, 0x98, 0x36, 0x50, 0x85, 0x2e, 0xba, 0x19,
-	0x47, 0x13, 0x3f, 0xd3, 0x85, 0xf8, 0xce, 0x1d, 0xca, 0x6b, 0xe9, 0x00, 0x19, 0xc7, 0x51, 0xd7,
-	0x86, 0x42, 0xd8, 0xde, 0x20, 0x1e, 0xbb, 0xef, 0xd1, 0xee, 0x14, 0xf5, 0x31, 0xe9, 0xb5, 0x63,
-	0x78, 0x9c, 0x3d, 0x82, 0xb9, 0x22, 0xee, 0x3d, 0x6d, 0xb5, 0x78, 0xe6, 0xf4, 0x56, 0x8e, 0x81,
-	0x94, 0x7e, 0x4c, 0x43, 0xf6, 0x73, 0xd3, 0x65, 0x3e, 0xb1, 0x26, 0x64, 0x82, 0xf7, 0xa3, 0xbf,
-	0x0a, 0x1a, 0xe5, 0x7e, 0x59, 0x0e, 0xfd, 0x22, 0xc5, 0x4d, 0x05, 0x47, 0xff, 0x1d, 0xea, 0xc7,
-	0x7e, 0x1f, 0x68, 0x7b, 0x5c, 0x69, 0x35, 0x54, 0x1a, 0x1b, 0x6e, 0x2a, 0xf8, 0xd8, 0x0f, 0x87,
-	0xfa, 0xb1, 0xf7, 0x92, 0xd6, 0x3b, 0x0a, 0x32, 0x36, 0x1c, 0x80, 0x8c, 0xbf, 0xb0, 0xca, 0xe1,
-	0x05, 0x51, 0xeb, 0x73, 0xdd, 0xa5, 0xf8, 0x35, 0x11, 0x48, 0x9b, 0x0a, 0x0e, 0x2f, 0x90, 0x25,
-	0x79, 0xe9, 0x31, 0xf9, 0xbc, 0xc5, 0xe8, 0xa5, 0xe5, 0x74, 0x69, 0x53, 0x91, 0x97, 0xa0, 0x4a,
-	0x7c, 0x47, 0xd1, 0x1e, 0x1c, 0x8d, 0x8e, 0x50, 0xde, 0x54, 0x70, 0x7c, 0x8f, 0xb9, 0x22, 0x8b,
-	0xb0, 0xf6, 0x15, 0x9f, 0x9c, 0x8f, 0x26, 0x07, 0xc2, 0xa6, 0x82, 0x65, 0x89, 0xbe, 0x95, 0x2c,
-	0x30, 0x9a, 0xc5, 0xe7, 0x46, 0xcf, 0x9e, 0x78, 0xa4, 0xa9, 0xe0, 0x64, 0x21, 0xaa, 0x1f, 0x4b,
-	0xe6, 0xda, 0xe0, 0xa8, 0x7f, 0xc6, 0x86, 0x03, 0xff, 0x8c, 0xa7, 0xff, 0xcb, 0x30, 0xbf, 0x63,
-	0xf6, 0x6c, 0xc2, 0x7c, 0x97, 0x6a, 0x07, 0xaa, 0x78, 0x28, 0x44, 0x92, 0x5a, 0x16, 0x32, 0xbe,
-	0x6d, 0x3a, 0x76, 0xe9, 0xe7, 0x14, 0xe4, 0x36, 0x09, 0xa3, 0xae, 0x39, 0x31, 0x52, 0xd6, 0xa3,
-	0x90, 0xe2, 0x4c, 0x4c, 0x44, 0x8a, 0x14, 0x4b, 0x02, 0x45, 0x81, 0xf7, 0x31, 0xa4, 0x64, 0x06,
-	0x3d, 0x75, 0x3c, 0xa7, 0x8c, 0x46, 0x50, 0xa3, 0xc4, 0xf5, 0xdc, 0x68, 0xc8, 0xe4, 0x7a, 0xda,
-	0x1a, 0x15, 0xaa, 0xa3, 0xbb, 0x90, 0xb9, 0x47, 0x03, 0x1c, 0x91, 0x4f, 0x6f, 0x48, 0x9c, 0xf2,
-	0x09, 0x70, 0xb8, 0x1e, 0x16, 0xea, 0x13, 0xbc, 0x5a, 0xfa, 0x21, 0x05, 0xab, 0x75, 0x67, 0x30,
-	0x74, 0x3c, 0x93, 0xd1, 0xf0, 0x28, 0x04, 0x25, 0x5f, 0x5f, 0x3d, 0xae, 0x04, 0xcc, 0x88, 0xea,
-	0x70, 0x22, 0x92, 0xc3, 0x63, 0x96, 0xc7, 0x24, 0x67, 0x05, 0x4f, 0xa8, 0x4d, 0xca, 0xc8, 0xb4,
-	0x4e, 0x96, 0xca, 0xe8, 0x2a, 0xa4, 0x83, 0x16, 0xf7, 0xf0, 0x3f, 0x2f, 0xca, 0xe7, 0x5c, 0xfd,
-	0x2c, 0xfe, 0x01, 0x82, 0x16, 0x21, 0x57, 0xdf, 0x15, 0x8f, 0xdb, 0x82, 0x82, 0xce, 0x42, 0xbe,
-	0xbe, 0xbb, 0x43, 0x1e, 0xd2, 0xaa, 0x57, 0xef, 0x9b, 0x56, 0xb7, 0xa0, 0xa2, 0x3c, 0xcc, 0xd7,
-	0x77, 0x65, 0x02, 0x2a, 0xa4, 0xd0, 0x39, 0x38, 0x5b, 0xdf, 0x6d, 0xd0, 0xa1, 0xe5, 0xec, 0x47,
-	0xf7, 0xc2, 0xc2, 0x99, 0xab, 0x95, 0xe4, 0x1f, 0x06, 0x54, 0x80, 0x45, 0xd1, 0x13, 0x39, 0xa0,
-	0xa0, 0xa0, 0xa5, 0x70, 0x7c, 0x87, 0xf4, 0x48, 0x41, 0xad, 0x7d, 0x78, 0x70, 0xa8, 0x2b, 0x8f,
-	0x0f, 0x75, 0xe5, 0xe9, 0xa1, 0xae, 0xbc, 0x3c, 0xd4, 0xd5, 0x6f, 0x47, 0xba, 0xfa, 0x68, 0xa4,
-	0xab, 0x07, 0x23, 0x5d, 0x7d, 0x3c, 0xd2, 0xd5, 0x3f, 0x47, 0xba, 0xfa, 0x62, 0xa4, 0x2b, 0x2f,
-	0x47, 0xba, 0xfa, 0xdd, 0x73, 0x5d, 0x79, 0xfc, 0x5c, 0x57, 0x9e, 0x3e, 0xd7, 0x95, 0xf6, 0x1c,
-	0xff, 0x1b, 0xfb, 0xc1, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xd9, 0x59, 0xbb, 0xb8, 0xe3, 0x15,
-	0x00, 0x00,
+	// 1380 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x59, 0xcb, 0x6f, 0x1b, 0x45,
+	0x18, 0xdf, 0x4d, 0xec, 0xd8, 0xf9, 0x12, 0x27, 0xee, 0x90, 0x36, 0x4b, 0x1f, 0x1b, 0x63, 0x84,
+	0x14, 0x4a, 0xeb, 0x48, 0x81, 0x03, 0x02, 0x09, 0xc9, 0x0f, 0x8a, 0x5d, 0x25, 0x8d, 0x99, 0x04,
+	0x24, 0x1e, 0x02, 0xc6, 0xde, 0x89, 0xbd, 0xed, 0x7a, 0xd7, 0xec, 0xce, 0x46, 0xcd, 0x05, 0x71,
+	0x05, 0x21, 0xc4, 0x81, 0x1b, 0x17, 0x4e, 0xa8, 0xff, 0x01, 0xff, 0x42, 0x8e, 0xe5, 0x56, 0x71,
+	0xa8, 0x88, 0x73, 0x41, 0xe2, 0x52, 0x89, 0x33, 0x12, 0xda, 0x99, 0xd9, 0x47, 0x1c, 0xc0, 0x52,
+	0xd8, 0x88, 0x0a, 0xe5, 0xe4, 0x99, 0x6f, 0x66, 0x7f, 0xdf, 0xfb, 0x9b, 0x6f, 0xc6, 0x70, 0xc5,
+	0xb4, 0x3d, 0xc7, 0x22, 0xee, 0x9a, 0x4b, 0xbb, 0x8e, 0x6b, 0xc8, 0x9f, 0xca, 0xd0, 0x75, 0x98,
+	0x83, 0x66, 0xc4, 0xec, 0xf2, 0xcd, 0x9e, 0xc9, 0xfa, 0x7e, 0xa7, 0xd2, 0x75, 0x06, 0x6b, 0x3d,
+	0xa7, 0xe7, 0xac, 0xf1, 0xe5, 0x8e, 0xbf, 0xcb, 0x67, 0x7c, 0xc2, 0x47, 0xe2, 0xb3, 0x72, 0x15,
+	0x72, 0x6f, 0x51, 0x9b, 0x7a, 0xa6, 0x87, 0xae, 0xc2, 0xec, 0xd0, 0xb1, 0xf6, 0x07, 0x8e, 0x3b,
+	0xec, 0x6b, 0xc5, 0x92, 0xba, 0x9a, 0xc5, 0x31, 0x01, 0x21, 0xc8, 0x34, 0x89, 0xd7, 0xd7, 0x96,
+	0x4a, 0xea, 0xea, 0x3c, 0xe6, 0xe3, 0xd7, 0x32, 0x0f, 0xbe, 0x5f, 0x51, 0xcb, 0xbf, 0xe5, 0x60,
+	0xb1, 0x65, 0x77, 0x9d, 0x81, 0x69, 0xf7, 0x30, 0xfd, 0xd4, 0xa7, 0x1e, 0x9b, 0x80, 0x75, 0x03,
+	0xf2, 0x75, 0x62, 0x59, 0x3b, 0xfb, 0x43, 0xca, 0xf1, 0x16, 0xd6, 0x8b, 0x15, 0xa9, 0x4c, 0x48,
+	0xc7, 0xd1, 0x0e, 0xd4, 0x81, 0x99, 0x60, 0x4c, 0x5d, 0xed, 0x62, 0xc0, 0xbb, 0x76, 0xfb, 0xe0,
+	0xf1, 0x8a, 0xf2, 0xf3, 0xe3, 0x95, 0x5a, 0x42, 0xd3, 0xd0, 0x32, 0xc4, 0xf3, 0x7c, 0x97, 0x1a,
+	0x37, 0x2d, 0x6a, 0xf4, 0xa8, 0xbb, 0x26, 0x7e, 0x6e, 0x76, 0x1d, 0x97, 0xae, 0xed, 0xad, 0x87,
+	0xbb, 0x2a, 0x98, 0xee, 0x52, 0x97, 0xda, 0x5d, 0x8a, 0x25, 0x32, 0x62, 0xb0, 0x28, 0x46, 0xed,
+	0xc0, 0x2a, 0x2c, 0x10, 0xec, 0x52, 0xea, 0xcc, 0xc6, 0x59, 0xa0, 0x25, 0xc8, 0xde, 0x71, 0xec,
+	0x2e, 0xd5, 0x96, 0x4b, 0xea, 0x6a, 0x06, 0x8b, 0x09, 0x5a, 0x07, 0xc0, 0x94, 0xf9, 0xae, 0xbd,
+	0xe9, 0x18, 0x54, 0x7b, 0x96, 0xdb, 0x07, 0x85, 0xf6, 0x89, 0x57, 0x70, 0x62, 0x57, 0x60, 0xef,
+	0xd6, 0x60, 0xe0, 0x33, 0xd2, 0xb1, 0xa8, 0x76, 0xb9, 0xa4, 0xae, 0xe6, 0x71, 0x4c, 0x40, 0xef,
+	0x43, 0xa6, 0x46, 0x3c, 0xaa, 0x5d, 0xe1, 0x2a, 0xdd, 0x4a, 0x49, 0x1d, 0x8e, 0x89, 0x3e, 0x82,
+	0x99, 0xad, 0xce, 0x5d, 0xda, 0x65, 0xda, 0xd5, 0x54, 0xd1, 0x25, 0x2a, 0x32, 0x60, 0x36, 0xf6,
+	0xc9, 0xb5, 0x54, 0x59, 0xc4, 0xc0, 0xe8, 0x12, 0xcc, 0x6c, 0x52, 0xd6, 0x77, 0x0c, 0x4d, 0x2f,
+	0xa9, 0xab, 0xb3, 0x58, 0xce, 0x02, 0xbb, 0x56, 0xdd, 0x9e, 0x3f, 0xa0, 0x36, 0xf3, 0xb4, 0x15,
+	0x1e, 0xfa, 0x31, 0x01, 0x95, 0x61, 0xbe, 0xda, 0x6e, 0xc9, 0x98, 0x6f, 0x35, 0xb4, 0xe7, 0xf8,
+	0xb7, 0xc7, 0x68, 0x41, 0xf4, 0x62, 0x4a, 0x3c, 0xc7, 0xd6, 0xca, 0xe9, 0x47, 0xaf, 0x40, 0x46,
+	0x06, 0xe4, 0xaa, 0xed, 0xd6, 0x9d, 0x20, 0x5c, 0x9e, 0x4f, 0x9d, 0x49, 0x08, 0x9d, 0xc8, 0xf6,
+	0x2d, 0x9f, 0xf5, 0x9c, 0xf3, 0x6c, 0x3f, 0xcf, 0xf6, 0xf3, 0x6c, 0xff, 0x9f, 0x67, 0xfb, 0x17,
+	0x53, 0x81, 0x42, 0x9e, 0x6f, 0x4d, 0x4a, 0xf2, 0x0f, 0xa2, 0xc0, 0xe0, 0x0d, 0x42, 0xad, 0x2e,
+	0x65, 0x7a, 0xfd, 0xd4, 0x32, 0xb5, 0x1a, 0x89, 0xa8, 0xc8, 0x49, 0x13, 0x9f, 0x41, 0x51, 0x08,
+	0xa1, 0x91, 0x06, 0xb9, 0x36, 0xd9, 0xb7, 0x1c, 0x62, 0x88, 0x6a, 0x80, 0xc3, 0xa9, 0xb4, 0xc5,
+	0xb7, 0x53, 0x90, 0xa9, 0xcb, 0xf4, 0xfb, 0x07, 0x4b, 0x24, 0x84, 0x5d, 0x3a, 0x3b, 0x61, 0x91,
+	0x90, 0x45, 0xd8, 0x03, 0x0b, 0xb9, 0x6c, 0x98, 0xdb, 0x24, 0xdd, 0xbe, 0x69, 0xd3, 0x9d, 0xb0,
+	0xa4, 0x15, 0x6a, 0x1b, 0x92, 0x7b, 0xe3, 0xd4, 0xdc, 0x13, 0x98, 0x38, 0xc9, 0x40, 0x9a, 0xe5,
+	0xeb, 0x69, 0xc8, 0x57, 0xbb, 0xcc, 0xdc, 0x23, 0xec, 0xe9, 0x30, 0x0d, 0xcf, 0xee, 0x81, 0xe3,
+	0xee, 0x4b, 0xe3, 0xc8, 0x19, 0xfa, 0x04, 0xb2, 0xad, 0x01, 0xe9, 0x9d, 0x45, 0xad, 0x17, 0xc0,
+	0xa8, 0x04, 0x73, 0x2d, 0x2f, 0xae, 0x5f, 0xcb, 0xbc, 0x32, 0x27, 0x49, 0x41, 0x7d, 0x68, 0x13,
+	0x97, 0xda, 0x4c, 0xd3, 0xd2, 0xaf, 0x0f, 0x02, 0xb9, 0xfc, 0xe5, 0x34, 0x64, 0xab, 0x03, 0x6a,
+	0x1b, 0xe7, 0xde, 0x98, 0xe0, 0x0d, 0x12, 0x9c, 0x36, 0x74, 0x6f, 0x9b, 0x11, 0x46, 0xa5, 0x43,
+	0x52, 0xa9, 0x5b, 0x31, 0x6a, 0xf9, 0x77, 0x15, 0xa0, 0x41, 0xc9, 0xd3, 0x94, 0x1f, 0xc7, 0xb4,
+	0xbe, 0x78, 0x26, 0x5a, 0xff, 0xa1, 0xc2, 0x62, 0x9b, 0xda, 0x86, 0x69, 0xf7, 0x6e, 0x99, 0x16,
+	0x09, 0xce, 0xcf, 0x09, 0xaa, 0x7f, 0x0c, 0x79, 0xcc, 0x7b, 0x9e, 0x56, 0x23, 0xcd, 0x13, 0x24,
+	0x02, 0x45, 0xf7, 0x60, 0x21, 0x90, 0xcf, 0x74, 0x7c, 0x4f, 0xd0, 0x12, 0xaa, 0xab, 0xff, 0x96,
+	0xcd, 0x18, 0x74, 0xf9, 0xc7, 0x0c, 0xe4, 0x37, 0xcc, 0x5d, 0x6a, 0x99, 0x36, 0xf7, 0x79, 0x7b,
+	0x5c, 0xf1, 0x88, 0x80, 0x28, 0xcc, 0x6d, 0x10, 0x46, 0x3d, 0x26, 0xfc, 0xb1, 0x94, 0x9e, 0x50,
+	0x49, 0x5c, 0xf4, 0x22, 0xe4, 0xf8, 0xa0, 0xd5, 0xe0, 0x7a, 0x17, 0x6a, 0x8b, 0xd2, 0xbc, 0x21,
+	0x19, 0x87, 0x83, 0x44, 0x8d, 0xba, 0x74, 0x56, 0x35, 0x0a, 0x99, 0x50, 0x10, 0xd2, 0x85, 0xf1,
+	0xbe, 0x9c, 0x9e, 0xde, 0xc7, 0x91, 0xd1, 0x67, 0xf0, 0xcc, 0x9b, 0xc4, 0xb5, 0x4c, 0xea, 0xb1,
+	0xad, 0x21, 0xb5, 0x43, 0x86, 0x22, 0xdd, 0x37, 0x24, 0xc3, 0xd3, 0x9f, 0x8e, 0x6d, 0xdf, 0xf2,
+	0xe8, 0x1d, 0x7f, 0xd0, 0xa1, 0x2e, 0xfe, 0x2b, 0x46, 0xe8, 0x06, 0x5c, 0x48, 0x4c, 0xbd, 0xba,
+	0xe3, 0xdb, 0x8c, 0xf7, 0xf9, 0x05, 0x7c, 0x72, 0xa1, 0xfc, 0xdd, 0x34, 0x64, 0x5b, 0xb6, 0x41,
+	0xef, 0x4f, 0x08, 0x9b, 0xf7, 0x20, 0xbb, 0xd5, 0xb9, 0x9b, 0x6e, 0xb2, 0x08, 0x44, 0xb4, 0x1e,
+	0xc7, 0x2e, 0x8f, 0x95, 0xb9, 0xf8, 0xbe, 0x16, 0xd2, 0x6b, 0x99, 0x80, 0x1f, 0x8e, 0x63, 0xfc,
+	0x3e, 0x14, 0xc3, 0xf1, 0x06, 0xf1, 0xd8, 0x3b, 0x1e, 0x35, 0x52, 0xeb, 0x3f, 0x92, 0x16, 0x3e,
+	0xc1, 0x85, 0xe7, 0xb5, 0xa8, 0x34, 0x22, 0xf7, 0x3c, 0x6d, 0xb9, 0x34, 0x9d, 0x96, 0x45, 0xc6,
+	0xa0, 0xcb, 0x3f, 0x64, 0x20, 0xf7, 0xae, 0xe9, 0x32, 0x9f, 0x58, 0x13, 0xea, 0xd9, 0x4b, 0xd1,
+	0xbb, 0x9a, 0x46, 0xb9, 0x0d, 0x17, 0x43, 0x1b, 0x4a, 0x72, 0x53, 0xc1, 0xd1, 0xcb, 0x5b, 0xfd,
+	0xc4, 0x03, 0x9a, 0xb6, 0xcb, 0x3f, 0x5a, 0x0e, 0x3f, 0x1a, 0x5b, 0x6e, 0x2a, 0xf8, 0xc4, 0x93,
+	0x5b, 0xfd, 0xc4, 0xbd, 0x5c, 0xeb, 0x1d, 0x07, 0x19, 0x5b, 0x0e, 0x40, 0xc6, 0x6f, 0xf2, 0xab,
+	0x61, 0xbb, 0xaf, 0xf5, 0xf9, 0xb7, 0x0b, 0xf1, 0x4d, 0x34, 0xa0, 0x36, 0x15, 0x1c, 0x5e, 0x07,
+	0xca, 0xb2, 0x01, 0x35, 0xf9, 0xbe, 0xf9, 0xe8, 0x46, 0xef, 0x18, 0xb4, 0xa9, 0xc8, 0x86, 0xb4,
+	0x12, 0x77, 0x86, 0xda, 0xdd, 0xe3, 0x91, 0x14, 0xd2, 0x9b, 0x0a, 0x8e, 0xbb, 0xc7, 0x17, 0x64,
+	0xe3, 0xa2, 0xdd, 0xe3, 0x9b, 0x0b, 0xd1, 0xe6, 0x80, 0xd8, 0x54, 0xb0, 0x6c, 0x6b, 0x5e, 0x49,
+	0x1e, 0xa9, 0x9a, 0xc5, 0xf7, 0x46, 0x57, 0xe6, 0x78, 0xa5, 0xa9, 0xe0, 0xe4, 0xd1, 0x5b, 0x3f,
+	0x71, 0x24, 0x69, 0x83, 0xe3, 0xf6, 0x19, 0x5b, 0x0e, 0xec, 0x33, 0x7e, 0x88, 0x5d, 0x83, 0xd9,
+	0x6d, 0xb3, 0x67, 0x13, 0xe6, 0xbb, 0x54, 0x3b, 0x50, 0xc5, 0x15, 0x31, 0xa2, 0xd4, 0x72, 0x90,
+	0xf5, 0x6d, 0xd3, 0xb1, 0xcb, 0x5f, 0x4d, 0x43, 0x7e, 0x93, 0x30, 0xea, 0x9a, 0x13, 0x23, 0x65,
+	0x2d, 0x0a, 0x29, 0x9e, 0xcb, 0x89, 0x48, 0x91, 0x64, 0x99, 0x6c, 0x51, 0xe0, 0x6d, 0xc3, 0x94,
+	0xac, 0xe2, 0x29, 0x45, 0xf9, 0x54, 0xab, 0x11, 0x9c, 0xbf, 0xe2, 0xb2, 0xd5, 0x6a, 0xc8, 0xb2,
+	0x9f, 0xce, 0xf9, 0x1b, 0x82, 0xa2, 0x0f, 0x21, 0x7b, 0x9b, 0x06, 0xe8, 0xa2, 0xd2, 0xdf, 0x92,
+	0xe8, 0x6f, 0x9c, 0x1a, 0x9d, 0xa3, 0x61, 0x01, 0x3a, 0xc1, 0x2f, 0xe5, 0x9f, 0xa6, 0x60, 0xb9,
+	0xee, 0x0c, 0x86, 0x8e, 0x67, 0x32, 0x1a, 0x3a, 0x53, 0x24, 0xf5, 0x7f, 0xdd, 0x97, 0x54, 0x82,
+	0x8c, 0x8b, 0xfa, 0x91, 0x44, 0x86, 0x84, 0xe1, 0x23, 0xdd, 0x2f, 0x77, 0x05, 0x17, 0xed, 0x4d,
+	0xca, 0x48, 0xba, 0x6e, 0x92, 0x90, 0xe8, 0x3a, 0x64, 0x82, 0x11, 0xf7, 0xd1, 0xdf, 0x8b, 0xc2,
+	0xf7, 0x5c, 0x7f, 0x3b, 0x7e, 0xd6, 0x43, 0xf3, 0x90, 0xaf, 0xef, 0x88, 0x47, 0x94, 0xa2, 0x82,
+	0x2e, 0x40, 0xa1, 0xbe, 0xb3, 0x4d, 0xf6, 0x68, 0xd5, 0xab, 0xf7, 0x4d, 0xcb, 0x28, 0xaa, 0xa8,
+	0x00, 0xb3, 0xf5, 0x1d, 0x59, 0xee, 0x8a, 0x53, 0xe8, 0x22, 0x5c, 0xa8, 0xef, 0x34, 0xe8, 0xd0,
+	0x72, 0xf6, 0xa3, 0x6e, 0xbc, 0x38, 0x7d, 0xbd, 0x92, 0x7c, 0x0b, 0x43, 0x45, 0x98, 0x17, 0x33,
+	0x51, 0x71, 0x8a, 0x0a, 0x5a, 0x08, 0xd7, 0xb7, 0x49, 0x8f, 0x14, 0xd5, 0xda, 0xab, 0x07, 0x87,
+	0xba, 0xf2, 0xf0, 0x50, 0x57, 0x1e, 0x1d, 0xea, 0xca, 0x93, 0x43, 0x5d, 0xfd, 0x7c, 0xa4, 0xab,
+	0x0f, 0x46, 0xba, 0x7a, 0x30, 0xd2, 0xd5, 0x87, 0x23, 0x5d, 0xfd, 0x65, 0xa4, 0xab, 0xbf, 0x8e,
+	0x74, 0xe5, 0xc9, 0x48, 0x57, 0xbf, 0x39, 0xd2, 0x95, 0x87, 0x47, 0xba, 0xf2, 0xe8, 0x48, 0x57,
+	0x3a, 0x33, 0xfc, 0xdf, 0x8f, 0x97, 0xff, 0x0c, 0x00, 0x00, 0xff, 0xff, 0xc6, 0x76, 0xf2, 0x66,
+	0x53, 0x19, 0x00, 0x00,
 }
 
 func (x CallType) String() string {
@@ -1959,19 +1769,19 @@ type IncomingRequestFace interface {
 	Proto() github_com_gogo_protobuf_proto.Message
 	GetPolymorph() int32
 	GetCallType() CallType
-	GetCaller() github_com_insolar_insolar_insolar.Reference
-	GetCallerPrototype() github_com_insolar_insolar_insolar.Reference
+	GetCaller() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetCallerPrototype() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 	GetNonce() uint64
 	GetReturnMode() ReturnMode
 	GetImmutable() bool
-	GetBase() *github_com_insolar_insolar_insolar.Reference
-	GetObject() *github_com_insolar_insolar_insolar.Reference
-	GetPrototype() *github_com_insolar_insolar_insolar.Reference
+	GetBase() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetObject() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetPrototype() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 	GetMethod() string
 	GetArguments() []byte
 	GetAPIRequestID() string
-	GetReason() github_com_insolar_insolar_insolar.Reference
-	GetAPINode() github_com_insolar_insolar_insolar.Reference
+	GetReason() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetAPINode() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 }
 
 func (this *IncomingRequest) Proto() github_com_gogo_protobuf_proto.Message {
@@ -1990,11 +1800,11 @@ func (this *IncomingRequest) GetCallType() CallType {
 	return this.CallType
 }
 
-func (this *IncomingRequest) GetCaller() github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetCaller() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Caller
 }
 
-func (this *IncomingRequest) GetCallerPrototype() github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetCallerPrototype() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.CallerPrototype
 }
 
@@ -2010,15 +1820,15 @@ func (this *IncomingRequest) GetImmutable() bool {
 	return this.Immutable
 }
 
-func (this *IncomingRequest) GetBase() *github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetBase() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Base
 }
 
-func (this *IncomingRequest) GetObject() *github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetObject() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Object
 }
 
-func (this *IncomingRequest) GetPrototype() *github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetPrototype() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Prototype
 }
 
@@ -2034,11 +1844,11 @@ func (this *IncomingRequest) GetAPIRequestID() string {
 	return this.APIRequestID
 }
 
-func (this *IncomingRequest) GetReason() github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetReason() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Reason
 }
 
-func (this *IncomingRequest) GetAPINode() github_com_insolar_insolar_insolar.Reference {
+func (this *IncomingRequest) GetAPINode() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.APINode
 }
 
@@ -2066,19 +1876,19 @@ type OutgoingRequestFace interface {
 	Proto() github_com_gogo_protobuf_proto.Message
 	GetPolymorph() int32
 	GetCallType() CallType
-	GetCaller() github_com_insolar_insolar_insolar.Reference
-	GetCallerPrototype() github_com_insolar_insolar_insolar.Reference
+	GetCaller() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetCallerPrototype() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 	GetNonce() uint64
 	GetReturnMode() ReturnMode
 	GetImmutable() bool
-	GetBase() *github_com_insolar_insolar_insolar.Reference
-	GetObject() *github_com_insolar_insolar_insolar.Reference
-	GetPrototype() *github_com_insolar_insolar_insolar.Reference
+	GetBase() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetObject() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetPrototype() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 	GetMethod() string
 	GetArguments() []byte
 	GetAPIRequestID() string
-	GetReason() github_com_insolar_insolar_insolar.Reference
-	GetAPINode() github_com_insolar_insolar_insolar.Reference
+	GetReason() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
+	GetAPINode() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 }
 
 func (this *OutgoingRequest) Proto() github_com_gogo_protobuf_proto.Message {
@@ -2097,11 +1907,11 @@ func (this *OutgoingRequest) GetCallType() CallType {
 	return this.CallType
 }
 
-func (this *OutgoingRequest) GetCaller() github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetCaller() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Caller
 }
 
-func (this *OutgoingRequest) GetCallerPrototype() github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetCallerPrototype() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.CallerPrototype
 }
 
@@ -2117,15 +1927,15 @@ func (this *OutgoingRequest) GetImmutable() bool {
 	return this.Immutable
 }
 
-func (this *OutgoingRequest) GetBase() *github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetBase() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Base
 }
 
-func (this *OutgoingRequest) GetObject() *github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetObject() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Object
 }
 
-func (this *OutgoingRequest) GetPrototype() *github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetPrototype() *github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Prototype
 }
 
@@ -2141,11 +1951,11 @@ func (this *OutgoingRequest) GetAPIRequestID() string {
 	return this.APIRequestID
 }
 
-func (this *OutgoingRequest) GetReason() github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetReason() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Reason
 }
 
-func (this *OutgoingRequest) GetAPINode() github_com_insolar_insolar_insolar.Reference {
+func (this *OutgoingRequest) GetAPINode() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.APINode
 }
 
@@ -2172,8 +1982,8 @@ func NewOutgoingRequestFromFace(that OutgoingRequestFace) *OutgoingRequest {
 type ResultFace interface {
 	Proto() github_com_gogo_protobuf_proto.Message
 	GetPolymorph() int32
-	GetObject() github_com_insolar_insolar_insolar.ID
-	GetRequest() github_com_insolar_insolar_insolar.Reference
+	GetObject() github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
+	GetRequest() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 	GetPayload() []byte
 }
 
@@ -2189,11 +1999,11 @@ func (this *Result) GetPolymorph() int32 {
 	return this.Polymorph
 }
 
-func (this *Result) GetObject() github_com_insolar_insolar_insolar.ID {
+func (this *Result) GetObject() github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID {
 	return this.Object
 }
 
-func (this *Result) GetRequest() github_com_insolar_insolar_insolar.Reference {
+func (this *Result) GetRequest() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Request
 }
 
@@ -2213,9 +2023,9 @@ func NewResultFromFace(that ResultFace) *Result {
 type CodeFace interface {
 	Proto() github_com_gogo_protobuf_proto.Message
 	GetPolymorph() int32
-	GetRequest() github_com_insolar_insolar_insolar.Reference
+	GetRequest() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 	GetCode() []byte
-	GetMachineType() github_com_insolar_insolar_insolar.MachineType
+	GetMachineType() github_com_insolar_assured_ledger_ledger_core_v2_insolar.MachineType
 }
 
 func (this *Code) Proto() github_com_gogo_protobuf_proto.Message {
@@ -2230,7 +2040,7 @@ func (this *Code) GetPolymorph() int32 {
 	return this.Polymorph
 }
 
-func (this *Code) GetRequest() github_com_insolar_insolar_insolar.Reference {
+func (this *Code) GetRequest() github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference {
 	return this.Request
 }
 
@@ -2238,7 +2048,7 @@ func (this *Code) GetCode() []byte {
 	return this.Code
 }
 
-func (this *Code) GetMachineType() github_com_insolar_insolar_insolar.MachineType {
+func (this *Code) GetMachineType() github_com_insolar_assured_ledger_ledger_core_v2_insolar.MachineType {
 	return this.MachineType
 }
 
@@ -2546,7 +2356,7 @@ func valueToGoStringRecord(v interface{}, typ string) string {
 func (m *Genesis) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -2554,32 +2364,38 @@ func (m *Genesis) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Genesis) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Genesis) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
 	if len(m.Hash) > 0 {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Hash)
+		copy(dAtA[i:], m.Hash)
 		i = encodeVarintRecord(dAtA, i, uint64(len(m.Hash)))
-		i += copy(dAtA[i:], m.Hash)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *IncomingRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -2587,157 +2403,179 @@ func (m *IncomingRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *IncomingRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IncomingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	{
+		size := m.APINode.Size()
+		i -= size
+		if _, err := m.APINode.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2
+	i--
+	dAtA[i] = 0x9a
+	{
+		size := m.Reason.Size()
+		i -= size
+		if _, err := m.Reason.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2
+	i--
+	dAtA[i] = 0x92
+	if len(m.APIRequestID) > 0 {
+		i -= len(m.APIRequestID)
+		copy(dAtA[i:], m.APIRequestID)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.APIRequestID)))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0x8a
+	}
+	if len(m.Arguments) > 0 {
+		i -= len(m.Arguments)
+		copy(dAtA[i:], m.Arguments)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Arguments)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xfa
 	}
-	if m.CallType != 0 {
-		dAtA[i] = 0xa0
-		i++
+	if len(m.Method) > 0 {
+		i -= len(m.Method)
+		copy(dAtA[i:], m.Method)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Method)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.CallType))
+		i--
+		dAtA[i] = 0xf2
 	}
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Caller.Size()))
-	n1, err := m.Caller.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.CallerPrototype.Size()))
-	n2, err := m.CallerPrototype.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
-	if m.Nonce != 0 {
-		dAtA[i] = 0xb8
-		i++
+	if m.Prototype != nil {
+		{
+			size := m.Prototype.Size()
+			i -= size
+			if _, err := m.Prototype.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0xea
 	}
-	if m.ReturnMode != 0 {
-		dAtA[i] = 0xc8
-		i++
+	if m.Object != nil {
+		{
+			size := m.Object.Size()
+			i -= size
+			if _, err := m.Object.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.ReturnMode))
+		i--
+		dAtA[i] = 0xe2
+	}
+	if m.Base != nil {
+		{
+			size := m.Base.Size()
+			i -= size
+			if _, err := m.Base.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xda
 	}
 	if m.Immutable {
-		dAtA[i] = 0xd0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.Immutable {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
-	}
-	if m.Base != nil {
-		dAtA[i] = 0xda
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Base.Size()))
-		n3, err := m.Base.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xd0
+	}
+	if m.ReturnMode != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.ReturnMode))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc8
+	}
+	if m.Nonce != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
+	}
+	{
+		size := m.CallerPrototype.Size()
+		i -= size
+		if _, err := m.CallerPrototype.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n3
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	if m.Object != nil {
-		dAtA[i] = 0xe2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Object.Size()))
-		n4, err := m.Object.MarshalTo(dAtA[i:])
-		if err != nil {
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size := m.Caller.Size()
+		i -= size
+		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n4
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	if m.Prototype != nil {
-		dAtA[i] = 0xea
-		i++
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	if m.CallType != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.CallType))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Prototype.Size()))
-		n5, err := m.Prototype.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n5
+		i--
+		dAtA[i] = 0xa0
 	}
-	if len(m.Method) > 0 {
-		dAtA[i] = 0xf2
-		i++
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Method)))
-		i += copy(dAtA[i:], m.Method)
+		i--
+		dAtA[i] = 0x80
 	}
-	if len(m.Arguments) > 0 {
-		dAtA[i] = 0xfa
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Arguments)))
-		i += copy(dAtA[i:], m.Arguments)
-	}
-	if len(m.APIRequestID) > 0 {
-		dAtA[i] = 0x8a
-		i++
-		dAtA[i] = 0x2
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.APIRequestID)))
-		i += copy(dAtA[i:], m.APIRequestID)
-	}
-	dAtA[i] = 0x92
-	i++
-	dAtA[i] = 0x2
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Reason.Size()))
-	n6, err := m.Reason.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n6
-	dAtA[i] = 0x9a
-	i++
-	dAtA[i] = 0x2
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.APINode.Size()))
-	n7, err := m.APINode.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n7
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *OutgoingRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -2745,157 +2583,179 @@ func (m *OutgoingRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *OutgoingRequest) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *OutgoingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	{
+		size := m.APINode.Size()
+		i -= size
+		if _, err := m.APINode.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2
+	i--
+	dAtA[i] = 0x9a
+	{
+		size := m.Reason.Size()
+		i -= size
+		if _, err := m.Reason.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2
+	i--
+	dAtA[i] = 0x92
+	if len(m.APIRequestID) > 0 {
+		i -= len(m.APIRequestID)
+		copy(dAtA[i:], m.APIRequestID)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.APIRequestID)))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0x8a
+	}
+	if len(m.Arguments) > 0 {
+		i -= len(m.Arguments)
+		copy(dAtA[i:], m.Arguments)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Arguments)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xfa
 	}
-	if m.CallType != 0 {
-		dAtA[i] = 0xa0
-		i++
+	if len(m.Method) > 0 {
+		i -= len(m.Method)
+		copy(dAtA[i:], m.Method)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Method)))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.CallType))
+		i--
+		dAtA[i] = 0xf2
 	}
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Caller.Size()))
-	n8, err := m.Caller.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n8
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.CallerPrototype.Size()))
-	n9, err := m.CallerPrototype.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n9
-	if m.Nonce != 0 {
-		dAtA[i] = 0xb8
-		i++
+	if m.Prototype != nil {
+		{
+			size := m.Prototype.Size()
+			i -= size
+			if _, err := m.Prototype.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0xea
 	}
-	if m.ReturnMode != 0 {
-		dAtA[i] = 0xc8
-		i++
+	if m.Object != nil {
+		{
+			size := m.Object.Size()
+			i -= size
+			if _, err := m.Object.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.ReturnMode))
+		i--
+		dAtA[i] = 0xe2
+	}
+	if m.Base != nil {
+		{
+			size := m.Base.Size()
+			i -= size
+			if _, err := m.Base.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xda
 	}
 	if m.Immutable {
-		dAtA[i] = 0xd0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.Immutable {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
-	}
-	if m.Base != nil {
-		dAtA[i] = 0xda
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Base.Size()))
-		n10, err := m.Base.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xd0
+	}
+	if m.ReturnMode != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.ReturnMode))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc8
+	}
+	if m.Nonce != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
+	}
+	{
+		size := m.CallerPrototype.Size()
+		i -= size
+		if _, err := m.CallerPrototype.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n10
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	if m.Object != nil {
-		dAtA[i] = 0xe2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Object.Size()))
-		n11, err := m.Object.MarshalTo(dAtA[i:])
-		if err != nil {
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size := m.Caller.Size()
+		i -= size
+		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n11
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	if m.Prototype != nil {
-		dAtA[i] = 0xea
-		i++
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	if m.CallType != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.CallType))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Prototype.Size()))
-		n12, err := m.Prototype.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n12
+		i--
+		dAtA[i] = 0xa0
 	}
-	if len(m.Method) > 0 {
-		dAtA[i] = 0xf2
-		i++
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Method)))
-		i += copy(dAtA[i:], m.Method)
+		i--
+		dAtA[i] = 0x80
 	}
-	if len(m.Arguments) > 0 {
-		dAtA[i] = 0xfa
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Arguments)))
-		i += copy(dAtA[i:], m.Arguments)
-	}
-	if len(m.APIRequestID) > 0 {
-		dAtA[i] = 0x8a
-		i++
-		dAtA[i] = 0x2
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.APIRequestID)))
-		i += copy(dAtA[i:], m.APIRequestID)
-	}
-	dAtA[i] = 0x92
-	i++
-	dAtA[i] = 0x2
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Reason.Size()))
-	n13, err := m.Reason.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n13
-	dAtA[i] = 0x9a
-	i++
-	dAtA[i] = 0x2
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.APINode.Size()))
-	n14, err := m.APINode.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n14
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Result) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -2903,52 +2763,62 @@ func (m *Result) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Result) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Result) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Object.Size()))
-	n15, err := m.Object.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n15
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Request.Size()))
-	n16, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n16
 	if len(m.Payload) > 0 {
-		dAtA[i] = 0xb2
-		i++
-		dAtA[i] = 0x1
-		i++
+		i -= len(m.Payload)
+		copy(dAtA[i:], m.Payload)
 		i = encodeVarintRecord(dAtA, i, uint64(len(m.Payload)))
-		i += copy(dAtA[i:], m.Payload)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb2
 	}
-	return i, nil
+	{
+		size := m.Request.Size()
+		i -= size
+		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.Object.Size()
+		i -= size
+		if _, err := m.Object.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Code) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -2956,49 +2826,57 @@ func (m *Code) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Code) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Code) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Request.Size()))
-	n17, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n17
-	if len(m.Code) > 0 {
-		dAtA[i] = 0xaa
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Code)))
-		i += copy(dAtA[i:], m.Code)
-	}
 	if m.MachineType != 0 {
-		dAtA[i] = 0xb0
-		i++
-		dAtA[i] = 0x1
-		i++
 		i = encodeVarintRecord(dAtA, i, uint64(m.MachineType))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
 	}
-	return i, nil
+	if len(m.Code) > 0 {
+		i -= len(m.Code)
+		copy(dAtA[i:], m.Code)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Code)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
+	}
+	{
+		size := m.Request.Size()
+		i -= size
+		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Activate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3006,74 +2884,86 @@ func (m *Activate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Activate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Activate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.Parent.Size()
+		i -= size
+		if _, err := m.Parent.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Request.Size()))
-	n18, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n18
-	if len(m.Memory) > 0 {
-		dAtA[i] = 0xaa
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Memory)))
-		i += copy(dAtA[i:], m.Memory)
-	}
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Image.Size()))
-	n19, err := m.Image.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n19
+	i--
+	dAtA[i] = 0xc2
 	if m.IsPrototype {
-		dAtA[i] = 0xb8
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.IsPrototype {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
 	}
-	dAtA[i] = 0xc2
-	i++
+	{
+		size := m.Image.Size()
+		i -= size
+		if _, err := m.Image.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Parent.Size()))
-	n20, err := m.Parent.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xb2
+	if len(m.Memory) > 0 {
+		i -= len(m.Memory)
+		copy(dAtA[i:], m.Memory)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Memory)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
 	}
-	i += n20
-	return i, nil
+	{
+		size := m.Request.Size()
+		i -= size
+		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Amend) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3081,74 +2971,86 @@ func (m *Amend) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Amend) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Amend) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.PrevState.Size()
+		i -= size
+		if _, err := m.PrevState.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Request.Size()))
-	n21, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n21
-	if len(m.Memory) > 0 {
-		dAtA[i] = 0xaa
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Memory)))
-		i += copy(dAtA[i:], m.Memory)
-	}
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Image.Size()))
-	n22, err := m.Image.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n22
+	i--
+	dAtA[i] = 0xc2
 	if m.IsPrototype {
-		dAtA[i] = 0xb8
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.IsPrototype {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
 	}
-	dAtA[i] = 0xc2
-	i++
+	{
+		size := m.Image.Size()
+		i -= size
+		if _, err := m.Image.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.PrevState.Size()))
-	n23, err := m.PrevState.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	i--
+	dAtA[i] = 0xb2
+	if len(m.Memory) > 0 {
+		i -= len(m.Memory)
+		copy(dAtA[i:], m.Memory)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Memory)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
 	}
-	i += n23
-	return i, nil
+	{
+		size := m.Request.Size()
+		i -= size
+		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Deactivate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3156,44 +3058,53 @@ func (m *Deactivate) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Deactivate) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Deactivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+	{
+		size := m.PrevState.Size()
+		i -= size
+		if _, err := m.PrevState.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Request.Size()))
-	n24, err := m.Request.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n24
+	i--
 	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.PrevState.Size()))
-	n25, err := m.PrevState.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.Request.Size()
+		i -= size
+		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	i += n25
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *PendingFilament) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3201,46 +3112,55 @@ func (m *PendingFilament) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PendingFilament) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PendingFilament) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.RecordID.Size()))
-	n26, err := m.RecordID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n26
 	if m.PreviousRecord != nil {
-		dAtA[i] = 0xaa
-		i++
+		{
+			size := m.PreviousRecord.Size()
+			i -= size
+			if _, err := m.PreviousRecord.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.PreviousRecord.Size()))
-		n27, err := m.PreviousRecord.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xaa
+	}
+	{
+		size := m.RecordID.Size()
+		i -= size
+		if _, err := m.RecordID.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n27
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Lifeline) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3248,84 +3168,97 @@ func (m *Lifeline) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Lifeline) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Lifeline) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.OpenRequestsCount != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.OpenRequestsCount))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
-	if m.LatestState != nil {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.LatestState.Size()))
-		n28, err := m.LatestState.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n28
-	}
-	if m.StateID != 0 {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.StateID))
-	}
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Parent.Size()))
-	n29, err := m.Parent.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n29
-	if m.LatestRequest != nil {
-		dAtA[i] = 0xba
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.LatestRequest.Size()))
-		n30, err := m.LatestRequest.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n30
+		i--
+		dAtA[i] = 0xc8
 	}
 	if m.EarliestOpenRequest != nil {
-		dAtA[i] = 0xc2
-		i++
+		{
+			size := m.EarliestOpenRequest.Size()
+			i -= size
+			if _, err := m.EarliestOpenRequest.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.EarliestOpenRequest.Size()))
-		n31, err := m.EarliestOpenRequest.MarshalTo(dAtA[i:])
-		if err != nil {
+		i--
+		dAtA[i] = 0xc2
+	}
+	if m.LatestRequest != nil {
+		{
+			size := m.LatestRequest.Size()
+			i -= size
+			if _, err := m.LatestRequest.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
+	}
+	{
+		size := m.Parent.Size()
+		i -= size
+		if _, err := m.Parent.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
-		i += n31
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	if m.OpenRequestsCount != 0 {
-		dAtA[i] = 0xc8
-		i++
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	if m.StateID != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.StateID))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.OpenRequestsCount))
+		i--
+		dAtA[i] = 0xa8
 	}
-	return i, nil
+	if m.LatestState != nil {
+		{
+			size := m.LatestState.Size()
+			i -= size
+			if _, err := m.LatestState.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecord(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Index) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3333,65 +3266,76 @@ func (m *Index) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Index) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Index) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.ObjID.Size()))
-	n32, err := m.ObjID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n32
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Lifeline.Size()))
-	n33, err := m.Lifeline.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n33
-	if m.LifelineLastUsed != 0 {
-		dAtA[i] = 0xb0
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.LifelineLastUsed))
-	}
 	if len(m.PendingRecords) > 0 {
-		for _, msg := range m.PendingRecords {
-			dAtA[i] = 0xba
-			i++
-			dAtA[i] = 0x1
-			i++
-			i = encodeVarintRecord(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.PendingRecords) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size := m.PendingRecords[iNdEx].Size()
+				i -= size
+				if _, err := m.PendingRecords[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+					return 0, err
+				}
+				i = encodeVarintRecord(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
 		}
 	}
-	return i, nil
+	if m.LifelineLastUsed != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.LifelineLastUsed))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
+	{
+		size, err := m.Lifeline.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.ObjID.Size()
+		i -= size
+		if _, err := m.ObjID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Virtual) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3399,183 +3343,254 @@ func (m *Virtual) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Virtual) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintRecord(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0xc
+		i--
+		dAtA[i] = 0xc2
 	}
 	if m.Union != nil {
-		nn34, err := m.Union.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size := m.Union.Size()
+			i -= size
+			if _, err := m.Union.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
 		}
-		i += nn34
 	}
-	if len(m.Signature) > 0 {
-		dAtA[i] = 0xc2
-		i++
-		dAtA[i] = 0xc
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(len(m.Signature)))
-		i += copy(dAtA[i:], m.Signature)
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Virtual_Genesis) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_Genesis) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Genesis != nil {
-		dAtA[i] = 0xaa
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Genesis.Size()))
-		n35, err := m.Genesis.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Genesis.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n35
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xaa
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_IncomingRequest) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_IncomingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.IncomingRequest != nil {
-		dAtA[i] = 0xb2
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.IncomingRequest.Size()))
-		n36, err := m.IncomingRequest.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.IncomingRequest.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n36
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xb2
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_OutgoingRequest) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_OutgoingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.OutgoingRequest != nil {
-		dAtA[i] = 0xba
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.OutgoingRequest.Size()))
-		n37, err := m.OutgoingRequest.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.OutgoingRequest.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n37
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xba
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_Result) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_Result) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Result != nil {
-		dAtA[i] = 0xc2
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Result.Size()))
-		n38, err := m.Result.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Result.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n38
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xc2
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_Code) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_Code) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Code != nil {
-		dAtA[i] = 0xca
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Code.Size()))
-		n39, err := m.Code.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Code.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n39
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xca
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_Activate) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_Activate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Activate != nil {
-		dAtA[i] = 0xd2
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Activate.Size()))
-		n40, err := m.Activate.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Activate.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n40
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xd2
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_Amend) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_Amend) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Amend != nil {
-		dAtA[i] = 0xda
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Amend.Size()))
-		n41, err := m.Amend.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Amend.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n41
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xda
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_Deactivate) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_Deactivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.Deactivate != nil {
-		dAtA[i] = 0xe2
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Deactivate.Size()))
-		n42, err := m.Deactivate.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Deactivate.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n42
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xe2
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Virtual_PendingFilament) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Virtual_PendingFilament) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	if m.PendingFilament != nil {
-		dAtA[i] = 0xea
-		i++
-		dAtA[i] = 0x6
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.PendingFilament.Size()))
-		n43, err := m.PendingFilament.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.PendingFilament.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintRecord(dAtA, i, uint64(size))
 		}
-		i += n43
+		i--
+		dAtA[i] = 0x6
+		i--
+		dAtA[i] = 0xea
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 func (m *Material) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3583,72 +3598,86 @@ func (m *Material) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Material) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Material) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Virtual.Size()))
-	n44, err := m.Virtual.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n44
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.ID.Size()))
-	n45, err := m.ID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n45
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.ObjectID.Size()))
-	n46, err := m.ObjectID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n46
-	dAtA[i] = 0xba
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.JetID.Size()))
-	n47, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n47
 	if len(m.Signature) > 0 {
-		dAtA[i] = 0xc2
-		i++
-		dAtA[i] = 0xc
-		i++
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
 		i = encodeVarintRecord(dAtA, i, uint64(len(m.Signature)))
-		i += copy(dAtA[i:], m.Signature)
+		i--
+		dAtA[i] = 0xc
+		i--
+		dAtA[i] = 0xc2
 	}
-	return i, nil
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xba
+	{
+		size := m.ObjectID.Size()
+		i -= size
+		if _, err := m.ObjectID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size := m.ID.Size()
+		i -= size
+		if _, err := m.ID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size, err := m.Virtual.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *CompositeFilamentRecord) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -3656,68 +3685,83 @@ func (m *CompositeFilamentRecord) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CompositeFilamentRecord) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *CompositeFilamentRecord) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+	{
+		size, err := m.Meta.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	dAtA[i] = 0xa2
-	i++
+	i--
 	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.RecordID.Size()))
-	n48, err := m.RecordID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n48
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Record.Size()))
-	n49, err := m.Record.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n49
-	dAtA[i] = 0xb2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.MetaID.Size()))
-	n50, err := m.MetaID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n50
+	i--
 	dAtA[i] = 0xba
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecord(dAtA, i, uint64(m.Meta.Size()))
-	n51, err := m.Meta.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
+	{
+		size := m.MetaID.Size()
+		i -= size
+		if _, err := m.MetaID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
 	}
-	i += n51
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xb2
+	{
+		size, err := m.Record.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.RecordID.Size()
+		i -= size
+		if _, err := m.RecordID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecord(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecord(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintRecord(dAtA []byte, offset int, v uint64) int {
+	offset -= sovRecord(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Genesis) Size() (n int) {
 	if m == nil {
@@ -4201,14 +4245,7 @@ func (m *CompositeFilamentRecord) Size() (n int) {
 }
 
 func sovRecord(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozRecord(x uint64) (n int) {
 	return sovRecord(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -4847,7 +4884,7 @@ func (m *IncomingRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.Base = &v
 			if err := m.Base.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4882,7 +4919,7 @@ func (m *IncomingRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.Object = &v
 			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4917,7 +4954,7 @@ func (m *IncomingRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.Prototype = &v
 			if err := m.Prototype.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5331,7 +5368,7 @@ func (m *OutgoingRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.Base = &v
 			if err := m.Base.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5366,7 +5403,7 @@ func (m *OutgoingRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.Object = &v
 			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5401,7 +5438,7 @@ func (m *OutgoingRequest) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.Reference
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference
 			m.Prototype = &v
 			if err := m.Prototype.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5896,7 +5933,7 @@ func (m *Code) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.MachineType |= github_com_insolar_insolar_insolar.MachineType(b&0x7F) << shift
+				m.MachineType |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.MachineType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -6623,7 +6660,7 @@ func (m *PendingFilament) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.PreviousRecord = &v
 			if err := m.PreviousRecord.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6730,7 +6767,7 @@ func (m *Lifeline) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.LatestState = &v
 			if err := m.LatestState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6817,7 +6854,7 @@ func (m *Lifeline) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.LatestRequest = &v
 			if err := m.LatestRequest.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6852,7 +6889,7 @@ func (m *Lifeline) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.PulseNumber
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber
 			m.EarliestOpenRequest = &v
 			if err := m.EarliestOpenRequest.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -7029,7 +7066,7 @@ func (m *Index) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.LifelineLastUsed |= github_com_insolar_insolar_insolar.PulseNumber(b&0x7F) << shift
+				m.LifelineLastUsed |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -7063,7 +7100,7 @@ func (m *Index) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.ID
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.ID
 			m.PendingRecords = append(m.PendingRecords, v)
 			if err := m.PendingRecords[len(m.PendingRecords)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -7959,6 +7996,7 @@ func (m *CompositeFilamentRecord) Unmarshal(dAtA []byte) error {
 func skipRecord(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -7990,10 +8028,8 @@ func skipRecord(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -8014,55 +8050,30 @@ func skipRecord(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthRecord
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthRecord
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowRecord
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipRecord(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthRecord
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupRecord
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthRecord
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthRecord = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowRecord   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthRecord        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowRecord          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupRecord = fmt.Errorf("proto: unexpected end of group")
 )

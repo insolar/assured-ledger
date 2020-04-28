@@ -9,6 +9,7 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
+	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -22,7 +23,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Jet struct {
 	Polymorph int32 `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
@@ -44,7 +45,7 @@ func (m *Jet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Jet.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +82,7 @@ func (m *Tree) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Tree.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -229,7 +230,7 @@ func valueToGoStringJet(v interface{}, typ string) string {
 func (m *Jet) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -237,60 +238,69 @@ func (m *Jet) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Jet) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Jet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
+	if m.Right != nil {
+		{
+			size, err := m.Right.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintJet(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJet(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0xb2
+	}
+	if m.Left != nil {
+		{
+			size, err := m.Left.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintJet(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
 	}
 	if m.Actual {
-		dAtA[i] = 0xa0
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.Actual {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
-	}
-	if m.Left != nil {
-		dAtA[i] = 0xaa
-		i++
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJet(dAtA, i, uint64(m.Left.Size()))
-		n1, err := m.Left.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n1
+		i--
+		dAtA[i] = 0xa0
 	}
-	if m.Right != nil {
-		dAtA[i] = 0xb2
-		i++
+	if m.Polymorph != 0 {
+		i = encodeVarintJet(dAtA, i, uint64(m.Polymorph))
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJet(dAtA, i, uint64(m.Right.Size()))
-		n2, err := m.Right.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n2
+		i--
+		dAtA[i] = 0x80
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Tree) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -298,40 +308,49 @@ func (m *Tree) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Tree) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Tree) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJet(dAtA, i, uint64(m.Polymorph))
-	}
 	if m.Head != nil {
-		dAtA[i] = 0xa2
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintJet(dAtA, i, uint64(m.Head.Size()))
-		n3, err := m.Head.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size, err := m.Head.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintJet(dAtA, i, uint64(size))
 		}
-		i += n3
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
 	}
-	return i, nil
+	if m.Polymorph != 0 {
+		i = encodeVarintJet(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintJet(dAtA []byte, offset int, v uint64) int {
+	offset -= sovJet(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Jet) Size() (n int) {
 	if m == nil {
@@ -373,14 +392,7 @@ func (m *Tree) Size() (n int) {
 }
 
 func sovJet(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozJet(x uint64) (n int) {
 	return sovJet(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -681,6 +693,7 @@ func (m *Tree) Unmarshal(dAtA []byte) error {
 func skipJet(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -712,10 +725,8 @@ func skipJet(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -736,55 +747,30 @@ func skipJet(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthJet
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthJet
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowJet
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipJet(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthJet
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupJet
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthJet
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthJet = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowJet   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthJet        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowJet          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupJet = fmt.Errorf("proto: unexpected end of group")
 )

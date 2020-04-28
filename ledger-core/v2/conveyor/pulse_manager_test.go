@@ -20,32 +20,32 @@ func TestPulseDataManager_Init(t *testing.T) {
 	t.Run("bad input", func(t *testing.T) {
 		assert.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
-			pdm.Init(0, 0, 0, nil)
+			pdm.init(0, 0, 0, nil)
 		})
 		assert.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
-			pdm.Init(uint32(pulse.MaxTimePulse)+1, 0, 0, nil)
+			pdm.init(uint32(pulse.MaxTimePulse)+1, 0, 0, nil)
 		})
 		assert.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
-			pdm.Init(1, 0, 0, nil)
+			pdm.init(1, 0, 0, nil)
 		})
 		assert.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
-			pdm.Init(uint32(pulse.MaxTimePulse), uint32(pulse.MaxTimePulse)+1, 0, nil)
+			pdm.init(uint32(pulse.MaxTimePulse), uint32(pulse.MaxTimePulse)+1, 0, nil)
 		})
 	})
 
 	t.Run("ok", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 	})
 }
 
 func TestPulseDataManager_GetPresentPulse(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		presentPulse, nearestFuture := pdm.GetPresentPulse()
 		assert.Equal(t, pulse.Unknown, presentPulse)
 		assert.Equal(t, uninitializedFuture, nearestFuture)
@@ -53,7 +53,7 @@ func TestPulseDataManager_GetPresentPulse(t *testing.T) {
 
 	t.Run("present", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		pdm.setPresentPulse(pulse.Data{
 			PulseNumber: pulse.MinTimePulse + 1,
 			DataExt: pulse.DataExt{
@@ -76,13 +76,13 @@ func TestPulseDataManager_GetPulseData(t *testing.T) {
 	})
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		_, has := pdm.GetPulseData(1)
 		assert.False(t, has)
 	})
 	t.Run("ok", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(pulse.MinTimePulse, pulse.MinTimePulse+10, 0, nil)
+		pdm.init(pulse.MinTimePulse, pulse.MinTimePulse+10, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 		expected := pulse.Data{
@@ -109,12 +109,12 @@ func TestPulseDataManager_HasPulseData(t *testing.T) {
 	})
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		assert.False(t, pdm.HasPulseData(1))
 	})
 	t.Run("ok", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(pulse.MinTimePulse, pulse.MinTimePulse+10, 0, nil)
+		pdm.init(pulse.MinTimePulse, pulse.MinTimePulse+10, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -138,12 +138,12 @@ func TestPulseDataManager_IsAllowedFutureSpan(t *testing.T) {
 	})
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 2, 0, nil)
+		pdm.init(1, 2, 0, nil)
 		assert.False(t, pdm.IsAllowedFutureSpan(1))
 	})
 	t.Run("0 max future", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 2, 0, nil)
+		pdm.init(1, 2, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -158,7 +158,7 @@ func TestPulseDataManager_IsAllowedFutureSpan(t *testing.T) {
 	})
 	t.Run("1 max future", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 2, 1, nil)
+		pdm.init(1, 2, 1, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -180,12 +180,12 @@ func TestPulseDataManager_IsAllowedPastSpan(t *testing.T) {
 	})
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		assert.False(t, pdm.IsAllowedPastSpan(1))
 	})
 	t.Run("2 past", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 2, 0, nil)
+		pdm.init(1, 2, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -200,7 +200,7 @@ func TestPulseDataManager_IsAllowedPastSpan(t *testing.T) {
 	})
 	t.Run("5 past", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 5, 0, nil)
+		pdm.init(1, 5, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -222,12 +222,12 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 	})
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		assert.False(t, pdm.IsRecentPastRange(1))
 	})
 	t.Run("2 past", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 2, 0, nil)
+		pdm.init(1, 2, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -250,7 +250,7 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 	})
 	t.Run("5 past", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 5, 0, nil)
+		pdm.init(1, 5, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
@@ -311,7 +311,7 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 	t.Run("bad input", func(t *testing.T) {
 		require.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
-			pdm.Init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+			pdm.init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 				return dummyAsync{}
 			})
 			pdm.PreparePulseDataRequest(nil, 1, nil)
@@ -320,7 +320,7 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 
 	t.Run("ok", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+		pdm.init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 			return dummyAsync{}
 		})
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
@@ -345,12 +345,12 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 func TestPulseDataManager_TouchPulseData(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		assert.False(t, pdm.TouchPulseData(1))
 	})
 	t.Run("double", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(1, 10, 0, nil)
+		pdm.init(1, 10, 0, nil)
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
 		assert.False(t, pdm.TouchPulseData(pulseNum))
@@ -358,7 +358,7 @@ func TestPulseDataManager_TouchPulseData(t *testing.T) {
 	})
 	t.Run("ok", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.Init(pulse.MinTimePulse, pulse.MinTimePulse+10, 0, nil)
+		pdm.init(pulse.MinTimePulse, pulse.MinTimePulse+10, 0, nil)
 
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 

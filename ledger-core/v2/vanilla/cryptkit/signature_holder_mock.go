@@ -34,6 +34,12 @@ type SignatureHolderMock struct {
 	beforeCopyOfSignatureCounter uint64
 	CopyOfSignatureMock          mSignatureHolderMockCopyOfSignature
 
+	funcCopyTo          func(p []byte) (i1 int)
+	inspectFuncCopyTo   func(p []byte)
+	afterCopyToCounter  uint64
+	beforeCopyToCounter uint64
+	CopyToMock          mSignatureHolderMockCopyTo
+
 	funcEquals          func(other SignatureHolder) (b1 bool)
 	inspectFuncEquals   func(other SignatureHolder)
 	afterEqualsCounter  uint64
@@ -58,12 +64,6 @@ type SignatureHolderMock struct {
 	beforeGetSignatureMethodCounter uint64
 	GetSignatureMethodMock          mSignatureHolderMockGetSignatureMethod
 
-	funcRead          func(p []byte) (n int, err error)
-	inspectFuncRead   func(p []byte)
-	afterReadCounter  uint64
-	beforeReadCounter uint64
-	ReadMock          mSignatureHolderMockRead
-
 	funcWriteTo          func(w io.Writer) (n int64, err error)
 	inspectFuncWriteTo   func(w io.Writer)
 	afterWriteToCounter  uint64
@@ -84,6 +84,9 @@ func NewSignatureHolderMock(t minimock.Tester) *SignatureHolderMock {
 
 	m.CopyOfSignatureMock = mSignatureHolderMockCopyOfSignature{mock: m}
 
+	m.CopyToMock = mSignatureHolderMockCopyTo{mock: m}
+	m.CopyToMock.callArgs = []*SignatureHolderMockCopyToParams{}
+
 	m.EqualsMock = mSignatureHolderMockEquals{mock: m}
 	m.EqualsMock.callArgs = []*SignatureHolderMockEqualsParams{}
 
@@ -92,9 +95,6 @@ func NewSignatureHolderMock(t minimock.Tester) *SignatureHolderMock {
 	m.FoldToUint64Mock = mSignatureHolderMockFoldToUint64{mock: m}
 
 	m.GetSignatureMethodMock = mSignatureHolderMockGetSignatureMethod{mock: m}
-
-	m.ReadMock = mSignatureHolderMockRead{mock: m}
-	m.ReadMock.callArgs = []*SignatureHolderMockReadParams{}
 
 	m.WriteToMock = mSignatureHolderMockWriteTo{mock: m}
 	m.WriteToMock.callArgs = []*SignatureHolderMockWriteToParams{}
@@ -528,6 +528,221 @@ func (m *SignatureHolderMock) MinimockCopyOfSignatureInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcCopyOfSignature != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
 		m.t.Error("Expected call to SignatureHolderMock.CopyOfSignature")
+	}
+}
+
+type mSignatureHolderMockCopyTo struct {
+	mock               *SignatureHolderMock
+	defaultExpectation *SignatureHolderMockCopyToExpectation
+	expectations       []*SignatureHolderMockCopyToExpectation
+
+	callArgs []*SignatureHolderMockCopyToParams
+	mutex    sync.RWMutex
+}
+
+// SignatureHolderMockCopyToExpectation specifies expectation struct of the SignatureHolder.CopyTo
+type SignatureHolderMockCopyToExpectation struct {
+	mock    *SignatureHolderMock
+	params  *SignatureHolderMockCopyToParams
+	results *SignatureHolderMockCopyToResults
+	Counter uint64
+}
+
+// SignatureHolderMockCopyToParams contains parameters of the SignatureHolder.CopyTo
+type SignatureHolderMockCopyToParams struct {
+	p []byte
+}
+
+// SignatureHolderMockCopyToResults contains results of the SignatureHolder.CopyTo
+type SignatureHolderMockCopyToResults struct {
+	i1 int
+}
+
+// Expect sets up expected params for SignatureHolder.CopyTo
+func (mmCopyTo *mSignatureHolderMockCopyTo) Expect(p []byte) *mSignatureHolderMockCopyTo {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("SignatureHolderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &SignatureHolderMockCopyToExpectation{}
+	}
+
+	mmCopyTo.defaultExpectation.params = &SignatureHolderMockCopyToParams{p}
+	for _, e := range mmCopyTo.expectations {
+		if minimock.Equal(e.params, mmCopyTo.defaultExpectation.params) {
+			mmCopyTo.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCopyTo.defaultExpectation.params)
+		}
+	}
+
+	return mmCopyTo
+}
+
+// Inspect accepts an inspector function that has same arguments as the SignatureHolder.CopyTo
+func (mmCopyTo *mSignatureHolderMockCopyTo) Inspect(f func(p []byte)) *mSignatureHolderMockCopyTo {
+	if mmCopyTo.mock.inspectFuncCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("Inspect function is already set for SignatureHolderMock.CopyTo")
+	}
+
+	mmCopyTo.mock.inspectFuncCopyTo = f
+
+	return mmCopyTo
+}
+
+// Return sets up results that will be returned by SignatureHolder.CopyTo
+func (mmCopyTo *mSignatureHolderMockCopyTo) Return(i1 int) *SignatureHolderMock {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("SignatureHolderMock.CopyTo mock is already set by Set")
+	}
+
+	if mmCopyTo.defaultExpectation == nil {
+		mmCopyTo.defaultExpectation = &SignatureHolderMockCopyToExpectation{mock: mmCopyTo.mock}
+	}
+	mmCopyTo.defaultExpectation.results = &SignatureHolderMockCopyToResults{i1}
+	return mmCopyTo.mock
+}
+
+//Set uses given function f to mock the SignatureHolder.CopyTo method
+func (mmCopyTo *mSignatureHolderMockCopyTo) Set(f func(p []byte) (i1 int)) *SignatureHolderMock {
+	if mmCopyTo.defaultExpectation != nil {
+		mmCopyTo.mock.t.Fatalf("Default expectation is already set for the SignatureHolder.CopyTo method")
+	}
+
+	if len(mmCopyTo.expectations) > 0 {
+		mmCopyTo.mock.t.Fatalf("Some expectations are already set for the SignatureHolder.CopyTo method")
+	}
+
+	mmCopyTo.mock.funcCopyTo = f
+	return mmCopyTo.mock
+}
+
+// When sets expectation for the SignatureHolder.CopyTo which will trigger the result defined by the following
+// Then helper
+func (mmCopyTo *mSignatureHolderMockCopyTo) When(p []byte) *SignatureHolderMockCopyToExpectation {
+	if mmCopyTo.mock.funcCopyTo != nil {
+		mmCopyTo.mock.t.Fatalf("SignatureHolderMock.CopyTo mock is already set by Set")
+	}
+
+	expectation := &SignatureHolderMockCopyToExpectation{
+		mock:   mmCopyTo.mock,
+		params: &SignatureHolderMockCopyToParams{p},
+	}
+	mmCopyTo.expectations = append(mmCopyTo.expectations, expectation)
+	return expectation
+}
+
+// Then sets up SignatureHolder.CopyTo return parameters for the expectation previously defined by the When method
+func (e *SignatureHolderMockCopyToExpectation) Then(i1 int) *SignatureHolderMock {
+	e.results = &SignatureHolderMockCopyToResults{i1}
+	return e.mock
+}
+
+// CopyTo implements SignatureHolder
+func (mmCopyTo *SignatureHolderMock) CopyTo(p []byte) (i1 int) {
+	mm_atomic.AddUint64(&mmCopyTo.beforeCopyToCounter, 1)
+	defer mm_atomic.AddUint64(&mmCopyTo.afterCopyToCounter, 1)
+
+	if mmCopyTo.inspectFuncCopyTo != nil {
+		mmCopyTo.inspectFuncCopyTo(p)
+	}
+
+	mm_params := &SignatureHolderMockCopyToParams{p}
+
+	// Record call args
+	mmCopyTo.CopyToMock.mutex.Lock()
+	mmCopyTo.CopyToMock.callArgs = append(mmCopyTo.CopyToMock.callArgs, mm_params)
+	mmCopyTo.CopyToMock.mutex.Unlock()
+
+	for _, e := range mmCopyTo.CopyToMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1
+		}
+	}
+
+	if mmCopyTo.CopyToMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCopyTo.CopyToMock.defaultExpectation.Counter, 1)
+		mm_want := mmCopyTo.CopyToMock.defaultExpectation.params
+		mm_got := SignatureHolderMockCopyToParams{p}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCopyTo.t.Errorf("SignatureHolderMock.CopyTo got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCopyTo.CopyToMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCopyTo.t.Fatal("No results are set for the SignatureHolderMock.CopyTo")
+		}
+		return (*mm_results).i1
+	}
+	if mmCopyTo.funcCopyTo != nil {
+		return mmCopyTo.funcCopyTo(p)
+	}
+	mmCopyTo.t.Fatalf("Unexpected call to SignatureHolderMock.CopyTo. %v", p)
+	return
+}
+
+// CopyToAfterCounter returns a count of finished SignatureHolderMock.CopyTo invocations
+func (mmCopyTo *SignatureHolderMock) CopyToAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.afterCopyToCounter)
+}
+
+// CopyToBeforeCounter returns a count of SignatureHolderMock.CopyTo invocations
+func (mmCopyTo *SignatureHolderMock) CopyToBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCopyTo.beforeCopyToCounter)
+}
+
+// Calls returns a list of arguments used in each call to SignatureHolderMock.CopyTo.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCopyTo *mSignatureHolderMockCopyTo) Calls() []*SignatureHolderMockCopyToParams {
+	mmCopyTo.mutex.RLock()
+
+	argCopy := make([]*SignatureHolderMockCopyToParams, len(mmCopyTo.callArgs))
+	copy(argCopy, mmCopyTo.callArgs)
+
+	mmCopyTo.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCopyToDone returns true if the count of the CopyTo invocations corresponds
+// the number of defined expectations
+func (m *SignatureHolderMock) MinimockCopyToDone() bool {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCopyToInspect logs each unmet expectation
+func (m *SignatureHolderMock) MinimockCopyToInspect() {
+	for _, e := range m.CopyToMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SignatureHolderMock.CopyTo with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CopyToMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		if m.CopyToMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to SignatureHolderMock.CopyTo")
+		} else {
+			m.t.Errorf("Expected call to SignatureHolderMock.CopyTo with params: %#v", *m.CopyToMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCopyTo != nil && mm_atomic.LoadUint64(&m.afterCopyToCounter) < 1 {
+		m.t.Error("Expected call to SignatureHolderMock.CopyTo")
 	}
 }
 
@@ -1175,222 +1390,6 @@ func (m *SignatureHolderMock) MinimockGetSignatureMethodInspect() {
 	}
 }
 
-type mSignatureHolderMockRead struct {
-	mock               *SignatureHolderMock
-	defaultExpectation *SignatureHolderMockReadExpectation
-	expectations       []*SignatureHolderMockReadExpectation
-
-	callArgs []*SignatureHolderMockReadParams
-	mutex    sync.RWMutex
-}
-
-// SignatureHolderMockReadExpectation specifies expectation struct of the SignatureHolder.Read
-type SignatureHolderMockReadExpectation struct {
-	mock    *SignatureHolderMock
-	params  *SignatureHolderMockReadParams
-	results *SignatureHolderMockReadResults
-	Counter uint64
-}
-
-// SignatureHolderMockReadParams contains parameters of the SignatureHolder.Read
-type SignatureHolderMockReadParams struct {
-	p []byte
-}
-
-// SignatureHolderMockReadResults contains results of the SignatureHolder.Read
-type SignatureHolderMockReadResults struct {
-	n   int
-	err error
-}
-
-// Expect sets up expected params for SignatureHolder.Read
-func (mmRead *mSignatureHolderMockRead) Expect(p []byte) *mSignatureHolderMockRead {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("SignatureHolderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &SignatureHolderMockReadExpectation{}
-	}
-
-	mmRead.defaultExpectation.params = &SignatureHolderMockReadParams{p}
-	for _, e := range mmRead.expectations {
-		if minimock.Equal(e.params, mmRead.defaultExpectation.params) {
-			mmRead.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRead.defaultExpectation.params)
-		}
-	}
-
-	return mmRead
-}
-
-// Inspect accepts an inspector function that has same arguments as the SignatureHolder.Read
-func (mmRead *mSignatureHolderMockRead) Inspect(f func(p []byte)) *mSignatureHolderMockRead {
-	if mmRead.mock.inspectFuncRead != nil {
-		mmRead.mock.t.Fatalf("Inspect function is already set for SignatureHolderMock.Read")
-	}
-
-	mmRead.mock.inspectFuncRead = f
-
-	return mmRead
-}
-
-// Return sets up results that will be returned by SignatureHolder.Read
-func (mmRead *mSignatureHolderMockRead) Return(n int, err error) *SignatureHolderMock {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("SignatureHolderMock.Read mock is already set by Set")
-	}
-
-	if mmRead.defaultExpectation == nil {
-		mmRead.defaultExpectation = &SignatureHolderMockReadExpectation{mock: mmRead.mock}
-	}
-	mmRead.defaultExpectation.results = &SignatureHolderMockReadResults{n, err}
-	return mmRead.mock
-}
-
-//Set uses given function f to mock the SignatureHolder.Read method
-func (mmRead *mSignatureHolderMockRead) Set(f func(p []byte) (n int, err error)) *SignatureHolderMock {
-	if mmRead.defaultExpectation != nil {
-		mmRead.mock.t.Fatalf("Default expectation is already set for the SignatureHolder.Read method")
-	}
-
-	if len(mmRead.expectations) > 0 {
-		mmRead.mock.t.Fatalf("Some expectations are already set for the SignatureHolder.Read method")
-	}
-
-	mmRead.mock.funcRead = f
-	return mmRead.mock
-}
-
-// When sets expectation for the SignatureHolder.Read which will trigger the result defined by the following
-// Then helper
-func (mmRead *mSignatureHolderMockRead) When(p []byte) *SignatureHolderMockReadExpectation {
-	if mmRead.mock.funcRead != nil {
-		mmRead.mock.t.Fatalf("SignatureHolderMock.Read mock is already set by Set")
-	}
-
-	expectation := &SignatureHolderMockReadExpectation{
-		mock:   mmRead.mock,
-		params: &SignatureHolderMockReadParams{p},
-	}
-	mmRead.expectations = append(mmRead.expectations, expectation)
-	return expectation
-}
-
-// Then sets up SignatureHolder.Read return parameters for the expectation previously defined by the When method
-func (e *SignatureHolderMockReadExpectation) Then(n int, err error) *SignatureHolderMock {
-	e.results = &SignatureHolderMockReadResults{n, err}
-	return e.mock
-}
-
-// Read implements SignatureHolder
-func (mmRead *SignatureHolderMock) Read(p []byte) (n int, err error) {
-	mm_atomic.AddUint64(&mmRead.beforeReadCounter, 1)
-	defer mm_atomic.AddUint64(&mmRead.afterReadCounter, 1)
-
-	if mmRead.inspectFuncRead != nil {
-		mmRead.inspectFuncRead(p)
-	}
-
-	mm_params := &SignatureHolderMockReadParams{p}
-
-	// Record call args
-	mmRead.ReadMock.mutex.Lock()
-	mmRead.ReadMock.callArgs = append(mmRead.ReadMock.callArgs, mm_params)
-	mmRead.ReadMock.mutex.Unlock()
-
-	for _, e := range mmRead.ReadMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n, e.results.err
-		}
-	}
-
-	if mmRead.ReadMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRead.ReadMock.defaultExpectation.Counter, 1)
-		mm_want := mmRead.ReadMock.defaultExpectation.params
-		mm_got := SignatureHolderMockReadParams{p}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRead.t.Errorf("SignatureHolderMock.Read got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRead.ReadMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRead.t.Fatal("No results are set for the SignatureHolderMock.Read")
-		}
-		return (*mm_results).n, (*mm_results).err
-	}
-	if mmRead.funcRead != nil {
-		return mmRead.funcRead(p)
-	}
-	mmRead.t.Fatalf("Unexpected call to SignatureHolderMock.Read. %v", p)
-	return
-}
-
-// ReadAfterCounter returns a count of finished SignatureHolderMock.Read invocations
-func (mmRead *SignatureHolderMock) ReadAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.afterReadCounter)
-}
-
-// ReadBeforeCounter returns a count of SignatureHolderMock.Read invocations
-func (mmRead *SignatureHolderMock) ReadBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRead.beforeReadCounter)
-}
-
-// Calls returns a list of arguments used in each call to SignatureHolderMock.Read.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRead *mSignatureHolderMockRead) Calls() []*SignatureHolderMockReadParams {
-	mmRead.mutex.RLock()
-
-	argCopy := make([]*SignatureHolderMockReadParams, len(mmRead.callArgs))
-	copy(argCopy, mmRead.callArgs)
-
-	mmRead.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockReadDone returns true if the count of the Read invocations corresponds
-// the number of defined expectations
-func (m *SignatureHolderMock) MinimockReadDone() bool {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockReadInspect logs each unmet expectation
-func (m *SignatureHolderMock) MinimockReadInspect() {
-	for _, e := range m.ReadMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to SignatureHolderMock.Read with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		if m.ReadMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to SignatureHolderMock.Read")
-		} else {
-			m.t.Errorf("Expected call to SignatureHolderMock.Read with params: %#v", *m.ReadMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRead != nil && mm_atomic.LoadUint64(&m.afterReadCounter) < 1 {
-		m.t.Error("Expected call to SignatureHolderMock.Read")
-	}
-}
-
 type mSignatureHolderMockWriteTo struct {
 	mock               *SignatureHolderMock
 	defaultExpectation *SignatureHolderMockWriteToExpectation
@@ -1616,6 +1615,8 @@ func (m *SignatureHolderMock) MinimockFinish() {
 
 		m.MinimockCopyOfSignatureInspect()
 
+		m.MinimockCopyToInspect()
+
 		m.MinimockEqualsInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -1623,8 +1624,6 @@ func (m *SignatureHolderMock) MinimockFinish() {
 		m.MinimockFoldToUint64Inspect()
 
 		m.MinimockGetSignatureMethodInspect()
-
-		m.MinimockReadInspect()
 
 		m.MinimockWriteToInspect()
 		m.t.FailNow()
@@ -1653,10 +1652,10 @@ func (m *SignatureHolderMock) minimockDone() bool {
 		m.MinimockAsByteStringDone() &&
 		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfSignatureDone() &&
+		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&
 		m.MinimockGetSignatureMethodDone() &&
-		m.MinimockReadDone() &&
 		m.MinimockWriteToDone()
 }

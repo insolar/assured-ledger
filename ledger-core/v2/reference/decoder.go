@@ -107,7 +107,7 @@ func (v decoder) parseLegacyAddress(ref string, domainPos int) (resultLocal Loca
 		break
 	case !w.isFull():
 		err = errors.New("insufficient length")
-	case resultLocal.getScope() != 0: // there is no scope for legacy
+	case resultLocal.SubScope() != 0: // there is no scope for legacy
 		err = errors.New("invalid scope")
 	case !resultLocal.canConvertToSelf():
 		err = errors.New("invalid self reference")

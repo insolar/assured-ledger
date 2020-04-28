@@ -6,16 +6,18 @@ package exporter
 import (
 	context "context"
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strings "strings"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	record "github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -27,13 +29,13 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type GetRecords struct {
-	Polymorph    uint32                                         `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	PulseNumber  github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,20,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
-	RecordNumber uint32                                         `protobuf:"varint,21,opt,name=RecordNumber,proto3" json:"RecordNumber,omitempty"`
-	Count        uint32                                         `protobuf:"varint,22,opt,name=Count,proto3" json:"Count,omitempty"`
+	Polymorph    uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	PulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,20,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"PulseNumber"`
+	RecordNumber uint32                                                               `protobuf:"varint,21,opt,name=RecordNumber,proto3" json:"RecordNumber,omitempty"`
+	Count        uint32                                                               `protobuf:"varint,22,opt,name=Count,proto3" json:"Count,omitempty"`
 }
 
 func (m *GetRecords) Reset()      { *m = GetRecords{} }
@@ -49,7 +51,7 @@ func (m *GetRecords) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_GetRecords.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -90,10 +92,10 @@ func (m *GetRecords) GetCount() uint32 {
 }
 
 type Record struct {
-	Polymorph         uint32                                          `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	RecordNumber      uint32                                          `protobuf:"varint,20,opt,name=RecordNumber,proto3" json:"RecordNumber,omitempty"`
-	Record            record.Material                                 `protobuf:"bytes,21,opt,name=Record,proto3" json:"Record"`
-	ShouldIterateFrom *github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,22,opt,name=ShouldIterateFrom,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"ShouldIterateFrom,omitempty"`
+	Polymorph         uint32                                                                `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	RecordNumber      uint32                                                                `protobuf:"varint,20,opt,name=RecordNumber,proto3" json:"RecordNumber,omitempty"`
+	Record            record.Material                                                       `protobuf:"bytes,21,opt,name=Record,proto3" json:"Record"`
+	ShouldIterateFrom *github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,22,opt,name=ShouldIterateFrom,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"ShouldIterateFrom,omitempty"`
 }
 
 func (m *Record) Reset()      { *m = Record{} }
@@ -109,7 +111,7 @@ func (m *Record) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Record.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -159,31 +161,33 @@ func init() {
 }
 
 var fileDescriptor_dfb4fbd68f50939d = []byte{
-	// 383 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x52, 0xc1, 0x4e, 0xea, 0x40,
-	0x14, 0x9d, 0x49, 0xde, 0x23, 0x3a, 0xa0, 0xc1, 0xa6, 0x1a, 0x42, 0xcc, 0x40, 0xba, 0x22, 0x31,
-	0xb6, 0x06, 0x09, 0x1f, 0x80, 0x11, 0xe3, 0x42, 0x43, 0xea, 0xc6, 0x9d, 0x69, 0xe9, 0xd8, 0x92,
-	0xb4, 0x0c, 0x19, 0xa6, 0x46, 0x76, 0x7e, 0x82, 0x9f, 0xe1, 0x57, 0xb8, 0x66, 0xc9, 0x92, 0xb8,
-	0x20, 0x30, 0x6c, 0x5c, 0xf2, 0x09, 0xc6, 0x99, 0x56, 0x50, 0x4c, 0x48, 0x5c, 0xcd, 0x9c, 0xd3,
-	0x7b, 0xcf, 0x39, 0xbd, 0x73, 0xd1, 0x51, 0x48, 0x3c, 0x9f, 0x30, 0x2b, 0x20, 0xce, 0xc3, 0xc0,
-	0x22, 0x8f, 0x3d, 0xca, 0x38, 0x61, 0x16, 0x23, 0x6d, 0xca, 0xbc, 0xbb, 0x14, 0x9b, 0x3d, 0x46,
-	0x39, 0xd5, 0xb6, 0x52, 0x5c, 0x3c, 0xf6, 0x3b, 0x3c, 0x88, 0x5d, 0xb3, 0x4d, 0x23, 0xcb, 0xa7,
-	0x3e, 0xb5, 0x64, 0x81, 0x1b, 0xdf, 0x4b, 0x24, 0x81, 0xbc, 0xa9, 0xc6, 0x62, 0x7d, 0xa5, 0xbc,
-	0xd3, 0xed, 0xd3, 0xd0, 0x61, 0x6b, 0xa7, 0xb2, 0x4c, 0x0e, 0xd5, 0x67, 0xbc, 0x42, 0x84, 0x2e,
-	0x08, 0xb7, 0x25, 0xd7, 0xd7, 0x0e, 0xd1, 0x76, 0x8b, 0x86, 0x83, 0x88, 0xb2, 0x5e, 0x50, 0xc8,
-	0x97, 0x61, 0x65, 0xc7, 0x5e, 0x12, 0xda, 0x2d, 0xca, 0xb6, 0xe2, 0xb0, 0x4f, 0xae, 0xe3, 0xc8,
-	0x25, 0xac, 0xa0, 0x97, 0x61, 0x25, 0xd7, 0xa8, 0x0f, 0x27, 0x25, 0xf0, 0x36, 0x29, 0x99, 0x9b,
-	0x13, 0x98, 0x2b, 0xdd, 0xf6, 0xaa, 0x94, 0x66, 0xa0, 0x9c, 0x8a, 0x90, 0x48, 0xef, 0x4b, 0xeb,
-	0x6f, 0x9c, 0xa6, 0xa3, 0xff, 0x67, 0x34, 0xee, 0xf2, 0xc2, 0x81, 0xfc, 0xa8, 0x80, 0x31, 0x85,
-	0x28, 0xa3, 0xca, 0x36, 0x84, 0xff, 0x69, 0xa1, 0xff, 0x62, 0x61, 0xa6, 0x5a, 0x32, 0x40, 0xb6,
-	0x9a, 0x37, 0x93, 0x61, 0x5d, 0x39, 0x9c, 0xb0, 0x8e, 0x13, 0x36, 0xfe, 0x7d, 0xfe, 0xad, 0x9d,
-	0x3a, 0x7a, 0x68, 0xef, 0x26, 0xa0, 0x71, 0xe8, 0x5d, 0x72, 0xc2, 0x1c, 0x4e, 0x9a, 0x8c, 0x46,
-	0x32, 0x9e, 0x1a, 0x0b, 0xfc, 0xc3, 0x58, 0xd6, 0x05, 0xab, 0x4d, 0xb4, 0xab, 0xfc, 0xce, 0x93,
-	0xe5, 0xd0, 0x6a, 0x28, 0xa3, 0xee, 0x9a, 0x6e, 0x7e, 0x6d, 0xd0, 0xf2, 0x19, 0x8b, 0xf9, 0x25,
-	0xab, 0x28, 0x03, 0x9c, 0xc0, 0x46, 0x6d, 0x34, 0xc3, 0x60, 0x3c, 0xc3, 0x60, 0x31, 0xc3, 0xf0,
-	0x49, 0x60, 0xf8, 0x22, 0x30, 0x1c, 0x0a, 0x0c, 0x47, 0x02, 0xc3, 0xa9, 0xc0, 0xf0, 0x5d, 0x60,
-	0xb0, 0x10, 0x18, 0x3e, 0xcf, 0x31, 0x18, 0xcd, 0x31, 0x18, 0xcf, 0x31, 0x70, 0x33, 0x72, 0x51,
-	0x4e, 0x3f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x29, 0x5d, 0xda, 0xd8, 0xc8, 0x02, 0x00, 0x00,
+	// 403 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0xcf, 0x4e, 0xea, 0x40,
+	0x14, 0xc6, 0x67, 0x92, 0x7b, 0xc9, 0xbd, 0x03, 0x1a, 0x6c, 0xaa, 0x21, 0xc4, 0x0c, 0xa4, 0x2b,
+	0x12, 0x43, 0x6b, 0x90, 0x27, 0x40, 0xc5, 0x98, 0xa0, 0x21, 0xf5, 0x01, 0x4c, 0x4b, 0xc7, 0x96,
+	0xa4, 0x65, 0xc8, 0x74, 0x4a, 0xc4, 0x95, 0x8f, 0xe0, 0x63, 0xf8, 0x28, 0x2c, 0x59, 0xb8, 0x20,
+	0x2e, 0x88, 0x94, 0x8d, 0x4b, 0x56, 0xae, 0x8d, 0x33, 0x2d, 0xe0, 0x9f, 0xc4, 0xc4, 0xb8, 0x9a,
+	0xf9, 0xbe, 0x9e, 0x9e, 0xef, 0xd7, 0xd3, 0x83, 0xf6, 0x7c, 0xe2, 0xb8, 0x84, 0x19, 0x1e, 0xb1,
+	0x06, 0x43, 0x83, 0x5c, 0xf7, 0x29, 0xe3, 0x84, 0x19, 0x8c, 0x74, 0x28, 0x73, 0x2e, 0x53, 0xad,
+	0xf7, 0x19, 0xe5, 0x54, 0xf9, 0x97, 0xea, 0x62, 0xd5, 0xed, 0x72, 0x2f, 0xb2, 0xf5, 0x0e, 0x0d,
+	0x0c, 0x97, 0xba, 0xd4, 0x10, 0x05, 0x76, 0x74, 0x25, 0x94, 0x10, 0xe2, 0x26, 0x5f, 0x2c, 0xb6,
+	0xd6, 0xca, 0xbb, 0xbd, 0x90, 0xfa, 0x16, 0x33, 0xac, 0x30, 0x8c, 0x18, 0x71, 0xaa, 0x09, 0x80,
+	0x3c, 0xaa, 0x1d, 0xca, 0x88, 0x31, 0xa8, 0x2d, 0xab, 0x24, 0x48, 0x72, 0xc8, 0x6e, 0xda, 0x03,
+	0x44, 0xe8, 0x84, 0x70, 0x53, 0x78, 0xa1, 0xb2, 0x8b, 0xfe, 0xb7, 0xa9, 0x3f, 0x0c, 0x28, 0xeb,
+	0x7b, 0x85, 0x7c, 0x19, 0x56, 0x36, 0xcc, 0x95, 0xa1, 0xf4, 0x50, 0xb6, 0x1d, 0xf9, 0x21, 0x39,
+	0x8f, 0x02, 0x9b, 0xb0, 0x82, 0x5a, 0x86, 0x95, 0x5c, 0xa3, 0x35, 0x9a, 0x96, 0xc0, 0xe3, 0xb4,
+	0x74, 0xf4, 0x53, 0x2e, 0x7d, 0xad, 0xa7, 0xb9, 0x1e, 0xa0, 0x68, 0x28, 0x27, 0xc1, 0x92, 0xc0,
+	0x6d, 0x01, 0xf4, 0xce, 0x53, 0x54, 0xf4, 0xf7, 0x90, 0x46, 0x3d, 0x5e, 0xd8, 0x11, 0x0f, 0xa5,
+	0xd0, 0x5e, 0x20, 0xca, 0xc8, 0xb2, 0x6f, 0x3e, 0xe9, 0x63, 0x84, 0xfa, 0x45, 0x84, 0x9e, 0xf6,
+	0x12, 0x00, 0xd9, 0x5a, 0x5e, 0x4f, 0x46, 0x78, 0x66, 0x71, 0xc2, 0xba, 0x96, 0xdf, 0xf8, 0xf3,
+	0x36, 0x03, 0x33, 0x4d, 0xbc, 0x41, 0x5b, 0x17, 0x1e, 0x8d, 0x7c, 0xe7, 0x94, 0x13, 0x66, 0x71,
+	0xd2, 0x64, 0x34, 0x10, 0x78, 0x72, 0x58, 0xf0, 0xd7, 0x86, 0xf5, 0x39, 0xa6, 0xd6, 0x44, 0x9b,
+	0x92, 0xe2, 0x38, 0x59, 0x2f, 0xa5, 0x8e, 0x32, 0xf2, 0xae, 0xa8, 0xfa, 0x72, 0x07, 0x57, 0xbf,
+	0xbc, 0x98, 0x5f, 0xb9, 0xd2, 0xd2, 0xc0, 0x3e, 0x6c, 0xd4, 0xc7, 0x33, 0x0c, 0x26, 0x33, 0x0c,
+	0x16, 0x33, 0x0c, 0x6f, 0x63, 0x0c, 0xef, 0x63, 0x0c, 0x47, 0x31, 0x86, 0xe3, 0x18, 0xc3, 0xa7,
+	0x18, 0xc3, 0xe7, 0x18, 0x83, 0x45, 0x8c, 0xe1, 0xdd, 0x1c, 0x83, 0xf1, 0x1c, 0x83, 0xc9, 0x1c,
+	0x03, 0x3b, 0x23, 0x96, 0xea, 0xe0, 0x35, 0x00, 0x00, 0xff, 0xff, 0xfc, 0x63, 0xd2, 0x17, 0x0a,
+	0x03, 0x00, 0x00,
 }
 
 func (this *GetRecords) Equal(that interface{}) bool {
@@ -351,6 +355,14 @@ type RecordExporterServer interface {
 	Export(*GetRecords, RecordExporter_ExportServer) error
 }
 
+// UnimplementedRecordExporterServer can be embedded to have forward compatible implementations.
+type UnimplementedRecordExporterServer struct {
+}
+
+func (*UnimplementedRecordExporterServer) Export(req *GetRecords, srv RecordExporter_ExportServer) error {
+	return status.Errorf(codes.Unimplemented, "method Export not implemented")
+}
+
 func RegisterRecordExporterServer(s *grpc.Server, srv RecordExporterServer) {
 	s.RegisterService(&_RecordExporter_serviceDesc, srv)
 }
@@ -393,7 +405,7 @@ var _RecordExporter_serviceDesc = grpc.ServiceDesc{
 func (m *GetRecords) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -401,48 +413,55 @@ func (m *GetRecords) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *GetRecords) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetRecords) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecordExporter(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecordExporter(dAtA, i, uint64(m.PulseNumber.Size()))
-	n1, err := m.PulseNumber.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	if m.RecordNumber != 0 {
-		dAtA[i] = 0xa8
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecordExporter(dAtA, i, uint64(m.RecordNumber))
-	}
 	if m.Count != 0 {
-		dAtA[i] = 0xb0
-		i++
-		dAtA[i] = 0x1
-		i++
 		i = encodeVarintRecordExporter(dAtA, i, uint64(m.Count))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
 	}
-	return i, nil
+	if m.RecordNumber != 0 {
+		i = encodeVarintRecordExporter(dAtA, i, uint64(m.RecordNumber))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa8
+	}
+	{
+		size := m.PulseNumber.Size()
+		i -= size
+		if _, err := m.PulseNumber.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintRecordExporter(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintRecordExporter(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *Record) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -450,57 +469,68 @@ func (m *Record) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Record) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Record) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecordExporter(dAtA, i, uint64(m.Polymorph))
-	}
-	if m.RecordNumber != 0 {
-		dAtA[i] = 0xa0
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecordExporter(dAtA, i, uint64(m.RecordNumber))
-	}
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintRecordExporter(dAtA, i, uint64(m.Record.Size()))
-	n2, err := m.Record.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
 	if m.ShouldIterateFrom != nil {
-		dAtA[i] = 0xb2
-		i++
+		{
+			size := m.ShouldIterateFrom.Size()
+			i -= size
+			if _, err := m.ShouldIterateFrom.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintRecordExporter(dAtA, i, uint64(size))
+		}
+		i--
 		dAtA[i] = 0x1
-		i++
-		i = encodeVarintRecordExporter(dAtA, i, uint64(m.ShouldIterateFrom.Size()))
-		n3, err := m.ShouldIterateFrom.MarshalTo(dAtA[i:])
+		i--
+		dAtA[i] = 0xb2
+	}
+	{
+		size, err := m.Record.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
-		i += n3
+		i -= size
+		i = encodeVarintRecordExporter(dAtA, i, uint64(size))
 	}
-	return i, nil
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	if m.RecordNumber != 0 {
+		i = encodeVarintRecordExporter(dAtA, i, uint64(m.RecordNumber))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if m.Polymorph != 0 {
+		i = encodeVarintRecordExporter(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintRecordExporter(dAtA []byte, offset int, v uint64) int {
+	offset -= sovRecordExporter(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *GetRecords) Size() (n int) {
 	if m == nil {
@@ -544,14 +574,7 @@ func (m *Record) Size() (n int) {
 }
 
 func sovRecordExporter(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozRecordExporter(x uint64) (n int) {
 	return sovRecordExporter(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -576,7 +599,7 @@ func (this *Record) String() string {
 	s := strings.Join([]string{`&Record{`,
 		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
 		`RecordNumber:` + fmt.Sprintf("%v", this.RecordNumber) + `,`,
-		`Record:` + strings.Replace(strings.Replace(this.Record.String(), "Material", "record.Material", 1), `&`, ``, 1) + `,`,
+		`Record:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Record), "Material", "record.Material", 1), `&`, ``, 1) + `,`,
 		`ShouldIterateFrom:` + fmt.Sprintf("%v", this.ShouldIterateFrom) + `,`,
 		`}`,
 	}, "")
@@ -862,7 +885,7 @@ func (m *Record) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_insolar_insolar.PulseNumber
+			var v github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber
 			m.ShouldIterateFrom = &v
 			if err := m.ShouldIterateFrom.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -895,6 +918,7 @@ func (m *Record) Unmarshal(dAtA []byte) error {
 func skipRecordExporter(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -926,10 +950,8 @@ func skipRecordExporter(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -950,55 +972,30 @@ func skipRecordExporter(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthRecordExporter
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthRecordExporter
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowRecordExporter
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipRecordExporter(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthRecordExporter
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupRecordExporter
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthRecordExporter
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthRecordExporter = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowRecordExporter   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthRecordExporter        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowRecordExporter          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupRecordExporter = fmt.Errorf("proto: unexpected end of group")
 )

@@ -38,25 +38,18 @@ func TestBits64WriteTo(t *testing.T) {
 func TestBits64Read(t *testing.T) {
 	bits := NewBits64(1)
 	dest := make([]byte, 2)
-	n, err := bits.Read(dest)
-	require.Nil(t, err)
-
+	n := bits.CopyTo(dest)
 	require.Equal(t, 2, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
 	dest = make([]byte, 9)
-	n, err = bits.Read(dest)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(dest)
 	require.Equal(t, 8, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
-	n, err = bits.Read(nil)
-
-	require.Nil(t, err)
-
+	n = bits.CopyTo(nil)
 	require.Zero(t, n)
 }
 
@@ -114,26 +107,20 @@ func TestBits128WriteTo(t *testing.T) {
 func TestBits128Read(t *testing.T) {
 	bits := NewBits128(1, 2)
 	dest := make([]byte, 2)
-	n, err := bits.Read(dest)
-	require.Nil(t, err)
-
+	n := bits.CopyTo(dest)
 	require.Equal(t, 2, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
 	dest = make([]byte, 17)
-	n, err = bits.Read(dest)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(dest)
 	require.Equal(t, 16, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
 	require.Equal(t, uint8(2), dest[8])
 
-	n, err = bits.Read(nil)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(nil)
 	require.Zero(t, n)
 }
 
@@ -178,24 +165,18 @@ func TestBits224WriteTo(t *testing.T) {
 func TestBits224Read(t *testing.T) {
 	bits := Bits224{1, 2, 3}
 	dest := make([]byte, 2)
-	n, err := bits.Read(dest)
-	require.Nil(t, err)
-
+	n := bits.CopyTo(dest)
 	require.Equal(t, 2, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
 	dest = make([]byte, 29)
-	n, err = bits.Read(dest)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(dest)
 	require.Equal(t, 28, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
-	n, err = bits.Read(nil)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(nil)
 	require.Zero(t, n)
 }
 
@@ -250,24 +231,18 @@ func TestBits256WriteTo(t *testing.T) {
 func TestBits256Read(t *testing.T) {
 	bits := Bits256{1, 2, 3}
 	dest := make([]byte, 2)
-	n, err := bits.Read(dest)
-	require.Nil(t, err)
-
+	n := bits.CopyTo(dest)
 	require.Equal(t, 2, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
 	dest = make([]byte, 33)
-	n, err = bits.Read(dest)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(dest)
 	require.Equal(t, 32, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
-	n, err = bits.Read(nil)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(nil)
 	require.Zero(t, n)
 }
 
@@ -342,24 +317,18 @@ func TestBits512WriteTo(t *testing.T) {
 func TestBits512Read(t *testing.T) {
 	bits := Bits512{1, 2, 3}
 	dest := make([]byte, 2)
-	n, err := bits.Read(dest)
-	require.Nil(t, err)
-
+	n := bits.CopyTo(dest)
 	require.Equal(t, 2, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
 	dest = make([]byte, 65)
-	n, err = bits.Read(dest)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(dest)
 	require.Equal(t, 64, n)
 
 	require.Equal(t, uint8(1), dest[0])
 
-	n, err = bits.Read(nil)
-	require.Nil(t, err)
-
+	n = bits.CopyTo(nil)
 	require.Zero(t, n)
 }
 

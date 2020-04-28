@@ -7,14 +7,16 @@ package logfmt
 
 import (
 	"errors"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"strings"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type errorMarshaller struct {
 	reports  []errorReport
 	stack    throw.StackTrace
 	msg      string
+	severity throw.Severity
 	hasPanic bool
 }
 
@@ -52,7 +54,10 @@ func (v *errorMarshaller) appendError(mf MarshallerFactory, x interface{}, st th
 }
 
 func (v *errorMarshaller) appendExtraInfo(mf MarshallerFactory, x interface{}) bool {
-	if extras, extra, ok := throw.UnwrapExtraInfo(x); ok {
+	if extras, severity, extra, ok := throw.UnwrapExtraInfo(x); ok {
+		if v.severity == 0 && severity != 0 {
+			v.severity = severity
+		}
 		m, ps := fmtLogStruct(extra, mf, false, true)
 		if v.appendReport(m, extras, ps, nil) {
 			return true
@@ -182,16 +187,16 @@ func (v errorMarshaller) MarshalLogObject(output LogObjectWriter, collector LogO
 		el := v.reports[i]
 		if el.marshaller != nil {
 			if s, defMessage := el.marshaller.MarshalLogObject(output, collector); !defMessage && s != "" {
-				output.AddErrorField(s, el.stack, false)
+				output.AddErrorField(s, el.stack, 0, false)
 				el.stack = nil
 			}
 		}
 		if s := el.strValue; s != "" || el.stack != nil {
-			output.AddErrorField(s, el.stack, false)
+			output.AddErrorField(s, el.stack, 0, false)
 		}
 	}
-	if v.stack != nil {
-		output.AddErrorField("", v.stack, v.hasPanic)
+	if v.stack != nil || v.severity != 0 {
+		output.AddErrorField("", v.stack, v.severity, v.hasPanic)
 	}
 	return v.msg, false
 }

@@ -5,14 +5,14 @@ package drop
 
 import (
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strings "strings"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_insolar_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	io "io"
+	math "math"
+	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,14 +24,14 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Drop struct {
-	Polymorph              int32                                          `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Pulse                  github_com_insolar_insolar_insolar.PulseNumber `protobuf:"bytes,20,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	JetID                  github_com_insolar_insolar_insolar.JetID       `protobuf:"bytes,21,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
-	SplitThresholdExceeded int64                                          `protobuf:"varint,22,opt,name=SplitThresholdExceeded,proto3" json:"SplitThresholdExceeded,omitempty"`
-	Split                  bool                                           `protobuf:"varint,23,opt,name=Split,proto3" json:"Split,omitempty"`
+	Polymorph              int32                                                                `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	Pulse                  github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,20,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
+	JetID                  github_com_insolar_assured_ledger_ledger_core_v2_insolar.JetID       `protobuf:"bytes,21,opt,name=JetID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.JetID" json:"JetID"`
+	SplitThresholdExceeded int64                                                                `protobuf:"varint,22,opt,name=SplitThresholdExceeded,proto3" json:"SplitThresholdExceeded,omitempty"`
+	Split                  bool                                                                 `protobuf:"varint,23,opt,name=Split,proto3" json:"Split,omitempty"`
 }
 
 func (m *Drop) Reset()      { *m = Drop{} }
@@ -47,7 +47,7 @@ func (m *Drop) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Drop.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
+		n, err := m.MarshalToSizedBuffer(b)
 		if err != nil {
 			return nil, err
 		}
@@ -73,26 +73,28 @@ func init() {
 func init() { proto.RegisterFile("ledger/drop/drop.proto", fileDescriptor_f87624f7639ca597) }
 
 var fileDescriptor_f87624f7639ca597 = []byte{
-	// 299 bytes of a gzipped FileDescriptorProto
+	// 321 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0xcb, 0x49, 0x4d, 0x49,
 	0x4f, 0x2d, 0xd2, 0x4f, 0x29, 0xca, 0x2f, 0x00, 0x13, 0x7a, 0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42,
 	0x2c, 0x20, 0xb6, 0x94, 0x6e, 0x7a, 0x66, 0x49, 0x46, 0x69, 0x92, 0x5e, 0x72, 0x7e, 0xae, 0x7e,
 	0x7a, 0x7e, 0x7a, 0xbe, 0x3e, 0x58, 0x32, 0xa9, 0x34, 0x0d, 0xcc, 0x03, 0x73, 0xc0, 0x2c, 0x88,
-	0x26, 0xa5, 0x0e, 0x26, 0x2e, 0x16, 0x97, 0xa2, 0xfc, 0x02, 0x21, 0x19, 0x2e, 0xce, 0x82, 0xfc,
-	0x9c, 0xca, 0xdc, 0xfc, 0xa2, 0x82, 0x0c, 0x09, 0x01, 0x05, 0x46, 0x0d, 0xd6, 0x20, 0x84, 0x80,
-	0x90, 0x0f, 0x17, 0x6b, 0x40, 0x69, 0x4e, 0x71, 0xaa, 0x84, 0x88, 0x02, 0xa3, 0x06, 0x8f, 0x93,
-	0xd9, 0x89, 0x7b, 0xf2, 0x0c, 0xb7, 0xee, 0xc9, 0xeb, 0x21, 0x59, 0x96, 0x99, 0x57, 0x9c, 0x9f,
-	0x93, 0x58, 0x84, 0x4e, 0xeb, 0x81, 0xf5, 0xf9, 0x95, 0xe6, 0x26, 0xa5, 0x16, 0x05, 0x41, 0x0c,
-	0x11, 0x72, 0xe3, 0x62, 0xf5, 0x4a, 0x2d, 0xf1, 0x74, 0x91, 0x10, 0x05, 0x9b, 0x66, 0x00, 0x35,
-	0x4d, 0x83, 0x08, 0xd3, 0xc0, 0xfa, 0x82, 0x20, 0xda, 0x85, 0xcc, 0xb8, 0xc4, 0x82, 0x0b, 0x72,
-	0x32, 0x4b, 0x42, 0x32, 0x8a, 0x52, 0x8b, 0x33, 0xf2, 0x73, 0x52, 0x5c, 0x2b, 0x92, 0x53, 0x53,
-	0x53, 0x52, 0x53, 0x24, 0xc4, 0x14, 0x18, 0x35, 0x98, 0x83, 0x70, 0xc8, 0x0a, 0x89, 0x70, 0xb1,
-	0x82, 0x65, 0x24, 0xc4, 0x15, 0x18, 0x35, 0x38, 0x82, 0x20, 0x1c, 0x27, 0x8b, 0x13, 0x0f, 0xe5,
-	0x18, 0x2e, 0x3c, 0x94, 0x63, 0xb8, 0xf1, 0x50, 0x8e, 0xe1, 0xc3, 0x43, 0x39, 0xc6, 0x86, 0x47,
-	0x72, 0x8c, 0x2b, 0x1e, 0xc9, 0x31, 0x9e, 0x78, 0x24, 0xc7, 0x78, 0xe1, 0x91, 0x1c, 0xe3, 0x83,
-	0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9, 0x31, 0x7c, 0x78, 0x24, 0xc7, 0x38, 0xe1, 0xb1, 0x1c, 0xc3,
-	0x85, 0xc7, 0x72, 0x0c, 0x37, 0x1e, 0xcb, 0x31, 0x24, 0xb1, 0x81, 0xc3, 0xd2, 0x18, 0x10, 0x00,
-	0x00, 0xff, 0xff, 0x05, 0xe4, 0x61, 0x80, 0x9a, 0x01, 0x00, 0x00,
+	0x26, 0xa5, 0x2d, 0x4c, 0x5c, 0x2c, 0x2e, 0x45, 0xf9, 0x05, 0x42, 0x32, 0x5c, 0x9c, 0x05, 0xf9,
+	0x39, 0x95, 0xb9, 0xf9, 0x45, 0x05, 0x19, 0x12, 0x02, 0x0a, 0x8c, 0x1a, 0xac, 0x41, 0x08, 0x01,
+	0xa1, 0x24, 0x2e, 0xd6, 0x80, 0xd2, 0x9c, 0xe2, 0x54, 0x09, 0x11, 0x05, 0x46, 0x0d, 0x1e, 0x27,
+	0x9f, 0x13, 0xf7, 0xe4, 0x19, 0x6e, 0xdd, 0x93, 0x77, 0x41, 0xb2, 0x2c, 0x33, 0xaf, 0x38, 0x3f,
+	0x27, 0xb1, 0x48, 0x3f, 0xb1, 0xb8, 0xb8, 0xb4, 0x28, 0x35, 0x45, 0x17, 0xea, 0x4a, 0x08, 0xa5,
+	0x9b, 0x9c, 0x5f, 0x94, 0xaa, 0x5f, 0x66, 0x04, 0x53, 0xa5, 0x07, 0x36, 0xcd, 0xaf, 0x34, 0x37,
+	0x29, 0xb5, 0x28, 0x08, 0x62, 0xb4, 0x50, 0x0c, 0x17, 0xab, 0x57, 0x6a, 0x89, 0xa7, 0x8b, 0x84,
+	0x28, 0xd8, 0x0e, 0x37, 0xa8, 0x1d, 0x76, 0x64, 0xdb, 0x01, 0x36, 0x2d, 0x08, 0x62, 0xa8, 0x90,
+	0x19, 0x97, 0x58, 0x70, 0x41, 0x4e, 0x66, 0x49, 0x48, 0x46, 0x51, 0x6a, 0x71, 0x46, 0x7e, 0x4e,
+	0x8a, 0x6b, 0x45, 0x72, 0x6a, 0x6a, 0x4a, 0x6a, 0x8a, 0x84, 0x98, 0x02, 0xa3, 0x06, 0x73, 0x10,
+	0x0e, 0x59, 0x21, 0x11, 0x2e, 0x56, 0xb0, 0x8c, 0x84, 0xb8, 0x02, 0xa3, 0x06, 0x47, 0x10, 0x84,
+	0xe3, 0x64, 0x71, 0xe2, 0xa1, 0x1c, 0xc3, 0x85, 0x87, 0x72, 0x0c, 0x37, 0x1e, 0xca, 0x31, 0x7c,
+	0x78, 0x28, 0xc7, 0xd8, 0xf0, 0x48, 0x8e, 0x71, 0xc5, 0x23, 0x39, 0xc6, 0x13, 0x8f, 0xe4, 0x18,
+	0x2f, 0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48, 0x8e, 0xf1, 0xc5, 0x23, 0x39, 0x86, 0x0f, 0x8f, 0xe4,
+	0x18, 0x27, 0x3c, 0x96, 0x63, 0xb8, 0xf0, 0x58, 0x8e, 0xe1, 0xc6, 0x63, 0x39, 0x86, 0x24, 0x36,
+	0x70, 0xb8, 0x1b, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x11, 0x3b, 0x70, 0xec, 0xc6, 0x01, 0x00,
+	0x00,
 }
 
 func (this *Drop) Equal(that interface{}) bool {
@@ -156,7 +158,7 @@ func valueToGoStringDrop(v interface{}, typ string) string {
 func (m *Drop) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -164,67 +166,78 @@ func (m *Drop) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Drop) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Drop) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		dAtA[i] = 0x80
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintDrop(dAtA, i, uint64(m.Polymorph))
-	}
-	dAtA[i] = 0xa2
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintDrop(dAtA, i, uint64(m.Pulse.Size()))
-	n1, err := m.Pulse.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n1
-	dAtA[i] = 0xaa
-	i++
-	dAtA[i] = 0x1
-	i++
-	i = encodeVarintDrop(dAtA, i, uint64(m.JetID.Size()))
-	n2, err := m.JetID.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n2
-	if m.SplitThresholdExceeded != 0 {
-		dAtA[i] = 0xb0
-		i++
-		dAtA[i] = 0x1
-		i++
-		i = encodeVarintDrop(dAtA, i, uint64(m.SplitThresholdExceeded))
-	}
 	if m.Split {
-		dAtA[i] = 0xb8
-		i++
-		dAtA[i] = 0x1
-		i++
+		i--
 		if m.Split {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i++
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
 	}
-	return i, nil
+	if m.SplitThresholdExceeded != 0 {
+		i = encodeVarintDrop(dAtA, i, uint64(m.SplitThresholdExceeded))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
+	{
+		size := m.JetID.Size()
+		i -= size
+		if _, err := m.JetID.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintDrop(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xaa
+	{
+		size := m.Pulse.Size()
+		i -= size
+		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintDrop(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0xa2
+	if m.Polymorph != 0 {
+		i = encodeVarintDrop(dAtA, i, uint64(m.Polymorph))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintDrop(dAtA []byte, offset int, v uint64) int {
+	offset -= sovDrop(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *Drop) Size() (n int) {
 	if m == nil {
@@ -249,14 +262,7 @@ func (m *Drop) Size() (n int) {
 }
 
 func sovDrop(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozDrop(x uint64) (n int) {
 	return sovDrop(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -463,6 +469,7 @@ func (m *Drop) Unmarshal(dAtA []byte) error {
 func skipDrop(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -494,10 +501,8 @@ func skipDrop(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -518,55 +523,30 @@ func skipDrop(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthDrop
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthDrop
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowDrop
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipDrop(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthDrop
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupDrop
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthDrop
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthDrop = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowDrop   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthDrop        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowDrop          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupDrop = fmt.Errorf("proto: unexpected end of group")
 )

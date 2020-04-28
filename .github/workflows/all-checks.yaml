@@ -44,17 +44,13 @@ jobs:
         if: always()
         run: make lint
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Run unit and slow tests
+      - name: Run unit and slow tests and check code coverage
         if: always()
-        run: make test_slow
+        run: make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Run functional tests
         if: always()
         run: make test_func
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Check code coverage
-        if: always()
-        run: make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Upload coverage to Codecov  
         run: ./scripts/dev/codecov-upload.sh -f ./coverage.out -y ./.codecov.yml -n coverage-report -F
