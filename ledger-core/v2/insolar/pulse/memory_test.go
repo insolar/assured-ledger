@@ -25,11 +25,12 @@ func TestNodeStorage_ForPulseNumber(t *testing.T) {
 	storage := NewStorageMem()
 	storage.storage[pn] = &memNode{pulse: pulse}
 
-	// t.Run("returns error when no Pulse", func(t *testing.T) {
-	// 	res, err := storage.ForPulseNumber(ctx, gen.PulseNumber())
-	// 	assert.Equal(t, ErrNotFound, err)
-	// 	assert.Equal(t, insolar.Pulse{}, res)
-	// })
+	t.Run("returns error when no Pulse", func(t *testing.T) {
+		t.Skip("fixme")
+		res, err := storage.ForPulseNumber(ctx, gen.PulseNumber())
+		assert.Equal(t, ErrNotFound, err)
+		assert.Equal(t, insolar.Pulse{}, res)
+	})
 
 	t.Run("returns correct Pulse", func(t *testing.T) {
 		res, err := storage.ForPulseNumber(ctx, pn)
