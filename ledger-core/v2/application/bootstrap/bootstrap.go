@@ -17,10 +17,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Generator is a component for generating bootstrap files required for discovery nodes bootstrap and heavy genesis.
@@ -123,10 +123,7 @@ type nodeInfo struct {
 }
 
 func (ni nodeInfo) reference() insolar.Reference {
-	var hash reference.LocalHash
-	copy(hash[:], ni.publicKey)
-	local := reference.NewLocal(100000, 0, hash)
-	return reference.NewGlobal(local, local)
+	return genesisrefs.GenesisRef(ni.publicKey)
 }
 
 func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, discoveryNodes []nodeInfo) error {
