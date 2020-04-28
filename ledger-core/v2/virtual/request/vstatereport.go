@@ -8,7 +8,6 @@ package request
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
@@ -51,18 +50,21 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	objectRef := incomingObjectState.Reference
 	sharedObjectState := catalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
 
-	setStateFunc := func(state *object.SharedState) {
+	setStateFunc := func(data interface{}) (wakeup bool) {
+		state := data.(*object.SharedState)
 		if !state.IsReady() {
 			state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
 			state.SetState(object.HasState)
+			return true
 		} else {
-			ctx.Log().Trace(struct {
-				*log.Msg `txt:"State already exists"`
-			}{})
+			ctx.Log().Trace(stateAlreadyExistsErrorMsg{
+				Reference: objectRef.String(),
+			})
+			return false
 		}
 	}
 
-	switch sharedObjectState.PrepareAndWakeUp(setStateFunc).TryUse(ctx).GetDecision() {
+	switch sharedObjectState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
 	case smachine.Passed:
 	case smachine.NotPassed:
 		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()

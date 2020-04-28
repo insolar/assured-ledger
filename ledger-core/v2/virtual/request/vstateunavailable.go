@@ -49,6 +49,12 @@ type noObjectErrorMsg struct {
 	Reference string
 }
 
+type stateAlreadyExistsErrorMsg struct {
+	*log.Msg  `txt:"State already exists"`
+	Reference string
+	GotState  string
+}
+
 func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	catalog := object.Catalog{}
 	objectRef := s.Payload.Reference
@@ -58,11 +64,14 @@ func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachin
 		return ctx.Stop()
 	}
 
-	setStateFunc := func(state *object.SharedState) {
+	setStateFunc := func(data interface{}) (wakeup bool) {
+		state := data.(*object.SharedState)
 		if state.IsReady() {
-			ctx.Log().Trace(struct {
-				*log.Msg `txt:"State already exists"`
-			}{})
+			ctx.Log().Trace(stateAlreadyExistsErrorMsg{
+				Reference: objectRef.String(),
+				GotState:  s.Payload.Reason.String(),
+			})
+			return false
 		}
 
 		switch s.Payload.Reason {
@@ -73,9 +82,10 @@ func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachin
 		default:
 			panic(throw.IllegalState())
 		}
+		return true
 	}
 
-	switch sharedObjectState.PrepareAndWakeUp(setStateFunc).TryUse(ctx).GetDecision() {
+	switch sharedObjectState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
 	case smachine.Passed:
 	case smachine.NotPassed:
 		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
