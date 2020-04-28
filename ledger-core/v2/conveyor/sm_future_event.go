@@ -56,7 +56,7 @@ func (sm *futureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.S
 	case !isAccepted:
 		return ctx.Jump(sm.stepTerminate)
 	case isFuture: // make sure that this slot isn't late
-		return ctx.Errorf("impossible state for future pulse number: pn=%v", sm.pn)
+		return ctx.Error(fmt.Errorf("impossible state for future pulse number: pn=%v", sm.pn))
 	default:
 		return ctx.WakeUp()
 	}
@@ -64,11 +64,10 @@ func (sm *futureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.S
 
 func (sm *futureEventSM) stepTerminate(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Error(fmt.Errorf("incorrect future pulse number: pn=%v", sm.pn))
-	//return sm.wrapEventSM.stepTerminateEvent(ctx)
 }
 
-func (sm *futureEventSM) IsConsecutive(_, _ smachine.StateFunc) (bool, *smachine.StepDeclaration) {
+func (sm *futureEventSM) IsConsecutive(_, _ smachine.StateFunc) bool {
 	// WARNING! DO NOT DO THIS ANYWHERE ELSE
 	// Without CLEAR understanding of consequences this can lead to infinite loops
-	return true, nil // allow faster transition between steps
+	return true // allow faster transition between steps
 }

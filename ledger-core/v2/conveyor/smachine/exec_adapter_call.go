@@ -29,15 +29,15 @@ type AdapterCallDelegateFunc func(
 	// Nil when cancellation is not traced / not configured on SlotMachine adapter / and for notifications
 	chainCancel *synckit.ChainedCancel) (AsyncResultFunc, error)
 
-func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, delegate AdapterCallDelegateFunc) error {
+func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, delegate AdapterCallDelegateFunc) (func(), error) {
 	switch {
 	case delegate == nil:
 		panic("illegal value")
 	case c.Callback == nil:
-		return c.delegateNotify(delegate)
+		return nil, c.delegateNotify(delegate)
 	case c.Callback.IsCancelled():
 		c.Callback.SendCancel()
-		return nil
+		return nil, nil
 	}
 
 	result, err := func() (result AsyncResultFunc, err error) {
@@ -50,16 +50,19 @@ func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, de
 
 	switch {
 	case err == nil:
-		if !c.Callback.IsCancelled() {
-			c.Callback.SendResult(result)
-		}
-		fallthrough
+		return func() {
+			if !c.Callback.IsCancelled() {
+				c.Callback.SendResult(result)
+			}
+			c.Callback.SendCancel()
+		}, nil
 	case err == ErrCancelledCall:
-		c.Callback.SendCancel()
+		return c.Callback.SendCancel, nil
 	default:
-		c.Callback.SendPanic(err)
+		return func() {
+			c.Callback.SendPanic(err)
+		}, nil
 	}
-	return nil
 }
 
 func (c AdapterCall) delegateNotify(delegate AdapterCallDelegateFunc) error {
@@ -84,10 +87,14 @@ func (c AdapterCall) delegateNotify(delegate AdapterCallDelegateFunc) error {
 }
 
 func (c AdapterCall) RunAndSendResult(arg interface{}) error {
-	return c.DelegateAndSendResult(nil,
+	fn, err := c.DelegateAndSendResult(nil,
 		func(callFn AdapterCallFunc, _ NestedCallFunc, _ *synckit.ChainedCancel) (AsyncResultFunc, error) {
 			return callFn(arg), nil
 		})
+	if fn != nil {
+		fn()
+	}
+	return err
 }
 
 func (c AdapterCall) ReportError(e error) {
