@@ -55,6 +55,14 @@ func (i *Info) SetState(state State) {
 	i.objectState = state
 }
 
+func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
+	if isOrdered {
+		i.PotentialMutablePendingCount++
+	} else {
+		i.PotentialImmutablePendingCount++
+	}
+}
+
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
 	i.descriptor = descriptor.NewObjectDescriptor(
 		i.Reference, insolar.ID{}, prototype, memory, insolar.Reference{}, nil,
