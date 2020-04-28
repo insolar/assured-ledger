@@ -30,23 +30,18 @@ type Info struct {
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
 
-	ActiveImmutablePendingCount           uint8
-	ActiveMutablePendingCount             uint8
-	PotentialImmutablePendingCount        uint8
-	PotentialMutablePendingCount          uint8
-	potentialPendingCounterWasIncremented bool
+	ActiveImmutablePendingCount    uint8
+	ActiveMutablePendingCount      uint8
+	PotentialImmutablePendingCount uint8
+	PotentialMutablePendingCount   uint8
 }
 
 func (i *Info) IncrementPotentialPendingCounterOnce(isOrdered bool) {
-	if i.potentialPendingCounterWasIncremented {
-		return
-	}
 	if isOrdered {
 		i.PotentialMutablePendingCount++
 	} else {
 		i.PotentialImmutablePendingCount++
 	}
-	i.potentialPendingCounterWasIncremented = true
 }
 
 func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {

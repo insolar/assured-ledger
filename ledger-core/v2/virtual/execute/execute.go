@@ -145,8 +145,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreOrdered = state.MutableExecute
 		semaphoreUnordered = state.ImmutableExecute
 
-		state.IncrementPotentialPendingCounterOnce(isOrdered)
-
 		objectDescriptor := state.Descriptor()
 		objectDescriptorIsEmpty = objectDescriptor == nil
 	}
@@ -229,6 +227,20 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 }
 
 func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	objectSharedState := s.objectSharedState
+	switch objectSharedState.Prepare(func(state *object.SharedState) {
+		state.IncrementPotentialPendingCounterOnce(s.isOrdered)
+	}).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
 	var (
 		executionContext = s.execution
 		asyncLogger      = ctx.LogAsync()
