@@ -286,6 +286,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		_, prototype, memory = executionNewState.Activate()
 		action = func(state *object.SharedState) {
 			state.Info.SetDescriptor(&prototype, memory)
+			state.SetState(object.HasState)
 		}
 
 	case insolar.RequestSideEffectAmend:
@@ -293,6 +294,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		action = func(state *object.SharedState) {
 			ctx.Log().Trace("applying new state")
 			state.Info.SetDescriptor(&prototype, memory)
+			state.SetState(object.HasState)
 		}
 
 	case insolar.RequestSideEffectDeactivate:

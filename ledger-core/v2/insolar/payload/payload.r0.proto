@@ -154,6 +154,19 @@ message ObjectState {
     bool Deactivated = 29;
 }
 
+enum UnavailableReason {
+    Unknown = 0;
+    Missing = 1;
+    Inactive = 2;
+}
+
+message VStateUnavailable {
+    uint32 Polymorph = 16;
+
+    bytes Reference = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    UnavailableReason Reason = 21;
+}
+
 message VPendingDelegationRequest {
     uint32 Polymorph = 16;
 
