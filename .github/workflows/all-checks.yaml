@@ -56,7 +56,7 @@ jobs:
         if: always()
         run: tar -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Apload logs to artifacts
+      - name: Upload logs to artifacts
         if: always()
         uses: actions/upload-artifact@v1
         with:
