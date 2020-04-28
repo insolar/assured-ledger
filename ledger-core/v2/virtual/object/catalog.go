@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -33,21 +32,21 @@ func formatSMTraceID(ref reference.Global) string {
 	return fmt.Sprintf("object-%s", ref.String())
 }
 
-func (p Catalog) Get(ctx smachine.ExecutionContext, objectReference insolar.Reference) SharedStateAccessor {
+func (p Catalog) Get(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor {
 	if v, ok := p.TryGet(ctx, objectReference); ok {
 		return v
 	}
 	panic(throw.E("", errEntryMissing{ObjectReference: objectReference}))
 }
 
-func (p Catalog) TryGet(ctx smachine.ExecutionContext, objectReference insolar.Reference) (SharedStateAccessor, bool) { // nolintcontractrequester/contractrequester.go:342
+func (p Catalog) TryGet(ctx smachine.ExecutionContext, objectReference reference.Global) (SharedStateAccessor, bool) { // nolintcontractrequester/contractrequester.go:342
 	if v := ctx.GetPublishedLink(objectReference.String()); v.IsAssignableTo((*SharedState)(nil)) {
 		return SharedStateAccessor{v}, true
 	}
 	return SharedStateAccessor{}, false
 }
 
-func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference insolar.Reference) SharedStateAccessor {
+func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor {
 	if _, ok := p.TryGet(ctx, objectReference); ok {
 		panic(throw.E("", errEntryExists{ObjectReference: objectReference}))
 	}
@@ -62,7 +61,7 @@ func (p Catalog) Create(ctx smachine.ExecutionContext, objectReference insolar.R
 	return accessor
 }
 
-func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference insolar.Reference, reason InitReason) SharedStateAccessor {
+func (p Catalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference reference.Global, reason InitReason) SharedStateAccessor {
 	if v, ok := p.TryGet(ctx, objectReference); ok {
 		return v
 	}
@@ -87,5 +86,12 @@ func (v SharedStateAccessor) Prepare(fn func(*SharedState)) smachine.SharedDataA
 	return v.PrepareAccess(func(data interface{}) bool {
 		fn(data.(*SharedState))
 		return false
+	})
+}
+
+func (v SharedStateAccessor) PrepareAndWakeUp(fn func(*SharedState)) smachine.SharedDataAccessor {
+	return v.PrepareAccess(func(data interface{}) bool {
+		fn(data.(*SharedState))
+		return true
 	})
 }

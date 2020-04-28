@@ -16,15 +16,16 @@ func _() {
 	_ = x[TypeVCallRequest-5]
 	_ = x[TypeVCallResult-6]
 	_ = x[TypeVStateReport-7]
-	_ = x[TypeVStateRequest-8]
-	_ = x[TypeVPendingDelegationRequest-9]
-	_ = x[TypeVDelegatedRequestFinished-10]
-	_ = x[_latestType-11]
+	_ = x[TypeVStateUnavailable-8]
+	_ = x[TypeVStateRequest-9]
+	_ = x[TypeVPendingDelegationRequest-10]
+	_ = x[TypeVDelegatedRequestFinished-11]
+	_ = x[_latestType-12]
 }
 
-const _Type_name = "TypeUnknownTypeMetaTypeErrorTypeIDTypeIDsTypeVCallRequestTypeVCallResultTypeVStateReportTypeVStateRequestTypeVPendingDelegationRequestTypeVDelegatedRequestFinished_latestType"
+const _Type_name = "TypeUnknownTypeMetaTypeErrorTypeIDTypeIDsTypeVCallRequestTypeVCallResultTypeVStateReportTypeVStateUnavailableTypeVStateRequestTypeVPendingDelegationRequestTypeVDelegatedRequestFinished_latestType"
 
-var _Type_index = [...]uint8{0, 11, 19, 28, 34, 41, 57, 72, 88, 105, 134, 163, 174}
+var _Type_index = [...]uint8{0, 11, 19, 28, 34, 41, 57, 72, 88, 109, 126, 155, 184, 195}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

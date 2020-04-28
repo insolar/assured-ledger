@@ -15,7 +15,7 @@ import (
 type Type uint32
 
 //go:generate stringer -type=Type
-//go:generate protoc -I=. -I=$GOPATH/src --gogoslick_out=./ payload.proto
+// //go:generate protoc -I=. -I=$GOPATH/src --gogoslick_out=./ payload.proto
 
 const (
 	TypeUnknown Type = iota
@@ -29,6 +29,7 @@ const (
 	TypeVCallRequest
 	TypeVCallResult
 	TypeVStateReport
+	TypeVStateUnavailable
 	TypeVStateRequest
 	TypeVPendingDelegationRequest
 	TypeVDelegatedRequestFinished
@@ -154,6 +155,9 @@ func Marshal(payload Payload) ([]byte, error) {
 	case *VStateReport:
 		pl.Polymorph = uint32(TypeVStateReport)
 		return pl.Marshal()
+	case *VStateUnavailable:
+		pl.Polymorph = uint32(TypeVStateUnavailable)
+		return pl.Marshal()
 	case *VPendingDelegationRequest:
 		pl.Polymorph = uint32(TypeVPendingDelegationRequest)
 		return pl.Marshal()
@@ -209,6 +213,10 @@ func Unmarshal(data []byte) (Payload, error) {
 		return &pl, err
 	case TypeVStateReport:
 		pl := VStateReport{}
+		err := pl.Unmarshal(data)
+		return &pl, err
+	case TypeVStateUnavailable:
+		pl := VStateUnavailable{}
 		err := pl.Unmarshal(data)
 		return &pl, err
 	case TypeVPendingDelegationRequest:
