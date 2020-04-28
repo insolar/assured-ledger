@@ -14,17 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bits"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Accessor -o ./ -s _mock.go -g
-
-// Accessor provides an interface for accessing jet IDs.
-type Accessor interface {
-	// All returns all jet from jet tree for provided pulse.
-	All(ctx context.Context, pulse insolar.PulseNumber) []insolar.JetID
-	// ForID finds jet in jet tree for provided pulse and object.
-	// Always returns jet id and activity flag for this jet.
-	ForID(ctx context.Context, pulse insolar.PulseNumber, recordID insolar.ID) (insolar.JetID, bool)
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Coordinator -o ./ -s _mock.go -g
 
 // Coordinator provides methods for calculating Jet affinity

@@ -13,13 +13,12 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Coordinator is responsible for all jet interactions
@@ -29,8 +28,7 @@ type Coordinator struct {
 	PulseAccessor   insolarPulse.Accessor   `inject:""`
 	PulseCalculator insolarPulse.Calculator `inject:""`
 
-	JetAccessor jet.Accessor  `inject:""`
-	Nodes       node.Accessor `inject:""`
+	Nodes node.Accessor `inject:""`
 
 	lightChainLimit int
 	originRef       insolar.Reference
@@ -73,33 +71,8 @@ func (jc *Coordinator) QueryRole(
 	case insolar.DynamicRoleVirtualValidator:
 		return jc.VirtualValidatorsForObject(ctx, objID, pulseNumber)
 
-	case insolar.DynamicRoleLightExecutor:
-		if objID.Pulse() == pulse.Jet {
-			n, err := jc.LightExecutorForJet(ctx, objID, pulseNumber)
-			if err != nil {
-				return nil, errors.Wrapf(err, "calc DynamicRoleLightExecutor for object %v failed", objID.String())
-			}
-			return []insolar.Reference{*n}, nil
-		}
-		n, err := jc.LightExecutorForObject(ctx, objID, pulseNumber)
-		if err != nil {
-			return nil, errors.Wrapf(err, "calc LightExecutorForObject for object %v failed", objID.String())
-		}
-		return []insolar.Reference{*n}, nil
-
-	case insolar.DynamicRoleLightValidator:
-		ref, err := jc.LightValidatorsForObject(ctx, objID, pulseNumber)
-		if err != nil {
-			return nil, errors.Wrapf(err, "calc DynamicRoleLightValidator for object %v failed", objID.String())
-		}
-		return ref, nil
-
-	case insolar.DynamicRoleHeavyExecutor:
-		n, err := jc.Heavy(ctx)
-		if err != nil {
-			return nil, errors.Wrapf(err, "calc DynamicRoleHeavyExecutor for pulse %v failed", pulseNumber.String())
-		}
-		return []insolar.Reference{*n}, nil
+	default:
+		panic(throw.IllegalState())
 	}
 
 	inslogger.FromContext(ctx).Panicf("unexpected role %v", role.String())
@@ -152,56 +125,6 @@ func (jc *Coordinator) LightValidatorsForJet(
 	// Skipping `MaterialExecutorCount` for validators
 	// because it will be selected as the executor(s) for the same pulse.
 	return nodes[MaterialExecutorCount:], nil
-}
-
-// LightExecutorForObject returns list of LEs for a provided pulse and objID
-func (jc *Coordinator) LightExecutorForObject(
-	ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber,
-) (*insolar.Reference, error) {
-	jetID, _ := jc.JetAccessor.ForID(ctx, pulse, objID)
-	return jc.LightExecutorForJet(ctx, insolar.ID(jetID), pulse)
-}
-
-// LightValidatorsForObject returns list of LVs for a provided pulse and objID
-func (jc *Coordinator) LightValidatorsForObject(
-	ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber,
-) ([]insolar.Reference, error) {
-	jetID, _ := jc.JetAccessor.ForID(ctx, pulse, objID)
-	return jc.LightValidatorsForJet(ctx, insolar.ID(jetID), pulse)
-}
-
-// Heavy returns *insolar.RecorRef to heavy
-func (jc *Coordinator) Heavy(ctx context.Context) (*insolar.Reference, error) {
-	latest, err := jc.PulseAccessor.Latest(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to fetch pulse")
-	}
-
-	candidates, err := jc.Nodes.InRole(latest.PulseNumber, insolar.StaticRoleHeavyMaterial)
-	if err == node.ErrNoNodes {
-		return nil, err
-	}
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch active heavy nodes for pulse %v", latest.PulseNumber)
-	}
-	if len(candidates) == 0 {
-		return nil, errors.New(fmt.Sprintf("no active heavy nodes for pulse %d", latest.PulseNumber))
-	}
-	ent, err := jc.entropy(ctx, latest.PulseNumber)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch entropy for pulse %v", latest.PulseNumber)
-	}
-
-	refs, err := getRefs(
-		jc.PlatformCryptographyScheme,
-		ent[:],
-		candidates,
-		1,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &refs[0], nil
 }
 
 // IsBeyondLimit calculates if target pulse is behind clean-up limit
