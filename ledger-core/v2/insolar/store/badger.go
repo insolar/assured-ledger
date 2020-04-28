@@ -12,8 +12,9 @@ import (
 	"sync/atomic"
 
 	"github.com/dgraph-io/badger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
 // BadgerDB is a badger DB implementation.
@@ -31,24 +32,6 @@ type BadgerOptions struct {
 }
 
 type BadgerOption func(*BadgerOptions)
-
-// ValueLogDiscardRatio configures values files garbage collection discard ratio.
-// If value is greater than zero, NewBadgerDB starts values garbage collection in detached goroutine.
-//
-// More info about how it works in documentation of badger.DB's RunValueLogGC method.
-func ValueLogDiscardRatio(value float64) BadgerOption {
-	return func(s *BadgerOptions) {
-		s.valueLogDiscardRatio = value
-	}
-}
-
-// OpenAndCloseBadgerOnStart switch logic with open and close badger on start
-// May be useful if badger wasn't closed correctly
-func OpenAndCloseBadgerOnStart(doOpenCLose bool) BadgerOption {
-	return func(s *BadgerOptions) {
-		s.openCloseOnStart = doOpenCLose
-	}
-}
 
 // we do it to correctly close badger, since every time heavy falls down it doesn't do close it gracefully
 func openAndCloseBadger(badgerDir string) error {
@@ -172,16 +155,6 @@ func (b *BadgerDB) Delete(key Key) error {
 // Backup creates backup.
 func (b *BadgerDB) Backup(w io.Writer, since uint64) (uint64, error) {
 	return b.backend.Backup(w, since)
-}
-
-// NewReadIterator returns new Iterator over the store.
-func NewReadIterator(db *badger.DB, pivot Key, reverse bool) Iterator {
-	bi := badgerIterator{pivot: pivot, reverse: reverse}
-	bi.txn = db.NewTransaction(false)
-	opts := badger.DefaultIteratorOptions
-	opts.Reverse = reverse
-	bi.it = bi.txn.NewIterator(opts)
-	return &bi
 }
 
 // NewIterator returns new Iterator over the store.

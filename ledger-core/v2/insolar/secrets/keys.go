@@ -13,8 +13,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
 // KeyPair holds private/public keys pair.
@@ -34,15 +35,6 @@ func GenerateKeyPair() (*KeyPair, error) {
 		Private: privKey,
 		Public:  ks.ExtractPublicKey(privKey),
 	}, nil
-}
-
-// GetPublicKeyFromFile reads private/public keys pair from json file and return public key
-func GetPublicKeyFromFile(file string) (string, error) {
-	pair, err := ReadKeysFile(file, true)
-	if err != nil {
-		return "", errors.Wrap(err, "couldn't get keys")
-	}
-	return platformpolicy.MustPublicKeyToString(pair.Public), nil
 }
 
 // ReadKeysFile reads private/public keys pair from json file.

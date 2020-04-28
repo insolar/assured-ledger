@@ -7,13 +7,9 @@
 package reply
 
 import (
-	"bytes"
 	"encoding/gob"
-	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -50,81 +46,9 @@ const (
 	FlowCancelled
 )
 
-func getEmptyReply(t insolar.ReplyType) (insolar.Reply, error) {
-	switch t {
-	case TypeCallMethod:
-		return &CallMethod{}, nil
-	case TypeRegisterRequest:
-		return &RegisterRequest{}, nil
-	case TypeError:
-		return &Error{}, nil
-	case TypeOK:
-		return &OK{}, nil
-
-	default:
-		return nil, errors.Errorf("unimplemented reply type: '%d'", t)
-	}
-}
-
-// Serialize returns encoded reply.
-func Serialize(reply insolar.Reply) (io.Reader, error) {
-	buff := &bytes.Buffer{}
-	_, err := buff.Write([]byte{byte(reply.Type())})
-	if err != nil {
-		return nil, err
-	}
-
-	enc := gob.NewEncoder(buff)
-	err = enc.Encode(reply)
-	return buff, err
-}
-
-// Deserialize returns decoded reply.
-func Deserialize(buff io.Reader) (insolar.Reply, error) {
-	b := make([]byte, 1)
-	_, err := buff.Read(b)
-	if err != nil {
-		return nil, errors.New("too short input to deserialize a message reply")
-	}
-
-	reply, err := getEmptyReply(insolar.ReplyType(b[0]))
-	if err != nil {
-		return nil, err
-	}
-	enc := gob.NewDecoder(buff)
-	err = enc.Decode(reply)
-	return reply, err
-}
-
-// ToBytes deserializes reply to bytes.
-func ToBytes(rep insolar.Reply) []byte {
-	repBuff, err := Serialize(rep)
-	if err != nil {
-		panic("failed to serialize reply: " + err.Error())
-	}
-	return repBuff.(*bytes.Buffer).Bytes()
-}
-
 func init() {
 	gob.Register(&CallMethod{})
 	gob.Register(&RegisterRequest{})
 	gob.Register(&Error{})
 	gob.Register(&OK{})
-}
-
-// UnmarshalFromMeta reads only payload skipping meta decoding. Use this instead of regular Unmarshal if you don't need
-// Meta data.
-func UnmarshalFromMeta(meta []byte) (insolar.Reply, error) {
-	m := payload.Meta{}
-	// Can be optimized by using proto.NewBuffer.
-	err := m.Unmarshal(meta)
-	if err != nil {
-		return nil, err
-	}
-
-	rep, err := Deserialize(bytes.NewBuffer(m.Payload))
-	if err != nil {
-		return nil, errors.Wrap(err, "can't deserialize payload to reply")
-	}
-	return rep, nil
 }

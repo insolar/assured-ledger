@@ -4,7 +4,7 @@
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 // Package backoff provides an exponential-backoff implementation.
-package backoff
+package synckit
 
 import (
 	"math"

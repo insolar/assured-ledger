@@ -9,9 +9,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/internal/pulse"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPulse(t *testing.T) {

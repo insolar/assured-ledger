@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
@@ -235,8 +234,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	defer serviceNetwork.Stop(ctx)
 
 	cm.Inject(serviceNetwork, nk, certManager, testutils.NewCryptographyServiceMock(t), pulse.NewAccessorMock(t),
-		testutils.NewTerminationHandlerMock(t), testutils.NewPulseManagerMock(t), &PublisherMock{},
-		bus.NewSenderMock(t), &stater{},
+		testutils.NewTerminationHandlerMock(t), testutils.NewPulseManagerMock(t), &PublisherMock{}, &stater{},
 		testutils.NewPlatformCryptographyScheme(), testutils.NewKeyProcessorMock(t))
 	err = serviceNetwork.Init(ctx)
 	require.NoError(t, err)

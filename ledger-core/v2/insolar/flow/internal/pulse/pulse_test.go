@@ -9,8 +9,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 const testPulse = insolar.PulseNumber(42)

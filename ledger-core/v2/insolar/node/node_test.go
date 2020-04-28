@@ -9,9 +9,10 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNodeStorage_All(t *testing.T) {

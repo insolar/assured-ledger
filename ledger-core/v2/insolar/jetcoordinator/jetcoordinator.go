@@ -55,40 +55,6 @@ func (jc *Coordinator) Me() insolar.Reference {
 	return jc.originRef
 }
 
-// IsAuthorized checks for role on concrete pulse for the address.
-func (jc *Coordinator) IsAuthorized(
-	ctx context.Context,
-	role insolar.DynamicRole,
-	obj insolar.ID,
-	pulse insolar.PulseNumber,
-	node insolar.Reference,
-) (bool, error) {
-	nodes, err := jc.QueryRole(ctx, role, obj, pulse)
-	if err != nil {
-		return false, err
-	}
-	for _, n := range nodes {
-		if n == node {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-// IsMeAuthorizedNow checks role of the current node in the current pulse for the address.
-// Wrapper around IsAuthorized.
-func (jc *Coordinator) IsMeAuthorizedNow(
-	ctx context.Context,
-	role insolar.DynamicRole,
-	obj insolar.ID,
-) (bool, error) {
-	p, err := jc.PulseAccessor.Latest(ctx)
-	if err != nil {
-		return false, errors.Wrap(err, "couldn't get pulse")
-	}
-	return jc.IsAuthorized(ctx, role, obj, p.PulseNumber, jc.Me())
-}
-
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
 func (jc *Coordinator) QueryRole(
 	ctx context.Context,
@@ -275,32 +241,6 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.Pulse
 	}
 	// We iterated limit back. It means our data is further back and beyond limit.
 	return true, nil
-}
-
-// NodeForJet calculates a node (LME or heavy) for a specific jet for a specific pulseNumber
-func (jc *Coordinator) NodeForJet(ctx context.Context, jetID insolar.ID, targetPN insolar.PulseNumber) (*insolar.Reference, error) {
-	toHeavy, err := jc.IsBeyondLimit(ctx, targetPN)
-	if err != nil {
-		return nil, errors.Wrapf(err, "[IsBeyondLimit] failed, targetPN - %v", targetPN)
-	}
-
-	if toHeavy {
-		return jc.Heavy(ctx)
-	}
-	return jc.LightExecutorForJet(ctx, jetID, targetPN)
-}
-
-// NodeForObject calculates a node (LME or heavy) for a specific jet for a specific pulseNumber
-func (jc *Coordinator) NodeForObject(ctx context.Context, objectID insolar.ID, targetPN insolar.PulseNumber) (*insolar.Reference, error) {
-	toHeavy, err := jc.IsBeyondLimit(ctx, targetPN)
-	if err != nil {
-		return nil, err
-	}
-
-	if toHeavy {
-		return jc.Heavy(ctx)
-	}
-	return jc.LightExecutorForObject(ctx, objectID, targetPN)
 }
 
 func (jc *Coordinator) virtualsForObject(

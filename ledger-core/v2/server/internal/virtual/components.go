@@ -14,6 +14,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
+	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 
@@ -24,8 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jetcoordinator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
@@ -181,8 +180,6 @@ func initComponents(
 		publisher,
 		jc,
 		pulses,
-
-		jet.NewStore(),
 		node.NewStorage(),
 	}
 	components = append(components, []interface{}{
@@ -223,14 +220,14 @@ func startWatermill(
 
 	outRouter.AddNoPublisherHandler(
 		"OutgoingHandler",
-		bus.TopicOutgoing,
+		busMeta.TopicOutgoing,
 		sub,
 		outHandler,
 	)
 
 	inRouter.AddNoPublisherHandler(
 		"IncomingHandler",
-		bus.TopicIncoming,
+		busMeta.TopicIncoming,
 		sub,
 		inHandler,
 	)

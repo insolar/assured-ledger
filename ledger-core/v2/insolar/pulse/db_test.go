@@ -11,13 +11,14 @@ import (
 	"testing"
 
 	"github.com/dgraph-io/badger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/store"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func BadgerDefaultOptions(dir string) badger.Options {

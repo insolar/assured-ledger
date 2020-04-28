@@ -7,6 +7,7 @@ package gen
 
 import (
 	fuzz "github.com/google/gofuzz"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
