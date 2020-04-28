@@ -1,0 +1,32 @@
+metrics:
+  traffic:
+    - "insolar_consensus_packets_recv"
+    - "insolar_consensus_packets_recv_bytes"
+    - "insolar_consensus_packets_recv_count"
+    - "insolar_consensus_packets_sent"
+    - "insolar_consensus_packets_sent_bytes"
+    - "insolar_consensus_packets_sent_count"
+  latency:
+    - "insolar_phase01_latency_bucket"
+    - "insolar_phase2_latency_bucket"
+    - "insolar_phase3_latency_bucket"
+quantiles:
+  - "0.5"
+  - "0.8"
+  - "0.95"
+  - "0.99"
+tmp_directory: "/tmp/metricreplicator"
+prometheus_host: "http://localhost:9090"
+ranges:
+  by_network_size:
+    interval: "1m"
+    periods:
+      - network_size: 5
+        start_time: 1588033576
+      - network_size: 10
+        start_time: 1588033650
+webdav:
+  url: "https://webdav.yandex.ru"
+  user: ""
+  password: ""
+commit_hash: "bak47dklg"
