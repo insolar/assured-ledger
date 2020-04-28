@@ -10,16 +10,13 @@ PULSEWATCHER     = pulsewatcher
 APIREQUESTER     = apirequester
 HEALTHCHECK      = healthcheck
 KEEPERD          = keeperd
-BADGER           = badger
-HEAVY_BADGER_TOOL= heavy-badger
 
 GOBUILD ?= go build
 
 .PHONY: build
 build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD)      \
 		$(TESTPULSARD) $(INSGORUND) $(HEALTHCHECK) $(BENCHMARK)     \
-		$(APIREQUESTER) $(PULSEWATCHER) $(KEEPERD) \
-		$(HEAVY_BADGER_TOOL) ## build all binaries
+		$(APIREQUESTER) $(PULSEWATCHER) $(KEEPERD) ## build all binaries
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -67,10 +64,6 @@ $(HEALTHCHECK):
 .PHONY: $(KEEPERD)
 $(KEEPERD):
 	$(GOBUILD) -o $(BIN_DIR)/$(KEEPERD) -ldflags "${LDFLAGS}" ./cmd/keeperd
-
-.PHONY: $(HEAVY_BADGER_TOOL)
-$(HEAVY_BADGER_TOOL):
-	$(GOBUILD) -o $(BIN_DIR)/$(HEAVY_BADGER_TOOL) ./cmd/heavy-badger
 
 .PHONY: build-track
 build-track: ## build logs event tracker tool
