@@ -20,7 +20,6 @@ import (
 )
 
 func TestController(t *testing.T) {
-	t.Log("started")
 	const Server1 = "127.0.0.1:0"
 	const Server2 = "127.0.0.1:0"
 
@@ -51,11 +50,8 @@ func TestController(t *testing.T) {
 	})
 	ups1.SetSignatureFactory(vf)
 
-	t.Log("ctl1 start")
-
 	ups1.StartListen()
 	dispatcher1.SetMode(uniproto.AllowAll)
-	t.Log("ctl1 started")
 
 	pm1 := ups1.PeerManager()
 	_, err := pm1.AddHostID(pm1.Local().GetPrimary(), 1)
@@ -63,8 +59,6 @@ func TestController(t *testing.T) {
 
 	pr := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
 	dispatcher1.NextPulse(pr)
-
-	t.Log("ctl1 ready")
 
 	/********************************/
 
@@ -94,10 +88,8 @@ func TestController(t *testing.T) {
 	})
 	ups2.SetSignatureFactory(vf)
 
-	t.Log("ctl2 start")
 	ups2.StartNoListen()
 	dispatcher2.NextPulse(pr)
-	t.Log("ctl2 started")
 
 	pm2 := ups2.PeerManager()
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
@@ -109,17 +101,13 @@ func TestController(t *testing.T) {
 	require.NoError(t, conn21.Transport().EnsureConnect())
 
 	ctl2 := controller2.NewFacade()
-	t.Log("ctl2 ready")
 
-	t.Log("send loopback")
 	// loopback
 	err = ctl2.ShipTo(NewDirectAddress(2), Shipment{Head: &TestString{"abc1"}})
 	require.NoError(t, err)
 
-	t.Log("send remote")
 	err = ctl2.ShipTo(NewDirectAddress(1), Shipment{Head: &TestString{"abc2"}})
 	require.NoError(t, err)
 
-	t.Log("done")
 	time.Sleep(time.Second)
 }

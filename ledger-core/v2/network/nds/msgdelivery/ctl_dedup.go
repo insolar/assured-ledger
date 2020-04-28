@@ -277,10 +277,8 @@ func (p *receiveDeduplicator) TrimBuffer() {
 		p.peakSize = 0
 		return
 	case n >= p.peakSize>>1:
-		p.peakSize = n
 		return
 	case p.peakSize <= maxReceiveExceptions:
-		p.peakSize = 0
 		return
 	}
 

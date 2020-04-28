@@ -233,6 +233,7 @@ func (p *peerMap) MarkFlush() {
 	}
 
 	for id, peer := range p.peers {
+		peer.dedup.TrimBuffer()
 		switch isValid, hasUpdates := peer.markFlush(); {
 		case !isValid:
 			delete(p.peers, id)
