@@ -8,22 +8,9 @@ package smachine
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type SharedDataFunc func(interface{}) (wakeup bool)
-
-func NewUnboundSharedData(data interface{}) SharedDataLink {
-	if data == nil {
-		panic(throw.IllegalValue())
-	}
-
-	return SharedDataLink{
-		data:  data,
-		flags: ShareDataUnbound,
-	}
-}
 
 // Link to a data shared by a slot.
 // This link can live longer than its origin.
