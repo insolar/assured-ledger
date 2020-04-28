@@ -48,8 +48,8 @@ func GenerateCodeReferenceFromContractID(typeContractID string, name string, ver
 
 // deprecated
 func GenesisRef(s string) insolar.Reference {
-	var hash reference.LocalHash
-	copy(hash[:], s)
-	local := reference.NewLocal(100000, 0, hash)
+	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
+	hash := hasher.Hash([]byte(s))
+	local := reference.NewLocal(pulse.MinTimePulse, 0, reference.BytesToLocalHash(hash))
 	return reference.NewGlobal(local, local)
 }
