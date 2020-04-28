@@ -18,8 +18,9 @@ var _ PeerTransportFactory = &peerTransportFactory{}
 type peerTransportFactory struct {
 	listen atomickit.StartStopFlag
 
-	tcp        l1.SessionfulTransport
-	tcpConnect l1.SessionfulConnectFunc
+	tcp         l1.SessionfulTransport
+	tcpConnect  l1.SessionfulConnectFunc
+	tcpOutgoing l1.SessionfulConnectFunc
 
 	udp        l1.SessionlessTransport
 	udpReceive l1.SessionlessReceiveFunc
@@ -49,7 +50,7 @@ func (p *peerTransportFactory) SetSessionless(udp l1.SessionlessTransport, slFn 
 	p.udpReceive = slFn
 }
 
-func (p *peerTransportFactory) SetSessionful(tcp l1.SessionfulTransport, sfFn l1.SessionfulConnectFunc) {
+func (p *peerTransportFactory) SetSessionful(tcp l1.SessionfulTransport, outFn, sfFn l1.SessionfulConnectFunc) {
 	switch {
 	case tcp == nil:
 		panic(throw.IllegalValue())
@@ -60,6 +61,7 @@ func (p *peerTransportFactory) SetSessionful(tcp l1.SessionfulTransport, sfFn l1
 	}
 	p.tcp = tcp
 	p.tcpConnect = sfFn
+	p.tcpOutgoing = outFn
 }
 
 func (p *peerTransportFactory) HasTransports() bool {
@@ -113,7 +115,10 @@ func (p *peerTransportFactory) Close() (err error) {
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
 func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error) {
-	if p.listen.IsActive() {
+	switch {
+	case !to.IsNetCompatible():
+		return nil, nil
+	case p.listen.IsActive():
 		return p.udpListen.ConnectTo(to, p.preference)
 	}
 	out, err := p.udp.Outgoing()
@@ -125,10 +130,13 @@ func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTra
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
 func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error) {
-	if p.listen.IsActive() {
+	switch {
+	case !to.IsNetCompatible():
+		return nil, nil
+	case p.listen.IsActive():
 		return p.tcpListen.ConnectTo(to, p.preference)
 	}
-	out, err := p.tcp.Outgoing(p.tcpConnect)
+	out, err := p.tcp.Outgoing(p.tcpOutgoing)
 	if err != nil {
 		return nil, err
 	}

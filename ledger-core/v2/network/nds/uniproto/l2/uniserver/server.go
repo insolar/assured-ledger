@@ -28,6 +28,12 @@ type ServerConfig struct {
 	UDPMaxSize     int
 	UDPParallelism int
 	PeerLimit      int
+
+	// For sessionful connections only
+	RetryLimit         uint8 // +1 attempt
+	RetryDelayInc      time.Duration
+	RetryDelayVariance time.Duration
+	RetryDelayMax      time.Duration
 }
 
 type MiniLogger interface {
@@ -60,7 +66,13 @@ type UnifiedServer struct {
 
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
+
 	p.ptf.preference = config.NetPreference
+
+	p.peers.central.retryLimit = config.RetryLimit
+	p.peers.central.retryDelayInc = config.RetryDelayInc
+	p.peers.central.retryDelayMax = config.RetryDelayMax
+	p.peers.central.retryDelayVariance = config.RetryDelayVariance
 }
 
 func (p *UnifiedServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
@@ -146,11 +158,13 @@ func (p *UnifiedServer) StartNoListen() {
 	}
 	p.ptf.SetSessionless(l1.NewUDP(binding, uint16(udpSize)), p.receiveSessionless)
 
+	var tcp l1.SessionfulTransport
 	if p.config.TLSConfig == nil {
-		p.ptf.SetSessionful(l1.NewTCP(binding), p.connectSessionful)
+		tcp = l1.NewTCP(binding)
 	} else {
-		p.ptf.SetSessionful(l1.NewTLS(binding, p.config.TLSConfig), p.connectSessionful)
+		tcp = l1.NewTLS(binding, p.config.TLSConfig)
 	}
+	p.ptf.SetSessionful(tcp, p.connectSessionful, p.connectSessionfulListen)
 
 	p.receiver.PeerManager = &p.peers
 	d := p.receiver.Parser.Dispatcher
@@ -215,12 +229,16 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 	return true
 }
 
-func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
 	if !p.ptf.listen.IsActive() {
+		// can't accept incoming connections until listen initializer is finished
 		_ = conn.Close()
 		return true
 	}
+	return p.connectSessionful(local, remote, conn, w, err)
+}
 
+func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()

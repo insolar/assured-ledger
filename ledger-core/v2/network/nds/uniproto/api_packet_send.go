@@ -124,7 +124,7 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 		payloadSize := packetSize - n - p.GetSignatureSize()
 
 		isRepeated := false
-		return dataSize, func(t l1.OutTransport) (canRetry bool, err error) {
+		return dataSize, func(t l1.BasicOutTransport) (canRetry bool, err error) {
 			if checkFn != nil && !checkFn() {
 				return false, nil
 			}
@@ -142,7 +142,7 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 
 	payloadSize := packetSize - uint(len(preBuf)) - p.GetSignatureSize()
 
-	return dataSize, func(t l1.OutTransport) (bool, error) {
+	return dataSize, func(t l1.BasicOutTransport) (bool, error) {
 		if checkFn != nil && !checkFn() {
 			return false, nil
 		}

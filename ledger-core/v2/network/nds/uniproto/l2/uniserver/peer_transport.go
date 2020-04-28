@@ -9,7 +9,9 @@ import (
 	"errors"
 	"io"
 	"math"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l1"
@@ -37,6 +39,10 @@ type PeerTransportCentral struct {
 	maxSessionlessSize uint16
 	maxPeerConn        uint8
 	preferHTTP         bool
+	retryLimit         uint8
+	retryDelayInc      time.Duration
+	retryDelayVariance time.Duration
+	retryDelayMax      time.Duration
 }
 
 func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
@@ -58,6 +64,13 @@ func (p *PeerTransportCentral) getTransportStreamFormat(limitedLength bool, peer
 	default:
 		return HTTPUnlimitedLength
 	}
+}
+
+func (p *PeerTransportCentral) incRetryDelay(delay time.Duration) time.Duration {
+	if delay >= p.retryDelayMax {
+		return delay
+	}
+	return delay + p.retryDelayInc + time.Duration(rand.Int63n(int64(p.retryDelayVariance)))
 }
 
 var _ uniproto.OutTransport = &PeerTransport{}
@@ -122,115 +135,107 @@ func (p *PeerTransport) checkActive() error {
 }
 
 // nolint:interfacer
-func (p *PeerTransport) resetTransport(t l1.OutTransport, discardCurrentAddr bool) (ok bool, hasMore bool) {
-	return p.resetConnection(t, discardCurrentAddr)
-}
-
-func (p *PeerTransport) resetConnection(t io.Closer, discardCurrentAddr bool) (ok bool, hasMore bool) {
+func (p *PeerTransport) discardTransportAndAddress(t l1.OutTransport, changeAddress bool) (hasMore bool) {
 	if t == nil {
-		return false, false
+		return false
 	}
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	ok, hasMore, _ = p._resetConnection(t, discardCurrentAddr)
-	return
+	p._resetConnection(t, changeAddress)
+
+	if !changeAddress {
+		return true
+	}
+
+	if p.addrIndex++; int(p.addrIndex) >= len(p.aliases) {
+		p.addrIndex = 0
+		return false
+	}
+	return true
 }
 
-func (p *PeerTransport) _resetConnection(t io.Closer, discardCurrentAddr bool) (ok bool, hasMore bool, err error) {
+func (p *PeerTransport) _resetConnection(t io.Closer, changeAddress bool) {
 	if t == p.sessionless {
 		p.sessionless = nil
-		return true, false, t.Close()
+		_ = t.Close()
+		return
 	}
 
 	if t == p.sessionful {
+		// Sessionless has to follow a sessionful connection
+		if s := p.sessionless; changeAddress && s != nil {
+			p.sessionless = nil
+			_ = s.Close()
+		}
 		p.sessionful = nil
 	}
 
-	for i, s := range p.connections {
-		if s != t {
-			if nout, ok := s.(l1.TwoWayTransport); ok && nout.TwoWayConn() == t {
-				err = t.Close()
-				_ = s.Close()
-			} else {
-				continue
-			}
-		} else {
-			err = s.Close()
+	j := 0
+	for i := range p.connections {
+		s := p.connections[i]
+		if s == t {
+			continue
 		}
-
-		if n := len(p.connections); n <= 1 {
-			p.connections = nil
-		} else {
-			copy(p.connections[i:], p.connections[i+1:])
-			p.connections = p.connections[:n-1]
+		if nout, ok := s.(l1.TwoWayTransport); ok && nout.TwoWayConn() == t {
+			_ = s.Close()
+			continue
 		}
-
-		hasMore = true
-		if discardCurrentAddr {
-			p.addrIndex++
-			if int(p.addrIndex) >= len(p.aliases) {
-				p.addrIndex = 0
-				hasMore = false
-			}
+		if i != j {
+			p.connections[j] = s
 		}
-		return true, hasMore, err
+		j++
 	}
-	return false, false, nil
+
+	switch {
+	case j == 0:
+		p.connections = nil
+	default:
+		p.connections = p.connections[:j]
+	}
+	_ = t.Close()
 }
 
 type connectFunc = func(to nwapi.Address) (l1.OutTransport, error)
 
-func (p *PeerTransport) tryConnect(factoryFn connectFunc, startIndex uint8, limit TransportStreamFormat) (uint8, l1.OutTransport, error) {
+func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamFormat) (l1.OutTransport, error) {
 
-	for index := startIndex; ; {
-		addr := p.aliases[index]
+	startIndex := p.addrIndex
+	for {
+		addr := p.aliases[p.addrIndex]
 
-		var err error
-		switch addr.AddrNetwork() {
-		case nwaddr.DNS:
-			// primary address is always resolved
-			if index == 0 {
-				continue
+		if p.addrIndex == 0 && addr.AddrNetwork() == nwaddr.DNS {
+			// primary address is always resolved and can be ignored when is DNS
+			// then there MUST be more addresses
+			p.addrIndex++
+			if startIndex == 1 {
+				return nil, nil
 			}
+			continue
+		}
+
+		if err := p.checkActive(); err != nil {
+			return nil, err
+		}
+
+		switch t, err := factoryFn(addr); {
+		case err != nil:
+			//
+		case t == nil:
+			// non-connectable
+			if p.addrIndex++; int(p.addrIndex) >= len(p.aliases) {
+				p.addrIndex = 0
+			}
+			if p.addrIndex == startIndex {
+				return nil, nil
+			}
+		case p.rateQuota != nil:
+			t = t.WithQuota(p.rateQuota.WriteBucket())
 			fallthrough
-		case nwaddr.IP:
-			var t l1.OutTransport
-			t, err = factoryFn(addr)
-
-			if err := p.checkActive(); err != nil {
-				return index, nil, err
-			}
-
-			switch {
-			case err != nil:
-				break
-			case p.rateQuota != nil:
-				t = t.WithQuota(p.rateQuota.WriteBucket())
-				fallthrough
-			default:
-				t.SetTag(int(limit))
-				return index, t, nil
-			}
-		case nwaddr.HostPK, nwaddr.HostID, nwaddr.LocalUID:
-			// addressable, but is not connectable
 		default:
-			err = throw.NotImplemented()
-		}
-
-		if s := p.sessionless; s != nil {
-			// sessionless connection must follow sessionful
-			// otherwise it is not possible to detect a non-passable connection
-			p.sessionless = nil
-			_ = s.Close()
-		}
-
-		if index++; int(index) >= len(p.aliases) {
-			index = 0
-		}
-		if index == startIndex {
-			return index, nil, err
+			t.SetTag(int(limit))
+			return t, nil
 		}
 	}
 }
@@ -250,7 +255,7 @@ func (p *PeerTransport) getSessionlessTransport() (l1.OutTransport, error) {
 	}
 
 	var err error
-	p.addrIndex, p.sessionless, err = p.tryConnect(p.central.factory.SessionlessConnectTo, p.addrIndex, 0)
+	p.sessionless, err = p.tryConnect(p.central.factory.SessionlessConnectTo, 0)
 	return p.sessionless, err
 }
 
@@ -286,6 +291,7 @@ func (p *PeerTransport) getSessionfulLargeTransport() (l1.OutTransport, error) {
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+
 	return p._newSessionfulTransport(false)
 }
 
@@ -305,10 +311,9 @@ func (p *PeerTransport) _newSessionfulTransport(limitedLength bool) (t l1.OutTra
 
 	limit := p.central.getTransportStreamFormat(limitedLength, false)
 
-	p.addrIndex, t, err = p.tryConnect(p.central.factory.SessionfulConnectTo, p.addrIndex, limit)
-	if err != nil {
-		return nil, err
-		//p.addConnection(t)
+	t, err = p.tryConnect(p.central.factory.SessionfulConnectTo, limit)
+	if err != nil || t == nil {
+		return
 	}
 
 	p.connections = append(p.connections, t)
@@ -351,60 +356,97 @@ func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (Tr
 		}
 	}
 
-	_, _, _ = p._resetConnection(conn, false)
+	p._resetConnection(conn, false)
 	return 0, throw.Impossible()
 }
 
 func (p *PeerTransport) removeReceiver(conn io.Closer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+
 	p.connCount--
-	_, _, _ = p._resetConnection(conn, false)
+	p._resetConnection(conn, false)
 }
 
 type transportGetterFunc = func() (l1.OutTransport, error)
 
-func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, applyFn uniproto.OutFunc) error {
-	for {
+func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, sessionfulTransport bool, applyFn uniproto.OutFunc) error {
+	var delay time.Duration
+
+	repeatedNoAddress := false
+	for i := int(p.central.retryLimit) + 1; i >= 0; i-- {
 		if err := p.checkActive(); err != nil {
 			return err
 		}
 
 		t, err := getTransportFn()
-		if err != nil {
+		switch {
+		case err != nil:
 			return err
-		}
-
-		canRetry := false
-		if canRetry, err = applyFn(t); err == nil {
-			return nil
-		}
-		if ok, hasMore := p.resetTransport(t, true); canRetry && ok && hasMore {
+		case t == nil:
+			// no more addresses
+			if repeatedNoAddress {
+				panic(throw.IllegalState())
+			}
+			repeatedNoAddress = true
+			delay = p.central.incRetryDelay(delay)
+			time.Sleep(delay)
 			continue
+		default:
+			repeatedNoAddress = false
+			canRetry := false
+
+			facade := outFacade{delegate: t}
+			switch canRetry, err = applyFn(&facade); {
+			case err == nil:
+				return nil
+			case !facade.sentData:
+				// transport wasn't in use
+				return err
+			case !facade.hadError:
+				if sessionfulTransport {
+					// this is not a transport error, but something might be sent
+					// so have to reset a sessionful connection
+					p.discardTransportAndAddress(t, false)
+				}
+				return err
+			case !canRetry:
+				p.discardTransportAndAddress(t, true)
+				return err
+			}
+
+			lastDelay := delay
+			delay = p.central.incRetryDelay(delay)
+			if !p.discardTransportAndAddress(t, true) {
+				lastDelay = delay
+			}
+			time.Sleep(lastDelay)
+
 		}
-		return err
 	}
+	return throw.FailHere("retry limit exceeded")
 }
 
 func (p *PeerTransport) EnsureConnect() error {
 	// no need for p.smallMutex as there will be no write/send
-	return p.useTransport(p.getSessionfulSmallTransport, func(l1.OutTransport) (bool, error) { return true, nil })
+	return p.useTransport(p.getSessionfulSmallTransport, true,
+		func(l1.BasicOutTransport) (bool, error) { return true, nil })
 }
 
 func (p *PeerTransport) UseSessionless(applyFn uniproto.OutFunc) error {
-	return p.useTransport(p.getSessionlessTransport, applyFn)
+	return p.useTransport(p.getSessionlessTransport, false, applyFn)
 }
 
 func (p *PeerTransport) UseSessionful(size int64, applyFn uniproto.OutFunc) error {
 	if size <= uniproto.MaxNonExcessiveLength {
 		p.smallMutex.Lock()
 		defer p.smallMutex.Unlock()
-		return p.useTransport(p.getSessionfulSmallTransport, applyFn)
+		return p.useTransport(p.getSessionfulSmallTransport, true, applyFn)
 	}
 
 	p.largeMutex.Lock()
 	defer p.largeMutex.Unlock()
-	return p.useTransport(p.getSessionfulLargeTransport, applyFn)
+	return p.useTransport(p.getSessionfulLargeTransport, true, applyFn)
 }
 
 func (p *PeerTransport) UseAny(size int64, applyFn uniproto.OutFunc) error {
@@ -478,19 +520,19 @@ func (p *PeerTransport) sendPacket(tp uniproto.OutType, fn uniproto.OutFunc) err
 	case uniproto.SessionfulLarge:
 		p.largeMutex.Lock()
 		defer p.largeMutex.Unlock()
-		return p.useTransport(p.getSessionfulLargeTransport, fn)
+		return p.useTransport(p.getSessionfulLargeTransport, true, fn)
 
 	case uniproto.SessionfulSmall:
 		p.smallMutex.Lock()
 		defer p.smallMutex.Unlock()
-		return p.useTransport(p.getSessionfulSmallTransport, fn)
+		return p.useTransport(p.getSessionfulSmallTransport, true, fn)
 
 	case uniproto.Sessionless:
-		return p.useTransport(p.getSessionlessTransport, fn)
+		return p.useTransport(p.getSessionlessTransport, false, fn)
 
 	case uniproto.SessionlessNoQuota:
 		if p.rateQuota == nil {
-			return p.useTransport(p.getSessionlessTransport, fn)
+			return p.useTransport(p.getSessionlessTransport, false, fn)
 		}
 
 		return p.useTransport(func() (t l1.OutTransport, err error) {
@@ -498,7 +540,7 @@ func (p *PeerTransport) sendPacket(tp uniproto.OutType, fn uniproto.OutFunc) err
 				return
 			}
 			return t.WithQuota(nil), err
-		}, fn)
+		}, false, fn)
 
 	default:
 		panic(throw.Impossible())

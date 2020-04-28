@@ -43,10 +43,14 @@ type SessionlessTransport interface {
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
 type SessionlessReceiveFunc func(local, remote nwapi.Address, b []byte, err error) (ok bool)
 
-type OutTransport interface {
-	io.Closer
+type BasicOutTransport interface {
 	Send(payload io.WriterTo) error
 	SendBytes(b []byte) error
+}
+
+type OutTransport interface {
+	BasicOutTransport
+	io.Closer
 	GetTag() int
 	SetTag(int)
 

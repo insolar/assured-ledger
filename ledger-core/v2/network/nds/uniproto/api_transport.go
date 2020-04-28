@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l1"
 )
 
-type OutFunc func(l1.OutTransport) (canRetry bool, err error)
+type OutFunc func(l1.BasicOutTransport) (canRetry bool, err error)
 type OutTransport interface {
 	UseSessionless(applyFn OutFunc) error
 	UseSessionful(size int64, applyFn OutFunc) error
