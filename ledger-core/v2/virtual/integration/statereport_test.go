@@ -23,6 +23,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
+func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemachine.DispatcherMessage {
+	rawPayLoad, err := payload.Marshal(payLoadMeta)
+	require.NoError(t, err)
+
+	return &statemachine.DispatcherMessage{
+		MessageMeta: message.Metadata{},
+		PayloadMeta: &payload.Meta{Payload: rawPayLoad},
+	}
+}
+
 func makeVStateReportEvent(t *testing.T, ref insolar.Reference, rawState []byte) *statemachine.DispatcherMessage {
 	payLoadMeta := &payload.VStateReport{
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -33,14 +43,7 @@ func makeVStateReportEvent(t *testing.T, ref insolar.Reference, rawState []byte)
 			},
 		},
 	}
-
-	rawPayLoad, err := payload.Marshal(payLoadMeta)
-	require.NoError(t, err)
-
-	return &statemachine.DispatcherMessage{
-		MessageMeta: message.Metadata{},
-		PayloadMeta: &payload.Meta{Payload: rawPayLoad},
-	}
+	return makeDispatcherMessage(t, payLoadMeta)
 }
 
 func makeRawWalletState(t *testing.T, balance uint32) []byte {

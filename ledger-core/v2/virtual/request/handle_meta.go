@@ -83,6 +83,17 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 			ctx.SetTracerID(traceID)
 			return &SMVStateReport{Meta: payloadMeta, Payload: &pl}
 		}
+
+	case payload.TypeVStateUnavailable:
+		pl := payload.VStateUnavailable{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVStateUnavailable{Meta: payloadMeta, Payload: &pl}
+		}
 	default:
 		panic(errNoHandler{MessageType: payloadType})
 	}

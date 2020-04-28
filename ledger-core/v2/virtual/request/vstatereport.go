@@ -8,7 +8,6 @@ package request
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
@@ -53,13 +52,14 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
-		if state.Descriptor() == nil {
-			state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
-		} else {
-			ctx.Log().Trace(struct {
-				*log.Msg `txt:"State already exists"`
-			}{})
+		if state.IsReady() {
+			ctx.Log().Trace(stateAlreadyExistsErrorMsg{
+				Reference: objectRef.String(),
+			})
+			return false
 		}
+		state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
+		state.SetState(object.HasState)
 		return true
 	}
 
