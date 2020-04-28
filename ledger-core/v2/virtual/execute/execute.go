@@ -38,7 +38,6 @@ type SMExecute struct {
 
 	// internal data
 	isConstructor      bool
-	isOrdered          bool
 	semaphoreOrdered   smachine.SyncLink
 	semaphoreUnordered smachine.SyncLink
 	execution          execution.Context
@@ -104,7 +103,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		objectCatalog = object.Catalog{}
 		callType      = s.Payload.CallType
 
-		isOrdered         bool
 		isConstructor     bool
 		objectSharedState object.SharedStateAccessor
 	)
@@ -114,13 +112,11 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	switch callType {
 	case payload.CTConstructor:
 		isConstructor = true
-		isOrdered = true
 		s.execution.Object = reference.NewGlobalSelf(s.Payload.CallOutgoing)
 		reason = object.InitReasonCTConstructor
 
 	case payload.CTMethod:
 		isConstructor = false
-		isOrdered = true
 
 	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTNotifyCall:
 		fallthrough
@@ -170,7 +166,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		panic(throw.NotImplemented())
 	}
 
-	s.isOrdered = isOrdered
 	s.isConstructor = isConstructor
 	s.semaphoreOrdered = semaphoreOrdered
 	s.semaphoreUnordered = semaphoreUnordered
@@ -230,7 +225,7 @@ func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpd
 
 	objectSharedState := s.objectSharedState
 	switch objectSharedState.Prepare(func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounterOnce(s.isOrdered)
+		state.IncrementPotentialPendingCounterOnce(!s.execution.Unordered)
 	}).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
 		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
