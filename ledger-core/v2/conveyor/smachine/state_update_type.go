@@ -186,10 +186,10 @@ func (v StateUpdateType) verifyVar(u interface{}) interface{} {
 }
 
 func (v StateUpdateType) ShortLoop(slot *Slot, stateUpdate StateUpdate, loopCount uint32) bool {
-	if v.shortLoop == nil {
-		return false
-	}
-	return v.shortLoop(slot, stateUpdate, loopCount, v.stepDeclaration)
+	// if v.shortLoop == nil {
+	return false
+	// }
+	// return v.shortLoop(slot, stateUpdate, loopCount, v.stepDeclaration)
 }
 
 func (v StateUpdateType) Prepare(slot *Slot, stateUpdate *StateUpdate) {

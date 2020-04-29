@@ -14,6 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/example"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
@@ -124,7 +125,7 @@ func NewServer(t *testing.T) *Server {
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 
-	if err := virtualDispatcher.Init(ctx); err != nil {
+	if err := virtualDispatcher.Init(ctx, &example.MachineLogger{}); err != nil {
 		panic(err)
 	}
 

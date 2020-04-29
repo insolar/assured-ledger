@@ -62,8 +62,8 @@ func NewDispatcher() *Dispatcher {
 	return &Dispatcher{}
 }
 
-func (lr *Dispatcher) Init(ctx context.Context) error {
-	machineConfig := smachine.SlotMachineConfig{
+func (lr *Dispatcher) Init(ctx context.Context, loggerOverride smachine.SlotMachineLogger) error {
+	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
@@ -72,10 +72,15 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		SlotAliasRegistry: &conveyor.GlobalAliases{},
 	}
 
+	machineConfig := conveyorConfig
+	if loggerOverride != nil {
+		machineConfig.SlotMachineLogger = loggerOverride
+	}
+
 	defaultHandlers := DefaultHandlersFactory
 
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
-		ConveyorMachineConfig: machineConfig,
+		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,
