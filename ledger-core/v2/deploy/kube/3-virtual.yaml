@@ -102,7 +102,7 @@ spec:
   selector:
     matchLabels:
       app: virtual
-  replicas: 2
+  replicas: 5
   serviceName: platform-network
   template:
     metadata:

@@ -55,15 +55,10 @@ data:
     vesting_pulse_step: 10
     majority_rule: 5
     min_roles:
-      heavy_material: 1
-      virtual:  2
-      light_material: 2
+      heavy_material: 0
+      virtual:  3
+      light_material: 0
     discovery_nodes:
-    discovery_nodes:
-      -
-        host: "heavy-0.platform-network.insolar:13831"
-        role: "heavy_material"
-        cert_name: "heavy-0.json"
       -
         host: "virtual-0.platform-network.insolar:13831"
         role: "virtual"
@@ -73,13 +68,18 @@ data:
         role: "virtual"
         cert_name: "virtual-1.json"
       -
-        host: "light-0.platform-network.insolar:13831"
-        role: "light_material"
-        cert_name: "light-0.json"
+        host: "virtual-2.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-2.json"
       -
-        host: "light-1.platform-network.insolar:13831"
-        role: "light_material"
-        cert_name: "light-1.json"
+        host: "virtual-3.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-3.json"
+      -
+        host: "virtual-4.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-4.json"
+
 
 ---
 apiVersion: v1
@@ -147,7 +147,6 @@ data:
     #todo fix cert path configuration in insolar
     kubectl -n insolar create secret generic node-certs --from-file=/go/src/github.com/insolar/assured-ledger --dry-run=client -o yaml | kubectl -n insolar apply -f -
     kubectl -n insolar create secret generic node-keys  --from-file=/var/data/bootstrap/discovery-keys --dry-run=client -o yaml | kubectl -n insolar apply -f -
-
 ---
 apiVersion: v1
 kind: Pod
@@ -164,16 +163,11 @@ spec:
       imagePullPolicy: IfNotPresent
       command: ["bash", "-c", "bash /app/bootstrap/run.sh"]
       volumeMounts:
-        - name: database
-          mountPath: /var/data
         - name: bootstrap-yaml
           mountPath: /etc/bootstrap
           readOnly: true
         - name: app-bootstrap
           mountPath: /app/bootstrap
-        - name: heavy-config
-          mountPath: /etc/insolar
-          readOnly: true
   volumes:
     - name: bootstrap-yaml
       configMap:
@@ -181,9 +175,3 @@ spec:
     - name: app-bootstrap
       configMap:
         name: app-bootstrap
-    - name: database
-      persistentVolumeClaim:
-        claimName: database-heavy-0
-    - name: heavy-config
-      configMap:
-        name: heavy-config

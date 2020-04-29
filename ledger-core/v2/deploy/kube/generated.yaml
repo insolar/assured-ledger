@@ -120,15 +120,10 @@ data:
     vesting_pulse_step: 10
     majority_rule: 5
     min_roles:
-      heavy_material: 1
-      virtual:  2
-      light_material: 2
+      heavy_material: 0
+      virtual:  3
+      light_material: 0
     discovery_nodes:
-    discovery_nodes:
-      -
-        host: "heavy-0.platform-network.insolar:13831"
-        role: "heavy_material"
-        cert_name: "heavy-0.json"
       -
         host: "virtual-0.platform-network.insolar:13831"
         role: "virtual"
@@ -138,204 +133,20 @@ data:
         role: "virtual"
         cert_name: "virtual-1.json"
       -
-        host: "light-0.platform-network.insolar:13831"
-        role: "light_material"
-        cert_name: "light-0.json"
+        host: "virtual-2.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-2.json"
       -
-        host: "light-1.platform-network.insolar:13831"
-        role: "light_material"
-        cert_name: "light-1.json"
+        host: "virtual-3.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-3.json"
+      -
+        host: "virtual-4.platform-network.insolar:13831"
+        role: "virtual"
+        cert_name: "virtual-4.json"
 kind: ConfigMap
 metadata:
   name: bootstrap-yaml
-  namespace: insolar
----
-apiVersion: v1
-data:
-  heavy-config.yaml: |
-    host:
-      transport:
-        protocol: TCP
-        #address: 127.0.0.1:13831
-        fixedpublicaddress: ""
-      mintimeout: 10
-      maxtimeout: 2000
-      timeoutmult: 2
-      signmessages: false
-      handshakesessionttl: 5000
-      pulsewatchdogtimeout: 2592000
-    service:
-      cachedirectory: network_cache
-    ledger:
-      storage:
-        datadirectory: /var/data
-        badgervalueloggcdiscardratio: 0.4
-        gcrunfrequency: 1
-      jetsplit:
-        thresholdrecordscount: 100
-        thresholdoverflowcount: 3
-        depthlimit: 5
-      lightchainlimit: 5
-      backup:
-        enabled: false
-        tmpdirectory: ""
-        targetdirectory: ""
-        metainfofile: meta.json
-        confirmfile: BACKUPED
-        backupfile: incr.bkp
-        dirnametemplate: heavy-%d
-        backupwaitperiod: 60
-        postprocessbackupcmd: []
-      cleanerdelay: 3
-      maxnotificationsperpulse: 100
-      filamentcachelimit: 3000
-    log:
-      level: Debug
-      adapter: zerolog
-      formatter: json
-      outputtype: stderr
-      outputparallellimit: ""
-      outputparams: ""
-      buffersize: 0
-      llbuffersize: 0
-    metrics:
-      listenaddress: 0.0.0.0:8001
-      namespace: insolar
-      zpagesenabled: true
-      reportingperiod: 0s
-    logicrunner:
-      rpclisten: :33301
-      rpcprotocol: tcp
-      goplugin:
-        runnerlisten: :33300
-        runnerprotocol: tcp
-      pulselrusize: 100
-    apirunner:
-      address: 127.0.0.1:19101
-      rpc: /api/rpc
-      isadmin: false
-      swaggerpath: /app/api-exported.yaml
-    adminapirunner:
-      address: 127.0.0.1:19001
-      rpc: /admin-api/rpc
-      isadmin: true
-      swaggerpath: /app/api-exported.yaml
-    testwalletapi:
-      address: 0.0.0.0:32301
-    availabilitychecker:
-      enabled: false
-      keeperurl: http://127.0.0.1:12012/check
-      requesttimeout: 15
-      checkperiod: 5
-    tracer:
-      jaeger:
-        collectorendpoint: ""
-        agentendpoint: ""
-        probabilityrate: 1
-      samplingrules: {}
-    introspection:
-      addr: 127.0.0.1:55501
-    exporter:
-      addr: :5678
-    bus:
-      replytimeout: 15s
-kind: ConfigMap
-metadata:
-  name: heavy-config
-  namespace: insolar
----
-apiVersion: v1
-data:
-  light-config.yaml: |
-    host:
-      transport:
-        protocol: TCP
-        address: 127.0.0.1:0
-        fixedpublicaddress: ""
-      mintimeout: 10
-      maxtimeout: 2000
-      timeoutmult: 2
-      signmessages: false
-      handshakesessionttl: 5000
-      pulsewatchdogtimeout: 2592000
-    service:
-      cachedirectory: network_cache
-    ledger:
-      storage:
-        datadirectory: ./
-        badgervalueloggcdiscardratio: 0.4
-        gcrunfrequency: 1
-      jetsplit:
-        thresholdrecordscount: 100
-        thresholdoverflowcount: 3
-        depthlimit: 5
-      lightchainlimit: 5
-      backup:
-        enabled: false
-        tmpdirectory: ""
-        targetdirectory: ""
-        metainfofile: meta.json
-        confirmfile: BACKUPED
-        backupfile: incr.bkp
-        dirnametemplate: pulse-%d
-        backupwaitperiod: 60
-        postprocessbackupcmd: []
-      cleanerdelay: 3
-      maxnotificationsperpulse: 100
-      filamentcachelimit: 3000
-    log:
-      level: Debug
-      adapter: zerolog
-      formatter: json
-      outputtype: stderr
-      outputparallellimit: ""
-      outputparams: ""
-      buffersize: 0
-      llbuffersize: 0
-    metrics:
-      listenaddress: 0.0.0.0:9091
-      namespace: insolar
-      zpagesenabled: true
-      reportingperiod: 0s
-    logicrunner:
-      rpclisten: 0.0.0.0:33306
-      rpcprotocol: tcp
-      goplugin:
-        runnerlisten: 0.0.0.0:33305
-        runnerprotocol: tcp
-      pulselrusize: 100
-    apirunner:
-      address: localhost:19101
-      rpc: /api/rpc
-      isadmin: false
-      swaggerpath: /app/api-exported.yaml
-    adminapirunner:
-      address: 0.0.0.0:19001
-      rpc: /admin-api/rpc
-      isadmin: true
-      swaggerpath: /app/api-exported.yaml
-    testwalletapi:
-      address: 0.0.0.0:32302
-    availabilitychecker:
-      enabled: false
-      keeperurl: ""
-      requesttimeout: 15
-      checkperiod: 5
-    tracer:
-      jaeger:
-        collectorendpoint: ""
-        agentendpoint: ""
-        probabilityrate: 1
-      samplingrules: {}
-    introspection:
-      addr: 0.0.0.0:55502
-    exporter:
-      addr: :5678
-    bus:
-      replytimeout: 15s
-kind: ConfigMap
-metadata:
-  name: light-config
   namespace: insolar
 ---
 apiVersion: v1
@@ -357,11 +168,11 @@ data:
     #    fixedpublicaddress: ""
       pulsedistributor:
         bootstraphosts:
-          - heavy-0.platform-network.insolar:13831
-          - light-0.platform-network.insolar:13831
-          - light-1.platform-network.insolar:13831
           - virtual-0.platform-network.insolar:13831
           - virtual-1.platform-network.insolar:13831
+          - virtual-2.platform-network.insolar:13831
+          - virtual-3.platform-network.insolar:13831
+          - virtual-4.platform-network.insolar:13831
         pingrequesttimeout: 1000
         randomhostsrequesttimeout: 1000
         pulserequesttimeout: 1000
@@ -386,11 +197,11 @@ apiVersion: v1
 data:
   pulsewatcher.yaml: |
     nodes:
-      - heavy-0.platform-network.insolar:19001
-      - light-0.platform-network.insolar:19001
-      - light-1.platform-network.insolar:19001
       - virtual-0.platform-network.insolar:19001
       - virtual-1.platform-network.insolar:19001
+      - virtual-2.platform-network.insolar:19001
+      - virtual-3.platform-network.insolar:19001
+      - virtual-4.platform-network.insolar:19001
     interval: 500ms
     timeout: 1s
 kind: ConfigMap
@@ -562,200 +373,6 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: heavy
-  namespace: insolar
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: heavy
-  serviceName: platform-network
-  template:
-    metadata:
-      labels:
-        app: heavy
-        role: heavy_material
-        scope: platform
-    spec:
-      containers:
-      - args:
-        - test
-        - node
-        - --role=heavy_material
-        - --config=/etc/insolar/heavy-config.yaml
-        - --heavy-genesis=/var/data/bootstrap/heavy_genesis.json
-        command:
-        - insolard
-        env:
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        - name: NODENAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: INSOLAR_KEYSPATH
-          value: /etc/insolar/keys/$(NODENAME).json
-        - name: INSOLAR_CERTIFICATEPATH
-          value: /etc/insolar/certs/$(NODENAME).json
-        - name: INSOLAR_HOST_TRANSPORT_ADDRESS
-          value: $(POD_IP):13831
-        - name: INSOLAR_METRICS_LISTENADDRESS
-          value: $(POD_IP):8001
-        - name: INSOLAR_APIRUNNER_ADDRESS
-          value: $(POD_IP):19101
-        - name: INSOLAR_ADMINAPIRUNNER_ADDRESS
-          value: $(POD_IP):19001
-        - name: INSOLAR_EXPORTER_ADDR
-          value: $(POD_IP):5678
-        - name: INSOLAR_TESTWALLETAPI_ADDRESS
-          value: $(POD_IP):32301
-        image: insolar/assured-ledger:latest
-        imagePullPolicy: IfNotPresent
-        name: insolar
-        ports:
-        - containerPort: 13831
-          name: discovery
-        - containerPort: 19101
-          name: public-api
-        - containerPort: 19001
-          name: admin-api
-        volumeMounts:
-        - mountPath: /var/data
-          name: database
-        - mountPath: /etc/insolar
-          name: heavy-config
-          readOnly: true
-        - mountPath: /etc/insolar/certs
-          name: node-certs
-          readOnly: true
-        - mountPath: /etc/insolar/keys
-          name: node-keys
-          readOnly: true
-      initContainers:
-      - args:
-        - -c
-        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
-        command:
-        - bash
-        image: debian:buster-slim
-        name: wait
-        volumeMounts:
-        - mountPath: /etc/insolar/keys
-          name: node-keys
-          readOnly: true
-      volumes:
-      - configMap:
-          name: heavy-config
-        name: heavy-config
-      - name: node-keys
-        secret:
-          secretName: node-keys
-      - name: node-certs
-        secret:
-          secretName: node-certs
-      - name: database
-        persistentVolumeClaim:
-          claimName: database-heavy-0
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: light
-  namespace: insolar
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: light
-  serviceName: platform-network
-  template:
-    metadata:
-      labels:
-        app: light
-        role: light_material
-        scope: platform
-    spec:
-      containers:
-      - args:
-        - test
-        - node
-        - --role=light_material
-        - --config=/etc/insolar/light-config.yaml
-        command:
-        - insolard
-        env:
-        - name: INSOLAR_LOG_LEVEL
-          value: debug
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        - name: NODENAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: INSOLAR_KEYSPATH
-          value: /etc/insolar/keys/$(NODENAME).json
-        - name: INSOLAR_CERTIFICATEPATH
-          value: /etc/insolar/certs/$(NODENAME).json
-        - name: INSOLAR_HOST_TRANSPORT_ADDRESS
-          value: $(POD_IP):13831
-        - name: INSOLAR_METRICS_LISTENADDRESS
-          value: $(POD_IP):8001
-        - name: INSOLAR_APIRUNNER_ADDRESS
-          value: $(POD_IP):19101
-        - name: INSOLAR_ADMINAPIRUNNER_ADDRESS
-          value: $(POD_IP):19001
-        - name: INSOLAR_TESTWALLETAPI_ADDRESS
-          value: $(POD_IP):32301
-        image: insolar/assured-ledger:latest
-        imagePullPolicy: IfNotPresent
-        name: insolar
-        ports:
-        - containerPort: 13831
-          name: discovery
-        - containerPort: 19101
-          name: public-api
-        - containerPort: 19001
-          name: admin-api
-        volumeMounts:
-        - mountPath: /etc/insolar
-          name: light-config
-          readOnly: true
-        - mountPath: /etc/insolar/certs
-          name: node-certs
-          readOnly: true
-        - mountPath: /etc/insolar/keys
-          name: node-keys
-          readOnly: true
-      initContainers:
-      - args:
-        - -c
-        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
-        command:
-        - bash
-        image: debian:buster-slim
-        name: wait
-        volumeMounts:
-        - mountPath: /etc/insolar/keys
-          name: node-keys
-          readOnly: true
-      volumes:
-      - configMap:
-          name: light-config
-        name: light-config
-      - name: node-keys
-        secret:
-          secretName: node-keys
-      - name: node-certs
-        secret:
-          secretName: node-certs
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
   name: pulsar
   namespace: insolar
 spec:
@@ -829,7 +446,7 @@ metadata:
   name: virtual
   namespace: insolar
 spec:
-  replicas: 2
+  replicas: 5
   selector:
     matchLabels:
       app: virtual
@@ -945,19 +562,6 @@ spec:
         path: /wallet
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  finalizers: []
-  name: database-heavy-0
-  namespace: insolar
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2G
----
-apiVersion: v1
 kind: Pod
 metadata:
   name: bootstrap
@@ -972,16 +576,11 @@ spec:
     imagePullPolicy: IfNotPresent
     name: gen
     volumeMounts:
-    - mountPath: /var/data
-      name: database
     - mountPath: /etc/bootstrap
       name: bootstrap-yaml
       readOnly: true
     - mountPath: /app/bootstrap
       name: app-bootstrap
-    - mountPath: /etc/insolar
-      name: heavy-config
-      readOnly: true
   restartPolicy: Never
   serviceAccountName: insolar-bootstrap
   terminationGracePeriodSeconds: 10
@@ -992,9 +591,3 @@ spec:
   - configMap:
       name: app-bootstrap
     name: app-bootstrap
-  - name: database
-    persistentVolumeClaim:
-      claimName: database-heavy-0
-  - configMap:
-      name: heavy-config
-    name: heavy-config

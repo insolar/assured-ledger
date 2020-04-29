@@ -12,11 +12,11 @@ save_logs_to_files() {
   LOG_DIR="$ARTIFACTS_DIR/logs"
   rm -rf $LOG_DIR
   mkdir -p $LOG_DIR
-  kubectl -n insolar logs heavy-0 >"$LOG_DIR/heavy-0"
-  kubectl -n insolar logs light-0 >"$LOG_DIR/light-0"
-  kubectl -n insolar logs light-1 >"$LOG_DIR/light-1"
   kubectl -n insolar logs virtual-0 >"$LOG_DIR/virtual-0"
   kubectl -n insolar logs virtual-1 >"$LOG_DIR/virtual-1"
+  kubectl -n insolar logs virtual-2 >"$LOG_DIR/virtual-2"
+  kubectl -n insolar logs virtual-3 >"$LOG_DIR/virtual-3"
+  kubectl -n insolar logs virtual-4 >"$LOG_DIR/virtual-4"
 }
 
 echo "Stopping insolar"
