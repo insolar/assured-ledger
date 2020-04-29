@@ -101,12 +101,17 @@ _This will install nginx ingress in your cluster and user 80/443 port_
    ```
     make docker_build           # builds new images
     make test_func_kubernetes   # starts insolar network and run tests
-    make make kube_stop_net     # stops network
+    make kube_stop_net          # stops network
    ```
 To run from IDE set the environment to
 ```
-INSOLAR_FUNC_RPC_URL_PUBLIC=http://localhost/api/rpc;INSOLAR_FUNC_RPC_URL=http://localhost/admin-api/rpc;INSOLAR_FUNC_KEYS_PATH=/tmp/configs/;INSOLAR_FUNC_TESTWALLET_HOST=localhost
+INSOLAR_FUNC_RPC_URL_PUBLIC=http://localhost/api/rpc;INSOLAR_FUNC_RPC_URL=http://localhost/admin-api/rpc;INSOLAR_FUNC_KEYS_PATH=/tmp/insolar/;INSOLAR_FUNC_TESTWALLET_HOST=localhost
 ```
+To check your network you can do
+```
+kubectl -n insolar logs --tail=20 services/pulsewatcher
+```
+There is a debug pulsewatcher info after failed tests, it's not working yet. **Don't look at it**.
 
 ## Run single Insolar node
 

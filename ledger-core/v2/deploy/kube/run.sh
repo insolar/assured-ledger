@@ -18,20 +18,20 @@ check_dependencies() {
 }
 
 # Delete this after image templating will be done, and images will be in insolar hub
-check_docker_images(){
+check_docker_images() {
   if [ "$(docker images $INSOLAR_IMAGE -q)" = "" ]; then
     echo >&2 "make sure you made 'make docker_build'"
     exit 1
   fi
 }
 
-check_ingress_installation(){
+check_ingress_installation() {
   if [ "$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
-      kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
   fi
 }
 
-delete_ingress(){
+delete_ingress() {
   kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
 }
 
@@ -54,13 +54,14 @@ wait_for_complete_network_state() {
 
   echo "bootstrap completed"
 
-  while true; do
-    num=$(kubectl -n insolar logs --tail=10 services/pulsewatcher | grep -c "CompleteNetworkState")
-    echo "$num/$NUM_DISCOVERY_NODES discovery nodes ready"
-    if [[ "$num" -eq "$NUM_DISCOVERY_NODES" ]]; then
-      break
+  for try in {0..30}; do
+    if kubectl -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+      echo "network is ready!"
+      exit 0
+    else
+      echo "network is not ready"
+      sleep 2
     fi
-    sleep 2s
   done
   set -x
 }
@@ -68,17 +69,6 @@ wait_for_complete_network_state() {
 copy_bootstrap_config_to_temp() {
   mkdir -p $ARTIFACTS_DIR
   kubectl -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' >"$ARTIFACTS_DIR/bootstrap.yaml"
-}
-
-collect_logs() {
-  log_dir="$ARTIFACTS_DIR/logs"
-  rm -rf $log_dir
-  mkdir -p $log_dir
-  kubectl -n insolar logs heavy-0 >"$log_dir/heavy-0"
-  kubectl -n insolar logs light-0 >"$log_dir/light-0"
-  kubectl -n insolar logs light-1 >"$log_dir/light-1"
-  kubectl -n insolar logs virtual-0 >"$log_dir/virtual-0"
-  kubectl -n insolar logs virtual-1 >"$log_dir/virtual-1"
 }
 
 check_dependencies
