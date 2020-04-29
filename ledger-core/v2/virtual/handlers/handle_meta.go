@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package request
+package handlers
 
 import (
 	"context"
@@ -31,7 +31,7 @@ type errNoHandler struct {
 	MessageType payload.Type
 }
 
-func HandlerFactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachine.CreateFunc) {
+func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachine.CreateFunc) {
 	payloadMeta := message.PayloadMeta
 	messageMeta := message.MessageMeta
 

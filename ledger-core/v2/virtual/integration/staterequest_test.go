@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
@@ -43,6 +44,8 @@ func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref insolar.Reference
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	server := utils.NewServer(t)
+	ctx := inslogger.TestContext(t)
+
 	reportChan := make(chan *payload.VStateReport, 0)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
@@ -66,12 +69,12 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	{
 		// send VStateRequest: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
-		require.NoError(t, server.AddInput(msg))
+		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
 	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, 0)
 
-	require.NoError(t, server.AddInput(msg))
+	require.NoError(t, server.AddInput(ctx, msg))
 
 	select {
 	case data := <-reportChan:
@@ -89,14 +92,14 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	server := utils.NewServer(t)
+	ctx := inslogger.TestContext(t)
+
 	reportChan := make(chan *payload.VStateReport, 0)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
-			t.Log(msg.Payload)
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
-			t.Log(pl)
 
 			switch plData := pl.(type) {
 			case *payload.VStateReport:
@@ -114,12 +117,12 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	{
 		// send VStateRequest: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
-		require.NoError(t, server.AddInput(msg))
+		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
 	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 
-	require.NoError(t, server.AddInput(msg))
+	require.NoError(t, server.AddInput(ctx, msg))
 
 	select {
 	case data := <-reportChan:
@@ -143,6 +146,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	server := utils.NewServer(t)
+	ctx := inslogger.TestContext(t)
 	reportChan := make(chan *payload.VStateUnavailable, 0)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
@@ -164,7 +168,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 
-	require.NoError(t, server.AddInput(msg))
+	require.NoError(t, server.AddInput(ctx, msg))
 
 	select {
 	case data := <-reportChan:

@@ -10,11 +10,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -362,16 +364,41 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 	}
 
 	call := &statemachine.TestAPICall{
-		Payload:  req,
-		Response: make(chan payload.VCallResult),
+		Payload: req,
 	}
 
-	err = s.feeder.AddInput(ctx, latestPulse.PulseNumber, call)
+	ready := &sync.WaitGroup{}
+	ready.Add(1)
+
+	var (
+		fail error
+		res  payload.VCallResult
+	)
+
+	createDefaults := smachine.CreateDefaultValues{
+		TerminationHandler: func(data smachine.TerminationData) {
+			defer ready.Done()
+
+			fail = data.Error
+
+			resData, ok := data.Result.(payload.VCallResult)
+			if ok {
+				res = resData
+			}
+		},
+	}
+
+	err = s.feeder.AddInputExt(ctx, latestPulse.PulseNumber, call, createDefaults)
 	if err != nil {
 		return nil, throw.W(err, "Failed to add call to conveyor", nil)
 	}
 
-	res := <-call.Response
+	ready.Wait()
+
+	if fail != nil {
+		return nil, throw.W(fail, "Failed to process request", nil)
+	}
+
 	return &res, nil
 }
 

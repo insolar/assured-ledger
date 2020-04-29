@@ -26,8 +26,6 @@ type SMTestAPICall struct {
 	requestPayload  payload.VCallRequest
 	responsePayload payload.VCallResult
 
-	response chan payload.VCallResult
-
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
 	messageSender *messageSenderAdapter.MessageSender
@@ -109,12 +107,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	reChan := s.response
-
-	go func() {
-		reChan <- s.responsePayload
-		close(s.response)
-	}()
+	ctx.SetDefaultTerminationResult(s.responsePayload)
 
 	return ctx.Stop()
 }
