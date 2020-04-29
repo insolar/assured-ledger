@@ -6,14 +6,10 @@
 package s_contract_requester // nolint: golint
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type ContractRequesterService interface {
-	insolar.ContractRequester
 }
 
 type ContractRequesterServiceAdapter struct {
@@ -36,21 +32,4 @@ func (a *ContractRequesterServiceAdapter) PrepareAsync(ctx smachine.ExecutionCon
 
 func (a *ContractRequesterServiceAdapter) PrepareNotify(ctx smachine.ExecutionContext, fn func(svc ContractRequesterService)) smachine.NotifyRequester {
 	return a.exec.PrepareNotify(ctx, func(interface{}) { fn(a.svc) })
-}
-
-type contractRequesterService struct {
-	insolar.ContractRequester
-}
-
-func CreateContractRequesterService(contractRequester insolar.ContractRequester) *ContractRequesterServiceAdapter {
-	ctx := context.Background()
-	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 16)
-	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
-
-	return &ContractRequesterServiceAdapter{
-		svc: contractRequesterService{
-			ContractRequester: contractRequester,
-		},
-		exec: smachine.NewExecutionAdapter("ContractRequester", ae),
-	}
 }

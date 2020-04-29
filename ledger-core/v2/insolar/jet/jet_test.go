@@ -8,9 +8,10 @@ package jet
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )

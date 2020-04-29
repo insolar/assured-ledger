@@ -13,7 +13,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -28,7 +27,6 @@ type PulseManager struct {
 	NodeSetter    node.Modifier       `inject:""`
 	PulseAccessor pulse.Accessor      `inject:""`
 	PulseAppender pulse.Appender      `inject:""`
-	JetModifier   jet.Modifier        `inject:""`
 	dispatchers   []dispatcher.Dispatcher
 
 	// setLock locks Set method call.
@@ -93,14 +91,6 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 
 	for _, d := range m.dispatchers {
 		d.ClosePulse(ctx, storagePulse)
-	}
-
-	err = m.JetModifier.Clone(ctx, storagePulse.PulseNumber, newPulse.PulseNumber, false)
-	if err != nil {
-		return throw.W(err, "failed to clone jet.Tree", struct {
-			OldPulse insolar.PulseNumber
-			NewPulse insolar.PulseNumber
-		}{OldPulse: storagePulse.PulseNumber, NewPulse: newPulse.PulseNumber})
 	}
 
 	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {

@@ -44,7 +44,6 @@ type Base struct {
 	Self                network.Gateway
 	Gatewayer           network.Gatewayer                  `inject:""`
 	NodeKeeper          network.NodeKeeper                 `inject:""`
-	ContractRequester   insolar.ContractRequester          `inject:""`
 	CryptographyService insolar.CryptographyService        `inject:""`
 	CryptographyScheme  insolar.PlatformCryptographyScheme `inject:""`
 	CertificateManager  insolar.CertificateManager         `inject:""`

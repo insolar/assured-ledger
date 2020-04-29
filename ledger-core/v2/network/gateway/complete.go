@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"go.opencensus.io/stats"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -20,8 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/extractor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -111,22 +110,7 @@ func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.Di
 }
 
 func (g *Complete) getNodeInfo(ctx context.Context, nodeRef *insolar.Reference) (string, string, error) {
-	latest, err := g.PulseAccessor.GetLatestPulse(ctx)
-	if err != nil {
-		return "", "", errors.Wrap(err, "[ GetCert ] Can't get latest pulse")
-	}
-
-	res, _, err := g.ContractRequester.Call(
-		ctx, nodeRef, "GetNodeInfo", []interface{}{}, latest.PulseNumber,
-	)
-	if err != nil {
-		return "", "", errors.Wrap(err, "[ GetCert ] Couldn't call GetNodeInfo")
-	}
-	pKey, role, err := extractor.NodeInfoResponse(res.(*reply.CallMethod).Result)
-	if err != nil {
-		return "", "", errors.Wrap(err, "[ GetCert ] Couldn't extract response")
-	}
-	return pKey, role, nil
+	panic("deprecated")
 }
 
 func (g *Complete) signCert(ctx context.Context, registeredNodeRef *insolar.Reference) (*insolar.Signature, error) {

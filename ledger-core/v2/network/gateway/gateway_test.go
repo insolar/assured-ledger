@@ -11,12 +11,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/reply"
+	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	testnet "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 
@@ -84,7 +83,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 
 	gatewayer := testnet.NewGatewayerMock(t)
 
-	CR := testutils.NewContractRequesterMock(t)
+	// CR := testutils.NewContractRequesterMock(t)
 	CM := testutils.NewCertificateManagerMock(t)
 	ge := emtygateway(t)
 	// pm := mockPulseManager(t)
@@ -111,18 +110,18 @@ func TestDumbComplete_GetCert(t *testing.T) {
 
 	cref := gen.Reference()
 
-	CR.CallMock.Set(func(ctx context.Context, ref *insolar.Reference, method string, argsIn []interface{}, p insolar.PulseNumber,
-	) (r insolar.Reply, r2 *insolar.Reference, r1 error) {
-		require.Equal(t, &cref, ref)
-		require.Equal(t, "GetNodeInfo", method)
-		repl, _ := insolar.Serialize(struct {
-			PublicKey string
-			Role      insolar.StaticRole
-		}{"LALALA", insolar.StaticRoleVirtual})
-		return &reply.CallMethod{
-			Result: repl,
-		}, nil, nil
-	})
+	// CR.CallMock.Set(func(ctx context.Context, ref *insolar.Reference, method string, argsIn []interface{}, p insolar.PulseNumber,
+	// ) (r insolar.Reply, r2 *insolar.Reference, r1 error) {
+	// 	require.Equal(t, &cref, ref)
+	// 	require.Equal(t, "GetNodeInfo", method)
+	// 	repl, _ := insolar.Serialize(struct {
+	// 		PublicKey string
+	// 		Role      insolar.StaticRole
+	// 	}{"LALALA", insolar.StaticRoleVirtual})
+	// 	return &reply.CallMethod{
+	// 		Result: repl,
+	// 	}, nil, nil
+	// })
 
 	CM.GetCertificateMock.Set(func() (r insolar.Certificate) { return &certificate.Certificate{} })
 	cert, err := ge.Auther().GetCert(ctx, &cref)

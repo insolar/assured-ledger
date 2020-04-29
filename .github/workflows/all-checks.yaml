@@ -52,7 +52,7 @@ jobs:
         if: always()
         run: make test_func
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Aggregate logs in a single archive
+      - name: Aggregate logs into a single archive
         if: always()
         run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2

@@ -9,8 +9,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 // StorageMem is a memory storage implementation. It saves pulses to memory and allows removal.

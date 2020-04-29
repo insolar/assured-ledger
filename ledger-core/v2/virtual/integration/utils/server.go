@@ -92,13 +92,11 @@ func NewServer(t *testing.T) *Server {
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
 		nodeSetter := node.NewModifierMock(t).SetMock.Return(nil)
-		jetModifier := jet.NewModifierMock(t).CloneMock.Return(nil)
 
 		Pulses = pulse.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
 		PulseManager.NodeSetter = nodeSetter
-		PulseManager.JetModifier = jetModifier
 		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
 	}

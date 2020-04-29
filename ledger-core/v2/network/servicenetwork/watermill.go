@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -103,9 +102,9 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 }
 
 func getIncomingTopic(msg *message.Message) string {
-	topic := bus.TopicIncoming
+	topic := busMeta.TopicIncoming
 	if msg.Metadata.Get(busMeta.Type) == busMeta.TypeReturnResults {
-		topic = bus.TopicIncomingRequestResults
+		topic = busMeta.TopicIncomingRequestResults
 	}
 	return topic
 }

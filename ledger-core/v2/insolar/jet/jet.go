@@ -14,45 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bits"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Accessor -o ./ -s _mock.go -g
-
-// Accessor provides an interface for accessing jet IDs.
-type Accessor interface {
-	// All returns all jet from jet tree for provided pulse.
-	All(ctx context.Context, pulse insolar.PulseNumber) []insolar.JetID
-	// ForID finds jet in jet tree for provided pulse and object.
-	// Always returns jet id and activity flag for this jet.
-	ForID(ctx context.Context, pulse insolar.PulseNumber, recordID insolar.ID) (insolar.JetID, bool)
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Modifier -o ./ -s _mock.go -g
-
-// Modifier provides an interface for modifying jet IDs.
-type Modifier interface {
-	// Update updates jet tree for specified pulse.
-	Update(ctx context.Context, pulse insolar.PulseNumber, actual bool, ids ...insolar.JetID) error
-	// Split performs jet split and returns resulting jet ids. Always set Active flag to true for leafs.
-	Split(ctx context.Context, pulse insolar.PulseNumber, id insolar.JetID) (insolar.JetID, insolar.JetID, error)
-	// Clone copies tree from one pulse to another. Use it to copy the past tree into new pulse.
-	Clone(ctx context.Context, from, to insolar.PulseNumber, keepActual bool) error
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Cleaner -o ./ -s _mock.go -g
-
-// Cleaner provides an interface for removing jet.Tree from a storage.
-type Cleaner interface {
-	// Delete jets for pulse (concurrent safe).
-	DeleteForPN(ctx context.Context, pulse insolar.PulseNumber)
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Storage -o ./ -s _mock.go -g
-
-// Storage composes Accessor and Modifier interfaces.
-type Storage interface {
-	Accessor
-	Modifier
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Coordinator -o ./ -s _mock.go -g
 
 // Coordinator provides methods for calculating Jet affinity
@@ -61,31 +22,8 @@ type Coordinator interface {
 	// Me returns current node.
 	Me() insolar.Reference
 
-	// IsAuthorized checks for role on concrete pulse for the address.
-	IsAuthorized(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber, node insolar.Reference) (bool, error)
-
-	// IsMeAuthorizedNow checks role of the current node in the current pulse for the address. Sugar for IsAuthorized.
-	IsMeAuthorizedNow(ctx context.Context, role insolar.DynamicRole, obj insolar.ID) (bool, error)
-
 	// QueryRole returns node refs responsible for role bound operations for given object and pulse.
 	QueryRole(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber) ([]insolar.Reference, error)
-
-	VirtualExecutorForObject(ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber) (*insolar.Reference, error)
-	VirtualValidatorsForObject(ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber) ([]insolar.Reference, error)
-
-	LightExecutorForObject(ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber) (*insolar.Reference, error)
-	LightValidatorsForObject(ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber) ([]insolar.Reference, error)
-	// LightExecutorForJet calculates light material executor for provided jet.
-	LightExecutorForJet(ctx context.Context, jetID insolar.ID, pulse insolar.PulseNumber) (*insolar.Reference, error)
-	LightValidatorsForJet(ctx context.Context, jetID insolar.ID, pulse insolar.PulseNumber) ([]insolar.Reference, error)
-
-	Heavy(ctx context.Context) (*insolar.Reference, error)
-
-	IsBeyondLimit(ctx context.Context, targetPN insolar.PulseNumber) (bool, error)
-	NodeForJet(ctx context.Context, jetID insolar.ID, targetPN insolar.PulseNumber) (*insolar.Reference, error)
-
-	// NodeForObject calculates a node (LME or heavy) for a specific jet for a specific pulseNumber
-	NodeForObject(ctx context.Context, objectID insolar.ID, targetPN insolar.PulseNumber) (*insolar.Reference, error)
 }
 
 // Parent returns a parent of the jet or jet itself if depth of provided JetID is zero.

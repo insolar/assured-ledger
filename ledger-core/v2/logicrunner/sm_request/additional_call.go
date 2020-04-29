@@ -13,8 +13,7 @@ import (
 
 type StateMachineAdditionalCall struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.AdditionalCallFromPreviousExecutor
+	Meta *payload.Meta
 }
 
 var declAdditionalCall smachine.StateMachineDeclaration = &declarationAdditionalCall{}
