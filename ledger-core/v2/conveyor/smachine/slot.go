@@ -316,7 +316,7 @@ func (s *Slot) _tryStartWithID(slotID SlotID, minStepNo uint32) (isValid, isStar
 	}
 }
 
-func (s *Slot) stopWorking() (prevStepNo uint32) {
+func (s *Slot) stopWorking() {
 	for {
 		v := atomic.LoadUint64(&s.idAndStep)
 		if v&slotFlagBusy == 0 {
@@ -324,7 +324,7 @@ func (s *Slot) stopWorking() (prevStepNo uint32) {
 		}
 
 		if atomic.CompareAndSwapUint64(&s.idAndStep, v, v&^slotFlagBusy) {
-			return uint32(v >> stepIncrementShift)
+			return
 		}
 	}
 }
