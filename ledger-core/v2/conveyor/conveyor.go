@@ -19,7 +19,10 @@ import (
 )
 
 type InputEvent = interface{}
-type PulseEventFactoryFunc = func(pulse.Number, InputEvent) smachine.CreateFunc
+
+// PulseEventFactoryFunc should return pulse.Unknown or current.Pulse when SM doesn't need to be put into a different pulse slot.
+// Arg (pulse.Range) can be nil for future slot.
+type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc)
 
 type EventInputer interface {
 	AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error
@@ -118,10 +121,10 @@ func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smac
 }
 
 func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error {
-	return p.AddInputExt(ctx, pn, event, false, smachine.CreateDefaultValues{})
+	return p.AddInputExt(ctx, pn, event, smachine.CreateDefaultValues{})
 }
 
-func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent, prevPulse bool,
+func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
 	createDefaults smachine.CreateDefaultValues,
 ) error {
 	pulseSlotMachine, targetPN, pulseState, err := p.mapToPulseSlotMachine(pn)
@@ -132,17 +135,27 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		return fmt.Errorf("slotMachine is missing: pn=%v", pn)
 	}
 
-	if prevPulse {
-		pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
-		return p.AddInputExt(ctx, pr.LeftBoundNumber(), event, false, createDefaults)
-	}
-
-	createFn := p.factoryFn(targetPN, event)
-
+	pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
+	remapPN, createFn := p.factoryFn(targetPN, pr, event)
 	switch {
 	case createFn == nil:
 		return fmt.Errorf("unrecognized event: pn=%v event=%v", targetPN, event)
 
+	case remapPN == targetPN || remapPN == pn || remapPN.IsUnknown():
+		//
+	case remapPN.IsTimePulse():
+		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(remapPN); err != nil {
+			return err
+		}
+		if pulseSlotMachine != nil && pulseState != 0 {
+			break
+		}
+		fallthrough
+	default:
+		return fmt.Errorf("slotMachine is missing: remap pn=%v", remapPN)
+	}
+
+	switch {
 	case pulseState == Future:
 		// event for future needs special handling - it must wait until the pulse will actually arrive
 		pulseSlotMachine.innerMachine.AddNew(ctx,

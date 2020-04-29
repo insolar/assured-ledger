@@ -55,6 +55,10 @@ func (i *Info) SetState(state State) {
 	i.objectState = state
 }
 
+func (i *Info) GetState() State {
+	return i.objectState
+}
+
 func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
 	if isOrdered {
 		i.PotentialMutablePendingCount++
