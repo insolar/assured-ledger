@@ -230,6 +230,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 				return
 			}
 			if !slot.needsReleaseOnStepping(prevStepNo) {
+				_, prevStepNo, _ = slot._getState()
 				continue
 			}
 			if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
