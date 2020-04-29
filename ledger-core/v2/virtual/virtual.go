@@ -13,6 +13,7 @@ import (
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/example"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
@@ -62,7 +63,7 @@ func NewDispatcher() *Dispatcher {
 }
 
 func (lr *Dispatcher) Init(ctx context.Context) error {
-	machineConfig := smachine.SlotMachineConfig{
+	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
@@ -73,8 +74,11 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	defaultHandlers := DefaultHandlersFactory
 
+	machineConfig := conveyorConfig
+	machineConfig.SlotMachineLogger = example.MachineLogger{}
+
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
-		ConveyorMachineConfig: machineConfig,
+		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,

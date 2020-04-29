@@ -21,7 +21,6 @@ type StackTrace interface {
 	StackTraceAsText() string
 	WriteStackTraceTo(writer io.Writer) error
 	IsFullStack() bool
-	//ParseStackTrace() errors.StackTrace
 }
 
 // CaptureStack captures whole stack
@@ -45,11 +44,8 @@ func IsInSystemPanic(skipFrames int) bool {
 	return n == "runtime.preprintpanics"
 }
 
-//var _ fmt.Formatter = stackTrace{}
-
 type stackTrace struct {
-	data []byte
-	//parsed errors.StackTrace
+	data  []byte
 	limit bool
 }
 
@@ -73,28 +69,6 @@ func (v stackTrace) LogString() string {
 func (v stackTrace) String() string {
 	return stackTracePrintPrefix + string(v.data)
 }
-
-//func (v stackTrace) ParseStackTrace() errors.StackTrace {
-//
-//}
-//
-//func (v stackTrace) Format(s fmt.State, verb rune) {
-//	switch verb {
-//	case 'v':
-//		switch {
-//		case s.Flag('+'):
-//			//for _, f := range st {
-//			//	fmt.Fprintf(s, "\n%+v", f)
-//			//}
-//		case s.Flag('#'):
-//			//fmt.Fprintf(s, "%#v", []Frame(st))
-//		default:
-//			//fmt.Fprintf(s, "%v", []Frame(st))
-//		}
-//	case 's':
-//		fmt.Fprintf(s, "%s", []Frame(st))
-//	}
-//}
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
 	skipFrames++
