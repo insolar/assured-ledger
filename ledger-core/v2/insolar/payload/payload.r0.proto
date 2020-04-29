@@ -112,7 +112,6 @@ message VStateReport {
     bytes AsOf = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber", (gogoproto.nullable) = false];
     bytes Callee = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference", (gogoproto.nullable) = false];
 
-    uint32 ResultFlags = 22;
     bytes DelegationSpec = 23;
     bytes DelegatorSignature = 24;
 
