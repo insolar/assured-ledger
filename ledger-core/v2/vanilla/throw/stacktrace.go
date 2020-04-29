@@ -35,6 +35,36 @@ func CaptureStackTop(skipFrames int) StackTrace {
 	return stackTrace{captureStack(skipFrames+1, true), true}
 }
 
+func ExtractStackTop(st StackTrace, skipFrames int) StackTrace {
+	var data []byte
+	switch vv := st.(type) {
+	case nil:
+		return nil
+	case stackTrace:
+		if vv.limit {
+			return st
+		}
+		data = vv.data
+	default:
+		if !vv.IsFullStack() {
+			return st
+		}
+		data = []byte(vv.StackTraceAsText())
+	}
+	start := indexOfFrame(data, skipFrames)
+	if start < 0 || start == 0 && skipFrames > 0 {
+		return stackTrace{data, true}
+	}
+	start += skipPanicFrame(data)
+	end := indexOfFrame(data[start:], 1)
+	if end > 0 {
+		data = data[start : start+end]
+	} else {
+		data = data[start:]
+	}
+	return stackTrace{append([]byte(nil), data...), true}
+}
+
 func IsInSystemPanic(skipFrames int) bool {
 	pc := make([]uintptr, 1)
 	if runtime.Callers(skipFrames+2, pc) != 1 {

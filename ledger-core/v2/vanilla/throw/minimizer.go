@@ -33,7 +33,7 @@ func MinimizePanicStack(stackTrace []byte, boundPackage string, includeBoundary 
 	if len(s) == 0 {
 		return stackTrace
 	}
-	pos := skipFrameByMethod(s, "runtime/debug.Stack", "debug/stack.go")
+	pos := skipDebugFrame(s)
 	s = s[pos:]
 
 	prefix := []byte(boundPackage)
@@ -43,7 +43,7 @@ func MinimizePanicStack(stackTrace []byte, boundPackage string, includeBoundary 
 		if start == len(s) {
 			return s
 		}
-		n := skipFrameByMethod(s[start:], "panic", "runtime/panic.go")
+		n := skipPanicFrame(s[start:])
 		if n == 0 {
 			if bytes.HasPrefix(s[start:], []byte("created by ")) {
 				return s
@@ -63,7 +63,7 @@ func MinimizePanicStack(stackTrace []byte, boundPackage string, includeBoundary 
 	pos = 0
 
 	for {
-		n := skipFrameByMethod(s[pos:], "panic", "runtime/panic.go")
+		n := skipPanicFrame(s[pos:])
 		if n > 0 {
 			pos += n
 			n = len(minimizeDebugStack(s[pos:], boundPackage, includeBoundary))
@@ -101,12 +101,20 @@ func MinimizePanicStack(stackTrace []byte, boundPackage string, includeBoundary 
 	return minimizeDebugStack(s[pos:], boundPackage, includeBoundary)
 }
 
+func skipPanicFrame(s []byte) int {
+	return skipFrameByMethod(s, "panic", "runtime/panic.go")
+}
+
+func skipDebugFrame(s []byte) int {
+	return skipFrameByMethod(s, "runtime/debug.Stack", "debug/stack.go")
+}
+
 func MinimizeDebugStack(stackTrace []byte, boundPackage string, includeBoundary bool) []byte {
 	s := alignStart(stackTrace)
 	if len(s) == 0 {
 		return stackTrace
 	}
-	pos := skipFrameByMethod(s, "runtime/debug.Stack", "runtime/debug/stack.go")
+	pos := skipDebugFrame(s)
 	return minimizeDebugStack(s[pos:], boundPackage, includeBoundary)
 }
 

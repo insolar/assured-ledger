@@ -92,6 +92,29 @@ func ErrorWithStack(errChain error) string {
 	return JoinStackText(errChain.Error(), DeepestStackTraceOf(errChain))
 }
 
+func ErrorWithTopOrFullStack(errChain error) (string, StackTrace) {
+	st := DeepestStackTraceOf(errChain)
+	if st == nil || st.IsFullStack() {
+		return errChain.Error(), st
+	}
+	return JoinStackText(errChain.Error(), st), nil
+}
+
+func ErrorWithTopOrMinimizedStack(errChain error, boundPackage string, includeBoundary bool) (string, StackTrace) {
+	st := DeepestStackTraceOf(errChain)
+	switch {
+	case st == nil:
+		return errChain.Error(), nil
+	case !st.IsFullStack():
+		return JoinStackText(errChain.Error(), st), nil
+	}
+	if boundPackage != "" {
+		st = MinimizeStackTrace(st, boundPackage, includeBoundary)
+	}
+	min := ExtractStackTop(st, 0)
+	return JoinStackText(errChain.Error(), min), st
+}
+
 // OutermostStack returns the closest StackTraceHolder with non-nil ShallowStackTrace from errChain
 func OutermostStack(errChain error) StackTraceHolder {
 	for errChain != nil {

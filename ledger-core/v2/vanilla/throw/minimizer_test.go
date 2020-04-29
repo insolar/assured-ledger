@@ -11,25 +11,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testStackDebugCall = "" +
-	"runtime/debug.Stack(0xc000313cc0, 0x1020601, 0x6)\n" +
+const testStackDebugCall = "runtime/debug.Stack(0xc000313cc0, 0x1020601, 0x6)\n" +
 	"\t/go1.14.2/src/runtime/debug/stack.go:24 +0xa4\n"
 
-const testStackDebug = "" +
-	testStackDebugCall +
+const testStackDebug = testStackDebugCall +
 	testStackClear
 
-const testStackPanic = "" +
-	testStackDebugCall +
+const testStackPanic = testStackDebugCall +
 	testStackPanicNoDebug
 
-const testStackPanicNoDebug = "" +
-	testStackPanicDefer +
+const testStackPanicNoDebug = testStackPanicDefer +
 	testPanic +
 	testStackClear
 
-const testStackPanicDefer = "" +
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.RecoverSlotPanicWithStack(...)\n" +
+const testStackPanicDefer = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.RecoverSlotPanicWithStack(...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/api_panic.go:73\n" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.recoverSlotPanicAsUpdate(0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/state_update_type.go:66 +0x169\n" +
@@ -38,27 +33,22 @@ const testStackPanicDefer = "" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*executionContext).executeNextStep.func1(0xc000336ab0, 0xc0002748c0)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_exec.go:123 +0x126\n"
 
-const testPanic = "" +
-	"panic(0xe6b060, 0x11875c0)\n" +
+const testPanic = "panic(0xe6b060, 0x11875c0)\n" +
 	"\t/go1.14.2/src/runtime/panic.go:975 +0x3f1\n"
 
-const testStackValuable = "" +
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute.(*SMExecute).stepWaitObjectReady(0xc000352000, 0x11d51a0, 0xc000336ab0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
-	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute/execute.go:161 +0x7ce\n" +
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute.(*SMExecute).stepWaitObjectReady(0xc000352000, 0x11d51a0, 0xc000336ab0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
+const testStackValuable = testStackValuableOnce + testStackValuableOnce
+
+const testStackValuableOnce = "github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute.(*SMExecute).stepWaitObjectReady(0xc000352000, 0x11d51a0, 0xc000336ab0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute/execute.go:161 +0x7ce\n"
 
-const testStackBoundary = "" +
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*executionContext).executeNextStep(0xc000336ab0, 0xc000336ab0, 0x1, 0x2208038, 0xc0003369c0, 0x101f001, 0x0, 0x0, 0x0, 0xb, ...)\n" +
+const testStackBoundary = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*executionContext).executeNextStep(0xc000336ab0, 0xc000336ab0, 0x1, 0x2208038, 0xc0003369c0, 0x101f001, 0x0, 0x0, 0x0, 0xb, ...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_exec.go:128 +0xfb\n"
 
-const testStackClear = "" +
-	testStackValuable +
+const testStackClear = testStackValuable +
 	testStackBoundary +
 	testStackUseless
 
-const testStackUseless = "" +
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*SlotMachine)._executeSlot.func1(0x11c8fa0, 0xc000336aa0)\n" +
+const testStackUseless = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*SlotMachine)._executeSlot.func1(0x11c8fa0, 0xc000336aa0)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/slot_machine_execute.go:222 +0x200\n" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker.(*SimpleSlotWorker).DetachableCall(0xc000336a80, 0xc000266b00, 0x1912640)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker/worker_simple.go:114 +0x49\n" +
@@ -94,7 +84,9 @@ const testStackUseless = "" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker/worker_simple.go:59 +0xda\n" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor.(*PulseConveyor).runWorker(0xc000072f00, 0x0, 0xc0001864e0, 0xc0001b46d0)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/conveyor.go:487 +0x1ad\n" +
-	"created by github.com/insolar/assured-ledger/ledger-core/v2/conveyor.(*PulseConveyor).StartWorker\n" +
+	testCreatedBy
+
+const testCreatedBy = "created by github.com/insolar/assured-ledger/ledger-core/v2/conveyor.(*PulseConveyor).StartWorker\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/conveyor.go:462 +0xe0\n"
 
 const testBoundary = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
