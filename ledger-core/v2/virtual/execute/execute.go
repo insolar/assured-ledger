@@ -95,6 +95,10 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx)
 
+	return ctx.Jump(s.stepTmp)
+}
+
+func (s *SMExecute) stepTmp(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Jump(s.stepWaitObjectReady)
 }
 
