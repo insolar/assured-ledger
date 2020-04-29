@@ -99,6 +99,8 @@ func NewStateMachineObject(objectReference insolar.Reference, reason InitReason)
 	}
 }
 
+//go:generate go run $GOPATH/src/github.com/insolar/assured-ledger/ledger-core/v2/scripts/gen_plantuml.go -f $GOFILE
+
 type SMObject struct {
 	smachine.StateMachineDeclTemplate
 

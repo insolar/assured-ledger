@@ -76,6 +76,8 @@ func (p *catalogC) GetOrCreate(ctx smachine.ExecutionContext, key longbits.ByteS
 	return p.Get(ctx, key)
 }
 
+//go:generate go run $GOPATH/src/github.com/insolar/assured-ledger/ledger-core/v2/scripts/gen_plantuml.go -f $GOFILE
+
 type catalogEntryCSM struct {
 	smachine.StateMachineDeclTemplate
 	sharedState CustomSharedState

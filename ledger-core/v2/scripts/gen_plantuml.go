@@ -52,16 +52,29 @@ type Variant struct {
 }
 
 func main() {
-	path := flag.String("f", "", "Path to file")
+	file := flag.String("f", "", "Path to file or file name")
 	console := flag.Bool("c", false, "Print uml diagram to console")
 	debug := flag.Bool("d", false, "Enable debug")
 	flag.Parse()
 
-	if *path == "" {
-		fmt.Print("Path to file is not specific")
+	if *file == "" {
+		fmt.Print("Error: Path to file or file name is not specific\n")
 		return
 	}
-	uml := analyse(*path, *debug)
+
+	var filePath string
+
+	if filepath.IsAbs(*file) {
+		filePath = *file
+	} else {
+		dirPath, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		filePath = dirPath + "/" + *file
+	}
+
+	uml := analyse(filePath, *debug)
 	// uml += "uml" // rem
 	// fmt.Printf("\n") // rem
 
@@ -69,7 +82,7 @@ func main() {
 		fmt.Printf("\n\n\n\n\n~~~~~~~~~~~~~~~~~\n%s", uml)
 	}
 
-	writeUml(*path, uml)
+	writeUml(*file, uml)
 }
 
 func isContainInSet(s1 []string, item string) bool {

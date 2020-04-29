@@ -106,6 +106,8 @@ func main() {
 	time.Sleep(time.Hour)
 }
 
+//go:generate go run $GOPATH/src/github.com/insolar/assured-ledger/ledger-core/v2/scripts/gen_plantuml.go -f $GOFILE
+
 /* ===================================================== */
 
 type AppEventSM struct {

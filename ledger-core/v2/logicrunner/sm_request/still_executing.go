@@ -72,6 +72,8 @@ func (a *ObjectAccessor) setPreviousExecutorState(ctx smachine.ExecutionContext,
 	})
 }
 
+//go:generate go run $GOPATH/src/github.com/insolar/assured-ledger/ledger-core/v2/scripts/gen_plantuml.go -f $GOFILE
+
 type StateMachineStillExecuting struct {
 	// input arguments
 	Meta    *payload.Meta
