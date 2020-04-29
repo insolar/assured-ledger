@@ -108,3 +108,7 @@ func (lr *Dispatcher) Stop(_ context.Context) error {
 func (lr *Dispatcher) AddInput(ctx context.Context, pulse pulse.Number, msg interface{}) error {
 	return lr.Conveyor.AddInput(ctx, pulse, msg)
 }
+
+func (lr *Dispatcher) AddInputExt(ctx context.Context, pulse pulse.Number, msg interface{}, createDefaults smachine.CreateDefaultValues) error {
+	return lr.Conveyor.AddInputExt(ctx, pulse, msg, createDefaults)
+}

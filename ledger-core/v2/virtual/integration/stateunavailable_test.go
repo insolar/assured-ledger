@@ -43,6 +43,6 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 	reasons := []payload.VStateUnavailable_ReasonType{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
 		msg := makeVStateUnavailableEvent(t, objectRef, reason)
-		require.NoError(t, server.AddInput(msg))
+		require.NoError(t, server.AddInput(ctx, msg))
 	}
 }
