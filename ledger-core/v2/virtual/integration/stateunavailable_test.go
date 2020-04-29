@@ -19,10 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-func makeVStateUnavailableEvent(t *testing.T, ref insolar.Reference, reason payload.UnavailableReason) *statemachine.DispatcherMessage {
+func makeVStateUnavailableEvent(t *testing.T, ref insolar.Reference, reason payload.VStateUnavailable_ReasonType) *statemachine.DispatcherMessage {
 	payLoadMeta := &payload.VStateUnavailable{
-		Reference: ref,
-		Reason:    reason,
+		Lifeline: ref,
+		Reason:   reason,
 	}
 	return makeDispatcherMessage(t, payLoadMeta)
 }
@@ -40,7 +40,7 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 
 	objectRef := reference.NewGlobalSelf(server.RandomLocalWithPulse())
 
-	reasons := []payload.UnavailableReason{payload.Inactive, payload.Missing, payload.Unknown}
+	reasons := []payload.VStateUnavailable_ReasonType{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
 		msg := makeVStateUnavailableEvent(t, objectRef, reason)
 		require.NoError(t, server.AddInput(msg))

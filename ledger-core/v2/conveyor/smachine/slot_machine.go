@@ -988,25 +988,38 @@ func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data
 	return true
 }
 
+// MUST match SlotMachine._executeSlot for short-looping
 func (m *SlotMachine) stopSlotWorking(slot *Slot, prevStepNo uint32, worker FixedSlotWorker) {
-	dep := slot.dependency
-	newStepNo := slot.stopWorking()
 
-	switch {
-	case dep == nil:
-		return
-	case prevStepNo == 0:
-		// there can be NO dependencies when a slot was just created
-		panic("illegal state")
-	case newStepNo == prevStepNo || newStepNo <= 1:
-		// step didn't change or it is initialization (which is considered as a part of creation)
-		return
-	case !dep.IsReleaseOnStepping():
+	if !slot.needsReleaseOnStepping(prevStepNo) {
+		slot.stopWorking()
 		return
 	}
 
 	released := slot._releaseAllDependency()
-	m.activateDependants(released, slot.NewLink(), worker)
+	link := slot.NewLink()
+
+	// MUST NOT access slot fields beyond this point
+	slot.stopWorking()
+
+	m.activateDependants(released, link, worker)
+}
+
+func (s *Slot) needsReleaseOnStepping(prevStepNo uint32) bool {
+	switch dep := s.dependency; {
+	case dep == nil:
+		return false
+	case prevStepNo == 0:
+		// there can be NO dependencies when a slot was just created
+		panic("illegal state")
+	case !dep.IsReleaseOnStepping():
+		return false
+	}
+	if _, newStepNo, _ := s._getState(); newStepNo == prevStepNo || newStepNo <= 1 {
+		// step didn't change or it is initialization (which is considered as a part of creation)
+		return false
+	}
+	return true
 }
 
 func (m *SlotMachine) _activateDependantChain(chain *Slot, worker FixedSlotWorker) {

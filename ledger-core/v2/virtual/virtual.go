@@ -30,17 +30,16 @@ import (
 // 	InputType interface{} `fmt:"%T"`
 // }
 
-func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.CreateFunc {
+func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
 		return request.HandlerFactoryMeta(event)
 	case *testWalletAPIStateMachine.TestAPICall:
-		return testWalletAPIStateMachine.Handler(event)
+		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
 		// TODO[bigbes] commented until panics will show description
 		// panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
 		panic(fmt.Sprintf("unknown event type %T", input))
-
 	}
 }
 

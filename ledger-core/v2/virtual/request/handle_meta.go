@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -30,7 +31,7 @@ type errNoHandler struct {
 	MessageType payload.Type
 }
 
-func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.CreateFunc {
+func HandlerFactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachine.CreateFunc) {
 	payloadMeta := message.PayloadMeta
 	messageMeta := message.MessageMeta
 
@@ -56,7 +57,7 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 		if err := pl.Unmarshal(payloadBytes); err != nil {
 			panic(err)
 		}
-		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
 			return &SMVCallRequest{Meta: payloadMeta, Payload: &pl}
@@ -67,18 +68,27 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 		if err := pl.Unmarshal(payloadBytes); err != nil {
 			panic(err)
 		}
-		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
 			return &SMVCallResult{Meta: payloadMeta, Payload: &pl}
 		}
-
+	case payload.TypeVStateRequest:
+		pl := payload.VStateRequest{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return pl.AsOf, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVStateRequest{Meta: payloadMeta, Payload: &pl}
+		}
 	case payload.TypeVStateReport:
 		pl := payload.VStateReport{}
 		if err := pl.Unmarshal(payloadBytes); err != nil {
 			panic(err)
 		}
-		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
 			return &SMVStateReport{Meta: payloadMeta, Payload: &pl}
@@ -89,7 +99,7 @@ func HandlerFactoryMeta(message *statemachine.DispatcherMessage) smachine.Create
 		if err := pl.Unmarshal(payloadBytes); err != nil {
 			panic(err)
 		}
-		return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
 			return &SMVStateUnavailable{Meta: payloadMeta, Payload: &pl}

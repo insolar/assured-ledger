@@ -57,7 +57,7 @@ type stateAlreadyExistsErrorMsg struct {
 
 func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	catalog := object.Catalog{}
-	objectRef := s.Payload.Reference
+	objectRef := s.Payload.Lifeline
 	sharedObjectState, ok := catalog.TryGet(ctx, objectRef)
 	if !ok {
 		ctx.Log().Error(noObjectErrorMsg{Reference: objectRef.String()}, nil)

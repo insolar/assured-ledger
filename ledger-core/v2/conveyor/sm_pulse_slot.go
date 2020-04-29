@@ -212,7 +212,7 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 	case !nextPollTime.IsZero():
 		return ctx.WaitAnyUntil(nextPollTime).ThenRepeat()
 	case !p.innerMachine.IsEmpty():
-		return ctx.Yield().ThenRepeat()
+		return ctx.WaitAny().ThenRepeat()
 	}
 	return ctx.WaitAny().ThenRepeat()
 }

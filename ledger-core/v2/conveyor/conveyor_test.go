@@ -53,7 +53,7 @@ func (sm *emptySM) stepInit(ctx smachine.InitializationContext) smachine.StateUp
 	return ctx.Stop()
 }
 
-func handleFactory(_ pulse.Number, input InputEvent) smachine.CreateFunc {
+func handleFactory(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch input.(type) {
 	default:
 		panic(fmt.Sprintf("unknown event type, got %T", input))
@@ -132,10 +132,10 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, input InputEvent) smachine.CreateFunc {
+		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
 			require.Equal(t, pn, inputPn)
 			require.Nil(t, input)
-			return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
 			}
 		}, nil)
@@ -169,10 +169,10 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, input InputEvent) smachine.CreateFunc {
+		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
 			require.Equal(t, pn, inputPn)
 			require.Nil(t, input)
-			return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
 			}
 		}, nil)
@@ -209,10 +209,10 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, input InputEvent) smachine.CreateFunc {
+		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
 			require.Equal(t, startPn, inputPn)
 			require.Nil(t, input)
-			return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
 			}
 		}, nil)
@@ -252,9 +252,9 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, input InputEvent) smachine.CreateFunc {
+		}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
 			require.Nil(t, input)
-			return func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
 			}
 		}, nil)
