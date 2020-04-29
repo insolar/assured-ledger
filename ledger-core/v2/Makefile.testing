@@ -13,8 +13,8 @@ test_unit: ## run all unit tests
 	$(GOTEST) -count=1 $(TEST_ARGS) $(PACKAGES)
 
 .PHONY: test_with_coverage
-test_with_coverage: ## run `test_slow` with generation of coverage file
-	$(GOTEST) -tags slowtest -coverprofile=coverage.tmp.out -covermode=count -count=1 $(TEST_ARGS) $(PACKAGES)
+test_with_coverage: ## run `test_slow` with generation of coverage file. -covermode=atomic is used to make this target work with -race
+	$(GOTEST) -tags slowtest -coverprofile=coverage.tmp.out -covermode=atomic -count=1 $(TEST_ARGS) $(PACKAGES)
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
