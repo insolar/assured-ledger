@@ -95,10 +95,10 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx)
 
-	return ctx.Jump(s.stepWaitObjectReady)
+	return ctx.Jump(s.stepUpdatePendingCounters)
 }
 
-func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		objectCatalog = object.Catalog{}
 		callType      = s.Payload.CallType
@@ -126,7 +126,35 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		panic(throw.IllegalValue())
 	}
 
+	if s.Payload.CallFlags&callflag.Unordered > 0 {
+		s.execution.Unordered = true
+	}
+
 	objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object, reason)
+
+	switch objectSharedState.Prepare(func(state *object.SharedState) {
+		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
+	}).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
+	s.objectSharedState = objectSharedState
+	s.isConstructor = isConstructor
+
+	return ctx.Jump(s.stepWaitObjectReady)
+}
+
+func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		isConstructor     = s.isConstructor
+		objectSharedState = s.objectSharedState
+	)
 
 	var (
 		semaphoreReadyToWork    smachine.SyncLink
@@ -166,10 +194,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		panic(throw.NotImplemented())
 	}
 
-	s.isConstructor = isConstructor
 	s.semaphoreOrdered = semaphoreOrdered
 	s.semaphoreUnordered = semaphoreUnordered
-	s.objectSharedState = objectSharedState
 
 	// TODO[bigbes]: we're ready to execute here, so lets execute
 	return ctx.Jump(s.stepTakeLock)
@@ -178,8 +204,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var executionSemaphore smachine.SyncLink
 
-	if s.Payload.CallFlags&callflag.Unordered > 0 {
-		s.execution.Unordered = true
+	if s.execution.Unordered {
 		executionSemaphore = s.semaphoreUnordered
 	} else {
 		executionSemaphore = s.semaphoreOrdered
@@ -222,20 +247,6 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 }
 
 func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
-	objectSharedState := s.objectSharedState
-	switch objectSharedState.Prepare(func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
-	}).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
-	case smachine.Passed:
-	default:
-		panic(throw.NotImplemented())
-	}
-
 	var (
 		executionContext = s.execution
 		asyncLogger      = ctx.LogAsync()
