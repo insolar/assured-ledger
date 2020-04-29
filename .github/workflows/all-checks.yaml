@@ -44,13 +44,13 @@ jobs:
         if: always()
         run: make lint
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Run unit and slow tests and check code coverage
+      - name: Run unit and slow tests with race detector and check code coverage
         if: always()
-        run: make test_with_coverage
+        run: TEST_ARGS='-timeout 1200s -race' make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Run functional tests
+      - name: Run functional tests with race detector
         if: always()
-        run: make test_func
+        run: TEST_ARGS='-timeout 1200s -race' make test_func
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Aggregate logs into a single archive
         if: always()
