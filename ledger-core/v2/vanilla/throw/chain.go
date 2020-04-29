@@ -89,7 +89,7 @@ func DeepestStackTraceOf(errChain error) StackTrace {
 }
 
 func ErrorWithStack(errChain error) string {
-	return joinStack(errChain.Error(), DeepestStackTraceOf(errChain))
+	return JoinStackText(errChain.Error(), DeepestStackTraceOf(errChain))
 }
 
 // OutermostStack returns the closest StackTraceHolder with non-nil ShallowStackTrace from errChain
