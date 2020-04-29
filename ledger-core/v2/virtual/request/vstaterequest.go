@@ -97,7 +97,9 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 			s.failReason = payload.Inactive
 			return
 		case object.HasState:
-			// ok case
+		// ok case
+		default:
+			panic(throw.NotImplemented())
 		}
 
 		descriptor := state.Descriptor()
@@ -153,7 +155,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		}{
 			Reference: s.Payload.Callee,
 		})
-		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
+		panic(throw.IllegalState())
 	}
 
 	if s.failReason > 0 {
