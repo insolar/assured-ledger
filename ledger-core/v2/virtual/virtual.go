@@ -33,7 +33,7 @@ import (
 func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		return 0, request.HandlerFactoryMeta(event)
+		return request.HandlerFactoryMeta(event)
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
