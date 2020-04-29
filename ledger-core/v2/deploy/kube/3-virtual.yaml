@@ -113,13 +113,13 @@ spec:
     spec:
       initContainers:
         - name: wait
-          image: "debian:buster-slim"
-          command: ['bash']
-          args: ['-c', 'until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done']
+          image: "bitnami/kubectl:1.18"
+          command: ["/bin/wait-for-bootstrap.sh"]
           volumeMounts:
-            - name: node-keys
-              mountPath: /etc/insolar/keys
+            - name: wait-script
+              mountPath: /bin/wait-for-bootstrap.sh
               readOnly: true
+              subPath: wait-for-bootstrap.sh
       containers:
         - name: insolar
           image: insolar/assured-ledger:latest
@@ -184,3 +184,7 @@ spec:
         - name: node-certs
           secret:
             secretName: node-certs
+        - name: wait-script
+          configMap:
+            defaultMode: 0550
+            name: wait-script

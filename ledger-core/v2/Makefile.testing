@@ -40,7 +40,7 @@ kube_stop_net: ## stop insolar net in local kubernetes cluster
 	./deploy/kube/stop.sh
 
 .PHONY: test_func_kubernetes
-test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will  active after tests!
+test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will be running after tests!
 	make kube_start_net
 	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
@@ -50,8 +50,9 @@ test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster
 
 .PHONY: test_func_kubernetes_ci
 test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes cluster
-	make docker_build
+	make docker-build
 	make kube_start_net
+	make vendor
 	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
 	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \

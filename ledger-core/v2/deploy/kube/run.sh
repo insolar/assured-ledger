@@ -20,7 +20,7 @@ check_dependencies() {
 # Delete this after image templating will be done, and images will be in insolar hub
 check_docker_images() {
   if [ "$(docker images $INSOLAR_IMAGE -q)" = "" ]; then
-    echo >&2 "make sure you made 'make docker_build'"
+    echo >&2 "make sure you made 'make docker-build'"
     exit 1
   fi
 }
@@ -54,15 +54,22 @@ wait_for_complete_network_state() {
 
   echo "bootstrap completed"
 
+  ready=0
   for try in {0..30}; do
-    if kubectl -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+    if [ "$(kubectl -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -c -v 'NOT')" = "1" ]; then
       echo "network is ready!"
+      ready=1
       exit 0
     else
       echo "network is not ready"
       sleep 2
     fi
   done
+
+  if [ $ready = 0 ]; then
+    echo "network was not started"
+    exit 1
+  fi
   set -x
 }
 

@@ -304,6 +304,21 @@ metadata:
   namespace: insolar
 ---
 apiVersion: v1
+data:
+  wait-for-bootstrap.sh: |-
+    #!/bin/sh
+    while true; do
+      if [ "$(kubectl -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
+        break
+      fi
+      sleep 1s
+    done
+kind: ConfigMap
+metadata:
+  name: wait-script
+  namespace: insolar
+---
+apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -421,17 +436,15 @@ spec:
           name: node-keys
           readOnly: true
       initContainers:
-      - args:
-        - -c
-        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
-        command:
-        - bash
-        image: debian:buster-slim
+      - command:
+        - /bin/wait-for-bootstrap.sh
+        image: bitnami/kubectl:1.18
         name: wait
         volumeMounts:
-        - mountPath: /etc/insolar/keys
-          name: node-keys
+        - mountPath: /bin/wait-for-bootstrap.sh
+          name: wait-script
           readOnly: true
+          subPath: wait-for-bootstrap.sh
       volumes:
       - configMap:
           name: pulsar-config
@@ -439,6 +452,10 @@ spec:
       - name: node-keys
         secret:
           secretName: node-keys
+      - configMap:
+          defaultMode: 360
+          name: wait-script
+        name: wait-script
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -514,17 +531,15 @@ spec:
           name: node-keys
           readOnly: true
       initContainers:
-      - args:
-        - -c
-        - until ls /etc/insolar/keys | grep json; do echo "no dice"; sleep 5; done
-        command:
-        - bash
-        image: debian:buster-slim
+      - command:
+        - /bin/wait-for-bootstrap.sh
+        image: bitnami/kubectl:1.18
         name: wait
         volumeMounts:
-        - mountPath: /etc/insolar/keys
-          name: node-keys
+        - mountPath: /bin/wait-for-bootstrap.sh
+          name: wait-script
           readOnly: true
+          subPath: wait-for-bootstrap.sh
       volumes:
       - configMap:
           name: virtual-config
@@ -535,6 +550,10 @@ spec:
       - name: node-certs
         secret:
           secretName: node-certs
+      - configMap:
+          defaultMode: 360
+          name: wait-script
+        name: wait-script
 ---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress

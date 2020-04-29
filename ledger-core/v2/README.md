@@ -99,7 +99,7 @@ Functional test can be executed in kubernetes cluster. You need to have `kubectl
 _This will install nginx ingress in your cluster and user 80/443 port_
 
    ```
-    make docker_build           # builds new images
+    make docker-build           # builds new images
     make test_func_kubernetes   # starts insolar network and run tests
     make kube_stop_net          # stops network
    ```
