@@ -48,6 +48,7 @@ type Dispatcher struct {
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
+	MachineLogger  smachine.SlotMachineLogger
 
 	// Components
 	Runner        runner.Service
@@ -61,7 +62,7 @@ func NewDispatcher() *Dispatcher {
 	return &Dispatcher{}
 }
 
-func (lr *Dispatcher) Init(ctx context.Context, machineOverride smachine.SlotMachineLogger) error {
+func (lr *Dispatcher) Init(ctx context.Context) error {
 	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -74,8 +75,8 @@ func (lr *Dispatcher) Init(ctx context.Context, machineOverride smachine.SlotMac
 	defaultHandlers := DefaultHandlersFactory
 
 	machineConfig := conveyorConfig
-	if machineOverride != nil {
-		machineConfig.SlotMachineLogger = machineOverride
+	if lr.MachineLogger != nil {
+		machineConfig.SlotMachineLogger = lr.MachineLogger
 	}
 
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
