@@ -63,7 +63,6 @@ pre-build: install-build-tools generate regen-builtin ## install dependencies, (
 
 .PHONY: generate
 generate: ## run go generate
-	##go get github.com/rigidus/in-solar/
 	GOFLAGS="" go generate -x $(ALL_PACKAGES)
 
 .PHONY: vendor
