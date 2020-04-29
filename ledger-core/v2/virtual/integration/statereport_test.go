@@ -84,7 +84,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	{
 		// send VStateRequest: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
-		require.NoError(t, server.AddInput(msg))
+		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
 	checkBalance(t, server, objectRef, testBalance)
@@ -107,7 +107,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	{
 		// send VStateRequest: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
-		require.NoError(t, server.AddInput(msg))
+		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
 	checkBalance(t, server, objectRef, testBalance)
@@ -115,7 +115,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	{
 		// send VStateRequest: one more time to simulate rewrite
 		msg := makeVStateReportEvent(t, objectRef, makeRawWalletState(t, 444))
-		require.NoError(t, server.AddInput(msg))
+		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
 	checkBalance(t, server, objectRef, testBalance)

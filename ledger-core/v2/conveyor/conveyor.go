@@ -26,6 +26,9 @@ type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.
 
 type EventInputer interface {
 	AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error
+	AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
+		createDefaults smachine.CreateDefaultValues,
+	) error
 }
 
 type PreparedState = struct{}
