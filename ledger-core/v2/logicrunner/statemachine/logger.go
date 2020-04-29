@@ -105,9 +105,6 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 		err       string
 	)
 	if stepLoggerData.Error != nil {
-		if slotPanicError, ok := stepLoggerData.Error.(smachine.SlotPanicError); ok {
-			backtrace = string(slotPanicError.Stack)
-		}
 		err = stepLoggerData.Error.Error()
 	}
 
@@ -160,11 +157,6 @@ type LogInternal struct {
 
 func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMachineData, msg string) {
 	backtrace := ""
-	if slotMachineData.Error != nil {
-		if slotPanicError, ok := slotMachineData.Error.(smachine.SlotPanicError); ok {
-			backtrace = string(slotPanicError.Stack)
-		}
-	}
 	global.Logger().Error(LogInternal{
 		Message: msg,
 
@@ -189,11 +181,6 @@ type LogCritical struct {
 
 func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMachineData, msg string) {
 	backtrace := ""
-	if slotMachineData.Error != nil {
-		if slotPanicError, ok := slotMachineData.Error.(smachine.SlotPanicError); ok {
-			backtrace = string(slotPanicError.Stack)
-		}
-	}
 	global.Logger().Error(LogCritical{
 		Message: msg,
 
