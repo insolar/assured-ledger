@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/request"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -33,7 +33,7 @@ import (
 func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		return request.HandlerFactoryMeta(event)
+		return handlers.FactoryMeta(event)
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
