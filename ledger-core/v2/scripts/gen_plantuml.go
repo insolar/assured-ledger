@@ -103,11 +103,10 @@ func SetUniWoDup(s1 []string, s2 []string) []string {
 	return ret
 }
 
-func analyse(filename string, debug bool) string {
-	pathname := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), filename)
-	pf := ParseFile(pathname, debug)
+func analyse(path string, debug bool) string {
+	pf := ParseFile(path, debug)
 	if nil == pf {
-		panic("Cannot parse file " + pathname)
+		panic("Cannot parse file " + path)
 	}
 	uml := "@startuml"
 	pf.diag("\n\n:: ======= resource filename: %s", pf.filename)
@@ -239,14 +238,15 @@ func analyse(filename string, debug bool) string {
 	return uml
 }
 
-func ParseFile(fileName string, dbg ...bool) *ParsedFile {
+func ParseFile(path string, dbg ...bool) *ParsedFile {
 	pf := &ParsedFile{
-		filename: fileName,
+		filename: path,
 		dbg:      dbg[0],
 	}
 
-	sourceCode, err := slurpFile(fileName)
+	sourceCode, err := slurpFile(path)
 	if err != nil {
+		fmt.Printf("Failed to slurpFile file: %s %s\n", path, err.Error())
 		return nil
 	}
 	pf.code = sourceCode
@@ -254,6 +254,7 @@ func ParseFile(fileName string, dbg ...bool) *ParsedFile {
 	pf.fileSet = token.NewFileSet()
 	node, err := parser.ParseFile(pf.fileSet, pf.filename, pf.code, parser.ParseComments)
 	if err != nil {
+		fmt.Printf("Failed to parse file: %s\n", path)
 		return nil
 	}
 	pf.node = node
@@ -274,11 +275,11 @@ func ParseFile(fileName string, dbg ...bool) *ParsedFile {
 func writeUml(path string, uml string) {
 	name := filepath.Base(path)
 	name = strings.Replace(name, ".go", "", -1) + ".plantuml"
-	umlPath := fmt.Sprintf("%s/%s/%s", os.Getenv("GOPATH"), filepath.Dir(path), name)
+	umlPath := fmt.Sprintf("%s/%s", filepath.Dir(path), name)
 
 	file, err := os.Create(umlPath)
 	if err != nil {
-		fmt.Printf("Failed to create file: %s\n", umlPath)
+		fmt.Printf("%s Failed to create file: %s \n", err.Error(), umlPath)
 		return
 	}
 
@@ -303,7 +304,7 @@ func slurpFile(fileName string) ([]byte, error) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	filename := fileName
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Can't open file: [%s]", filename))
+		return nil, errors.New(fmt.Sprintf("Can't open file: [%s], %s", filename, err.Error()))
 	}
 	defer file.Close() //nolint: errcheck
 
