@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package example
+package convlog
 
 import (
 	"context"
@@ -14,19 +14,20 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type MachineLogger struct {
 }
 
 func (MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg string) {
-	fmt.Printf("[MACHINE][LOG] %s[%3d]: %03d @ %03d: internal %s err=%v\n", data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, data.Error)
+	fmt.Printf("[MACHINE][LOG] %s[%3d]: %03d @ %03d: internal %s%s\n", data.StepNo.MachineID(), data.CycleNo,
+		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, formatErrorStack(data.Error))
 }
 
 func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
-	fmt.Printf("[MACHINE][ERR] %s[%3d]: %03d @ %03d: internal %s err=%v\n", data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, data.Error)
+	fmt.Printf("[MACHINE][ERR] %s[%3d]: %03d @ %03d: internal %s%s\n", data.StepNo.MachineID(), data.CycleNo,
+		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, formatErrorStack(data.Error))
 }
 
 func (MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
@@ -39,7 +40,7 @@ type conveyorStepLogger struct {
 	tracer smachine.TracerID
 }
 
-func (conveyorStepLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
+func (conveyorStepLogger) CanLogEvent(_ smachine.StepLoggerEvent, _ smachine.StepLogLevel) bool {
 	return true
 }
 
@@ -115,23 +116,18 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 		errSpecial = "recover-denied "
 	}
 
-	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v err=%v\n", data.StepNo.MachineID(), data.CycleNo,
+	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v%s\n", data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
-		special, errSpecial, upd.UpdateType, detached, data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(), v.sm, v.tracer, data.Error)
+		special, errSpecial, upd.UpdateType, detached, data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(), v.sm, v.tracer,
+		formatErrorStack(data.Error))
 }
 
 func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
 	v.prepareStepName(&data.CurrentStep)
 
-	if data.Error == nil {
-		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v\n", data.StepNo.MachineID(), data.CycleNo,
-			data.StepNo.SlotID(), data.StepNo.StepNo(),
-			updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer)
-	} else {
-		fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v err=%v\n", data.StepNo.MachineID(), data.CycleNo,
-			data.StepNo.SlotID(), data.StepNo.StepNo(),
-			updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer, data.Error)
-	}
+	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v%s\n", data.StepNo.MachineID(), data.CycleNo,
+		data.StepNo.SlotID(), data.StepNo.StepNo(),
+		updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer, formatErrorStack(data.Error))
 }
 
 func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
@@ -181,4 +177,18 @@ func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID s
 	fmt.Printf("[ADP] %s %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v adapter=%v/%v\n", s, data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
 		data.CurrentStep.GetStepName(), v.sm, v.tracer, adapterID, callID)
+}
+
+const StackMinimizePackage = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+
+func formatErrorStack(err error) string {
+	if err == nil {
+		return ""
+	}
+	st := throw.DeepestStackTraceOf(err)
+	if st == nil {
+		return " err=" + err.Error()
+	}
+	st = throw.MinimizeStackTrace(st, StackMinimizePackage, true)
+	return throw.JoinStackText(" err="+err.Error(), st)
 }

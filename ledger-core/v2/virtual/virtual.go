@@ -13,7 +13,6 @@ import (
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/example"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
@@ -62,7 +61,7 @@ func NewDispatcher() *Dispatcher {
 	return &Dispatcher{}
 }
 
-func (lr *Dispatcher) Init(ctx context.Context) error {
+func (lr *Dispatcher) Init(ctx context.Context, machineOverride smachine.SlotMachineLogger) error {
 	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -75,7 +74,9 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	defaultHandlers := DefaultHandlersFactory
 
 	machineConfig := conveyorConfig
-	machineConfig.SlotMachineLogger = example.MachineLogger{}
+	if machineOverride != nil {
+		machineConfig.SlotMachineLogger = machineOverride
+	}
 
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: conveyorConfig,

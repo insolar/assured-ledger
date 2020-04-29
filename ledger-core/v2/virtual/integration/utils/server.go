@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mimic"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/pulsemanager"
 )
@@ -124,7 +125,7 @@ func NewServer(t *testing.T) *Server {
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 
-	if err := virtualDispatcher.Init(ctx); err != nil {
+	if err := virtualDispatcher.Init(ctx, convlog.MachineLogger{}); err != nil {
 		panic(err)
 	}
 
