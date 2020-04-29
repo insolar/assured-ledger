@@ -5,15 +5,30 @@
 
 package throw
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+const testStackDebugCall = "" +
+	"runtime/debug.Stack(0xc000313cc0, 0x1020601, 0x6)\n" +
+	"\t/go1.14.2/src/runtime/debug/stack.go:24 +0xa4\n"
 
 const testStackDebug = "" +
-	"runtime/debug.Stack(0xc000313cc0, 0x1020601, 0x6)\n" +
+	testStackDebugCall +
 	testStackClear
 
 const testStackPanic = "" +
-	"runtime/debug.Stack(0xc000313cc0, 0x1020601, 0x6)\n" +
-	"\t/go1.14.2/src/runtime/debug/stack.go:24 +0xa4\n" +
+	testStackDebugCall +
+	testStackPanicNoDebug
+
+const testStackPanicNoDebug = "" +
+	testStackPanicDefer +
+	testPanic +
+	testStackClear
+
+const testStackPanicDefer = "" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.RecoverSlotPanicWithStack(...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/api_panic.go:73\n" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.recoverSlotPanicAsUpdate(0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
@@ -21,10 +36,11 @@ const testStackPanic = "" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*contextTemplate).discardAndUpdate(...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_basic.go:94\n" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*executionContext).executeNextStep.func1(0xc000336ab0, 0xc0002748c0)\n" +
-	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_exec.go:123 +0x126\n" +
+	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_exec.go:123 +0x126\n"
+
+const testPanic = "" +
 	"panic(0xe6b060, 0x11875c0)\n" +
-	"\t/go1.14.2/src/runtime/panic.go:975 +0x3f1\n" +
-	testStackClear
+	"\t/go1.14.2/src/runtime/panic.go:975 +0x3f1\n"
 
 const testStackValuable = "" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute.(*SMExecute).stepWaitObjectReady(0xc000352000, 0x11d51a0, 0xc000336ab0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
@@ -32,10 +48,16 @@ const testStackValuable = "" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute.(*SMExecute).stepWaitObjectReady(0xc000352000, 0x11d51a0, 0xc000336ab0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute/execute.go:161 +0x7ce\n"
 
+const testStackBoundary = "" +
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*executionContext).executeNextStep(0xc000336ab0, 0xc000336ab0, 0x1, 0x2208038, 0xc0003369c0, 0x101f001, 0x0, 0x0, 0x0, 0xb, ...)\n" +
+	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_exec.go:128 +0xfb\n"
+
 const testStackClear = "" +
 	testStackValuable +
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*executionContext).executeNextStep(0xc000336ab0, 0xc000336ab0, 0x1, 0x2208038, 0xc0003369c0, 0x101f001, 0x0, 0x0, 0x0, 0xb, ...)\n" +
-	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/context_exec.go:128 +0xfb\n" +
+	testStackBoundary +
+	testStackUseless
+
+const testStackUseless = "" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.(*SlotMachine)._executeSlot.func1(0x11c8fa0, 0xc000336aa0)\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/slot_machine_execute.go:222 +0x200\n" +
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker.(*SimpleSlotWorker).DetachableCall(0xc000336a80, 0xc000266b00, 0x1912640)\n" +
@@ -75,7 +97,56 @@ const testStackClear = "" +
 	"created by github.com/insolar/assured-ledger/ledger-core/v2/conveyor.(*PulseConveyor).StartWorker\n" +
 	"\t/go/src/github.com/insolar/assured-ledger/ledger-core/v2/conveyor/conveyor.go:462 +0xe0\n"
 
-func TestMinimizeText(t *testing.T) {
-	println(
-		string(MinimizeDebugStack([]byte(testStackDebug), "github.com/insolar/assured-ledger/ledger-core/v2/conveyor", true)))
+const testBoundary = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+
+func TestMinimizeDebugStack(t *testing.T) {
+	require.Equal(t, []byte(testStackValuable), MinimizeDebugStack([]byte(testStackDebug), testBoundary, false))
+	require.Equal(t, []byte(testStackValuable+testStackBoundary), MinimizeDebugStack([]byte(testStackDebug), testBoundary, true))
+
+	require.Equal(t, []byte(testStackClear), MinimizeDebugStack([]byte(testStackDebug), "not found", false))
+	require.Equal(t, []byte(testStackClear), MinimizeDebugStack([]byte(testStackDebug), "not found", true))
+
+	require.Equal(t, []byte(testStackUseless), MinimizeDebugStack([]byte(testStackUseless), testBoundary, false))
+	require.Equal(t, []byte(testStackUseless), MinimizeDebugStack([]byte(testStackUseless), testBoundary, true))
+
+	require.Equal(t, []byte(testStackUseless), MinimizeDebugStack([]byte(testStackDebugCall+testStackUseless), testBoundary, false))
+	require.Equal(t, []byte(testStackUseless), MinimizeDebugStack([]byte(testStackDebugCall+testStackUseless), testBoundary, true))
+}
+
+func TestMinimizePanicStack(t *testing.T) {
+	const testPanicValuable = testPanic + testStackValuable
+
+	require.Equal(t, []byte(testPanicValuable), MinimizePanicStack([]byte(testStackPanic), testBoundary, false))
+	require.Equal(t, []byte(testPanicValuable+testStackBoundary), MinimizePanicStack([]byte(testStackPanic), testBoundary, true))
+
+	require.Equal(t, []byte(testStackPanicNoDebug), MinimizePanicStack([]byte(testStackPanic), "not found", false))
+	require.Equal(t, []byte(testStackPanicNoDebug), MinimizePanicStack([]byte(testStackPanic), "not found", true))
+
+	const testStackPanicUseless = testStackPanicDefer + testPanic + testStackUseless
+
+	require.Equal(t, []byte(testStackPanicUseless), MinimizePanicStack([]byte(testStackPanicUseless), testBoundary, false))
+	require.Equal(t, []byte(testStackPanicUseless), MinimizePanicStack([]byte(testStackPanicUseless), testBoundary, true))
+}
+
+func TestMinimizeMismatchedStack(t *testing.T) {
+	require.Equal(t, []byte(testStackValuable), MinimizePanicStack([]byte(testStackDebug), testBoundary, false))
+	require.Equal(t, []byte(testStackValuable+testStackBoundary), MinimizePanicStack([]byte(testStackDebug), testBoundary, true))
+
+	require.Equal(t, []byte(testStackClear), MinimizePanicStack([]byte(testStackDebug), "not found", false))
+	require.Equal(t, []byte(testStackClear), MinimizePanicStack([]byte(testStackDebug), "not found", true))
+
+	require.Equal(t, []byte(testStackUseless), MinimizePanicStack([]byte(testStackUseless), testBoundary, false))
+	require.Equal(t, []byte(testStackUseless), MinimizePanicStack([]byte(testStackUseless), testBoundary, true))
+
+	require.Equal(t, []byte(testStackUseless), MinimizePanicStack([]byte(testStackDebugCall+testStackUseless), testBoundary, false))
+	require.Equal(t, []byte(testStackUseless), MinimizePanicStack([]byte(testStackDebugCall+testStackUseless), testBoundary, true))
+}
+
+func TestMinimizeStackTrace(t *testing.T) {
+	require.Nil(t, MinimizeStackTrace(nil, testBoundary, false))
+	require.Equal(t, testStackValuable,
+		MinimizeStackTrace(stackTrace{data: []byte(testStackDebug)}, testBoundary, false).StackTraceAsText())
+
+	st := StackTrace(stackTrace{data: []byte(testStackUseless)})
+	require.Equal(t, st, MinimizeStackTrace(st, testBoundary, false))
 }
