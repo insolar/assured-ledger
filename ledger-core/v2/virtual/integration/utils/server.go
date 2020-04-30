@@ -125,7 +125,9 @@ func NewServer(t *testing.T) *Server {
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 
-	virtualDispatcher.MachineLogger = convlog.MachineLogger{}
+	if convlog.UseTextConvLog {
+		virtualDispatcher.MachineLogger = convlog.MachineLogger{}
+	}
 	if err := virtualDispatcher.Init(ctx); err != nil {
 		panic(err)
 	}
