@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/record"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 const (
@@ -21,6 +21,7 @@ const (
 )
 
 // Generate reference from hash code.
+// deprecated
 func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) *insolar.Reference {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := hasher.Hash(code)
@@ -29,12 +30,14 @@ func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) *ins
 }
 
 // Generate prototype reference from contract id.
+// deprecated
 func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) *insolar.Reference {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	return GenerateProtoReferenceFromCode(pulse.BuiltinContract, []byte(contractID))
 }
 
 // Generate contract reference from contract id.
+// deprecated
 func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) *insolar.Reference {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
@@ -43,15 +46,10 @@ func GenerateCodeReferenceFromContractID(typeContractID string, name string, ver
 	return insolar.NewRecordReference(*id)
 }
 
-// GenesisRef returns reference to any genesis records.
-func GenesisRef(name string) insolar.Reference {
-	pcs := platformpolicy.NewPlatformCryptographyScheme()
-	req := record.IncomingRequest{
-		CallType: record.CTGenesis,
-		Method:   name,
-	}
-	virtRec := record.Wrap(&req)
-	hash := record.HashVirtual(pcs.ReferenceHasher(), virtRec)
-	id := insolar.NewID(pulse.MinTimePulse, hash)
-	return *insolar.NewReference(*id)
+// deprecated
+func GenesisRef(s string) insolar.Reference {
+	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
+	hash := hasher.Hash([]byte(s))
+	local := reference.NewLocal(pulse.MinTimePulse, 0, reference.BytesToLocalHash(hash))
+	return reference.NewGlobal(local, local)
 }

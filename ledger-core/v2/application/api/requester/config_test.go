@@ -13,7 +13,7 @@ import (
 
 func TestReadFile_BadFile(t *testing.T) {
 	err := readFile("zzz", nil)
-	require.EqualError(t, err, "[ readFile ] Problem with reading config: open zzz: no such file or directory")
+	require.Contains(t, err.Error(), "[ readFile ] Problem with reading config: open zzz:")
 }
 
 func TestReadFile_NotJson(t *testing.T) {

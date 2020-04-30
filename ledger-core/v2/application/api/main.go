@@ -26,18 +26,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 )
 
 // Runner implements Component for API
 type Runner struct {
 	CertificateManager insolar.CertificateManager
-	ContractRequester  insolar.ContractRequester
 	// nolint
 	NodeNetwork         network.NodeNetwork
 	CertificateGetter   insolar.CertificateGetter
 	PulseAccessor       pulse.Accessor
-	ArtifactManager     artifacts.Client
 	JetCoordinator      jet.Coordinator
 	NetworkStatus       insolar.NetworkStatus
 	AvailabilityChecker insolar.AvailabilityChecker
@@ -81,12 +78,10 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 // NewRunner is C-tor for API Runner
 func NewRunner(cfg *configuration.APIRunner,
 	certificateManager insolar.CertificateManager,
-	contractRequester insolar.ContractRequester,
 	// nolint
 	nodeNetwork network.NodeNetwork,
 	certificateGetter insolar.CertificateGetter,
 	pulseAccessor pulse.Accessor,
-	artifactManager artifacts.Client,
 	jetCoordinator jet.Coordinator,
 	networkStatus insolar.NetworkStatus,
 	availabilityChecker insolar.AvailabilityChecker,
@@ -100,11 +95,9 @@ func NewRunner(cfg *configuration.APIRunner,
 	rpcServer := rpc.NewServer()
 	ar := Runner{
 		CertificateManager:  certificateManager,
-		ContractRequester:   contractRequester,
 		NodeNetwork:         nodeNetwork,
 		CertificateGetter:   certificateGetter,
 		PulseAccessor:       pulseAccessor,
-		ArtifactManager:     artifactManager,
 		JetCoordinator:      jetCoordinator,
 		NetworkStatus:       networkStatus,
 		AvailabilityChecker: availabilityChecker,

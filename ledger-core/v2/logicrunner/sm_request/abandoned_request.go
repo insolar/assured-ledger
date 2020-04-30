@@ -13,8 +13,7 @@ import (
 
 type StateMachineAbandonedRequests struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.AbandonedRequestsNotification
+	Meta *payload.Meta
 }
 
 var declAbandonedRequests smachine.StateMachineDeclaration = &declarationAbandonedRequests{}

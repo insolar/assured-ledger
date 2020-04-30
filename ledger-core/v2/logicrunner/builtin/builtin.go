@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/artifacts"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/rpctypes"
@@ -43,17 +42,7 @@ type BuiltIn struct {
 }
 
 // NewBuiltIn is an constructor
-func NewBuiltIn(am artifacts.Client, stub LogicRunnerRPCStub) *BuiltIn {
-	codeDescriptors := builtin.InitializeCodeDescriptors()
-	for _, codeDescriptor := range codeDescriptors {
-		am.InjectCodeDescriptor(*codeDescriptor.Ref(), codeDescriptor)
-	}
-
-	prototypeDescriptors := builtin.InitializePrototypeDescriptors()
-	for _, prototypeDescriptor := range prototypeDescriptors {
-		am.InjectPrototypeDescriptor(*prototypeDescriptor.HeadRef(), prototypeDescriptor)
-	}
-
+func NewBuiltIn(stub LogicRunnerRPCStub) *BuiltIn {
 	lrCommon.CurrentProxyCtx = NewProxyHelper(stub)
 
 	return &BuiltIn{

@@ -13,8 +13,7 @@ import (
 
 type StateMachinePendingFinished struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.PendingFinished
+	Meta *payload.Meta
 }
 
 /* -------- Declaration ------------- */

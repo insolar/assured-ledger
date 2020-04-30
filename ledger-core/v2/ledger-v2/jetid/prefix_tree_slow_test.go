@@ -3,14 +3,15 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// + build slowtest
+// +build slowtest
 
 package jetid
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPrefixTree_SerializeCombinations(t *testing.T) {

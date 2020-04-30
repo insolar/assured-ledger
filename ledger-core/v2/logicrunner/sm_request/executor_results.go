@@ -13,8 +13,7 @@ import (
 
 type StateMachineExecutorResults struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.ExecutorResults
+	Meta *payload.Meta
 }
 
 var declExecutorResults smachine.StateMachineDeclaration = &declarationExecutorResults{}

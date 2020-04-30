@@ -39,15 +39,6 @@ func ID() insolar.ID {
 	return id
 }
 
-// UniqueIDs generates multiple random unique IDs.
-func UniqueIDs(a int) []insolar.ID {
-	ids := make([]insolar.ID, a)
-	for i := 0; i < a; i++ {
-		ids[i] = ID()
-	}
-	return ids
-}
-
 // IDWithPulse generates random id with provided pulse.
 func IDWithPulse(pn insolar.PulseNumber) insolar.ID {
 	hash := make([]byte, reference.LocalBinaryHashSize)
@@ -74,31 +65,9 @@ func JetID() insolar.JetID {
 	return jetID
 }
 
-// UniqueJetIDs generates several different jet ids
-func UniqueJetIDs(a int) []insolar.JetID {
-	ids := make([]insolar.JetID, a)
-	seen := make(map[insolar.JetID]struct{})
-
-	for i := 0; i < a; i++ {
-		for {
-			ids[i] = JetID()
-			if _, ok := seen[ids[i]]; !ok {
-				break
-			}
-		}
-		seen[ids[i]] = struct{}{}
-	}
-	return ids
-}
-
 // Reference generates random reference.
 func Reference() insolar.Reference {
 	return *insolar.NewReference(ID())
-}
-
-// RecordReference generates random record reference.
-func RecordReference() insolar.Reference {
-	return *insolar.NewRecordReference(ID())
 }
 
 // UniqueReferences generates multiple random unique References.
@@ -109,18 +78,4 @@ func UniqueReferences(a int) []insolar.Reference {
 		refs[i] = Reference()
 	}
 	return refs
-}
-
-// UniqueReferences generates multiple random unique References.
-func UniqueRecordReferences(a int) []insolar.Reference {
-	refs := make([]insolar.Reference, a)
-
-	for i := 0; i < a; i++ {
-		refs[i] = RecordReference()
-	}
-	return refs
-}
-
-func ReferenceWithPulse(pn insolar.PulseNumber) insolar.Reference {
-	return *insolar.NewReference(IDWithPulse(pn))
 }

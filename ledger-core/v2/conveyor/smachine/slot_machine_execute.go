@@ -199,8 +199,8 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 	slot.slotFlags &^= slotWokenUp
 
 	var stateUpdate StateUpdate
-	wasDetached := worker.DetachableCall(func(worker DetachableSlotWorker) {
 
+	wasDetached := worker.DetachableCall(func(worker DetachableSlotWorker) {
 		for ; loopCount < loopLimit; loopCount++ {
 			canLoop := false
 			canLoop, hasSignal = worker.CanLoopOrHasSignal(loopCount)
@@ -217,12 +217,30 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			var asyncCnt uint16
 			var sut StateUpdateType
 
-			slot.slotFlags &^= slotStepCantMigrate
+			slot.slotFlags &^= slotStepSuspendMigrate
 			ec := executionContext{slotContext: slotContext{s: slot, w: worker}}
 			stateUpdate, sut, asyncCnt = ec.executeNextStep()
 
 			slot.addAsyncCount(asyncCnt)
-			if !sut.ShortLoop(slot, stateUpdate, uint32(loopCount)) {
+			switch {
+			case !sut.ShortLoop(slot, stateUpdate, uint32(loopCount)):
+				return
+			case !slot.canMigrateWorking(prevStepNo, true):
+				// don't short-loop no-migrate cases to avoid increase of their duration
+				return
+			}
+			if !slot.needsReleaseOnStepping(prevStepNo) {
+				_, prevStepNo, _ = slot._getState()
+				continue
+			}
+			if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
+				// MUST match SlotMachine.stopSlotWorking
+				released := slot._releaseAllDependency()
+				link := slot.NewLink()
+				m.activateDependants(released, link, worker)
+
+				_, prevStepNo, _ = slot._getState()
+			}) {
 				return
 			}
 		}
@@ -271,7 +289,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 		activityNano = slot.touch(time.Now().UnixNano())
 	}
 
-	slot.logStepUpdate(prevStepNo, stateUpdate, wasAsync, inactivityNano, activityNano)
+	slot.logStepUpdate(stateUpdate, wasAsync, inactivityNano, activityNano)
 
 	slot.updateBoostFlag()
 
@@ -281,7 +299,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 
 	if slot.canMigrateWorking(prevStepNo, wasAsync) {
 		_, migrateCount := m.getScanAndMigrateCounts()
-		if _, isAvailable := m._migrateSlot(migrateCount, slot, prevStepNo, worker); !isAvailable {
+		if _, isAvailable := m._migrateSlot(migrateCount, slot, worker); !isAvailable {
 			return false
 		}
 	}

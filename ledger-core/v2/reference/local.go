@@ -39,6 +39,14 @@ func AsLocalHash(r longbits.FixedReader) (result LocalHash) {
 	return
 }
 
+func BytesToLocalHash(b []byte) (result LocalHash) {
+	if n := len(b); n != len(result) && n != nearestPo2 {
+		panic(throw.IllegalValue())
+	}
+	copy(result[:], b)
+	return
+}
+
 func NewRecordID(pn pulse.Number, hash LocalHash) Local {
 	return NewLocal(pn, 0, hash) // scope is not allowed for RecordID
 }

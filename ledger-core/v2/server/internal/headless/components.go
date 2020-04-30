@@ -15,12 +15,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/contractrequester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jetcoordinator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -47,9 +43,6 @@ func (h *headlessLR) OnPulse(context.Context, insolar.Pulse, insolar.Pulse) erro
 }
 
 func (h *headlessLR) LRI() {}
-func (h headlessLR) AddUnwantedResponse(ctx context.Context, msg insolar.Payload) error {
-	return nil
-}
 
 func initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) bootstrapComponents {
 	earlyComponents := component.NewManager(nil)
@@ -120,18 +113,7 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, *certManager.GetCertificate().GetNodeRef())
 	pulses := pulse.NewStorageMem()
-
-	b := bus.NewBus(cfg.Bus, publisher, pulses, jc, pcs)
-
-	contractRequester, err := contractrequester.New(
-		b,
-		pulses,
-		jc,
-		pcs,
-	)
-	checkError(ctx, err, "failed to start contractrequester")
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -153,9 +135,7 @@ func initComponents(
 
 	components := []interface{}{
 		publisher,
-		contractRequester,
 		pulses,
-		jet.NewStore(),
 		node.NewStorage(),
 	}
 	components = append(components, []interface{}{
