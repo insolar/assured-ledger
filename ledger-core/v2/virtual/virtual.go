@@ -48,6 +48,7 @@ type Dispatcher struct {
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
+	MachineLogger  smachine.SlotMachineLogger
 
 	// Components
 	Runner        runner.Service
@@ -62,7 +63,7 @@ func NewDispatcher() *Dispatcher {
 }
 
 func (lr *Dispatcher) Init(ctx context.Context) error {
-	machineConfig := smachine.SlotMachineConfig{
+	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
@@ -73,8 +74,13 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	defaultHandlers := DefaultHandlersFactory
 
+	machineConfig := conveyorConfig
+	if lr.MachineLogger != nil {
+		machineConfig.SlotMachineLogger = lr.MachineLogger
+	}
+
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
-		ConveyorMachineConfig: machineConfig,
+		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,

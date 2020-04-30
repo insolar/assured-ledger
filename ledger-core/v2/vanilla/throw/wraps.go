@@ -55,7 +55,7 @@ func joinErrString(s0, s1 string) string {
 	}
 }
 
-func joinStack(s0 string, s1 StackTrace) string {
+func JoinStackText(s0 string, s1 StackTrace) string {
 	if s1 == nil {
 		return s0
 	}
@@ -98,10 +98,6 @@ func (v stackWrap) LogString() string {
 }
 
 func (v stackWrap) Error() string {
-	//if v.stDeepest != nil {
-	//	return joinStack(v.LogString(), v.stDeepest)
-	//}
-	//return joinStack(v.LogString(), v.st)
 	return v.LogString()
 }
 
@@ -148,10 +144,6 @@ func (v panicWrap) Unwrap() error {
 }
 
 func (v panicWrap) Error() string {
-	//if v.stDeepest != nil {
-	//	return joinStack(v.LogString(), v.stDeepest)
-	//}
-	//return joinStack(v.LogString(), v.st)
 	return v.LogString()
 }
 

@@ -264,6 +264,12 @@ func Eventf(level log.Level, fmt string, args ...interface{}) {
 	}
 }
 
+func Eventm(level log.Level, arg interface{}, fields ...logfmt.LogFieldMarshaller) {
+	if fn := g().NewEventStruct(level); fn != nil {
+		fn(arg, fields)
+	}
+}
+
 func Debug(args ...interface{}) {
 	if fn := g().NewEvent(log.DebugLevel); fn != nil {
 		fn(args)

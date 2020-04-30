@@ -70,14 +70,20 @@ func withStack(err error, st StackTrace) stackWrap {
 	return stackWrap{st: st, err: err}
 }
 
-func WithDetails(predecessor error, details interface{}) error {
+func WithDetails(predecessor error, details ...interface{}) error {
 	switch {
-	case details == nil:
+	case len(details) == 0:
 		return predecessor
 	case predecessor == nil:
-		return NewDescription(details)
+		return WithDetails(NewDescription(details[0]), details[1:]...)
 	default:
-		return withDetails(predecessor, details)
+		for _, d := range details {
+			if d == nil {
+				continue
+			}
+			predecessor = withDetails(predecessor, d)
+		}
+		return predecessor
 	}
 }
 

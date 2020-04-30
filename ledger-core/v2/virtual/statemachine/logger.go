@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
 )
 
 type ConveyorLogger struct {
@@ -108,10 +109,11 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 		err       string
 	)
 	if stepLoggerData.Error != nil {
-		if slotPanicError, ok := stepLoggerData.Error.(smachine.SlotPanicError); ok {
-			backtrace = string(slotPanicError.Stack)
+		var st throw.StackTrace
+		err, st = throw.ErrorWithTopOrMinimizedStack(stepLoggerData.Error, convlog.StackMinimizePackage, true)
+		if st != nil {
+			backtrace = st.StackTraceAsText()
 		}
-		err = stepLoggerData.Error.Error()
 	}
 
 	if err != "" {
@@ -172,8 +174,9 @@ type LogInternal struct {
 func (ConveyorLoggerFactory) LogMachineInternal(slotMachineData smachine.SlotMachineData, msg string) {
 	backtrace := ""
 	if slotMachineData.Error != nil {
-		if slotPanicError, ok := slotMachineData.Error.(smachine.SlotPanicError); ok {
-			backtrace = string(slotPanicError.Stack)
+		if st := throw.DeepestStackTraceOf(slotMachineData.Error); st != nil {
+			st = throw.MinimizeStackTrace(st, convlog.StackMinimizePackage, true)
+			backtrace = st.StackTraceAsText()
 		}
 	}
 	global.Logger().Error(LogInternal{
@@ -205,8 +208,9 @@ type LogCritical struct {
 func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMachineData, msg string) {
 	backtrace := ""
 	if slotMachineData.Error != nil {
-		if slotPanicError, ok := slotMachineData.Error.(smachine.SlotPanicError); ok {
-			backtrace = string(slotPanicError.Stack)
+		if st := throw.DeepestStackTraceOf(slotMachineData.Error); st != nil {
+			st = throw.MinimizeStackTrace(st, convlog.StackMinimizePackage, true)
+			backtrace = st.StackTraceAsText()
 		}
 	}
 	global.Logger().Error(LogCritical{
