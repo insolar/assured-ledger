@@ -1,8 +1,8 @@
 name: linux-checks
 on:
   push:
-    branches:
-      - master
+#    branches:
+#      - master
   pull_request:
   schedule:
     - cron: '0 2,4,6 * * *'
@@ -77,3 +77,89 @@ jobs:
         with:
           name: coverage-out
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
+  func-test-kuber:
+    name: func-test-kuber # don't change, this name is used in repository restricts!
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: /home/runner/work/assured-ledger/go
+      KUBECTL_VERSION: v1.18.2
+      KUBEVAL_VERSION: 0.15.0
+      K3S_TAG: v1.17.4-k3s1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+#        with:
+#          path: go/src/github.com/insolar/assured-ledger
+      - name: get kubectl
+        run: |
+          curl -L -s --create-dirs https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl -o bin/kubectl
+          chmod +x $GITHUB_WORKSPACE/bin/kubectl
+      - name: get kubeval
+        run: |
+          curl -L -s --create-dirs https://github.com/instrumenta/kubeval/releases/download/$KUBEVAL_VERSION/kubeval-linux-amd64.tar.gz | tar xvz --exclude='LICENSE' --exclude='README.md' -C $GITHUB_WORKSPACE/bin
+          chmod +x $GITHUB_WORKSPACE/bin/kubeval
+      - name: add workspace/bin to path
+        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
+#      - name: yamllint
+#        uses: docker://yellowmegaman/container-yamllint:1.17.0
+#        with:
+#          args: -d yamllint deploy/kube
+#      - name: kubeval check
+#        run: find deploy/kube/*.yaml -maxdepth 0 -type d -exec sh -c 'echo "$0"; kubectl kustomize "$0" | kubeval --exit-on-error --strict' {} \;
+      - name: check resources
+        run: |
+          sudo lscpu
+          free -h
+      - name: fire up k3s
+        run: |
+          pwd
+          touch k3s.yaml
+          curl -sfL https://get.k3s.io | sh -
+          sudo chmod 755 /etc/rancher/k3s/k3s.yaml
+          cp /etc/rancher/k3s/k3s.yaml k3s.yaml
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          docker ps
+      - name: wait for k3s
+        run:  until kubectl --kubeconfig=k3s.yaml version; do echo "k3s is not up yet"; sleep 3; done
+      - name: describe node
+        run: |
+          kubectl --kubeconfig=k3s.yaml get no
+          kubectl --kubeconfig=k3s.yaml describe no
+          docker ps
+      - name: apply ingress
+        run:  kubectl --kubeconfig=k3s.yaml apply -f ledger-core/v2/deploy/ingress-nginx.yaml
+      - name: build images
+        run: |
+          pwd
+          echo $GITHUB_WORKSPACE
+          cd /home/runner/work/assured-ledger/assured-ledger/ledger-core/v2
+          make docker-build
+      - name: wait for ingress
+        run:  until kubectl --kubeconfig=k3s.yaml get pods -n ingress-nginx | grep controller | grep Running; do echo "ingress is not up yet"; sleep 1; done
+      - name: deploy insolar network
+        run: kubectl --kubeconfig=k3s.yaml apply -f ledger-core/v2/deploy/kube/generated.yaml
+      - name: debug
+        run: |
+          sleep 5
+          kubectl --kubeconfig=k3s.yaml get ns
+          kubectl --kubeconfig=k3s.yaml describe ns insolar
+          kubectl --kubeconfig=k3s.yaml -n insolar describe pods
+          kubectl --kubeconfig=k3s.yaml -n insolar describe statefulsets/virtual
+          kubectl --kubeconfig=k3s.yaml -n insolar get po
+          docker images insolar/assured-ledger
+          docker ps
+          docker exec -it k3s crictl images
+      - name: wait for bootstrap pod to up and running
+        run: until kubectl --kubeconfig=k3s.yaml -n insolar get po --field-selector=status.phase=Running | grep bootstrap; do echo "nope"; sleep 1; done
+      - name: wait for net
+        run: |
+          for try in {0..300}; do
+            if kubectl --kubeconfig=k3s.yaml -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+              echo "network ready!"; exit 0
+            else echo "network not ready"; sleep 5
+            fi
+          done
+      - name: look pulsewatcher
+        run: kubectl --kubeconfig=k3s.yaml -n insolar logs --tail=20 services/pulsewatcher
+      - name: stop insolar network
+        run:  kubectl --kubeconfig=k3s.yaml delete -f ledger-core/v2/deploy/kube/generated.yaml
