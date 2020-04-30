@@ -82,7 +82,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
 	{
-		// send VStateRequest: save wallet
+		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
@@ -105,7 +105,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
 	{
-		// send VStateRequest: save wallet
+		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
