@@ -2,20 +2,10 @@ syntax = "proto3";
 
 package rms;
 
+import "github.com/insolar/assured-ledger/ledger-core/v2/rms/proto/ins.proto";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-//option (gogoproto.gostring_all) = false;
-//option (gogoproto.equal_all) = false;
-//option (gogoproto.verbose_equal_all) = false;
-//option (gogoproto.description_all) = false;
-//option (gogoproto.compare_all) = false;
-//option (gogoproto.goproto_unrecognized_all) = false;
-//option (gogoproto.stringer_all) = false;
-
-//option (gogoproto.goproto_getters_all) = false;
-//option (gogoproto.protosizer_all) = true;
-//option (gogoproto.sizer_all) = false;
-//option (gogoproto.stable_marshaler_all) = true; // makes deterministic
+option (gogoproto.description_all) = false;
 
 message InternalRecordEnvelope {
     reserved 1 to 15;
@@ -27,12 +17,12 @@ message InternalRecordEnvelope {
 
 message InternalMessageEnvelope {
     reserved 1 to 15;
-    bytes MsgBody = 17 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
-    bytes RecBody = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
-    bytes RecBodySignature = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
-    repeated bytes RecExtensions = 20 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    bytes MsgBody = 17 [(gogoproto.customtype) = "interceptor"];
+    bytes RecBody = 18 [(gogoproto.customtype) = "interceptorBody"];
+    bytes RecBodySignature = 19 [(gogoproto.customtype) = "interceptor"];
+    repeated bytes RecExtensions = 20 [(gogoproto.customtype) = "interceptor"];
 
-    InternalMessageBundle BundleRecords = 21 [(gogoproto.customtype) = "interceptorBundle", (gogoproto.nullable) = false, (gogoproto.embed) = true];
+    InternalMessageBundle BundleRecords = 21 [(gogoproto.customtype) = "interceptorBundle", (gogoproto.embed) = true];
 }
 
 message InternalMessageBundle {

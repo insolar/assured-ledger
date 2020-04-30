@@ -53,37 +53,17 @@ package marshalto
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/gogo/protobuf/gogoproto"
+	marshal "github.com/gogo/protobuf/plugin/marshalto"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
 )
-
-type NumGen interface {
-	Next() string
-	Current() string
-}
-
-type numGen struct {
-	index int
-}
-
-func NewNumGen() NumGen {
-	return &numGen{0}
-}
-
-func (this *numGen) Next() string {
-	this.index++
-	return this.Current()
-}
-
-func (this *numGen) Current() string {
-	return strconv.Itoa(this.index)
-}
 
 type marshalto struct {
 	*generator.Generator
@@ -169,7 +149,7 @@ func wireToType(wire string) int {
 	panic("unreachable")
 }
 
-func (p *marshalto) mapField(numGen NumGen, field *descriptor.FieldDescriptorProto, kvField *descriptor.FieldDescriptorProto, varName string, protoSizer bool) {
+func (p *marshalto) mapField(numGen marshal.NumGen, field *descriptor.FieldDescriptorProto, kvField *descriptor.FieldDescriptorProto, varName string, protoSizer bool) {
 	switch kvField.GetType() {
 	case descriptor.FieldDescriptorProto_TYPE_DOUBLE:
 		p.callFixed64(p.mathPkg.Use(), `.Float64bits(float64(`, varName, `))`)
@@ -237,7 +217,7 @@ func (this orderFields) Swap(i, j int) {
 	this[i], this[j] = this[j], this[i]
 }
 
-func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
+func (p *marshalto) generateField(proto3, notation bool, numGen marshal.NumGen, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
 	fieldname := p.GetOneOfFieldName(message, field)
 	nullable := gogoproto.IsNullable(field)
 	repeated := field.IsRepeated()
@@ -265,6 +245,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 	packed := field.IsPacked() || (proto3 && field.IsPacked3())
 	wireType := field.WireType()
 	fieldNumber := field.GetNumber()
+	mustBeIncluded := notation && (fieldNumber >= 16 && fieldNumber < 20)
 	if packed {
 		wireType = proto.WireBytes
 	}
@@ -285,7 +266,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callFixed64(p.mathPkg.Use(), `.Float64bits(float64(m.`+fieldname, `))`)
@@ -315,7 +296,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callFixed32(p.mathPkg.Use(), `.Float32bits(float32(m.`+fieldname, `))`)
@@ -368,7 +349,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callVarint(`m.`, fieldname)
@@ -397,7 +378,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callFixed64("m." + fieldname)
@@ -426,7 +407,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callFixed32("m." + fieldname)
@@ -472,7 +453,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` {`)
 			p.In()
 			p.P(`i--`)
@@ -514,6 +495,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 		}
 	case descriptor.FieldDescriptorProto_TYPE_STRING:
+		// TODO add binary/UTF checker
 		if repeated {
 			val := p.reverseListRange(`m.`, fieldname)
 			p.P(`i -= len(`, val, `)`)
@@ -522,7 +504,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if len(m.`, fieldname, `) > 0 {`)
 			p.In()
 			p.P(`i -= len(m.`, fieldname, `)`)
@@ -644,6 +626,17 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 				sizeOfVarName = `*` + sizeOfVarName
 			}
 			if !p.marshalAllSizeOf(field, sizeOfVarName, numGen.Next()) {
+				if !required && !mustBeIncluded && insproto.IsZeroable(field) {
+					keyFn := func() {
+						p.encodeKey(fieldNumber, wireType)
+					}
+					if gogoproto.IsCustomType(field) {
+						p.forwardZeroable(`m.`+fieldname, true, protoSizer, keyFn)
+					} else {
+						p.backwardZeroable(`m.`+fieldname, true, keyFn)
+					}
+					break
+				}
 				if gogoproto.IsCustomType(field) {
 					p.forward(`m.`+fieldname, true, protoSizer)
 				} else {
@@ -654,6 +647,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 		}
 	case descriptor.FieldDescriptorProto_TYPE_BYTES:
 		if !gogoproto.IsCustomType(field) {
+			// TODO add binary/UTF checker
 			if repeated {
 				val := p.reverseListRange(`m.`, fieldname)
 				p.P(`i -= len(`, val, `)`)
@@ -662,7 +656,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 				p.encodeKey(fieldNumber, wireType)
 				p.Out()
 				p.P(`}`)
-			} else if proto3 {
+			} else if proto3 && !mustBeIncluded {
 				p.P(`if len(m.`, fieldname, `) > 0 {`)
 				p.In()
 				p.P(`i -= len(m.`, fieldname, `)`)
@@ -721,7 +715,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callVarint(`(uint32(m.`, fieldname, `) << 1) ^ uint32((m.`, fieldname, ` >> 31))`)
@@ -767,7 +761,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 {
+		} else if proto3 && !mustBeIncluded {
 			p.P(`if m.`, fieldname, ` != 0 {`)
 			p.In()
 			p.callVarint(`(uint64(m.`, fieldname, `) << 1) ^ uint64((m.`, fieldname, ` >> 63))`)
@@ -791,7 +785,7 @@ func (p *marshalto) generateField(proto3 bool, numGen NumGen, file *generator.Fi
 }
 
 func (p *marshalto) Generate(file *generator.FileDescriptor) {
-	numGen := NewNumGen()
+	numGen := marshal.NewNumGen()
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 
 	p.atleastOne = false
@@ -816,7 +810,10 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			!gogoproto.IsUnsafeMarshaler(file.FileDescriptorProto, message.DescriptorProto) {
 			continue
 		}
+		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		p.atleastOne = true
+
+		p.P(`// generated by protoc-gen-ins`)
 
 		p.P(`func (m *`, ccTypeName, `) Marshal() (dAtA []byte, err error) {`)
 		p.In()
@@ -884,19 +881,20 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		fields := orderFields(message.GetField())
 		sort.Sort(fields)
 		oneofs := make(map[string]struct{})
+		protoSizer := gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto)
+		proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
 		for i := len(message.Field) - 1; i >= 0; i-- {
 			field := message.Field[i]
 			oneof := field.OneofIndex != nil
 			if !oneof {
-				proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
-				p.generateField(proto3, numGen, file, message, field)
+				p.generateField(proto3, notation, numGen, file, message, field)
 			} else {
 				fieldname := p.GetFieldName(message, field)
 				if _, ok := oneofs[fieldname]; !ok {
 					oneofs[fieldname] = struct{}{}
 					p.P(`if m.`, fieldname, ` != nil {`)
 					p.In()
-					p.forward(`m.`+fieldname, false, gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto))
+					p.forward(`m.`+fieldname, false, protoSizer)
 					p.Out()
 					p.P(`}`)
 				}
@@ -907,7 +905,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.P(`}`)
 		p.P()
 
-		//Generate MarshalTo methods for oneof fields
+		// Generate MarshalTo methods for oneof fields
 		m := proto.Clone(message.DescriptorProto).(*descriptor.DescriptorProto)
 		for _, field := range m.Field {
 			oneof := field.OneofIndex != nil
@@ -930,7 +928,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			p.In()
 			p.P(`i := len(dAtA)`)
 			vanity.TurnOffNullableForNativeTypes(field)
-			p.generateField(false, numGen, file, message, field)
+			p.generateField(false, notation, numGen, file, message, field)
 			p.P(`return len(dAtA) - i, nil`)
 			p.Out()
 			p.P(`}`)
@@ -1021,7 +1019,41 @@ func (p *marshalto) backward(varName string, varInt bool) {
 	p.P(`}`)
 }
 
+func (p *marshalto) backwardZeroable(varName string, varInt bool, encodeKeyFn func()) {
+	p.P(`{`)
+	p.In()
+	p.P(`size, err := `, varName, `.MarshalToSizedBuffer(dAtA[:i])`)
+	p.P(`if err != nil {`)
+	p.In()
+	p.P(`return 0, err`)
+	p.Out()
+	p.P(`}`)
+
+	if encodeKeyFn != nil {
+		p.P(`if size > 0 {`)
+		p.In()
+	}
+
+	p.P(`i -= size`)
+	if varInt {
+		p.callVarint(`size`)
+	}
+
+	if encodeKeyFn != nil {
+		encodeKeyFn()
+		p.Out()
+		p.P(`}`)
+	}
+
+	p.Out()
+	p.P(`}`)
+}
+
 func (p *marshalto) forward(varName string, varInt, protoSizer bool) {
+	p.forwardZeroable(varName, varInt, protoSizer, nil)
+}
+
+func (p *marshalto) forwardZeroable(varName string, varInt, protoSizer bool, encodeKeyFn func()) {
 	p.P(`{`)
 	p.In()
 	if protoSizer {
@@ -1029,6 +1061,12 @@ func (p *marshalto) forward(varName string, varInt, protoSizer bool) {
 	} else {
 		p.P(`size := `, varName, `.Size()`)
 	}
+
+	if encodeKeyFn != nil {
+		p.P(`if size > 0 {`)
+		p.In()
+	}
+
 	p.P(`i -= size`)
 	p.P(`if _, err := `, varName, `.MarshalTo(dAtA[i:]); err != nil {`)
 	p.In()
@@ -1039,9 +1077,12 @@ func (p *marshalto) forward(varName string, varInt, protoSizer bool) {
 	if varInt {
 		p.callVarint(`size`)
 	}
-	p.P(`}`)
-}
 
-func init() {
-	generator.RegisterPlugin(NewMarshal())
+	if encodeKeyFn != nil {
+		encodeKeyFn()
+		p.Out()
+		p.P(`}`)
+	}
+
+	p.P(`}`)
 }

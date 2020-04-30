@@ -3,9 +3,7 @@ package main
 import (
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/plugin/compare"
-	"github.com/gogo/protobuf/plugin/defaultcheck"
 	"github.com/gogo/protobuf/plugin/description"
-	"github.com/gogo/protobuf/plugin/embedcheck"
 	"github.com/gogo/protobuf/plugin/enumstringer"
 	"github.com/gogo/protobuf/plugin/equal"
 	"github.com/gogo/protobuf/plugin/face"
@@ -21,7 +19,9 @@ import (
 	"github.com/gogo/protobuf/vanity"
 	"github.com/gogo/protobuf/vanity/command"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/protoc-gen-ins/plugins/marshalto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/defaultcheck"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/embedcheck"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
 )
 
 func main() {
@@ -61,10 +61,11 @@ func resetDefaultPlugins() {
 	g := generator.New()
 	g.GeneratePlugin(stubPlugin{})
 
+	// And now we can register plugins with some replacements
 	generator.RegisterPlugin(compare.NewPlugin())
-	generator.RegisterPlugin(defaultcheck.NewPlugin())
+	generator.RegisterPlugin(defaultcheck.NewPlugin()) // this is custom
 	generator.RegisterPlugin(description.NewPlugin())
-	generator.RegisterPlugin(embedcheck.NewPlugin())
+	generator.RegisterPlugin(embedcheck.NewPlugin()) // this is custom
 	generator.RegisterPlugin(enumstringer.NewEnumStringer())
 	generator.RegisterPlugin(equal.NewPlugin())
 	generator.RegisterPlugin(face.NewPlugin())
@@ -74,7 +75,7 @@ func resetDefaultPlugins() {
 	generator.RegisterPlugin(populate.NewPlugin())
 	generator.RegisterPlugin(size.NewSize())
 	generator.RegisterPlugin(stringer.NewStringer())
-	// testgen can't be added as it is unexported
+	// NB! testgen can't be reused as it is unexported
 	generator.RegisterPlugin(union.NewUnion())
 	generator.RegisterPlugin(unmarshal.NewUnmarshal())
 }
