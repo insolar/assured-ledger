@@ -12,17 +12,17 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 //option (gogoproto.goproto_unrecognized_all) = false;
 //option (gogoproto.stringer_all) = false;
 
-option (gogoproto.goproto_getters_all) = false;
-option (gogoproto.protosizer_all) = true;
-option (gogoproto.sizer_all) = false;
-option (gogoproto.stable_marshaler_all) = true; // makes deterministic
+//option (gogoproto.goproto_getters_all) = false;
+//option (gogoproto.protosizer_all) = true;
+//option (gogoproto.sizer_all) = false;
+//option (gogoproto.stable_marshaler_all) = true; // makes deterministic
 
 message InternalRecordEnvelope {
     reserved 1 to 15;
-    bytes Head = 17 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
-    bytes Body = 18 [(gogoproto.customtype) = "interceptorBody", (gogoproto.nullable) = false];
-    bytes BodySignature = 19 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
-    repeated bytes Extensions = 20 [(gogoproto.customtype) = "interceptor", (gogoproto.nullable) = false];
+    bytes Head = 17 [(gogoproto.customtype) = "interceptor"];
+    bytes Body = 18 [(gogoproto.customtype) = "interceptorBody"];
+    bytes BodySignature = 19 [(gogoproto.customtype) = "interceptor"];
+    repeated bytes Extensions = 20 [(gogoproto.customtype) = "interceptor"];
 }
 
 message InternalMessageEnvelope {
