@@ -5,6 +5,4 @@
 
 package insproto
 
-//go:generate protoc -I=. -I=$GOPATH/src --gogofaster_out=./ ins.proto
-
-// go install github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins
+//go:generate protoc -I=. -I=$GOPATH/src --gogofaster_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:./ ins.proto

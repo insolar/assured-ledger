@@ -24,6 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/sizer"
 )
 
+// use: go install github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins
+
 func main() {
 	resetDefaultPlugins()
 

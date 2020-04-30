@@ -58,6 +58,7 @@ func (p *plugin) Init(g *generator.Generator) {
 
 func (p *plugin) Generate(file *generator.FileDescriptor) {
 	// proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
+
 	for _, msg := range file.Messages() {
 		getters := gogoproto.HasGoGetters(file.FileDescriptorProto, msg.DescriptorProto)
 		face := gogoproto.IsFace(file.FileDescriptorProto, msg.DescriptorProto)

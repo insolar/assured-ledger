@@ -15,7 +15,7 @@ func IsZeroable(field *descriptor.FieldDescriptorProto) bool {
 }
 
 func IsNotation(file *descriptor.FileDescriptorProto, message *descriptor.DescriptorProto) bool {
-	return proto.GetBoolExtension(message.Options, E_InsprotoNotation, proto.GetBoolExtension(file.Options, E_InsprotoNotationAll, true))
+	return proto.GetBoolExtension(message.Options, E_InsprotoNotation, proto.GetBoolExtension(file.Options, E_InsprotoNotationAll, false))
 }
 
 func GetCustomContext(field *descriptor.FieldDescriptorProto) string {

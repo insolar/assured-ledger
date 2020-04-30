@@ -16,9 +16,10 @@ extend google.protobuf.FileOptions {
 extend google.protobuf.MessageOptions {
     optional bool insproto_notation = 64901;
     optional bool insproto_zeroable = 64902;
+    optional string insproto_context = 64903;
 }
 
 extend google.protobuf.FieldOptions {
-    optional string context = 65901;
     optional bool zeroable = 65902;
+    optional string context = 65903;
 }

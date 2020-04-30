@@ -7,8 +7,6 @@ package rms
 
 import "github.com/gogo/protobuf/proto"
 
-// xxgo:generate protoc -I=. -I=$GOPATH/src --gogofaster_out=./ rms_internal.proto
-
 //go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ rms_internal.proto
 
 type interceptingFunc func([]byte) error
