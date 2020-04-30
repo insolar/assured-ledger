@@ -177,8 +177,8 @@ func (s *Server) ReplaceCache(cache descriptor.Cache) {
 	s.runner.Cache = cache
 }
 
-func (s *Server) AddInput(msg interface{}) error {
-	return s.virtual.AddInput(context.Background(), s.GetPulse().PulseNumber, msg)
+func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
+	return s.virtual.Conveyor.AddInput(ctx, s.GetPulse().PulseNumber, msg)
 }
 
 func (s *Server) GlobalCaller() reference.Global {
