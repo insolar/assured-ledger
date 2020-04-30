@@ -36,6 +36,8 @@ import (
 
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
 )
 
 type plugin struct {
@@ -59,7 +61,13 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 	for _, msg := range file.Messages() {
 		getters := gogoproto.HasGoGetters(file.FileDescriptorProto, msg.DescriptorProto)
 		face := gogoproto.IsFace(file.FileDescriptorProto, msg.DescriptorProto)
+		notation := insproto.IsNotation(file.FileDescriptorProto, msg.DescriptorProto)
 		for _, field := range msg.GetField() {
+			if notation && field.GetNumber() < 16 {
+				fmt.Fprintf(os.Stderr, "ERROR: field %v.%v violates notation, field number < 16", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
+				os.Exit(1)
+			}
+
 			if len(field.GetDefaultValue()) > 0 {
 				if !getters {
 					fmt.Fprintf(os.Stderr, "ERROR: field %v.%v cannot have a default value and not have a getter method", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
@@ -71,6 +79,10 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 				}
 			}
 			if gogoproto.IsNullable(field) {
+				if notation && field.GetNumber() < 20 {
+					fmt.Fprintf(os.Stderr, "ERROR: field %v.%v violates notation, field with number [16..19] can't be nullable", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
+					os.Exit(1)
+				}
 				continue
 			}
 			if len(field.GetDefaultValue()) > 0 {
@@ -107,7 +119,3 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 }
 
 func (p *plugin) GenerateImports(*generator.FileDescriptor) {}
-
-func init() {
-	generator.RegisterPlugin(NewPlugin())
-}

@@ -10,7 +10,6 @@ import (
 	"github.com/gogo/protobuf/plugin/gostring"
 	"github.com/gogo/protobuf/plugin/oneofcheck"
 	"github.com/gogo/protobuf/plugin/populate"
-	"github.com/gogo/protobuf/plugin/size"
 	"github.com/gogo/protobuf/plugin/stringer"
 	"github.com/gogo/protobuf/plugin/union"
 	"github.com/gogo/protobuf/plugin/unmarshal"
@@ -22,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/defaultcheck"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/embedcheck"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/sizer"
 )
 
 func main() {
@@ -73,7 +73,7 @@ func resetDefaultPlugins() {
 	generator.RegisterPlugin(marshalto.NewMarshal()) // this is custom
 	generator.RegisterPlugin(oneofcheck.NewPlugin())
 	generator.RegisterPlugin(populate.NewPlugin())
-	generator.RegisterPlugin(size.NewSize())
+	generator.RegisterPlugin(sizer.NewSize())
 	generator.RegisterPlugin(stringer.NewStringer())
 	// NB! testgen can't be reused as it is unexported
 	generator.RegisterPlugin(union.NewUnion())

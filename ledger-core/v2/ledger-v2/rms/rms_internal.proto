@@ -17,6 +17,7 @@ message InternalRecordEnvelope {
 
 message InternalMessageEnvelope {
     reserved 1 to 15;
+//    uint32 Polymorph = 16;
     bytes MsgBody = 17 [(gogoproto.customtype) = "interceptor"];
     bytes RecBody = 18 [(gogoproto.customtype) = "interceptorBody"];
     bytes RecBodySignature = 19 [(gogoproto.customtype) = "interceptor"];
