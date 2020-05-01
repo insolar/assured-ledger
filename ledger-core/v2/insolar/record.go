@@ -54,18 +54,18 @@ func NewGlobalReference(local ID, base ID) Reference {
 
 // NewObjectReferenceFromString deserializes reference from base64 encoded string and checks if it object reference
 // deprecated
-func NewObjectReferenceFromString(input string) (*Reference, error) {
+func NewObjectReferenceFromString(input string) (Reference, error) {
 	global, err := NewReferenceFromString(input)
 	if err != nil {
-		return nil, err
+		return Reference{}, err
 	}
 	if !global.IsObjectReference() {
-		return nil, errors.New("provided reference is not object")
+		return Reference{}, errors.New("provided reference is not object")
 	}
 	if !global.IsSelfScope() {
-		return nil, errors.New("provided reference is not self-scoped")
+		return Reference{}, errors.New("provided reference is not self-scoped")
 	}
-	return &global, nil
+	return global, nil
 }
 
 // NewRecordReferenceFromString deserializes reference from base64 encoded string and checks if it record reference

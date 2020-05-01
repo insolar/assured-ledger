@@ -49,7 +49,7 @@ type ContractConstructorHolder struct {
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef insolar.Reference) (*{{ .ContractType }}, error) {
-	ret, err := common.CurrentProxyCtx.SaveAsChild(objRef, *PrototypeReference, r.constructorName, r.argsSerialized)
+	ret, err := common.CurrentProxyCtx.SaveAsChild(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func GetObject(ref insolar.Reference) *{{ .ContractType }} {
 
 // GetPrototype returns reference to the prototype
 func GetPrototype() insolar.Reference {
-	return *PrototypeReference
+	return PrototypeReference
 }
 
 {{ range $func := .ConstructorsProxies }}
@@ -182,12 +182,12 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{/* Saga call doesn't has a reply (it's `nil`), thus we shouldn't try to deserialize it. */}}
 	{{if $method.SagaInfo.IsSaga }}
-	_, err = common.CurrentProxyCtx.RouteCall(r.Reference, false, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, *PrototypeReference)
+	_, err = common.CurrentProxyCtx.RouteCall(r.Reference, false, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
 	{{else}}
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
@@ -225,7 +225,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 		return {{ $method.ResultsWithErr }}
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "{{ $method.Name }}", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "{{ $method.Name }}", argsSerialized, PrototypeReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
