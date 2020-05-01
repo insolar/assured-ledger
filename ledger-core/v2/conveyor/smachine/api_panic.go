@@ -7,7 +7,8 @@ package smachine
 
 import (
 	"fmt"
-	"runtime/debug"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var _ error = SlotPanicError{}
@@ -40,19 +41,14 @@ type SlotPanicError struct {
 	Msg       string
 	Recovered interface{}
 	Prev      error
-	Stack     []byte
 	Area      SlotPanicArea
 }
 
 func (e SlotPanicError) Error() string {
-	sep := ""
-	if len(e.Stack) > 0 {
-		sep = "\n"
-	}
 	if e.Prev != nil {
-		return fmt.Sprintf("%s: %v%s%s\nCaused by:\n%s", e.Msg, e.Recovered, sep, string(e.Stack), e.Prev.Error())
+		return fmt.Sprintf("%s: %v\nCaused by:\n%s", e.Msg, e.Recovered, e.Prev.Error())
 	}
-	return fmt.Sprintf("%s: %v%s%s", e.Msg, e.Recovered, sep, string(e.Stack))
+	return fmt.Sprintf("%s: %v", e.Msg, e.Recovered)
 }
 
 func (e SlotPanicError) String() string {
@@ -70,5 +66,5 @@ func RecoverSlotPanicWithStack(msg string, recovered interface{}, prev error, ar
 	if recovered == nil {
 		return prev
 	}
-	return SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev, Area: area, Stack: debug.Stack()}
+	return throw.WithStackExt(SlotPanicError{Msg: msg, Recovered: recovered, Prev: prev, Area: area}, 1)
 }
