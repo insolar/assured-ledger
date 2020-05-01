@@ -33,7 +33,6 @@ var (
 	defaultOutputConfigNameTmpl      = "%d/insolard.yaml"
 	defaultHost                      = "127.0.0.1"
 	defaultJaegerEndPoint            = ""
-	discoveryDataDirectoryTemplate   = withBaseDir("discoverynodes/%d/data")
 	discoveryCertificatePathTemplate = withBaseDir("discoverynodes/certs/discovery_cert_%d.json")
 	nodeDataDirectoryTemplate        = "nodes/%d/data"
 	nodeCertificatePathTemplate      = "nodes/%d/cert.json"
@@ -120,12 +119,6 @@ func main() {
 		conf.LogicRunner.GoPlugin.RunnerListen = fmt.Sprintf(defaultHost+":%d", rpcListenPort-1)
 		conf.LogicRunner.RPCListen = fmt.Sprintf(defaultHost+":%d", rpcListenPort)
 
-		if node.Role == "light_material" {
-			conf.Ledger.JetSplit.ThresholdRecordsCount = 1
-			conf.Ledger.JetSplit.ThresholdOverflowCount = 0
-			conf.Ledger.JetSplit.DepthLimit = 4
-		}
-
 		conf.TestWalletAPI.Address = fmt.Sprintf(defaultHost+":323%02d", nodeIndex)
 
 		conf.APIRunner.Address = fmt.Sprintf(defaultHost+":191%02d", nodeIndex)
@@ -146,7 +139,6 @@ func main() {
 		conf.Log.Formatter = "json"
 
 		conf.KeysPath = bootstrapConf.DiscoveryKeysDir + fmt.Sprintf(bootstrapConf.KeysNameFormat, nodeIndex)
-		conf.Ledger.Storage.DataDirectory = fmt.Sprintf(discoveryDataDirectoryTemplate, nodeIndex)
 		conf.CertificatePath = fmt.Sprintf(discoveryCertificatePathTemplate, nodeIndex)
 
 		discoveryNodesConfigs = append(discoveryNodesConfigs, conf)
@@ -185,7 +177,6 @@ func main() {
 		conf.Log.Formatter = "json"
 
 		conf.KeysPath = node.KeysFile
-		conf.Ledger.Storage.DataDirectory = fmt.Sprintf(nodeDataDirectoryTemplate, nodeIndex)
 		conf.CertificatePath = fmt.Sprintf(nodeCertificatePathTemplate, nodeIndex)
 
 		nodesConfigs = append(nodesConfigs, conf)
