@@ -9,6 +9,8 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -215,4 +217,39 @@ func (v *Global) UnmarshalBinary(data []byte) error {
 // deprecated: use reference.ProtoSize
 func (v Global) Size() int {
 	return ProtoSize(v)
+}
+
+// deprecated
+func (v *Global) ProtoSize() int {
+	return ProtoSize(v)
+}
+
+func GlobalFromString(input string) (Global, error) {
+	global, err := DefaultDecoder().Decode(input)
+	if err != nil {
+		return Global{}, err
+	}
+	return global, nil
+}
+
+func GlobalObjectFromString(input string) (Global, error) {
+	global, err := GlobalFromString(input)
+	if err != nil {
+		return Global{}, err
+	}
+	if !global.IsObjectReference() {
+		return Global{}, errors.New("provided reference is not object")
+	}
+	if !global.IsSelfScope() {
+		return Global{}, errors.New("provided reference is not self-scoped")
+	}
+	return global, nil
+}
+
+func GlobalFromBytes(data []byte) Global {
+	local, base, err := Unmarshal(data)
+	if err != nil {
+		panic(throw.IllegalValue())
+	}
+	return NewGlobal(base, local)
 }

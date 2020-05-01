@@ -5,23 +5,21 @@
 
 package common
 
-import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-)
+import "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 // ProxyHelper interface with methods that are needed by contract proxies
 type ProxyHelper interface {
 	SystemError
 	Serializer
 	RouteCall(
-		ref insolar.Reference,
+		ref reference.Global,
 		immutable bool, saga bool,
-		method string, args []byte, proxyPrototype insolar.Reference,
+		method string, args []byte, proxyPrototype reference.Global,
 	) (result []byte, err error)
 	SaveAsChild(
-		parentRef, classRef insolar.Reference, constructorName string, argsSerialized []byte,
+		parentRef, classRef reference.Global, constructorName string, argsSerialized []byte,
 	) (result []byte, err error)
-	DeactivateObject(object insolar.Reference) error
+	DeactivateObject(object reference.Global) error
 	MakeErrorSerializable(error) error
 }
 

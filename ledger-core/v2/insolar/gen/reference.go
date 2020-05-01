@@ -22,17 +22,17 @@ func getUnique() uint32 {
 }
 
 // ID generates random id.
-func ID() insolar.ID {
-	var id insolar.ID
+func ID() reference.Local {
+	var id reference.Local
 
-	f := fuzz.New().NilChance(0).Funcs(func(id *insolar.ID, c fuzz.Continue) {
+	f := fuzz.New().NilChance(0).Funcs(func(id *reference.Local, c fuzz.Continue) {
 		var hash [reference.LocalBinaryHashSize]byte
 		c.Fuzz(&hash)
 		binary.BigEndian.PutUint32(hash[reference.LocalBinaryHashSize-4:], getUnique())
 
 		pn := PulseNumber()
 
-		*id = insolar.NewID(pn, hash[:])
+		*id = reference.NewRecordID(pn, reference.BytesToLocalHash(hash[:]))
 	})
 	f.Fuzz(&id)
 
@@ -40,24 +40,25 @@ func ID() insolar.ID {
 }
 
 // IDWithPulse generates random id with provided pulse.
-func IDWithPulse(pn insolar.PulseNumber) insolar.ID {
+func IDWithPulse(pn insolar.PulseNumber) reference.Local {
 	hash := make([]byte, reference.LocalBinaryHashSize)
 
 	fuzz.New().
 		NilChance(0).
 		NumElements(insolar.RecordHashSize, insolar.RecordHashSize).
 		Fuzz(&hash)
-	return insolar.NewID(pn, hash)
+	return reference.NewRecordID(pn, reference.BytesToLocalHash(hash))
 }
 
 // Reference generates random reference.
-func Reference() insolar.Reference {
-	return insolar.NewReference(ID())
+func Reference() reference.Global {
+	id := ID()
+	return reference.NewGlobal(id, id)
 }
 
 // UniqueReferences generates multiple random unique References.
-func UniqueReferences(a int) []insolar.Reference {
-	refs := make([]insolar.Reference, a)
+func UniqueReferences(a int) []reference.Global {
+	refs := make([]reference.Global, a)
 
 	for i := 0; i < a; i++ {
 		refs[i] = Reference()

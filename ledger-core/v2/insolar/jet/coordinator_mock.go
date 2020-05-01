@@ -10,20 +10,21 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // CoordinatorMock implements Coordinator
 type CoordinatorMock struct {
 	t minimock.Tester
 
-	funcMe          func() (r1 insolar.Reference)
+	funcMe          func() (g1 reference.Global)
 	inspectFuncMe   func()
 	afterMeCounter  uint64
 	beforeMeCounter uint64
 	MeMock          mCoordinatorMockMe
 
-	funcQueryRole          func(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber) (ra1 []insolar.Reference, err error)
-	inspectFuncQueryRole   func(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber)
+	funcQueryRole          func(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) (ga1 []reference.Global, err error)
+	inspectFuncQueryRole   func(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber)
 	afterQueryRoleCounter  uint64
 	beforeQueryRoleCounter uint64
 	QueryRoleMock          mCoordinatorMockQueryRole
@@ -60,7 +61,7 @@ type CoordinatorMockMeExpectation struct {
 
 // CoordinatorMockMeResults contains results of the Coordinator.Me
 type CoordinatorMockMeResults struct {
-	r1 insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for Coordinator.Me
@@ -88,7 +89,7 @@ func (mmMe *mCoordinatorMockMe) Inspect(f func()) *mCoordinatorMockMe {
 }
 
 // Return sets up results that will be returned by Coordinator.Me
-func (mmMe *mCoordinatorMockMe) Return(r1 insolar.Reference) *CoordinatorMock {
+func (mmMe *mCoordinatorMockMe) Return(g1 reference.Global) *CoordinatorMock {
 	if mmMe.mock.funcMe != nil {
 		mmMe.mock.t.Fatalf("CoordinatorMock.Me mock is already set by Set")
 	}
@@ -96,12 +97,12 @@ func (mmMe *mCoordinatorMockMe) Return(r1 insolar.Reference) *CoordinatorMock {
 	if mmMe.defaultExpectation == nil {
 		mmMe.defaultExpectation = &CoordinatorMockMeExpectation{mock: mmMe.mock}
 	}
-	mmMe.defaultExpectation.results = &CoordinatorMockMeResults{r1}
+	mmMe.defaultExpectation.results = &CoordinatorMockMeResults{g1}
 	return mmMe.mock
 }
 
 //Set uses given function f to mock the Coordinator.Me method
-func (mmMe *mCoordinatorMockMe) Set(f func() (r1 insolar.Reference)) *CoordinatorMock {
+func (mmMe *mCoordinatorMockMe) Set(f func() (g1 reference.Global)) *CoordinatorMock {
 	if mmMe.defaultExpectation != nil {
 		mmMe.mock.t.Fatalf("Default expectation is already set for the Coordinator.Me method")
 	}
@@ -115,7 +116,7 @@ func (mmMe *mCoordinatorMockMe) Set(f func() (r1 insolar.Reference)) *Coordinato
 }
 
 // Me implements Coordinator
-func (mmMe *CoordinatorMock) Me() (r1 insolar.Reference) {
+func (mmMe *CoordinatorMock) Me() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmMe.beforeMeCounter, 1)
 	defer mm_atomic.AddUint64(&mmMe.afterMeCounter, 1)
 
@@ -130,7 +131,7 @@ func (mmMe *CoordinatorMock) Me() (r1 insolar.Reference) {
 		if mm_results == nil {
 			mmMe.t.Fatal("No results are set for the CoordinatorMock.Me")
 		}
-		return (*mm_results).r1
+		return (*mm_results).g1
 	}
 	if mmMe.funcMe != nil {
 		return mmMe.funcMe()
@@ -208,18 +209,18 @@ type CoordinatorMockQueryRoleExpectation struct {
 type CoordinatorMockQueryRoleParams struct {
 	ctx   context.Context
 	role  insolar.DynamicRole
-	obj   insolar.ID
+	obj   reference.Local
 	pulse insolar.PulseNumber
 }
 
 // CoordinatorMockQueryRoleResults contains results of the Coordinator.QueryRole
 type CoordinatorMockQueryRoleResults struct {
-	ra1 []insolar.Reference
+	ga1 []reference.Global
 	err error
 }
 
 // Expect sets up expected params for Coordinator.QueryRole
-func (mmQueryRole *mCoordinatorMockQueryRole) Expect(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber) *mCoordinatorMockQueryRole {
+func (mmQueryRole *mCoordinatorMockQueryRole) Expect(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) *mCoordinatorMockQueryRole {
 	if mmQueryRole.mock.funcQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("CoordinatorMock.QueryRole mock is already set by Set")
 	}
@@ -239,7 +240,7 @@ func (mmQueryRole *mCoordinatorMockQueryRole) Expect(ctx context.Context, role i
 }
 
 // Inspect accepts an inspector function that has same arguments as the Coordinator.QueryRole
-func (mmQueryRole *mCoordinatorMockQueryRole) Inspect(f func(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber)) *mCoordinatorMockQueryRole {
+func (mmQueryRole *mCoordinatorMockQueryRole) Inspect(f func(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber)) *mCoordinatorMockQueryRole {
 	if mmQueryRole.mock.inspectFuncQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("Inspect function is already set for CoordinatorMock.QueryRole")
 	}
@@ -250,7 +251,7 @@ func (mmQueryRole *mCoordinatorMockQueryRole) Inspect(f func(ctx context.Context
 }
 
 // Return sets up results that will be returned by Coordinator.QueryRole
-func (mmQueryRole *mCoordinatorMockQueryRole) Return(ra1 []insolar.Reference, err error) *CoordinatorMock {
+func (mmQueryRole *mCoordinatorMockQueryRole) Return(ga1 []reference.Global, err error) *CoordinatorMock {
 	if mmQueryRole.mock.funcQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("CoordinatorMock.QueryRole mock is already set by Set")
 	}
@@ -258,12 +259,12 @@ func (mmQueryRole *mCoordinatorMockQueryRole) Return(ra1 []insolar.Reference, er
 	if mmQueryRole.defaultExpectation == nil {
 		mmQueryRole.defaultExpectation = &CoordinatorMockQueryRoleExpectation{mock: mmQueryRole.mock}
 	}
-	mmQueryRole.defaultExpectation.results = &CoordinatorMockQueryRoleResults{ra1, err}
+	mmQueryRole.defaultExpectation.results = &CoordinatorMockQueryRoleResults{ga1, err}
 	return mmQueryRole.mock
 }
 
 //Set uses given function f to mock the Coordinator.QueryRole method
-func (mmQueryRole *mCoordinatorMockQueryRole) Set(f func(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber) (ra1 []insolar.Reference, err error)) *CoordinatorMock {
+func (mmQueryRole *mCoordinatorMockQueryRole) Set(f func(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) (ga1 []reference.Global, err error)) *CoordinatorMock {
 	if mmQueryRole.defaultExpectation != nil {
 		mmQueryRole.mock.t.Fatalf("Default expectation is already set for the Coordinator.QueryRole method")
 	}
@@ -278,7 +279,7 @@ func (mmQueryRole *mCoordinatorMockQueryRole) Set(f func(ctx context.Context, ro
 
 // When sets expectation for the Coordinator.QueryRole which will trigger the result defined by the following
 // Then helper
-func (mmQueryRole *mCoordinatorMockQueryRole) When(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber) *CoordinatorMockQueryRoleExpectation {
+func (mmQueryRole *mCoordinatorMockQueryRole) When(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) *CoordinatorMockQueryRoleExpectation {
 	if mmQueryRole.mock.funcQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("CoordinatorMock.QueryRole mock is already set by Set")
 	}
@@ -292,13 +293,13 @@ func (mmQueryRole *mCoordinatorMockQueryRole) When(ctx context.Context, role ins
 }
 
 // Then sets up Coordinator.QueryRole return parameters for the expectation previously defined by the When method
-func (e *CoordinatorMockQueryRoleExpectation) Then(ra1 []insolar.Reference, err error) *CoordinatorMock {
-	e.results = &CoordinatorMockQueryRoleResults{ra1, err}
+func (e *CoordinatorMockQueryRoleExpectation) Then(ga1 []reference.Global, err error) *CoordinatorMock {
+	e.results = &CoordinatorMockQueryRoleResults{ga1, err}
 	return e.mock
 }
 
 // QueryRole implements Coordinator
-func (mmQueryRole *CoordinatorMock) QueryRole(ctx context.Context, role insolar.DynamicRole, obj insolar.ID, pulse insolar.PulseNumber) (ra1 []insolar.Reference, err error) {
+func (mmQueryRole *CoordinatorMock) QueryRole(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) (ga1 []reference.Global, err error) {
 	mm_atomic.AddUint64(&mmQueryRole.beforeQueryRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmQueryRole.afterQueryRoleCounter, 1)
 
@@ -316,7 +317,7 @@ func (mmQueryRole *CoordinatorMock) QueryRole(ctx context.Context, role insolar.
 	for _, e := range mmQueryRole.QueryRoleMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.ra1, e.results.err
+			return e.results.ga1, e.results.err
 		}
 	}
 
@@ -332,7 +333,7 @@ func (mmQueryRole *CoordinatorMock) QueryRole(ctx context.Context, role insolar.
 		if mm_results == nil {
 			mmQueryRole.t.Fatal("No results are set for the CoordinatorMock.QueryRole")
 		}
-		return (*mm_results).ra1, (*mm_results).err
+		return (*mm_results).ga1, (*mm_results).err
 	}
 	if mmQueryRole.funcQueryRole != nil {
 		return mmQueryRole.funcQueryRole(ctx, role, obj, pulse)

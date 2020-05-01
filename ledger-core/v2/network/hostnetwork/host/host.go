@@ -21,7 +21,7 @@ import (
 // Host is the over-the-wire representation of a host.
 type Host struct {
 	// NodeID is unique identifier of the node
-	NodeID insolar.Reference
+	NodeID reference.Global
 	// ShortID is shortened unique identifier of the node inside the globe
 	ShortID insolar.ShortNodeID
 	// Address is IP and port.
@@ -38,7 +38,7 @@ func NewHost(address string) (*Host, error) {
 }
 
 // NewHostN creates a new Host with specified physical address and NodeID.
-func NewHostN(address string, nodeID insolar.Reference) (*Host, error) {
+func NewHostN(address string, nodeID reference.Global) (*Host, error) {
 	h, err := NewHost(address)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewHostN(address string, nodeID insolar.Reference) (*Host, error) {
 }
 
 // NewHostNS creates a new Host with specified physical address, NodeID and ShortID.
-func NewHostNS(address string, nodeID insolar.Reference, shortID insolar.ShortNodeID) (*Host, error) {
+func NewHostNS(address string, nodeID reference.Global, shortID insolar.ShortNodeID) (*Host, error) {
 	h, err := NewHostN(address, nodeID)
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (host *Host) Unmarshal(data []byte) error {
 	if err := binary.Read(reader, binary.BigEndian, &nodeIDBinary); err != nil {
 		return errors.Wrap(err, "failed to unmarshal protobuf host NodeID")
 	}
-	host.NodeID = insolar.NewReferenceFromBytes(nodeIDBinary[:])
+	host.NodeID = reference.GlobalFromBytes(nodeIDBinary[:])
 
 	if err := binary.Read(reader, binary.BigEndian, &host.ShortID); err != nil {
 		return errors.Wrap(err, "failed to unmarshal protobuf host ShortID")

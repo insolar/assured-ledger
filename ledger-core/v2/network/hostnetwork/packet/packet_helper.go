@@ -13,10 +13,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func (p *Packet) SetRequest(request interface{}) {
@@ -72,7 +72,7 @@ func (p *Packet) GetType() types.PacketType {
 	return types.PacketType(p.Type)
 }
 
-func (p *Packet) GetSender() insolar.Reference {
+func (p *Packet) GetSender() reference.Global {
 	return p.Sender.NodeID
 }
 

@@ -268,3 +268,11 @@ func (p *byteReader) ReadByte() (b byte, err error) {
 	p.o++
 	return b, nil
 }
+
+func LocalFromString(input string) (Local, error) {
+	global, err := DefaultDecoder().Decode(input)
+	if err != nil {
+		return Local{}, err
+	}
+	return global.GetLocal(), nil
+}

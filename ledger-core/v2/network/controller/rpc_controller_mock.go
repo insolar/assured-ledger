@@ -9,7 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // RPCControllerMock implements RPCController
@@ -22,8 +22,8 @@ type RPCControllerMock struct {
 	beforeRemoteProcedureRegisterCounter uint64
 	RemoteProcedureRegisterMock          mRPCControllerMockRemoteProcedureRegister
 
-	funcSendBytes          func(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) (ba1 []byte, err error)
-	inspectFuncSendBytes   func(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte)
+	funcSendBytes          func(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) (ba1 []byte, err error)
+	inspectFuncSendBytes   func(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte)
 	afterSendBytesCounter  uint64
 	beforeSendBytesCounter uint64
 	SendBytesMock          mRPCControllerMockSendBytes
@@ -253,7 +253,7 @@ type RPCControllerMockSendBytesExpectation struct {
 // RPCControllerMockSendBytesParams contains parameters of the RPCController.SendBytes
 type RPCControllerMockSendBytesParams struct {
 	ctx      context.Context
-	nodeID   insolar.Reference
+	nodeID   reference.Global
 	name     string
 	msgBytes []byte
 }
@@ -265,7 +265,7 @@ type RPCControllerMockSendBytesResults struct {
 }
 
 // Expect sets up expected params for RPCController.SendBytes
-func (mmSendBytes *mRPCControllerMockSendBytes) Expect(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) *mRPCControllerMockSendBytes {
+func (mmSendBytes *mRPCControllerMockSendBytes) Expect(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) *mRPCControllerMockSendBytes {
 	if mmSendBytes.mock.funcSendBytes != nil {
 		mmSendBytes.mock.t.Fatalf("RPCControllerMock.SendBytes mock is already set by Set")
 	}
@@ -285,7 +285,7 @@ func (mmSendBytes *mRPCControllerMockSendBytes) Expect(ctx context.Context, node
 }
 
 // Inspect accepts an inspector function that has same arguments as the RPCController.SendBytes
-func (mmSendBytes *mRPCControllerMockSendBytes) Inspect(f func(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte)) *mRPCControllerMockSendBytes {
+func (mmSendBytes *mRPCControllerMockSendBytes) Inspect(f func(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte)) *mRPCControllerMockSendBytes {
 	if mmSendBytes.mock.inspectFuncSendBytes != nil {
 		mmSendBytes.mock.t.Fatalf("Inspect function is already set for RPCControllerMock.SendBytes")
 	}
@@ -309,7 +309,7 @@ func (mmSendBytes *mRPCControllerMockSendBytes) Return(ba1 []byte, err error) *R
 }
 
 //Set uses given function f to mock the RPCController.SendBytes method
-func (mmSendBytes *mRPCControllerMockSendBytes) Set(f func(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) (ba1 []byte, err error)) *RPCControllerMock {
+func (mmSendBytes *mRPCControllerMockSendBytes) Set(f func(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) (ba1 []byte, err error)) *RPCControllerMock {
 	if mmSendBytes.defaultExpectation != nil {
 		mmSendBytes.mock.t.Fatalf("Default expectation is already set for the RPCController.SendBytes method")
 	}
@@ -324,7 +324,7 @@ func (mmSendBytes *mRPCControllerMockSendBytes) Set(f func(ctx context.Context, 
 
 // When sets expectation for the RPCController.SendBytes which will trigger the result defined by the following
 // Then helper
-func (mmSendBytes *mRPCControllerMockSendBytes) When(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) *RPCControllerMockSendBytesExpectation {
+func (mmSendBytes *mRPCControllerMockSendBytes) When(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) *RPCControllerMockSendBytesExpectation {
 	if mmSendBytes.mock.funcSendBytes != nil {
 		mmSendBytes.mock.t.Fatalf("RPCControllerMock.SendBytes mock is already set by Set")
 	}
@@ -344,7 +344,7 @@ func (e *RPCControllerMockSendBytesExpectation) Then(ba1 []byte, err error) *RPC
 }
 
 // SendBytes implements RPCController
-func (mmSendBytes *RPCControllerMock) SendBytes(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) (ba1 []byte, err error) {
+func (mmSendBytes *RPCControllerMock) SendBytes(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) (ba1 []byte, err error) {
 	mm_atomic.AddUint64(&mmSendBytes.beforeSendBytesCounter, 1)
 	defer mm_atomic.AddUint64(&mmSendBytes.afterSendBytesCounter, 1)
 

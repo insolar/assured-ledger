@@ -21,6 +21,7 @@ import (
 	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/rpctypes"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type LogicRunnerRPCStub interface {
@@ -34,11 +35,11 @@ type LogicRunnerRPCStub interface {
 type BuiltIn struct {
 	// Prototype -> Code + Versions
 	// PrototypeRegistry    map[string]preprocessor.ContractWrapper
-	// PrototypeRefRegistry map[insolar.Reference]string
+	// PrototypeRefRegistry map[reference.Global]string
 	// Code ->
 	CodeRegistry         map[string]insolar.ContractWrapper
-	CodeRefRegistry      map[insolar.Reference]string
-	PrototypeRefRegistry map[insolar.Reference]string
+	CodeRefRegistry      map[reference.Global]string
+	PrototypeRefRegistry map[reference.Global]string
 }
 
 // NewBuiltIn is an constructor
@@ -52,7 +53,7 @@ func NewBuiltIn(stub LogicRunnerRPCStub) *BuiltIn {
 }
 
 func (b *BuiltIn) CallConstructor(
-	ctx context.Context, callCtx *insolar.LogicCallContext, codeRef insolar.Reference,
+	ctx context.Context, callCtx *insolar.LogicCallContext, codeRef reference.Global,
 	name string, args insolar.Arguments,
 ) ([]byte, insolar.Arguments, error) {
 	executeStart := time.Now()
@@ -80,11 +81,11 @@ func (b *BuiltIn) CallConstructor(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	objRef := insolar.NewReference(callCtx.Request.GetLocal())
+	objRef := reference.NewGlobalSelf(callCtx.Request.GetLocal())
 	return constructorFunc(objRef, args)
 }
 
-func (b *BuiltIn) CallMethod(ctx context.Context, callCtx *insolar.LogicCallContext, codeRef insolar.Reference,
+func (b *BuiltIn) CallMethod(ctx context.Context, callCtx *insolar.LogicCallContext, codeRef reference.Global,
 	data []byte, method string, args insolar.Arguments) ([]byte, insolar.Arguments, error) {
 	executeStart := time.Now()
 	ctx = insmetrics.InsertTag(ctx, metrics.TagContractPrototype, b.PrototypeRefRegistry[codeRef])

@@ -108,7 +108,7 @@ func NewServer(t *testing.T) *Server {
 
 	s.JetCoordinatorMock = jet.NewCoordinatorMock(t).
 		MeMock.Return(gen.Reference()).
-		QueryRoleMock.Return([]insolar.Reference{gen.Reference()}, nil)
+		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 
 	s.PublisherMock = &PublisherMock{}
 

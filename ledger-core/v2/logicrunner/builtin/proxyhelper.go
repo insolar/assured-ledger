@@ -10,10 +10,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	lrCommon "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/rpctypes"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type ProxyHelper struct {
@@ -41,8 +41,8 @@ func (h *ProxyHelper) getUpBaseReq() rpctypes.UpBaseReq {
 	}
 }
 
-func (h *ProxyHelper) RouteCall(ref insolar.Reference, immutable bool, saga bool, method string, args []byte,
-	proxyPrototype insolar.Reference) ([]byte, error) {
+func (h *ProxyHelper) RouteCall(ref reference.Global, immutable bool, saga bool, method string, args []byte,
+	proxyPrototype reference.Global) ([]byte, error) {
 
 	if h.GetSystemError() != nil {
 		return nil, h.GetSystemError()
@@ -70,7 +70,7 @@ func (h *ProxyHelper) RouteCall(ref insolar.Reference, immutable bool, saga bool
 }
 
 func (h *ProxyHelper) SaveAsChild(
-	parentRef, classRef insolar.Reference,
+	parentRef, classRef reference.Global,
 	constructorName string, argsSerialized []byte,
 ) (
 	[]byte, error,
@@ -105,7 +105,7 @@ func (h *ProxyHelper) SaveAsChild(
 	return res.Result, nil
 }
 
-func (h *ProxyHelper) DeactivateObject(object insolar.Reference) error {
+func (h *ProxyHelper) DeactivateObject(object reference.Global) error {
 	if h.GetSystemError() != nil {
 		return h.GetSystemError()
 	}

@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -20,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newNode(ref insolar.Reference, id int) insolar.NetworkNode {
+func newNode(ref reference.Global, id int) insolar.NetworkNode {
 	address := "127.0.0.1:" + strconv.Itoa(id)
 	result := node.NewNode(ref, insolar.StaticRoleUnknown, nil, address, "")
 	result.(node.MutableNode).SetShortID(insolar.ShortNodeID(id))

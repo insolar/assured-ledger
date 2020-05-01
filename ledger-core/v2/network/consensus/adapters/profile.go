@@ -17,13 +17,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 type StaticProfileExtension struct {
 	shortID   insolar.ShortNodeID
-	ref       insolar.Reference
+	ref       reference.Global
 	signature cryptkit.SignatureHolder
 }
 
@@ -40,7 +41,7 @@ func NewStaticProfileExtension(networkNode insolar.NetworkNode) *StaticProfileEx
 	)
 }
 
-func newStaticProfileExtension(shortID insolar.ShortNodeID, ref insolar.Reference, signature cryptkit.SignatureHolder) *StaticProfileExtension {
+func newStaticProfileExtension(shortID insolar.ShortNodeID, ref reference.Global, signature cryptkit.SignatureHolder) *StaticProfileExtension {
 	return &StaticProfileExtension{
 		shortID:   shortID,
 		ref:       ref,
@@ -76,7 +77,7 @@ func (ni *StaticProfileExtension) GetIssuerSignature() cryptkit.SignatureHolder 
 	return ni.signature
 }
 
-func (ni *StaticProfileExtension) GetReference() insolar.Reference {
+func (ni *StaticProfileExtension) GetReference() reference.Global {
 	return ni.ref
 }
 

@@ -9,14 +9,15 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // AccessorMock implements network.Accessor
 type AccessorMock struct {
 	t minimock.Tester
 
-	funcGetActiveNode          func(ref insolar.Reference) (n1 insolar.NetworkNode)
-	inspectFuncGetActiveNode   func(ref insolar.Reference)
+	funcGetActiveNode          func(ref reference.Global) (n1 insolar.NetworkNode)
+	inspectFuncGetActiveNode   func(ref reference.Global)
 	afterGetActiveNodeCounter  uint64
 	beforeGetActiveNodeCounter uint64
 	GetActiveNodeMock          mAccessorMockGetActiveNode
@@ -39,8 +40,8 @@ type AccessorMock struct {
 	beforeGetActiveNodesCounter uint64
 	GetActiveNodesMock          mAccessorMockGetActiveNodes
 
-	funcGetWorkingNode          func(ref insolar.Reference) (n1 insolar.NetworkNode)
-	inspectFuncGetWorkingNode   func(ref insolar.Reference)
+	funcGetWorkingNode          func(ref reference.Global) (n1 insolar.NetworkNode)
+	inspectFuncGetWorkingNode   func(ref reference.Global)
 	afterGetWorkingNodeCounter  uint64
 	beforeGetWorkingNodeCounter uint64
 	GetWorkingNodeMock          mAccessorMockGetWorkingNode
@@ -97,7 +98,7 @@ type AccessorMockGetActiveNodeExpectation struct {
 
 // AccessorMockGetActiveNodeParams contains parameters of the Accessor.GetActiveNode
 type AccessorMockGetActiveNodeParams struct {
-	ref insolar.Reference
+	ref reference.Global
 }
 
 // AccessorMockGetActiveNodeResults contains results of the Accessor.GetActiveNode
@@ -106,7 +107,7 @@ type AccessorMockGetActiveNodeResults struct {
 }
 
 // Expect sets up expected params for Accessor.GetActiveNode
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Expect(ref insolar.Reference) *mAccessorMockGetActiveNode {
+func (mmGetActiveNode *mAccessorMockGetActiveNode) Expect(ref reference.Global) *mAccessorMockGetActiveNode {
 	if mmGetActiveNode.mock.funcGetActiveNode != nil {
 		mmGetActiveNode.mock.t.Fatalf("AccessorMock.GetActiveNode mock is already set by Set")
 	}
@@ -126,7 +127,7 @@ func (mmGetActiveNode *mAccessorMockGetActiveNode) Expect(ref insolar.Reference)
 }
 
 // Inspect accepts an inspector function that has same arguments as the Accessor.GetActiveNode
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Inspect(f func(ref insolar.Reference)) *mAccessorMockGetActiveNode {
+func (mmGetActiveNode *mAccessorMockGetActiveNode) Inspect(f func(ref reference.Global)) *mAccessorMockGetActiveNode {
 	if mmGetActiveNode.mock.inspectFuncGetActiveNode != nil {
 		mmGetActiveNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetActiveNode")
 	}
@@ -150,7 +151,7 @@ func (mmGetActiveNode *mAccessorMockGetActiveNode) Return(n1 insolar.NetworkNode
 }
 
 //Set uses given function f to mock the Accessor.GetActiveNode method
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Set(f func(ref insolar.Reference) (n1 insolar.NetworkNode)) *AccessorMock {
+func (mmGetActiveNode *mAccessorMockGetActiveNode) Set(f func(ref reference.Global) (n1 insolar.NetworkNode)) *AccessorMock {
 	if mmGetActiveNode.defaultExpectation != nil {
 		mmGetActiveNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetActiveNode method")
 	}
@@ -165,7 +166,7 @@ func (mmGetActiveNode *mAccessorMockGetActiveNode) Set(f func(ref insolar.Refere
 
 // When sets expectation for the Accessor.GetActiveNode which will trigger the result defined by the following
 // Then helper
-func (mmGetActiveNode *mAccessorMockGetActiveNode) When(ref insolar.Reference) *AccessorMockGetActiveNodeExpectation {
+func (mmGetActiveNode *mAccessorMockGetActiveNode) When(ref reference.Global) *AccessorMockGetActiveNodeExpectation {
 	if mmGetActiveNode.mock.funcGetActiveNode != nil {
 		mmGetActiveNode.mock.t.Fatalf("AccessorMock.GetActiveNode mock is already set by Set")
 	}
@@ -185,7 +186,7 @@ func (e *AccessorMockGetActiveNodeExpectation) Then(n1 insolar.NetworkNode) *Acc
 }
 
 // GetActiveNode implements network.Accessor
-func (mmGetActiveNode *AccessorMock) GetActiveNode(ref insolar.Reference) (n1 insolar.NetworkNode) {
+func (mmGetActiveNode *AccessorMock) GetActiveNode(ref reference.Global) (n1 insolar.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetActiveNode.beforeGetActiveNodeCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetActiveNode.afterGetActiveNodeCounter, 1)
 
@@ -885,7 +886,7 @@ type AccessorMockGetWorkingNodeExpectation struct {
 
 // AccessorMockGetWorkingNodeParams contains parameters of the Accessor.GetWorkingNode
 type AccessorMockGetWorkingNodeParams struct {
-	ref insolar.Reference
+	ref reference.Global
 }
 
 // AccessorMockGetWorkingNodeResults contains results of the Accessor.GetWorkingNode
@@ -894,7 +895,7 @@ type AccessorMockGetWorkingNodeResults struct {
 }
 
 // Expect sets up expected params for Accessor.GetWorkingNode
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Expect(ref insolar.Reference) *mAccessorMockGetWorkingNode {
+func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Expect(ref reference.Global) *mAccessorMockGetWorkingNode {
 	if mmGetWorkingNode.mock.funcGetWorkingNode != nil {
 		mmGetWorkingNode.mock.t.Fatalf("AccessorMock.GetWorkingNode mock is already set by Set")
 	}
@@ -914,7 +915,7 @@ func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Expect(ref insolar.Referenc
 }
 
 // Inspect accepts an inspector function that has same arguments as the Accessor.GetWorkingNode
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Inspect(f func(ref insolar.Reference)) *mAccessorMockGetWorkingNode {
+func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Inspect(f func(ref reference.Global)) *mAccessorMockGetWorkingNode {
 	if mmGetWorkingNode.mock.inspectFuncGetWorkingNode != nil {
 		mmGetWorkingNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetWorkingNode")
 	}
@@ -938,7 +939,7 @@ func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Return(n1 insolar.NetworkNo
 }
 
 //Set uses given function f to mock the Accessor.GetWorkingNode method
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Set(f func(ref insolar.Reference) (n1 insolar.NetworkNode)) *AccessorMock {
+func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Set(f func(ref reference.Global) (n1 insolar.NetworkNode)) *AccessorMock {
 	if mmGetWorkingNode.defaultExpectation != nil {
 		mmGetWorkingNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetWorkingNode method")
 	}
@@ -953,7 +954,7 @@ func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Set(f func(ref insolar.Refe
 
 // When sets expectation for the Accessor.GetWorkingNode which will trigger the result defined by the following
 // Then helper
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) When(ref insolar.Reference) *AccessorMockGetWorkingNodeExpectation {
+func (mmGetWorkingNode *mAccessorMockGetWorkingNode) When(ref reference.Global) *AccessorMockGetWorkingNodeExpectation {
 	if mmGetWorkingNode.mock.funcGetWorkingNode != nil {
 		mmGetWorkingNode.mock.t.Fatalf("AccessorMock.GetWorkingNode mock is already set by Set")
 	}
@@ -973,7 +974,7 @@ func (e *AccessorMockGetWorkingNodeExpectation) Then(n1 insolar.NetworkNode) *Ac
 }
 
 // GetWorkingNode implements network.Accessor
-func (mmGetWorkingNode *AccessorMock) GetWorkingNode(ref insolar.Reference) (n1 insolar.NetworkNode) {
+func (mmGetWorkingNode *AccessorMock) GetWorkingNode(ref reference.Global) (n1 insolar.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetWorkingNode.beforeGetWorkingNodeCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetWorkingNode.afterGetWorkingNodeCounter, 1)
 

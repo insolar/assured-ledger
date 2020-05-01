@@ -6,20 +6,20 @@
 package requestresult
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type RequestResult struct {
-	RawResult          []byte            // every
-	RawObjectReference insolar.Reference // every
+	RawResult          []byte           // every
+	RawObjectReference reference.Global // every
 
-	ParentReference insolar.Reference // activate
-	ObjectImage     insolar.Reference // amend + activate
-	ObjectStateID   insolar.ID        // amend + deactivate
-	Memory          []byte            // amend + activate
+	ParentReference reference.Global // activate
+	ObjectImage     reference.Global // amend + activate
+	ObjectStateID   reference.Local  // amend + deactivate
+	Memory          []byte           // amend + activate
 }
 
-func New(result []byte, objectRef insolar.Reference) *RequestResult {
+func New(result []byte, objectRef reference.Global) *RequestResult {
 	return &RequestResult{
 		RawResult:          result,
 		RawObjectReference: objectRef,
@@ -30,18 +30,18 @@ func (s *RequestResult) Result() []byte {
 	return s.RawResult
 }
 
-func (s *RequestResult) Activate() (insolar.Reference, insolar.Reference, []byte) {
+func (s *RequestResult) Activate() (reference.Global, reference.Global, []byte) {
 	return s.ParentReference, s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) Amend() (insolar.ID, insolar.Reference, []byte) {
+func (s *RequestResult) Amend() (reference.Local, reference.Global, []byte) {
 	return s.ObjectStateID, s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) Deactivate() insolar.ID {
+func (s *RequestResult) Deactivate() reference.Local {
 	return s.ObjectStateID
 }
 
-func (s *RequestResult) ObjectReference() insolar.Reference {
+func (s *RequestResult) ObjectReference() reference.Global {
 	return s.RawObjectReference
 }

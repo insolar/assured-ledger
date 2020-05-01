@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -101,7 +102,7 @@ func TestSnapshot_Equal(t *testing.T) {
 
 	snapshot2.pulse = insolar.PulseNumber(10)
 
-	genNodeCopy := func(reference insolar.Reference) insolar.NetworkNode {
+	genNodeCopy := func(reference reference.Global) insolar.NetworkNode {
 		return newMutableNode(reference, insolar.StaticRoleLightMaterial,
 			nil, insolar.NodeReady, "127.0.0.1:0", "")
 	}

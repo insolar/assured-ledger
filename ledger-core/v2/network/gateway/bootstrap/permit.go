@@ -14,12 +14,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 const permitTTL = 300
 
 // CreatePermit creates permit as signed protobuf for joiner node to
-func CreatePermit(authorityNodeRef insolar.Reference, reconnectHost *host.Host, joinerPublicKey []byte, signer insolar.Signer) (*packet.Permit, error) {
+func CreatePermit(authorityNodeRef reference.Global, reconnectHost *host.Host, joinerPublicKey []byte, signer insolar.Signer) (*packet.Permit, error) {
 	payload := packet.PermitPayload{
 		AuthorityNodeRef: authorityNodeRef,
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,

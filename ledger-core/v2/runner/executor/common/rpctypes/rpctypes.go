@@ -7,6 +7,7 @@ package rpctypes
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Types for RPC requests and responses between goplugin and goinsider.
@@ -17,7 +18,7 @@ import (
 // DownCallMethodReq is a set of arguments for CallMethod RPC in the runner
 type DownCallMethodReq struct {
 	Context   *insolar.LogicCallContext
-	Code      insolar.Reference
+	Code      reference.Global
 	Data      []byte
 	Method    string
 	Arguments insolar.Arguments
@@ -32,7 +33,7 @@ type DownCallMethodResp struct {
 // DownCallConstructorReq is a set of arguments for CallConstructor RPC
 // in the runner
 type DownCallConstructorReq struct {
-	Code      insolar.Reference
+	Code      reference.Global
 	Name      string
 	Arguments insolar.Arguments
 	Context   *insolar.LogicCallContext
@@ -47,9 +48,9 @@ type DownCallConstructorResp struct {
 // UpBaseReq  is a base type for all insgorund -> logicrunner requests
 type UpBaseReq struct {
 	Mode            insolar.CallMode
-	Callee          insolar.Reference
-	CalleePrototype insolar.Reference
-	Request         insolar.Reference
+	Callee          reference.Global
+	CalleePrototype reference.Global
+	Request         reference.Global
 }
 
 // UpRespIface interface for UpBaseReq descendant responses
@@ -59,7 +60,7 @@ type UpRespIface interface{}
 type UpGetCodeReq struct {
 	UpBaseReq
 	MType insolar.MachineType
-	Code  insolar.Reference
+	Code  reference.Global
 }
 
 // UpGetCodeResp is response from GetCode RPC in goplugin
@@ -72,10 +73,10 @@ type UpRouteReq struct {
 	UpBaseReq
 	Immutable bool
 	Saga      bool
-	Object    insolar.Reference
+	Object    reference.Global
 	Method    string
 	Arguments insolar.Arguments
-	Prototype insolar.Reference
+	Prototype reference.Global
 }
 
 // UpRouteResp is response from Send RPC in goplugin
@@ -86,8 +87,8 @@ type UpRouteResp struct {
 // UpSaveAsChildReq is a set of arguments for SaveAsChild RPC in goplugin
 type UpSaveAsChildReq struct {
 	UpBaseReq
-	Parent          insolar.Reference
-	Prototype       insolar.Reference
+	Parent          reference.Global
+	Prototype       reference.Global
 	ConstructorName string
 	ArgsSerialized  []byte
 }

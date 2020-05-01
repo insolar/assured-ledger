@@ -25,6 +25,7 @@ import (
 	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 
 	XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	XXX_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -34,24 +35,24 @@ func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
 	}
 }
 
-func shouldLoadRef(strRef string) XXX_insolar.Reference {
-	ref, err := XXX_insolar.NewReferenceFromString(strRef)
+func shouldLoadRef(strRef string) XXX_reference.Global {
+	ref, err := XXX_reference.GlobalFromString(strRef)
 	if err != nil {
 		panic(errors.Wrap(err, "Unexpected error, bailing out"))
 	}
 	return ref
 }
 
-func InitializeCodeRefs() map[XXX_insolar.Reference]string {
-	rv := make(map[XXX_insolar.Reference]string, 1)
+func InitializeCodeRefs() map[XXX_reference.Global]string {
+	rv := make(map[XXX_reference.Global]string, 1)
 
 	rv[shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")] = "testwallet"
 
 	return rv
 }
 
-func InitializePrototypeRefs() map[XXX_insolar.Reference]string {
-	rv := make(map[XXX_insolar.Reference]string, 1)
+func InitializePrototypeRefs() map[XXX_reference.Global]string {
+	rv := make(map[XXX_reference.Global]string, 1)
 
 	rv[shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")] = "testwallet"
 
