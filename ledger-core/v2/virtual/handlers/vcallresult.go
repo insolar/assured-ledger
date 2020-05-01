@@ -50,7 +50,7 @@ func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.Stat
 		panic(throw.IllegalValue())
 	}
 
-	outgoingRef := reference.NewGlobal(*s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
+	outgoingRef := reference.NewGlobal(s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
 
 	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	if link.IsZero() {

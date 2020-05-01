@@ -27,7 +27,7 @@ const (
 type Encoder interface {
 	Encode(ref Holder) (string, error)
 	EncodeToBuilder(ref Holder, b *strings.Builder) error
-	EncodeRecord(rec *Local) (string, error)
+	EncodeRecord(rec LocalHolder) (string, error)
 }
 
 func DefaultEncoder() Encoder {
@@ -154,7 +154,7 @@ func (v encoder) appendPrefix(b *strings.Builder) {
 	}
 }
 
-func (v encoder) encodeBinary(rec *Local, b *strings.Builder) error {
+func (v encoder) encodeBinary(rec Local, b *strings.Builder) error {
 	if rec.IsEmpty() {
 		b.WriteByte('0')
 		return nil
@@ -187,7 +187,7 @@ func (v encoder) encodeBinary(rec *Local, b *strings.Builder) error {
 	return nil
 }
 
-func (v encoder) encodeRecord(rec *Local, b *strings.Builder) error {
+func (v encoder) encodeRecord(rec Local, b *strings.Builder) error {
 	if rec.IsEmpty() {
 		b.WriteString("0." + RecordDomainName)
 		return nil
@@ -204,13 +204,13 @@ func (v encoder) encodeRecord(rec *Local, b *strings.Builder) error {
 	return nil
 }
 
-func (v encoder) EncodeRecord(rec *Local) (string, error) {
+func (v encoder) EncodeRecord(rec LocalHolder) (string, error) {
 	if rec == nil {
 		return NilRef, nil
 	}
 
 	b := strings.Builder{}
 	v.appendPrefix(&b)
-	err := v.encodeRecord(rec, &b)
+	err := v.encodeRecord(rec.GetLocal(), &b)
 	return b.String(), err
 }

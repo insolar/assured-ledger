@@ -56,7 +56,7 @@ func extractReference(response []byte, requestTypeMsg string) insolar.Reference 
 	ref, err := insolar.NewReferenceFromString(r.Result.CallResult.(string))
 	checkError(fmt.Sprintf("Failed to construct ref from '%s' node response", requestTypeMsg), err)
 
-	return *ref
+	return ref
 }
 
 func (g *certGen) registerNode() insolar.Reference {

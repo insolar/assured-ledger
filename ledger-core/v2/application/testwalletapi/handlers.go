@@ -172,7 +172,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		Callee:         *fromRef,
+		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
 	}
@@ -248,7 +248,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
 		CallFlags:      callflag.Unordered,
-		Callee:         *ref,
+		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
@@ -333,7 +333,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		Callee:         *ref,
+		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,
 	}

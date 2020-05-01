@@ -39,7 +39,7 @@ type CertificateMock struct {
 	beforeGetMinRolesCounter uint64
 	GetMinRolesMock          mCertificateMockGetMinRoles
 
-	funcGetNodeRef          func() (rp1 *mm_insolar.Reference)
+	funcGetNodeRef          func() (r1 mm_insolar.Reference)
 	inspectFuncGetNodeRef   func()
 	afterGetNodeRefCounter  uint64
 	beforeGetNodeRefCounter uint64
@@ -680,7 +680,7 @@ type CertificateMockGetNodeRefExpectation struct {
 
 // CertificateMockGetNodeRefResults contains results of the Certificate.GetNodeRef
 type CertificateMockGetNodeRefResults struct {
-	rp1 *mm_insolar.Reference
+	r1 mm_insolar.Reference
 }
 
 // Expect sets up expected params for Certificate.GetNodeRef
@@ -708,7 +708,7 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Inspect(f func()) *mCertificateM
 }
 
 // Return sets up results that will be returned by Certificate.GetNodeRef
-func (mmGetNodeRef *mCertificateMockGetNodeRef) Return(rp1 *mm_insolar.Reference) *CertificateMock {
+func (mmGetNodeRef *mCertificateMockGetNodeRef) Return(r1 mm_insolar.Reference) *CertificateMock {
 	if mmGetNodeRef.mock.funcGetNodeRef != nil {
 		mmGetNodeRef.mock.t.Fatalf("CertificateMock.GetNodeRef mock is already set by Set")
 	}
@@ -716,12 +716,12 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Return(rp1 *mm_insolar.Reference
 	if mmGetNodeRef.defaultExpectation == nil {
 		mmGetNodeRef.defaultExpectation = &CertificateMockGetNodeRefExpectation{mock: mmGetNodeRef.mock}
 	}
-	mmGetNodeRef.defaultExpectation.results = &CertificateMockGetNodeRefResults{rp1}
+	mmGetNodeRef.defaultExpectation.results = &CertificateMockGetNodeRefResults{r1}
 	return mmGetNodeRef.mock
 }
 
 //Set uses given function f to mock the Certificate.GetNodeRef method
-func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (rp1 *mm_insolar.Reference)) *CertificateMock {
+func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (r1 mm_insolar.Reference)) *CertificateMock {
 	if mmGetNodeRef.defaultExpectation != nil {
 		mmGetNodeRef.mock.t.Fatalf("Default expectation is already set for the Certificate.GetNodeRef method")
 	}
@@ -735,7 +735,7 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (rp1 *mm_insolar.Re
 }
 
 // GetNodeRef implements insolar.Certificate
-func (mmGetNodeRef *CertificateMock) GetNodeRef() (rp1 *mm_insolar.Reference) {
+func (mmGetNodeRef *CertificateMock) GetNodeRef() (r1 mm_insolar.Reference) {
 	mm_atomic.AddUint64(&mmGetNodeRef.beforeGetNodeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeRef.afterGetNodeRefCounter, 1)
 
@@ -750,7 +750,7 @@ func (mmGetNodeRef *CertificateMock) GetNodeRef() (rp1 *mm_insolar.Reference) {
 		if mm_results == nil {
 			mmGetNodeRef.t.Fatal("No results are set for the CertificateMock.GetNodeRef")
 		}
-		return (*mm_results).rp1
+		return (*mm_results).r1
 	}
 	if mmGetNodeRef.funcGetNodeRef != nil {
 		return mmGetNodeRef.funcGetNodeRef()

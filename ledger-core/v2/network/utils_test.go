@@ -59,39 +59,41 @@ func TestCorrectShortIDCollision(t *testing.T) {
 	require.Equal(t, insolar.ShortNodeID(2), regenerateShortID(nodes, insolar.ShortNodeID(1<<32-2)))
 }
 
+var _ insolar.DiscoveryNode = testNode{}
+
 type testNode struct {
 	ref insolar.Reference
 }
 
-func (t *testNode) GetNodeRef() *insolar.Reference {
-	return &t.ref
+func (t testNode) GetNodeRef() insolar.Reference {
+	return t.ref
 }
 
-func (t *testNode) GetPublicKey() crypto.PublicKey {
+func (t testNode) GetPublicKey() crypto.PublicKey {
 	return nil
 }
 
-func (t *testNode) GetHost() string {
+func (t testNode) GetHost() string {
 	return ""
 }
 
-func (t *testNode) GetBriefDigest() []byte {
+func (t testNode) GetBriefDigest() []byte {
 	return nil
 }
 
-func (t *testNode) GetBriefSign() []byte {
+func (t testNode) GetBriefSign() []byte {
 	return nil
 }
 
-func (t *testNode) GetRole() insolar.StaticRole {
+func (t testNode) GetRole() insolar.StaticRole {
 	return insolar.StaticRoleVirtual
 }
 
 func TestExcludeOrigin(t *testing.T) {
 	origin := gen.Reference()
-	originNode := &testNode{origin}
-	first := &testNode{gen.Reference()}
-	second := &testNode{gen.Reference()}
+	originNode := testNode{origin}
+	first := testNode{gen.Reference()}
+	second := testNode{gen.Reference()}
 
 	discoveryNodes := []insolar.DiscoveryNode{first, originNode, second}
 	result := ExcludeOrigin(discoveryNodes, origin)

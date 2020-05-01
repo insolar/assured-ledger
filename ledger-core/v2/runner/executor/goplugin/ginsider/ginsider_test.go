@@ -77,7 +77,7 @@ func TestHealthCheck(t *testing.T) {
 	require.NoError(t, err)
 
 	healthcheckSoFile := path.Join(tmpDir, "healthcheck.so")
-	err = gi.AddPlugin(*ref, healthcheckSoFile)
+	err = gi.AddPlugin(ref, healthcheckSoFile)
 	require.NoError(t, err, "failed to add plugin by path "+healthcheckSoFile)
 
 	prepareGoInsider(t, gi, protocol, socket)

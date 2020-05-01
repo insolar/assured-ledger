@@ -42,7 +42,7 @@ func shouldLoadRef(strRef string) XXX_insolar.Reference {
     if err != nil {
         panic(errors.Wrap(err, "Unexpected error, bailing out"))
     }
-    return *ref
+    return ref
 }
 
 func InitializeCodeRefs() map[XXX_insolar.Reference]string {
@@ -88,7 +88,7 @@ func InitializePrototypeDescriptors() []XXX_descriptor.PrototypeDescriptor {
         cRef := shouldLoadRef("{{ $contract.CodeReference }}")
         rv = append(rv, XXX_descriptor.NewPrototypeDescriptor(
             /* head:         */ pRef,
-            /* state:        */ *pRef.GetLocal(),
+            /* state:        */ pRef.GetLocal(),
             /* code:         */ cRef,
         ))
     }

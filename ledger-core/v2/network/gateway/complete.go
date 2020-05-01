@@ -83,7 +83,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef *insolar.Refer
 func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.DiscoveryNode, registeredNodeRef *insolar.Reference) ([]byte, error) {
 	currentNodeCert := g.CertificateManager.GetCertificate()
 
-	if *discoveryNode.GetNodeRef() == *currentNodeCert.GetNodeRef() {
+	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
 		sign, err := g.signCert(ctx, registeredNodeRef)
 		if err != nil {
 			return nil, err
@@ -94,7 +94,7 @@ func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.Di
 	request := &packet.SignCertRequest{
 		NodeRef: *registeredNodeRef,
 	}
-	future, err := g.HostNetwork.SendRequest(ctx, types.SignCert, request, *discoveryNode.GetNodeRef())
+	future, err := g.HostNetwork.SendRequest(ctx, types.SignCert, request, discoveryNode.GetNodeRef())
 	if err != nil {
 		return nil, err
 	}

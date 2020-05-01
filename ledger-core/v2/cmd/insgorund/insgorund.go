@@ -71,7 +71,7 @@ func main() {
 		}
 		pluginPath := codeSlice[1]
 
-		err = insider.AddPlugin(*ref, pluginPath)
+		err = insider.AddPlugin(ref, pluginPath)
 		if err != nil {
 			global.Fatalf("Couldn't add plugin by ref %s with .so from %s, err: %s ", ref, pluginPath, err.Error())
 		}

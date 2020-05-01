@@ -10,7 +10,7 @@ import (
 )
 
 type NodeMeta interface {
-	GetNodeRef() *Reference
+	GetNodeRef() Reference
 	GetPublicKey() crypto.PublicKey
 }
 
