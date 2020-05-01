@@ -12,7 +12,7 @@ import (
 )
 
 func TestJet_DebugString(t *testing.T) {
-	var id *JetID
+	var id JetID
 	id = NewJetID(0, []byte{})
 	assert.Equal(t, "[JET 0 -]", id.DebugString())
 

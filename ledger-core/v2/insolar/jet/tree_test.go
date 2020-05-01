@@ -25,14 +25,14 @@ func TestTree_Update(t *testing.T) {
 
 	lookup := insolar.NewID(gen.PulseNumber(), []byte{0xD5}) // 11010101
 
-	id, actual := tree.Find(*lookup)
+	id, actual := tree.Find(lookup)
 	depth, prefix = id.Depth(), id.Prefix()
 	assert.Equal(t, depth, uint8(0))
 	assert.Equal(t, prefix, make([]byte, insolar.RecordHashSize-1))
 	assert.Equal(t, false, actual)
 
-	tree.Update(*insolar.NewJetID(1, []byte{1 << 7}), false)
-	id, actual = tree.Find(*lookup)
+	tree.Update(insolar.NewJetID(1, []byte{1 << 7}), false)
+	id, actual = tree.Find(lookup)
 	depth, prefix = id.Depth(), id.Prefix()
 	expectedPrefix := make([]byte, insolar.RecordHashSize-1)
 	expectedPrefix[0] = 0x80
@@ -40,15 +40,15 @@ func TestTree_Update(t *testing.T) {
 	assert.Equal(t, expectedPrefix, prefix)
 	assert.Equal(t, false, actual)
 
-	tree.Update(*insolar.NewJetID(8, lookup.Hash()), false)
-	id, actual = tree.Find(*lookup)
+	tree.Update(insolar.NewJetID(8, lookup.Hash()), false)
+	id, actual = tree.Find(lookup)
 	depth, prefix = id.Depth(), id.Prefix()
 	assert.Equal(t, uint8(8), depth)
 	assert.Equal(t, lookup.Hash()[:insolar.RecordHashSize-1], prefix)
 	assert.Equal(t, false, actual)
 
-	tree.Update(*insolar.NewJetID(8, lookup.Hash()), true)
-	id, actual = tree.Find(*lookup)
+	tree.Update(insolar.NewJetID(8, lookup.Hash()), true)
+	id, actual = tree.Find(lookup)
 	depth, prefix = id.Depth(), id.Prefix()
 	assert.Equal(t, uint8(8), depth)
 	assert.Equal(t, lookup.Hash()[:insolar.RecordHashSize-1], prefix)
@@ -75,14 +75,14 @@ func TestTree_Find(t *testing.T) {
 	expectedPrefix := make([]byte, insolar.RecordIDSize-insolar.PulseNumberSize-1)
 	expectedPrefix[0] = 0xD0 // 11010000
 
-	id, actual := tree.Find(*lookup)
+	id, actual := tree.Find(lookup)
 	depth, prefix := id.Depth(), id.Prefix()
 	assert.Equal(t, depth, uint8(4))
 	assert.Equal(t, expectedPrefix, prefix)
 	assert.False(t, actual)
 
-	jetID, actual := tree.Find(insolar.ID(*jetLookup))
-	assert.Equal(t, *jetLookup, jetID)
+	jetID, actual := tree.Find(insolar.ID(jetLookup))
+	assert.Equal(t, jetLookup, jetID)
 	assert.True(t, actual)
 }
 
@@ -99,7 +99,7 @@ func TestTree_Split(t *testing.T) {
 	ok := insolar.NewJetID(2, []byte{0xD5})      // 11010101
 
 	t.Run("not existing jet returns error", func(t *testing.T) {
-		_, _, err := tree.Split(*tooDeep)
+		_, _, err := tree.Split(tooDeep)
 		assert.Error(t, err)
 	})
 
@@ -113,7 +113,7 @@ func TestTree_Split(t *testing.T) {
 		copy(rExpectedPrefix, okPrefix)
 		rExpectedPrefix[0] = 0xE0 // 11100000
 
-		left, right, err := tree.Split(*ok)
+		left, right, err := tree.Split(ok)
 		require.NoError(t, err)
 		lDepth, lPrefix := left.Depth(), left.Prefix()
 		rDepth, rPrefix := right.Depth(), right.Prefix()

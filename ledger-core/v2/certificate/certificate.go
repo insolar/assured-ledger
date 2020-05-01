@@ -45,11 +45,11 @@ func NewBootstrapNode(pubKey crypto.PublicKey, publicKey, host, noderef, role st
 }
 
 // GetNodeRef returns reference of bootstrap node
-func (bn *BootstrapNode) GetNodeRef() *insolar.Reference {
+func (bn *BootstrapNode) GetNodeRef() insolar.Reference {
 	ref, err := insolar.NewReferenceFromString(bn.NodeRef)
 	if err != nil {
 		global.Errorf("Invalid bootstrap node reference: %s. Error: %s", bn.NodeRef, err.Error())
-		return nil
+		return insolar.Reference{}
 	}
 	return ref
 }
@@ -115,7 +115,7 @@ func newCertificate(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcesso
 
 	cert.DiscoverySigns = make(map[insolar.Reference][]byte)
 	for _, node := range cert.BootstrapNodes {
-		cert.DiscoverySigns[*(node.GetNodeRef())] = node.NodeSign
+		cert.DiscoverySigns[node.GetNodeRef()] = node.NodeSign
 	}
 
 	return &cert, nil

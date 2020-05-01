@@ -96,7 +96,7 @@ func generateNonConflictingID(sortedSlice []insolar.ShortNodeID, conflictingID i
 // ExcludeOrigin returns DiscoveryNode slice without Origin
 func ExcludeOrigin(discoveryNodes []insolar.DiscoveryNode, origin insolar.Reference) []insolar.DiscoveryNode {
 	for i, discoveryNode := range discoveryNodes {
-		if origin.Equal(*discoveryNode.GetNodeRef()) {
+		if origin.Equal(discoveryNode.GetNodeRef()) {
 			return append(discoveryNodes[:i], discoveryNodes[i+1:]...)
 		}
 	}
@@ -107,7 +107,7 @@ func ExcludeOrigin(discoveryNodes []insolar.DiscoveryNode, origin insolar.Refere
 func FindDiscoveryByRef(cert insolar.Certificate, ref insolar.Reference) insolar.DiscoveryNode {
 	bNodes := cert.GetDiscoveryNodes()
 	for _, discoveryNode := range bNodes {
-		if ref.Equal(*discoveryNode.GetNodeRef()) {
+		if ref.Equal(discoveryNode.GetNodeRef()) {
 			return discoveryNode
 		}
 	}
@@ -115,14 +115,14 @@ func FindDiscoveryByRef(cert insolar.Certificate, ref insolar.Reference) insolar
 }
 
 func OriginIsDiscovery(cert insolar.Certificate) bool {
-	return IsDiscovery(*cert.GetNodeRef(), cert)
+	return IsDiscovery(cert.GetNodeRef(), cert)
 }
 
 func IsDiscovery(nodeID insolar.Reference, cert insolar.Certificate) bool {
 	return FindDiscoveryByRef(cert, nodeID) != nil
 }
 
-func JoinAssistant(cert insolar.Certificate)  insolar.DiscoveryNode {
+func JoinAssistant(cert insolar.Certificate) insolar.DiscoveryNode {
 	bNodes := cert.GetDiscoveryNodes()
 	if len(bNodes) == 0 {
 		return nil
@@ -141,13 +141,12 @@ func IsJoinAssistant(nodeID insolar.Reference, cert insolar.Certificate) bool {
 	if assist == nil {
 		return false
 	}
-	return nodeID.Equal(*assist.GetNodeRef())
+	return nodeID.Equal(assist.GetNodeRef())
 }
 
 func OriginIsJoinAssistant(cert insolar.Certificate) bool {
-	return IsJoinAssistant(*cert.GetNodeRef(), cert)
+	return IsJoinAssistant(cert.GetNodeRef(), cert)
 }
-
 
 func CloseVerbose(closer io.Closer) {
 	err := closer.Close()

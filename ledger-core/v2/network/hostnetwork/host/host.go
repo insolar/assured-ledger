@@ -124,7 +124,7 @@ func (host *Host) Unmarshal(data []byte) error {
 	if err := binary.Read(reader, binary.BigEndian, &nodeIDBinary); err != nil {
 		return errors.Wrap(err, "failed to unmarshal protobuf host NodeID")
 	}
-	host.NodeID = *insolar.NewReferenceFromBytes(nodeIDBinary[:])
+	host.NodeID = insolar.NewReferenceFromBytes(nodeIDBinary[:])
 
 	if err := binary.Read(reader, binary.BigEndian, &host.ShortID); err != nil {
 		return errors.Wrap(err, "failed to unmarshal protobuf host ShortID")

@@ -50,7 +50,7 @@ type requester struct {
 func (ac *requester) Authorize(ctx context.Context, cert insolar.Certificate) (*packet.Permit, error) {
 	logger := inslogger.FromContext(ctx)
 
-	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), *cert.GetNodeRef())
+	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
 
 	rand.Shuffle(
 		len(discoveryNodes),
@@ -62,10 +62,10 @@ func (ac *requester) Authorize(ctx context.Context, cert insolar.Certificate) (*
 	bestResult := &packet.AuthorizeResponse{}
 
 	for _, n := range discoveryNodes {
-		h, err := host.NewHostN(n.GetHost(), *n.GetNodeRef())
+		h, err := host.NewHostN(n.GetHost(), n.GetNodeRef())
 		if err != nil {
 			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
-				n.GetHost(), *n.GetNodeRef(), err.Error())
+				n.GetHost(), n.GetNodeRef(), err.Error())
 			continue
 		}
 
