@@ -95,7 +95,7 @@ func TestMsgSerialize(t *testing.T) {
 	msg1.MsgParam = 11
 	msg1.Str = "first"
 	msg1.MsgBytes = []byte{1}
-	//msg1.Ref1 = []byte{10, 11, 12}
+	// msg1.Ref1 = []byte{10, 11, 12}
 	msg1.Body().BodyPayload = &testPayloadProvider{[]byte("payload")}
 	msg1.Body().Extensions = []ExtensionProvider{{&testPayloadProvider{[]byte("ext1.0")}, 1}}
 

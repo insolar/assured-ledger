@@ -5,7 +5,9 @@
 
 package rms
 
-//go:generate protoc -I=. -I=$GOPATH/src --gogofaster_out=./ example.proto
+// x go:generate protoc -I=. -I=$GOPATH/src --gogofaster_out=./ example.proto
+
+//go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ example2.proto
 
 type MsgHeadExample struct {
 	MsgExample

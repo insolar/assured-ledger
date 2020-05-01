@@ -44,7 +44,7 @@ package sizer
 
 import (
 	"fmt"
-	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -54,6 +54,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
 )
 
@@ -152,7 +153,7 @@ func (p *size) std(field *descriptor.FieldDescriptorProto, name string) (string,
 	return "", false
 }
 
-func (p *size) generateField(proto3, notation bool, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto, sizeName string) {
+func (p *size) generateField(proto3, notation, zeroableDefault bool, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto, sizeName string) {
 	fieldname := p.GetOneOfFieldName(message, field)
 	nullable := gogoproto.IsNullable(field)
 	repeated := field.IsRepeated()
@@ -175,6 +176,7 @@ func (p *size) generateField(proto3, notation bool, file *generator.FileDescript
 		wireType = proto.WireBytes
 	}
 	key := keySize(fieldNumber, wireType)
+
 	switch *field.Type {
 	case descriptor.FieldDescriptorProto_TYPE_DOUBLE,
 		descriptor.FieldDescriptorProto_TYPE_FIXED64,
@@ -429,7 +431,7 @@ func (p *size) generateField(proto3, notation bool, file *generator.FileDescript
 			if stdOk {
 				p.P(`l=`, stdSizeCall)
 			} else {
-				if !required && !mustBeIncluded && insproto.IsZeroable(field) {
+				if !required && !mustBeIncluded && insproto.IsZeroable(field, zeroableDefault) {
 					p.P(`if l = m.`, fieldname, `.`, sizeName, `(); l > 0 {`)
 					p.In()
 					p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
@@ -522,21 +524,20 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 	}
 	for _, message := range file.Messages() {
 		sizeName := ""
-		if gogoproto.IsSizer(file.FileDescriptorProto, message.DescriptorProto) && gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto) {
-			fmt.Fprintf(os.Stderr, "ERROR: message %v cannot support both sizer and protosizer plugins\n", generator.CamelCase(*message.Name))
-			os.Exit(1)
-		}
-		if gogoproto.IsSizer(file.FileDescriptorProto, message.DescriptorProto) {
-			sizeName = "Size"
-		} else if gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto) {
+		if gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto) {
 			sizeName = "ProtoSize"
+		} else if gogoproto.IsSizer(file.FileDescriptorProto, message.DescriptorProto) {
+			sizeName = "Size"
 		} else {
 			continue
 		}
 		if message.DescriptorProto.GetOptions().GetMapEntry() {
 			continue
 		}
+
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
+		zeroableDefault := insproto.IsZeroableDefault(file.FileDescriptorProto, message.DescriptorProto)
+
 		p.atleastOne = true
 		ccTypeName := generator.CamelCaseSlice(message.TypeName())
 		p.P(`func (m *`, ccTypeName, `) `, sizeName, `() (n int) {`)
@@ -550,24 +551,44 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 		p.P(`_ = l`)
 		oneofs := make(map[string]struct{})
 		proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
-		for _, field := range message.Field {
-			oneof := field.OneofIndex != nil
-			if !oneof {
-				p.generateField(proto3, notation, file, message, field, sizeName)
-			} else {
-				fieldname := p.GetFieldName(message, field)
-				if _, ok := oneofs[fieldname]; ok {
-					continue
-				} else {
-					oneofs[fieldname] = struct{}{}
-				}
-				p.P(`if m.`, fieldname, ` != nil {`)
-				p.In()
-				p.P(`n+=m.`, fieldname, `.`, sizeName, `()`)
-				p.Out()
-				p.P(`}`)
+
+		fields := message.GetField()
+
+		if notation {
+			sort.Sort(marshalto.OrderedFields(fields))
+
+			switch {
+			case len(fields) == 0 || fields[0].GetNumber() >= 20:
+				p.generatePolymorphField(proto3, message, nil)
+			case fields[0].GetNumber() < 16:
+				panic("unexpected field number")
+			case fields[0].GetNumber() == 16:
+				field := fields[0]
+				fields = fields[1:]
+				p.generatePolymorphField(proto3, message, field)
+			case insproto.HasPolymorphID(message.DescriptorProto):
+				p.generatePolymorphField(proto3, message, nil)
 			}
 		}
+
+		for _, field := range fields {
+			if field.OneofIndex == nil {
+				p.generateField(proto3, notation, zeroableDefault, file, message, field, sizeName)
+				continue
+			}
+
+			fieldname := p.GetFieldName(message, field)
+			if _, ok := oneofs[fieldname]; ok {
+				continue
+			}
+			oneofs[fieldname] = struct{}{}
+			p.P(`if m.`, fieldname, ` != nil {`)
+			p.In()
+			p.P(`n+=m.`, fieldname, `.`, sizeName, `()`)
+			p.Out()
+			p.P(`}`)
+		}
+
 		if message.DescriptorProto.HasExtension() {
 			if gogoproto.HasExtensionsMap(file.FileDescriptorProto, message.DescriptorProto) {
 				p.P(`n += `, protoPkg.Use(), `.SizeOfInternalExtension(m)`)
@@ -591,28 +612,30 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 		p.P(`}`)
 		p.P()
 
-		// Generate Size methods for oneof fields
-		m := proto.Clone(message.DescriptorProto).(*descriptor.DescriptorProto)
-		for _, f := range m.Field {
-			oneof := f.OneofIndex != nil
-			if !oneof {
-				continue
+		if len(oneofs) > 0 {
+			// Generate Size methods for oneof fields
+			m := proto.Clone(message.DescriptorProto).(*descriptor.DescriptorProto)
+			for _, f := range m.Field {
+				oneof := f.OneofIndex != nil
+				if !oneof {
+					continue
+				}
+				ccTypeName := p.OneOfTypeName(message, f)
+				p.P(`func (m *`, ccTypeName, `) `, sizeName, `() (n int) {`)
+				p.In()
+				p.P(`if m == nil {`)
+				p.In()
+				p.P(`return 0`)
+				p.Out()
+				p.P(`}`)
+				p.P(`var l int`)
+				p.P(`_ = l`)
+				vanity.TurnOffNullableForNativeTypes(f)
+				p.generateField(false, notation, zeroableDefault, file, message, f, sizeName)
+				p.P(`return n`)
+				p.Out()
+				p.P(`}`)
 			}
-			ccTypeName := p.OneOfTypeName(message, f)
-			p.P(`func (m *`, ccTypeName, `) `, sizeName, `() (n int) {`)
-			p.In()
-			p.P(`if m == nil {`)
-			p.In()
-			p.P(`return 0`)
-			p.Out()
-			p.P(`}`)
-			p.P(`var l int`)
-			p.P(`_ = l`)
-			vanity.TurnOffNullableForNativeTypes(f)
-			p.generateField(false, notation, file, message, f, sizeName)
-			p.P(`return n`)
-			p.Out()
-			p.P(`}`)
 		}
 	}
 
@@ -622,5 +645,24 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 
 	p.sizeVarint()
 	p.sizeZigZag()
+}
 
+func (p *size) generatePolymorphField(proto3 bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
+	polymorphID := insproto.GetPolymorphID(message.DescriptorProto)
+	if field == nil {
+		p.P(`n+=2 + sov`, p.localName, `(`, strconv.FormatUint(polymorphID, 10), `)`)
+		return
+	}
+	fieldName := p.GetOneOfFieldName(message, field)
+	if polymorphID == 0 {
+		p.P(`n+=2 + sov`, p.localName, `(uint64(m.`, fieldName, `))`)
+		return
+	}
+	p.P(`{`)
+	p.In()
+	p.P(`id := uint64(m.`, fieldName, `)`)
+	p.P(`if id == 0 { id = `, strconv.FormatUint(polymorphID, 10), ` }`)
+	p.P(`n+=2 + sov`, p.localName, `(id)`)
+	p.Out()
+	p.P(`}`)
 }

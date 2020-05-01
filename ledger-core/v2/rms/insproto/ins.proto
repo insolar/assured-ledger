@@ -16,10 +16,13 @@ extend google.protobuf.FileOptions {
 extend google.protobuf.MessageOptions {
     optional bool insproto_notation = 64901;
     optional bool insproto_zeroable = 64902;
-    optional string insproto_context = 64903;
+    optional string context = 64903;
+    optional uint64 id = 64904;
+    optional bool head = 64905;
+    optional string contextMethod = 64906;
 }
 
 extend google.protobuf.FieldOptions {
     optional bool zeroable = 65902;
-    optional string context = 65903;
+    optional string ctxApply = 65903;
 }

@@ -33,10 +33,12 @@ package defaultcheck
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
 )
 
@@ -56,64 +58,97 @@ func (p *plugin) Init(g *generator.Generator) {
 	p.Generator = g
 }
 
+func printerr(m string, args ...interface{}) {
+	_, _ = fmt.Fprintf(os.Stderr, m, args...)
+}
+
 func (p *plugin) Generate(file *generator.FileDescriptor) {
-	// proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
+	proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
 
-	for _, msg := range file.Messages() {
-		getters := gogoproto.HasGoGetters(file.FileDescriptorProto, msg.DescriptorProto)
-		face := gogoproto.IsFace(file.FileDescriptorProto, msg.DescriptorProto)
-		notation := insproto.IsNotation(file.FileDescriptorProto, msg.DescriptorProto)
-		for _, field := range msg.GetField() {
-			if notation && field.GetNumber() < 16 {
-				fmt.Fprintf(os.Stderr, "ERROR: field %v.%v violates notation, field number < 16", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
-				os.Exit(1)
-			}
+	for _, message := range file.Messages() {
+		if gogoproto.IsSizer(file.FileDescriptorProto, message.DescriptorProto) && gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto) {
+			printerr("ERROR: message %v cannot support both sizer and protosizer plugins\n", generator.CamelCase(*message.Name))
+			os.Exit(1)
+		}
 
+		getters := gogoproto.HasGoGetters(file.FileDescriptorProto, message.DescriptorProto)
+		face := gogoproto.IsFace(file.FileDescriptorProto, message.DescriptorProto)
+		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
+		has1619 := false
+
+		fields := message.GetField()
+		if notation {
+			sort.Sort(marshalto.OrderedFields(fields))
+		}
+
+		for _, field := range fields {
 			if len(field.GetDefaultValue()) > 0 {
 				if !getters {
-					fmt.Fprintf(os.Stderr, "ERROR: field %v.%v cannot have a default value and not have a getter method", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
+					printerr("ERROR: field %v.%v cannot have a default value and not have a getter method", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 					os.Exit(1)
 				}
 				if face {
-					fmt.Fprintf(os.Stderr, "ERROR: field %v.%v cannot have a default value be in a face", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
+					printerr("ERROR: field %v.%v cannot have a default value be in a face", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 					os.Exit(1)
 				}
 			}
-			if gogoproto.IsNullable(field) {
-				if notation && field.GetNumber() < 20 {
-					fmt.Fprintf(os.Stderr, "ERROR: field %v.%v violates notation, field with number [16..19] can't be nullable", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
+
+			if insproto.IsCustomContextApply(field) && !insproto.IsCustomContext(message.DescriptorProto) {
+				printerr("WARNING: field %v.%v has delegate without context\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+			}
+
+			if notation {
+				switch fieldNumber := field.GetNumber(); {
+				case fieldNumber < 16:
+					printerr("ERROR: field %v.%v violates notation, field number < 16", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 					os.Exit(1)
+				case fieldNumber > 20:
+					//
+				case !has1619:
+					if gogoproto.IsNullable(field) || field.IsRepeated() || field.IsPacked() || (proto3 && field.IsPacked3()) || field.DefaultValue != nil || field.OneofIndex != nil {
+						printerr("ERROR: field %v.%v violates notation, first field with number [16..19] can't have be nullable, repeated, packed, oneof or with default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+						os.Exit(1)
+					}
+					has1619 = true
 				}
+				// TODO check that incorporated messages also follow the notation?
+			}
+
+			if gogoproto.IsNullable(field) {
 				continue
 			}
 			if len(field.GetDefaultValue()) > 0 {
-				fmt.Fprintf(os.Stderr, "ERROR: field %v.%v cannot be non-nullable and have a default value", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
+				printerr("ERROR: field %v.%v cannot be non-nullable and have a default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 				os.Exit(1)
 			}
-			if !field.IsMessage() && !gogoproto.IsCustomType(field) {
-				if field.IsRepeated() {
-					fmt.Fprintf(os.Stderr, "WARNING: field %v.%v is a repeated non-nullable native type, nullable=false has no effect\n", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
-					// } else if proto3 {
-					// 	fmt.Fprintf(os.Stderr, "ERROR: field %v.%v is a native type and in proto3 syntax with nullable=false there exists conflicting implementations when encoding zero values", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
-					// 	os.Exit(1)
-				}
-				if field.IsBytes() {
-					fmt.Fprintf(os.Stderr, "WARNING: field %v.%v is a non-nullable bytes type, nullable=false has no effect\n", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name))
-				}
-			}
+			// if !field.IsMessage() && !gogoproto.IsCustomType(field) {
+			// 	if field.IsRepeated() {
+			// 		printerr("WARNING: field %v.%v is a repeated non-nullable native type, nullable=false has no effect\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+			// 	} else if proto3 {
+			// 		printerr("ERROR: field %v.%v is a native type and in proto3 syntax with nullable=false there exists conflicting implementations when encoding zero values", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+			// 		os.Exit(1)
+			// 	}
+			// 	if field.IsBytes() {
+			// 		printerr("WARNING: field %v.%v is a non-nullable bytes type, nullable=false has no effect\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+			// 	}
+			// }
 			if !field.IsEnum() {
 				continue
 			}
 			enum := p.ObjectNamed(field.GetTypeName()).(*generator.EnumDescriptor)
 			if len(enum.Value) == 0 || enum.Value[0].GetNumber() != 0 {
-				fmt.Fprintf(os.Stderr, "ERROR: field %v.%v cannot be non-nullable and be an enum type %v which does not start with zero", generator.CamelCase(*msg.Name), generator.CamelCase(*field.Name), enum.GetName())
+				printerr("ERROR: field %v.%v cannot be non-nullable and be an enum type %v which does not start with zero", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name), enum.GetName())
 				os.Exit(1)
 			}
+		}
+		if notation && !has1619 && !insproto.HasPolymorphID(message.DescriptorProto) {
+			printerr("ERROR: message %v violates notation, missing field with number [16..19]", generator.CamelCase(*message.Name))
+			os.Exit(1)
 		}
 	}
 	for _, e := range file.GetExtension() {
 		if !gogoproto.IsNullable(e) {
-			fmt.Fprintf(os.Stderr, "ERROR: extended field %v cannot be nullable %v", generator.CamelCase(e.GetName()), generator.CamelCase(*e.Name))
+			printerr("ERROR: extended field %v cannot be nullable %v", generator.CamelCase(e.GetName()), generator.CamelCase(*e.Name))
 			os.Exit(1)
 		}
 	}

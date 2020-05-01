@@ -5,7 +5,9 @@
 
 package rms
 
-import "github.com/gogo/protobuf/proto"
+import (
+	"github.com/gogo/protobuf/proto"
+)
 
 //go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ rms_internal.proto
 

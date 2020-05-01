@@ -8,11 +8,14 @@ import "github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto/ins.proto"
 option (insproto.insproto_notation_all) = true;
 
 message InternalRecordEnvelope {
+    option (insproto.context) = "github.com/insolar/assured-ledger/ledger-core/v2/runner/execution.Context";
+
     reserved 1 to 15;
-    bytes Head = 17 [(gogoproto.customtype) = "interceptor", (insproto.context) = "testContext"];
+    bytes Head = 17 [(gogoproto.customtype) = "interceptor", (insproto.ctxApply) = "Interceptor"];
     bytes Body = 18 [(gogoproto.customtype) = "interceptorBody"];
     bytes BodySignature = 19 [(gogoproto.customtype) = "interceptor"];
     repeated bytes Extensions = 20 [(gogoproto.customtype) = "interceptor"];
+    string Value = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits.ByteString"];
 }
 
 message InternalMessageEnvelope {
@@ -34,5 +37,5 @@ message InternalRecordBody {
     reserved 1 to 15;
     // uint32 Polymorph = 16; not needed as field(17) has same properties and is never empty
     bytes MainContent = 17 [(gogoproto.customtype) = "GoGoMarshaller", (gogoproto.nullable) = false];
-    repeated bytes ExtensionHashes = 18 [(gogoproto.customtype) = "interceptorHash"];
+    repeated bytes ExtensionHashes = 20 [(gogoproto.customtype) = "interceptorHash"];
 }
