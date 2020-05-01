@@ -21,7 +21,6 @@ type StackTrace interface {
 	StackTraceAsText() string
 	WriteStackTraceTo(writer io.Writer) error
 	IsFullStack() bool
-	//ParseStackTrace() errors.StackTrace
 }
 
 // CaptureStack captures whole stack
@@ -36,6 +35,36 @@ func CaptureStackTop(skipFrames int) StackTrace {
 	return stackTrace{captureStack(skipFrames+1, true), true}
 }
 
+func ExtractStackTop(st StackTrace, skipFrames int) StackTrace {
+	var data []byte
+	switch vv := st.(type) {
+	case nil:
+		return nil
+	case stackTrace:
+		if vv.limit {
+			return st
+		}
+		data = vv.data
+	default:
+		if !vv.IsFullStack() {
+			return st
+		}
+		data = []byte(vv.StackTraceAsText())
+	}
+	start := indexOfFrame(data, skipFrames)
+	if start < 0 || start == 0 && skipFrames > 0 {
+		return stackTrace{data, true}
+	}
+	start += skipPanicFrame(data)
+	end := indexOfFrame(data[start:], 1)
+	if end > 0 {
+		data = data[start : start+end]
+	} else {
+		data = data[start:]
+	}
+	return stackTrace{append([]byte(nil), data...), true}
+}
+
 func IsInSystemPanic(skipFrames int) bool {
 	pc := make([]uintptr, 1)
 	if runtime.Callers(skipFrames+2, pc) != 1 {
@@ -45,11 +74,8 @@ func IsInSystemPanic(skipFrames int) bool {
 	return n == "runtime.preprintpanics"
 }
 
-//var _ fmt.Formatter = stackTrace{}
-
 type stackTrace struct {
-	data []byte
-	//parsed errors.StackTrace
+	data  []byte
 	limit bool
 }
 
@@ -73,28 +99,6 @@ func (v stackTrace) LogString() string {
 func (v stackTrace) String() string {
 	return stackTracePrintPrefix + string(v.data)
 }
-
-//func (v stackTrace) ParseStackTrace() errors.StackTrace {
-//
-//}
-//
-//func (v stackTrace) Format(s fmt.State, verb rune) {
-//	switch verb {
-//	case 'v':
-//		switch {
-//		case s.Flag('+'):
-//			//for _, f := range st {
-//			//	fmt.Fprintf(s, "\n%+v", f)
-//			//}
-//		case s.Flag('#'):
-//			//fmt.Fprintf(s, "%#v", []Frame(st))
-//		default:
-//			//fmt.Fprintf(s, "%v", []Frame(st))
-//		}
-//	case 's':
-//		fmt.Fprintf(s, "%s", []Frame(st))
-//	}
-//}
 
 func captureStack(skipFrames int, limitFrames bool) []byte {
 	skipFrames++

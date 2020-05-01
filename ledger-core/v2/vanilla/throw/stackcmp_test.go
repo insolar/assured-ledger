@@ -135,3 +135,22 @@ func getDeferTraces(skipFrames int, fn0, fn1 stackCaptureFunc) (st0 StackTrace, 
 	runtime.Gosched() // just to do something
 	return
 }
+
+func TestExtractStackTop(t *testing.T) {
+	st := stackTrace{data: []byte(testStackDebug)}
+	require.Equal(t, testStackDebugCall, ExtractStackTop(st, 0).StackTraceAsText())
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 1).StackTraceAsText())
+	require.Equal(t, testCreatedBy, ExtractStackTop(st, 99).StackTraceAsText())
+
+	st.data = []byte(testStackValuableOnce)
+
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 0).StackTraceAsText())
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 1).StackTraceAsText())
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 99).StackTraceAsText())
+
+	st.limit = true
+
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 0).StackTraceAsText())
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 1).StackTraceAsText())
+	require.Equal(t, testStackValuableOnce, ExtractStackTop(st, 99).StackTraceAsText())
+}

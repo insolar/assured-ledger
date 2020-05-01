@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/request"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -30,17 +30,16 @@ import (
 // 	InputType interface{} `fmt:"%T"`
 // }
 
-func DefaultHandlersFactory(_ pulse.Number, input conveyor.InputEvent) smachine.CreateFunc {
+func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		return request.HandlerFactoryMeta(event)
+		return handlers.FactoryMeta(event)
 	case *testWalletAPIStateMachine.TestAPICall:
-		return testWalletAPIStateMachine.Handler(event)
+		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
 		// TODO[bigbes] commented until panics will show description
 		// panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
 		panic(fmt.Sprintf("unknown event type %T", input))
-
 	}
 }
 
@@ -49,6 +48,7 @@ type Dispatcher struct {
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
+	MachineLogger  smachine.SlotMachineLogger
 
 	// Components
 	Runner        runner.Service
@@ -63,7 +63,7 @@ func NewDispatcher() *Dispatcher {
 }
 
 func (lr *Dispatcher) Init(ctx context.Context) error {
-	machineConfig := smachine.SlotMachineConfig{
+	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
@@ -74,8 +74,13 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	defaultHandlers := DefaultHandlersFactory
 
+	machineConfig := conveyorConfig
+	if lr.MachineLogger != nil {
+		machineConfig.SlotMachineLogger = lr.MachineLogger
+	}
+
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
-		ConveyorMachineConfig: machineConfig,
+		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,
@@ -108,4 +113,8 @@ func (lr *Dispatcher) Stop(_ context.Context) error {
 
 func (lr *Dispatcher) AddInput(ctx context.Context, pulse pulse.Number, msg interface{}) error {
 	return lr.Conveyor.AddInput(ctx, pulse, msg)
+}
+
+func (lr *Dispatcher) AddInputExt(ctx context.Context, pulse pulse.Number, msg interface{}, createDefaults smachine.CreateDefaultValues) error {
+	return lr.Conveyor.AddInputExt(ctx, pulse, msg, createDefaults)
 }

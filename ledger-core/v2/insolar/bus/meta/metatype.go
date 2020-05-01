@@ -33,3 +33,14 @@ const (
 	// SpanData is key for a span data
 	SpanData = "SpanData"
 )
+
+const (
+	// TopicOutgoing is topic for external calls
+	TopicOutgoing = "TopicOutgoing"
+
+	// TopicIncoming is topic for incoming calls
+	TopicIncoming = "TopicIncoming"
+
+	// TopicIncomingRequestResults is topic for handling incoming RequestResults messages
+	TopicIncomingRequestResults = "TopicIncomingRequestResults"
+)

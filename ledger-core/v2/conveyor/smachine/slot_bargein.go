@@ -59,7 +59,7 @@ func (v BargeInWithParam) StepLink() StepLink {
 /* ------ BargeIn support -------------------------- */
 
 func (m *SlotMachine) createBargeIn(link StepLink, applyFn BargeInApplyFunc) BargeInWithParam {
-	link.s.slotFlags |= slotHasBargeIn
+	link.s.slotFlags |= slotHadBargeIn
 	return BargeInWithParam{
 		link:    link,
 		applyFn: applyFn,
@@ -111,7 +111,7 @@ func (m *SlotMachine) createLightBargeIn(link StepLink, stateUpdate StateUpdate)
 		panic(throw.IllegalValue())
 	}
 
-	link.s.slotFlags |= slotHasBargeIn
+	link.s.slotFlags |= slotHadBargeIn
 	h := BargeIn{stateUpdate, link.s.getSubroutineMarker()}
 
 	// reuse internal fields

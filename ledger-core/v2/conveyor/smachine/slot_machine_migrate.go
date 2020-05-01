@@ -73,19 +73,19 @@ func (m *SlotMachine) migrateSlot(migrateCount uint32, slot *Slot, w FixedSlotWo
 	if !isStarted {
 		return isEmpty, false
 	}
-	if slot.slotFlags&slotStepCantMigrate != 0 {
+	if slot.slotFlags&slotStepSuspendMigrate != 0 {
 		m.stopSlotWorking(slot, prevStepNo, w)
 		return false, false
 	}
 
-	isEmptyOrWeak, isAvailable = m._migrateSlot(migrateCount, slot, prevStepNo, w)
+	isEmptyOrWeak, isAvailable = m._migrateSlot(migrateCount, slot, w)
 	if isAvailable {
 		m.stopSlotWorking(slot, prevStepNo, w)
 	}
 	return isEmptyOrWeak, isAvailable
 }
 
-func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevStepNo uint32, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
+func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
 
 	inactivityNano := slot.touch(time.Now().UnixNano())
 
@@ -105,7 +105,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, prevSt
 					}
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
 					activityNano := slot.touch(time.Now().UnixNano())
-					slot.logStepMigrate(prevStepNo, stateUpdate, inactivityNano, activityNano)
+					slot.logStepMigrate(stateUpdate, inactivityNano, activityNano)
 					inactivityNano = durationUnknownNano
 
 					switch {

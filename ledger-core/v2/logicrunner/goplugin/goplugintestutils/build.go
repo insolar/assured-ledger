@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 const insolarImportPath = "github.com/insolar/assured-ledger/ledger-core/v2"
@@ -59,4 +61,12 @@ func Build() (string, string, error) {
 		return "", "", err
 	}
 	return icc, insgocc, nil
+}
+
+func WriteFile(string, string, string) error {
+	return throw.NotImplemented()
+}
+
+func PrependGoPath(string) string {
+	panic(throw.NotImplemented())
 }

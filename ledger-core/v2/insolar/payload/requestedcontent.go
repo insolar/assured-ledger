@@ -21,3 +21,7 @@ const (
 func (f StateRequestContentFlags) Equal(other StateRequestContentFlags) bool {
 	return f == other
 }
+
+func (f StateRequestContentFlags) Contains(other StateRequestContentFlags) bool {
+	return f^other == 0
+}

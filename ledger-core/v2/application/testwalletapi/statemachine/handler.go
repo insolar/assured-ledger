@@ -11,15 +11,13 @@ import (
 )
 
 type TestAPICall struct {
-	Payload  payload.VCallRequest
-	Response chan payload.VCallResult
+	Payload payload.VCallRequest
 }
 
 func Handler(call *TestAPICall) smachine.CreateFunc {
 	return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &SMTestAPICall{
 			requestPayload: call.Payload,
-			response:       call.Response,
 		}
 	}
 }

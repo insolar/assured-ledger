@@ -15,15 +15,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/insolar/component-manager"
 )
 
 type calculatorErrorSuite struct {
@@ -148,9 +148,8 @@ func TestCalculatorError(t *testing.T) {
 			return []byte{1, 2, 3}
 		},
 	}
-	jc := jet.NewCoordinatorMock(t)
 
-	cm.Inject(th, op, jc, &am, calculator, service, scheme, ps)
+	cm.Inject(th, op, &am, calculator, service, scheme, ps)
 
 	require.NotNil(t, calculator.Stater)
 	require.NotNil(t, calculator.OriginProvider)
