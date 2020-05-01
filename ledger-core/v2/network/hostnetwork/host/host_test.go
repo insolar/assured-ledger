@@ -10,10 +10,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 )
 
 func TestNewHost(t *testing.T) {
@@ -77,7 +78,7 @@ func TestHost_String(t *testing.T) {
 func TestHost_Equal(t *testing.T) {
 	id1 := gen.Reference()
 	id2 := gen.Reference()
-	idNil := *insolar.NewEmptyReference()
+	idNil := insolar.NewEmptyReference()
 	addr1, _ := NewAddress("127.0.0.1:31337")
 	addr2, _ := NewAddress("10.10.11.11:12345")
 

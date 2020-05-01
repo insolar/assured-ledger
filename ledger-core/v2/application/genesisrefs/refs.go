@@ -22,28 +22,28 @@ const (
 
 // Generate reference from hash code.
 // deprecated
-func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) *insolar.Reference {
+func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) insolar.Reference {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := hasher.Hash(code)
 	id := insolar.NewID(pulse, codeHash)
-	return insolar.NewReference(*id)
+	return insolar.NewReference(id)
 }
 
 // Generate prototype reference from contract id.
 // deprecated
-func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) *insolar.Reference {
+func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) insolar.Reference {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	return GenerateProtoReferenceFromCode(pulse.BuiltinContract, []byte(contractID))
 }
 
 // Generate contract reference from contract id.
 // deprecated
-func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) *insolar.Reference {
+func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) insolar.Reference {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := hasher.Hash([]byte(contractID))
 	id := insolar.NewID(pulse.BuiltinContract, codeHash)
-	return insolar.NewRecordReference(*id)
+	return insolar.NewRecordReference(id)
 }
 
 // deprecated

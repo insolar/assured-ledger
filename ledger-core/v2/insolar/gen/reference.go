@@ -32,7 +32,7 @@ func ID() insolar.ID {
 
 		pn := PulseNumber()
 
-		*id = *insolar.NewID(pn, hash[:])
+		*id = insolar.NewID(pn, hash[:])
 	})
 	f.Fuzz(&id)
 
@@ -47,7 +47,7 @@ func IDWithPulse(pn insolar.PulseNumber) insolar.ID {
 		NilChance(0).
 		NumElements(insolar.RecordHashSize, insolar.RecordHashSize).
 		Fuzz(&hash)
-	return *insolar.NewID(pn, hash)
+	return insolar.NewID(pn, hash)
 }
 
 // JetID generates random jet id.
@@ -58,7 +58,7 @@ func JetID() insolar.JetID {
 		c.Fuzz(&prefix)
 		depth := c.Intn(insolar.JetMaximumDepth + 1)
 
-		*jet = *insolar.NewJetID(uint8(depth), prefix)
+		*jet = insolar.NewJetID(uint8(depth), prefix)
 	})
 	f.Fuzz(&jetID)
 
@@ -67,7 +67,7 @@ func JetID() insolar.JetID {
 
 // Reference generates random reference.
 func Reference() insolar.Reference {
-	return *insolar.NewReference(ID())
+	return insolar.NewReference(ID())
 }
 
 // UniqueReferences generates multiple random unique References.

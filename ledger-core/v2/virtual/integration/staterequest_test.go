@@ -135,7 +135,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 				LatestDirtyState: &payload.ObjectState{
 					Reference: objectRef,
 					State:     rawWalletState,
-					Prototype: *testwallet.PrototypeReference,
+					Prototype: testwallet.PrototypeReference,
 				},
 			},
 		}, data)

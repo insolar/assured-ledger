@@ -8,8 +8,9 @@ package certificate
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 // CertificateManager is a component for working with current node certificate
@@ -34,7 +35,7 @@ func VerifyAuthorizationCertificate(cs insolar.CryptographyService, discoveryNod
 	}
 	data := authCert.SerializeNodePart()
 	for _, node := range discoveryNodes {
-		sign := authCert.GetDiscoverySigns()[*node.GetNodeRef()]
+		sign := authCert.GetDiscoverySigns()[node.GetNodeRef()]
 		ok := cs.Verify(node.GetPublicKey(), insolar.SignatureFromBytes(sign), data)
 		if !ok {
 			return false, nil

@@ -105,8 +105,8 @@ func (p *ReadOnlyMapToInt63) GetLocator(bucketIndex int) int64 {
 // result = ( <0, false ) - item was not found
 // result = ( B>=0, false) - item presence is unknown, bucket is missing, B is bucket number
 //
-func (p *ReadOnlyMapToInt63) GetValueOrBucket(ref reference.Holder) ( /* map value or missing bucket index */ int64, bool) {
-	localRef := ref.GetLocal()
+func (p *ReadOnlyMapToInt63) GetValueOrBucket(ref reference.PtrHolder) ( /* map value or missing bucket index */ int64, bool) {
+	localRef := ref.GetLocalPtr()
 	s := unsafekit.WrapLocalRef(localRef)
 	hashLocal := hash32(s, p.hashSeed) // localRef must be kept alive
 
@@ -141,7 +141,7 @@ func (p *ReadOnlyMapToInt63) GetValueOrBucket(ref reference.Holder) ( /* map val
 		return -1, false
 	}
 
-	if v, ok := bucket.findValue(selectorL1, ref.GetBase(), p.sortedBuckets); ok {
+	if v, ok := bucket.findValue(selectorL1, ref.GetBasePtr(), p.sortedBuckets); ok {
 		return v.asValue(), ok
 	} else {
 		return -1, false

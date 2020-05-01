@@ -16,12 +16,12 @@ var GenesisRecord genesisBinary = []byte{0xAC}
 
 // ID returns genesis record id.
 func (r genesisBinary) ID() insolar.ID {
-	return *insolar.NewID(insolar.GenesisPulse.PulseNumber, r)
+	return insolar.NewID(insolar.GenesisPulse.PulseNumber, r)
 }
 
 // Ref returns genesis record reference.
 func (r genesisBinary) Ref() insolar.Reference {
-	return *insolar.NewReference(r.ID())
+	return insolar.NewReference(r.ID())
 }
 
 // GenesisHeavyConfig carries data required for initial genesis on heavy node.

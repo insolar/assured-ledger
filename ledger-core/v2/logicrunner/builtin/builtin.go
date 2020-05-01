@@ -80,8 +80,8 @@ func (b *BuiltIn) CallConstructor(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	objRef := insolar.NewReference(*callCtx.Request.GetLocal())
-	return constructorFunc(*objRef, args)
+	objRef := insolar.NewReference(callCtx.Request.GetLocal())
+	return constructorFunc(objRef, args)
 }
 
 func (b *BuiltIn) CallMethod(ctx context.Context, callCtx *insolar.LogicCallContext, codeRef insolar.Reference,
