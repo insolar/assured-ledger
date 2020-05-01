@@ -67,7 +67,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	if err != nil {
 		return errors.Wrap(err, "error while converting message to bytes")
 	}
-	res, err := n.RPC.SendBytes(ctx, *node, deliverWatermillMsg, msgBytes)
+	res, err := n.RPC.SendBytes(ctx, node, deliverWatermillMsg, msgBytes)
 	if err != nil {
 		return errors.Wrap(err, "error while sending watermillMsg to controller")
 	}

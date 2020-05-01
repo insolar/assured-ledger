@@ -185,7 +185,7 @@ func (p *byteWriter) isFull() bool {
 
 // Encoder encodes Local to string with chosen encoder.
 func (v Local) Encode(enc Encoder) string {
-	repr, err := enc.EncodeRecord(&v)
+	repr, err := enc.EncodeRecord(v)
 	if err != nil {
 		return ""
 	}
@@ -261,7 +261,7 @@ func (v *Local) unmarshalJSON(data []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal reference.Local")
 		}
-		*v = *decoded.GetLocal()
+		*v = decoded.GetLocal()
 	case nil:
 	default:
 		return errors.Wrapf(err, "unexpected type %T when unmarshal reference.Local", repr)
@@ -283,10 +283,7 @@ func MarshalLocalHolderJSON(v LocalHolder) (b []byte, err error) {
 	if v == nil {
 		return json.Marshal(nil)
 	}
-	if l := v.GetLocal(); l != nil {
-		return json.Marshal(l.Encode(DefaultEncoder()))
-	}
-	return json.Marshal(nil)
+	return json.Marshal(v.GetLocal().Encode(DefaultEncoder()))
 }
 
 // deprecated
@@ -327,6 +324,10 @@ func (v Local) ProtoSize() int {
 		return LocalBinarySize
 	}
 	return LocalBinaryPulseAndScopeSize + v.hashLen()
+}
+
+func (v Local) GetLocal() Local {
+	return v
 }
 
 func ProtoSizeLocalHolder(v LocalHolder) int {
@@ -448,11 +449,7 @@ func (v Local) Size() int {
 }
 
 func (v Local) EqualHolder(o LocalHolder) bool {
-	return o != nil && v.EqualPtr(o.GetLocal())
-}
-
-func (v Local) EqualPtr(o *Local) bool {
-	return o != nil && v == *o
+	return o != nil && v == o.GetLocal()
 }
 
 func (v Local) WithHash(hash LocalHash) Local {

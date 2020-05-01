@@ -40,7 +40,7 @@ func NewHostNetwork(nodeRef string) (network.HostNetwork, error) {
 	result := &hostNetwork{
 		handlers:          make(map[types.PacketType]network.RequestHandler),
 		sequenceGenerator: sequence.NewGenerator(),
-		nodeID:            *id,
+		nodeID:            id,
 		futureManager:     futureManager,
 		responseHandler:   future.NewPacketHandler(futureManager),
 	}

@@ -54,7 +54,7 @@ func createOrigin(configuration configuration.Transport, certificate insolar.Cer
 	}
 
 	return node.NewNode(
-		*certificate.GetNodeRef(),
+		certificate.GetNodeRef(),
 		role,
 		certificate.GetPublicKey(),
 		publicAddress,

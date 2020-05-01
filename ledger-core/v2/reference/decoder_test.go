@@ -21,7 +21,7 @@ func TestDecoder_Decode_legacy(t *testing.T) {
 		dec := NewDefaultDecoder(AllowLegacy)
 		global, err := dec.Decode(legacyReference_ok)
 		if assert.NoError(t, err) {
-			assert.Equal(t, *global.GetLocal(), *global.GetBase())
+			assert.Equal(t, global.GetLocal(), global.GetBase())
 			assert.Equal(t, pulse.Number(65537), global.GetLocal().GetPulseNumber())
 			assert.Equal(t, SubScope(0x0), global.GetBase().SubScope())
 		}

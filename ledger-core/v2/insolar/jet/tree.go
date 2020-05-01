@@ -74,7 +74,7 @@ func (j *Jet) ExtractLeafIDs(ids *[]insolar.JetID, path []byte, depth uint8) {
 		return
 	}
 	if j.Left == nil && j.Right == nil && j.Actual {
-		*ids = append(*ids, *insolar.NewJetID(depth, path))
+		*ids = append(*ids, insolar.NewJetID(depth, path))
 		return
 	}
 
@@ -114,7 +114,7 @@ func (t *Tree) Find(recordID insolar.ID) (insolar.JetID, bool) {
 
 	hash := recordID.Hash()
 	j, depth := t.Head.Find(hash, 0)
-	id := *insolar.NewJetID(depth, bits.ResetBits(hash, depth))
+	id := insolar.NewJetID(depth, bits.ResetBits(hash, depth))
 	return id, j.Actual
 }
 

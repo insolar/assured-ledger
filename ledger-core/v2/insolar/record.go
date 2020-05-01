@@ -35,21 +35,21 @@ type (
 )
 
 // deprecated
-func NewReference(id ID) *Reference {
+func NewReference(id ID) Reference {
 	global := reference.NewGlobalSelf(id)
-	return &global
+	return global
 }
 
 // deprecated
-func NewRecordReference(local ID) *Reference {
+func NewRecordReference(local ID) Reference {
 	global := reference.NewRecordRef(local)
-	return &global
+	return global
 }
 
 // deprecated
-func NewGlobalReference(local ID, base ID) *Reference {
+func NewGlobalReference(local ID, base ID) Reference {
 	global := reference.NewGlobal(base, local)
-	return &global
+	return global
 }
 
 // NewObjectReferenceFromString deserializes reference from base64 encoded string and checks if it object reference
@@ -65,7 +65,7 @@ func NewObjectReferenceFromString(input string) (*Reference, error) {
 	if !global.IsSelfScope() {
 		return nil, errors.New("provided reference is not self-scoped")
 	}
-	return global, nil
+	return &global, nil
 }
 
 // NewRecordReferenceFromString deserializes reference from base64 encoded string and checks if it record reference
@@ -73,12 +73,12 @@ func NewObjectReferenceFromString(input string) (*Reference, error) {
 
 // NewReferenceFromString deserializes reference from base64 encoded string
 // deprecated
-func NewReferenceFromString(input string) (*Reference, error) {
+func NewReferenceFromString(input string) (Reference, error) {
 	global, err := reference.DefaultDecoder().Decode(input)
 	if err != nil {
-		return nil, err
+		return Reference{}, err
 	}
-	return &global, nil
+	return global, nil
 }
 
 // IsObjectReferenceString checks the validity of the reference
@@ -90,43 +90,43 @@ func IsObjectReferenceString(input string) bool {
 
 // NewReferenceFromBytes : After CBOR Marshal/Unmarshal Ref can be converted to byte slice, this converts it back
 // deprecated
-func NewReferenceFromBytes(byteReference []byte) *Reference {
+func NewReferenceFromBytes(byteReference []byte) Reference {
 	g := reference.Global{}
 	if err := g.Unmarshal(byteReference); err != nil {
-		return nil
+		return reference.Global{}
 	}
-	return &g
+	return g
 }
 
 // NewEmptyReference returns empty Reference.
 // deprecated
-func NewEmptyReference() *Reference {
-	return &Reference{}
+func NewEmptyReference() Reference {
+	return Reference{}
 }
 
 // NewID generates ID byte representation
 // deprecated
-func NewID(p PulseNumber, hash []byte) *ID {
+func NewID(p PulseNumber, hash []byte) ID {
 	hashB := longbits.Bits224{}
 	copy(hashB[:], hash)
 
 	local := reference.NewLocal(p, 0, hashB)
-	return &local
+	return local
 }
 
 // NewIDFromString deserializes ID from base64 encoded string
 // deprecated
-func NewIDFromString(input string) (*ID, error) {
+func NewIDFromString(input string) (ID, error) {
 	global, err := reference.DefaultDecoder().Decode(input)
 	if err != nil {
-		return nil, err
+		return ID{}, err
 	}
 	return global.GetLocal(), nil
 }
 
 // NewIDFromBytes converts byte slice to ID
 // deprecated
-func NewIDFromBytes(hash []byte) *ID {
+func NewIDFromBytes(hash []byte) ID {
 	if hash == nil {
 		return NewEmptyID()
 	}
@@ -135,6 +135,6 @@ func NewIDFromBytes(hash []byte) *ID {
 }
 
 // deprecated
-func NewEmptyID() *ID {
-	return &ID{}
+func NewEmptyID() ID {
+	return ID{}
 }

@@ -59,14 +59,14 @@ func (id JetID) IsEmpty() bool {
 }
 
 // ZeroJetID is value of an empty Jet ID
-var ZeroJetID = *NewJetID(0, nil)
+var ZeroJetID = NewJetID(0, nil)
 
 // NewJetID creates a new jet with provided ID and index
-func NewJetID(depth uint8, prefix []byte) *JetID {
+func NewJetID(depth uint8, prefix []byte) JetID {
 	hash := [reference.LocalBinaryHashSize]byte{depth}
 	copy(hash[JetPrefixOffset:], bits.ResetBits(prefix, depth))
 
-	return (*JetID)(NewID(pulse.Jet, hash[:]))
+	return (JetID)(NewID(pulse.Jet, hash[:]))
 }
 
 // Depth extracts depth from a jet id.

@@ -25,7 +25,7 @@ func TestJet_Parent(t *testing.T) {
 	gotParent := Parent(child)
 	require.Equal(t, parent, gotParent, "got proper parent")
 
-	emptyChild := *insolar.NewJetID(0, nil)
+	emptyChild := insolar.NewJetID(0, nil)
 	emptyParent := Parent(emptyChild)
 	require.Equal(t, emptyChild, emptyParent, "for empty jet ID, got the same parent")
 }
@@ -46,7 +46,7 @@ func TestJet_SiblingParent(t *testing.T) {
 }
 
 func TestJet_NewJetIDSiblingParent(t *testing.T) {
-	jetID := *insolar.NewJetID(5, gen.ID().Bytes())
+	jetID := insolar.NewJetID(5, gen.ID().Bytes())
 
 	left, right := Siblings(jetID)
 	require.True(t, jetID.Equal(Parent(left)))

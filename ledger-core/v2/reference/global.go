@@ -153,12 +153,12 @@ func (v *Global) tryApplyBase(base *Global) bool {
 	return true
 }
 
-func (v Global) GetBase() *Local {
-	return &v.addressBase
+func (v Global) GetBase() Local {
+	return v.addressBase
 }
 
-func (v Global) GetLocal() *Local {
-	return &v.addressLocal
+func (v Global) GetLocal() Local {
+	return v.addressLocal
 }
 
 func (v Global) String() string {
@@ -232,8 +232,8 @@ func (v *Global) unmarshalJSON(data []byte) error {
 			return errors.Wrap(err, "failed to unmarshal reference.Global")
 		}
 
-		v.addressLocal = *decoded.GetLocal()
-		v.addressBase = *decoded.GetBase()
+		v.addressLocal = decoded.GetLocal()
+		v.addressBase = decoded.GetBase()
 	case nil:
 	default:
 		return errors.Wrapf(err, "unexpected type %T when unmarshal reference.Global", repr)

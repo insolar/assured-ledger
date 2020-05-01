@@ -42,8 +42,8 @@ func TestKeys(t *testing.T) {
 				require.False(t, m.Contains(refAlt), i)
 			}
 
-			require.True(t, refLocal.Equal(*interned.GetLocal()), i)
-			require.True(t, refBase.Equal(*interned.GetBase()), i)
+			require.True(t, refLocal.Equal(interned.GetLocal()), i)
+			require.True(t, refBase.Equal(interned.GetBase()), i)
 
 			{
 				ir := m.Intern(ref)

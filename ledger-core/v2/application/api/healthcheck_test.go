@@ -52,8 +52,8 @@ func randomNodeList(t *testing.T, size int) []insolar.DiscoveryNode {
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
 		r := gen.Reference()
-		dn.GetNodeRefMock.Set(func() *insolar.Reference {
-			return &r
+		dn.GetNodeRefMock.Set(func() insolar.Reference {
+			return r
 		})
 		list[i] = dn
 	}
@@ -76,7 +76,7 @@ func mockNodeNetwork(t *testing.T, nodeList []insolar.DiscoveryNode) *network.No
 	nn := network.NewNodeNetworkMock(t)
 	nodeMap := make(map[insolar.Reference]insolar.DiscoveryNode)
 	for _, node := range nodeList {
-		nodeMap[*node.GetNodeRef()] = node
+		nodeMap[node.GetNodeRef()] = node
 	}
 
 	accessorMock := network.NewAccessorMock(t)
