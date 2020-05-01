@@ -326,11 +326,19 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(state *object.SharedState) {
 	return func(state *object.SharedState) {
-		stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), memory)
+
 		parentReference := reference.Global{}
+		var prevStateIDBytes []byte
 		if state.Descriptor() != nil {
 			parentReference = state.Descriptor().Parent()
+			prevStateIDBytes = state.Descriptor().StateID().AsBytes()
 		}
+
+		objectRefBytes := s.execution.Object.AsBytes()
+		stateHash := append(memory, objectRefBytes...)
+		stateHash = append(stateHash, prevStateIDBytes...)
+
+		stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
 		state.Info.SetDescriptor(descriptor.NewObject(
 			s.execution.Object,
 			stateID,
