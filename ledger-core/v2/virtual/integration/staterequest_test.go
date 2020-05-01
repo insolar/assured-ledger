@@ -15,16 +15,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref insolar.Reference, flags payload.StateRequestContentFlags) *statemachine.DispatcherMessage {
+func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags) *statemachine.DispatcherMessage {
 	payLoadMeta := &payload.VStateRequest{
 		AsOf:             pn,
 		Callee:           ref,

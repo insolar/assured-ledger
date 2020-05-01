@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
@@ -79,7 +80,7 @@ type FullIntroductionReaderMock struct {
 	beforeGetPrimaryRoleCounter uint64
 	GetPrimaryRoleMock          mFullIntroductionReaderMockGetPrimaryRole
 
-	funcGetReference          func() (r1 insolar.Reference)
+	funcGetReference          func() (g1 reference.Global)
 	inspectFuncGetReference   func()
 	afterGetReferenceCounter  uint64
 	beforeGetReferenceCounter uint64
@@ -1588,7 +1589,7 @@ type FullIntroductionReaderMockGetReferenceExpectation struct {
 
 // FullIntroductionReaderMockGetReferenceResults contains results of the FullIntroductionReader.GetReference
 type FullIntroductionReaderMockGetReferenceResults struct {
-	r1 insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for FullIntroductionReader.GetReference
@@ -1616,7 +1617,7 @@ func (mmGetReference *mFullIntroductionReaderMockGetReference) Inspect(f func())
 }
 
 // Return sets up results that will be returned by FullIntroductionReader.GetReference
-func (mmGetReference *mFullIntroductionReaderMockGetReference) Return(r1 insolar.Reference) *FullIntroductionReaderMock {
+func (mmGetReference *mFullIntroductionReaderMockGetReference) Return(g1 reference.Global) *FullIntroductionReaderMock {
 	if mmGetReference.mock.funcGetReference != nil {
 		mmGetReference.mock.t.Fatalf("FullIntroductionReaderMock.GetReference mock is already set by Set")
 	}
@@ -1624,12 +1625,12 @@ func (mmGetReference *mFullIntroductionReaderMockGetReference) Return(r1 insolar
 	if mmGetReference.defaultExpectation == nil {
 		mmGetReference.defaultExpectation = &FullIntroductionReaderMockGetReferenceExpectation{mock: mmGetReference.mock}
 	}
-	mmGetReference.defaultExpectation.results = &FullIntroductionReaderMockGetReferenceResults{r1}
+	mmGetReference.defaultExpectation.results = &FullIntroductionReaderMockGetReferenceResults{g1}
 	return mmGetReference.mock
 }
 
 //Set uses given function f to mock the FullIntroductionReader.GetReference method
-func (mmGetReference *mFullIntroductionReaderMockGetReference) Set(f func() (r1 insolar.Reference)) *FullIntroductionReaderMock {
+func (mmGetReference *mFullIntroductionReaderMockGetReference) Set(f func() (g1 reference.Global)) *FullIntroductionReaderMock {
 	if mmGetReference.defaultExpectation != nil {
 		mmGetReference.mock.t.Fatalf("Default expectation is already set for the FullIntroductionReader.GetReference method")
 	}
@@ -1643,7 +1644,7 @@ func (mmGetReference *mFullIntroductionReaderMockGetReference) Set(f func() (r1 
 }
 
 // GetReference implements FullIntroductionReader
-func (mmGetReference *FullIntroductionReaderMock) GetReference() (r1 insolar.Reference) {
+func (mmGetReference *FullIntroductionReaderMock) GetReference() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetReference.beforeGetReferenceCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetReference.afterGetReferenceCounter, 1)
 
@@ -1658,7 +1659,7 @@ func (mmGetReference *FullIntroductionReaderMock) GetReference() (r1 insolar.Ref
 		if mm_results == nil {
 			mmGetReference.t.Fatal("No results are set for the FullIntroductionReaderMock.GetReference")
 		}
-		return (*mm_results).r1
+		return (*mm_results).g1
 	}
 	if mmGetReference.funcGetReference != nil {
 		return mmGetReference.funcGetReference()

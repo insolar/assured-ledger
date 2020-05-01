@@ -22,6 +22,8 @@ const (
 
 	NilRef   = "<nil>" // non-parsable
 	SchemaV1 = "insolar"
+
+	RecordRefIDSeparator = '.'
 )
 
 type Encoder interface {
@@ -110,12 +112,12 @@ func (v encoder) EncodeToBuilder(ref Holder, b *strings.Builder) error {
 		if IsReservedName(domainName) || !IsValidDomainName(domainName) {
 			return fmt.Errorf("illegal domain name from IdentityEncoder: ref=%v, domain='%s', object='%s'", ref, domainName, objectName)
 		}
-		b.WriteByte('.')
+		b.WriteByte(RecordRefIDSeparator)
 		b.WriteString(domainName)
 	case IsSelfScope(ref):
 		// nothing
 	default:
-		b.WriteByte('.')
+		b.WriteByte(RecordRefIDSeparator)
 		err := v.encodeBinary(ref.GetBase(), b)
 		if err != nil {
 			return err

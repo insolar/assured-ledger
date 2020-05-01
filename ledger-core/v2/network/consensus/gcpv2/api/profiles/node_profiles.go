@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
@@ -94,7 +95,7 @@ type BriefCandidateProfile interface {
 type CandidateProfileExtension interface {
 	GetPowerLevels() member.PowerSet
 	GetExtraEndpoints() []endpoints.Outbound
-	GetReference() insolar.Reference
+	GetReference() reference.Global
 	// NodeRefProof	[]common.Bits512
 
 	GetIssuedAtPulse() pulse.Number // =0 when a node was connected during zeronet

@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
@@ -37,7 +38,7 @@ func mockCryptographyService(t *testing.T, ok bool) insolar.CryptographyService 
 	return cs
 }
 
-func mockCertificateManager(t *testing.T, certNodeRef *insolar.Reference, discoveryNodeRef *insolar.Reference, unsignCertOk bool) *testutils.CertificateManagerMock {
+func mockCertificateManager(t *testing.T, certNodeRef *reference.Global, discoveryNodeRef *reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
 	cm.GetCertificateMock.Set(func() insolar.Certificate {
 		return &certificate.Certificate{

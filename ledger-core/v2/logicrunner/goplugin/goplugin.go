@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/rpctypes"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Options of the GoPlugin
@@ -138,7 +139,7 @@ func (gp *GoPlugin) CallMethodRPC(ctx context.Context, req rpctypes.DownCallMeth
 // CallMethod runs a method on an object in controlled environment
 func (gp *GoPlugin) CallMethod(
 	ctx context.Context, callContext *insolar.LogicCallContext,
-	code insolar.Reference, data []byte,
+	code reference.Global, data []byte,
 	method string, args insolar.Arguments,
 ) (
 	[]byte, insolar.Arguments, error,
@@ -194,7 +195,7 @@ func (gp *GoPlugin) CallConstructorRPC(ctx context.Context, req rpctypes.DownCal
 // CallConstructor runs a constructor of a contract in controlled environment
 func (gp *GoPlugin) CallConstructor(
 	ctx context.Context, callContext *insolar.LogicCallContext,
-	code insolar.Reference, name string, args insolar.Arguments,
+	code reference.Global, name string, args insolar.Arguments,
 ) (
 	[]byte, insolar.Arguments, error,
 ) {

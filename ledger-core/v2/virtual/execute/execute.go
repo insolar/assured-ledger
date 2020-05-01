@@ -276,7 +276,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		executionNewState = s.executionNewState.Result
 
 		memory    []byte
-		prototype insolar.Reference
+		prototype reference.Global
 		action    func(state *object.SharedState)
 	)
 

@@ -8,33 +8,32 @@ package descriptor
 import (
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // ObjectDescriptor represents meta info required to fetch all object data.
 type ObjectDescriptor interface {
 	// HeadRef returns head reference to represented object record.
-	HeadRef() *insolar.Reference
+	HeadRef() *reference.Global
 
 	// StateID returns reference to object state record.
-	StateID() *insolar.ID
+	StateID() *reference.Local
 
 	// Memory fetches object memory from storage.
 	Memory() []byte
 
 	// Prototype returns prototype reference.
-	Prototype() (*insolar.Reference, error)
+	Prototype() (*reference.Global, error)
 
 	// Parent returns object's parent.
-	Parent() *insolar.Reference
+	Parent() *reference.Global
 
 	// EarliestRequestID returns latest requestID for this object
-	EarliestRequestID() *insolar.ID
+	EarliestRequestID() *reference.Local
 }
 
 func NewObjectDescriptor(
-	head reference.Global, state insolar.ID, prototype *insolar.Reference, memory []byte, parent insolar.Reference, requestID *insolar.ID,
+	head reference.Global, state reference.Local, prototype *reference.Global, memory []byte, parent reference.Global, requestID *reference.Local,
 ) ObjectDescriptor {
 	return &objectDescriptor{
 		head:      head,
@@ -48,17 +47,17 @@ func NewObjectDescriptor(
 
 // ObjectDescriptor represents meta info required to fetch all object data.
 type objectDescriptor struct {
-	head      insolar.Reference
-	state     insolar.ID
-	prototype *insolar.Reference
+	head      reference.Global
+	state     reference.Local
+	prototype *reference.Global
 	memory    []byte
-	parent    insolar.Reference
+	parent    reference.Global
 
-	requestID *insolar.ID
+	requestID *reference.Local
 }
 
 // Prototype returns prototype reference.
-func (d *objectDescriptor) Prototype() (*insolar.Reference, error) {
+func (d *objectDescriptor) Prototype() (*reference.Global, error) {
 	if d.prototype == nil {
 		return nil, errors.New("object has no prototype")
 	}
@@ -66,12 +65,12 @@ func (d *objectDescriptor) Prototype() (*insolar.Reference, error) {
 }
 
 // HeadRef returns reference to represented object record.
-func (d *objectDescriptor) HeadRef() *insolar.Reference {
+func (d *objectDescriptor) HeadRef() *reference.Global {
 	return &d.head
 }
 
 // StateID returns reference to object state record.
-func (d *objectDescriptor) StateID() *insolar.ID {
+func (d *objectDescriptor) StateID() *reference.Local {
 	return &d.state
 }
 
@@ -81,10 +80,10 @@ func (d *objectDescriptor) Memory() []byte {
 }
 
 // Parent returns object's parent.
-func (d *objectDescriptor) Parent() *insolar.Reference {
+func (d *objectDescriptor) Parent() *reference.Global {
 	return &d.parent
 }
 
-func (d *objectDescriptor) EarliestRequestID() *insolar.ID {
+func (d *objectDescriptor) EarliestRequestID() *reference.Local {
 	return d.requestID
 }

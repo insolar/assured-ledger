@@ -8,6 +8,7 @@ package foundation
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 )
 
@@ -17,20 +18,20 @@ type BaseContract struct {
 
 // ProxyInterface interface any proxy of a contract implements
 type ProxyInterface interface {
-	GetReference() insolar.Reference
-	GetPrototype() (insolar.Reference, error)
-	GetCode() (insolar.Reference, error)
+	GetReference() reference.Global
+	GetPrototype() (reference.Global, error)
+	GetCode() (reference.Global, error)
 }
 
 // BaseContractInterface is an interface to deal with any contract same way
 type BaseContractInterface interface {
-	GetReference() insolar.Reference
-	GetPrototype() insolar.Reference
-	GetCode() insolar.Reference
+	GetReference() reference.Global
+	GetPrototype() reference.Global
+	GetCode() reference.Global
 }
 
 // GetReference - Returns public reference of contract
-func (bc *BaseContract) GetReference() insolar.Reference {
+func (bc *BaseContract) GetReference() reference.Global {
 	ctx := bc.getContext()
 	if ctx.Callee == nil {
 		panic("context has no callee set")
@@ -39,12 +40,12 @@ func (bc *BaseContract) GetReference() insolar.Reference {
 }
 
 // GetPrototype - Returns prototype of contract
-func (bc *BaseContract) GetPrototype() insolar.Reference {
+func (bc *BaseContract) GetPrototype() reference.Global {
 	return *bc.getContext().Prototype
 }
 
 // GetCode - Returns prototype of contract
-func (bc *BaseContract) GetCode() insolar.Reference {
+func (bc *BaseContract) GetCode() reference.Global {
 	return *bc.getContext().Code
 }
 

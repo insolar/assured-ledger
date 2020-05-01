@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var APICaller, _ = insolar.NewObjectReferenceFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
 type SMTestAPICall struct {
 	requestPayload  payload.VCallRequest
@@ -69,7 +69,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	s.requestPayload.Caller = APICaller
 	s.requestPayload.CallOutgoing = gen.IDWithPulse(pulseNumber)
 
-	var obj insolar.Reference
+	var obj reference.Global
 	switch s.requestPayload.CallType {
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee

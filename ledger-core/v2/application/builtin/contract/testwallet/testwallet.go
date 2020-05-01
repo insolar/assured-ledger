@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Wallet - basic wallet contract.
@@ -38,7 +38,7 @@ func (w *Wallet) Accept(amount uint32) error {
 	return nil
 }
 
-func (w *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
+func (w *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 	if amount > w.Balance {
 		return errors.New("wallet balance doesn't have enough amount")
 	}

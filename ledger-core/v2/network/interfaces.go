@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/component-manager"
 )
 
@@ -48,7 +49,7 @@ type HostNetwork interface {
 	PublicAddress() string
 
 	// SendRequest send request to a remote node addressed by reference.
-	SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference) (Future, error)
+	SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (Future, error)
 	// SendRequestToHost send request packet to a remote host.
 	SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) (Future, error)
 	// RegisterRequestHandler register a handler function to process incoming requests of a specific type.
@@ -60,7 +61,7 @@ type HostNetwork interface {
 
 // Packet is a packet that is transported via network by HostNetwork.
 type Packet interface {
-	GetSender() insolar.Reference
+	GetSender() reference.Global
 	GetSenderHost() *host.Host
 	GetType() types.PacketType
 	GetRequest() *packet.Request
@@ -119,7 +120,7 @@ type NodeKeeper interface {
 // RoutingTable contains all routing information of the network.
 type RoutingTable interface {
 	// Resolve NodeID -> ShortID, Address. Can initiate network requests.
-	Resolve(insolar.Reference) (*host.Host, error)
+	Resolve(reference.Global) (*host.Host, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Accessor -o ../testutils/network -s _mock.go -g
@@ -127,12 +128,12 @@ type RoutingTable interface {
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
 	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetWorkingNode(ref insolar.Reference) insolar.NetworkNode
+	GetWorkingNode(ref reference.Global) insolar.NetworkNode
 	// GetWorkingNodes returns sorted list of all working nodes.
 	GetWorkingNodes() []insolar.NetworkNode
 
 	// GetActiveNode returns active node.
-	GetActiveNode(ref insolar.Reference) insolar.NetworkNode
+	GetActiveNode(ref reference.Global) insolar.NetworkNode
 	// GetActiveNodes returns unsorted list of all active nodes.
 	GetActiveNodes() []insolar.NetworkNode
 	// GetActiveNodeByShortID get active node by short ID. Returns nil if node is not found.
@@ -175,7 +176,7 @@ type Gateway interface {
 
 type Auther interface {
 	// GetCert returns certificate object by node reference, using discovery nodes for signing
-	GetCert(context.Context, *insolar.Reference) (insolar.Certificate, error)
+	GetCert(context.Context, *reference.Global) (insolar.Certificate, error)
 	// ValidateCert checks certificate signature
 	// TODO make this cert.validate()
 	ValidateCert(context.Context, insolar.AuthorizationCertificate) (bool, error)

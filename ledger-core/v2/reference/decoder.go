@@ -85,7 +85,7 @@ func (v decoder) decode(ref string) (result Global, err error) {
 
 	// try to parse the legacy format
 	if v.options&AllowLegacy != 0 && len(ref) >= 2*len(LegacyDomainName)+1 {
-		domainPos := strings.IndexRune(ref, '.')
+		domainPos := strings.IndexRune(ref, RecordRefIDSeparator)
 		if domainPos >= len(LegacyDomainName) && ref[domainPos+1:] == LegacyDomainName {
 			result.addressLocal, err = v.parseLegacyAddress(ref, domainPos)
 			if err == nil {
@@ -202,7 +202,7 @@ func (v decoder) parseReference(refFull string, byteDecoder ByteDecodeFunc) (res
 
 func (v decoder) parseAddress(ref string, byteDecoder ByteDecodeFunc, result *Global) error {
 
-	domainPos := strings.IndexRune(ref, '.')
+	domainPos := strings.IndexRune(ref, RecordRefIDSeparator)
 	switch {
 	case domainPos == 0:
 		return errors.New("empty reference body")

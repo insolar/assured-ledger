@@ -6,23 +6,23 @@
 package descriptor
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // PrototypeDescriptor represents meta info required to fetch all prototype data.
 type PrototypeDescriptor interface {
 	// HeadRef returns head reference to represented object record.
-	HeadRef() *insolar.Reference
+	HeadRef() *reference.Global
 
 	// StateID returns reference to object state record.
-	StateID() *insolar.ID
+	StateID() *reference.Local
 
 	// Code returns code reference.
-	Code() *insolar.Reference
+	Code() *reference.Global
 }
 
 func NewPrototypeDescriptor(
-	head insolar.Reference, state insolar.ID, code insolar.Reference,
+	head reference.Global, state reference.Local, code reference.Global,
 ) PrototypeDescriptor {
 	return &prototypeDescriptor{
 		head:  head,
@@ -32,22 +32,22 @@ func NewPrototypeDescriptor(
 }
 
 type prototypeDescriptor struct {
-	head  insolar.Reference
-	state insolar.ID
-	code  insolar.Reference
+	head  reference.Global
+	state reference.Local
+	code  reference.Global
 }
 
 // Code returns code reference.
-func (d *prototypeDescriptor) Code() *insolar.Reference {
+func (d *prototypeDescriptor) Code() *reference.Global {
 	return &d.code
 }
 
 // HeadRef returns reference to represented object record.
-func (d *prototypeDescriptor) HeadRef() *insolar.Reference {
+func (d *prototypeDescriptor) HeadRef() *reference.Global {
 	return &d.head
 }
 
 // StateID returns reference to object state record.
-func (d *prototypeDescriptor) StateID() *insolar.ID {
+func (d *prototypeDescriptor) StateID() *reference.Local {
 	return &d.state
 }

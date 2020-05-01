@@ -15,13 +15,13 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/stretchr/testify/require"
 )
 
 type contractInfo struct {
-	reference *insolar.Reference
+	reference *reference.Global
 	testName  string
 }
 

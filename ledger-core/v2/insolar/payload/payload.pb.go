@@ -9,6 +9,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	io "io"
 	math "math"
 	math_bits "math/bits"
@@ -30,8 +31,8 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type Meta struct {
 	Polymorph  uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
 	Payload    []byte                                                               `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload,omitempty"`
-	Sender     github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Sender"`
-	Receiver   github_com_insolar_assured_ledger_ledger_core_v2_insolar.Reference   `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Reference" json:"Receiver"`
+	Sender     github_com_insolar_assured_ledger_ledger_core_v2_reference.Global    `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Sender"`
+	Receiver   github_com_insolar_assured_ledger_ledger_core_v2_reference.Global    `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Receiver"`
 	Pulse      github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,23,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
 	ID         []byte                                                               `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID,omitempty"`
 	OriginHash MessageHash                                                          `protobuf:"bytes,25,opt,name=OriginHash,proto3,customtype=MessageHash" json:"OriginHash"`
@@ -90,10 +91,154 @@ func (m *Meta) GetID() []byte {
 	return nil
 }
 
+<<<<<<< HEAD
+=======
+type Error struct {
+	Polymorph uint32    `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Code      ErrorCode `protobuf:"varint,20,opt,name=Code,proto3,customtype=ErrorCode" json:"Code"`
+	Text      string    `protobuf:"bytes,21,opt,name=Text,proto3" json:"Text,omitempty"`
+}
+
+func (m *Error) Reset()      { *m = Error{} }
+func (*Error) ProtoMessage() {}
+func (*Error) Descriptor() ([]byte, []int) {
+	return fileDescriptor_33334fec96407f54, []int{1}
+}
+func (m *Error) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Error) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Error.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Error) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Error.Merge(m, src)
+}
+func (m *Error) XXX_Size() int {
+	return m.Size()
+}
+func (m *Error) XXX_DiscardUnknown() {
+	xxx_messageInfo_Error.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Error proto.InternalMessageInfo
+
+func (m *Error) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+func (m *Error) GetText() string {
+	if m != nil {
+		return m.Text
+	}
+	return ""
+}
+
+type ID struct {
+	Polymorph uint32                                                           `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	ID        github_com_insolar_assured_ledger_ledger_core_v2_reference.Local `protobuf:"bytes,20,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"ID"`
+}
+
+func (m *ID) Reset()      { *m = ID{} }
+func (*ID) ProtoMessage() {}
+func (*ID) Descriptor() ([]byte, []int) {
+	return fileDescriptor_33334fec96407f54, []int{2}
+}
+func (m *ID) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ID) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ID.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ID) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ID.Merge(m, src)
+}
+func (m *ID) XXX_Size() int {
+	return m.Size()
+}
+func (m *ID) XXX_DiscardUnknown() {
+	xxx_messageInfo_ID.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ID proto.InternalMessageInfo
+
+func (m *ID) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+type IDs struct {
+	Polymorph uint32                                                             `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	IDs       []github_com_insolar_assured_ledger_ledger_core_v2_reference.Local `protobuf:"bytes,20,rep,name=IDs,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"IDs"`
+}
+
+func (m *IDs) Reset()      { *m = IDs{} }
+func (*IDs) ProtoMessage() {}
+func (*IDs) Descriptor() ([]byte, []int) {
+	return fileDescriptor_33334fec96407f54, []int{3}
+}
+func (m *IDs) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *IDs) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_IDs.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *IDs) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IDs.Merge(m, src)
+}
+func (m *IDs) XXX_Size() int {
+	return m.Size()
+}
+func (m *IDs) XXX_DiscardUnknown() {
+	xxx_messageInfo_IDs.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_IDs proto.InternalMessageInfo
+
+func (m *IDs) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+>>>>>>> b47a6ad... PLAT-324: remove old insolar.Reference/ID in favour of reference.Global/Local
 func init() {
 	proto.RegisterType((*Meta)(nil), "payload.Meta")
 }
 
+<<<<<<< HEAD
 func init() { proto.RegisterFile("payload.proto", fileDescriptor_678c914f1bee6d56) }
 
 var fileDescriptor_678c914f1bee6d56 = []byte{
@@ -120,6 +265,41 @@ var fileDescriptor_678c914f1bee6d56 = []byte{
 	0x33, 0x34, 0xd1, 0x0c, 0x4d, 0x35, 0x43, 0xef, 0x9a, 0xa1, 0x0f, 0xcd, 0xac, 0x95, 0x66, 0xe8,
 	0x79, 0xc9, 0xac, 0xe9, 0x92, 0x59, 0xb3, 0x25, 0xb3, 0xdc, 0xbc, 0x19, 0x79, 0xfd, 0x33, 0x00,
 	0x00, 0xff, 0xff, 0x16, 0x88, 0xf7, 0xe2, 0x3b, 0x02, 0x00, 0x00,
+=======
+func init() { proto.RegisterFile("insolar/payload/payload.proto", fileDescriptor_33334fec96407f54) }
+
+var fileDescriptor_33334fec96407f54 = []byte{
+	// 453 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x93, 0xc1, 0x6e, 0xd3, 0x30,
+	0x18, 0xc7, 0xe3, 0xb5, 0xdb, 0xa8, 0x61, 0x08, 0xcc, 0x00, 0x83, 0xc0, 0xab, 0x2a, 0x21, 0xed,
+	0xd2, 0x46, 0x62, 0x3c, 0x00, 0x94, 0x22, 0x56, 0x69, 0x83, 0xca, 0x70, 0x40, 0x9c, 0x70, 0x92,
+	0x6f, 0x69, 0x24, 0xb7, 0xae, 0xec, 0x64, 0x62, 0x12, 0x12, 0x3c, 0x02, 0x8f, 0xc1, 0x95, 0xb7,
+	0xd8, 0xb1, 0xc7, 0x89, 0xc3, 0x44, 0xd3, 0x0b, 0xc7, 0x3d, 0x02, 0xca, 0x97, 0x14, 0x76, 0xab,
+	0x10, 0x3d, 0xd9, 0x5f, 0xfe, 0x9f, 0xff, 0xbf, 0x2f, 0xfe, 0x27, 0xf4, 0x61, 0x32, 0x76, 0x46,
+	0x2b, 0xeb, 0x4f, 0xd4, 0x89, 0x36, 0x2a, 0x5a, 0xac, 0x9d, 0x89, 0x35, 0xa9, 0x61, 0x9b, 0x55,
+	0x79, 0xbf, 0x1d, 0x27, 0xe9, 0x30, 0x0b, 0x3a, 0xa1, 0x19, 0xf9, 0xb1, 0x89, 0x8d, 0x8f, 0x7a,
+	0x90, 0x1d, 0x61, 0x85, 0x05, 0xee, 0xca, 0x73, 0xad, 0xef, 0x35, 0x5a, 0x3f, 0x84, 0x54, 0xb1,
+	0x07, 0xb4, 0x31, 0x30, 0xfa, 0x64, 0x64, 0xec, 0x64, 0xc8, 0x6f, 0x34, 0xc9, 0xee, 0x96, 0xfc,
+	0xfb, 0x80, 0x71, 0xba, 0x39, 0x28, 0x01, 0x7c, 0xbb, 0x49, 0x76, 0xaf, 0xc9, 0x45, 0xc9, 0x14,
+	0xdd, 0x78, 0x03, 0xe3, 0x08, 0x2c, 0xbf, 0x5d, 0x08, 0xdd, 0xfe, 0xe9, 0xf9, 0x8e, 0xf7, 0xe3,
+	0x7c, 0xe7, 0xd9, 0xa5, 0x39, 0x16, 0xa3, 0x2b, 0xe7, 0x32, 0x0b, 0x51, 0x5b, 0x43, 0x14, 0x83,
+	0xf5, 0xcb, 0xa5, 0x1d, 0x1a, 0x0b, 0xfe, 0xf1, 0x63, 0xdf, 0xc2, 0x11, 0x58, 0x18, 0x87, 0xd0,
+	0x79, 0xa9, 0x4d, 0xa0, 0xb4, 0xac, 0x8c, 0x19, 0xd0, 0x2b, 0x12, 0x42, 0x48, 0x8e, 0xc1, 0xf2,
+	0x3b, 0xab, 0x86, 0xfc, 0xb1, 0x66, 0x01, 0x5d, 0x1f, 0x64, 0xda, 0x01, 0xbf, 0x8b, 0x8c, 0x83,
+	0x8a, 0xd1, 0xfb, 0x67, 0x46, 0xd5, 0xd5, 0x41, 0xb7, 0x57, 0xd9, 0x28, 0x00, 0x2b, 0x4b, 0x6b,
+	0x76, 0x9d, 0xae, 0xf5, 0x7b, 0x9c, 0xe3, 0x15, 0xae, 0xf5, 0x7b, 0x6c, 0x8f, 0xd2, 0xd7, 0x36,
+	0x89, 0x93, 0xf1, 0xbe, 0x72, 0x43, 0x7e, 0x0f, 0xc1, 0xb7, 0x2a, 0xf0, 0xd5, 0x43, 0x70, 0x4e,
+	0xc5, 0x50, 0x48, 0xf2, 0x52, 0x5b, 0xeb, 0x03, 0x5d, 0x7f, 0x61, 0xad, 0xb1, 0x4b, 0x32, 0x7b,
+	0x44, 0xeb, 0xcf, 0x4d, 0x04, 0x18, 0xd8, 0x56, 0xf7, 0x66, 0xe5, 0xda, 0xc0, 0xa3, 0x85, 0x20,
+	0x51, 0x66, 0x8c, 0xd6, 0xdf, 0xc2, 0xc7, 0x14, 0xe3, 0x6b, 0x48, 0xdc, 0xb7, 0x3e, 0x15, 0x63,
+	0x2e, 0xb1, 0x7f, 0x87, 0xaf, 0x82, 0x5f, 0x43, 0x77, 0xbf, 0x32, 0x7f, 0xfa, 0x1f, 0x79, 0x1c,
+	0x98, 0x50, 0xe9, 0xe2, 0x52, 0x5a, 0x9f, 0x69, 0xad, 0xdf, 0x73, 0x4b, 0xf0, 0xef, 0xb1, 0x89,
+	0x6f, 0x37, 0x6b, 0x2b, 0xe5, 0x17, 0xa6, 0xdd, 0x27, 0xd3, 0x99, 0xf0, 0xce, 0x66, 0xc2, 0xbb,
+	0x98, 0x09, 0xf2, 0x25, 0x17, 0xe4, 0x5b, 0x2e, 0xc8, 0x69, 0x2e, 0xc8, 0x34, 0x17, 0xe4, 0x67,
+	0x2e, 0xc8, 0xaf, 0x5c, 0x78, 0x17, 0xb9, 0x20, 0x5f, 0xe7, 0xc2, 0x9b, 0xce, 0x85, 0x77, 0x36,
+	0x17, 0x5e, 0xb0, 0x81, 0x7f, 0xd4, 0xde, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff, 0x62, 0x51, 0x4a,
+	0x55, 0xaa, 0x03, 0x00, 0x00,
+>>>>>>> b47a6ad... PLAT-324: remove old insolar.Reference/ID in favour of reference.Global/Local
 }
 
 func (this *Meta) Equal(that interface{}) bool {
@@ -625,6 +805,344 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+<<<<<<< HEAD
+=======
+func (m *Error) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPayload
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Error: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Error: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Code", wireType)
+			}
+			m.Code = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Code |= ErrorCode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Text", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Text = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPayload(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ID) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPayload
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ID: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ID: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ID.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPayload(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *IDs) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPayload
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IDs: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IDs: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IDs", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPayload
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthPayload
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var v github_com_insolar_assured_ledger_ledger_core_v2_reference.Local
+			m.IDs = append(m.IDs, v)
+			if err := m.IDs[len(m.IDs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPayload(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthPayload
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+>>>>>>> b47a6ad... PLAT-324: remove old insolar.Reference/ID in favour of reference.Global/Local
 func skipPayload(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0

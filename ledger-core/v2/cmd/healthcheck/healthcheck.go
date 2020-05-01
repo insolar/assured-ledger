@@ -11,6 +11,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -36,7 +37,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	ref, err := insolar.NewReferenceFromString(*refString)
+	ref, err := reference.GlobalFromString(*refString)
 	if err != nil {
 		global.Errorf("Failed to parse healthcheck contract ref: %s", err.Error())
 		os.Exit(2)

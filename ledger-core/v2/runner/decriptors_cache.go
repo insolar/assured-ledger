@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -38,7 +38,7 @@ func (c *descriptorsCache) RegisterCallback(cb descriptor.CacheCallbackType) {
 }
 
 func (c *descriptorsCache) ByPrototypeRef(
-	ctx context.Context, protoRef insolar.Reference,
+	ctx context.Context, protoRef reference.Global,
 ) (
 	descriptor.PrototypeDescriptor, descriptor.CodeDescriptor, error,
 ) {
@@ -74,7 +74,7 @@ func (c *descriptorsCache) ByObjectDescriptor(
 }
 
 func (c *descriptorsCache) GetPrototype(
-	ctx context.Context, ref insolar.Reference,
+	ctx context.Context, ref reference.Global,
 ) (
 	descriptor.PrototypeDescriptor, error,
 ) {
@@ -103,7 +103,7 @@ func (c *descriptorsCache) GetPrototype(
 }
 
 func (c *descriptorsCache) GetCode(
-	ctx context.Context, ref insolar.Reference,
+	ctx context.Context, ref reference.Global,
 ) (
 	descriptor.CodeDescriptor, error,
 ) {
@@ -132,7 +132,7 @@ func (c *descriptorsCache) GetCode(
 }
 
 type cache interface {
-	get(ref insolar.Reference, getter func() (val interface{}, err error)) (val interface{}, err error)
+	get(ref reference.Global, getter func() (val interface{}, err error)) (val interface{}, err error)
 }
 
 type cacheEntry struct {
@@ -142,16 +142,16 @@ type cacheEntry struct {
 
 type singleFlightCache struct {
 	mu sync.Mutex
-	m  map[insolar.Reference]*cacheEntry
+	m  map[reference.Global]*cacheEntry
 }
 
 func newSingleFlightCache() cache {
 	return &singleFlightCache{
-		m: make(map[insolar.Reference]*cacheEntry),
+		m: make(map[reference.Global]*cacheEntry),
 	}
 }
 
-func (c *singleFlightCache) getEntry(ref insolar.Reference) *cacheEntry {
+func (c *singleFlightCache) getEntry(ref reference.Global) *cacheEntry {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -162,7 +162,7 @@ func (c *singleFlightCache) getEntry(ref insolar.Reference) *cacheEntry {
 }
 
 func (c *singleFlightCache) get(
-	ref insolar.Reference,
+	ref reference.Global,
 	getter func() (value interface{}, err error),
 ) (
 	interface{}, error,

@@ -180,7 +180,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 
 
 {{ range $f := .Functions }}
-func INSCONSTRUCTOR_{{ $f.Name }}(ref insolar.Reference, data []byte) (state []byte, result []byte, err error) {
+func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
 	ph := common.CurrentProxyCtx
 	ph.SetSystemError(nil)
 
