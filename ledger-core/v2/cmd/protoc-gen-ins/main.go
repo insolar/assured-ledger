@@ -29,7 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/defaultcheck"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/sizer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
 // use: go install github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins
@@ -73,8 +73,8 @@ func PropagateNestedMessageNotation(file *descriptor.FileDescriptorProto) {
 		}
 		vanity.ForEachMessage(msgParent.GetNestedType(), func(msg *descriptor.DescriptorProto) {
 			switch {
-			case !vanity.MessageHasBoolExtension(msg, insproto.E_InsprotoNotation):
-				vanity.SetBoolMessageOption(insproto.E_InsprotoNotation, true)(msg)
+			case !vanity.MessageHasBoolExtension(msg, insproto.E_Notation):
+				vanity.SetBoolMessageOption(insproto.E_Notation, true)(msg)
 			case !insproto.IsNotation(file, msg):
 				return
 			}
@@ -82,13 +82,23 @@ func PropagateNestedMessageNotation(file *descriptor.FileDescriptorProto) {
 				marshalto.SetMessageHeadDesc(file, msgParent, msg)
 			}
 		})
+		hasMapping := insproto.IsMappingForMessage(msgParent)
+		if !hasMapping {
+			for _, field := range msgParent.GetField() {
+				if insproto.IsMappingForField(field, msgParent) {
+					hasMapping = true
+					break
+				}
+			}
+		}
+		if hasMapping {
+			// this fieldNum is reserved and will not be in use
+			msgParent.Field = append(msgParent.Field, insproto.NewFieldMapDescriptorProto(19999))
+		}
 	})
 }
 
 func TurnOffNullableAll(field *descriptor.FieldDescriptorProto) {
-	if field.IsRepeated() {
-		return
-	}
 	vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(field)
 }
 

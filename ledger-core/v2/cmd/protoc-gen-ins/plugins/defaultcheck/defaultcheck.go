@@ -39,7 +39,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
 type plugin struct {
@@ -75,6 +75,8 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 		face := gogoproto.IsFace(file.FileDescriptorProto, message.DescriptorProto)
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		has1619 := false
+		hasFieldMap := false
+		needsFieldMap := insproto.IsMappingForMessage(message.DescriptorProto)
 
 		fields := message.GetField()
 		if notation {
@@ -93,9 +95,19 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 				}
 			}
 
-			if insproto.IsCustomContextApply(field) && !insproto.IsCustomContext(message.DescriptorProto) {
+			if insproto.IsCustomContextApply(field) && !insproto.IsCustomContext(file.FileDescriptorProto, message.DescriptorProto) {
 				printerr("WARNING: field %v.%v has delegate without context\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 			}
+
+			if field.GetTypeName() == insproto.FieldMapFQN {
+				if field.GetName() != insproto.FieldMapFieldName || gogoproto.IsNullable(field) {
+					printerr("ERROR: field %v.%v is illegal use of FieldMap\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+					os.Exit(1)
+				}
+				hasFieldMap = true
+			}
+
+			needsFieldMap = needsFieldMap || insproto.IsMappingForField(field, message.DescriptorProto)
 
 			if notation {
 				switch fieldNumber := field.GetNumber(); {
@@ -121,17 +133,6 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 				printerr("ERROR: field %v.%v cannot be non-nullable and have a default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 				os.Exit(1)
 			}
-			// if !field.IsMessage() && !gogoproto.IsCustomType(field) {
-			// 	if field.IsRepeated() {
-			// 		printerr("WARNING: field %v.%v is a repeated non-nullable native type, nullable=false has no effect\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
-			// 	} else if proto3 {
-			// 		printerr("ERROR: field %v.%v is a native type and in proto3 syntax with nullable=false there exists conflicting implementations when encoding zero values", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
-			// 		os.Exit(1)
-			// 	}
-			// 	if field.IsBytes() {
-			// 		printerr("WARNING: field %v.%v is a non-nullable bytes type, nullable=false has no effect\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
-			// 	}
-			// }
 			if !field.IsEnum() {
 				continue
 			}
@@ -143,6 +144,10 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 		}
 		if notation && !has1619 && !insproto.HasPolymorphID(message.DescriptorProto) {
 			printerr("ERROR: message %v violates notation, missing field with number [16..19]", generator.CamelCase(*message.Name))
+			os.Exit(1)
+		}
+		if needsFieldMap && !hasFieldMap {
+			printerr("ERROR: message %v field mapping requires FieldMap field\n", generator.CamelCase(*message.Name))
 			os.Exit(1)
 		}
 	}

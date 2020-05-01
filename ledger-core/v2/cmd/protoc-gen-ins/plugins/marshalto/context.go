@@ -7,13 +7,12 @@ package marshalto
 
 import (
 	"sort"
+	"strings"
+	"unicode"
 
-	"github.com/gogo/protobuf/gogoproto"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
 type context struct {
@@ -22,29 +21,16 @@ type context struct {
 }
 
 func (p *context) Generate(file *generator.FileDescriptor, message *generator.Descriptor, ccTypeName string) {
-	customContext := insproto.GetCustomContext(message.DescriptorProto)
+	customContext := insproto.GetCustomContext(file.FileDescriptorProto, message.DescriptorProto)
 	if customContext == "" {
 		return
 	}
-	customContextMethod := insproto.GetCustomContextMethod(message.DescriptorProto)
+	customContextMethod := insproto.GetCustomContextMethod(file.FileDescriptorProto, message.DescriptorProto)
 	if customContextMethod == "" {
 		return
 	}
 
-	fakeField := &descriptor.FieldDescriptorProto{}
-	fakeField.Options = &descriptor.FieldOptions{}
-	if err := proto.SetExtension(fakeField.Options, gogoproto.E_Customtype, &customContext); err != nil {
-		panic(err)
-	}
-	switch packageName, typ, err := generator.GetCustomType(fakeField); {
-	case err != nil:
-		panic(err)
-	case packageName != "":
-		p.NewImport(packageName).Use()
-		fallthrough
-	default:
-		customContext = typ
-	}
+	customContext = ImportCustomName(customContext, p.PluginImports)
 
 	p.P(`func (m *`, ccTypeName, `) `, customContextMethod, `(ctx `, customContext, `) error {`)
 	p.In()
@@ -68,4 +54,32 @@ func (p *context) Generate(file *generator.FileDescriptor, message *generator.De
 	p.P(`return nil`)
 	p.Out()
 	p.P(`}`)
+}
+
+func ImportCustomName(customName string, imports generator.PluginImports) string {
+	packageName, typ := splitCPackageType(customName)
+	if packageName != "" {
+		pkg := imports.NewImport(packageName)
+		pkg.Use()
+		return typ
+	}
+	return typ
+}
+
+func splitCPackageType(ctype string) (packageName string, typ string) {
+	lastDot := strings.LastIndexByte(ctype, '.')
+	if lastDot < 0 {
+		return "", ctype
+	}
+	packageName = ctype[:lastDot]
+	importStr := strings.Map(badToUnderscore, packageName)
+	typ = importStr + ctype[lastDot:]
+	return packageName, typ
+}
+
+func badToUnderscore(r rune) rune {
+	if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+		return r
+	}
+	return '_'
 }

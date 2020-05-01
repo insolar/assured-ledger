@@ -3,17 +3,11 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-syntax = "proto3";
+package rms
 
-package rms;
+import "testing"
 
-// import "github.com/insolar/assured-ledger/ledger-core/v2/insproto/ins.proto";
-
-message Reference {
-}
-
-message RecordBody {
-}
-
-message RecordExtension {
+func TestExample(t *testing.T) {
+	m := MessageExample{}
+	m.SetupContext(nil)
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 

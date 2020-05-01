@@ -55,7 +55,7 @@ import (
 	"github.com/gogo/protobuf/vanity"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
 type size struct {

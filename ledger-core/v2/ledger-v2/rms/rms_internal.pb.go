@@ -12,7 +12,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/proto"
 
-	_ "github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	_ "github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	github_com_insolar_assured_ledger_ledger_core_v2_vanilla_longbits "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 

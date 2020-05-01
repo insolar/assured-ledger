@@ -63,7 +63,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -77,6 +77,7 @@ type marshalto struct {
 	mathPkg     generator.Single
 	typesPkg    generator.Single
 	binaryPkg   generator.Single
+	fieldMapPkg generator.Single
 	localName   string
 }
 
@@ -214,6 +215,11 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer 
 	nullable := gogoproto.IsNullable(field)
 	repeated := field.IsRepeated()
 	required := field.IsRequired()
+
+	needsMapping := insproto.IsMappingForField(field, message.DescriptorProto)
+	if needsMapping {
+		p.P(`fieldEnd = i`)
+	}
 
 	doNilCheck := gogoproto.NeedsNilCheck(proto3, field)
 	if required && nullable {
@@ -775,6 +781,9 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer 
 		p.Out()
 		p.P(`}`)
 	}
+	if needsMapping {
+		p.P(`if fieldEnd != i { m.FieldMap.Put(`, strconv.FormatUint(uint64(fieldNumber), 10), `, dAtA[i:fieldEnd]) }`)
+	}
 }
 
 func (p *marshalto) generatePolymorphField(proto3 bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
@@ -878,10 +887,13 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 	p.errorsPkg = p.NewImport("errors")
 	p.binaryPkg = p.NewImport("encoding/binary")
 	p.typesPkg = p.NewImport("github.com/gogo/protobuf/types")
+	p.fieldMapPkg = p.NewImport(insproto.FieldMapPackage)
 
 	contextGen := context{p.Generator, p.PluginImports}
 	polyGen := polymorph{p.Generator}
 	headGen := head{p.Generator}
+
+	var customRegistrations []string
 
 	for _, message := range file.Messages() {
 		if message.DescriptorProto.GetOptions().GetMapEntry() {
@@ -947,8 +959,8 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.In()
 		p.P(`i := len(dAtA)`)
 		p.P(`_ = i`)
-		p.P(`var l int`)
-		p.P(`_ = l`)
+		p.P(`var l, fieldEnd int`)
+		p.P(`_, _ = l, fieldEnd`)
 		if gogoproto.HasUnrecognized(file.FileDescriptorProto, message.DescriptorProto) {
 			p.P(`if m.XXX_unrecognized != nil {`)
 			p.In()
@@ -991,8 +1003,16 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			fields = fields[1:]
 		}
 
+		hasFieldMap := false
+
 		for i := len(fields) - 1; i >= 0; i-- {
 			field := fields[i]
+
+			if field.GetTypeName() == insproto.FieldMapFQN {
+				hasFieldMap = hasFieldMap || field.GetName() == insproto.FieldMapFieldName
+				continue
+			}
+
 			if field.OneofIndex == nil {
 				p.generateField(proto3, notation, zeroableDefault, protoSizer, numGen, file, message, field)
 				continue
@@ -1019,10 +1039,32 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			p.generatePolymorphField(proto3, message, nil)
 		}
 
+		if hasFieldMap {
+			p.P(`m.FieldMap.PutMessage(dAtA[i:])`)
+		}
+
 		p.P(`return len(dAtA) - i, nil`)
 		p.Out()
 		p.P(`}`)
 		p.P()
+
+		switch {
+		case !hasFieldMap:
+		case gogoproto.IsFace(file.FileDescriptorProto, message.DescriptorProto):
+		case gogoproto.HasGoGetters(file.FileDescriptorProto, message.DescriptorProto):
+		default:
+			p.P(`func (m *`, ccTypeName, `) GetFieldMap() `, p.fieldMapPkg.Use(), `.FieldMap {`)
+			p.In()
+			p.P(`return m.FieldMap`)
+			p.Out()
+			p.P(`}`)
+			p.P()
+		}
+
+		if customReg := insproto.GetCustomRegister(file.FileDescriptorProto, message.DescriptorProto); customReg != "" {
+			customReg = ImportCustomName(customReg, p.PluginImports)
+			customRegistrations = append(customRegistrations, customReg+`(`+ccTypeName+`{})`)
+		}
 
 		if len(oneofs) > 0 {
 			// Generate MarshalTo methods for oneof fields
@@ -1051,6 +1093,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 				p.P(`return len(dAtA) - i, nil`)
 				p.Out()
 				p.P(`}`)
+				p.P()
 			}
 		}
 	}
@@ -1071,8 +1114,19 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.P(`return base`)
 		p.Out()
 		p.P(`}`)
+		p.P()
 	}
 
+	if len(customRegistrations) > 0 {
+		p.P(`func init() {`)
+		p.In()
+		for _, s := range customRegistrations {
+			p.P(s)
+		}
+		p.Out()
+		p.P(`}`)
+		p.P()
+	}
 }
 
 func (p *marshalto) reverseListRange(expression ...string) string {

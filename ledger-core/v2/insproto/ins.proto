@@ -1,0 +1,46 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+syntax = "proto2";
+package insproto;
+
+import "google/protobuf/descriptor.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+extend google.protobuf.FileOptions {
+    optional bool notation_all = 63901;
+    optional bool zeroable_all = 63902;
+    optional string context_all = 63903;
+    optional string context_method_all = 63906;
+    optional string register_all = 63909;
+}
+
+extend google.protobuf.MessageOptions {
+    optional bool notation = 64901;
+    optional bool fields_zeroable = 64902;
+    optional string context = 64903;
+    optional uint64 id = 64904;
+    optional bool head = 64905;
+    optional string context_method = 64906;
+    optional bool fields_mapping = 64907;
+    optional bool message_mapping = 64908;
+    optional string register = 64909;
+}
+
+extend google.protobuf.FieldOptions {
+    optional bool zeroable = 65902;
+    optional string ctx_apply = 65903;
+    optional bool raw_bytes = 65904;
+
+    optional bool mapping = 65907;
+}
+
+message FieldMap {
+    option (gogoproto.typedecl) = false;
+    option (gogoproto.marshaler) = false;
+    option (gogoproto.unmarshaler) = false;
+    option (gogoproto.protosizer) = true;
+    option (gogoproto.sizer) = false;
+}

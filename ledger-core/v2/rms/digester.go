@@ -10,11 +10,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type DigestProvider interface {
-	GetDigest() cryptkit.Digest
-	MustDigest() cryptkit.Digest
-}
-
 func NewDigestValue(digest cryptkit.Digest) DigestProvider {
 	if digest.IsEmpty() {
 		panic(throw.IllegalValue())

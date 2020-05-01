@@ -6,19 +6,27 @@
 package rms
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
-type PulseNumber uint32
+type ByteString = longbits.ByteString
+type RecordBody = BlobBody
+type RecordExtension = BlobBody
+type PulseNumber = pulse.Number
 
-func (p *PulseNumber) Set(value pulse.Number) {
-
+type ContextMessage interface {
+	SetupContext(ctx Context) error
 }
 
-func (p *PulseNumber) Get() pulse.Number {
-
+type FieldMapper interface {
+	ContextMessage
+	GetFieldMap() insproto.FieldMap
 }
 
-func (p *PulseNumber) IsZero() bool {
-
+type Context interface {
+	RecordBodyHash(*RecordBody) error
+	RecordExtensionHash(*[]RecordExtension) error
+	Record(FieldMapper) error
 }

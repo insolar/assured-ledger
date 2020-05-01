@@ -10,7 +10,7 @@ import (
 
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
 type polymorph struct {
@@ -23,7 +23,7 @@ func (p *polymorph) Generate(message *generator.Descriptor, ccTypeName string) {
 	}
 	id := insproto.GetPolymorphID(message.DescriptorProto)
 
-	p.P(`func (m *`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)
+	p.P(`func (`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)
 	p.In()
 	p.P(`return `, strconv.FormatUint(id, 10))
 	p.Out()

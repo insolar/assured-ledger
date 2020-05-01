@@ -9,6 +9,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Serializable interface {
@@ -22,10 +23,24 @@ type DigestProvider interface {
 	MustDigest() cryptkit.Digest
 }
 
-type SerializableWithDigest struct {
-	delegate Serializable
+var _ Serializable = &SerializableWithReference{}
+
+type SerializableWithReference struct {
+	underlying Serializable
 }
 
-type SerializableWithReference interface {
-	Serializable
+func (p *SerializableWithReference) ProtoSize() int {
+	panic(throw.NotImplemented())
+}
+
+func (p *SerializableWithReference) MarshalTo(b []byte) (int, error) {
+	panic(throw.NotImplemented())
+}
+
+func (p *SerializableWithReference) Unmarshal(b []byte) error {
+	panic(throw.NotImplemented())
+}
+
+func (p *SerializableWithReference) MustDigest() cryptkit.Digest {
+	panic(throw.NotImplemented())
 }
