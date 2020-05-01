@@ -25,4 +25,5 @@ extend google.protobuf.MessageOptions {
 extend google.protobuf.FieldOptions {
     optional bool zeroable = 65902;
     optional string ctxApply = 65903;
+    optional bool rawBytes = 65904;
 }

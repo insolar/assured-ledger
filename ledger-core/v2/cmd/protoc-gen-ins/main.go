@@ -8,6 +8,7 @@ import (
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/plugin/compare"
 	"github.com/gogo/protobuf/plugin/description"
+	"github.com/gogo/protobuf/plugin/embedcheck"
 	"github.com/gogo/protobuf/plugin/enumstringer"
 	"github.com/gogo/protobuf/plugin/equal"
 	"github.com/gogo/protobuf/plugin/face"
@@ -26,7 +27,6 @@ import (
 	plugin "github.com/gogo/protobuf/protoc-gen-gogo/plugin"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/defaultcheck"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/embedcheck"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/sizer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/rms/insproto"
@@ -107,7 +107,7 @@ func resetDefaultPlugins() {
 	generator.RegisterPlugin(equal.NewPlugin())
 	generator.RegisterPlugin(face.NewPlugin())
 	generator.RegisterPlugin(gostring.NewGoString())
-	generator.RegisterPlugin(marshalto.NewMarshal()) // this is custom, also includes "context"
+	generator.RegisterPlugin(marshalto.NewMarshal()) // this is custom, also includes "context", "head" and "polymorph"
 	generator.RegisterPlugin(oneofcheck.NewPlugin())
 	generator.RegisterPlugin(populate.NewPlugin())
 	generator.RegisterPlugin(sizer.NewSize())
@@ -115,8 +115,6 @@ func resetDefaultPlugins() {
 	// NB! testgen can't be reused as it is unexported
 	generator.RegisterPlugin(union.NewUnion())
 	generator.RegisterPlugin(unmarshal.NewUnmarshal())
-
-	// generator.RegisterPlugin(marshalto.NewContext())
 }
 
 type stubPlugin struct{}
