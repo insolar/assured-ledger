@@ -30,7 +30,7 @@ type MutableNode interface {
 
 // GenerateUintShortID generate short ID for node without checking collisions
 func GenerateUintShortID(ref insolar.Reference) uint32 {
-	return crc32.ChecksumIEEE(ref.Bytes())
+	return crc32.ChecksumIEEE(ref.AsBytes())
 }
 
 type node struct {

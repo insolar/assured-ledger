@@ -196,11 +196,6 @@ func (v Local) String() string {
 	return v.Encode(DefaultEncoder())
 }
 
-// Bytes returns byte slice of ID.
-func (v Local) Bytes() []byte {
-	return v.AsBytes()
-}
-
 func (v Local) Compare(other Local) int {
 	if v.pulseAndScope < other.pulseAndScope {
 		return -1

@@ -58,10 +58,6 @@ func (v Global) WriteTo(w io.Writer) (int64, error) {
 	return n + n2, err
 }
 
-func (v Global) Read(b []byte) (int, error) {
-	return ReadTo(v, b)
-}
-
 func (v Global) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
@@ -167,10 +163,6 @@ func (v Global) String() string {
 		return NilRef
 	}
 	return s
-}
-
-func (v Global) Bytes() []byte {
-	return v.AsBytes()
 }
 
 // deprecated

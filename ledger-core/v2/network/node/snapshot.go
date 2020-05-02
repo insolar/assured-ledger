@@ -129,7 +129,7 @@ func (s *Snapshot) Encode() ([]byte, error) {
 			}
 
 			protoNode := &protonode.Node{
-				NodeID:         n.ID().Bytes(),
+				NodeID:         n.ID().AsBytes(),
 				NodeShortID:    uint32(n.ShortID()),
 				NodeRole:       uint32(n.Role()),
 				NodePublicKey:  exportedKey,

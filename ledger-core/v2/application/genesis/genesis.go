@@ -85,7 +85,7 @@ func (br *BaseRecord) Create(ctx context.Context) error {
 
 // Done saves genesis value. Should be called when all genesis steps finished properly.
 func (br *BaseRecord) Done(ctx context.Context) error {
-	return br.DB.Set(Key{}, application.GenesisRecord.Ref().Bytes())
+	return br.DB.Set(Key{}, application.GenesisRecord.Ref().AsBytes())
 }
 
 // Genesis holds data and objects required for genesis on heavy node.
