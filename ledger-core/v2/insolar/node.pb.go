@@ -12,6 +12,8 @@ import (
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -26,9 +28,9 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Node struct {
-	Polymorph int32      `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	ID        Reference  `protobuf:"bytes,20,opt,name=ID,proto3,customtype=Reference" json:"ID"`
-	Role      StaticRole `protobuf:"varint,21,opt,name=Role,proto3,customtype=StaticRole" json:"Role"`
+	Polymorph int32            `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
+	ID        reference.Global `protobuf:"bytes,20,opt,name=ID,proto3,customtype=Reference" json:"ID"`
+	Role      StaticRole       `protobuf:"varint,21,opt,name=Role,proto3,customtype=StaticRole" json:"Role"`
 }
 
 func (m *Node) Reset()      { *m = Node{} }

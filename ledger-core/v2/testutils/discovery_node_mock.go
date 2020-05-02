@@ -9,6 +9,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // DiscoveryNodeMock implements insolar.DiscoveryNode
@@ -21,7 +22,7 @@ type DiscoveryNodeMock struct {
 	beforeGetHostCounter uint64
 	GetHostMock          mDiscoveryNodeMockGetHost
 
-	funcGetNodeRef          func() (r1 mm_insolar.Reference)
+	funcGetNodeRef          func() (g1 reference.Global)
 	inspectFuncGetNodeRef   func()
 	afterGetNodeRefCounter  uint64
 	beforeGetNodeRefCounter uint64
@@ -217,7 +218,7 @@ type DiscoveryNodeMockGetNodeRefExpectation struct {
 
 // DiscoveryNodeMockGetNodeRefResults contains results of the DiscoveryNode.GetNodeRef
 type DiscoveryNodeMockGetNodeRefResults struct {
-	r1 mm_insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for DiscoveryNode.GetNodeRef
@@ -245,7 +246,7 @@ func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Inspect(f func()) *mDiscoveryN
 }
 
 // Return sets up results that will be returned by DiscoveryNode.GetNodeRef
-func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Return(r1 mm_insolar.Reference) *DiscoveryNodeMock {
+func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Return(g1 reference.Global) *DiscoveryNodeMock {
 	if mmGetNodeRef.mock.funcGetNodeRef != nil {
 		mmGetNodeRef.mock.t.Fatalf("DiscoveryNodeMock.GetNodeRef mock is already set by Set")
 	}
@@ -253,12 +254,12 @@ func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Return(r1 mm_insolar.Reference
 	if mmGetNodeRef.defaultExpectation == nil {
 		mmGetNodeRef.defaultExpectation = &DiscoveryNodeMockGetNodeRefExpectation{mock: mmGetNodeRef.mock}
 	}
-	mmGetNodeRef.defaultExpectation.results = &DiscoveryNodeMockGetNodeRefResults{r1}
+	mmGetNodeRef.defaultExpectation.results = &DiscoveryNodeMockGetNodeRefResults{g1}
 	return mmGetNodeRef.mock
 }
 
 //Set uses given function f to mock the DiscoveryNode.GetNodeRef method
-func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Set(f func() (r1 mm_insolar.Reference)) *DiscoveryNodeMock {
+func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Set(f func() (g1 reference.Global)) *DiscoveryNodeMock {
 	if mmGetNodeRef.defaultExpectation != nil {
 		mmGetNodeRef.mock.t.Fatalf("Default expectation is already set for the DiscoveryNode.GetNodeRef method")
 	}
@@ -272,7 +273,7 @@ func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Set(f func() (r1 mm_insolar.Re
 }
 
 // GetNodeRef implements insolar.DiscoveryNode
-func (mmGetNodeRef *DiscoveryNodeMock) GetNodeRef() (r1 mm_insolar.Reference) {
+func (mmGetNodeRef *DiscoveryNodeMock) GetNodeRef() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetNodeRef.beforeGetNodeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeRef.afterGetNodeRefCounter, 1)
 
@@ -287,7 +288,7 @@ func (mmGetNodeRef *DiscoveryNodeMock) GetNodeRef() (r1 mm_insolar.Reference) {
 		if mm_results == nil {
 			mmGetNodeRef.t.Fatal("No results are set for the DiscoveryNodeMock.GetNodeRef")
 		}
-		return (*mm_results).r1
+		return (*mm_results).g1
 	}
 	if mmGetNodeRef.funcGetNodeRef != nil {
 		return mmGetNodeRef.funcGetNodeRef()

@@ -5,10 +5,10 @@
 
 package appfoundation
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+import "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 type SagaAcceptInfo struct {
 	Amount     string
-	FromMember insolar.Reference
-	Request    insolar.Reference
+	FromMember reference.Global
+	Request    reference.Global
 }

@@ -9,11 +9,12 @@ import (
 	"sort"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type Accessor struct {
 	snapshot  *Snapshot
-	refIndex  map[insolar.Reference]insolar.NetworkNode
+	refIndex  map[reference.Global]insolar.NetworkNode
 	sidIndex  map[insolar.ShortNodeID]insolar.NetworkNode
 	addrIndex map[string]insolar.NetworkNode
 	// should be removed in future
@@ -34,11 +35,11 @@ func (a *Accessor) GetActiveNodes() []insolar.NetworkNode {
 	return result
 }
 
-func (a *Accessor) GetActiveNode(ref insolar.Reference) insolar.NetworkNode {
+func (a *Accessor) GetActiveNode(ref reference.Global) insolar.NetworkNode {
 	return a.refIndex[ref]
 }
 
-func (a *Accessor) GetWorkingNode(ref insolar.Reference) insolar.NetworkNode {
+func (a *Accessor) GetWorkingNode(ref reference.Global) insolar.NetworkNode {
 	node := a.GetActiveNode(ref)
 	if node == nil || node.GetPower() == 0 {
 		return nil
@@ -90,7 +91,7 @@ func (a *Accessor) addToIndex(node insolar.NetworkNode) {
 func NewAccessor(snapshot *Snapshot) *Accessor {
 	result := &Accessor{
 		snapshot:  snapshot,
-		refIndex:  make(map[insolar.Reference]insolar.NetworkNode),
+		refIndex:  make(map[reference.Global]insolar.NetworkNode),
 		sidIndex:  make(map[insolar.ShortNodeID]insolar.NetworkNode),
 		addrIndex: make(map[string]insolar.NetworkNode),
 	}

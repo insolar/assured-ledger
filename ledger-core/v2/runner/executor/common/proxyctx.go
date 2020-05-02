@@ -6,7 +6,7 @@
 package common
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 )
 
@@ -22,14 +22,14 @@ type ProxyHelper interface {
 	SystemError
 	Serializer
 	RouteCall(
-		ref insolar.Reference,
+		ref reference.Global,
 		immutable bool, saga bool,
-		method string, args []byte, proxyPrototype insolar.Reference,
+		method string, args []byte, proxyPrototype reference.Global,
 	) (result []byte, err error)
 	SaveAsChild(
-		parentRef, classRef insolar.Reference, constructorName string, argsSerialized []byte,
+		parentRef, classRef reference.Global, constructorName string, argsSerialized []byte,
 	) (result []byte, err error)
-	DeactivateObject(object insolar.Reference) error
+	DeactivateObject(object reference.Global) error
 	MakeErrorSerializable(error) error
 }
 

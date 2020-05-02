@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -74,7 +75,7 @@ func getDiscoveryNodes(count int) ([]insolar.NetworkNode, []insolar.DiscoveryNod
 	return netNodes, discoveryNodes
 }
 
-func newNode(ref insolar.Reference, i int) insolar.NetworkNode {
+func newNode(ref reference.Global, i int) insolar.NetworkNode {
 	return node.NewNode(ref, insolar.AllStaticRoles[i%len(insolar.AllStaticRoles)], nil,
 		"127.0.0.1:"+strconv.Itoa(30000+i), "")
 }

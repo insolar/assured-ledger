@@ -7,21 +7,22 @@ package requestresult
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type RequestResult struct {
 	SideEffectType     insolar.RequestResultType // every
 	RawResult          []byte                    // every
-	RawObjectReference insolar.Reference         // every
+	RawObjectReference reference.Global          // every
 
-	ParentReference insolar.Reference // activate
-	ObjectImage     insolar.Reference // amend + activate
-	ObjectStateID   insolar.ID        // amend + deactivate
-	Memory          []byte            // amend + activate
+	ParentReference reference.Global // activate
+	ObjectImage     reference.Global // amend + activate
+	ObjectStateID   reference.Local  // amend + deactivate
+	Memory          []byte           // amend + activate
 }
 
-func New(result []byte, objectRef insolar.Reference) *RequestResult {
+func New(result []byte, objectRef reference.Global) *RequestResult {
 	return &RequestResult{
 		SideEffectType:     insolar.RequestSideEffectNone,
 		RawResult:          result,
@@ -33,19 +34,19 @@ func (s *RequestResult) Result() []byte {
 	return s.RawResult
 }
 
-func (s *RequestResult) Activate() (insolar.Reference, insolar.Reference, []byte) {
+func (s *RequestResult) Activate() (reference.Global, reference.Global, []byte) {
 	return s.ParentReference, s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) Amend() (insolar.ID, insolar.Reference, []byte) {
+func (s *RequestResult) Amend() (reference.Local, reference.Global, []byte) {
 	return s.ObjectStateID, s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) Deactivate() insolar.ID {
+func (s *RequestResult) Deactivate() reference.Local {
 	return s.ObjectStateID
 }
 
-func (s *RequestResult) SetActivate(parent, image insolar.Reference, memory []byte) {
+func (s *RequestResult) SetActivate(parent, image reference.Global, memory []byte) {
 	s.SideEffectType = insolar.RequestSideEffectActivate
 
 	s.ParentReference = parent
@@ -56,21 +57,21 @@ func (s *RequestResult) SetActivate(parent, image insolar.Reference, memory []by
 func (s *RequestResult) SetAmend(object descriptor.ObjectDescriptor, memory []byte) {
 	s.SideEffectType = insolar.RequestSideEffectAmend
 	s.Memory = memory
-	s.ObjectStateID = *object.StateID()
+	s.ObjectStateID = object.StateID()
 
 	prototype, _ := object.Prototype()
-	s.ObjectImage = *prototype
+	s.ObjectImage = prototype
 }
 
 func (s *RequestResult) SetDeactivate(object descriptor.ObjectDescriptor) {
 	s.SideEffectType = insolar.RequestSideEffectDeactivate
-	s.ObjectStateID = *object.StateID()
+	s.ObjectStateID = object.StateID()
 }
 
 func (s RequestResult) Type() insolar.RequestResultType {
 	return s.SideEffectType
 }
 
-func (s *RequestResult) ObjectReference() insolar.Reference {
+func (s *RequestResult) ObjectReference() reference.Global {
 	return s.RawObjectReference
 }

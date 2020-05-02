@@ -7,10 +7,12 @@ package insolar
 
 import (
 	"crypto"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type NodeMeta interface {
-	GetNodeRef() Reference
+	GetNodeRef() reference.Global
 	GetPublicKey() crypto.PublicKey
 }
 
@@ -41,7 +43,7 @@ type AuthorizationCertificate interface {
 
 	GetRole() StaticRole
 	SerializeNodePart() []byte
-	GetDiscoverySigns() map[Reference][]byte
+	GetDiscoverySigns() map[reference.Global][]byte
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.CertificateManager -o ../testutils -s _mock.go -g

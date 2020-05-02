@@ -11,13 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func TestGen_IDWithPulse(t *testing.T) {
 	// Empty slice for comparison.
-	emptySlice := make([]byte, insolar.RecordHashSize)
+	emptySlice := make([]byte, reference.LocalBinaryHashSize)
 
 	for i := 0; i < 100; i++ {
 		pulse := gen.PulseNumber()

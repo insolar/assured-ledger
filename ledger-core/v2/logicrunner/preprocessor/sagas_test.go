@@ -526,7 +526,7 @@ import (
 
 type TestSagaSimpleCallContract struct {
 	foundation.BaseContract
-	Friend insolar.Reference
+	Friend reference.Global
 	Amount int
 }
 

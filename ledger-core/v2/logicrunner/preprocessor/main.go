@@ -27,6 +27,7 @@ import (
 	"text/template"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 
@@ -36,6 +37,7 @@ import (
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 var corePath = "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+var referencePath = "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 var pkgErrorsPath = "github.com/pkg/errors"
 
 var immutableFlag = "ins:immutable"
@@ -321,6 +323,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 	if pf.machineType == insolar.MachineTypeBuiltin ||
 		len(functionsInfo) > 0 {
 		imports[fmt.Sprintf(`"%s"`, corePath)] = true
+		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	}
 
 	data := map[string]interface{}{
@@ -484,7 +487,7 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 		classReference = genesisrefs.GenerateProtoReferenceFromCode(0, pf.code).String()
 	}
 
-	_, err = insolar.NewReferenceFromString(classReference)
+	_, err = reference.GlobalFromString(classReference)
 	if err != nil {
 		return errors.Wrap(err, "can't write proxy: ")
 	}
@@ -603,7 +606,7 @@ func (pf *ParsedFile) generateImports(wrapper bool) map[string]bool {
 	imports[fmt.Sprintf(`"%s"`, proxyctxPath)] = true
 	imports[fmt.Sprintf(`"%s"`, foundationPath)] = true
 	if !wrapper {
-		imports[fmt.Sprintf(`"%s"`, corePath)] = true
+		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	} else {
 		imports[fmt.Sprintf(`"%s"`, pkgErrorsPath)] = true
 

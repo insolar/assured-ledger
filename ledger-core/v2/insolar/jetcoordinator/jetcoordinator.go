@@ -17,6 +17,7 @@ import (
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
 )
 
@@ -30,11 +31,11 @@ type Coordinator struct {
 	Nodes node.Accessor `inject:""`
 
 	lightChainLimit int
-	originRef       insolar.Reference
+	originRef       reference.Global
 }
 
 // NewJetCoordinator creates new coordinator instance.
-func NewJetCoordinator(lightChainLimit int, originRef insolar.Reference) *Coordinator {
+func NewJetCoordinator(lightChainLimit int, originRef reference.Global) *Coordinator {
 	return &Coordinator{lightChainLimit: lightChainLimit, originRef: originRef}
 }
 
@@ -48,7 +49,7 @@ const (
 )
 
 // Me returns current node.
-func (jc *Coordinator) Me() insolar.Reference {
+func (jc *Coordinator) Me() reference.Global {
 	return jc.originRef
 }
 
@@ -56,16 +57,16 @@ func (jc *Coordinator) Me() insolar.Reference {
 func (jc *Coordinator) QueryRole(
 	ctx context.Context,
 	role insolar.DynamicRole,
-	objID insolar.ID,
+	objID reference.Local,
 	pulseNumber insolar.PulseNumber,
-) ([]insolar.Reference, error) {
+) ([]reference.Global, error) {
 	switch role {
 	case insolar.DynamicRoleVirtualExecutor:
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pulseNumber)
 		if err != nil {
 			return nil, errors.Wrapf(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
 		}
-		return []insolar.Reference{*n}, nil
+		return []reference.Global{n}, nil
 
 	case insolar.DynamicRoleVirtualValidator:
 		return jc.VirtualValidatorsForObject(ctx, objID, pulseNumber)
@@ -77,19 +78,19 @@ func (jc *Coordinator) QueryRole(
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
 func (jc *Coordinator) VirtualExecutorForObject(
-	ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber,
-) (*insolar.Reference, error) {
+	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber,
+) (reference.Global, error) {
 	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualExecutorCount)
 	if err != nil {
-		return nil, err
+		return reference.Global{}, err
 	}
-	return &nodes[0], nil
+	return nodes[0], nil
 }
 
 // VirtualValidatorsForObject returns list of VVs for a provided pulse and objID
 func (jc *Coordinator) VirtualValidatorsForObject(
-	ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber,
-) ([]insolar.Reference, error) {
+	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber,
+) ([]reference.Global, error) {
 	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualValidatorCount+VirtualExecutorCount)
 	if err != nil {
 		return nil, errors.Wrapf(err, "calc VirtualValidatorsForObject for object %v failed", objID.String())
@@ -139,8 +140,8 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.Pulse
 }
 
 func (jc *Coordinator) virtualsForObject(
-	ctx context.Context, objID insolar.ID, pulse insolar.PulseNumber, count int,
-) ([]insolar.Reference, error) {
+	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber, count int,
+) ([]reference.Global, error) {
 	candidates, err := jc.Nodes.InRole(pulse, insolar.StaticRoleVirtual)
 	if err == node.ErrNoNodes {
 		return nil, err
@@ -188,7 +189,7 @@ func getRefs(
 	e []byte,
 	values []insolar.Node,
 	count int,
-) ([]insolar.Reference, error) {
+) ([]reference.Global, error) {
 	sort.SliceStable(values, func(i, j int) bool {
 		return values[i].ID.Compare(values[j].ID) < 0
 	})
@@ -201,9 +202,9 @@ func getRefs(
 	if err != nil {
 		return nil, err
 	}
-	out := make([]insolar.Reference, 0, len(res))
+	out := make([]reference.Global, 0, len(res))
 	for _, value := range res {
-		out = append(out, value.(insolar.Reference))
+		out = append(out, value.(reference.Global))
 	}
 	return out, nil
 }

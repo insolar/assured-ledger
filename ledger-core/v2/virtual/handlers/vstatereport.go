@@ -61,7 +61,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 			})
 			return false
 		}
-		state.SetDescriptor(&incomingObjectState.Prototype, incomingObjectState.State)
+		state.SetDescriptor(incomingObjectState.Prototype, incomingObjectState.State)
 		state.SetState(object.HasState)
 		return true
 	}
