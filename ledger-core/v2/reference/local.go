@@ -11,8 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -55,11 +53,11 @@ func NewLocal(pn pulse.Number, scope SubScope, hash LocalHash) Local {
 	if !pn.IsSpecialOrTimePulse() {
 		panic(fmt.Sprintf("illegal value: %d", pn))
 	}
-	return Local{pulseAndScope: pn.WithFlags(byte(scope)), hash: hash}
+	return Local{pulseAndScope: pn.WithFlags(int(scope)), hash: hash}
 }
 
 func NewLocalTemplate(pn pulse.Number, scope SubScope) Local {
-	return Local{pulseAndScope: pn.WithFlags(byte(scope))}
+	return Local{pulseAndScope: pn.WithFlags(int(scope))}
 }
 
 const JetDepthPosition = 0 //
@@ -387,41 +385,8 @@ func (v Local) wholeMarshalTo(b []byte) (int, error) {
 	return v.Read(b)
 }
 
-// deprecated
-func (v Local) debugStringJet() string {
-	depth, prefix := int(v.hash[JetDepthPosition]), v.hash[1:]
-
-	if depth == 0 {
-		return "[JET 0 -]"
-	} else if depth > 8*(len(v.hash)-1) {
-		return fmt.Sprintf("[JET: <wrong format> %d %b]", depth, prefix)
-	}
-
-	res := strings.Builder{}
-	res.WriteString(fmt.Sprintf("[JET %d ", depth))
-
-	for i := 0; i < depth; i++ {
-		bytePos, bitPos := i/8, 7-i%8
-
-		byteValue := prefix[bytePos]
-		bitValue := byteValue >> uint(bitPos) & 0x01
-		bitString := strconv.Itoa(int(bitValue))
-		res.WriteString(bitString)
-	}
-
-	res.WriteString("]")
-	return res.String()
-}
-
 // DebugString prints ID in human readable form.
-func (v *Local) DebugString() string {
-	if v == nil {
-		return NilRef
-	} else if v.Pulse().IsJet() {
-		// TODO: remove this branch after finish transition to JetID
-		return v.debugStringJet()
-	}
-
+func (v Local) DebugString() string {
 	return fmt.Sprintf("%s [%d | %d | %s]", v.String(), v.Pulse(), v.SubScope(), base64.RawURLEncoding.EncodeToString(v.Hash()))
 }
 

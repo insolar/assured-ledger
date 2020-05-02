@@ -59,7 +59,3 @@ const (
 	// Identity of data relevant to pulse, e.g. network state hash, network population, jet tree etc
 	DataOfPulse
 )
-
-func (n Number) IsJet() bool {
-	return n == Jet
-}

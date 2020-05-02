@@ -145,5 +145,5 @@ func TestOfUint32(t *testing.T) {
 func TestFlagsOf(t *testing.T) {
 	require.Zero(t, FlagsOf(MaxTimePulse))
 
-	require.Equal(t, uint(1), FlagsOf(MaxTimePulse+2))
+	require.Equal(t, 1, FlagsOf(MaxTimePulse+2))
 }
