@@ -23,7 +23,7 @@ type LocalHash = longbits.Bits224
 
 var nearestPo2 = int(args.CeilingPowerOfTwo(uint(len(LocalHash{}))))
 
-func AsLocalHash(r longbits.FixedReader) (result LocalHash) {
+func CopyToLocalHash(r longbits.FixedReader) (result LocalHash) {
 	if r == nil {
 		panic(throw.IllegalValue())
 	}
