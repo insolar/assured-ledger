@@ -163,7 +163,7 @@ func (v *Global) tryApplyBase(base *Global) bool {
 	return true
 }
 
-func (v Global) Compare(other Global) int {
+func (v Global) Compare(other Holder) int {
 	return Compare(v, other)
 }
 
