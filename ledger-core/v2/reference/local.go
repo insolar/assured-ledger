@@ -8,11 +8,8 @@ package reference
 import (
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"io"
-
-	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
@@ -60,8 +57,6 @@ func NewLocalTemplate(pn pulse.Number, scope SubScope) Local {
 	return Local{pulseAndScope: pn.WithFlags(int(scope))}
 }
 
-const JetDepthPosition = 0 //
-
 type Local struct {
 	pulseAndScope uint32 // pulse + scope
 	hash          LocalHash
@@ -98,16 +93,6 @@ func (v Local) WriteTo(w io.Writer) (int64, error) {
 	return int64(n) + n2, err
 }
 
-func (v Local) Read(p []byte) (n int, err error) {
-	if len(p) < LocalBinaryPulseAndScopeSize {
-		return copy(p, v.pulseAndScopeAsBytes()), nil
-	}
-
-	byteOrder.PutUint32(p, v.pulseAndScope)
-	n = v.hash.CopyTo(p[LocalBinaryPulseAndScopeSize:])
-	return LocalBinaryPulseAndScopeSize + n, nil
-}
-
 func (v Local) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
@@ -131,54 +116,6 @@ func (v Local) AsReader() io.ByteReader {
 
 func (v Local) asReader(limit uint8) *byteReader {
 	return &byteReader{v: v, s: limit}
-}
-
-func (v *Local) asWriter() *byteWriter {
-	return &byteWriter{v: v}
-}
-
-type byteReader struct {
-	v Local
-	o uint8
-	s uint8
-}
-
-func (p *byteReader) ReadByte() (b byte, err error) {
-	switch {
-	case p.o < LocalBinaryPulseAndScopeSize:
-		b = byte(p.v.pulseAndScope >> ((3 - p.o) << 3))
-	case p.o >= p.s:
-		return 0, io.EOF
-	default:
-		b = p.v.hash[p.o-LocalBinaryPulseAndScopeSize]
-	}
-	p.o++
-	return b, nil
-}
-
-var _ io.ByteWriter = &byteWriter{}
-
-type byteWriter struct {
-	v *Local
-	o uint8
-}
-
-func (p *byteWriter) WriteByte(c byte) error {
-	switch {
-	case p.o < LocalBinaryPulseAndScopeSize:
-		shift := (3 - p.o) << 3
-		p.v.pulseAndScope = uint32(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
-	case p.isFull():
-		return io.ErrUnexpectedEOF
-	default:
-		p.v.hash[p.o-LocalBinaryPulseAndScopeSize] = c
-	}
-	p.o++
-	return nil
-}
-
-func (p *byteWriter) isFull() bool {
-	return int(p.o) >= LocalBinarySize
 }
 
 // Encoder encodes Local to string with chosen encoder.
@@ -216,68 +153,6 @@ func (v Local) Hash() []byte {
 	return rv
 }
 
-// deprecated
-func (v *Local) MarshalJSON() ([]byte, error) {
-	if v == nil {
-		return json.Marshal(nil)
-	}
-	return json.Marshal(v.Encode(DefaultEncoder()))
-}
-
-// deprecated
-func (v *Local) Marshal() ([]byte, error) {
-	return v.AsBytes(), nil
-}
-
-// deprecated
-func (v *Local) UnmarshalJSON(data []byte) error {
-	return v.unmarshalJSON(data)
-}
-
-func (v *Local) unmarshalJSON(data []byte) error {
-	var repr interface{}
-
-	err := json.Unmarshal(data, &repr)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal reference.Local")
-	}
-
-	switch realRepr := repr.(type) {
-	case string:
-		decoded, err := DefaultDecoder().Decode(realRepr)
-		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal reference.Local")
-		}
-		*v = decoded.GetLocal()
-	case nil:
-	default:
-		return errors.Wrapf(err, "unexpected type %T when unmarshal reference.Local", repr)
-	}
-
-	return nil
-}
-
-func UnmarshalLocalJSON(b []byte) (v Local, err error) {
-	err = v.unmarshalJSON(b)
-	return
-}
-
-func MarshalLocalJSON(v Local) (b []byte, err error) {
-	return json.Marshal(v.Encode(DefaultEncoder()))
-}
-
-func MarshalLocalHolderJSON(v LocalHolder) (b []byte, err error) {
-	if v == nil {
-		return json.Marshal(nil)
-	}
-	return json.Marshal(v.GetLocal().Encode(DefaultEncoder()))
-}
-
-// deprecated
-func (v *Local) UnmarshalBinary(data []byte) error {
-	return v.Unmarshal(data)
-}
-
 func (v Local) hashLen() int {
 	i := len(v.hash) - 1
 	for ; i >= 0 && v.hash[i] == 0; i-- {
@@ -285,104 +160,8 @@ func (v Local) hashLen() int {
 	return i + 1
 }
 
-// deprecated
-func (v Local) Size() int {
-	return ProtoSizeLocal(v)
-}
-
-func (v Local) MarshalTo(data []byte) (int, error) {
-	switch pn := v.GetPulseNumber(); {
-	case pn.IsUnknown():
-		return 0, nil
-	case pn.IsTimePulse():
-		if len(data) >= LocalBinarySize {
-			return v.Read(data)
-		}
-	case len(data) >= LocalBinaryPulseAndScopeSize:
-		copy(data, v.pulseAndScopeAsBytes())
-		i := v.hashLen()
-		if copy(data[LocalBinaryPulseAndScopeSize:], v.hash[:i]) == i {
-			return LocalBinaryPulseAndScopeSize + i, nil
-		}
-	}
-	return 0, throw.WithStackTop(io.ErrUnexpectedEOF)
-}
-
 func (v Local) GetLocal() Local {
 	return v
-}
-
-func ProtoSizeLocal(h LocalHolder) int {
-	if h == nil || h.IsEmpty() {
-		return 0
-	}
-	v := h.GetLocal()
-	switch pn := v.GetPulseNumber(); {
-	case pn.IsUnknown():
-		return 0
-	case pn.IsTimePulse():
-		return LocalBinarySize
-	}
-	return LocalBinaryPulseAndScopeSize + v.hashLen()
-}
-
-func MarshalLocalTo(v LocalHolder, data []byte) (int, error) {
-	if v == nil || v.IsEmpty() {
-		return 0, nil
-	}
-	return v.GetLocal().MarshalTo(data)
-}
-
-// deprecated
-func (v *Local) Unmarshal(data []byte) error {
-	if len(data) == 0 {
-		// backward compatibility
-		*v = Local{}
-		return nil
-	}
-	return v.unmarshal(data)
-}
-
-func (v *Local) unmarshal(data []byte) error {
-	switch n := len(data); {
-	case n > LocalBinarySize:
-		return errors.New("too much bytes to unmarshal reference.Local")
-	case n < LocalBinaryPulseAndScopeSize:
-		return errors.New("not enough bytes to unmarshal reference.Local")
-	default:
-		writer := v.asWriter()
-		for i := 0; i < n; i++ {
-			_ = writer.WriteByte(data[i])
-		}
-		for i := n; i < LocalBinarySize; i++ {
-			_ = writer.WriteByte(0)
-		}
-	}
-	return nil
-}
-
-func UnmarshalLocal(b []byte) (v Local, err error) {
-	err = v.unmarshal(b)
-	return
-}
-
-func (v *Local) wholeUnmarshalLocal(b []byte) error {
-	if len(b) != LocalBinarySize {
-		return errors.New("not enough bytes to marshal reference.Local")
-	}
-
-	writer := v.asWriter()
-	for i := 0; i < LocalBinarySize; i++ {
-		_ = writer.WriteByte(b[i])
-	}
-	return nil
-}
-
-func (v Local) wholeMarshalTo(b []byte) (int, error) {
-	if len(b) < LocalBinarySize {
-		return 0, errors.New("not enough bytes to marshal reference.Local")
-	}
-	return v.Read(b)
 }
 
 // DebugString prints ID in human readable form.
@@ -401,4 +180,93 @@ func (v Local) Equal(o LocalHolder) bool {
 func (v Local) WithHash(hash LocalHash) Local {
 	v.hash = hash
 	return v
+}
+
+func (v *Local) asWriter() *byteWriter {
+	return &byteWriter{v: v}
+}
+
+// deprecated: use reference.ProtoSizeLocal
+func (v Local) Size() int {
+	return ProtoSizeLocal(v)
+}
+
+// deprecated: use reference.MarshalLocalTo
+func (v Local) MarshalTo(data []byte) (int, error) {
+	return MarshalLocalTo(v, data)
+}
+
+// deprecated: use reference.MarshalLocal
+func (v *Local) Marshal() ([]byte, error) {
+	return MarshalLocal(v)
+}
+
+// deprecated: use reference.UnmarshalLocal
+func (v *Local) Unmarshal(data []byte) (err error) {
+	if len(data) == 0 {
+		// backward compatibility
+		*v = Local{}
+		return nil
+	}
+	*v, err = UnmarshalLocal(data)
+	return
+}
+
+// deprecated: use reference.MarshalLocalJSON
+func (v *Local) MarshalJSON() ([]byte, error) {
+	return MarshalLocalJSON(v)
+}
+
+// deprecated: use reference.UnmarshalLocalJSON
+func (v *Local) UnmarshalJSON(data []byte) (err error) {
+	*v, err = UnmarshalLocalJSON(data)
+	return
+}
+
+/********************/
+
+var _ io.ByteWriter = &byteWriter{}
+
+type byteWriter struct {
+	v *Local
+	o uint8
+}
+
+func (p *byteWriter) WriteByte(c byte) error {
+	switch {
+	case p.o < LocalBinaryPulseAndScopeSize:
+		shift := (3 - p.o) << 3
+		p.v.pulseAndScope = uint32(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
+	case p.isFull():
+		return io.ErrUnexpectedEOF
+	default:
+		p.v.hash[p.o-LocalBinaryPulseAndScopeSize] = c
+	}
+	p.o++
+	return nil
+}
+
+func (p *byteWriter) isFull() bool {
+	return int(p.o) >= LocalBinarySize
+}
+
+/********************/
+
+type byteReader struct {
+	v Local
+	o uint8
+	s uint8
+}
+
+func (p *byteReader) ReadByte() (b byte, err error) {
+	switch {
+	case p.o < LocalBinaryPulseAndScopeSize:
+		b = byte(p.v.pulseAndScope >> ((3 - p.o) << 3))
+	case p.o >= p.s:
+		return 0, io.EOF
+	default:
+		b = p.v.hash[p.o-LocalBinaryPulseAndScopeSize]
+	}
+	p.o++
+	return b, nil
 }
