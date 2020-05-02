@@ -8,6 +8,7 @@ package reference
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -16,15 +17,15 @@ import (
 func ProtoSize(h Holder) int {
 	base := h.GetBase()
 	if base.IsEmpty() {
-		return h.GetLocal().ProtoSize()
+		return ProtoSizeLocal(h.GetLocal())
 	}
-	return LocalBinarySize + base.ProtoSize()
+	return LocalBinarySize + ProtoSizeLocal(h.GetLocal())
 }
 
 func MarshalTo(h Holder, b []byte) (int, error) {
 	base := h.GetBase()
 	if base.IsEmpty() {
-		return h.GetLocal().MarshalTo(b)
+		return MarshalLocalTo(h.GetLocal(), b)
 	}
 	return _marshal(h.GetLocal(), base, b)
 }
@@ -33,10 +34,10 @@ func Marshal(h Holder) ([]byte, error) {
 	base := h.GetBase()
 	if base.IsEmpty() {
 		v := h.GetLocal()
-		return v.Marshal()
+		return MarshalLocal(v)
 	}
 
-	b := make([]byte, LocalBinarySize+base.ProtoSize())
+	b := make([]byte, LocalBinarySize+ProtoSizeLocal(base))
 	n, err := _marshal(h.GetLocal(), base, b)
 	if err != nil {
 		return nil, err
@@ -63,23 +64,42 @@ func MarshalJSON(h Holder) ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func UnmarshalJSON(b []byte) (Holder, error) {
-	v := Global{}
-	err := v.unmarshalJSON(b)
-	return v, err
+func UnmarshalJSON(b []byte) (v Global, err error) {
+	err = _unmarshalJSON(&v, b)
+	return
+}
+
+func _unmarshalJSON(v *Global, data []byte) error {
+	var repr interface{}
+
+	err := json.Unmarshal(data, &repr)
+	if err != nil {
+		return throw.W(err, "failed to unmarshal reference.Global")
+	}
+
+	switch realRepr := repr.(type) {
+	case string:
+		decoded, err := Decode(realRepr)
+		if err != nil {
+			return throw.W(err, "failed to unmarshal reference.Global")
+		}
+
+		v.addressLocal = decoded.GetLocal()
+		v.addressBase = decoded.GetBase()
+	case nil:
+	default:
+		return throw.W(err, fmt.Sprintf("unexpected type %T when unmarshal reference.Global", repr))
+	}
+
+	return nil
 }
 
 func _marshal(local, base Local, b []byte) (int, error) {
-	n, err := local.wholeMarshalTo(b)
-	switch {
-	case err != nil:
-		return 0, err
-	case n != LocalBinarySize:
-		return 0, throw.WithStackTop(io.ErrUnexpectedEOF)
+	n := WriteWholeLocalTo(local, b)
+	if n != LocalBinarySize {
+		return 0, throw.WithStackTop(io.ErrShortBuffer)
 	}
-
-	n2 := 0
-	n2, err = base.MarshalTo(b[n:])
+	n2, err := MarshalLocalTo(base, b[n:])
 	return n + n2, err
 }
 
@@ -88,19 +108,17 @@ func Unmarshal(b []byte) (local, base Local, err error) {
 	case n == 0:
 		return
 	case n <= LocalBinaryPulseAndScopeSize:
-		err = throw.WithStackTop(io.ErrUnexpectedEOF)
+		err = throw.WithStackTop(io.ErrShortBuffer)
 		return
 	case n <= LocalBinarySize:
-		err = local.unmarshal(b)
+		local, err = UnmarshalLocal(b)
 		return
 	case n > GlobalBinarySize:
 		err = errors.New("too much bytes to unmarshal reference.Global")
 		return
 	default:
-		err = local.wholeUnmarshalLocal(b[:LocalBinarySize])
-		if err == nil {
-			err = base.unmarshal(b[LocalBinarySize:])
-		}
+		local = ReadWholeLocalFrom(b[:LocalBinarySize])
+		base, err = UnmarshalLocal(b[LocalBinarySize:])
 		return
 	}
 }
