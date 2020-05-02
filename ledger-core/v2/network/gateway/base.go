@@ -254,7 +254,7 @@ func (g *Base) Bootstrapper() network.Bootstrapper {
 }
 
 // GetCert method returns node certificate by requesting sign from discovery nodes
-func (g *Base) GetCert(ctx context.Context, ref *reference.Global) (insolar.Certificate, error) {
+func (g *Base) GetCert(ctx context.Context, ref reference.Global) (insolar.Certificate, error) {
 	return nil, errors.New("GetCert() in non active mode")
 }
 

@@ -67,9 +67,9 @@ func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
 	}
 }
 
-func (i *Info) SetDescriptor(prototype *reference.Global, memory []byte) {
+func (i *Info) SetDescriptor(prototype reference.Global, memory []byte) {
 	i.descriptor = descriptor.NewObjectDescriptor(
-		i.Reference, reference.Local{}, prototype, memory, reference.Global{}, nil,
+		i.Reference, reference.Local{}, prototype, memory, reference.Global{}, reference.Local{},
 	)
 }
 

@@ -161,5 +161,5 @@ func (host *Host) Size() int {
 }
 
 func (host *Host) basicSize() int {
-	return insolar.RecordRefSize + insolar.ShortNodeIDSize + 1
+	return reference.GlobalBinarySize + insolar.ShortNodeIDSize + 1
 }

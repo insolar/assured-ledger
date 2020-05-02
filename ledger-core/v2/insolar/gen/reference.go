@@ -45,7 +45,7 @@ func IDWithPulse(pn insolar.PulseNumber) reference.Local {
 
 	fuzz.New().
 		NilChance(0).
-		NumElements(insolar.RecordHashSize, insolar.RecordHashSize).
+		NumElements(reference.LocalBinaryHashSize, reference.LocalBinaryHashSize).
 		Fuzz(&hash)
 	return reference.NewRecordID(pn, reference.BytesToLocalHash(hash))
 }

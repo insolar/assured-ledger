@@ -57,15 +57,15 @@ func (s *RequestResult) SetActivate(parent, image reference.Global, memory []byt
 func (s *RequestResult) SetAmend(object descriptor.ObjectDescriptor, memory []byte) {
 	s.SideEffectType = insolar.RequestSideEffectAmend
 	s.Memory = memory
-	s.ObjectStateID = *object.StateID()
+	s.ObjectStateID = object.StateID()
 
 	prototype, _ := object.Prototype()
-	s.ObjectImage = *prototype
+	s.ObjectImage = prototype
 }
 
 func (s *RequestResult) SetDeactivate(object descriptor.ObjectDescriptor) {
 	s.SideEffectType = insolar.RequestSideEffectDeactivate
-	s.ObjectStateID = *object.StateID()
+	s.ObjectStateID = object.StateID()
 }
 
 func (s RequestResult) Type() insolar.RequestResultType {

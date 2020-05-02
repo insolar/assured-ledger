@@ -48,7 +48,7 @@ func main() {
 	caller := gen.Reference()
 	res := rpctypes.DownCallMethodResp{}
 	req := rpctypes.DownCallMethodReq{
-		Context:   &insolar.LogicCallContext{Caller: &caller},
+		Context:   &insolar.LogicCallContext{Caller: caller},
 		Code:      ref,
 		Data:      empty,
 		Method:    "Check",

@@ -12,13 +12,13 @@ import (
 // PrototypeDescriptor represents meta info required to fetch all prototype data.
 type PrototypeDescriptor interface {
 	// HeadRef returns head reference to represented object record.
-	HeadRef() *reference.Global
+	HeadRef() reference.Global
 
 	// StateID returns reference to object state record.
-	StateID() *reference.Local
+	StateID() reference.Local
 
 	// Code returns code reference.
-	Code() *reference.Global
+	Code() reference.Global
 }
 
 func NewPrototypeDescriptor(
@@ -38,16 +38,16 @@ type prototypeDescriptor struct {
 }
 
 // Code returns code reference.
-func (d *prototypeDescriptor) Code() *reference.Global {
-	return &d.code
+func (d *prototypeDescriptor) Code() reference.Global {
+	return d.code
 }
 
 // HeadRef returns reference to represented object record.
-func (d *prototypeDescriptor) HeadRef() *reference.Global {
-	return &d.head
+func (d *prototypeDescriptor) HeadRef() reference.Global {
+	return d.head
 }
 
 // StateID returns reference to object state record.
-func (d *prototypeDescriptor) StateID() *reference.Local {
-	return &d.state
+func (d *prototypeDescriptor) StateID() reference.Local {
+	return d.state
 }

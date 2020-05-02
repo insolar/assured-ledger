@@ -15,7 +15,7 @@ import (
 
 func TestLocalFromString(t *testing.T) {
 	id := randLocal()
-	idStr := "insolar:1" + base64.RawURLEncoding.EncodeToString(id.Bytes())
+	idStr := "insolar:1" + base64.RawURLEncoding.EncodeToString(id.AsBytes())
 	id2, err := LocalFromString(idStr)
 	require.NoError(t, err)
 

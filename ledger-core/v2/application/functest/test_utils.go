@@ -21,7 +21,7 @@ import (
 )
 
 type contractInfo struct {
-	reference *reference.Global
+	reference reference.Global
 	testName  string
 }
 

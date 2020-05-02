@@ -66,7 +66,7 @@ func (jc *Coordinator) QueryRole(
 		if err != nil {
 			return nil, errors.Wrapf(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
 		}
-		return []reference.Global{*n}, nil
+		return []reference.Global{n}, nil
 
 	case insolar.DynamicRoleVirtualValidator:
 		return jc.VirtualValidatorsForObject(ctx, objID, pulseNumber)
@@ -79,12 +79,12 @@ func (jc *Coordinator) QueryRole(
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
 func (jc *Coordinator) VirtualExecutorForObject(
 	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber,
-) (*reference.Global, error) {
+) (reference.Global, error) {
 	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualExecutorCount)
 	if err != nil {
-		return nil, err
+		return reference.Global{}, err
 	}
-	return &nodes[0], nil
+	return nodes[0], nil
 }
 
 // VirtualValidatorsForObject returns list of VVs for a provided pulse and objID

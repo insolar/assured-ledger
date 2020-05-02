@@ -10,14 +10,15 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // CertificateGetterMock implements insolar.CertificateGetter
 type CertificateGetterMock struct {
 	t minimock.Tester
 
-	funcGetCert          func(ctx context.Context, rp1 *mm_insolar.Reference) (c2 mm_insolar.Certificate, err error)
-	inspectFuncGetCert   func(ctx context.Context, rp1 *mm_insolar.Reference)
+	funcGetCert          func(ctx context.Context, g1 reference.Global) (c2 mm_insolar.Certificate, err error)
+	inspectFuncGetCert   func(ctx context.Context, g1 reference.Global)
 	afterGetCertCounter  uint64
 	beforeGetCertCounter uint64
 	GetCertMock          mCertificateGetterMockGetCert
@@ -56,7 +57,7 @@ type CertificateGetterMockGetCertExpectation struct {
 // CertificateGetterMockGetCertParams contains parameters of the CertificateGetter.GetCert
 type CertificateGetterMockGetCertParams struct {
 	ctx context.Context
-	rp1 *mm_insolar.Reference
+	g1  reference.Global
 }
 
 // CertificateGetterMockGetCertResults contains results of the CertificateGetter.GetCert
@@ -66,7 +67,7 @@ type CertificateGetterMockGetCertResults struct {
 }
 
 // Expect sets up expected params for CertificateGetter.GetCert
-func (mmGetCert *mCertificateGetterMockGetCert) Expect(ctx context.Context, rp1 *mm_insolar.Reference) *mCertificateGetterMockGetCert {
+func (mmGetCert *mCertificateGetterMockGetCert) Expect(ctx context.Context, g1 reference.Global) *mCertificateGetterMockGetCert {
 	if mmGetCert.mock.funcGetCert != nil {
 		mmGetCert.mock.t.Fatalf("CertificateGetterMock.GetCert mock is already set by Set")
 	}
@@ -75,7 +76,7 @@ func (mmGetCert *mCertificateGetterMockGetCert) Expect(ctx context.Context, rp1 
 		mmGetCert.defaultExpectation = &CertificateGetterMockGetCertExpectation{}
 	}
 
-	mmGetCert.defaultExpectation.params = &CertificateGetterMockGetCertParams{ctx, rp1}
+	mmGetCert.defaultExpectation.params = &CertificateGetterMockGetCertParams{ctx, g1}
 	for _, e := range mmGetCert.expectations {
 		if minimock.Equal(e.params, mmGetCert.defaultExpectation.params) {
 			mmGetCert.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetCert.defaultExpectation.params)
@@ -86,7 +87,7 @@ func (mmGetCert *mCertificateGetterMockGetCert) Expect(ctx context.Context, rp1 
 }
 
 // Inspect accepts an inspector function that has same arguments as the CertificateGetter.GetCert
-func (mmGetCert *mCertificateGetterMockGetCert) Inspect(f func(ctx context.Context, rp1 *mm_insolar.Reference)) *mCertificateGetterMockGetCert {
+func (mmGetCert *mCertificateGetterMockGetCert) Inspect(f func(ctx context.Context, g1 reference.Global)) *mCertificateGetterMockGetCert {
 	if mmGetCert.mock.inspectFuncGetCert != nil {
 		mmGetCert.mock.t.Fatalf("Inspect function is already set for CertificateGetterMock.GetCert")
 	}
@@ -110,7 +111,7 @@ func (mmGetCert *mCertificateGetterMockGetCert) Return(c2 mm_insolar.Certificate
 }
 
 //Set uses given function f to mock the CertificateGetter.GetCert method
-func (mmGetCert *mCertificateGetterMockGetCert) Set(f func(ctx context.Context, rp1 *mm_insolar.Reference) (c2 mm_insolar.Certificate, err error)) *CertificateGetterMock {
+func (mmGetCert *mCertificateGetterMockGetCert) Set(f func(ctx context.Context, g1 reference.Global) (c2 mm_insolar.Certificate, err error)) *CertificateGetterMock {
 	if mmGetCert.defaultExpectation != nil {
 		mmGetCert.mock.t.Fatalf("Default expectation is already set for the CertificateGetter.GetCert method")
 	}
@@ -125,14 +126,14 @@ func (mmGetCert *mCertificateGetterMockGetCert) Set(f func(ctx context.Context, 
 
 // When sets expectation for the CertificateGetter.GetCert which will trigger the result defined by the following
 // Then helper
-func (mmGetCert *mCertificateGetterMockGetCert) When(ctx context.Context, rp1 *mm_insolar.Reference) *CertificateGetterMockGetCertExpectation {
+func (mmGetCert *mCertificateGetterMockGetCert) When(ctx context.Context, g1 reference.Global) *CertificateGetterMockGetCertExpectation {
 	if mmGetCert.mock.funcGetCert != nil {
 		mmGetCert.mock.t.Fatalf("CertificateGetterMock.GetCert mock is already set by Set")
 	}
 
 	expectation := &CertificateGetterMockGetCertExpectation{
 		mock:   mmGetCert.mock,
-		params: &CertificateGetterMockGetCertParams{ctx, rp1},
+		params: &CertificateGetterMockGetCertParams{ctx, g1},
 	}
 	mmGetCert.expectations = append(mmGetCert.expectations, expectation)
 	return expectation
@@ -145,15 +146,15 @@ func (e *CertificateGetterMockGetCertExpectation) Then(c2 mm_insolar.Certificate
 }
 
 // GetCert implements insolar.CertificateGetter
-func (mmGetCert *CertificateGetterMock) GetCert(ctx context.Context, rp1 *mm_insolar.Reference) (c2 mm_insolar.Certificate, err error) {
+func (mmGetCert *CertificateGetterMock) GetCert(ctx context.Context, g1 reference.Global) (c2 mm_insolar.Certificate, err error) {
 	mm_atomic.AddUint64(&mmGetCert.beforeGetCertCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetCert.afterGetCertCounter, 1)
 
 	if mmGetCert.inspectFuncGetCert != nil {
-		mmGetCert.inspectFuncGetCert(ctx, rp1)
+		mmGetCert.inspectFuncGetCert(ctx, g1)
 	}
 
-	mm_params := &CertificateGetterMockGetCertParams{ctx, rp1}
+	mm_params := &CertificateGetterMockGetCertParams{ctx, g1}
 
 	// Record call args
 	mmGetCert.GetCertMock.mutex.Lock()
@@ -170,7 +171,7 @@ func (mmGetCert *CertificateGetterMock) GetCert(ctx context.Context, rp1 *mm_ins
 	if mmGetCert.GetCertMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmGetCert.GetCertMock.defaultExpectation.Counter, 1)
 		mm_want := mmGetCert.GetCertMock.defaultExpectation.params
-		mm_got := CertificateGetterMockGetCertParams{ctx, rp1}
+		mm_got := CertificateGetterMockGetCertParams{ctx, g1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmGetCert.t.Errorf("CertificateGetterMock.GetCert got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -182,9 +183,9 @@ func (mmGetCert *CertificateGetterMock) GetCert(ctx context.Context, rp1 *mm_ins
 		return (*mm_results).c2, (*mm_results).err
 	}
 	if mmGetCert.funcGetCert != nil {
-		return mmGetCert.funcGetCert(ctx, rp1)
+		return mmGetCert.funcGetCert(ctx, g1)
 	}
-	mmGetCert.t.Fatalf("Unexpected call to CertificateGetterMock.GetCert. %v %v", ctx, rp1)
+	mmGetCert.t.Fatalf("Unexpected call to CertificateGetterMock.GetCert. %v %v", ctx, g1)
 	return
 }
 

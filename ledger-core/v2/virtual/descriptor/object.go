@@ -14,26 +14,26 @@ import (
 // ObjectDescriptor represents meta info required to fetch all object data.
 type ObjectDescriptor interface {
 	// HeadRef returns head reference to represented object record.
-	HeadRef() *reference.Global
+	HeadRef() reference.Global
 
 	// StateID returns reference to object state record.
-	StateID() *reference.Local
+	StateID() reference.Local
 
 	// Memory fetches object memory from storage.
 	Memory() []byte
 
 	// Prototype returns prototype reference.
-	Prototype() (*reference.Global, error)
+	Prototype() (reference.Global, error)
 
 	// Parent returns object's parent.
-	Parent() *reference.Global
+	Parent() reference.Global
 
 	// EarliestRequestID returns latest requestID for this object
-	EarliestRequestID() *reference.Local
+	EarliestRequestID() reference.Local
 }
 
 func NewObjectDescriptor(
-	head reference.Global, state reference.Local, prototype *reference.Global, memory []byte, parent reference.Global, requestID *reference.Local,
+	head reference.Global, state reference.Local, prototype reference.Global, memory []byte, parent reference.Global, requestID reference.Local,
 ) ObjectDescriptor {
 	return &objectDescriptor{
 		head:      head,
@@ -49,29 +49,29 @@ func NewObjectDescriptor(
 type objectDescriptor struct {
 	head      reference.Global
 	state     reference.Local
-	prototype *reference.Global
+	prototype reference.Global
 	memory    []byte
 	parent    reference.Global
 
-	requestID *reference.Local
+	requestID reference.Local
 }
 
 // Prototype returns prototype reference.
-func (d *objectDescriptor) Prototype() (*reference.Global, error) {
-	if d.prototype == nil {
-		return nil, errors.New("object has no prototype")
+func (d *objectDescriptor) Prototype() (reference.Global, error) {
+	if d.prototype.IsEmpty() {
+		return reference.Global{}, errors.New("object has no prototype")
 	}
 	return d.prototype, nil
 }
 
 // HeadRef returns reference to represented object record.
-func (d *objectDescriptor) HeadRef() *reference.Global {
-	return &d.head
+func (d *objectDescriptor) HeadRef() reference.Global {
+	return d.head
 }
 
 // StateID returns reference to object state record.
-func (d *objectDescriptor) StateID() *reference.Local {
-	return &d.state
+func (d *objectDescriptor) StateID() reference.Local {
+	return d.state
 }
 
 // Memory fetches latest memory of the object known to storage.
@@ -80,10 +80,10 @@ func (d *objectDescriptor) Memory() []byte {
 }
 
 // Parent returns object's parent.
-func (d *objectDescriptor) Parent() *reference.Global {
-	return &d.parent
+func (d *objectDescriptor) Parent() reference.Global {
+	return d.parent
 }
 
-func (d *objectDescriptor) EarliestRequestID() *reference.Local {
+func (d *objectDescriptor) EarliestRequestID() reference.Local {
 	return d.requestID
 }

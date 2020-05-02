@@ -63,7 +63,7 @@ func TestSwitch(t *testing.T) {
 		ge.Run(ctx, *insolar.EphemeralPulse)
 		au := ge.Auther()
 
-		_, err := au.GetCert(ctx, &cref)
+		_, err := au.GetCert(ctx, cref)
 		require.Error(t, err)
 
 		_, err = au.ValidateCert(ctx, &certificate.Certificate{})
@@ -110,8 +110,8 @@ func TestDumbComplete_GetCert(t *testing.T) {
 
 	cref := gen.Reference()
 
-	// CR.CallMock.Set(func(ctx context.Context, ref *reference.Global, method string, argsIn []interface{}, p insolar.PulseNumber,
-	// ) (r insolar.Reply, r2 *reference.Global, r1 error) {
+	// CR.CallMock.Set(func(ctx context.Context, ref reference.Global, method string, argsIn []interface{}, p insolar.PulseNumber,
+	// ) (r insolar.Reply, r2 reference.Global, r1 error) {
 	// 	require.Equal(t, &cref, ref)
 	// 	require.Equal(t, "GetNodeInfo", method)
 	// 	repl, _ := insolar.Serialize(struct {
@@ -124,7 +124,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	// })
 
 	CM.GetCertificateMock.Set(func() (r insolar.Certificate) { return &certificate.Certificate{} })
-	cert, err := ge.Auther().GetCert(ctx, &cref)
+	cert, err := ge.Auther().GetCert(ctx, cref)
 
 	require.NoError(t, err)
 	require.NotNil(t, cert)

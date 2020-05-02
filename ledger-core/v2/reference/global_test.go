@@ -46,9 +46,9 @@ func TestFromString(t *testing.T) {
 	recordID := randLocal()
 	domainID := randLocal()
 	refStr := "insolar:1" +
-		base64.RawURLEncoding.EncodeToString(recordID.Bytes()) +
+		base64.RawURLEncoding.EncodeToString(recordID.AsBytes()) +
 		string(RecordRefIDSeparator) + "1" +
-		base64.RawURLEncoding.EncodeToString(domainID.Bytes())
+		base64.RawURLEncoding.EncodeToString(domainID.AsBytes())
 
 	expectedRef := NewGlobal(domainID, recordID)
 	actualRef, err := GlobalFromString(refStr)

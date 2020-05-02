@@ -9,13 +9,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/component-manager"
 )
 
 type Report struct {
@@ -176,7 +177,7 @@ type Gateway interface {
 
 type Auther interface {
 	// GetCert returns certificate object by node reference, using discovery nodes for signing
-	GetCert(context.Context, *reference.Global) (insolar.Certificate, error)
+	GetCert(context.Context, reference.Global) (insolar.Certificate, error)
 	// ValidateCert checks certificate signature
 	// TODO make this cert.validate()
 	ValidateCert(context.Context, insolar.AuthorizationCertificate) (bool, error)

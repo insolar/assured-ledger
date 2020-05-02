@@ -13,7 +13,7 @@ import (
 // CodeDescriptor represents meta info required to fetch all code data.
 type CodeDescriptor interface {
 	// Ref returns reference to represented code record.
-	Ref() *reference.Global
+	Ref() reference.Global
 
 	// MachineType returns code machine type for represented code.
 	MachineType() insolar.MachineType
@@ -38,8 +38,8 @@ type codeDescriptor struct {
 }
 
 // Ref returns reference to represented code record.
-func (d *codeDescriptor) Ref() *reference.Global {
-	return &d.ref
+func (d *codeDescriptor) Ref() reference.Global {
+	return d.ref
 }
 
 // MachineType returns code machine type for represented code.

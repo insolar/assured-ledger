@@ -48,7 +48,7 @@ func (c *descriptorsCache) ByPrototypeRef(
 	}
 
 	codeRef := protoDesc.Code()
-	codeDesc, err := c.GetCode(ctx, *codeRef)
+	codeDesc, err := c.GetCode(ctx, codeRef)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "couldn't get code descriptor")
 	}
@@ -66,11 +66,11 @@ func (c *descriptorsCache) ByObjectDescriptor(
 		return nil, nil, errors.Wrap(err, "couldn't get prototype reference")
 	}
 
-	if protoRef == nil {
+	if protoRef.IsEmpty() {
 		return nil, nil, errors.New("Empty prototype")
 	}
 
-	return c.ByPrototypeRef(ctx, *protoRef)
+	return c.ByPrototypeRef(ctx, protoRef)
 }
 
 func (c *descriptorsCache) GetPrototype(

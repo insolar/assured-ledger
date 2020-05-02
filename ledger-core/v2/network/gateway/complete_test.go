@@ -38,7 +38,7 @@ func mockCryptographyService(t *testing.T, ok bool) insolar.CryptographyService 
 	return cs
 }
 
-func mockCertificateManager(t *testing.T, certNodeRef *reference.Global, discoveryNodeRef *reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
+func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discoveryNodeRef reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
 	cm.GetCertificateMock.Set(func() insolar.Certificate {
 		return &certificate.Certificate{
@@ -90,7 +90,7 @@ func TestComplete_GetCert(t *testing.T) {
 	nodekeeper := mock.NewNodeKeeperMock(t)
 	hn := mock.NewHostNetworkMock(t)
 
-	cm := mockCertificateManager(t, &certNodeRef, &certNodeRef, true)
+	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
 	pa := mock.NewPulseAccessorMock(t)
@@ -110,7 +110,7 @@ func TestComplete_GetCert(t *testing.T) {
 
 	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
 
-	result, err := ge.Auther().GetCert(ctx, &nodeRef)
+	result, err := ge.Auther().GetCert(ctx, nodeRef)
 	require.NoError(t, err)
 
 	cert := result.(*certificate.Certificate)
@@ -138,7 +138,7 @@ func TestComplete_handler(t *testing.T) {
 	gatewayer := mock.NewGatewayerMock(t)
 	nodekeeper := mock.NewNodeKeeperMock(t)
 
-	cm := mockCertificateManager(t, &certNodeRef, &certNodeRef, true)
+	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
 	pa := mock.NewPulseAccessorMock(t)

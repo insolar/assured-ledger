@@ -33,10 +33,10 @@ func New(stub common.RunnerRPCStub) *Runner {
 	descriptorRegistry := make(map[reference.Global]interface{})
 
 	for _, prototypeDescriptor := range builtin.InitializePrototypeDescriptors() {
-		descriptorRegistry[*prototypeDescriptor.HeadRef()] = prototypeDescriptor
+		descriptorRegistry[prototypeDescriptor.HeadRef()] = prototypeDescriptor
 	}
 	for _, codeDescriptor := range builtin.InitializeCodeDescriptors() {
-		descriptorRegistry[*codeDescriptor.Ref()] = codeDescriptor
+		descriptorRegistry[codeDescriptor.Ref()] = codeDescriptor
 	}
 
 	return &Runner{
@@ -68,7 +68,7 @@ func (b *Runner) CallConstructor(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	return constructorFunc(*callCtx.Callee, args)
+	return constructorFunc(callCtx.Callee, args)
 }
 
 func (b *Runner) CallMethod(

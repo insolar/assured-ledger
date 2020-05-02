@@ -33,20 +33,20 @@ type BaseContractInterface interface {
 // GetReference - Returns public reference of contract
 func (bc *BaseContract) GetReference() reference.Global {
 	ctx := bc.GetContext()
-	if ctx.Callee == nil {
+	if ctx.Callee.IsEmpty() {
 		panic("context has no callee set")
 	}
-	return *ctx.Callee
+	return ctx.Callee
 }
 
 // GetPrototype - Returns prototype of contract
 func (bc *BaseContract) GetPrototype() reference.Global {
-	return *bc.GetContext().Prototype
+	return bc.GetContext().Prototype
 }
 
 // GetCode - Returns prototype of contract
 func (bc *BaseContract) GetCode() reference.Global {
-	return *bc.GetContext().Code
+	return bc.GetContext().Code
 }
 
 // GetContext returns current calling context OBSOLETED.
