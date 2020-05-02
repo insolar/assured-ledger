@@ -15,7 +15,14 @@ import (
 type Serializable interface {
 	proto.ProtoSizer
 	MarshalTo([]byte) (int, error)
-	Unmarshal(b []byte) error
+	Unmarshal([]byte) error
+}
+
+type GoGoSerializable interface {
+	proto.ProtoSizer
+	MarshalTo([]byte) (int, error)
+	MarshalToSizedBuffer([]byte) (int, error)
+	Unmarshal([]byte) error
 }
 
 type DigestProvider interface {

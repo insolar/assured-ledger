@@ -25,5 +25,6 @@ message RecordExample {
 
     // Add custom fields here
     string Str = 21 [(gogoproto.customtype) = "ByteString", (insproto.raw_bytes) = true];
+    Reference Ref1 = 22;
 }
 

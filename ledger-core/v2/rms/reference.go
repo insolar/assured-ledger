@@ -10,8 +10,33 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
+var _ GoGoSerializable = &Reference{}
+
 type Reference struct {
-	lazy ReferenceProvider
+	lazy  ReferenceProvider
+	value reference.Global
+}
+
+func (p *Reference) ensure() {
+
+}
+
+func (p *Reference) ProtoSize() int {
+	p.ensure()
+	//	reference.MarshalTo()
+	panic("implement me")
+}
+
+func (p *Reference) MarshalTo(b []byte) (int, error) {
+	panic("implement me")
+}
+
+func (p *Reference) MarshalToSizedBuffer(b []byte) (int, error) {
+	panic("implement me")
+}
+
+func (p *Reference) Unmarshal(b []byte) error {
+	panic("implement me")
 }
 
 func (p *Reference) Set(holder reference.Holder) {

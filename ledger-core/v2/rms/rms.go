@@ -30,6 +30,7 @@ type BasicRecord interface {
 
 type MessageContext interface {
 	Message(BasicMessage) error
+	MsgRecord(BasicMessage, int, BasicRecord) error
 }
 
 type BasicMessage interface {
@@ -37,10 +38,10 @@ type BasicMessage interface {
 	SetupContext(MessageContext) error
 }
 
-func RegisterRecordType(BasicRecord) {
-
+func RegisterRecordType(t BasicRecord) {
+	t.GetDefaultPolymorphID()
 }
 
-func RegisterMessageType(BasicMessage) {
-
+func RegisterMessageType(t BasicMessage) {
+	t.GetDefaultPolymorphID()
 }

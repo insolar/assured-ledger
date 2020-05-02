@@ -7,6 +7,7 @@ package marshalto
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -44,7 +45,8 @@ func (p *context) Generate(file *generator.FileDescriptor, message *generator.De
 			continue
 		}
 		fieldName := p.GetFieldName(message, field)
-		p.P(`if err := ctx.`, applyName, `(&m.`, fieldName, `); err != nil {`)
+		n := uint64(field.GetNumber())
+		p.P(`if err := ctx.`, applyName, `(m, `, strconv.FormatUint(n, 10), `, &m.`, fieldName, `); err != nil {`)
 		p.In()
 		p.P(`return err`)
 		p.Out()

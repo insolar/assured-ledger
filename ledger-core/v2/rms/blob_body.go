@@ -12,6 +12,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
+var _ GoGoSerializable = &BlobBody{}
+
 type BlobBody struct {
 	digest cryptkit.Digest
 	data   *SerializableWithReference
