@@ -5,10 +5,11 @@
 
 package rms
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/reference"
+const MaxTwoByteField = 2047
 
-type RecordReference interface {
-	GoGoMarshaller
-	Reference() reference.Holder
-	CalcReference() reference.Holder
-}
+const RecordFirstField = 20
+const RecordLastField = MaxTwoByteField - 256
+const RecordBodyField = RecordLastField
+
+const MessageRecordField = 17
+const MessageFirstField = 1800

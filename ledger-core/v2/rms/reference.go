@@ -23,12 +23,11 @@ func (p *Reference) ensure() {
 
 func (p *Reference) ProtoSize() int {
 	p.ensure()
-	//	reference.MarshalTo()
-	panic("implement me")
+	return reference.ProtoSize(p.value)
 }
 
 func (p *Reference) MarshalTo(b []byte) (int, error) {
-	panic("implement me")
+	return reference.MarshalTo(p.value, b)
 }
 
 func (p *Reference) MarshalToSizedBuffer(b []byte) (int, error) {

@@ -13,7 +13,7 @@ type PlatformCryptographyProvider interface {
 	PlatformCryptographyProvider()
 
 	GetPlatformCryptographyScheme() PlatformCryptographyScheme
-	GetExtensionCryptographyScheme(ExtensionId) CryptographyScheme
+	// GetExtensionCryptographyScheme(ExtensionId) CryptographyScheme
 }
 
 type CryptographyScheme interface {
@@ -25,12 +25,12 @@ type PlatformCryptographyScheme interface {
 	GetRecordBodySigner() cryptkit.DataSigner
 }
 
-type PayloadProvider interface {
-	GetPayloadContainer(CryptographyScheme) GoGoMarshaller
-}
+// type PayloadProvider interface {
+// 	GetPayloadContainer(CryptographyScheme) rms.GoGoMarshaller
+// }
 
-type ExtensionId uint16
-type ExtensionProvider struct {
-	Provider  PayloadProvider
-	Extension ExtensionId
-}
+// type ExtensionId uint16
+// type ExtensionProvider struct {
+// 	Provider  PayloadProvider
+// 	Extension ExtensionId
+// }
