@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/v2/insproto/ins.proto";
+import "rms.proto";
+
+option (insproto.notation_all) = true;
+option (insproto.context_all) = "RecordContext";
+option (insproto.message_ctx_apply_all) = "Record";
+option (insproto.register_all) = "RegisterRecordType";
+option (gogoproto.goproto_getters_all) = true;
+option (insproto.message_mapping_all) = true;
+
+message RecordExample {
+    option (insproto.id) = 199;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 15, 17 to 19, 1792 to max;
+    uint32 Polymorph = 16;
+    RecordBody BodyHash = 1790;
+    repeated RecordExtension ExtensionHash = 1791;
+    //*** End of predefined section ***//
+
+    // Add custom fields here
+    string Str = 21 [(gogoproto.customtype) = "ByteString", (insproto.raw_bytes) = true];
+}
+

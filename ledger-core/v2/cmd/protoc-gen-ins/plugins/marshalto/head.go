@@ -17,20 +17,50 @@ import (
 	"github.com/gogo/protobuf/vanity"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type head struct {
 	*generator.Generator
 }
 
-func IsMessageHead(file *generator.FileDescriptor, message *generator.Descriptor) bool {
+func IsMessageHead(message *generator.Descriptor) bool {
 	names := message.TypeName()
 	return len(names) > 1 && insproto.IsHead(message.DescriptorProto)
 }
 
-func SetMessageHeadDesc(file *descriptor.FileDescriptorProto, parent, message *descriptor.DescriptorProto) {
+// This does head field mapping before any plugin.Generate()
+// Mapping requires a map of all types, that is available on plugin.Init(), but there is no
+
+func (p *head) Init() {
+	files := p.Generator.Request.GetProtoFile()
+
+	files = vanity.FilterFiles(files, vanity.NotGoogleProtobufDescriptorProto)
+	vanity.ForEachFile(files, p.setFileHeads)
+
+}
+
+func (p *head) setFileHeads(file *descriptor.FileDescriptorProto) {
+	for _, message := range file.GetMessageType() {
+		for _, child := range message.GetNestedType() {
+			p.setMessageHeads(message, child)
+		}
+	}
+}
+
+func (p *head) setMessageHeads(parent, message *descriptor.DescriptorProto) {
+	if insproto.IsHead(message) {
+		p.setMessageHeadDesc(parent, message)
+		// head can't have heads
+		return
+	}
+	for _, child := range message.GetNestedType() {
+		p.setMessageHeads(message, child)
+	}
+}
+
+func (p *head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
 	vanity.SetBoolMessageOption(gogoproto.E_Typedecl, false)(message)
+	vanity.SetBoolMessageOption(gogoproto.E_GoprotoGetters, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_Face, true)(message)
 
 	if insproto.GetPolymorphID(message) == 0 {
@@ -48,7 +78,7 @@ func SetMessageHeadDesc(file *descriptor.FileDescriptorProto, parent, message *d
 		fieldMap[field.GetNumber()] = field
 	}
 
-	scanner := fieldScanner{file: file, fieldMap: fieldMap}
+	scanner := fieldScanner{gen: p.Generator, fieldMap: fieldMap}
 
 	if err := scanner.findAll(parent); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%s.%s", message.GetName(), err.Error())
@@ -83,12 +113,7 @@ func (p *head) Generate(message *generator.Descriptor, ccTypeName string) {
 		ccHeadTypeName := generator.CamelCaseSlice(headName)
 
 		p.P(`type `, ccTypeName, name, ` = `, ccHeadTypeName, `Face`)
-		p.P()
-		p.P(`type `, ccHeadTypeName, ` struct {`)
-		p.In()
-		p.P(ccTypeName)
-		p.Out()
-		p.P(`}`)
+		p.P(`type `, ccHeadTypeName, ` `, ccTypeName)
 		p.P()
 	}
 
@@ -103,33 +128,18 @@ type fieldScannerEntry struct {
 }
 
 type fieldScanner struct {
-	file     *descriptor.FileDescriptorProto
+	gen      *generator.Generator
 	fieldMap map[int32]*descriptor.FieldDescriptorProto
 	types    []fieldScannerEntry
 }
 
 func (p *fieldScanner) findType(prefix []string, name string) *descriptor.DescriptorProto {
-	if name[0] == '.' {
-		if start := strings.IndexByte(name[1:], '.'); start > 0 {
-			msg := p.file.GetMessage(name[start+2:])
-			if msg != nil {
-				return msg
-			}
-		}
-		panic(throw.Impossible())
+	if name[0] != '.' {
+		name = `.` + strings.Join(prefix, `.`) + `.` + name
 	}
 
-	for i := len(prefix); i >= 0; i-- {
-		typeName := name
-		if i > 0 {
-			typeName = strings.Join(prefix[:i], `.`) + `.` + name
-		}
-		msg := p.file.GetMessage(typeName)
-		if msg != nil {
-			return msg
-		}
-	}
-	panic(throw.Impossible())
+	desc := p.gen.ObjectNamed(name).(*generator.Descriptor)
+	return desc.DescriptorProto
 }
 
 func (p *fieldScanner) popField(n int32) *descriptor.FieldDescriptorProto {

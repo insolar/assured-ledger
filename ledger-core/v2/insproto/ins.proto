@@ -12,21 +12,25 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 extend google.protobuf.FileOptions {
     optional bool notation_all = 63901;
     optional bool zeroable_all = 63902;
-    optional string context_all = 63903;
+    optional string message_ctx_apply_all = 63903;
     optional string context_method_all = 63906;
+    optional bool fields_mapping_all = 63907;
+    optional bool message_mapping_all = 63908;
     optional string register_all = 63909;
+    optional string context_all = 63910;
 }
 
 extend google.protobuf.MessageOptions {
     optional bool notation = 64901;
     optional bool fields_zeroable = 64902;
-    optional string context = 64903;
     optional uint64 id = 64904;
+    optional string message_ctx_apply = 64903;
     optional bool head = 64905;
     optional string context_method = 64906;
     optional bool fields_mapping = 64907;
     optional bool message_mapping = 64908;
     optional string register = 64909;
+    optional string context = 64910;
 }
 
 extend google.protobuf.FieldOptions {

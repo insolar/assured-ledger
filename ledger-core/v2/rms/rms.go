@@ -16,17 +16,31 @@ type RecordBody = BlobBody
 type RecordExtension = BlobBody
 type PulseNumber = pulse.Number
 
-type ContextMessage interface {
-	SetupContext(ctx Context) error
+type RecordContext interface {
+	Record(BasicRecord) error
 }
 
-type FieldMapper interface {
-	ContextMessage
+type BasicRecord interface {
+	GetDefaultPolymorphID() uint64
+	SetupContext(RecordContext) error
 	GetFieldMap() insproto.FieldMap
+	GetBodyHash() RecordBody
+	GetExtensionHash() []RecordExtension
 }
 
-type Context interface {
-	RecordBodyHash(*RecordBody) error
-	RecordExtensionHash(*[]RecordExtension) error
-	Record(FieldMapper) error
+type MessageContext interface {
+	Message(BasicMessage) error
+}
+
+type BasicMessage interface {
+	GetDefaultPolymorphID() uint64
+	SetupContext(MessageContext) error
+}
+
+func RegisterRecordType(BasicRecord) {
+
+}
+
+func RegisterMessageType(BasicMessage) {
+
 }

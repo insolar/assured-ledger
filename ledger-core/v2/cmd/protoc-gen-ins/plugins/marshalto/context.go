@@ -51,9 +51,16 @@ func (p *context) Generate(file *generator.FileDescriptor, message *generator.De
 		p.P(`}`)
 	}
 
-	p.P(`return nil`)
+	applyName := insproto.GetCustomMessageContextApply(file.FileDescriptorProto, message.DescriptorProto)
+	if len(applyName) > 0 {
+		p.P(`return ctx.`, applyName, `(m)`)
+	} else {
+		p.P(`return nil`)
+	}
+
 	p.Out()
 	p.P(`}`)
+	p.P()
 }
 
 func ImportCustomName(customName string, imports generator.PluginImports) string {

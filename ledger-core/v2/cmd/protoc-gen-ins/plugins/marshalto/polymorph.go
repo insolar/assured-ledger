@@ -23,9 +23,10 @@ func (p *polymorph) Generate(message *generator.Descriptor, ccTypeName string) {
 	}
 	id := insproto.GetPolymorphID(message.DescriptorProto)
 
-	p.P(`func (`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)
+	p.P(`func (*`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)
 	p.In()
 	p.P(`return `, strconv.FormatUint(id, 10))
 	p.Out()
 	p.P(`}`)
+	p.P()
 }

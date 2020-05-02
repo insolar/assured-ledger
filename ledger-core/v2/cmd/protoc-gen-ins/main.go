@@ -43,7 +43,9 @@ func main() {
 
 	req := &plugin.CodeGeneratorRequest{}
 	// req = ReplayInput()
-	req = command.Read()
+	if len(req.FileToGenerate) == 0 {
+		req = command.Read()
+	}
 	files := req.GetProtoFile()
 	files = vanity.FilterFiles(files, vanity.NotGoogleProtobufDescriptorProto)
 
@@ -55,51 +57,57 @@ func main() {
 	vanity.ForEachFile(files, vanity.TurnOffGoGettersAll)
 	vanity.ForEachFile(files, vanity.TurnOffGoUnrecognizedAll)
 
-	vanity.ForEachFile(files, PropagateNestedMessageNotation)
-
-	vanity.ForEachFieldInFilesExcludingExtensions(files, TurnOffNullableAll)
 	vanity.ForEachFile(files, vanity.TurnOffGoUnrecognizedAll)
 	vanity.ForEachFile(files, vanity.TurnOffGoUnkeyedAll)
 	vanity.ForEachFile(files, vanity.TurnOffGoSizecacheAll)
+
+	vanity.ForEachFile(files, PropagateDefaultOptions)
 
 	resp := command.Generate(req)
 	command.Write(resp)
 }
 
-func PropagateNestedMessageNotation(file *descriptor.FileDescriptorProto) {
-	vanity.ForEachMessage(file.GetMessageType(), func(msgParent *descriptor.DescriptorProto) {
-		if !insproto.IsNotation(file, msgParent) {
-			return
-		}
-		vanity.ForEachMessage(msgParent.GetNestedType(), func(msg *descriptor.DescriptorProto) {
-			switch {
-			case !vanity.MessageHasBoolExtension(msg, insproto.E_Notation):
-				vanity.SetBoolMessageOption(insproto.E_Notation, true)(msg)
-			case !insproto.IsNotation(file, msg):
-				return
-			}
-			if insproto.IsHead(msg) {
-				marshalto.SetMessageHeadDesc(file, msgParent, msg)
-			}
-		})
-		hasMapping := insproto.IsMappingForMessage(msgParent)
-		if !hasMapping {
-			for _, field := range msgParent.GetField() {
-				if insproto.IsMappingForField(field, msgParent) {
-					hasMapping = true
-					break
-				}
-			}
-		}
-		if hasMapping {
-			// this fieldNum is reserved and will not be in use
-			msgParent.Field = append(msgParent.Field, insproto.NewFieldMapDescriptorProto(19999))
-		}
-	})
+func PropagateDefaultOptions(file *descriptor.FileDescriptorProto) {
+	for _, msg := range file.GetMessageType() {
+		propagateOptions(file, msg, insproto.IsNotation(file, msg))
+	}
 }
 
-func TurnOffNullableAll(field *descriptor.FieldDescriptorProto) {
-	vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(field)
+func propagateOptions(file *descriptor.FileDescriptorProto, msgParent *descriptor.DescriptorProto, parentNotation bool) {
+	if !insproto.IsHead(msgParent) {
+		// do not touch head
+
+		hasMapping := insproto.IsMappingForMessage(file, msgParent)
+		for _, field := range msgParent.GetField() {
+			hasMapping = hasMapping || insproto.IsMappingForField(field, msgParent, file)
+			vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(field)
+		}
+
+		if hasMapping {
+			// this fieldNum is reserved and will not be in use
+			mapField := insproto.NewFieldMapDescriptorProto(19999)
+			vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(mapField)
+			msgParent.Field = append(msgParent.Field, mapField)
+		}
+	}
+
+	for _, msg := range msgParent.GetNestedType() {
+		notation := parentNotation
+		switch {
+		case msg.Options != nil:
+			switch v, err := proto.GetExtension(msg.Options, insproto.E_Notation); {
+			case err != nil:
+				panic(err)
+			case v != nil:
+				notation = *v.(*bool)
+			case notation:
+				vanity.SetBoolMessageOption(insproto.E_Notation, true)(msg)
+			}
+		case notation:
+			vanity.SetBoolMessageOption(insproto.E_Notation, true)(msg)
+		}
+		propagateOptions(file, msg, notation)
+	}
 }
 
 func resetDefaultPlugins() {

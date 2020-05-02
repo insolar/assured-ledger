@@ -70,6 +70,10 @@ func GetCustomContextApply(field *descriptor.FieldDescriptorProto) string {
 	return GetStrFieldExtension(field, E_CtxApply, "")
 }
 
+func GetCustomMessageContextApply(file *descriptor.FileDescriptorProto, msg *descriptor.DescriptorProto) string {
+	return GetStrExtension(msg, E_MessageCtxApply, GetStrFileExtension(file, E_MessageCtxApplyAll, ""))
+}
+
 func IsCustomContextApply(field *descriptor.FieldDescriptorProto) bool {
 	return len(GetCustomContextApply(field)) > 0
 }
@@ -102,13 +106,15 @@ func IsRawBytes(field *descriptor.FieldDescriptorProto, defValue bool) bool {
 	return proto.GetBoolExtension(field.Options, E_RawBytes, defValue)
 }
 
-func IsMappingForField(field *descriptor.FieldDescriptorProto, message *descriptor.DescriptorProto) bool {
+func IsMappingForField(field *descriptor.FieldDescriptorProto, message *descriptor.DescriptorProto, file *descriptor.FileDescriptorProto) bool {
 	return proto.GetBoolExtension(field.Options, E_Mapping,
-		proto.GetBoolExtension(message.Options, E_FieldsMapping, false))
+		proto.GetBoolExtension(message.Options, E_FieldsMapping,
+			proto.GetBoolExtension(file.Options, E_FieldsMappingAll, false)))
 }
 
-func IsMappingForMessage(message *descriptor.DescriptorProto) bool {
-	return proto.GetBoolExtension(message.Options, E_MessageMapping, false)
+func IsMappingForMessage(file *descriptor.FileDescriptorProto, message *descriptor.DescriptorProto) bool {
+	return proto.GetBoolExtension(message.Options, E_MessageMapping,
+		proto.GetBoolExtension(file.Options, E_MessageMappingAll, false))
 }
 
 func GetCustomRegister(file *descriptor.FileDescriptorProto, msg *descriptor.DescriptorProto) string {

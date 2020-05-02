@@ -524,11 +524,12 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 	}
 	for _, message := range file.Messages() {
 		sizeName := ""
-		if gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto) {
+		switch {
+		case gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto):
 			sizeName = "ProtoSize"
-		} else if gogoproto.IsSizer(file.FileDescriptorProto, message.DescriptorProto) {
+		case gogoproto.IsSizer(file.FileDescriptorProto, message.DescriptorProto):
 			sizeName = "Size"
-		} else {
+		default:
 			continue
 		}
 		if message.DescriptorProto.GetOptions().GetMapEntry() {
@@ -572,7 +573,10 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 		}
 
 		for _, field := range fields {
-			if field.OneofIndex == nil {
+			switch {
+			case field.GetTypeName() == insproto.FieldMapFQN:
+				continue
+			case field.OneofIndex == nil:
 				p.generateField(proto3, notation, zeroableDefault, file, message, field, sizeName)
 				continue
 			}

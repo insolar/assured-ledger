@@ -76,7 +76,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		has1619 := false
 		hasFieldMap := false
-		needsFieldMap := insproto.IsMappingForMessage(message.DescriptorProto)
+		needsFieldMap := insproto.IsMappingForMessage(file.FileDescriptorProto, message.DescriptorProto)
 
 		fields := message.GetField()
 		if notation {
@@ -107,7 +107,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 				hasFieldMap = true
 			}
 
-			needsFieldMap = needsFieldMap || insproto.IsMappingForField(field, message.DescriptorProto)
+			needsFieldMap = needsFieldMap || insproto.IsMappingForField(field, message.DescriptorProto, file.FileDescriptorProto)
 
 			if notation {
 				switch fieldNumber := field.GetNumber(); {

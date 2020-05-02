@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/v2/insproto/ins.proto";
+import "rms.proto";
+import "proto_records.proto";
+
+option (insproto.notation_all) = true;
+option (insproto.context_all) = "MessageContext";
+option (insproto.message_ctx_apply_all) = "Message";
+option (insproto.register_all) = "RegisterMessageType";
+option (gogoproto.goproto_getters_all) = true;
+
+message MessageExample {
+    option (insproto.id) = 99;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 16, 18 to 1791;
+    RecordExample Record = 17 [(gogoproto.embed) = true]; // put proper Record type here
+    //*** End of predefined section ***//
+
+    // Add here custom fields
+    uint64 MsgParam = 1800;
+    bytes MsgBytes = 1801;
+
+    message Head {
+        reserved 1 to 19;
+        // mention some fields from Msg and/or Record, without extensions
+        uint64 MsgParam = 1800;
+        string Str = 21;
+    }
+}
