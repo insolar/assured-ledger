@@ -48,6 +48,7 @@ That is if you want to use the unsafe package in your generated code.
 The speed up using the unsafe package is not very significant.
 
 */
+//lint:ignore
 package marshalto
 
 import (

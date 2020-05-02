@@ -6,6 +6,8 @@
 package rms
 
 import (
+	"reflect"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -39,9 +41,11 @@ type BasicMessage interface {
 }
 
 func RegisterRecordType(t BasicRecord) {
-	t.GetDefaultPolymorphID()
+	id := t.GetDefaultPolymorphID()
+	GetRegistry().Put(id, reflect.TypeOf(t))
 }
 
 func RegisterMessageType(t BasicMessage) {
-	t.GetDefaultPolymorphID()
+	id := t.GetDefaultPolymorphID()
+	GetRegistry().Put(id, reflect.TypeOf(t))
 }

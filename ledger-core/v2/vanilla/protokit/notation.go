@@ -5,7 +5,12 @@
 
 package protokit
 
-import "io"
+import (
+	"errors"
+	"io"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
 
 /*
 	This is a notation that allows predictable parsing of any protobuf without a scheme:
@@ -86,11 +91,70 @@ func ContentTypeOf(firstByte byte) ContentType {
 
 func PeekContentType(r io.ByteScanner) (ContentType, error) {
 	b, err := r.ReadByte()
-	if err == nil {
-		err = r.UnreadByte()
-	}
 	if err != nil {
 		return ContentUndefined, err
 	}
-	return ContentTypeOf(b), nil
+	err = r.UnreadByte()
+	return ContentTypeOf(b), err
+}
+
+var ErrUnexpectedHeader = errors.New("unexpected header")
+
+func PeekContentTypeAndPolymorphID(r io.ByteScanner) (ContentType, uint64, error) {
+	b, err := r.ReadByte()
+	if err != nil {
+		return ContentUndefined, 0, err
+	}
+	if ct := ContentTypeOf(b); ct != ContentObject {
+		return ct, 0, r.UnreadByte()
+	}
+	switch b, err = r.ReadByte(); {
+	case err != nil:
+		return ContentUndefined, 0, err
+	case b != 0x01:
+		return ContentMessage, 0, ErrUnexpectedHeader // we can't recover here
+	}
+
+	var id uint64
+	if id, err = DecodeVarint(r); err != nil {
+		return ContentUndefined, 0, err
+	}
+	return ContentObject, id, nil
+}
+
+func PeekContentTypeAndPolymorphIDFromBytes(b []byte) (ContentType, uint64, error) {
+	n := len(b)
+	if n == 0 {
+		return ContentUndefined, 0, nil
+	}
+	ct := ContentTypeOf(b[0])
+
+	switch ct {
+	case ContentBinary, ContentUndefined:
+		return ct, 0, nil
+	case ContentText:
+		if n == 1 && b[0] >= illegalUtf8FirstByte {
+			// only one byte can't be >=0x80
+			return ContentText, 0, throw.FailHere("bad utf")
+		}
+		return ContentText, 0, nil
+	case ContentMessage:
+		if n == 1 || n == 2 && b[0] >= 0x80 {
+			return ContentMessage, 0, throw.FailHere("bad message")
+		}
+		return ContentMessage, 0, nil
+	case ContentObject:
+		switch {
+		case n < 3 || b[1] != 0x01:
+		default:
+			id, n := DecodeVarintFromBytes(b[2:])
+			if n == 0 {
+				break
+			}
+			return ContentObject, id, nil
+		}
+		return ContentObject, 0, throw.FailHere("bad message")
+	default:
+		panic(throw.Impossible())
+	}
 }

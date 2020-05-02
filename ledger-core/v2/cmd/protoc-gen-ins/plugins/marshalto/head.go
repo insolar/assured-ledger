@@ -112,8 +112,20 @@ func (p *head) Generate(message *generator.Descriptor, ccTypeName string) {
 		headName[len(headName)-1] = name
 		ccHeadTypeName := generator.CamelCaseSlice(headName)
 
-		p.P(`type `, ccTypeName, name, ` = `, ccHeadTypeName, `Face`)
+		p.P(`type `, ccTypeName, name, ` `, ccHeadTypeName, `Face`)
 		p.P(`type `, ccHeadTypeName, ` `, ccTypeName)
+		p.P()
+		p.P(`func (m *`, ccTypeName, `) As`, name, `() *`, ccHeadTypeName, ` {`)
+		p.In()
+		p.P(`return (*`, ccHeadTypeName, `)(m)`)
+		p.Out()
+		p.P(`}`)
+		p.P()
+		p.P(`func (m *`, ccTypeName, `) As`, name, `Face() `, ccTypeName, name, ` {`)
+		p.In()
+		p.P(`return (*`, ccHeadTypeName, `)(m)`)
+		p.Out()
+		p.P(`}`)
 		p.P()
 	}
 

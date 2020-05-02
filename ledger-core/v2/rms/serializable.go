@@ -12,17 +12,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type Serializable interface {
-	proto.ProtoSizer
-	MarshalTo([]byte) (int, error)
+type unmarshaler interface {
 	Unmarshal([]byte) error
 }
 
-type GoGoSerializable interface {
+type Serializable interface {
 	proto.ProtoSizer
+	unmarshaler
 	MarshalTo([]byte) (int, error)
+}
+
+type GoGoSerializable interface {
+	Serializable
 	MarshalToSizedBuffer([]byte) (int, error)
-	Unmarshal([]byte) error
 }
 
 type DigestProvider interface {

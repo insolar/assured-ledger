@@ -14,7 +14,7 @@ option (gogoproto.goproto_getters_all) = true;
 option (insproto.message_mapping_all) = true;
 
 message RecordExample {
-    option (insproto.id) = 199;
+    option (insproto.id) = 999999999;
 
     //*** Start of predefined section ***//
     reserved 1 to 15, 17 to 19, 1792 to max;
@@ -25,6 +25,6 @@ message RecordExample {
 
     // Add custom fields here
     string Str = 21 [(gogoproto.customtype) = "ByteString", (insproto.raw_bytes) = true];
-    Reference Ref1 = 22;
+    // Reference Ref1 = 22;
 }
 

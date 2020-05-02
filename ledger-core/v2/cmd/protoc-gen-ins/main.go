@@ -164,6 +164,7 @@ func ReadFrom(r io.Reader) *plugin.CodeGeneratorRequest {
 	return g.Request
 }
 
+//lint:ignore
 func CatchInput() error {
 	file, err := os.Create(`E:\protoc-dump.txt`)
 	if err != nil {
@@ -174,6 +175,7 @@ func CatchInput() error {
 	return io.EOF
 }
 
+//lint:ignore
 func ReplayInput() *plugin.CodeGeneratorRequest {
 	file, err := os.Open(`E:\protoc-dump.txt`)
 	if err != nil {

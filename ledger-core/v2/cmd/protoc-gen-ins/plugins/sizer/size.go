@@ -40,6 +40,7 @@ It is enabled by the following extensions:
   - protosizer
   - protosizer_all
 */
+//lint:ignore
 package sizer
 
 import (
