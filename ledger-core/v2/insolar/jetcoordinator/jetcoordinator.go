@@ -159,7 +159,7 @@ func (jc *Coordinator) virtualsForObject(
 
 	return getRefs(
 		jc.PlatformCryptographyScheme,
-		utils.CircleXOR(ent[:], objID.Hash()),
+		utils.CircleXOR(ent[:], objID.IdentityHash()),
 		candidates,
 		count,
 	)

@@ -33,9 +33,9 @@ func TestGen_IDWithPulse(t *testing.T) {
 			pulse, pulseFromID,
 			"pulse should be equal pulse from generated ID")
 
-		idHash := idWithPulse.Hash()
+		idHash := idWithPulse.IdentityHash()
 		require.NotEqual(t,
 			emptySlice, idHash,
-			"ID.Hash() should not be empty")
+			"ID.IdentityHash() should not be empty")
 	}
 }
