@@ -27,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/termination"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // ServiceNetwork is facade for network.

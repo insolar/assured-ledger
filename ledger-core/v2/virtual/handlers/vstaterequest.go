@@ -112,7 +112,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		s.objectStateReport = &payload.VStateReport{
 			AsOf:                  s.Payload.AsOf,
 			Callee:                s.Payload.Callee,
-			LatestDirtyState:      *stateRef,
+			LatestDirtyState:      stateRef,
 			ImmutablePendingCount: int32(immutableCounts),
 			MutablePendingCount:   int32(mutableCounts),
 		}
@@ -125,14 +125,14 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 
 			s.objectStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
-					Reference:   *stateRef,
-					Parent:      *parent,
+					Reference:   stateRef,
+					Parent:      parent,
 					State:       memory,
 					Deactivated: state.Deactivated,
 				},
 			}
-			if proto != nil {
-				s.objectStateReport.ProvidedContent.LatestDirtyState.Prototype = *proto
+			if !proto.IsEmpty() {
+				s.objectStateReport.ProvidedContent.LatestDirtyState.Prototype = proto
 			}
 		}
 	}
