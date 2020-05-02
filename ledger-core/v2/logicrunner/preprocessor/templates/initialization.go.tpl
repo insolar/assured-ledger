@@ -27,6 +27,7 @@ import (
 
     XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
     XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
+    XXX_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
@@ -37,16 +38,16 @@ func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
     }
 }
 
-func shouldLoadRef(strRef string) XXX_insolar.Reference {
-    ref, err := XXX_insolar.NewReferenceFromString(strRef)
+func shouldLoadRef(strRef string) XXX_reference.Global {
+    ref, err := XXX_reference.GlobalFromString(strRef)
     if err != nil {
         panic(errors.Wrap(err, "Unexpected error, bailing out"))
     }
     return ref
 }
 
-func InitializeCodeRefs() map[XXX_insolar.Reference]string {
-    rv := make(map[XXX_insolar.Reference]string, {{ len .Contracts }})
+func InitializeCodeRefs() map[XXX_reference.Global]string {
+    rv := make(map[XXX_reference.Global]string, {{ len .Contracts }})
 
     {{ range $contract := .Contracts -}}
     rv[shouldLoadRef("{{ $contract.CodeReference }}")] = "{{ $contract.Name }}"
@@ -55,8 +56,8 @@ func InitializeCodeRefs() map[XXX_insolar.Reference]string {
     return rv
 }
 
-func InitializePrototypeRefs() map[XXX_insolar.Reference]string {
-    rv := make(map[XXX_insolar.Reference]string, {{ len .Contracts }})
+func InitializePrototypeRefs() map[XXX_reference.Global]string {
+    rv := make(map[XXX_reference.Global]string, {{ len .Contracts }})
 
     {{ range $contract := .Contracts -}}
     rv[shouldLoadRef("{{ $contract.PrototypeReference }}")] = "{{ $contract.Name }}"

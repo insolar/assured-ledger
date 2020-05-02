@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ import (
 )
 
 func createOrigin() insolar.NetworkNode {
-	ref, _ := insolar.NewReferenceFromString("insolar:1MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI")
+	ref, _ := reference.GlobalFromString("insolar:1MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI")
 	return node.NewNode(ref, insolar.StaticRoleVirtual, nil, "127.0.0.1:5432", "")
 }
 

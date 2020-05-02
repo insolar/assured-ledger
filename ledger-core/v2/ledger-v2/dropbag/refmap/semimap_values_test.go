@@ -12,7 +12,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestKeys(t *testing.T) {
@@ -64,7 +63,7 @@ func TestKeys(t *testing.T) {
 }
 
 func makeLocal(i int) reference.Local {
-	h := longbits.Bits224{}
+	h := reference.LocalHash{}
 	h[0] = byte(i)
 	h[len(h)-1] = byte(i >> 8)
 	return reference.NewRecordID(pulse.MinTimePulse+pulse.Number(i), h)

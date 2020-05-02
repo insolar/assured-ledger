@@ -6,8 +6,8 @@
 package executionevent
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -15,44 +15,44 @@ import (
 type RPC interface{}
 
 type GetCode interface {
-	CodeReference() insolar.Reference
+	CodeReference() reference.Global
 }
 
 type Deactivate interface {
-	ParentObjectReference() insolar.Reference
-	ParentRequestReference() insolar.Reference
+	ParentObjectReference() reference.Global
+	ParentRequestReference() reference.Global
 }
 
 type SaveAsChild interface {
-	Prototype() insolar.Reference
+	Prototype() reference.Global
 	Arguments() []byte
 	Constructor() string
-	ParentObjectReference() insolar.Reference
-	ParentRequestReference() insolar.Reference
+	ParentObjectReference() reference.Global
+	ParentRequestReference() reference.Global
 	ConstructOutgoing(transcript execution.Context) payload.VCallRequest
 }
 
 type RouteCall interface {
 	Saga() bool
 	Immutable() bool
-	Prototype() insolar.Reference
-	Object() insolar.Reference
+	Prototype() reference.Global
+	Object() reference.Global
 	Arguments() []byte
 	Method() string
-	ParentObjectReference() insolar.Reference
-	ParentRequestReference() insolar.Reference
+	ParentObjectReference() reference.Global
+	ParentRequestReference() reference.Global
 }
 
 type Builder interface {
 	Deactivate() RPC
-	SaveAsChild(prototype insolar.Reference, constructor string, arguments []byte) RPC
-	RouteCall(object insolar.Reference, prototype insolar.Reference, method string, arguments []byte) RouteCallBuilder
-	GetCode(code insolar.Reference) RPC
+	SaveAsChild(prototype reference.Global, constructor string, arguments []byte) RPC
+	RouteCall(object reference.Global, prototype reference.Global, method string, arguments []byte) RouteCallBuilder
+	GetCode(code reference.Global) RPC
 }
 
 type builder struct {
-	request insolar.Reference
-	object  insolar.Reference
+	request reference.Global
+	object  reference.Global
 }
 
 func (r builder) Deactivate() RPC {
@@ -62,7 +62,7 @@ func (r builder) Deactivate() RPC {
 	}
 }
 
-func (r builder) SaveAsChild(prototype insolar.Reference, constructor string, arguments []byte) RPC {
+func (r builder) SaveAsChild(prototype reference.Global, constructor string, arguments []byte) RPC {
 	return saveAsChild{
 		parentRequestReference: r.request,
 		parentObjectReference:  r.object,
@@ -74,8 +74,8 @@ func (r builder) SaveAsChild(prototype insolar.Reference, constructor string, ar
 }
 
 func (r builder) RouteCall(
-	object insolar.Reference,
-	prototype insolar.Reference,
+	object reference.Global,
+	prototype reference.Global,
 	method string,
 	arguments []byte,
 ) RouteCallBuilder {
@@ -92,47 +92,47 @@ func (r builder) RouteCall(
 	}
 }
 
-func (r builder) GetCode(code insolar.Reference) RPC {
+func (r builder) GetCode(code reference.Global) RPC {
 	return &getCode{
 		codeReference: code,
 	}
 }
 
-func NewRPCBuilder(request insolar.Reference, object insolar.Reference) Builder {
+func NewRPCBuilder(request reference.Global, object reference.Global) Builder {
 	return &builder{request: request, object: object}
 }
 
 type getCode struct {
-	codeReference insolar.Reference
+	codeReference reference.Global
 }
 
-func (e getCode) CodeReference() insolar.Reference {
+func (e getCode) CodeReference() reference.Global {
 	return e.codeReference
 }
 
 type deactivate struct {
-	parentRequestReference insolar.Reference
-	parentObjectReference  insolar.Reference
+	parentRequestReference reference.Global
+	parentObjectReference  reference.Global
 }
 
-func (e deactivate) ParentObjectReference() insolar.Reference {
+func (e deactivate) ParentObjectReference() reference.Global {
 	return e.parentObjectReference
 }
 
-func (e deactivate) ParentRequestReference() insolar.Reference {
+func (e deactivate) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
 type saveAsChild struct {
-	parentRequestReference insolar.Reference
-	parentObjectReference  insolar.Reference
+	parentRequestReference reference.Global
+	parentObjectReference  reference.Global
 
 	constructor string
 	arguments   []byte
-	prototype   insolar.Reference
+	prototype   reference.Global
 }
 
-func (e saveAsChild) Prototype() insolar.Reference {
+func (e saveAsChild) Prototype() reference.Global {
 	return e.prototype
 }
 
@@ -144,11 +144,11 @@ func (e saveAsChild) Constructor() string {
 	return e.constructor
 }
 
-func (e saveAsChild) ParentObjectReference() insolar.Reference {
+func (e saveAsChild) ParentObjectReference() reference.Global {
 	return e.parentObjectReference
 }
 
-func (e saveAsChild) ParentRequestReference() insolar.Reference {
+func (e saveAsChild) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
@@ -157,13 +157,13 @@ func (e saveAsChild) ConstructOutgoing(execution execution.Context) payload.VCal
 }
 
 type routeCall struct {
-	parentRequestReference insolar.Reference
-	parentObjectReference  insolar.Reference
+	parentRequestReference reference.Global
+	parentObjectReference  reference.Global
 
 	method    string
 	arguments []byte
-	object    insolar.Reference
-	prototype insolar.Reference
+	object    reference.Global
+	prototype reference.Global
 	immutable bool
 	saga      bool
 }
@@ -176,11 +176,11 @@ func (e routeCall) Immutable() bool {
 	return e.immutable
 }
 
-func (e routeCall) Prototype() insolar.Reference {
+func (e routeCall) Prototype() reference.Global {
 	return e.prototype
 }
 
-func (e routeCall) Object() insolar.Reference {
+func (e routeCall) Object() reference.Global {
 	return e.object
 }
 
@@ -192,11 +192,11 @@ func (e routeCall) Method() string {
 	return e.method
 }
 
-func (e routeCall) ParentObjectReference() insolar.Reference {
+func (e routeCall) ParentObjectReference() reference.Global {
 	return e.parentObjectReference
 }
 
-func (e routeCall) ParentRequestReference() insolar.Reference {
+func (e routeCall) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 

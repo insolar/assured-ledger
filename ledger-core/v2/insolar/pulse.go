@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	// PulseNumberSize is alias that was left for compatibility
-	PulseNumberSize = pulse.NumberSize
 	// EntropySize declares the number of bytes in the pulse entropy
 	EntropySize = 64
 	// OriginIDSize declares the number of bytes in the origin id

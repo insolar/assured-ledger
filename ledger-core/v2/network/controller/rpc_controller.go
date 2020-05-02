@@ -10,10 +10,10 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -26,7 +26,7 @@ type RemoteProcedure func(ctx context.Context, args []byte) ([]byte, error)
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/controller.RPCController -o . -s _mock.go -g
 
 type RPCController interface {
-	SendBytes(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) ([]byte, error)
+	SendBytes(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) ([]byte, error)
 	RemoteProcedureRegister(name string, method RemoteProcedure)
 }
 
@@ -49,7 +49,7 @@ func (rpc *rpcController) invoke(ctx context.Context, name string, data []byte) 
 	return method(ctx, data)
 }
 
-func (rpc *rpcController) SendBytes(ctx context.Context, nodeID insolar.Reference, name string, msgBytes []byte) ([]byte, error) {
+func (rpc *rpcController) SendBytes(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) ([]byte, error) {
 	request := &packet.RPCRequest{
 		Method: name,
 		Data:   msgBytes,

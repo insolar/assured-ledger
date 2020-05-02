@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -95,27 +95,27 @@ func TestSelectByEntropy_SelectsCorrectElement(t *testing.T) {
 	t.Run("selecting 1 value", func(t *testing.T) {
 		out, err := SelectByEntropy(scheme, entropy, in, 1)
 		require.NoError(t, err)
-		var selected []insolar.Reference
+		var selected []reference.Global
 		for _, v := range out {
-			selected = append(selected, v.(insolar.Reference))
+			selected = append(selected, v.(reference.Global))
 		}
 
 		assert.Equal(t, 1, len(out))
 		// Indexes are hard-coded from previously calculated values.
-		assert.Equal(t, []insolar.Reference{values[37]}, selected)
+		assert.Equal(t, []reference.Global{values[37]}, selected)
 	})
 
 	t.Run("selecting 3 values", func(t *testing.T) {
 		out, err := SelectByEntropy(scheme, entropy, in, 3)
 		require.NoError(t, err)
-		var selected []insolar.Reference
+		var selected []reference.Global
 		for _, v := range out {
-			selected = append(selected, v.(insolar.Reference))
+			selected = append(selected, v.(reference.Global))
 		}
 
 		assert.Equal(t, 3, len(out))
 		// Indexes are hard-coded from previously calculated values.
-		assert.Equal(t, []insolar.Reference{values[37], values[22], values[53]}, selected)
+		assert.Equal(t, []reference.Global{values[37], values[22], values[53]}, selected)
 	})
 }
 

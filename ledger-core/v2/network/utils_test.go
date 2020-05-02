@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func newTestNode() insolar.NetworkNode {
@@ -62,10 +63,10 @@ func TestCorrectShortIDCollision(t *testing.T) {
 var _ insolar.DiscoveryNode = testNode{}
 
 type testNode struct {
-	ref insolar.Reference
+	ref reference.Global
 }
 
-func (t testNode) GetNodeRef() insolar.Reference {
+func (t testNode) GetNodeRef() reference.Global {
 	return t.ref
 }
 

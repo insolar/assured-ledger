@@ -22,32 +22,32 @@ const (
 
 // Generate reference from hash code.
 // deprecated
-func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) insolar.Reference {
+func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
-	codeHash := hasher.Hash(code)
-	id := insolar.NewID(pulse, codeHash)
-	return insolar.NewReference(id)
+	codeHash := reference.BytesToLocalHash(hasher.Hash(code))
+	id := reference.NewRecordID(pulse, codeHash)
+	return reference.NewGlobalSelf(id)
 }
 
 // Generate prototype reference from contract id.
 // deprecated
-func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) insolar.Reference {
+func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	return GenerateProtoReferenceFromCode(pulse.BuiltinContract, []byte(contractID))
 }
 
 // Generate contract reference from contract id.
 // deprecated
-func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) insolar.Reference {
+func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
-	codeHash := hasher.Hash([]byte(contractID))
-	id := insolar.NewID(pulse.BuiltinContract, codeHash)
-	return insolar.NewRecordReference(id)
+	codeHash := reference.BytesToLocalHash(hasher.Hash([]byte(contractID)))
+	id := reference.NewRecordID(pulse.BuiltinContract, codeHash)
+	return reference.NewRecordRef(id)
 }
 
 // deprecated
-func GenesisRef(s string) insolar.Reference {
+func GenesisRef(s string) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash([]byte(s))
 	local := reference.NewLocal(pulse.MinTimePulse, 0, reference.BytesToLocalHash(hash))

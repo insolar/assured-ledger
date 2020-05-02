@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
@@ -43,7 +44,7 @@ type GoInsider struct {
 	upstreamMutex  sync.Mutex // lock UpstreamClient change
 	UpstreamClient *rpc.Client
 
-	plugins      map[insolar.Reference]*pluginRec
+	plugins      map[reference.Global]*pluginRec
 	pluginsMutex sync.Mutex
 
 	common.Serializer
@@ -54,7 +55,7 @@ type GoInsider struct {
 func NewGoInsider(path, network, address string) *GoInsider {
 	//TODO: check that path exist, it's a directory and writable
 	res := GoInsider{dir: path, upstreamProtocol: network, upstreamAddress: address}
-	res.plugins = make(map[insolar.Reference]*pluginRec)
+	res.plugins = make(map[reference.Global]*pluginRec)
 	common.CurrentProxyCtx = &res
 	res.Serializer = common.NewCBORSerializer()
 	res.SystemError = common.NewSystemError()
@@ -160,12 +161,12 @@ func (t *RPC) CallConstructor(args rpctypes.DownCallConstructorReq, reply *rpcty
 		return errors.Wrapf(err, "Can't find wrapper for %s", args.Name)
 	}
 
-	f, ok := symbol.(func(ref insolar.Reference, data []byte) ([]byte, []byte, error))
+	f, ok := symbol.(func(ref reference.Global, data []byte) ([]byte, []byte, error))
 	if !ok {
 		return errors.New("Wrapper with wrong signature")
 	}
 
-	objRef := insolar.NewReference(args.Context.Request.GetLocal())
+	objRef := reference.NewGlobalSelf(args.Context.Request.GetLocal())
 	state, result, err := f(objRef, args.Arguments)
 	if err != nil {
 		return errors.Wrapf(err, "Can't call constructor %s", args.Name)
@@ -197,7 +198,7 @@ func (gi *GoInsider) Upstream() (*rpc.Client, error) {
 
 // ObtainCode returns path on the file system to the plugin, fetches it from a provider
 // if it's not in the storage
-func (gi *GoInsider) ObtainCode(ctx context.Context, ref insolar.Reference) (string, error) {
+func (gi *GoInsider) ObtainCode(ctx context.Context, ref reference.Global) (string, error) {
 	path := filepath.Join(gi.dir, ref.String())
 	_, err := os.Stat(path)
 
@@ -238,7 +239,7 @@ func (gi *GoInsider) ObtainCode(ctx context.Context, ref insolar.Reference) (str
 
 // Plugin loads Go plugin by reference and returns `*plugin.Plugin`
 // ready to lookup symbols
-func (gi *GoInsider) Plugin(ctx context.Context, ref insolar.Reference) (*plugin.Plugin, error) {
+func (gi *GoInsider) Plugin(ctx context.Context, ref reference.Global) (*plugin.Plugin, error) {
 	rec := gi.getPluginRec(ref)
 
 	rec.Lock()
@@ -265,7 +266,7 @@ func (gi *GoInsider) Plugin(ctx context.Context, ref insolar.Reference) (*plugin
 
 // getPluginRec return existed gi.plugins[ref] or create a new one
 // also set gi.plugins[ref].Lock()
-func (gi *GoInsider) getPluginRec(ref insolar.Reference) *pluginRec {
+func (gi *GoInsider) getPluginRec(ref reference.Global) *pluginRec {
 	gi.pluginsMutex.Lock()
 	defer gi.pluginsMutex.Unlock()
 
@@ -282,14 +283,14 @@ func MakeUpBaseReq() rpctypes.UpBaseReq {
 
 	return rpctypes.UpBaseReq{
 		Mode:            callCtx.Mode,
-		Callee:          *callCtx.Callee,
-		CalleePrototype: *callCtx.Prototype,
-		Request:         *callCtx.Request,
+		Callee:          callCtx.Callee,
+		CalleePrototype: callCtx.Prototype,
+		Request:         callCtx.Request,
 	}
 }
 
 // RouteCall ...
-func (gi *GoInsider) RouteCall(ref insolar.Reference, immutable bool, saga bool, method string, args []byte, proxyPrototype insolar.Reference) ([]byte, error) {
+func (gi *GoInsider) RouteCall(ref reference.Global, immutable bool, saga bool, method string, args []byte, proxyPrototype reference.Global) ([]byte, error) {
 	client, err := gi.Upstream()
 	if err != nil {
 		return nil, err
@@ -324,7 +325,7 @@ func (gi *GoInsider) RouteCall(ref insolar.Reference, immutable bool, saga bool,
 
 // SaveAsChild ...
 func (gi *GoInsider) SaveAsChild(
-	parentRef, classRef insolar.Reference, constructorName string, argsSerialized []byte,
+	parentRef, classRef reference.Global, constructorName string, argsSerialized []byte,
 ) (
 	[]byte, error,
 ) {
@@ -359,7 +360,7 @@ func (gi *GoInsider) SaveAsChild(
 }
 
 // DeactivateObject ...
-func (gi *GoInsider) DeactivateObject(object insolar.Reference) error {
+func (gi *GoInsider) DeactivateObject(object reference.Global) error {
 	client, err := gi.Upstream()
 	if err != nil {
 		return err
@@ -406,7 +407,7 @@ func (gi *GoInsider) MakeErrorSerializable(e error) error {
 }
 
 // AddPlugin inject plugin by ref in gi memory
-func (gi *GoInsider) AddPlugin(ref insolar.Reference, path string) error {
+func (gi *GoInsider) AddPlugin(ref reference.Global, path string) error {
 	rec := gi.getPluginRec(ref)
 
 	rec.Lock()
