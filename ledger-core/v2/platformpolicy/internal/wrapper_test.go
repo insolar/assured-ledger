@@ -8,11 +8,12 @@ package internal
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy/internal/hash"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy/internal/sign"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEcdsaMarshalUnmarshal(t *testing.T) {
@@ -29,8 +30,8 @@ func TestEcdsaMarshalUnmarshal(t *testing.T) {
 	signer := provider.DataSigner(privateKey, hasher)
 	verifier := provider.DataVerifier(kp.ExtractPublicKey(privateKey), hasher)
 
-	signature, err := signer.Sign(data.Bytes())
+	signature, err := signer.Sign(data.AsBytes())
 	assert.NoError(t, err)
 
-	assert.True(t, verifier.Verify(*signature, data.Bytes()))
+	assert.True(t, verifier.Verify(*signature, data.AsBytes()))
 }

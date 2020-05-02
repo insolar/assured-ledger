@@ -4,7 +4,6 @@ package payload;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-
 message Meta {
     uint32 Polymorph = 16;
 
@@ -14,23 +13,4 @@ message Meta {
     bytes Pulse = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber", (gogoproto.nullable) = false];
     bytes ID = 24;
     bytes OriginHash = 25 [(gogoproto.customtype) = "MessageHash", (gogoproto.nullable) = false];
-}
-
-message Error {
-    uint32 Polymorph = 16;
-
-    uint32 Code = 20 [(gogoproto.customtype) = "ErrorCode", (gogoproto.nullable) = false];
-    string Text = 21;
-}
-
-message ID {
-    uint32 Polymorph = 16;
-
-    bytes ID = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID", (gogoproto.nullable) = false];
-}
-
-message IDs {
-    uint32 Polymorph = 16;
-
-    repeated bytes IDs = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.ID", (gogoproto.nullable) = false];
 }

@@ -6,10 +6,7 @@
 package reference
 
 import (
-	"encoding/json"
 	"io"
-
-	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -58,18 +55,14 @@ func (v Global) WriteTo(w io.Writer) (int64, error) {
 	return n + n2, err
 }
 
-func (v Global) Read(b []byte) (int, error) {
-	return ReadTo(v, b)
-}
-
 func (v Global) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
 
 func (v Global) AsBytes() []byte {
 	val := make([]byte, GlobalBinarySize)
-	_, _ = v.addressLocal.Read(val)
-	_, _ = v.addressBase.Read(val[LocalBinarySize:])
+	WriteWholeLocalTo(v.addressLocal, val[:LocalBinarySize])
+	WriteWholeLocalTo(v.addressBase, val[LocalBinarySize:])
 	return val
 }
 
@@ -101,6 +94,22 @@ func (v Global) IsGlobalScope() bool {
 	return IsGlobalScope(v)
 }
 
+func (v Global) GetBase() Local {
+	return v.addressBase
+}
+
+func (v Global) GetLocal() Local {
+	return v.addressLocal
+}
+
+func (v Global) String() string {
+	s, err := DefaultEncoder().Encode(v)
+	if err != nil {
+		return NilRef
+	}
+	return s
+}
+
 /* ONLY for parser */
 func (v *Global) convertToSelf() {
 	if !v.tryConvertToSelf() {
@@ -122,6 +131,7 @@ func (v *Global) canConvertToSelf() bool {
 	return v.addressBase.IsEmpty() && v.addressLocal.canConvertToSelf()
 }
 
+/* ONLY for parser */
 func (v *Global) tryConvertToCompact() Holder {
 	switch {
 	case v.addressBase.IsEmpty():
@@ -153,119 +163,56 @@ func (v *Global) tryApplyBase(base *Global) bool {
 	return true
 }
 
-func (v Global) GetBase() Local {
-	return v.addressBase
-}
-
-func (v Global) GetLocal() Local {
-	return v.addressLocal
-}
-
-func (v Global) String() string {
-	s, err := DefaultEncoder().Encode(v)
-	if err != nil {
-		return NilRef
-	}
-	return s
-}
-
-func (v Global) Bytes() []byte {
-	return v.AsBytes()
-}
-
-// deprecated
-// nolint:interfacer
-func (v Global) Equal(other Global) bool {
-	return Equal(v, other)
-}
-
-// nolint:interfacer
-func (v Global) Compare(other Global) int {
+func (v Global) Compare(other Holder) int {
 	return Compare(v, other)
 }
 
-// deprecated
+func (v Global) Equal(other Holder) bool {
+	return Equal(v, other)
+}
+
+// deprecated: use reference.MarshalJSON
 func (v *Global) MarshalJSON() ([]byte, error) {
 	return MarshalJSON(v)
 }
 
-// deprecated
+// deprecated: use reference.Marshal
 func (v *Global) Marshal() ([]byte, error) {
-	if v.IsEmpty() {
-		return nil, nil
-	}
-	b := make([]byte, GlobalBinarySize)
-
-	copy(b[:LocalBinarySize], v.addressLocal.AsBytes())
-	copy(b[LocalBinarySize:], v.addressBase.AsBytes())
-
-	return b, nil
+	return Marshal(v)
 }
 
-// deprecated
+// deprecated: use reference.Marshal
 func (v *Global) MarshalBinary() ([]byte, error) {
 	return Marshal(v)
 }
 
-// deprecated
+// deprecated: use reference.MarshalTo
 func (v *Global) MarshalTo(b []byte) (int, error) {
 	return MarshalTo(v, b)
 }
 
-// deprecated
-func (v *Global) UnmarshalJSON(data []byte) error {
-	return v.unmarshalJSON(data)
+// deprecated: use reference.UnmarshalJSON
+func (v *Global) UnmarshalJSON(data []byte) (err error) {
+	*v, err = UnmarshalJSON(data)
+	return
 }
 
-func (v *Global) unmarshalJSON(data []byte) error {
-	var repr interface{}
-
-	err := json.Unmarshal(data, &repr)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal reference.Global")
-	}
-
-	switch realRepr := repr.(type) {
-	case string:
-		decoded, err := DefaultDecoder().Decode(realRepr)
-		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal reference.Global")
-		}
-
-		v.addressLocal = decoded.GetLocal()
-		v.addressBase = decoded.GetBase()
-	case nil:
-	default:
-		return errors.Wrapf(err, "unexpected type %T when unmarshal reference.Global", repr)
-	}
-
-	return nil
-}
-
-// deprecated
+// deprecated: use reference.Unmarshal
 func (v *Global) Unmarshal(data []byte) (err error) {
 	if len(data) == 0 {
 		*v = Global{}
 		return nil
 	}
-
-	if err := v.addressLocal.Unmarshal(data[:LocalBinarySize]); err != nil {
-		return err
-	}
-	return v.addressBase.Unmarshal(data[LocalBinarySize:])
+	v.addressLocal, v.addressBase, err = Unmarshal(data)
+	return
 }
 
-// deprecated
+// deprecated: use reference.Unmarshal
 func (v *Global) UnmarshalBinary(data []byte) error {
 	return v.Unmarshal(data)
 }
 
-// deprecated
+// deprecated: use reference.ProtoSize
 func (v Global) Size() int {
-	return ProtoSize(v)
-}
-
-// deprecated
-func (v *Global) ProtoSize() int {
 	return ProtoSize(v)
 }

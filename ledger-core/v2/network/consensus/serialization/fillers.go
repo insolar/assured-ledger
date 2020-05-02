@@ -71,7 +71,7 @@ func fillExtendedIntro(i *NodeExtendedIntro, intro transport.FullIntroductionRea
 
 	i.ProofLen = 1
 	i.NodeRefProof = make([]longbits.Bits512, 1)
-	copy(i.NodeRefProof[0][:], intro.GetReference().Bytes())
+	copy(i.NodeRefProof[0][:], intro.GetReference().AsBytes())
 
 	i.DiscoveryIssuerNodeID = intro.GetIssuerID()
 	copy(i.IssuerSignature[:], intro.GetIssuerSignature().AsBytes())

@@ -171,7 +171,7 @@ func (n Number) TryPrev(delta uint16) (Number, bool) {
 	return n, true
 }
 
-func (n Number) WithFlags(flags uint8) uint32 {
+func (n Number) WithFlags(flags int) uint32 {
 	if n > MaxTimePulse {
 		panic("illegal value")
 	}
@@ -182,6 +182,7 @@ func (n Number) WithFlags(flags uint8) uint32 {
 }
 
 // Bytes serializes pulse number.
+// deprecated
 func (n Number) Bytes() []byte {
 	var buf [NumberSize]byte
 	binary.BigEndian.PutUint32(buf[:], uint32(n))
@@ -246,6 +247,6 @@ func OfUint32(n uint32) Number {
 	return Number(n) & MaxTimePulse
 }
 
-func FlagsOf(n uint32) uint {
-	return uint(n) >> 30
+func FlagsOf(n uint32) int {
+	return int(n >> 30)
 }
