@@ -174,10 +174,10 @@ func testContains(t *testing.T, ksi KeySet, bitMask uint) {
 	for i := uint(1 << 16); i != 0; i >>= 1 {
 		k := bitToKey(bits.Len(i) - 1)
 		if bitMask&i != 0 {
-			t.Log("In:", i, bits.Len(i)-1)
+			// t.Log("In:", i, bits.Len(i)-1)
 			assert.True(t, ksi.Contains(k), "f(%x, %x)=true", bitMask, i)
 		} else {
-			t.Log("Not: ", i, bits.Len(i)-1)
+			// t.Log("Not: ", i, bits.Len(i)-1)
 			assert.False(t, ksi.Contains(k), "f(%x, %x)=false", bitMask, i)
 		}
 	}
@@ -233,7 +233,7 @@ func testMutableOp(t *testing.T, genFactoryFn func() mutableGeneratorFunc, testF
 			testFn(ksi, ksj)
 
 			r := checkFn(ti, tj)
-			//t.Logf("f(%x, %x)=%x", ti, tj, r)
+			// t.Logf("f(%x, %x)=%x", ti, tj, r)
 			require.Equal(t, r, keySetToBits(ksi), "f(%x, %x)=%x", ti, tj, r)
 		}
 	}

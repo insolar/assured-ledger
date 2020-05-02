@@ -45,9 +45,9 @@ func TestJetIndex_For(t *testing.T) {
 	sID := insolar.NewID(insolar.PulseNumber(4), []byte{2})
 	tID := insolar.NewID(insolar.PulseNumber(4), []byte{3})
 	jetID := gen.JetID()
-	idx.Add(*id, jetID)
-	idx.Add(*sID, jetID)
-	idx.Add(*tID, jetID)
+	idx.Add(id, jetID)
+	idx.Add(sID, jetID)
+	idx.Add(tID, jetID)
 
 	for i := 0; i < 100; i++ {
 		id := gen.ID()
@@ -60,10 +60,10 @@ func TestJetIndex_For(t *testing.T) {
 	res := idx.For(jetID)
 
 	require.Equal(t, 3, len(res))
-	_, ok := res[*id]
+	_, ok := res[id]
 	require.Equal(t, true, ok)
-	_, ok = res[*sID]
+	_, ok = res[sID]
 	require.Equal(t, true, ok)
-	_, ok = res[*tID]
+	_, ok = res[tID]
 	require.Equal(t, true, ok)
 }

@@ -118,7 +118,7 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, *certManager.GetCertificate().GetNodeRef())
+	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
 	pulses := pulse.NewStorageMem()
 
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)

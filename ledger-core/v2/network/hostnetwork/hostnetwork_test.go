@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -25,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
-	"github.com/insolar/component-manager"
 )
 
 var id1, id2, id3, idunknown string
@@ -74,7 +75,7 @@ func (m *MockResolver) addMapping(key, value string) error {
 	if err != nil {
 		return err
 	}
-	h, err := host.NewHostN(value, *k)
+	h, err := host.NewHostN(value, k)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func (m *MockResolver) addMapping(key, value string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.mapping[*k] = h
+	m.mapping[k] = h
 	return nil
 }
 
@@ -189,7 +190,7 @@ func TestNewHostNetwork(t *testing.T) {
 	for i := 0; i < count; i++ {
 		ref, err := insolar.NewReferenceFromString(id2)
 		require.NoError(t, err)
-		f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, *ref)
+		f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
 		require.NoError(t, err)
 		f.Cancel()
 	}
@@ -221,7 +222,7 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	require.NoError(t, err)
 
 	// should return error because cannot resolve NodeID -> Address
-	f, err := n1.SendRequest(ctx, types.Pulse, &packet.PulseRequest{}, *unknownID)
+	f, err := n1.SendRequest(ctx, types.Pulse, &packet.PulseRequest{}, unknownID)
 	require.Error(t, err)
 	assert.Nil(t, f)
 
@@ -233,7 +234,7 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	ref, err := insolar.NewReferenceFromString(id3)
 	require.NoError(t, err)
 	// should return error because resolved address is invalid
-	f, err = n1.SendRequest(ctx, types.Pulse, &packet.PulseRequest{}, *ref)
+	f, err = n1.SendRequest(ctx, types.Pulse, &packet.PulseRequest{}, ref)
 	require.Error(t, err)
 	assert.Nil(t, f)
 }
@@ -250,7 +251,7 @@ func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 		inslogger.FromContext(ctx).Info("handler triggered")
 		ref, err := insolar.NewReferenceFromString(id1)
 		require.NoError(t, err)
-		require.Equal(t, *ref, r.GetSender())
+		require.Equal(t, ref, r.GetSender())
 		require.Equal(t, s.n1.PublicAddress(), r.GetSenderHost().Address.String())
 		wg.Done()
 		return s.n2.BuildResponse(ctx, r, &packet.RPCResponse{}), nil
@@ -262,7 +263,7 @@ func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 
 	ref, err := insolar.NewReferenceFromString(id2)
 	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, *ref)
+	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
 	require.NoError(t, err)
 	f.Cancel()
 
@@ -284,7 +285,7 @@ func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 	request := &packet.PulseRequest{}
 	ref, err := insolar.NewReferenceFromString(id2)
 	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.Pulse, request, *ref)
+	f, err := s.n1.SendRequest(s.ctx1, types.Pulse, request, ref)
 	require.NoError(t, err)
 
 	r, err := f.WaitResponse(time.Minute)
@@ -294,7 +295,7 @@ func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 	require.Equal(t, "Error", d)
 
 	request = &packet.PulseRequest{}
-	f, err = s.n1.SendRequest(s.ctx1, types.Pulse, request, *ref)
+	f, err = s.n1.SendRequest(s.ctx1, types.Pulse, request, ref)
 	require.NoError(t, err)
 
 	r, err = f.WaitResponse(time.Second)
@@ -318,13 +319,13 @@ func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
 
 	ref, err := insolar.NewReferenceFromString(id2)
 	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, *ref)
+	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
 	require.NoError(t, err)
 
 	_, err = f.WaitResponse(time.Microsecond * 10)
 	require.Error(t, err)
 
-	f, err = s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, *ref)
+	f, err = s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
 	require.NoError(t, err)
 
 	_, err = f.WaitResponse(time.Minute)
@@ -350,7 +351,7 @@ func TestHostNetwork_WrongHandler(t *testing.T) {
 
 	ref, err := insolar.NewReferenceFromString(id2)
 	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.Pulse, &packet.PulseRequest{}, *ref)
+	f, err := s.n1.SendRequest(s.ctx1, types.Pulse, &packet.PulseRequest{}, ref)
 	require.NoError(t, err)
 	f.Cancel()
 
@@ -380,7 +381,7 @@ func TestStartStopSend(t *testing.T) {
 	send := func() {
 		ref, err := insolar.NewReferenceFromString(id2)
 		require.NoError(t, err)
-		f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, *ref)
+		f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
 		require.NoError(t, err)
 		_, err = f.WaitResponse(time.Second)
 		assert.NoError(t, err)

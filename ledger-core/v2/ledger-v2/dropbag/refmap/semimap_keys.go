@@ -83,7 +83,7 @@ func (m *UpdateableKeyMap) SetHashSeed(hashSeed uint32) {
 	m.hashSeed = hashSeed
 }
 
-func (m *UpdateableKeyMap) InternHolder(ref reference.Holder) reference.Holder {
+func (m *UpdateableKeyMap) InternHolder(ref reference.PtrHolder) reference.Holder {
 	switch {
 	case ref == nil:
 		return nil
@@ -91,7 +91,7 @@ func (m *UpdateableKeyMap) InternHolder(ref reference.Holder) reference.Holder {
 		return reference.Empty()
 	}
 
-	p0, p1 := ref.GetLocal(), ref.GetBase()
+	p0, p1 := ref.GetLocalPtr(), ref.GetBasePtr()
 	p0i, p1i := m.Intern(p0), p1
 	if p0 == p1 {
 		p1i = p0i
@@ -167,14 +167,14 @@ func (m *UpdateableKeyMap) getIndex(ref *reference.Local) (uint32, bool) {
 	return m.getIndexWithKey(ref, unsafekit.WrapLocalRef(ref))
 }
 
-func (m *UpdateableKeyMap) Find(key reference.Holder) (BucketValueSelector, bool) {
+func (m *UpdateableKeyMap) Find(key reference.PtrHolder) (BucketValueSelector, bool) {
 	switch {
 	case key.IsEmpty():
 		return BucketValueSelector{}, false
 	}
 
 	var bucket *refMapBucket
-	bucketIndex, ok := m.getIndex(key.GetLocal())
+	bucketIndex, ok := m.getIndex(key.GetLocalPtr())
 	if !ok {
 		return BucketValueSelector{}, false
 	}
@@ -183,14 +183,14 @@ func (m *UpdateableKeyMap) Find(key reference.Holder) (BucketValueSelector, bool
 		return BucketValueSelector{}, false
 	}
 
-	if baseIndex, ok := m.getIndex(key.GetBase()); !ok {
+	if baseIndex, ok := m.getIndex(key.GetBasePtr()); !ok {
 		return BucketValueSelector{}, false
 	} else {
 		return BucketValueSelector{ValueSelector{bucketIndex, baseIndex}, bucket.state}, true
 	}
 }
 
-func (m *UpdateableKeyMap) TryPut(key reference.Holder,
+func (m *UpdateableKeyMap) TryPut(key reference.PtrHolder,
 	valueFn func(internedKey reference.Holder, selector BucketValueSelector) BucketState,
 ) bool {
 	switch {
@@ -200,7 +200,7 @@ func (m *UpdateableKeyMap) TryPut(key reference.Holder,
 		return false
 	}
 
-	p0, p1 := key.GetLocal(), key.GetBase()
+	p0, p1 := key.GetLocalPtr(), key.GetBasePtr()
 	bucket0, p0i, p0k := m.intern(p0)
 	bucket1, p1i, _ := m.intern(p1)
 
@@ -225,7 +225,7 @@ func (m *UpdateableKeyMap) TryPut(key reference.Holder,
 	}
 }
 
-func (m *UpdateableKeyMap) TryTouch(key reference.Holder,
+func (m *UpdateableKeyMap) TryTouch(key reference.PtrHolder,
 	valueFn func(selector BucketValueSelector) BucketState,
 ) bool {
 	if valueFn == nil {

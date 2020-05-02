@@ -20,11 +20,11 @@ type RefLocatorMap struct {
 	values map[ValueSelector]ValueLocator
 }
 
-func (m *RefLocatorMap) Intern(ref reference.Holder) reference.Holder {
+func (m *RefLocatorMap) Intern(ref reference.PtrHolder) reference.Holder {
 	return m.keys.InternHolder(ref)
 }
 
-func (m *RefLocatorMap) Get(ref reference.Holder) (ValueLocator, bool) {
+func (m *RefLocatorMap) Get(ref reference.PtrHolder) (ValueLocator, bool) {
 	if selector, ok := m.keys.Find(ref); !ok || selector.State == 0 {
 		return 0, false
 	} else {
@@ -33,7 +33,7 @@ func (m *RefLocatorMap) Get(ref reference.Holder) (ValueLocator, bool) {
 	}
 }
 
-func (m *RefLocatorMap) Contains(ref reference.Holder) bool {
+func (m *RefLocatorMap) Contains(ref reference.PtrHolder) bool {
 	_, ok := m.Get(ref)
 	return ok
 }
@@ -42,7 +42,7 @@ func (m *RefLocatorMap) Len() int {
 	return len(m.values)
 }
 
-func (m *RefLocatorMap) Put(ref reference.Holder, v ValueLocator) (internedRef reference.Holder) {
+func (m *RefLocatorMap) Put(ref reference.PtrHolder, v ValueLocator) (internedRef reference.Holder) {
 	m.keys.TryPut(ref, func(internedKey reference.Holder, selector BucketValueSelector) BucketState {
 		internedRef = internedKey
 
@@ -63,7 +63,7 @@ func (m *RefLocatorMap) Put(ref reference.Holder, v ValueLocator) (internedRef r
 	return internedRef
 }
 
-func (m *RefLocatorMap) Delete(ref reference.Holder) {
+func (m *RefLocatorMap) Delete(ref reference.PtrHolder) {
 	m.keys.TryTouch(ref, func(selector BucketValueSelector) BucketState {
 		n := len(m.values)
 		delete(m.values, selector.ValueSelector)

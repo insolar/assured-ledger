@@ -68,7 +68,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 		return errors.Wrap(err, "Can't create watermill message")
 	}
 
-	nodes, err := dm.coordinator.QueryRole(ctx, role, *object.GetLocal(), pn)
+	nodes, err := dm.coordinator.QueryRole(ctx, role, object.GetLocal(), pn)
 	if err != nil {
 		return errors.Wrap(err, "failed to calculate role")
 	}

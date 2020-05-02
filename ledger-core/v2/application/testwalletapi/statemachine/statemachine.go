@@ -66,7 +66,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
-	s.requestPayload.Caller = *APICaller
+	s.requestPayload.Caller = APICaller
 	s.requestPayload.CallOutgoing = gen.IDWithPulse(pulseNumber)
 
 	var obj insolar.Reference
@@ -93,7 +93,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	})
 
-	outgoingRef := reference.NewGlobal(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
+	outgoingRef := reference.NewGlobal(s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
 
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))

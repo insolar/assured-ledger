@@ -33,7 +33,7 @@ func Parent(id insolar.JetID) insolar.JetID {
 		return id
 	}
 
-	return *insolar.NewJetID(depth-1, bits.ResetBits(prefix, depth-1))
+	return insolar.NewJetID(depth-1, bits.ResetBits(prefix, depth-1))
 }
 
 // NewIDFromString creates new JetID from string represents binary prefix.
@@ -43,7 +43,7 @@ func Parent(id insolar.JetID) insolar.JetID {
 // "1010"  -> prefix=[1010..0], depth=4
 func NewIDFromString(s string) insolar.JetID {
 	id := insolar.NewJetID(uint8(len(s)), parsePrefix(s))
-	return *id
+	return id
 }
 
 func parsePrefix(s string) []byte {
@@ -75,5 +75,5 @@ func Siblings(id insolar.JetID) (insolar.JetID, insolar.JetID) {
 	setBit(rightPrefix, depth)
 	right := insolar.NewJetID(depth+1, rightPrefix)
 
-	return *left, *right
+	return left, right
 }

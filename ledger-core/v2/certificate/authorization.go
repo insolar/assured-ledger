@@ -30,11 +30,11 @@ func (authCert *AuthorizationCertificate) GetPublicKey() crypto.PublicKey {
 }
 
 // GetNodeRef returns reference from node certificate
-func (authCert *AuthorizationCertificate) GetNodeRef() *insolar.Reference {
+func (authCert *AuthorizationCertificate) GetNodeRef() insolar.Reference {
 	ref, err := insolar.NewReferenceFromString(authCert.Reference)
 	if err != nil {
 		global.Errorf("Invalid node reference in auth cert: %s\n", authCert.Reference)
-		return nil
+		return insolar.Reference{}
 	}
 	return ref
 }

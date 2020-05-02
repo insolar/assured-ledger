@@ -32,7 +32,8 @@ func MarshalTo(h Holder, b []byte) (int, error) {
 func Marshal(h Holder) ([]byte, error) {
 	base := h.GetBase()
 	if base.IsEmpty() {
-		return h.GetLocal().Marshal()
+		v := h.GetLocal()
+		return v.Marshal()
 	}
 
 	b := make([]byte, LocalBinarySize+base.ProtoSize())
@@ -68,7 +69,7 @@ func UnmarshalJSON(b []byte) (Holder, error) {
 	return v, err
 }
 
-func _marshal(local, base *Local, b []byte) (int, error) {
+func _marshal(local, base Local, b []byte) (int, error) {
 	n, err := local.wholeMarshalTo(b)
 	switch {
 	case err != nil:

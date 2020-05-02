@@ -439,10 +439,10 @@ func (r *FullIntroductionReader) GetExtraEndpoints() []endpoints.Outbound {
 
 func (r *FullIntroductionReader) GetReference() insolar.Reference {
 	if r.body.FullSelfIntro.ProofLen > 0 {
-		return *insolar.NewReferenceFromBytes(r.intro.NodeRefProof[0].AsBytes())
+		return insolar.NewReferenceFromBytes(r.intro.NodeRefProof[0].AsBytes())
 	}
 
-	return *insolar.NewEmptyReference()
+	return insolar.NewEmptyReference()
 }
 
 func (r *FullIntroductionReader) GetIssuerID() insolar.ShortNodeID {
