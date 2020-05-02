@@ -18,7 +18,7 @@ import (
 
 func TestPolymorphProducesExpectedBinary(t *testing.T) {
 	morph := rand.Uint32()
-	pl := payload.Error{
+	pl := payload.Meta{
 		Polymorph: morph,
 	}
 	data, err := pl.Marshal()

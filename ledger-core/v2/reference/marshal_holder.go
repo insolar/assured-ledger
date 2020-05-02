@@ -16,9 +16,9 @@ import (
 func ProtoSize(h Holder) int {
 	base := h.GetBase()
 	if base.IsEmpty() {
-		return h.GetLocal().ProtoSize()
+		return ProtoSizeLocal(h.GetLocal())
 	}
-	return LocalBinarySize + base.ProtoSize()
+	return LocalBinarySize + ProtoSizeLocal(h.GetLocal())
 }
 
 func MarshalTo(h Holder, b []byte) (int, error) {
@@ -36,7 +36,7 @@ func Marshal(h Holder) ([]byte, error) {
 		return v.Marshal()
 	}
 
-	b := make([]byte, LocalBinarySize+base.ProtoSize())
+	b := make([]byte, LocalBinarySize+ProtoSizeLocal(base))
 	n, err := _marshal(h.GetLocal(), base, b)
 	if err != nil {
 		return nil, err

@@ -211,7 +211,6 @@ func (v Local) Compare(other Local) int {
 	return v.hash.Compare(other.hash)
 }
 
-// returns a copy of Pulse part of ID.
 func (v Local) Pulse() pulse.Number {
 	return v.GetPulseNumber()
 }
@@ -230,11 +229,6 @@ func (v *Local) MarshalJSON() ([]byte, error) {
 		return json.Marshal(nil)
 	}
 	return json.Marshal(v.Encode(DefaultEncoder()))
-}
-
-// deprecated
-func (v *Local) MarshalBinary() ([]byte, error) {
-	return v.Marshal()
 }
 
 // deprecated
@@ -298,6 +292,11 @@ func (v Local) hashLen() int {
 	return i + 1
 }
 
+// deprecated
+func (v Local) Size() int {
+	return ProtoSizeLocal(v)
+}
+
 func (v Local) MarshalTo(data []byte) (int, error) {
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
@@ -316,7 +315,15 @@ func (v Local) MarshalTo(data []byte) (int, error) {
 	return 0, throw.WithStackTop(io.ErrUnexpectedEOF)
 }
 
-func (v Local) ProtoSize() int {
+func (v Local) GetLocal() Local {
+	return v
+}
+
+func ProtoSizeLocal(h LocalHolder) int {
+	if h == nil || h.IsEmpty() {
+		return 0
+	}
+	v := h.GetLocal()
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
 		return 0
@@ -326,18 +333,7 @@ func (v Local) ProtoSize() int {
 	return LocalBinaryPulseAndScopeSize + v.hashLen()
 }
 
-func (v Local) GetLocal() Local {
-	return v
-}
-
-func ProtoSizeLocalHolder(v LocalHolder) int {
-	if v == nil || v.IsEmpty() {
-		return 0
-	}
-	return v.GetLocal().ProtoSize()
-}
-
-func MarshalLocalHolderTo(v LocalHolder, data []byte) (int, error) {
+func MarshalLocalTo(v LocalHolder, data []byte) (int, error) {
 	if v == nil || v.IsEmpty() {
 		return 0, nil
 	}
@@ -438,17 +434,7 @@ func (v Local) canConvertToSelf() bool {
 	return true
 }
 
-// deprecated
-func (v Local) Equal(o Local) bool {
-	return o == v
-}
-
-// deprecated
-func (v Local) Size() int {
-	return v.ProtoSize()
-}
-
-func (v Local) EqualHolder(o LocalHolder) bool {
+func (v Local) Equal(o LocalHolder) bool {
 	return o != nil && v == o.GetLocal()
 }
 

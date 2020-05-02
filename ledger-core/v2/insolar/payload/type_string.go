@@ -10,22 +10,19 @@ func _() {
 	var x [1]struct{}
 	_ = x[TypeUnknown-0]
 	_ = x[TypeMeta-1]
-	_ = x[TypeError-2]
-	_ = x[TypeID-3]
-	_ = x[TypeIDs-4]
-	_ = x[TypeVCallRequest-5]
-	_ = x[TypeVCallResult-6]
-	_ = x[TypeVStateReport-7]
-	_ = x[TypeVStateUnavailable-8]
-	_ = x[TypeVStateRequest-9]
-	_ = x[TypeVPendingDelegationRequest-10]
-	_ = x[TypeVDelegatedRequestFinished-11]
-	_ = x[_latestType-12]
+	_ = x[TypeVCallRequest-2]
+	_ = x[TypeVCallResult-3]
+	_ = x[TypeVStateReport-4]
+	_ = x[TypeVStateUnavailable-5]
+	_ = x[TypeVStateRequest-6]
+	_ = x[TypeVPendingDelegationRequest-7]
+	_ = x[TypeVDelegatedRequestFinished-8]
+	_ = x[_latestType-9]
 }
 
-const _Type_name = "TypeUnknownTypeMetaTypeErrorTypeIDTypeIDsTypeVCallRequestTypeVCallResultTypeVStateReportTypeVStateUnavailableTypeVStateRequestTypeVPendingDelegationRequestTypeVDelegatedRequestFinished_latestType"
+const _Type_name = "TypeUnknownTypeMetaTypeVCallRequestTypeVCallResultTypeVStateReportTypeVStateUnavailableTypeVStateRequestTypeVPendingDelegationRequestTypeVDelegatedRequestFinished_latestType"
 
-var _Type_index = [...]uint8{0, 11, 19, 28, 34, 41, 57, 72, 88, 109, 126, 155, 184, 195}
+var _Type_index = [...]uint8{0, 11, 19, 35, 50, 66, 87, 104, 133, 162, 173}
 
 func (i Type) String() string {
 	if i >= Type(len(_Type_index)-1) {

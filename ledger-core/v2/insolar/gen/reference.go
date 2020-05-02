@@ -50,21 +50,6 @@ func IDWithPulse(pn insolar.PulseNumber) insolar.ID {
 	return insolar.NewID(pn, hash)
 }
 
-// JetID generates random jet id.
-func JetID() insolar.JetID {
-	var jetID insolar.JetID
-	f := fuzz.New().Funcs(func(jet *insolar.JetID, c fuzz.Continue) {
-		prefix := make([]byte, insolar.JetPrefixSize)
-		c.Fuzz(&prefix)
-		depth := c.Intn(insolar.JetMaximumDepth + 1)
-
-		*jet = insolar.NewJetID(uint8(depth), prefix)
-	})
-	f.Fuzz(&jetID)
-
-	return jetID
-}
-
 // Reference generates random reference.
 func Reference() insolar.Reference {
 	return insolar.NewReference(ID())

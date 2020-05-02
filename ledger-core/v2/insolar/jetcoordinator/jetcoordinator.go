@@ -99,30 +99,6 @@ func (jc *Coordinator) VirtualValidatorsForObject(
 	return nodes[VirtualExecutorCount:], nil
 }
 
-// LightExecutorForJet returns list of LEs for a provided pulse and jetID
-func (jc *Coordinator) LightExecutorForJet(
-	ctx context.Context, jetID insolar.ID, pulse insolar.PulseNumber,
-) (*insolar.Reference, error) {
-	nodes, err := jc.lightMaterialsForJet(ctx, jetID, pulse, MaterialExecutorCount)
-	if err != nil {
-		return nil, err
-	}
-	return &nodes[0], nil
-}
-
-// LightValidatorsForJet returns list of LVs for a provided pulse and jetID
-func (jc *Coordinator) LightValidatorsForJet(
-	ctx context.Context, jetID insolar.ID, pulse insolar.PulseNumber,
-) ([]insolar.Reference, error) {
-	nodes, err := jc.lightMaterialsForJet(ctx, jetID, pulse, MaterialValidatorCount+MaterialExecutorCount)
-	if err != nil {
-		return nil, err
-	}
-	// Skipping `MaterialExecutorCount` for validators
-	// because it will be selected as the executor(s) for the same pulse.
-	return nodes[MaterialExecutorCount:], nil
-}
-
 // IsBeyondLimit calculates if target pulse is behind clean-up limit
 // or if currentPN|targetPN didn't found in in-memory pulse-storage.
 func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.PulseNumber) (bool, error) {
@@ -184,35 +160,6 @@ func (jc *Coordinator) virtualsForObject(
 	return getRefs(
 		jc.PlatformCryptographyScheme,
 		utils.CircleXOR(ent[:], objID.Hash()),
-		candidates,
-		count,
-	)
-}
-
-func (jc *Coordinator) lightMaterialsForJet(
-	ctx context.Context, jetID insolar.ID, pulse insolar.PulseNumber, count int,
-) ([]insolar.Reference, error) {
-	prefix := insolar.JetID(jetID).Prefix()
-
-	candidates, err := jc.Nodes.InRole(pulse, insolar.StaticRoleLightMaterial)
-	if err == node.ErrNoNodes {
-		return nil, err
-	}
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch active light nodes for pulse %v", pulse)
-	}
-	if len(candidates) == 0 {
-		return nil, node.ErrNoNodes
-	}
-
-	ent, err := jc.entropy(ctx, pulse)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch entropy for pulse %v", pulse)
-	}
-
-	return getRefs(
-		jc.PlatformCryptographyScheme,
-		utils.CircleXOR(ent[:], prefix),
 		candidates,
 		count,
 	)

@@ -8,28 +8,12 @@ package gen_test
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
-
-func TestGen_JetID(t *testing.T) {
-	for i := 0; i < 100; i++ {
-		jetID := gen.JetID()
-		recID := (*insolar.ID)(&jetID)
-		require.Equalf(t,
-			pulse.Jet, recID.Pulse(),
-			"pulse number should be insolar.PulseNumberJet. jet: %v", recID.DebugString())
-		require.GreaterOrEqualf(t,
-			uint8(insolar.JetMaximumDepth), jetID.Depth(),
-			"jet depth %v should be less than maximum value %v. jet: %v",
-			jetID.Depth(), insolar.JetMaximumDepth, jetID.DebugString(),
-		)
-	}
-}
 
 func TestGen_IDWithPulse(t *testing.T) {
 	// Empty slice for comparison.
