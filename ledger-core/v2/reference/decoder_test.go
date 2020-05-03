@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
@@ -324,4 +325,10 @@ func TestCycle(t *testing.T) {
 
 	assert.Equal(t, inp, out)
 
+}
+
+func TestDecoderZero(t *testing.T) {
+	v, err := DefaultDecoder().Decode("0")
+	require.NoError(t, err)
+	require.Equal(t, Global{}, v)
 }
