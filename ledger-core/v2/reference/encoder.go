@@ -171,7 +171,7 @@ func (v encoder) encodeBinary(rec Local, b *strings.Builder) error {
 			return err
 		}
 
-	case pn.IsSpecial():
+	case pn.IsSpecialOrPrivate():
 		b.WriteString("0")
 
 		limit := len(rec.hash) - 1
