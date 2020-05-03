@@ -75,7 +75,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		obj = s.requestPayload.Callee
 
 	case payload.CTConstructor:
-		obj = reference.NewGlobalSelf(s.requestPayload.CallOutgoing)
+		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
 
 	default:
 		panic(throw.IllegalValue())
@@ -93,7 +93,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	})
 
-	outgoingRef := reference.NewGlobal(s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
+	outgoingRef := reference.NewRecordOf(s.requestPayload.Caller, s.requestPayload.CallOutgoing)
 
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))

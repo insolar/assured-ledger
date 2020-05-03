@@ -81,7 +81,7 @@ func (b *BuiltIn) CallConstructor(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	objRef := reference.NewGlobalSelf(callCtx.Request.GetLocal())
+	objRef := reference.NewSelf(callCtx.Request.GetLocal())
 	return constructorFunc(objRef, args)
 }
 

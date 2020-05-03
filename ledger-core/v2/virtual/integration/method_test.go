@@ -110,7 +110,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 
 	prototype := testwallet.GetPrototype()
 	objectLocal := server.RandomLocalWithPulse()
-	objectGlobal := reference.NewGlobalSelf(objectLocal)
+	objectGlobal := reference.NewSelf(objectLocal)
 
 	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
 	require.NoError(t, err)
@@ -227,7 +227,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallFlags:           callflag.Unordered,
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
-				Callee:              reference.NewGlobalSelf(objectLocal),
+				Callee:              reference.NewSelf(objectLocal),
 				CallSiteDeclaration: prototype,
 				CallSiteMethod:      "GetBalance",
 				CallRequestFlags:    0,

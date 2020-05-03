@@ -84,6 +84,7 @@ func (v encoder) EncodeToBuilder(ref Holder, b *strings.Builder) error {
 
 	if ref.IsEmpty() {
 		b.WriteString("0")
+		return nil
 	}
 	if IsRecordScope(ref) {
 		return v.encodeRecord(ref.GetLocal(), b)
