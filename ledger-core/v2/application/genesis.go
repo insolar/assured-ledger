@@ -22,7 +22,7 @@ func (r genesisBinary) ID() reference.Local {
 
 // Ref returns genesis record reference.
 func (r genesisBinary) Ref() reference.Global {
-	return reference.NewGlobalSelf(r.ID())
+	return reference.NewSelf(r.ID())
 }
 
 // GenesisHeavyConfig carries data required for initial genesis on heavy node.

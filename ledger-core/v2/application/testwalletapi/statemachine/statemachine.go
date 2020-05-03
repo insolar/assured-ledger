@@ -75,7 +75,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		obj = s.requestPayload.Callee
 
 	case payload.CTConstructor:
-		obj = reference.NewGlobalSelf(s.requestPayload.CallOutgoing)
+		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
 
 	default:
 		panic(throw.IllegalValue())

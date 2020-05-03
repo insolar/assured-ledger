@@ -53,7 +53,7 @@ func IDWithPulse(pn insolar.PulseNumber) reference.Local {
 // Reference generates random reference.
 func Reference() reference.Global {
 	id := ID()
-	return reference.NewGlobalSelf(id)
+	return reference.NewSelf(id)
 }
 
 // UniqueReferences generates multiple random unique References.

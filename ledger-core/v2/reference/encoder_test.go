@@ -156,7 +156,7 @@ func TestEncoder_Encode(t *testing.T) {
 	{
 		enc := NewBase58Encoder(0)
 		result, _ := enc.Encode(&Global{})
-		assert.Equal(t, "00", result)
+		assert.Equal(t, "0", result)
 	}
 
 	{

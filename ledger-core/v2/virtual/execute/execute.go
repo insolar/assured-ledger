@@ -112,7 +112,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	switch callType {
 	case payload.CTConstructor:
 		isConstructor = true
-		s.execution.Object = reference.NewGlobalSelf(s.Payload.CallOutgoing)
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing)
 		reason = object.InitReasonCTConstructor
 
 	case payload.CTMethod:
