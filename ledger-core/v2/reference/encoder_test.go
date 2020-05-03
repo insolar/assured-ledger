@@ -30,12 +30,12 @@ func generateBits224(zeroBytes int) longbits.Bits224 {
 	return hash
 }
 
-func populateUsualPulse(number *uint32) {
-	*number = uint32(rand.Int31n(pulse.MaxTimePulse-pulse.MinTimePulse)) + pulse.MinTimePulse
+func populateUsualPulse(number *LocalHeader) {
+	*number = LocalHeader(rand.Int31n(pulse.MaxTimePulse-pulse.MinTimePulse)) + pulse.MinTimePulse
 }
 
-func populateSpecialPulse(number *uint32) {
-	*number = uint32(rand.Int31n(pulse.MinTimePulse - 1))
+func populateSpecialPulse(number *LocalHeader) {
+	*number = LocalHeader(rand.Int31n(pulse.MinTimePulse - 1))
 }
 
 func createRandomSelfReference() *Global {

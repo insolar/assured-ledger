@@ -119,7 +119,7 @@ func WriteWholeLocalTo(v Local, b []byte) int {
 		return copy(b, v.pulseAndScopeAsBytes())
 	}
 
-	byteOrder.PutUint32(b, v.pulseAndScope)
+	byteOrder.PutUint32(b, uint32(v.pulseAndScope))
 	n := v.hash.CopyTo(b[LocalBinaryPulseAndScopeSize:])
 	return LocalBinaryPulseAndScopeSize + n
 }

@@ -50,15 +50,11 @@ func NewLocal(pn pulse.Number, scope SubScope, hash LocalHash) Local {
 	if !pn.IsSpecialOrTimePulse() {
 		panic(fmt.Sprintf("illegal value: %d", pn))
 	}
-	return Local{pulseAndScope: pn.WithFlags(int(scope)), hash: hash}
-}
-
-func NewLocalTemplate(pn pulse.Number, scope SubScope) Local {
-	return Local{pulseAndScope: pn.WithFlags(int(scope))}
+	return Local{pulseAndScope: NewLocalHeader(pn, scope), hash: hash}
 }
 
 type Local struct {
-	pulseAndScope uint32 // pulse + scope
+	pulseAndScope LocalHeader
 	hash          LocalHash
 }
 
@@ -71,7 +67,7 @@ func (v Local) NotEmpty() bool {
 }
 
 func (v Local) GetPulseNumber() pulse.Number {
-	return pulse.OfUint32(v.pulseAndScope)
+	return v.pulseAndScope.Pulse()
 }
 
 func (v Local) GetHash() LocalHash {
@@ -79,7 +75,7 @@ func (v Local) GetHash() LocalHash {
 }
 
 func (v Local) SubScope() SubScope {
-	return SubScope(pulse.FlagsOf(v.pulseAndScope))
+	return v.pulseAndScope.SubScope()
 }
 
 func (v Local) WriteTo(w io.Writer) (int64, error) {
@@ -99,14 +95,14 @@ func (v Local) AsByteString() longbits.ByteString {
 
 func (v Local) AsBytes() []byte {
 	val := make([]byte, LocalBinarySize)
-	byteOrder.PutUint32(val, v.pulseAndScope)
+	byteOrder.PutUint32(val, uint32(v.pulseAndScope))
 	_ = v.hash.CopyTo(val[LocalBinaryPulseAndScopeSize:])
 	return val
 }
 
 func (v Local) pulseAndScopeAsBytes() []byte {
 	val := make([]byte, LocalBinaryPulseAndScopeSize)
-	byteOrder.PutUint32(val, v.pulseAndScope)
+	byteOrder.PutUint32(val, uint32(v.pulseAndScope))
 	return val
 }
 
@@ -180,6 +176,21 @@ func (v Local) WithHash(hash LocalHash) Local {
 	return v
 }
 
+func (v Local) WithPulse(pn pulse.Number) Local {
+	v.pulseAndScope = v.pulseAndScope.WithPulse(pn)
+	return v
+}
+
+func (v Local) WithSubScope(scope SubScope) Local {
+	v.pulseAndScope = v.pulseAndScope.WithSubScope(scope)
+	return v
+}
+
+func (v Local) WithHeader(h LocalHeader) Local {
+	v.pulseAndScope = h
+	return v
+}
+
 func (v *Local) asWriter() *byteWriter {
 	return &byteWriter{v: v}
 }
@@ -234,7 +245,7 @@ func (p *byteWriter) WriteByte(c byte) error {
 	switch {
 	case p.o < LocalBinaryPulseAndScopeSize:
 		shift := (3 - p.o) << 3
-		p.v.pulseAndScope = uint32(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
+		p.v.pulseAndScope = LocalHeader(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
 	case p.isFull():
 		return io.ErrUnexpectedEOF
 	default:
