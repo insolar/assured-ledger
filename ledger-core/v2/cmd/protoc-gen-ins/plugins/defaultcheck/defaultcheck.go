@@ -38,7 +38,7 @@ import (
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/extra"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
@@ -80,7 +80,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 
 		fields := message.GetField()
 		if notation {
-			sort.Sort(marshalto.OrderedFields(fields))
+			sort.Sort(extra.OrderedFields(fields))
 		}
 
 		for _, field := range fields {

@@ -27,8 +27,7 @@ import (
 	plugin "github.com/gogo/protobuf/protoc-gen-gogo/plugin"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/defaultcheck"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/sizer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/gogobased"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
@@ -125,10 +124,10 @@ func resetDefaultPlugins() {
 	generator.RegisterPlugin(equal.NewPlugin())
 	generator.RegisterPlugin(face.NewPlugin())
 	generator.RegisterPlugin(gostring.NewGoString())
-	generator.RegisterPlugin(marshalto.NewMarshal()) // this is custom, also includes "context", "head" and "polymorph"
+	generator.RegisterPlugin(gogobased.NewMarshal()) // this is custom, also includes "context", "head" and "polymorph"
 	generator.RegisterPlugin(oneofcheck.NewPlugin())
 	generator.RegisterPlugin(populate.NewPlugin())
-	generator.RegisterPlugin(sizer.NewSize())
+	generator.RegisterPlugin(gogobased.NewSize())
 	generator.RegisterPlugin(stringer.NewStringer())
 	// NB! testgen can't be reused as it is unexported
 	generator.RegisterPlugin(union.NewUnion())
@@ -164,9 +163,9 @@ func ReadFrom(r io.Reader) *plugin.CodeGeneratorRequest {
 	return g.Request
 }
 
-//lint:ignore
+//nolint:unused,errcheck
 func CatchInput() error {
-	file, err := os.Create(`E:\protoc-dump.txt`)
+	file, err := os.Create(`protoc-gen-ins.dump`)
 	if err != nil {
 		panic(err)
 	}
@@ -175,9 +174,9 @@ func CatchInput() error {
 	return io.EOF
 }
 
-//lint:ignore
+//nolint:unused,errcheck
 func ReplayInput() *plugin.CodeGeneratorRequest {
-	file, err := os.Open(`E:\protoc-dump.txt`)
+	file, err := os.Open(`protoc-gen-ins.dump`)
 	if err != nil {
 		panic(err)
 	}

@@ -48,8 +48,8 @@ That is if you want to use the unsafe package in your generated code.
 The speed up using the unsafe package is not very significant.
 
 */
-//lint:ignore
-package marshalto
+//nolint // the most of code is reused from gogo-proto
+package gogobased
 
 import (
 	"fmt"
@@ -64,6 +64,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/extra"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -71,7 +72,11 @@ import (
 type marshalto struct {
 	*generator.Generator
 	generator.PluginImports
-	headGen     head
+
+	headGen    extra.Head
+	polyGen    extra.Polymorph
+	contextGen extra.Context
+
 	atleastOne  bool
 	errorsPkg   generator.Single
 	protoPkg    generator.Single
@@ -82,6 +87,8 @@ type marshalto struct {
 	fieldMapPkg generator.Single
 	localName   string
 }
+
+// TODO support "raw_bytes"
 
 func NewMarshal() *marshalto {
 	return &marshalto{}
@@ -94,7 +101,7 @@ func (p *marshalto) Name() string {
 func (p *marshalto) Init(g *generator.Generator) {
 	p.Generator = g
 	p.headGen.Generator = g
-	p.headGen.Init() // runs Head propagation
+	p.headGen.Init(g) // runs Head propagation
 }
 
 func (p *marshalto) callFixed64(varName ...string) {
@@ -124,26 +131,6 @@ func (p *marshalto) encodeKey(fieldNumber int32, wireType int) {
 		p.P(`i--`)
 		p.P(`dAtA[i] = `, fmt.Sprintf("%#v", keybuf[i]))
 	}
-}
-
-func wireToType(wire string) int {
-	switch wire {
-	case "fixed64":
-		return proto.WireFixed64
-	case "fixed32":
-		return proto.WireFixed32
-	case "varint":
-		return proto.WireVarint
-	case "bytes":
-		return proto.WireBytes
-	case "group":
-		return proto.WireBytes
-	case "zigzag32":
-		return proto.WireVarint
-	case "zigzag64":
-		return proto.WireVarint
-	}
-	panic("unreachable")
 }
 
 func (p *marshalto) mapField(numGen marshal.NumGen, field *descriptor.FieldDescriptorProto, kvField *descriptor.FieldDescriptorProto, varName string, protoSizer bool) {
@@ -198,20 +185,6 @@ func (p *marshalto) mapField(numGen marshal.NumGen, field *descriptor.FieldDescr
 		}
 
 	}
-}
-
-type OrderedFields []*descriptor.FieldDescriptorProto
-
-func (this OrderedFields) Len() int {
-	return len(this)
-}
-
-func (this OrderedFields) Less(i, j int) bool {
-	return this[i].GetNumber() < this[j].GetNumber()
-}
-
-func (this OrderedFields) Swap(i, j int) {
-	this[i], this[j] = this[j], this[i]
 }
 
 func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer bool, numGen marshal.NumGen, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
@@ -893,10 +866,8 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 	p.typesPkg = p.NewImport("github.com/gogo/protobuf/types")
 	p.fieldMapPkg = p.NewImport(insproto.FieldMapPackage)
 
-	contextGen := context{p.Generator, p.PluginImports}
-	polyGen := polymorph{p.Generator}
-
-	var customRegistrations []string
+	p.contextGen.Init(p.Generator, p.PluginImports)
+	p.polyGen.Init(p.Generator, p.PluginImports)
 
 	for _, message := range file.Messages() {
 		if message.DescriptorProto.GetOptions().GetMapEntry() {
@@ -910,18 +881,14 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		zeroableDefault := insproto.IsZeroableDefault(file.FileDescriptorProto, message.DescriptorProto)
 
-		isHead := IsMessageHead(message)
+		isHead := extra.IsMessageHead(message)
 
 		if !isHead {
 			p.headGen.Generate(message, ccTypeName)
-			contextGen.Generate(file, message, ccTypeName)
+			p.contextGen.Generate(file, message, ccTypeName)
 
-			if customReg := insproto.GetCustomRegister(file.FileDescriptorProto, message.DescriptorProto); customReg != "" {
-				customReg = ImportCustomName(customReg, p.PluginImports)
-				customRegistrations = append(customRegistrations, customReg+`((*`+ccTypeName+`)(nil))`)
-			}
 		}
-		polyGen.Generate(message, ccTypeName)
+		p.polyGen.GenerateMsg(file, message, ccTypeName, isHead)
 
 		if !hasMarshaler {
 			continue
@@ -994,7 +961,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		}
 
 		fields := message.GetField()
-		sort.Sort(OrderedFields(fields))
+		sort.Sort(extra.OrderedFields(fields))
 
 		oneofs := make(map[string]struct{})
 		protoSizer := gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto)
@@ -1114,16 +1081,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.P()
 	}
 
-	if len(customRegistrations) > 0 {
-		p.P(`func init() {`)
-		p.In()
-		for _, s := range customRegistrations {
-			p.P(s)
-		}
-		p.Out()
-		p.P(`}`)
-		p.P()
-	}
+	p.polyGen.GenerateFile()
 }
 
 func (p *marshalto) reverseListRange(expression ...string) string {

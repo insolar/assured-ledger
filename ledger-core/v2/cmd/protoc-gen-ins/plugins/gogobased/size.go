@@ -1,30 +1,7 @@
-// Protocol Buffers for Go with Gadgets
-//
-// Copyright (c) 2013, The GoGo Authors. All rights reserved.
-// http://github.com/gogo/protobuf
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 // This version is a modified by Insolar Network Ltd.
 
@@ -40,8 +17,8 @@ It is enabled by the following extensions:
   - protosizer
   - protosizer_all
 */
-//lint:ignore
-package sizer
+//nolint // the most of code is reused from gogo-proto
+package gogobased
 
 import (
 	"fmt"
@@ -55,7 +32,7 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/marshalto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/extra"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
@@ -154,7 +131,7 @@ func (p *size) std(field *descriptor.FieldDescriptorProto, name string) (string,
 	return "", false
 }
 
-func (p *size) generateField(proto3, notation, zeroableDefault bool, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto, sizeName string) {
+func (p *size) generateField(proto3, notation, zeroableDefault bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto, sizeName string) {
 	fieldname := p.GetOneOfFieldName(message, field)
 	nullable := gogoproto.IsNullable(field)
 	repeated := field.IsRepeated()
@@ -557,19 +534,19 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 		fields := message.GetField()
 
 		if notation {
-			sort.Sort(marshalto.OrderedFields(fields))
+			sort.Sort(extra.OrderedFields(fields))
 
 			switch {
 			case len(fields) == 0 || fields[0].GetNumber() >= 20:
-				p.generatePolymorphField(proto3, message, nil)
+				p.generatePolymorphField(message, nil)
 			case fields[0].GetNumber() < 16:
 				panic("unexpected field number")
 			case fields[0].GetNumber() == 16:
 				field := fields[0]
 				fields = fields[1:]
-				p.generatePolymorphField(proto3, message, field)
+				p.generatePolymorphField(message, field)
 			case insproto.HasPolymorphID(message.DescriptorProto):
-				p.generatePolymorphField(proto3, message, nil)
+				p.generatePolymorphField(message, nil)
 			}
 		}
 
@@ -578,7 +555,7 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 			case field.GetTypeName() == insproto.FieldMapFQN:
 				continue
 			case field.OneofIndex == nil:
-				p.generateField(proto3, notation, zeroableDefault, file, message, field, sizeName)
+				p.generateField(proto3, notation, zeroableDefault, message, field, sizeName)
 				continue
 			}
 
@@ -636,7 +613,7 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 				p.P(`var l int`)
 				p.P(`_ = l`)
 				vanity.TurnOffNullableForNativeTypes(f)
-				p.generateField(false, notation, zeroableDefault, file, message, f, sizeName)
+				p.generateField(false, notation, zeroableDefault, message, f, sizeName)
 				p.P(`return n`)
 				p.Out()
 				p.P(`}`)
@@ -652,7 +629,7 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 	p.sizeZigZag()
 }
 
-func (p *size) generatePolymorphField(proto3 bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
+func (p *size) generatePolymorphField(message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
 	polymorphID := insproto.GetPolymorphID(message.DescriptorProto)
 	if field == nil {
 		p.P(`n+=2 + sov`, p.localName, `(`, strconv.FormatUint(polymorphID, 10), `)`)

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package marshalto
+package extra
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
-type head struct {
+type Head struct {
 	*generator.Generator
 }
 
@@ -28,10 +28,10 @@ func IsMessageHead(message *generator.Descriptor) bool {
 	return len(names) > 1 && insproto.IsHead(message.DescriptorProto)
 }
 
-// This does head field mapping before any plugin.Generate()
+// This does Head field mapping before any plugin.Generate()
 // Mapping requires a map of all types, that is available on plugin.Init(), but there is no
 
-func (p *head) Init() {
+func (p *Head) Init(g *generator.Generator) {
 	files := p.Generator.Request.GetProtoFile()
 
 	files = vanity.FilterFiles(files, vanity.NotGoogleProtobufDescriptorProto)
@@ -39,7 +39,7 @@ func (p *head) Init() {
 
 }
 
-func (p *head) setFileHeads(file *descriptor.FileDescriptorProto) {
+func (p *Head) setFileHeads(file *descriptor.FileDescriptorProto) {
 	for _, message := range file.GetMessageType() {
 		for _, child := range message.GetNestedType() {
 			p.setMessageHeads(message, child)
@@ -47,10 +47,10 @@ func (p *head) setFileHeads(file *descriptor.FileDescriptorProto) {
 	}
 }
 
-func (p *head) setMessageHeads(parent, message *descriptor.DescriptorProto) {
+func (p *Head) setMessageHeads(parent, message *descriptor.DescriptorProto) {
 	if insproto.IsHead(message) {
 		p.setMessageHeadDesc(parent, message)
-		// head can't have heads
+		// Head can't have heads
 		return
 	}
 	for _, child := range message.GetNestedType() {
@@ -58,7 +58,7 @@ func (p *head) setMessageHeads(parent, message *descriptor.DescriptorProto) {
 	}
 }
 
-func (p *head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
+func (p *Head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
 	vanity.SetBoolMessageOption(gogoproto.E_Typedecl, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_GoprotoGetters, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_Face, true)(message)
@@ -96,7 +96,7 @@ func (p *head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
 	}
 }
 
-func (p *head) Generate(message *generator.Descriptor, ccTypeName string) {
+func (p *Head) Generate(message *generator.Descriptor, ccTypeName string) {
 	var headName []string
 
 	for _, subMsg := range message.GetNestedType() {
@@ -133,6 +133,8 @@ func (p *head) Generate(message *generator.Descriptor, ccTypeName string) {
 		p.P()
 	}
 }
+
+/************************************/
 
 type fieldScannerEntry struct {
 	msg    *descriptor.DescriptorProto
