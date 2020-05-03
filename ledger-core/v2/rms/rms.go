@@ -13,9 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
+type RecordExtension = BodyWithDigest
+type RecordBody = BodyWithReference
 type ByteString = longbits.ByteString
-type RecordBody = BlobBody
-type RecordExtension = BlobBody
 type PulseNumber = pulse.Number
 
 type RecordContext interface {

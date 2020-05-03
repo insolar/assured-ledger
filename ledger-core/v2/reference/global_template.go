@@ -49,6 +49,25 @@ func (v Template) IsZero() bool {
 	return v.local == 0
 }
 
+func (v Template) Scope() Scope {
+	return v.base.SubScope().AsBaseOf(v.local.SubScope())
+}
+
+func (v Template) CanLocal() bool {
+	switch {
+	case v.local == 0:
+		return false
+	case v.base.pulseAndScope == 0:
+		return true
+	default:
+		return v.local == v.base.pulseAndScope
+	}
+}
+
+func (v Template) CanGlobal() bool {
+	return v.base.pulseAndScope != 0
+}
+
 // WithHash panics on zero or record ref template
 func (v Template) WithHash(h LocalHash) Global {
 	switch {
@@ -122,6 +141,25 @@ func (p *MutableTemplate) WithHashAsLocal(h LocalHash) Local {
 	return Local{p.local.pulseAndScope, h}
 }
 
+func (p *MutableTemplate) Scope() Scope {
+	return p.base.SubScope().AsBaseOf(p.local.SubScope())
+}
+
+func (p *MutableTemplate) CanLocal() bool {
+	switch {
+	case p.local.IsZero():
+		return false
+	case p.base.pulseAndScope == 0:
+		return true
+	default:
+		return p.local.pulseAndScope == p.base.pulseAndScope
+	}
+}
+
+func (p *MutableTemplate) CanGlobal() bool {
+	return p.base.pulseAndScope != 0
+}
+
 // SetHash enables MustGlobal() and MustLocal(). Can be called multiple times to change hash.
 func (p *MutableTemplate) SetHash(h LocalHash) {
 	if p.local.IsZero() {
@@ -132,6 +170,10 @@ func (p *MutableTemplate) SetHash(h LocalHash) {
 	if p.base.pulseAndScope != 0 {
 		p.base.hash = h
 	}
+}
+
+func (p *MutableTemplate) HasHash() bool {
+	return p.hasHash
 }
 
 func (p *MutableTemplate) MustGlobal() Global {
@@ -154,4 +196,11 @@ func (p *MutableTemplate) MustLocal() Local {
 		panic(throw.IllegalState())
 	}
 	return p.local
+}
+
+func (p *MutableTemplate) AsTemplate() Template {
+	if p.local.IsZero() {
+		panic(throw.IllegalState())
+	}
+	return Template{base: p.base, local: p.local.GetHeader()}
 }
