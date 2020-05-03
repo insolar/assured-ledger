@@ -46,7 +46,7 @@ type plugin struct {
 	*generator.Generator
 }
 
-func NewPlugin() *plugin {
+func NewPlugin() generator.Plugin {
 	return &plugin{}
 }
 

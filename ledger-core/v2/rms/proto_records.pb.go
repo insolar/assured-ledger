@@ -128,7 +128,7 @@ var fileDescriptor_f41a5838de60d5c2 = []byte{
 }
 
 func (m *RecordExample) SetupContext(ctx RecordContext) error {
-	return ctx.Record(m)
+	return ctx.Record(m, 999999999)
 }
 
 func (*RecordExample) GetDefaultPolymorphID() uint64 {
@@ -222,7 +222,7 @@ func encodeVarintProtoRecords(dAtA []byte, offset int, v uint64) int {
 }
 
 func init() {
-	RegisterRecordType((*RecordExample)(nil))
+	RegisterRecordType(999999999, (*RecordExample)(nil))
 }
 
 func (m *RecordExample) ProtoSize() (n int) {

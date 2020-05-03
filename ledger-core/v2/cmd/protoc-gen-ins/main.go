@@ -146,6 +146,7 @@ func (s stubPlugin) Generate(*generator.FileDescriptor) {}
 
 func (s stubPlugin) GenerateImports(*generator.FileDescriptor) {}
 
+//nolint // for debugging
 func ReadFrom(r io.Reader) *plugin.CodeGeneratorRequest {
 	g := generator.New()
 	data, err := ioutil.ReadAll(r)
@@ -163,7 +164,7 @@ func ReadFrom(r io.Reader) *plugin.CodeGeneratorRequest {
 	return g.Request
 }
 
-//nolint:unused,errcheck
+//nolint // for debugging
 func CatchInput() error {
 	file, err := os.Create(`protoc-gen-ins.dump`)
 	if err != nil {
@@ -174,7 +175,7 @@ func CatchInput() error {
 	return io.EOF
 }
 
-//nolint:unused,errcheck
+//nolint // for debugging
 func ReplayInput() *plugin.CodeGeneratorRequest {
 	file, err := os.Open(`protoc-gen-ins.dump`)
 	if err != nil {

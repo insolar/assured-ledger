@@ -42,7 +42,7 @@ func (p *Polymorph) GenerateMsg(file *generator.FileDescriptor, message *generat
 	if !isHead {
 		if customReg := insproto.GetCustomRegister(file.FileDescriptorProto, message.DescriptorProto); customReg != "" {
 			customReg = importCustomName(customReg, p.PluginImports)
-			p.customRegistrations = append(p.customRegistrations, customReg+`(`, idStr, `, (*`+ccTypeName+`)(nil))`)
+			p.customRegistrations = append(p.customRegistrations, customReg+`(`+idStr+`, (*`+ccTypeName+`)(nil))`)
 		}
 	}
 }

@@ -19,11 +19,10 @@ type RecordExtension = BlobBody
 type PulseNumber = pulse.Number
 
 type RecordContext interface {
-	Record(BasicRecord) error
+	Record(BasicRecord, uint64) error
 }
 
 type BasicRecord interface {
-	GetDefaultPolymorphID() uint64
 	SetupContext(RecordContext) error
 	GetFieldMap() insproto.FieldMap
 	GetBodyHash() RecordBody
@@ -31,21 +30,18 @@ type BasicRecord interface {
 }
 
 type MessageContext interface {
-	Message(BasicMessage) error
+	Message(BasicMessage, uint64) error
 	MsgRecord(BasicMessage, int, BasicRecord) error
 }
 
 type BasicMessage interface {
-	GetDefaultPolymorphID() uint64
 	SetupContext(MessageContext) error
 }
 
-func RegisterRecordType(t BasicRecord) {
-	id := t.GetDefaultPolymorphID()
+func RegisterRecordType(id uint64, t BasicRecord) {
 	GetRegistry().Put(id, reflect.TypeOf(t))
 }
 
-func RegisterMessageType(t BasicMessage) {
-	id := t.GetDefaultPolymorphID()
+func RegisterMessageType(id uint64, t BasicMessage) {
 	GetRegistry().Put(id, reflect.TypeOf(t))
 }

@@ -182,7 +182,7 @@ func (m *MessageExample) AsHeadFace() MessageExampleHead {
 }
 
 func (m *MessageExample) SetupContext(ctx MessageContext) error {
-	return ctx.Message(m)
+	return ctx.Message(m, 999999990)
 }
 
 func (*MessageExample) GetDefaultPolymorphID() uint64 {
@@ -306,7 +306,7 @@ func encodeVarintProtoVnvn(dAtA []byte, offset int, v uint64) int {
 }
 
 func init() {
-	RegisterMessageType((*MessageExample)(nil))
+	RegisterMessageType(999999990, (*MessageExample)(nil))
 }
 
 func (m *MessageExample) ProtoSize() (n int) {
