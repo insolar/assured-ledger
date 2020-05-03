@@ -37,7 +37,7 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 		return nil
 	}
 
-	objectRef := reference.NewGlobalSelf(server.RandomLocalWithPulse())
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
 
 	reasons := []payload.VStateUnavailable_ReasonType{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {

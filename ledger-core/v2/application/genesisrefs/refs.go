@@ -26,7 +26,7 @@ func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) refe
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := reference.BytesToLocalHash(hasher.Hash(code))
 	id := reference.NewRecordID(pulse, codeHash)
-	return reference.NewGlobalSelf(id)
+	return reference.NewSelf(id)
 }
 
 // Generate prototype reference from contract id.
@@ -51,5 +51,5 @@ func GenesisRef(s string) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash([]byte(s))
 	local := reference.NewLocal(pulse.MinTimePulse, 0, reference.BytesToLocalHash(hash))
-	return reference.NewGlobal(local, local)
+	return reference.NewSelf(local)
 }

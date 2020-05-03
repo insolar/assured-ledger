@@ -166,7 +166,7 @@ func (t *RPC) CallConstructor(args rpctypes.DownCallConstructorReq, reply *rpcty
 		return errors.New("Wrapper with wrong signature")
 	}
 
-	objRef := reference.NewGlobalSelf(args.Context.Request.GetLocal())
+	objRef := reference.NewSelf(args.Context.Request.GetLocal())
 	state, result, err := f(objRef, args.Arguments)
 	if err != nil {
 		return errors.Wrapf(err, "Can't call constructor %s", args.Name)

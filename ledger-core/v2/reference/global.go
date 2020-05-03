@@ -8,9 +8,10 @@ package reference
 import (
 	"io"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -28,15 +29,24 @@ func NewRecordRef(recID Local) Global {
 	return Global{addressLocal: recID}
 }
 
-func NewGlobalSelf(localID Local) Global {
+func NewSelf(localID Local) Global {
 	if localID.SubScope() == baseScopeReserved {
 		panic("illegal value")
 	}
 	return Global{addressLocal: localID, addressBase: localID}
 }
 
-func NewGlobal(domainID, localID Local) Global {
+func New(domainID, localID Local) Global {
 	return Global{addressLocal: localID, addressBase: domainID}
+}
+
+func NewRecordOf(owner Global, localID Local) Global {
+	base := owner.GetBase()
+	// TODO enable when tests are fixed
+	// if base.IsEmpty() {
+	// 	panic(throw.IllegalValue())
+	// }
+	return Global{addressLocal: localID, addressBase: base}
 }
 
 type Global struct {
@@ -137,11 +147,11 @@ func (v *Global) canConvertToSelf() bool {
 func (v *Global) tryConvertToCompact() Holder {
 	switch {
 	case v.addressBase.IsEmpty():
-		return NewRecord(v.addressLocal)
+		return NewPtrRecord(v.addressLocal)
 	case v.addressLocal.IsEmpty():
-		return New(v.addressLocal, v.addressBase)
+		return NewPtrHolder(v.addressLocal, v.addressBase)
 	case v.addressBase == v.addressLocal:
-		return NewSelf(v.addressLocal)
+		return NewPtrSelf(v.addressLocal)
 	default:
 		return v
 	}
@@ -251,5 +261,5 @@ func GlobalFromBytes(data []byte) Global {
 	if err != nil {
 		panic(throw.IllegalValue())
 	}
-	return NewGlobal(base, local)
+	return New(base, local)
 }

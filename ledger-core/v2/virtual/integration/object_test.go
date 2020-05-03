@@ -24,9 +24,9 @@ func TestInitViaCTMethod(t *testing.T) {
 
 	// Call method on non-existent object, expect calling of VStateRequest
 	pl := payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
-		CallType:            payload.CTMethod,
-		Callee:              reference.NewGlobalSelf(server.RandomLocalWithPulse()),
+		Polymorph: uint32(payload.TypeVCallRequest),
+		CallType:  payload.CTMethod,
+		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
 	}
 	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
 	require.NoError(t, err)
