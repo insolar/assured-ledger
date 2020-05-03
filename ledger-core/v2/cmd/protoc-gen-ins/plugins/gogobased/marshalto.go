@@ -1017,17 +1017,28 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.P(`}`)
 		p.P()
 
-		switch {
-		case !hasFieldMap:
-		case gogoproto.IsFace(file.FileDescriptorProto, message.DescriptorProto):
-		case gogoproto.HasGoGetters(file.FileDescriptorProto, message.DescriptorProto):
-		default:
-			p.P(`func (m *`, ccTypeName, `) GetFieldMap() `, p.fieldMapPkg.Use(), `.FieldMap {`)
+		if hasFieldMap {
+			p.P(`func (m *`, ccTypeName, `) InitFieldMap(reset bool) {`)
 			p.In()
-			p.P(`return m.FieldMap`)
+			p.P(`if reset || m.FieldMap == nil {`)
+			p.In()
+			p.P(`m.FieldMap = &`, p.fieldMapPkg.Use(), `.FieldMap{}`)
+			p.Out()
+			p.P(`}`)
 			p.Out()
 			p.P(`}`)
 			p.P()
+			switch {
+			case gogoproto.IsFace(file.FileDescriptorProto, message.DescriptorProto):
+			case gogoproto.HasGoGetters(file.FileDescriptorProto, message.DescriptorProto):
+			default:
+				p.P(`func (m *`, ccTypeName, `) GetFieldMap() *`, p.fieldMapPkg.Use(), `.FieldMap {`)
+				p.In()
+				p.P(`return m.FieldMap`)
+				p.Out()
+				p.P(`}`)
+				p.P()
+			}
 		}
 
 		if len(oneofs) > 0 {

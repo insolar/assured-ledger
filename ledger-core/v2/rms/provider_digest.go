@@ -11,36 +11,34 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type DigestDispenser interface {
-	GetDigest() cryptkit.Digest
-	MustDigest() cryptkit.Digest
-}
+var _ DigestProvider = &digestProvider{}
 
-var _ DigestDispenser = &digestDispenser{}
-
-type digestDispenser struct {
+type digestProvider struct {
 	ready    atomickit.StartStopFlag // IsStarted() - has digester, IsStopped() - has digest
 	digester cryptkit.DataDigester
 	digest   cryptkit.Digest
 }
 
-func (p *digestDispenser) isReady() bool {
+func (p *digestProvider) isReady() bool {
 	return p.ready.IsStopped()
 }
 
-func (p *digestDispenser) setDigester(digester cryptkit.DataDigester) {
+func (p *digestProvider) setDigester(digester cryptkit.DataDigester, setFn func()) {
 	switch {
 	case digester == nil:
 		panic(throw.IllegalValue())
 	case p.ready.DoStart(func() {
 		p.digester = digester
+		if setFn != nil {
+			setFn()
+		}
 	}):
 	default:
 		panic(throw.IllegalState())
 	}
 }
 
-func (p *digestDispenser) setDigest(digest cryptkit.Digest, setFn func(cryptkit.Digest)) {
+func (p *digestProvider) setDigest(digest cryptkit.Digest, setFn func(cryptkit.Digest)) {
 	switch {
 	case digest.IsEmpty():
 		panic(throw.IllegalValue())
@@ -63,18 +61,18 @@ func (p *digestDispenser) setDigest(digest cryptkit.Digest, setFn func(cryptkit.
 	}
 }
 
-func (p *digestDispenser) calcDigest(fn func(cryptkit.DataDigester) cryptkit.Digest, setFn func(cryptkit.Digest)) {
+func (p *digestProvider) calcDigest(fn func(cryptkit.DataDigester) cryptkit.Digest, setFn func(cryptkit.Digest)) {
 	switch {
 	case fn == nil:
 		panic(throw.IllegalValue())
-	case p.ready.DoStop(func() {
+	case p.ready.DoDiscardByOne(func(bool) {
 		digester := p.digester
-		if digester == nil {
-			panic(throw.Impossible())
-		}
 		p.digester = nil
 		digest := fn(digester)
-		if digester.GetDigestMethod() != digest.GetDigestMethod() {
+		switch {
+		case digester == nil:
+			//
+		case digester.GetDigestMethod() != digest.GetDigestMethod():
 			panic(throw.IllegalValue())
 		}
 		p.digest = digest
@@ -87,7 +85,7 @@ func (p *digestDispenser) calcDigest(fn func(cryptkit.DataDigester) cryptkit.Dig
 	}
 }
 
-func (p *digestDispenser) tryCancel(setFn func(cryptkit.Digest)) bool {
+func (p *digestProvider) tryCancel(setFn func(cryptkit.Digest)) bool {
 	return p.ready.DoDiscardByOne(func(bool) {
 		p.digester = nil
 		digest := cryptkit.Digest{}
@@ -98,14 +96,14 @@ func (p *digestDispenser) tryCancel(setFn func(cryptkit.Digest)) bool {
 	})
 }
 
-func (p *digestDispenser) GetDigest() cryptkit.Digest {
+func (p *digestProvider) GetDigest() cryptkit.Digest {
 	if p.isReady() {
 		return p.digest
 	}
 	return cryptkit.Digest{}
 }
 
-func (p *digestDispenser) MustDigest() cryptkit.Digest {
+func (p *digestProvider) MustDigest() cryptkit.Digest {
 	if d := p.GetDigest(); !d.IsEmpty() {
 		return d
 	}

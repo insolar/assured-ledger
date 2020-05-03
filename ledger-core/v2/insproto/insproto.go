@@ -15,16 +15,30 @@ const FieldMapFQN = `.insproto.FieldMap`
 const FieldMapFieldName = `FieldMap`
 const FieldMapPackage = `github.com/insolar/assured-ledger/ledger-core/v2/insproto`
 
+type FieldMapCallback interface {
+	OnMessage(*FieldMap)
+}
+
 type FieldMap struct {
-	Message []byte
-	Fields  map[int32][]byte
+	Message  []byte
+	Fields   map[int32][]byte
+	Callback FieldMapCallback
 }
 
 func (p *FieldMap) PutMessage(b []byte) {
+	if p == nil {
+		return
+	}
 	p.Message = b
+	if p.Callback != nil {
+		p.Callback.OnMessage(p)
+	}
 }
 
 func (p *FieldMap) Put(fieldNum int32, fieldSlice []byte) {
+	if p == nil {
+		return
+	}
 	if p.Fields == nil {
 		p.Fields = map[int32][]byte{}
 	}
@@ -32,23 +46,33 @@ func (p *FieldMap) Put(fieldNum int32, fieldSlice []byte) {
 }
 
 func (p *FieldMap) Get(fieldNum int32) []byte {
+	if p == nil {
+		return nil
+	}
 	return p.Fields[fieldNum]
 }
 
 func (p *FieldMap) GetMessage() []byte {
+	if p == nil {
+		return nil
+	}
 	return p.Message
 }
 
-func (p *FieldMap) MarshalTo([]byte) (int, error) {
+func (FieldMap) MarshalTo([]byte) (int, error) {
 	return 0, nil
 }
 
-func (p *FieldMap) MarshalToSizedBuffer([]byte) (int, error) {
+func (FieldMap) MarshalToSizedBuffer([]byte) (int, error) {
 	return 0, nil
 }
 
-func (p *FieldMap) Unmarshal([]byte) error {
+func (FieldMap) Unmarshal([]byte) error {
 	return throw.Impossible()
+}
+
+func (FieldMap) Equal(*FieldMap) bool {
+	return true
 }
 
 func NewFieldMapDescriptorProto(number int32) *descriptor.FieldDescriptorProto {

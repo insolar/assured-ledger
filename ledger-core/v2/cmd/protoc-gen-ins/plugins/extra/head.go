@@ -61,6 +61,7 @@ func (p *Head) setMessageHeads(parent, message *descriptor.DescriptorProto) {
 func (p *Head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
 	vanity.SetBoolMessageOption(gogoproto.E_Typedecl, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_GoprotoGetters, false)(message)
+	vanity.SetBoolMessageOption(gogoproto.E_Equal, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_Face, true)(message)
 
 	if insproto.GetPolymorphID(message) == 0 {

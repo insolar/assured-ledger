@@ -13,16 +13,10 @@ import (
 var _ GoGoSerializable = &Reference{}
 
 type Reference struct {
-	lazy  ReferenceProvider
-	value reference.Global
-}
-
-func (p *Reference) ensure() {
-
+	value reference.Holder
 }
 
 func (p *Reference) ProtoSize() int {
-	p.ensure()
 	return reference.ProtoSize(p.value)
 }
 
@@ -31,33 +25,57 @@ func (p *Reference) MarshalTo(b []byte) (int, error) {
 }
 
 func (p *Reference) MarshalToSizedBuffer(b []byte) (int, error) {
-	panic("implement me")
+	return reference.MarshalToSizedBuffer(p.value, b)
 }
 
-func (p *Reference) Unmarshal(b []byte) error {
-	panic("implement me")
+func (p *Reference) Unmarshal(b []byte) (err error) {
+	p.value, err = reference.UnmarshalGlobal(b)
+	if err != nil {
+		p.value = nil
+	}
+	return err
 }
 
 func (p *Reference) Set(holder reference.Holder) {
-
-}
-
-func (p *Reference) SetLocal(holder reference.LocalHolder) {
-
+	p.value = holder
 }
 
 func (p *Reference) Get() reference.Holder {
-	panic(throw.NotImplemented())
+	return p.value
+}
+
+func (p *Reference) GetGlobal() reference.Holder {
+	return reference.Copy(p.value)
+}
+
+func (p *Reference) SetLocal(holder reference.LocalHolder) {
+	if holder == nil {
+		p.value = nil
+		return
+	}
+	p.value = reference.New(reference.Local{}, holder.GetLocal())
 }
 
 func (p *Reference) GetLocal() reference.LocalHolder {
-	panic(throw.NotImplemented())
+	if p.value == nil {
+		return nil
+	}
+	local := p.value.GetLocal()
+	base := p.value.GetBase()
+	if base.IsEmpty() || local == base {
+		return local
+	}
+	panic(throw.IllegalState())
 }
 
-func (p *Reference) IsZero() bool {
-	panic(throw.NotImplemented())
-}
-
-type ReferenceProvider interface {
-	reference.Holder
+func (p *Reference) Equal(o *Reference) bool {
+	switch {
+	case p == o:
+		return true
+	case p == nil || o == nil:
+		return false
+	case p.value == o.value:
+		return true
+	}
+	return reference.Equal(p.value, o.value)
 }

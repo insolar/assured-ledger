@@ -5,4 +5,4 @@
 
 package rms
 
-// go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ proto_*.proto
+//go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ proto_*.proto

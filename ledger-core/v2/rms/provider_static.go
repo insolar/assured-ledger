@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func NewDigestValue(digest cryptkit.Digest) DigestDispenser {
+func NewDigestValue(digest cryptkit.Digest) DigestProvider {
 	if digest.IsEmpty() {
 		panic(throw.IllegalValue())
 	}
@@ -35,17 +35,38 @@ func (v digestValue) MustDigest() cryptkit.Digest {
 
 /*****************************/
 
-func NewRefValue(digest cryptkit.Digest, t reference.Template) ReferenceDispenser {
-	if digest.IsEmpty() {
+func NewRefValue(digest cryptkit.Digest, t reference.Template) ReferenceProvider {
+	switch {
+	case digest.IsEmpty():
+		panic(throw.IllegalValue())
+	case t.IsZero():
 		panic(throw.IllegalValue())
 	}
-	t.IsZero()
-	return refValue{digest}
+
+	rv := refValue{digest: digest, ref: t.AsMutable()}
+	rv.ref.SetHash(reference.CopyToLocalHash(digest))
+	return rv
 }
 
 type refValue struct {
 	digest cryptkit.Digest
-	ref    reference.Global
+	ref    reference.MutableTemplate
+}
+
+func (v refValue) GetReference() reference.Global {
+	return v.ref.MustGlobal()
+}
+
+func (v refValue) MustReference() reference.Global {
+	return v.ref.MustGlobal()
+}
+
+func (v refValue) GetRecordReference() reference.Local {
+	return v.ref.MustRecord()
+}
+
+func (v refValue) MustRecordReference() reference.Local {
+	return v.ref.MustRecord()
 }
 
 func (v refValue) GetDigest() cryptkit.Digest {

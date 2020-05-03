@@ -14,7 +14,8 @@ import (
 )
 
 type RecordExtension = BodyWithDigest
-type RecordBody = BodyWithReference
+type RecordBody = BodyWithDigest
+
 type ByteString = longbits.ByteString
 type PulseNumber = pulse.Number
 
@@ -24,9 +25,9 @@ type RecordContext interface {
 
 type BasicRecord interface {
 	SetupContext(RecordContext) error
-	GetFieldMap() insproto.FieldMap
-	GetBodyHash() RecordBody
-	GetExtensionHash() []RecordExtension
+	GetFieldMap() *insproto.FieldMap
+	GetBody() *RecordBody
+	GetExtension() []RecordExtension
 }
 
 type MessageContext interface {

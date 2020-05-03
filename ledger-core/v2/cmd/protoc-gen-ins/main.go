@@ -85,7 +85,7 @@ func propagateOptions(file *descriptor.FileDescriptorProto, msgParent *descripto
 		if hasMapping {
 			// this fieldNum is reserved and will not be in use
 			mapField := insproto.NewFieldMapDescriptorProto(19999)
-			vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(mapField)
+			vanity.SetBoolFieldOption(gogoproto.E_Nullable, true)(mapField)
 			msgParent.Field = append(msgParent.Field, mapField)
 		}
 	}

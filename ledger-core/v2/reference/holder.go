@@ -78,3 +78,14 @@ func Compare(ref0, ref1 Holder) int {
 	}
 	return ref0.GetLocal().Compare(ref1.GetLocal())
 }
+
+func Copy(h Holder) Global {
+	switch hh := h.(type) {
+	case nil:
+		return Global{}
+	case Global:
+		return hh
+	default:
+		return New(h.GetBase(), h.GetLocal())
+	}
+}

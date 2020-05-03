@@ -52,11 +52,37 @@ func MarshalLocalTo(h LocalHolder, data []byte) (int, error) {
 			return WriteWholeLocalTo(v, data), nil
 		}
 	case len(data) >= LocalBinaryPulseAndScopeSize:
-		copy(data, v.pulseAndScopeAsBytes())
+		v.pulseAndScopeToBytes(data)
 		i := v.hashLen()
 		if copy(data[LocalBinaryPulseAndScopeSize:], v.hash[:i]) == i {
 			return LocalBinaryPulseAndScopeSize + i, nil
 		}
+	}
+	return 0, throw.WithStackTop(io.ErrShortBuffer)
+}
+
+func MarshalLocalToSizedBuffer(h LocalHolder, data []byte) (int, error) {
+	if h == nil || h.IsEmpty() {
+		return 0, nil
+	}
+	v := h.GetLocal()
+	switch pn := v.GetPulseNumber(); {
+	case pn.IsUnknown():
+		return 0, nil
+	case pn.IsTimePulse():
+		if len(data) >= LocalBinarySize {
+			return WriteWholeLocalTo(v, data[len(data)-LocalBinarySize:]), nil
+		}
+	case len(data) >= LocalBinaryPulseAndScopeSize:
+		i := v.hashLen() + LocalBinaryPulseAndScopeSize
+		if len(data) < i {
+			break
+		}
+		n := len(data) - i
+
+		v.pulseAndScopeToBytes(data[n : n+LocalBinaryPulseAndScopeSize])
+		copy(data[n+LocalBinaryPulseAndScopeSize:], v.hash[:i])
+		return i, nil
 	}
 	return 0, throw.WithStackTop(io.ErrShortBuffer)
 }
@@ -116,18 +142,16 @@ func UnmarshalLocal(data []byte) (v Local, err error) {
 
 func WriteWholeLocalTo(v Local, b []byte) int {
 	if len(b) < LocalBinaryPulseAndScopeSize {
-		return copy(b, v.pulseAndScopeAsBytes())
+		return 0
 	}
-
-	byteOrder.PutUint32(b, uint32(v.pulseAndScope))
+	v.pulseAndScopeToBytes(b)
 	n := v.hash.CopyTo(b[LocalBinaryPulseAndScopeSize:])
 	return LocalBinaryPulseAndScopeSize + n
 }
 
 func ReadWholeLocalFrom(b []byte) (v Local) {
-	writer := v.asWriter()
-	for i := 0; i < LocalBinarySize; i++ {
-		_ = writer.WriteByte(b[i])
-	}
+	_ = b[LocalBinarySize-1]
+	v.pulseAndScope = pulseAndScopeFromBytes(b)
+	copy(v.hash[:], b[LocalBinaryPulseAndScopeSize:])
 	return v
 }

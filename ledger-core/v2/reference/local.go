@@ -87,7 +87,9 @@ func (v Local) SubScope() SubScope {
 }
 
 func (v Local) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write(v.pulseAndScopeAsBytes())
+	val := make([]byte, LocalBinaryPulseAndScopeSize)
+	v.pulseAndScopeToBytes(val)
+	n, err := w.Write(val)
 	if err != nil {
 		return int64(n), err
 	}
@@ -103,15 +105,17 @@ func (v Local) AsByteString() longbits.ByteString {
 
 func (v Local) AsBytes() []byte {
 	val := make([]byte, LocalBinarySize)
-	byteOrder.PutUint32(val, uint32(v.pulseAndScope))
+	v.pulseAndScopeToBytes(val)
 	_ = v.hash.CopyTo(val[LocalBinaryPulseAndScopeSize:])
 	return val
 }
 
-func (v Local) pulseAndScopeAsBytes() []byte {
-	val := make([]byte, LocalBinaryPulseAndScopeSize)
-	byteOrder.PutUint32(val, uint32(v.pulseAndScope))
-	return val
+func (v Local) pulseAndScopeToBytes(b []byte) {
+	byteOrder.PutUint32(b, uint32(v.pulseAndScope))
+}
+
+func pulseAndScopeFromBytes(b []byte) LocalHeader {
+	return LocalHeader(byteOrder.Uint32(b))
 }
 
 func (v Local) AsReader() io.ByteReader {

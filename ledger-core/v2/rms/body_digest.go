@@ -13,11 +13,11 @@ import (
 )
 
 var _ GoGoSerializable = &BodyWithDigest{}
-var _ DigestDispenser = &BodyWithDigest{}
+var _ DigestProvider = &BodyWithDigest{}
 
 type BodyWithDigest struct {
 	data   Serializable
-	digest digestDispenser
+	digest digestProvider
 }
 
 func (p *BodyWithDigest) GetDigest() cryptkit.Digest {
@@ -28,17 +28,19 @@ func (p *BodyWithDigest) MustDigest() cryptkit.Digest {
 	return p.digest.MustDigest()
 }
 
-// func (p *BodyWithDigest) SetDigester(digester cryptkit.DataDigester) {
-// 	p.digest.setDigester(digester)
-// }
-
 func (p *BodyWithDigest) ProtoSize() int {
-	p.digest.calcDigest(p._digestData)
+	p.digest.calcDigest(p._digestData, nil)
 	return p._protoSize()
 }
 
 func (p *BodyWithDigest) _digestData(digester cryptkit.DataDigester) cryptkit.Digest {
-	if p.data == nil {
+	switch {
+	case digester == nil:
+		if p.data == nil {
+			return cryptkit.NewDigest(longbits.EmptyByteString, "")
+		}
+		panic(throw.IllegalState())
+	case p.data == nil:
 		return digester.DigestBytes(nil)
 	}
 	data, err := p.data.Marshal()
@@ -85,12 +87,64 @@ func (p *BodyWithDigest) MarshalToSizedBuffer(b []byte) (int, error) {
 
 func (p *BodyWithDigest) Unmarshal(b []byte) error {
 	if len(b) == 0 {
-		p.digest.setDigest(cryptkit.NewDigest(longbits.EmptyByteString, ""))
+		p.digest.setDigest(cryptkit.NewDigest(longbits.EmptyByteString, ""), nil)
 		return nil
 	}
 	if b[0] != protokit.BinaryMarker {
 		return throw.IllegalValue()
 	}
-	p.digest.setDigest(cryptkit.NewDigest(longbits.NewImmutableFixedSize(b[1:]), ""))
+	p.digest.setDigest(cryptkit.NewDigest(longbits.NewImmutableFixedSize(b[1:]), ""), nil)
 	return nil
+}
+
+func (p *BodyWithDigest) SetPayload(data Serializable, digester cryptkit.DataDigester) {
+	p.digest.setDigester(digester, func() {
+		p.data = data
+	})
+}
+
+func (p *BodyWithDigest) GetPayload() Serializable {
+	if p.digest.ready.WasStarted() {
+		return p.data
+	}
+	return nil
+}
+
+func (p *BodyWithDigest) VerifyPayloadBytes(data []byte, digester cryptkit.DataDigester) error {
+	d0 := p.digest.GetDigest()
+	var d1 cryptkit.Digest
+	switch {
+	case !d0.IsEmpty():
+		d1 := digester.DigestBytes(data)
+		if m0 := d0.GetDigestMethod(); m0 != "" && m0 == d1.GetDigestMethod() {
+			return throw.E("digest method mismatched", struct{ M0, M1 cryptkit.DigestMethod }{m0, d1.GetDigestMethod()})
+		}
+		if longbits.Equal(d0, d1) {
+			return nil
+		}
+	case len(data) == 0:
+		return nil
+	}
+	return throw.E("digest mismatched", struct{ D0, D1 cryptkit.Digest }{d0, d1})
+}
+
+func (p *BodyWithDigest) VerifyPayload(data Serializable, digester cryptkit.DataDigester) error {
+	if data == nil {
+		return p.VerifyPayloadBytes(nil, digester)
+	}
+	b, err := data.Marshal()
+	if err != nil {
+		return err
+	}
+	return p.VerifyPayloadBytes(b, digester)
+}
+
+func (p *BodyWithDigest) Equal(o *BodyWithDigest) bool {
+	switch {
+	case p == o:
+		return true
+	case o == nil || p == nil:
+		return false
+	}
+	return longbits.Equal(p.GetDigest(), o.GetDigest())
 }

@@ -225,3 +225,13 @@ func (v ByteString) Hex() string {
 	hex.Encode(b, []byte(v))
 	return string(b)
 }
+
+func (v ByteString) Equal(other FixedReader) bool {
+	if other == nil {
+		return false
+	}
+	if s, ok := other.(ByteString); ok {
+		return s == v
+	}
+	return Equal(v, other)
+}

@@ -12,6 +12,7 @@ option (insproto.context_all) = "MessageContext";
 option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
 
 message MessageExample {
     option (insproto.id) = 999999990;

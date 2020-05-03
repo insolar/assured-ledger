@@ -100,7 +100,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 			}
 
 			if field.GetTypeName() == insproto.FieldMapFQN {
-				if field.GetName() != insproto.FieldMapFieldName || gogoproto.IsNullable(field) {
+				if field.GetName() != insproto.FieldMapFieldName || !gogoproto.IsNullable(field) {
 					printerr("ERROR: field %v.%v is illegal use of FieldMap\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 					os.Exit(1)
 				}
