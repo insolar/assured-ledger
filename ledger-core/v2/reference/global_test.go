@@ -50,7 +50,7 @@ func TestFromString(t *testing.T) {
 		string(RecordRefIDSeparator) + "1" +
 		base64.RawURLEncoding.EncodeToString(domainID.AsBytes())
 
-	expectedRef := NewGlobal(domainID, recordID)
+	expectedRef := New(domainID, recordID)
 	actualRef, err := GlobalFromString(refStr)
 	require.NoError(t, err)
 

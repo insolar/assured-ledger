@@ -49,7 +49,7 @@ func (v Template) IsZero() bool {
 	return v.local == 0
 }
 
-func (v Template) Scope() Scope {
+func (v Template) GetScope() Scope {
 	return v.base.SubScope().AsBaseOf(v.local.SubScope())
 }
 
@@ -104,10 +104,34 @@ func (v Template) AsMutable() MutableTemplate {
 
 /**************************/
 
+var _ Holder = &MutableTemplate{}
+
 type MutableTemplate struct {
 	base    Local
 	local   Local
 	hasHash bool
+}
+
+func (p *MutableTemplate) IsEmpty() bool {
+	return !p.hasHash
+}
+
+func (p *MutableTemplate) GetScope() Scope {
+	return p.base.SubScope().AsBaseOf(p.local.SubScope())
+}
+
+func (p *MutableTemplate) GetLocal() Local {
+	if !p.hasHash {
+		panic(throw.IllegalState())
+	}
+	return p.local
+}
+
+func (p *MutableTemplate) GetBase() Local {
+	if !p.hasHash {
+		panic(throw.IllegalState())
+	}
+	return p.base
 }
 
 func (p *MutableTemplate) IsZero() bool {
@@ -139,10 +163,6 @@ func (p *MutableTemplate) WithHashAsLocal(h LocalHash) Local {
 		panic(throw.IllegalState())
 	}
 	return Local{p.local.pulseAndScope, h}
-}
-
-func (p *MutableTemplate) Scope() Scope {
-	return p.base.SubScope().AsBaseOf(p.local.SubScope())
 }
 
 func (p *MutableTemplate) CanLocal() bool {

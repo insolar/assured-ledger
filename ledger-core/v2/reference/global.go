@@ -36,8 +36,16 @@ func NewGlobalSelf(localID Local) Global {
 	return Global{addressLocal: localID, addressBase: localID}
 }
 
-func NewGlobal(domainID, localID Local) Global {
+func New(domainID, localID Local) Global {
 	return Global{addressLocal: localID, addressBase: domainID}
+}
+
+func NewRecordOf(owner Global, localID Local) Global {
+	base := owner.GetBase()
+	if base.IsEmpty() {
+		panic(throw.IllegalValue())
+	}
+	return Global{addressLocal: localID, addressBase: owner.GetBase()}
 }
 
 type Global struct {
@@ -142,11 +150,11 @@ func (v *Global) canConvertToSelf() bool {
 func (v *Global) tryConvertToCompact() Holder {
 	switch {
 	case v.addressBase.IsEmpty():
-		return NewRecord(v.addressLocal)
+		return NewPtrRecord(v.addressLocal)
 	case v.addressLocal.IsEmpty():
-		return New(v.addressLocal, v.addressBase)
+		return NewPtrHolder(v.addressBase, v.addressLocal)
 	case v.addressBase == v.addressLocal:
-		return NewSelf(v.addressLocal)
+		return NewPtrSelf(v.addressLocal)
 	default:
 		return v
 	}
@@ -210,7 +218,7 @@ func (v *Global) Unmarshal(data []byte) (err error) {
 		*v = Global{}
 		return nil
 	}
-	v.addressLocal, v.addressBase, err = Unmarshal(data)
+	*v, err = UnmarshalGlobal(data)
 	return
 }
 
@@ -231,9 +239,13 @@ func (v *Global) ProtoSize() int {
 
 func GlobalFromString(input string) (Global, error) {
 	global, err := DefaultDecoder().Decode(input)
-	if err != nil {
+	switch {
+	case err != nil:
 		return Global{}, err
+	case global.addressBase.IsZero():
+		return Global{}, errors.New("base is zero")
 	}
+
 	return global, nil
 }
 
@@ -251,10 +263,11 @@ func GlobalObjectFromString(input string) (Global, error) {
 	return global, nil
 }
 
-func GlobalFromBytes(data []byte) Global {
-	local, base, err := Unmarshal(data)
+func GlobalFromBytes(data []byte) (v Global) {
+	var err error
+	v, err = UnmarshalGlobal(data)
 	if err != nil {
 		panic(throw.IllegalValue())
 	}
-	return NewGlobal(base, local)
+	return v
 }

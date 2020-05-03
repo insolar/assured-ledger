@@ -51,5 +51,5 @@ func GenesisRef(s string) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash([]byte(s))
 	local := reference.NewLocal(pulse.MinTimePulse, 0, reference.BytesToLocalHash(hash))
-	return reference.NewGlobal(local, local)
+	return reference.NewGlobalSelf(local)
 }

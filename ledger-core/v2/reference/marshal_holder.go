@@ -27,7 +27,7 @@ func MarshalTo(h Holder, b []byte) (int, error) {
 	if base.IsEmpty() {
 		return MarshalLocalTo(h.GetLocal(), b)
 	}
-	return _marshal(h.GetLocal(), base, b)
+	return _marshal(base, h.GetLocal(), b)
 }
 
 func Marshal(h Holder) ([]byte, error) {
@@ -38,7 +38,7 @@ func Marshal(h Holder) ([]byte, error) {
 	}
 
 	b := make([]byte, LocalBinarySize+ProtoSizeLocal(base))
-	n, err := _marshal(h.GetLocal(), base, b)
+	n, err := _marshal(base, h.GetLocal(), b)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func _unmarshalJSON(v *Global, data []byte) error {
 	return nil
 }
 
-func _marshal(local, base Local, b []byte) (int, error) {
+func _marshal(base, local Local, b []byte) (int, error) {
 	n := WriteWholeLocalTo(local, b)
 	if n != LocalBinarySize {
 		return 0, throw.WithStackTop(io.ErrShortBuffer)
@@ -103,7 +103,13 @@ func _marshal(local, base Local, b []byte) (int, error) {
 	return n + n2, err
 }
 
-func Unmarshal(b []byte) (local, base Local, err error) {
+func Unmarshal(b []byte) (base, local Local, err error) {
+	var v Global
+	v, err = UnmarshalGlobal(b)
+	return v.addressBase, v.addressLocal, err
+}
+
+func UnmarshalGlobal(b []byte) (v Global, err error) {
 	switch n := len(b); {
 	case n == 0:
 		return
@@ -111,14 +117,14 @@ func Unmarshal(b []byte) (local, base Local, err error) {
 		err = throw.WithStackTop(io.ErrShortBuffer)
 		return
 	case n <= LocalBinarySize:
-		local, err = UnmarshalLocal(b)
+		v.addressLocal, err = UnmarshalLocal(b)
 		return
 	case n > GlobalBinarySize:
 		err = errors.New("too much bytes to unmarshal reference.Global")
 		return
 	default:
-		local = ReadWholeLocalFrom(b[:LocalBinarySize])
-		base, err = UnmarshalLocal(b[LocalBinarySize:])
+		v.addressLocal = ReadWholeLocalFrom(b[:LocalBinarySize])
+		v.addressBase, err = UnmarshalLocal(b[LocalBinarySize:])
 		return
 	}
 }

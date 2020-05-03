@@ -99,7 +99,7 @@ func (m *UpdateableKeyMap) InternHolder(ref reference.PtrHolder) reference.Holde
 		p1i = m.Intern(p1)
 	}
 	if p0 != p0i || p1 != p1i {
-		return reference.NewNoCopy(p0i, p1i)
+		return reference.NewNoCopy(p1i, p0i)
 	}
 	return ref
 }
@@ -205,7 +205,7 @@ func (m *UpdateableKeyMap) TryPut(key reference.PtrHolder,
 	bucket1, p1i, _ := m.intern(p1)
 
 	if p0 != p0i || p1 != p1i {
-		key = reference.NewNoCopy(p0i, p1i)
+		key = reference.NewNoCopy(p1i, p0i)
 	}
 
 	bucket := m.getBucket(bucket0)
