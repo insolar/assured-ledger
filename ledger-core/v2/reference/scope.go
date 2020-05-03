@@ -17,6 +17,10 @@ func (v SubScope) AsBaseOf(o SubScope) Scope {
 	return Scope(v<<2 | o)
 }
 
+func (v SubScope) AsSelfScope() SelfScope {
+	return SelfScope(v)
+}
+
 type Scope uint8
 
 const ( // super-scopes

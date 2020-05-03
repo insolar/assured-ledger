@@ -58,6 +58,10 @@ type Local struct {
 	hash          LocalHash
 }
 
+func (v Local) IsZero() bool {
+	return v.pulseAndScope == 0
+}
+
 func (v Local) IsEmpty() bool {
 	return v.pulseAndScope == 0
 }
@@ -72,6 +76,10 @@ func (v Local) GetPulseNumber() pulse.Number {
 
 func (v Local) GetHash() LocalHash {
 	return v.hash
+}
+
+func (v Local) GetHeader() LocalHeader {
+	return v.pulseAndScope
 }
 
 func (v Local) SubScope() SubScope {

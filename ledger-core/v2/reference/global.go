@@ -8,9 +8,10 @@ package reference
 import (
 	"io"
 
+	"github.com/pkg/errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -44,6 +45,14 @@ type Global struct {
 	addressBase  Local
 }
 
+func (v Global) IsZero() bool {
+	return v.addressLocal.IsZero() && v.addressBase.IsZero()
+}
+
+func (v Global) IsEmpty() bool {
+	return v.addressLocal.IsEmpty() && v.addressBase.IsEmpty()
+}
+
 func (v Global) GetScope() Scope {
 	return v.addressBase.SubScope().AsBaseOf(v.addressLocal.SubScope())
 }
@@ -66,10 +75,6 @@ func (v Global) AsBytes() []byte {
 	WriteWholeLocalTo(v.addressLocal, val[:LocalBinarySize])
 	WriteWholeLocalTo(v.addressBase, val[LocalBinarySize:])
 	return val
-}
-
-func (v Global) IsEmpty() bool {
-	return v.addressLocal.IsEmpty() && v.addressBase.IsEmpty()
 }
 
 func (v Global) IsRecordScope() bool {
