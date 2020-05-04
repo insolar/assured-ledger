@@ -22,15 +22,16 @@ type digestValue struct {
 	digest cryptkit.Digest
 }
 
-func (v digestValue) GetDigest() cryptkit.Digest {
-	return v.digest
+func (v digestValue) GetDigestMethod() cryptkit.DigestMethod {
+	return v.digest.GetDigestMethod()
 }
 
-func (v digestValue) MustDigest() cryptkit.Digest {
-	if d := v.GetDigest(); !d.IsEmpty() {
-		return d
-	}
-	panic(throw.IllegalState())
+func (v digestValue) GetDigestSize() int {
+	return v.digest.FixedByteSize()
+}
+
+func (v digestValue) GetDigest() cryptkit.Digest {
+	return v.digest
 }
 
 /*****************************/
@@ -43,39 +44,19 @@ func NewRefValue(digest cryptkit.Digest, t reference.Template) ReferenceProvider
 		panic(throw.IllegalValue())
 	}
 
-	rv := refValue{digest: digest, ref: t.AsMutable()}
+	rv := refValue{ref: t.AsMutable()}
 	rv.ref.SetHash(reference.CopyToLocalHash(digest))
 	return rv
 }
 
 type refValue struct {
-	digest cryptkit.Digest
-	ref    reference.MutableTemplate
+	ref reference.MutableTemplate
 }
 
 func (v refValue) GetReference() reference.Global {
 	return v.ref.MustGlobal()
 }
 
-func (v refValue) MustReference() reference.Global {
+func (v refValue) TryPullReference() reference.Global {
 	return v.ref.MustGlobal()
-}
-
-func (v refValue) GetRecordReference() reference.Local {
-	return v.ref.MustRecord()
-}
-
-func (v refValue) MustRecordReference() reference.Local {
-	return v.ref.MustRecord()
-}
-
-func (v refValue) GetDigest() cryptkit.Digest {
-	return v.digest
-}
-
-func (v refValue) MustDigest() cryptkit.Digest {
-	if d := v.GetDigest(); !d.IsEmpty() {
-		return d
-	}
-	panic(throw.IllegalState())
 }

@@ -5,6 +5,8 @@
 
 package reference
 
+import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
 type LocalHolder interface {
 	// GetLocal returns local portion of a full reference
 	GetLocal() Local
@@ -27,6 +29,13 @@ type PtrHolder interface {
 	// GetBase returns base portion of a full reference
 	GetLocalPtr() *Local
 	GetBasePtr() *Local
+}
+
+func AsRecordID(v Holder) Local {
+	if IsSelfScope(v) || IsRecordScope(v) {
+		return v.GetLocal()
+	}
+	panic(throw.IllegalState())
 }
 
 func IsRecordScope(ref Holder) bool {

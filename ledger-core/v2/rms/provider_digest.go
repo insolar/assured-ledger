@@ -43,12 +43,8 @@ func (p *digestProvider) setDigest(digest cryptkit.Digest, setFn func(cryptkit.D
 	case digest.IsEmpty():
 		panic(throw.IllegalValue())
 	case p.ready.DoDiscardByOne(func(bool) {
-		switch {
-		case p.digester == nil:
-		case p.digester.GetDigestMethod() != digest.GetDigestMethod():
+		if p.digester != nil && p.digester.GetDigestMethod() != digest.GetDigestMethod() {
 			panic(throw.IllegalValue())
-		default:
-			p.digester = nil
 		}
 		p.digest = digest
 		if setFn != nil {
@@ -66,14 +62,12 @@ func (p *digestProvider) calcDigest(fn func(cryptkit.DataDigester) cryptkit.Dige
 	case fn == nil:
 		panic(throw.IllegalValue())
 	case p.ready.DoDiscardByOne(func(bool) {
-		digester := p.digester
-		p.digester = nil
-		digest := fn(digester)
-		switch {
-		case digester == nil:
-			//
-		case digester.GetDigestMethod() != digest.GetDigestMethod():
+		digest := fn(p.digester)
+		if p.digester != nil && p.digester.GetDigestMethod() != digest.GetDigestMethod() {
 			panic(throw.IllegalValue())
+		}
+		if digest.IsZero() {
+			digest = cryptkit.NewZeroSizeDigest(digest.GetDigestMethod())
 		}
 		p.digest = digest
 		if setFn != nil {
@@ -87,7 +81,6 @@ func (p *digestProvider) calcDigest(fn func(cryptkit.DataDigester) cryptkit.Dige
 
 func (p *digestProvider) tryCancel(setFn func(cryptkit.Digest)) bool {
 	return p.ready.DoDiscardByOne(func(bool) {
-		p.digester = nil
 		digest := cryptkit.Digest{}
 		p.digest = digest
 		if setFn != nil {
@@ -103,9 +96,22 @@ func (p *digestProvider) GetDigest() cryptkit.Digest {
 	return cryptkit.Digest{}
 }
 
-func (p *digestProvider) MustDigest() cryptkit.Digest {
-	if d := p.GetDigest(); !d.IsEmpty() {
-		return d
+func (p *digestProvider) GetDigestMethod() cryptkit.DigestMethod {
+	switch {
+	case p.isReady():
+		return p.digest.GetDigestMethod()
+	case p.ready.WasStarted():
+		return p.digester.GetDigestMethod()
+	}
+	panic(throw.IllegalState())
+}
+
+func (p *digestProvider) GetDigestSize() int {
+	switch {
+	case p.isReady():
+		return p.digest.FixedByteSize()
+	case p.ready.WasStarted():
+		return p.digester.GetDigestSize()
 	}
 	panic(throw.IllegalState())
 }

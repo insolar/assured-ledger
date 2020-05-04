@@ -75,6 +75,11 @@ func (FieldMap) Equal(*FieldMap) bool {
 	return true
 }
 
+func (p *FieldMap) UnsetMap() {
+	p.Message = nil
+	p.Fields = nil
+}
+
 func NewFieldMapDescriptorProto(number int32) *descriptor.FieldDescriptorProto {
 	name := FieldMapFieldName
 	typeName := FieldMapFQN

@@ -14,21 +14,38 @@ var _ GoGoSerializable = &Reference{}
 
 type Reference struct {
 	value reference.Holder
+	lazy  ReferenceProvider
+}
+
+func (p *Reference) ensure() {
+	if p.lazy == nil {
+		return
+	}
+	ref := p.lazy.TryPullReference()
+	if ref.IsZero() {
+		panic(throw.IllegalState())
+	}
+	p.lazy = nil
+	p.value = ref
 }
 
 func (p *Reference) ProtoSize() int {
+	p.ensure()
 	return reference.ProtoSize(p.value)
 }
 
 func (p *Reference) MarshalTo(b []byte) (int, error) {
+	p.ensure()
 	return reference.MarshalTo(p.value, b)
 }
 
 func (p *Reference) MarshalToSizedBuffer(b []byte) (int, error) {
+	p.ensure()
 	return reference.MarshalToSizedBuffer(p.value, b)
 }
 
 func (p *Reference) Unmarshal(b []byte) (err error) {
+	p.lazy = nil
 	p.value, err = reference.UnmarshalGlobal(b)
 	if err != nil {
 		p.value = nil
@@ -37,18 +54,26 @@ func (p *Reference) Unmarshal(b []byte) (err error) {
 }
 
 func (p *Reference) Set(holder reference.Holder) {
+	p.lazy = nil
 	p.value = holder
 }
 
+func (p *Reference) SetLazy(lazy ReferenceProvider) {
+	p.lazy = lazy
+	p.value = nil
+}
+
 func (p *Reference) Get() reference.Holder {
+	p.ensure()
 	return p.value
 }
 
-func (p *Reference) GetGlobal() reference.Holder {
-	return reference.Copy(p.value)
+func (p *Reference) GetGlobal() reference.Global {
+	return reference.Copy(p.Get())
 }
 
 func (p *Reference) SetLocal(holder reference.LocalHolder) {
+	p.lazy = nil
 	if holder == nil {
 		p.value = nil
 		return
@@ -57,6 +82,7 @@ func (p *Reference) SetLocal(holder reference.LocalHolder) {
 }
 
 func (p *Reference) GetLocal() reference.LocalHolder {
+	p.ensure()
 	if p.value == nil {
 		return nil
 	}

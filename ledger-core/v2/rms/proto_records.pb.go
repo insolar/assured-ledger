@@ -279,10 +279,11 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *RecordExample) InitFieldMap(reset bool) {
+func (m *RecordExample) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_v2_insproto.FieldMap {
 	if reset || m.FieldMap == nil {
 		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_v2_insproto.FieldMap{}
 	}
+	return m.FieldMap
 }
 
 func encodeVarintProtoRecords(dAtA []byte, offset int, v uint64) int {

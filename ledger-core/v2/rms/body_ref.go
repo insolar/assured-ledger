@@ -14,7 +14,6 @@ import (
 
 var _ GoGoSerializable = &BodyWithReference{}
 var _ ReferenceProvider = &BodyWithReference{}
-var _ reference.Holder = &BodyWithReference{}
 
 type BodyWithReference struct {
 	bodyWithDigest
@@ -48,41 +47,8 @@ func (p *BodyWithReference) GetReference() reference.Global {
 	return reference.Global{}
 }
 
-func (p *BodyWithReference) GetRecordReference() reference.Local {
-	if p.digest.isReady() {
-		return p.template.MustRecord()
-	}
-	return reference.Local{}
-}
-
-func (p *BodyWithReference) MustReference() reference.Global {
-	if d := p.GetReference(); !d.IsEmpty() {
-		return d
-	}
-	panic(throw.IllegalState())
-}
-
-func (p *BodyWithReference) MustRecordReference() reference.Local {
-	if d := p.GetRecordReference(); !d.IsEmpty() {
-		return d
-	}
-	panic(throw.IllegalState())
-}
-
-func (p *BodyWithReference) GetLocal() reference.Local {
-	return p.template.GetLocal()
-}
-
-func (p *BodyWithReference) GetBase() reference.Local {
-	return p.template.GetBase()
-}
-
-func (p *BodyWithReference) IsEmpty() bool {
-	return !p.template.HasHash()
-}
-
-func (p *BodyWithReference) GetScope() reference.Scope {
-	return p.template.GetScope()
+func (p *BodyWithReference) TryPullReference() reference.Global {
+	panic(throw.Unsupported())
 }
 
 func (p *BodyWithReference) Equal(o *BodyWithReference) bool {

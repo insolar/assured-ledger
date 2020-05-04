@@ -86,6 +86,10 @@ func (v Global) AsBytes() []byte {
 	return val
 }
 
+func (v Global) AsRecordID() Local {
+	return AsRecordID(v)
+}
+
 func (v Global) IsRecordScope() bool {
 	return IsRecordScope(v)
 }

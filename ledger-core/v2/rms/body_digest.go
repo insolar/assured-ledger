@@ -20,12 +20,16 @@ type BodyWithDigest struct {
 	digest digestProvider
 }
 
-func (p *BodyWithDigest) GetDigest() cryptkit.Digest {
-	return p.digest.GetDigest()
+func (p *BodyWithDigest) GetDigestMethod() cryptkit.DigestMethod {
+	return p.digest.GetDigestMethod()
 }
 
-func (p *BodyWithDigest) MustDigest() cryptkit.Digest {
-	return p.digest.MustDigest()
+func (p *BodyWithDigest) GetDigestSize() int {
+	return p.digest.GetDigestSize()
+}
+
+func (p *BodyWithDigest) GetDigest() cryptkit.Digest {
+	return p.digest.GetDigest()
 }
 
 func (p *BodyWithDigest) ProtoSize() int {
@@ -37,7 +41,7 @@ func (p *BodyWithDigest) _digestData(digester cryptkit.DataDigester) cryptkit.Di
 	switch {
 	case digester == nil:
 		if p.data == nil {
-			return cryptkit.NewDigest(longbits.EmptyByteString, "")
+			return cryptkit.NewZeroSizeDigest("")
 		}
 		panic(throw.IllegalState())
 	case p.data == nil:
@@ -87,7 +91,7 @@ func (p *BodyWithDigest) MarshalToSizedBuffer(b []byte) (int, error) {
 
 func (p *BodyWithDigest) Unmarshal(b []byte) error {
 	if len(b) == 0 {
-		p.digest.setDigest(cryptkit.NewDigest(longbits.EmptyByteString, ""), nil)
+		p.digest.setDigest(cryptkit.NewZeroSizeDigest(""), nil)
 		return nil
 	}
 	if b[0] != protokit.BinaryMarker {
