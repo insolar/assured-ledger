@@ -14,15 +14,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func ProtoSize(h Holder) int {
+func BinarySize(h Holder) int {
 	if h == nil {
 		return 0
 	}
 	base := h.GetBase()
 	if base.IsEmpty() {
-		return ProtoSizeLocal(h.GetLocal())
+		return BinarySizeLocal(h.GetLocal())
 	}
-	return LocalBinarySize + ProtoSizeLocal(h.GetLocal())
+	return LocalBinarySize + BinarySizeLocal(h.GetLocal())
 }
 
 func MarshalTo(h Holder, b []byte) (int, error) {
@@ -66,7 +66,7 @@ func Marshal(h Holder) ([]byte, error) {
 		return MarshalLocal(v)
 	}
 
-	b := make([]byte, LocalBinarySize+ProtoSizeLocal(base))
+	b := make([]byte, LocalBinarySize+BinarySizeLocal(base))
 	n, err := _marshal(base, h.GetLocal(), b)
 	if err != nil {
 		return nil, err

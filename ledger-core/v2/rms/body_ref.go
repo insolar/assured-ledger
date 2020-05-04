@@ -9,6 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -24,7 +25,7 @@ type bodyWithDigest = BodyWithDigest
 
 func (p *BodyWithReference) ProtoSize() int {
 	p.digest.calcDigest(p._digestDataWithRef, nil)
-	return p._protoSize()
+	return protokit.BinaryProtoSize(p.digestSize())
 }
 
 func (p *BodyWithReference) _digestDataWithRef(digester cryptkit.DataDigester) cryptkit.Digest {

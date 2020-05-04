@@ -232,14 +232,14 @@ func (v *Global) UnmarshalBinary(data []byte) error {
 	return v.Unmarshal(data)
 }
 
-// deprecated: use reference.ProtoSize
+// deprecated: use reference.BinarySize
 func (v Global) Size() int {
-	return ProtoSize(v)
+	return BinarySize(v)
 }
 
 // deprecated
 func (v *Global) ProtoSize() int {
-	return ProtoSize(v)
+	return BinarySize(v)
 }
 
 func GlobalFromString(input string) (Global, error) {

@@ -6,7 +6,10 @@
 package rms
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -31,22 +34,35 @@ func (p *Reference) ensure() {
 
 func (p *Reference) ProtoSize() int {
 	p.ensure()
-	return reference.ProtoSize(p.value)
+	return protokit.BinaryProtoSize(reference.BinarySize(p.value))
 }
 
 func (p *Reference) MarshalTo(b []byte) (int, error) {
-	p.ensure()
-	return reference.MarshalTo(p.value, b)
+	return protokit.BinaryMarshalTo(b, func(b []byte) (int, error) {
+		p.ensure()
+		switch n := reference.BinarySize(p.value); {
+		case n == 0:
+			return 0, nil
+		case n > len(b):
+			return 0, io.ErrShortBuffer
+		}
+		return reference.MarshalTo(p.value, b)
+	})
 }
 
 func (p *Reference) MarshalToSizedBuffer(b []byte) (int, error) {
-	p.ensure()
-	return reference.MarshalToSizedBuffer(p.value, b)
+	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
+		p.ensure()
+		return reference.MarshalToSizedBuffer(p.value, b)
+	})
 }
 
-func (p *Reference) Unmarshal(b []byte) (err error) {
+func (p *Reference) Unmarshal(b []byte) error {
 	p.lazy = nil
-	p.value, err = reference.UnmarshalGlobal(b)
+	err := protokit.BinaryUnmarshal(b, func(b []byte) (err error) {
+		p.value, err = reference.UnmarshalGlobal(b)
+		return err
+	})
 	if err != nil {
 		p.value = nil
 	}

@@ -6,6 +6,8 @@
 package rms
 
 import (
+	"io"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
@@ -32,11 +34,6 @@ func (p *BodyWithDigest) GetDigest() cryptkit.Digest {
 	return p.digest.GetDigest()
 }
 
-func (p *BodyWithDigest) ProtoSize() int {
-	p.digest.calcDigest(p._digestData, nil)
-	return p._protoSize()
-}
-
 func (p *BodyWithDigest) _digestData(digester cryptkit.DataDigester) cryptkit.Digest {
 	switch {
 	case digester == nil:
@@ -54,51 +51,58 @@ func (p *BodyWithDigest) _digestData(digester cryptkit.DataDigester) cryptkit.Di
 	return digester.DigestBytes(data)
 }
 
-func (p *BodyWithDigest) _protoSize() int {
-	n := p.digest.digest.FixedByteSize()
-	if n != 0 {
-		n++ // protokit.BinaryMarker
-	}
-	return n
+func (p *BodyWithDigest) ProtoSize() int {
+	p.digest.calcDigest(p._digestData, nil)
+	return protokit.BinaryProtoSize(p.digestSize())
 }
 
-func (p *BodyWithDigest) mustProtoSize() int {
+func (p *BodyWithDigest) digestSize() int {
+	return p.digest.digest.FixedByteSize()
+}
+
+func (p *BodyWithDigest) mustDigestSize() int {
 	if !p.digest.isReady() {
 		panic(throw.IllegalState())
 	}
-	return p._protoSize()
+	return p.digestSize()
 }
 
 func (p *BodyWithDigest) MarshalTo(b []byte) (int, error) {
-	n := p.mustProtoSize()
-	if n == 0 {
-		return 0, nil
-	}
-	b[0] = protokit.BinaryMarker
-	return p.digest.digest.CopyTo(b), nil
+	return protokit.BinaryMarshalTo(b, func(b []byte) (int, error) {
+		switch n := p.mustDigestSize(); {
+		case n == 0:
+			return 0, nil
+		case n > len(b):
+			return 0, io.ErrShortBuffer
+		}
+		return p.digest.digest.CopyTo(b), nil
+	})
 }
 
 func (p *BodyWithDigest) MarshalToSizedBuffer(b []byte) (int, error) {
-	n := p.mustProtoSize()
-	if n == 0 {
-		return 0, nil
-	}
-	i := len(b) - n
-	p.digest.digest.CopyTo(b[i:])
-	b[i-1] = protokit.BinaryMarker
-	return n + 1, nil
+	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
+		switch n := p.mustDigestSize(); {
+		case n == 0:
+			return 0, nil
+		case n > len(b):
+			return 0, io.ErrShortBuffer
+		default:
+			i := len(b) - n
+			p.digest.digest.CopyTo(b[i:])
+			return n, nil
+		}
+	})
 }
 
 func (p *BodyWithDigest) Unmarshal(b []byte) error {
-	if len(b) == 0 {
-		p.digest.setDigest(cryptkit.NewZeroSizeDigest(""), nil)
+	return protokit.BinaryUnmarshal(b, func(b []byte) error {
+		digest := cryptkit.NewZeroSizeDigest("")
+		if len(b) > 0 {
+			digest = cryptkit.NewDigest(longbits.NewImmutableFixedSize(b[1:]), "")
+		}
+		p.digest.setDigest(digest, nil)
 		return nil
-	}
-	if b[0] != protokit.BinaryMarker {
-		return throw.IllegalValue()
-	}
-	p.digest.setDigest(cryptkit.NewDigest(longbits.NewImmutableFixedSize(b[1:]), ""), nil)
-	return nil
+	})
 }
 
 func (p *BodyWithDigest) SetPayload(data Serializable, digester cryptkit.DataDigester) {

@@ -207,9 +207,9 @@ func (v *Local) asWriter() *byteWriter {
 	return &byteWriter{v: v}
 }
 
-// deprecated: use reference.ProtoSizeLocal
+// deprecated: use reference.BinarySizeLocal
 func (v Local) Size() int {
-	return ProtoSizeLocal(v)
+	return BinarySizeLocal(v)
 }
 
 // deprecated: use reference.MarshalLocalTo

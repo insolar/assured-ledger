@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func ProtoSizeLocal(h LocalHolder) int {
+func BinarySizeLocal(h LocalHolder) int {
 	if h == nil || h.IsEmpty() {
 		return 0
 	}
