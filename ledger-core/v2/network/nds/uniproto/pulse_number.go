@@ -6,7 +6,6 @@
 package uniproto
 
 import (
-	"encoding/binary"
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -32,7 +31,7 @@ func SerializePulseNumberToBytes(pn pulse.Number, b []byte) {
 	if !pulse.IsValidAsPulseNumber(int(pn)) {
 		panic(throw.IllegalValue())
 	}
-	binary.LittleEndian.PutUint32(b, uint32(pn))
+	DefaultByteOrder.PutUint32(b, uint32(pn))
 }
 
 func DeserializePulseNumberFromBytes(b []byte) (pulse.Number, error) {
@@ -40,7 +39,7 @@ func DeserializePulseNumberFromBytes(b []byte) (pulse.Number, error) {
 		return 0, throw.IllegalValue()
 	}
 
-	v := int(binary.LittleEndian.Uint32(b))
+	v := int(DefaultByteOrder.Uint32(b))
 	if !pulse.IsValidAsPulseNumber(v) {
 		return 0, throw.Violation("invalid pulse number")
 	}

@@ -6,9 +6,9 @@
 package msgdelivery
 
 import (
-	"encoding/binary"
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
@@ -49,7 +49,7 @@ func (v ShortShipmentID) SimpleWriteTo(writer io.Writer) error {
 }
 
 func (v ShortShipmentID) PutTo(b []byte) int {
-	binary.LittleEndian.PutUint32(b, uint32(v))
+	uniproto.DefaultByteOrder.PutUint32(b, uint32(v))
 	return ShortShipmentIDByteSize
 }
 
@@ -62,7 +62,7 @@ func ShortShipmentIDReadFrom(reader io.Reader) (ShortShipmentID, error) {
 }
 
 func ShortShipmentIDReadFromBytes(b []byte) ShortShipmentID {
-	return ShortShipmentID(binary.LittleEndian.Uint32(b))
+	return ShortShipmentID(uniproto.DefaultByteOrder.Uint32(b))
 }
 
 type Shipment struct {

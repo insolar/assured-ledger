@@ -270,9 +270,9 @@ func (h *Header) DeserializeFromBytes(b []byte) (uint, error) {
 }
 
 var ErrPossibleHTTPRequest = errors.New("possible HTTP request")
+var DefaultByteOrder = binary.BigEndian
 
 func (h *Header) DeserializeMinFromBytes(b []byte) error {
-	byteOrder := binary.LittleEndian
 	_ = b[HeaderByteSizeMin-1]
 
 	switch b[4] {
@@ -286,12 +286,12 @@ func (h *Header) DeserializeMinFromBytes(b []byte) error {
 		return ErrPossibleHTTPRequest
 	}
 
-	h.ReceiverID = byteOrder.Uint32(b)
+	h.ReceiverID = DefaultByteOrder.Uint32(b)
 	h.ProtocolAndPacketType = b[4]
 	h.PacketFlags = b[5]
-	h.HeaderAndPayloadLength = byteOrder.Uint16(b[6:])
-	h.SourceID = byteOrder.Uint32(b[8:])
-	h.TargetID = byteOrder.Uint32(b[12:])
+	h.HeaderAndPayloadLength = DefaultByteOrder.Uint16(b[6:])
+	h.SourceID = DefaultByteOrder.Uint32(b[8:])
+	h.TargetID = DefaultByteOrder.Uint32(b[12:])
 
 	if h.HeaderAndPayloadLength&unlimitedLengthFlag != 0 {
 		return throw.Unsupported()
@@ -311,8 +311,7 @@ func (h *Header) DeserializeRestFromBytes(b []byte) (int, error) {
 }
 
 func (h *Header) deserializeExtraFromBytes(b []byte) error {
-	byteOrder := binary.LittleEndian
-	h.ExcessiveLength = byteOrder.Uint32(b[0:])
+	h.ExcessiveLength = DefaultByteOrder.Uint32(b[0:])
 	if h.ExcessiveLength == 0 {
 		return throw.Violation("zero excessive length")
 	}
@@ -336,19 +335,18 @@ func (h *Header) SerializeToBytes(b []byte) uint {
 		panic(ErrPossibleHTTPRequest)
 	}
 
-	byteOrder := binary.LittleEndian
-	byteOrder.PutUint32(b, h.ReceiverID)
+	DefaultByteOrder.PutUint32(b, h.ReceiverID)
 	b[4] = h.ProtocolAndPacketType
 	b[5] = h.PacketFlags
-	byteOrder.PutUint16(b[6:], h.HeaderAndPayloadLength)
-	byteOrder.PutUint32(b[8:], h.SourceID)
-	byteOrder.PutUint32(b[12:], h.TargetID)
+	DefaultByteOrder.PutUint16(b[6:], h.HeaderAndPayloadLength)
+	DefaultByteOrder.PutUint32(b[8:], h.SourceID)
+	DefaultByteOrder.PutUint32(b[12:], h.TargetID)
 	size := h.ByteSize()
 	if size > HeaderByteSizeMin {
 		if h.ExcessiveLength == 0 {
 			panic(throw.IllegalState())
 		}
-		byteOrder.PutUint32(b[HeaderByteSizeMin:], h.ExcessiveLength)
+		DefaultByteOrder.PutUint32(b[HeaderByteSizeMin:], h.ExcessiveLength)
 	}
 	return size
 }

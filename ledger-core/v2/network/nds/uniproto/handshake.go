@@ -6,8 +6,6 @@
 package uniproto
 
 import (
-	"encoding/binary"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -66,7 +64,7 @@ func (p *HandshakeHeader) Deserialize(b []byte) int {
 		case p.Flags & ^handshakeFlagsMask != 0:
 			//
 		default:
-			p.Random = binary.LittleEndian.Uint64(b[8:])
+			p.Random = DefaultByteOrder.Uint64(b[8:])
 			return HeaderByteSizeMin
 		}
 	}
@@ -81,7 +79,7 @@ func (p *HandshakeHeader) Serialize(b []byte) int {
 		panic(throw.IllegalState())
 	}
 
-	binary.LittleEndian.PutUint64(b[8:], p.Random) // + range check
+	DefaultByteOrder.PutUint64(b[8:], p.Random) // + range check
 	copy(b[:2], HandshakeMagic)
 	b[3] = p.Phase
 	b[4] = 0
