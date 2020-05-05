@@ -52,6 +52,8 @@ type Header struct {
 // ATTENTION! To provide compatibility with HTTP GET, PUT and POST following restrictions apply
 // 1) "POST /", "HEAD /" - Protocol=2, Packet=0 must have PacketFlags[5:] = 0
 // 2) "GET /", "PUT /" Protocol=2, Packet=0x0F is forbidden
+// 3) "OPTION" - Protocol=4, Packet=0xF must have PacketFlags[6:] = 0
+
 type ProtocolType uint8
 
 const (
@@ -284,6 +286,11 @@ func (h *Header) DeserializeMinFromBytes(b []byte) error {
 	case '/':
 		// Compatibility with HTTP: "PUT /" and "GET /"
 		return ErrPossibleHTTPRequest
+	case 'O':
+		// Compatibility with HTTP: "OPTION"
+		if b[5] >= 0x40 {
+			return ErrPossibleHTTPRequest
+		}
 	}
 
 	h.ReceiverID = DefaultByteOrder.Uint32(b)
