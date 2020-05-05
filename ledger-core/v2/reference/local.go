@@ -17,8 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var byteOrder = binary.BigEndian
-
 type LocalHash = longbits.Bits224
 
 var nearestPo2 = int(args.CeilingPowerOfTwo(uint(len(LocalHash{}))))
@@ -111,18 +109,14 @@ func (v Local) AsBytes() []byte {
 }
 
 func (v Local) pulseAndScopeToBytes(b []byte) {
-	byteOrder.PutUint32(b, uint32(v.pulseAndScope))
+	binary.LittleEndian.PutUint32(b, uint32(v.pulseAndScope))
 }
 
 func pulseAndScopeFromBytes(b []byte) LocalHeader {
-	return LocalHeader(byteOrder.Uint32(b))
+	return LocalHeader(binary.LittleEndian.Uint32(b))
 }
 
-func (v Local) AsReader() io.ByteReader {
-	return v.asReader(LocalBinarySize)
-}
-
-func (v Local) asReader(limit uint8) *byteReader {
+func (v Local) asEncoderReader(limit uint8) *byteReader {
 	return &byteReader{v: v, s: limit}
 }
 
@@ -203,7 +197,7 @@ func (v Local) WithHeader(h LocalHeader) Local {
 	return v
 }
 
-func (v *Local) asWriter() *byteWriter {
+func (v *Local) asDecoderWriter() *byteWriter {
 	return &byteWriter{v: v}
 }
 

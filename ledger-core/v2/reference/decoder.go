@@ -99,7 +99,7 @@ func (v decoder) decode(ref string) (result Global, err error) {
 }
 
 func (v decoder) parseLegacyAddress(ref string, domainPos int) (resultLocal Local, _ error) {
-	w := resultLocal.asWriter()
+	w := resultLocal.asDecoderWriter()
 	_, err := v.legacyDecoder(ref[:domainPos], w)
 
 	switch {
@@ -288,12 +288,12 @@ func (v decoder) parseBinaryAddress(name string, byteDecoder ByteDecodeFunc, res
 		if len(name) == 1 {
 			return nil
 		}
-		_, err := byteDecoder(name[1:], result.asWriter())
+		_, err := byteDecoder(name[1:], result.asDecoderWriter())
 		if err != nil {
 			return err
 		}
 	case '1':
-		w := result.asWriter()
+		w := result.asDecoderWriter()
 		_, err := byteDecoder(name[1:], w)
 		if err != nil {
 			return err

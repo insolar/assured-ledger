@@ -42,13 +42,19 @@ func randLocal() Local {
 	return id
 }
 
+func flipHeader(b []byte) []byte {
+	// Encoder uses BigEndian, while AsBytes uses LittleEndian for the header
+	b[0], b[1], b[2], b[3] = b[3], b[2], b[1], b[0]
+	return b
+}
+
 func TestFromString(t *testing.T) {
 	recordID := randLocal()
 	domainID := randLocal()
 	refStr := "insolar:1" +
-		base64.RawURLEncoding.EncodeToString(recordID.AsBytes()) +
+		base64.RawURLEncoding.EncodeToString(flipHeader(recordID.AsBytes())) +
 		string(RecordRefIDSeparator) + "1" +
-		base64.RawURLEncoding.EncodeToString(domainID.AsBytes())
+		base64.RawURLEncoding.EncodeToString(flipHeader(domainID.AsBytes()))
 
 	expectedRef := New(domainID, recordID)
 	actualRef, err := GlobalFromString(refStr)
