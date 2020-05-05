@@ -13,7 +13,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -33,7 +32,7 @@ func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemach
 	}
 }
 
-func makeVStateReportEvent(t *testing.T, ref insolar.Reference, rawState []byte) *statemachine.DispatcherMessage {
+func makeVStateReportEvent(t *testing.T, ref reference.Global, rawState []byte) *statemachine.DispatcherMessage {
 	payLoadMeta := &payload.VStateReport{
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{

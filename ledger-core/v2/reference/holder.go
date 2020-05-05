@@ -78,14 +78,3 @@ func Compare(ref0, ref1 Holder) int {
 	}
 	return ref0.GetLocal().Compare(ref1.GetLocal())
 }
-
-func ReadTo(h Holder, b []byte) (int, error) {
-	n, err := h.GetLocal().Read(b)
-	if err != nil || n < LocalBinarySize {
-		return n, err
-	}
-
-	n2 := 0
-	n2, err = h.GetBase().Read(b[n:])
-	return n + n2, err
-}

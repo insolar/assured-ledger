@@ -16,7 +16,8 @@ import (
 //
 // Special values:
 // 0 					Unknown
-// 1 .. 256				Reserved for package internal usage
+// 1 .. 255				Reserved for package internal usage
+// 256                  Reserved
 // 257 .. 65535			Reserved for platform wide usage
 // 65536				Local relative pulse number
 // 65537 .. 1<<30 - 1	Regular time based pulse numbers
@@ -29,9 +30,11 @@ type Number uint32
 // NB! To ADD a special pulse - see special_pulse_numbers.go
 // =========================================================
 const (
-	Unknown       Number = 0
-	localRelative        = 65536
-	LocalRelative Number = localRelative
+	Unknown           Number = 0
+	MinPackagePrivate        = 1
+	MaxPackagePrivate        = 255
+	localRelative            = 65536
+	LocalRelative     Number = localRelative
 
 	// MinTimePulse is the hardcoded first pulse number. Because first 65536 numbers are saved for the system's needs
 	MinTimePulse = localRelative + 1
@@ -73,6 +76,10 @@ func (n Number) IsTimePulse() bool {
 	return IsValidAsPulseNumber(int(n))
 }
 
+func (n Number) IsPackagePrivate() bool {
+	return n >= MinPackagePrivate && n <= MaxPackagePrivate
+}
+
 func (n Number) IsBefore(pn Number) bool {
 	return n >= MinTimePulse && n < pn
 }
@@ -112,6 +119,10 @@ func (n Number) IsSpecialOrTimePulse() bool {
 }
 
 func (n Number) IsSpecial() bool {
+	return n > MaxPackagePrivate && n < MinTimePulse
+}
+
+func (n Number) IsSpecialOrPrivate() bool {
 	return n > Unknown && n < MinTimePulse
 }
 
@@ -171,7 +182,7 @@ func (n Number) TryPrev(delta uint16) (Number, bool) {
 	return n, true
 }
 
-func (n Number) WithFlags(flags uint8) uint32 {
+func (n Number) WithFlags(flags int) uint32 {
 	if n > MaxTimePulse {
 		panic("illegal value")
 	}
@@ -182,6 +193,7 @@ func (n Number) WithFlags(flags uint8) uint32 {
 }
 
 // Bytes serializes pulse number.
+// deprecated
 func (n Number) Bytes() []byte {
 	var buf [NumberSize]byte
 	binary.BigEndian.PutUint32(buf[:], uint32(n))
@@ -246,6 +258,6 @@ func OfUint32(n uint32) Number {
 	return Number(n) & MaxTimePulse
 }
 
-func FlagsOf(n uint32) uint {
-	return uint(n) >> 30
+func FlagsOf(n uint32) int {
+	return int(n >> 30)
 }

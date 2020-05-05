@@ -7,21 +7,22 @@ package application
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-type genesisBinary []byte
+type genesisBinary reference.LocalHash
 
 // GenesisRecord is initial chain record.
-var GenesisRecord genesisBinary = []byte{0xAC}
+var GenesisRecord = genesisBinary(reference.LocalHash{0xAC})
 
 // ID returns genesis record id.
-func (r genesisBinary) ID() insolar.ID {
-	return insolar.NewID(insolar.GenesisPulse.PulseNumber, r)
+func (r genesisBinary) ID() reference.Local {
+	return reference.NewRecordID(insolar.GenesisPulse.PulseNumber, reference.LocalHash(r))
 }
 
 // Ref returns genesis record reference.
-func (r genesisBinary) Ref() insolar.Reference {
-	return insolar.NewReference(r.ID())
+func (r genesisBinary) Ref() reference.Global {
+	return reference.NewSelf(r.ID())
 }
 
 // GenesisHeavyConfig carries data required for initial genesis on heavy node.

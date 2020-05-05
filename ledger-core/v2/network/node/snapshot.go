@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	protonode "github.com/insolar/assured-ledger/ledger-core/v2/network/node/internal/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type ListType int
@@ -129,7 +130,7 @@ func (s *Snapshot) Encode() ([]byte, error) {
 			}
 
 			protoNode := &protonode.Node{
-				NodeID:         n.ID().Bytes(),
+				NodeID:         n.ID().AsBytes(),
 				NodeShortID:    uint32(n.ShortID()),
 				NodeRole:       uint32(n.Role()),
 				NodePublicKey:  exportedKey,
@@ -170,7 +171,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 				return errors.Wrap(err, "Failed to ImportPublicKeyBinary")
 			}
 
-			ref := insolar.NewReferenceFromBytes(n.NodeID)
+			ref := reference.GlobalFromBytes(n.NodeID)
 			nodeList[i] = newMutableNode(ref, insolar.StaticRole(n.NodeRole), pk, insolar.NodeState(n.State), n.NodeAddress, n.NodeVersion)
 		}
 		s.nodeList[t] = nodeList

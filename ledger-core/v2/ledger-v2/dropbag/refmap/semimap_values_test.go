@@ -12,7 +12,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestKeys(t *testing.T) {
@@ -25,7 +24,7 @@ func TestKeys(t *testing.T) {
 		for j := keyCount; j > 0; j-- {
 			refLocal := makeLocal(j)
 			ref := reference.NewNoCopy(&refLocal, &refBase)
-			refCopy := reference.New(refLocal, refBase)
+			refCopy := reference.NewPtrHolder(refLocal, refBase)
 			require.True(t, reference.Equal(ref, refCopy))
 			require.False(t, ref == refCopy, i)
 
@@ -36,9 +35,9 @@ func TestKeys(t *testing.T) {
 			require.True(t, m.Contains(ref), i)
 			{
 				refLocalAlt := makeLocal(j + 1e7)
-				refAlt := reference.New(refLocalAlt, refBase)
+				refAlt := reference.NewPtrHolder(refLocalAlt, refBase)
 				require.False(t, m.Contains(refAlt), i)
-				refAlt = reference.New(refBase, refLocalAlt)
+				refAlt = reference.NewPtrHolder(refBase, refLocalAlt)
 				require.False(t, m.Contains(refAlt), i)
 			}
 
@@ -64,7 +63,7 @@ func TestKeys(t *testing.T) {
 }
 
 func makeLocal(i int) reference.Local {
-	h := longbits.Bits224{}
+	h := reference.LocalHash{}
 	h[0] = byte(i)
 	h[len(h)-1] = byte(i >> 8)
 	return reference.NewRecordID(pulse.MinTimePulse+pulse.Number(i), h)

@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/stretchr/testify/require"
 
@@ -278,7 +279,7 @@ func (s *consensusSuite) stopNetworkSuite() {
 }
 
 // waitForNodeJoin returns true if node joined in pulsesCount
-func (s *consensusSuite) waitForNodeJoin(ref insolar.Reference, pulsesCount int) bool {
+func (s *consensusSuite) waitForNodeJoin(ref reference.Global, pulsesCount int) bool {
 	for i := 0; i < pulsesCount; i++ {
 		pn := s.waitForConsensus(1)
 		if s.isNodeInActiveLists(ref, pn) {
@@ -289,7 +290,7 @@ func (s *consensusSuite) waitForNodeJoin(ref insolar.Reference, pulsesCount int)
 }
 
 // waitForNodeLeave returns true if node leaved in pulsesCount
-func (s *consensusSuite) waitForNodeLeave(ref insolar.Reference, pulsesCount int) bool {
+func (s *consensusSuite) waitForNodeLeave(ref reference.Global, pulsesCount int) bool {
 	for i := 0; i < pulsesCount; i++ {
 		pn := s.waitForConsensus(1)
 		if !s.isNodeInActiveLists(ref, pn) {
@@ -338,7 +339,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
 	}
 }
 
-func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception insolar.Reference) insolar.PulseNumber {
+func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) insolar.PulseNumber {
 	var p insolar.PulseNumber
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
@@ -364,7 +365,7 @@ func (s *testSuite) getNodesCount() int {
 	return len(s.bootstrapNodes) // + len(s.networkNodes)
 }
 
-func (s *testSuite) isNodeInActiveLists(ref insolar.Reference, p insolar.PulseNumber) bool {
+func (s *testSuite) isNodeInActiveLists(ref reference.Global, p insolar.PulseNumber) bool {
 	for _, n := range s.bootstrapNodes {
 		a := n.serviceNetwork.NodeKeeper.GetAccessor(p)
 		if a.GetActiveNode(ref) == nil {
@@ -407,7 +408,7 @@ func (s *testSuite) GracefulStop(node *networkNode) {
 }
 
 type networkNode struct {
-	id                  insolar.Reference
+	id                  reference.Global
 	role                insolar.StaticRole
 	privateKey          crypto.PrivateKey
 	cryptographyService insolar.CryptographyService

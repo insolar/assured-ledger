@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
@@ -61,7 +62,7 @@ type StaticProfileExtensionMock struct {
 	beforeGetPowerLevelsCounter uint64
 	GetPowerLevelsMock          mStaticProfileExtensionMockGetPowerLevels
 
-	funcGetReference          func() (r1 insolar.Reference)
+	funcGetReference          func() (g1 reference.Global)
 	inspectFuncGetReference   func()
 	afterGetReferenceCounter  uint64
 	beforeGetReferenceCounter uint64
@@ -1111,7 +1112,7 @@ type StaticProfileExtensionMockGetReferenceExpectation struct {
 
 // StaticProfileExtensionMockGetReferenceResults contains results of the StaticProfileExtension.GetReference
 type StaticProfileExtensionMockGetReferenceResults struct {
-	r1 insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for StaticProfileExtension.GetReference
@@ -1139,7 +1140,7 @@ func (mmGetReference *mStaticProfileExtensionMockGetReference) Inspect(f func())
 }
 
 // Return sets up results that will be returned by StaticProfileExtension.GetReference
-func (mmGetReference *mStaticProfileExtensionMockGetReference) Return(r1 insolar.Reference) *StaticProfileExtensionMock {
+func (mmGetReference *mStaticProfileExtensionMockGetReference) Return(g1 reference.Global) *StaticProfileExtensionMock {
 	if mmGetReference.mock.funcGetReference != nil {
 		mmGetReference.mock.t.Fatalf("StaticProfileExtensionMock.GetReference mock is already set by Set")
 	}
@@ -1147,12 +1148,12 @@ func (mmGetReference *mStaticProfileExtensionMockGetReference) Return(r1 insolar
 	if mmGetReference.defaultExpectation == nil {
 		mmGetReference.defaultExpectation = &StaticProfileExtensionMockGetReferenceExpectation{mock: mmGetReference.mock}
 	}
-	mmGetReference.defaultExpectation.results = &StaticProfileExtensionMockGetReferenceResults{r1}
+	mmGetReference.defaultExpectation.results = &StaticProfileExtensionMockGetReferenceResults{g1}
 	return mmGetReference.mock
 }
 
 //Set uses given function f to mock the StaticProfileExtension.GetReference method
-func (mmGetReference *mStaticProfileExtensionMockGetReference) Set(f func() (r1 insolar.Reference)) *StaticProfileExtensionMock {
+func (mmGetReference *mStaticProfileExtensionMockGetReference) Set(f func() (g1 reference.Global)) *StaticProfileExtensionMock {
 	if mmGetReference.defaultExpectation != nil {
 		mmGetReference.mock.t.Fatalf("Default expectation is already set for the StaticProfileExtension.GetReference method")
 	}
@@ -1166,7 +1167,7 @@ func (mmGetReference *mStaticProfileExtensionMockGetReference) Set(f func() (r1 
 }
 
 // GetReference implements StaticProfileExtension
-func (mmGetReference *StaticProfileExtensionMock) GetReference() (r1 insolar.Reference) {
+func (mmGetReference *StaticProfileExtensionMock) GetReference() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetReference.beforeGetReferenceCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetReference.afterGetReferenceCounter, 1)
 
@@ -1181,7 +1182,7 @@ func (mmGetReference *StaticProfileExtensionMock) GetReference() (r1 insolar.Ref
 		if mm_results == nil {
 			mmGetReference.t.Fatal("No results are set for the StaticProfileExtensionMock.GetReference")
 		}
-		return (*mm_results).r1
+		return (*mm_results).g1
 	}
 	if mmGetReference.funcGetReference != nil {
 		return mmGetReference.funcGetReference()

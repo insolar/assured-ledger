@@ -22,6 +22,7 @@ package testwallet
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/pkg/errors"
 )
@@ -55,7 +56,7 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 	}
 
 	ret := []byte{}
-	err = ph.Serialize([]interface{}{self.GetCode().Bytes()}, &ret)
+	err = ph.Serialize([]interface{}{self.GetCode().AsBytes()}, &ret)
 
 	return state, ret, err
 }
@@ -81,7 +82,7 @@ func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) 
 	}
 
 	ret := []byte{}
-	err = ph.Serialize([]interface{}{self.GetPrototype().Bytes()}, &ret)
+	err = ph.Serialize([]interface{}{self.GetPrototype().AsBytes()}, &ret)
 
 	return state, ret, err
 }
@@ -267,7 +268,7 @@ func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []b
 	}
 
 	args := make([]interface{}, 2)
-	var args0 insolar.Reference
+	var args0 reference.Global
 	args[0] = &args0
 	var args1 uint32
 	args[1] = &args1
@@ -333,7 +334,7 @@ func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []b
 	return
 }
 
-func INSCONSTRUCTOR_New(ref insolar.Reference, data []byte) (state []byte, result []byte, err error) {
+func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
 	ph := common.CurrentProxyCtx
 	ph.SetSystemError(nil)
 

@@ -8,11 +8,11 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
@@ -112,7 +112,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		s.objectStateReport = &payload.VStateReport{
 			AsOf:                  s.Payload.AsOf,
 			Callee:                s.Payload.Callee,
-			LatestDirtyState:      *stateRef,
+			LatestDirtyState:      stateRef,
 			ImmutablePendingCount: int32(immutableCounts),
 			MutablePendingCount:   int32(mutableCounts),
 		}
@@ -125,14 +125,14 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 
 			s.objectStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
-					Reference:   *stateRef,
-					Parent:      *parent,
+					Reference:   stateRef,
+					Parent:      parent,
 					State:       memory,
 					Deactivated: state.Deactivated,
 				},
 			}
-			if proto != nil {
-				s.objectStateReport.ProvidedContent.LatestDirtyState.Prototype = *proto
+			if !proto.IsEmpty() {
+				s.objectStateReport.ProvidedContent.LatestDirtyState.Prototype = proto
 			}
 		}
 	}
@@ -151,7 +151,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 	if stateNotReady {
 		ctx.Log().Trace(struct {
 			*log.Msg  `txt:"State not ready for object"`
-			Reference insolar.Reference
+			Reference reference.Global
 		}{
 			Reference: s.Payload.Callee,
 		})

@@ -13,6 +13,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -57,7 +58,7 @@ func (g *Complete) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
 }
 
 // GetCert method generates cert by requesting signs from discovery nodes
-func (g *Complete) GetCert(ctx context.Context, registeredNodeRef *insolar.Reference) (insolar.Certificate, error) {
+func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (insolar.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ GetCert ] Couldn't get node info")
@@ -80,7 +81,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef *insolar.Refer
 }
 
 // requestCertSign method requests sign from single discovery node
-func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.DiscoveryNode, registeredNodeRef *insolar.Reference) ([]byte, error) {
+func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
 	currentNodeCert := g.CertificateManager.GetCertificate()
 
 	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
@@ -92,7 +93,7 @@ func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.Di
 	}
 
 	request := &packet.SignCertRequest{
-		NodeRef: *registeredNodeRef,
+		NodeRef: registeredNodeRef,
 	}
 	future, err := g.HostNetwork.SendRequest(ctx, types.SignCert, request, discoveryNode.GetNodeRef())
 	if err != nil {
@@ -109,11 +110,11 @@ func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.Di
 	return p.GetResponse().GetSignCert().Sign, nil
 }
 
-func (g *Complete) getNodeInfo(ctx context.Context, nodeRef *insolar.Reference) (string, string, error) {
+func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (string, string, error) {
 	panic("deprecated")
 }
 
-func (g *Complete) signCert(ctx context.Context, registeredNodeRef *insolar.Reference) (*insolar.Signature, error) {
+func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*insolar.Signature, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ SignCert ] Couldn't extract response")
@@ -126,7 +127,7 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	if request.GetRequest() == nil || request.GetRequest().GetSignCert() == nil {
 		inslogger.FromContext(ctx).Warnf("process SignCert: got invalid request protobuf message: %s", request)
 	}
-	sign, err := g.signCert(ctx, &request.GetRequest().GetSignCert().NodeRef)
+	sign, err := g.signCert(ctx, request.GetRequest().GetSignCert().NodeRef)
 	if err != nil {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.ErrorResponse{Error: err.Error()}), nil
 	}

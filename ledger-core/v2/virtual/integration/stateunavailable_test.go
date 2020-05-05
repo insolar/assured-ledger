@@ -11,7 +11,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -19,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-func makeVStateUnavailableEvent(t *testing.T, ref insolar.Reference, reason payload.VStateUnavailable_ReasonType) *statemachine.DispatcherMessage {
+func makeVStateUnavailableEvent(t *testing.T, ref reference.Global, reason payload.VStateUnavailable_ReasonType) *statemachine.DispatcherMessage {
 	payLoadMeta := &payload.VStateUnavailable{
 		Lifeline: ref,
 		Reason:   reason,
@@ -38,7 +37,7 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 		return nil
 	}
 
-	objectRef := reference.NewGlobalSelf(server.RandomLocalWithPulse())
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
 
 	reasons := []payload.VStateUnavailable_ReasonType{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {

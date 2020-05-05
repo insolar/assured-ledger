@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
 )
 
@@ -90,7 +91,7 @@ func benchSelectByEntropy(b *testing.B, valuescount int, count int) {
 }
 
 // compiler should avoid to optimize call of benched function
-var refresults []insolar.Reference
+var refresults []reference.Global
 
 func benchSelectByEntropyWrapped(b *testing.B, valuescount int, count int) {
 	scheme := platformpolicy.NewPlatformCryptographyScheme()

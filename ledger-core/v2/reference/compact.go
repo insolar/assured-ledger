@@ -13,21 +13,21 @@ func EmptyLocal() *Local {
 	return &emptyLocal
 }
 
-func NewRecord(local Local) PtrHolder {
+func NewPtrRecord(local Local) PtrHolder {
 	if local.IsEmpty() {
 		return Empty()
 	}
 	return NewNoCopy(&local, &emptyLocal)
 }
 
-func NewSelf(local Local) PtrHolder {
+func NewPtrSelf(local Local) PtrHolder {
 	if local.IsEmpty() {
 		return Empty()
 	}
 	return compact{&local, &local}
 }
 
-func New(local, base Local) PtrHolder {
+func NewPtrHolder(local, base Local) PtrHolder {
 	return NewNoCopy(&local, &base)
 }
 

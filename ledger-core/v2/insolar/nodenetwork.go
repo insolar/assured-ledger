@@ -8,6 +8,8 @@ package insolar
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
 )
 
@@ -44,7 +46,7 @@ const (
 
 type NetworkNode interface {
 	// ID is the unique identifier of the node
-	ID() Reference
+	ID() reference.Global
 	// ShortID get short ID of node
 	ShortID() ShortNodeID
 	// Role is the candidate Role for the node

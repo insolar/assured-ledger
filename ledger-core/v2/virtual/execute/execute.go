@@ -88,8 +88,8 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
 	s.execution.Object = s.Payload.Callee
-	s.execution.Incoming = reference.NewGlobal(s.Payload.Caller.GetLocal(), s.Payload.CallOutgoing)
-	s.execution.Outgoing = reference.NewGlobal(s.Payload.Callee.GetLocal(), s.Payload.CallOutgoing)
+	s.execution.Incoming = reference.NewRecordOf(s.Payload.Caller, s.Payload.CallOutgoing)
+	s.execution.Outgoing = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing)
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -112,7 +112,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	switch callType {
 	case payload.CTConstructor:
 		isConstructor = true
-		s.execution.Object = reference.NewGlobalSelf(s.Payload.CallOutgoing)
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing)
 		reason = object.InitReasonCTConstructor
 
 	case payload.CTMethod:
@@ -276,7 +276,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		executionNewState = s.executionNewState.Result
 
 		memory    []byte
-		prototype insolar.Reference
+		prototype reference.Global
 		action    func(state *object.SharedState)
 	)
 
@@ -285,7 +285,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	case insolar.RequestSideEffectActivate:
 		_, prototype, memory = executionNewState.Activate()
 		action = func(state *object.SharedState) {
-			state.Info.SetDescriptor(&prototype, memory)
+			state.Info.SetDescriptor(prototype, memory)
 			state.SetState(object.HasState)
 		}
 
@@ -293,7 +293,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		_, prototype, memory = executionNewState.Amend()
 		action = func(state *object.SharedState) {
 			ctx.Log().Trace("applying new state")
-			state.Info.SetDescriptor(&prototype, memory)
+			state.Info.SetDescriptor(prototype, memory)
 			state.SetState(object.HasState)
 		}
 

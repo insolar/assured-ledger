@@ -9,10 +9,10 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // HostNetworkMock implements network.HostNetwork
@@ -37,8 +37,8 @@ type HostNetworkMock struct {
 	beforeRegisterRequestHandlerCounter uint64
 	RegisterRequestHandlerMock          mHostNetworkMockRegisterRequestHandler
 
-	funcSendRequest          func(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference) (f1 mm_network.Future, err error)
-	inspectFuncSendRequest   func(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference)
+	funcSendRequest          func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (f1 mm_network.Future, err error)
+	inspectFuncSendRequest   func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global)
 	afterSendRequestCounter  uint64
 	beforeSendRequestCounter uint64
 	SendRequestMock          mHostNetworkMockSendRequest
@@ -662,7 +662,7 @@ type HostNetworkMockSendRequestParams struct {
 	ctx         context.Context
 	t           types.PacketType
 	requestData interface{}
-	receiver    insolar.Reference
+	receiver    reference.Global
 }
 
 // HostNetworkMockSendRequestResults contains results of the HostNetwork.SendRequest
@@ -672,7 +672,7 @@ type HostNetworkMockSendRequestResults struct {
 }
 
 // Expect sets up expected params for HostNetwork.SendRequest
-func (mmSendRequest *mHostNetworkMockSendRequest) Expect(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference) *mHostNetworkMockSendRequest {
+func (mmSendRequest *mHostNetworkMockSendRequest) Expect(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) *mHostNetworkMockSendRequest {
 	if mmSendRequest.mock.funcSendRequest != nil {
 		mmSendRequest.mock.t.Fatalf("HostNetworkMock.SendRequest mock is already set by Set")
 	}
@@ -692,7 +692,7 @@ func (mmSendRequest *mHostNetworkMockSendRequest) Expect(ctx context.Context, t 
 }
 
 // Inspect accepts an inspector function that has same arguments as the HostNetwork.SendRequest
-func (mmSendRequest *mHostNetworkMockSendRequest) Inspect(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference)) *mHostNetworkMockSendRequest {
+func (mmSendRequest *mHostNetworkMockSendRequest) Inspect(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global)) *mHostNetworkMockSendRequest {
 	if mmSendRequest.mock.inspectFuncSendRequest != nil {
 		mmSendRequest.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.SendRequest")
 	}
@@ -716,7 +716,7 @@ func (mmSendRequest *mHostNetworkMockSendRequest) Return(f1 mm_network.Future, e
 }
 
 //Set uses given function f to mock the HostNetwork.SendRequest method
-func (mmSendRequest *mHostNetworkMockSendRequest) Set(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference) (f1 mm_network.Future, err error)) *HostNetworkMock {
+func (mmSendRequest *mHostNetworkMockSendRequest) Set(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (f1 mm_network.Future, err error)) *HostNetworkMock {
 	if mmSendRequest.defaultExpectation != nil {
 		mmSendRequest.mock.t.Fatalf("Default expectation is already set for the HostNetwork.SendRequest method")
 	}
@@ -731,7 +731,7 @@ func (mmSendRequest *mHostNetworkMockSendRequest) Set(f func(ctx context.Context
 
 // When sets expectation for the HostNetwork.SendRequest which will trigger the result defined by the following
 // Then helper
-func (mmSendRequest *mHostNetworkMockSendRequest) When(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference) *HostNetworkMockSendRequestExpectation {
+func (mmSendRequest *mHostNetworkMockSendRequest) When(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) *HostNetworkMockSendRequestExpectation {
 	if mmSendRequest.mock.funcSendRequest != nil {
 		mmSendRequest.mock.t.Fatalf("HostNetworkMock.SendRequest mock is already set by Set")
 	}
@@ -751,7 +751,7 @@ func (e *HostNetworkMockSendRequestExpectation) Then(f1 mm_network.Future, err e
 }
 
 // SendRequest implements network.HostNetwork
-func (mmSendRequest *HostNetworkMock) SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver insolar.Reference) (f1 mm_network.Future, err error) {
+func (mmSendRequest *HostNetworkMock) SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (f1 mm_network.Future, err error) {
 	mm_atomic.AddUint64(&mmSendRequest.beforeSendRequestCounter, 1)
 	defer mm_atomic.AddUint64(&mmSendRequest.afterSendRequestCounter, 1)
 

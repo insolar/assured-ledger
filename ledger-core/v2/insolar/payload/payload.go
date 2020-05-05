@@ -15,15 +15,12 @@ import (
 type Type uint32
 
 //go:generate stringer -type=Type
-// //go:generate protoc -I=. -I=$GOPATH/src --gogoslick_out=./ payload.proto
+// xgo:generate protoc -I=. -I=$GOPATH/src --gogoslick_out=./ payload.proto
 
 const (
 	TypeUnknown Type = iota
 
 	TypeMeta
-	TypeError
-	TypeID
-	TypeIDs
 
 	// New virtual message types
 	TypeVCallRequest
@@ -134,15 +131,6 @@ func Marshal(payload Payload) ([]byte, error) {
 	case *Meta:
 		pl.Polymorph = uint32(TypeMeta)
 		return pl.Marshal()
-	case *Error:
-		pl.Polymorph = uint32(TypeError)
-		return pl.Marshal()
-	case *ID:
-		pl.Polymorph = uint32(TypeID)
-		return pl.Marshal()
-	case *IDs:
-		pl.Polymorph = uint32(TypeIDs)
-		return pl.Marshal()
 	case *VCallRequest:
 		pl.Polymorph = uint32(TypeVCallRequest)
 		return pl.Marshal()
@@ -177,18 +165,6 @@ func Unmarshal(data []byte) (Payload, error) {
 	switch tp {
 	case TypeMeta:
 		pl := Meta{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeError:
-		pl := Error{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeID:
-		pl := ID{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeIDs:
-		pl := IDs{}
 		err := pl.Unmarshal(data)
 		return &pl, err
 	case TypeVCallRequest:

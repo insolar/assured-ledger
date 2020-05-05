@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
@@ -59,7 +60,7 @@ type FixedStaticProfile struct {
 
 	isFull   bool
 	powerSet member.PowerSet
-	nodeRef  insolar.Reference
+	nodeRef  reference.Global
 
 	issuedAtPulse   pulse.Number // =0 when a node was connected during zeronet
 	issuedAtTime    time.Time
@@ -108,7 +109,7 @@ func (p *FixedStaticProfile) GetIssuerSignature() cryptkit.SignatureHolder {
 	return p.issuerSignature
 }
 
-func (p *FixedStaticProfile) GetReference() insolar.Reference {
+func (p *FixedStaticProfile) GetReference() reference.Global {
 	p.ensureFull()
 	return p.nodeRef
 }
