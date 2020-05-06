@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
@@ -194,7 +195,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceMachinesManager(manager)
 
 	prototype := gen.Reference()
-	cacheMock := utils.NewDescriptorsCacheMockWrapper(t)
+	cacheMock := mock.NewDescriptorsCacheMockWrapper(t)
 	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.ID(), gen.Reference())
 	cacheMock.IntenselyPanic = true
 	server.ReplaceCache(cacheMock)

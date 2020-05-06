@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package utils
+package mock
 
 import (
 	"context"
@@ -61,7 +61,6 @@ func (w *DescriptorCacheMockWrapper) byPrototypeRefImpl(
 	return nil, nil, errors.New("object not found")
 }
 
-// nolint:unused
 func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
 	head reference.Global,
 	state reference.Local,
