@@ -82,7 +82,7 @@ func (s *FakeSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 }
 
 func (s *FakeSM) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	objectID := reference.NewGlobalSelf(s.Payload.CallOutgoing)
+	objectID := reference.NewSelf(s.Payload.CallOutgoing)
 	objectCatalog := object.Catalog{}
 	objectSharedState, ok := objectCatalog.TryGet(ctx, objectID)
 	if !ok {
@@ -121,7 +121,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 
 	// create VCallRequest
 	pd := pulse2.NewFirstPulsarData(10, longbits.Bits256{})
-	caller := insolar.Reference{}
+	caller := reference.Global{}
 	prototype := gen.Reference()
 	vCallRequest := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
@@ -133,11 +133,11 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		CallSiteDeclaration: prototype,
 		CallSiteMethod:      "test",
 		CallSequence:        0,
-		CallReason:          insolar.Reference{},
-		RootTX:              insolar.Reference{},
-		CallTX:              insolar.Reference{},
+		CallReason:          reference.Global{},
+		RootTX:              reference.Global{},
+		CallTX:              reference.Global{},
 		CallRequestFlags:    0,
-		KnownCalleeIncoming: insolar.Reference{},
+		KnownCalleeIncoming: reference.Global{},
 		EntryHeadHash:       nil,
 		CallOutgoing:        reference.Local{},
 		Arguments:           nil,
@@ -218,7 +218,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 
 	jetCoordinatorMock := jet.NewCoordinatorMock(t).
 		MeMock.Return(gen.Reference()).
-		QueryRoleMock.Return([]insolar.Reference{gen.Reference()}, nil)
+		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 	pulses := pulse.NewStorageMem()
 	messageSender := messagesender.NewDefaultService(publisherMock, jetCoordinatorMock, pulses)
 	messageSenderAdapter := messagesenderadapter.CreateMessageSendService(ctx, messageSender)
