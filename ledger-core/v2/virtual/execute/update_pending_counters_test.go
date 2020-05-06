@@ -36,7 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
@@ -184,7 +184,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		nil)
 	slotMachine.AddDependency(runnerAdapter)
 
-	publisherMock := &utils.PublisherMock{}
+	publisherMock := &mock.PublisherMock{}
 
 	publisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		assert.Len(t, messages, 1)
