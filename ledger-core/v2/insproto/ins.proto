@@ -13,6 +13,7 @@ extend google.protobuf.FileOptions {
     optional bool notation_all = 63901;
     optional bool zeroable_all = 63902;
     optional string message_ctx_apply_all = 63903;
+    optional string projection_names = 63905;
     optional string context_method_all = 63906;
     optional bool fields_mapping_all = 63907;
     optional bool message_mapping_all = 63908;
@@ -25,19 +26,19 @@ extend google.protobuf.MessageOptions {
     optional bool fields_zeroable = 64902;
     optional uint64 id = 64904;
     optional string message_ctx_apply = 64903;
-    optional bool head = 64905;
+    optional bool projection = 64905;
     optional string context_method = 64906;
     optional bool fields_mapping = 64907;
     optional bool message_mapping = 64908;
     optional string register = 64909;
     optional string context = 64910;
+    optional uint64 projection_id = 64911;
 }
 
 extend google.protobuf.FieldOptions {
     optional bool zeroable = 65902;
     optional string ctx_apply = 65903;
     optional bool raw_bytes = 65904;
-
     optional bool mapping = 65907;
 }
 

@@ -7,14 +7,14 @@ syntax = "proto3";
 
 package rms;
 
+message Binary {
+    // stub, do NOT run code generate
+}
+
 message Reference {
     // stub, do NOT run code generate
 }
 
 message RecordBody {
-    // stub, do NOT run code generate
-}
-
-message RecordExtension {
     // stub, do NOT run code generate
 }

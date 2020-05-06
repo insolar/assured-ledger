@@ -73,8 +73,8 @@ func PropagateDefaultOptions(file *descriptor.FileDescriptorProto) {
 }
 
 func propagateOptions(file *descriptor.FileDescriptorProto, msgParent *descriptor.DescriptorProto, parentNotation bool) {
-	if !insproto.IsHead(msgParent) {
-		// do not touch head
+	if !insproto.IsProjection(file, msgParent) {
+		// do not touch projections
 
 		hasMapping := insproto.IsMappingForMessage(file, msgParent)
 		for _, field := range msgParent.GetField() {
@@ -95,7 +95,7 @@ func propagateOptions(file *descriptor.FileDescriptorProto, msgParent *descripto
 		switch {
 		case msg.Options != nil:
 			switch v, err := proto.GetExtension(msg.Options, insproto.E_Notation); {
-			case err != nil:
+			case err != nil && err != proto.ErrMissingExtension:
 				panic(err)
 			case v != nil:
 				notation = *v.(*bool)

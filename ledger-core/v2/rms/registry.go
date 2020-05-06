@@ -29,11 +29,46 @@ func SetRegistry(r *TypeRegistry) {
 var unmarshalerType = reflect.TypeOf((*unmarshaler)(nil)).Elem()
 
 type TypeRegistry struct {
-	mutex sync.RWMutex
-	types map[uint64]reflect.Type
+	mutex    sync.RWMutex
+	commons  map[uint64]reflect.Type
+	specials map[string]map[uint64]reflect.Type
+}
+
+func (p *TypeRegistry) getMap(special string) map[uint64]reflect.Type {
+	if special == "" {
+		return p.commons
+	}
+	return p.specials[special]
+}
+
+func (p *TypeRegistry) makeMap(special string) map[uint64]reflect.Type {
+	switch {
+	case special != "":
+		if p.specials == nil {
+			m := map[uint64]reflect.Type{}
+			p.specials = map[string]map[uint64]reflect.Type{special: m}
+			return m
+		}
+		m := p.specials[special]
+		if m == nil {
+			m = map[uint64]reflect.Type{}
+			p.specials[special] = m
+		}
+		return m
+
+	case p.commons == nil:
+		p.commons = map[uint64]reflect.Type{}
+		return p.commons
+	default:
+		return p.commons
+	}
 }
 
 func (p *TypeRegistry) Put(id uint64, t reflect.Type) {
+	p.PutSpecial(id, "", t)
+}
+
+func (p *TypeRegistry) PutSpecial(id uint64, special string, t reflect.Type) {
 	switch {
 	case t == nil:
 		panic(throw.IllegalValue())
@@ -52,33 +87,39 @@ func (p *TypeRegistry) Put(id uint64, t reflect.Type) {
 		fallthrough
 	default:
 		panic(throw.E("illegal type", struct {
-			ID   uint64
-			Type reflect.Type
-		}{id, t}))
+			ID      uint64
+			Special string
+			Type    reflect.Type
+		}{id, special, t}))
 	}
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	if p.types == nil {
-		p.types = map[uint64]reflect.Type{id: t}
-		return
-	}
-	if t2 := p.types[id]; t2 != nil {
+	types := p.makeMap(special)
+	if t2 := types[id]; t2 != nil {
 		panic(throw.E("duplicate id", struct {
-			ID             uint64
-			Type, Existing reflect.Type
-		}{id, t, t2}))
+			ID       uint64
+			Special  string
+			Type     reflect.Type
+			Existing reflect.Type
+		}{id, special, t, t2}))
 	}
-	p.types[id] = t
+	types[id] = t
 }
 
 func (p *TypeRegistry) Get(id uint64) reflect.Type {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
-	return p.types[id]
+	return p.commons[id]
 }
 
-func Unmarshal(b []byte) (uint64, interface{}, error) {
+func (p *TypeRegistry) GetSpecial(id uint64, special string) reflect.Type {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+	return p.getMap(special)[id]
+}
+
+func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type) (uint64, interface{}, error) {
 	ct, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b)
 	switch {
 	case err != nil:
@@ -88,7 +129,7 @@ func Unmarshal(b []byte) (uint64, interface{}, error) {
 	case id == 0:
 		return 0, nil, throw.E("untyped object")
 	default:
-		t := GetRegistry().Get(id)
+		t := typeFn(id)
 		if t == nil {
 			return 0, nil, throw.E("unknown object", struct{ ID uint64 }{id})
 		}
@@ -96,4 +137,14 @@ func Unmarshal(b []byte) (uint64, interface{}, error) {
 		err := obj.(unmarshaler).Unmarshal(b)
 		return id, obj, err
 	}
+}
+
+func Unmarshal(b []byte) (uint64, interface{}, error) {
+	return UnmarshalCustom(b, GetRegistry().Get)
+}
+
+func UnmarshalSpecial(b []byte, special string) (uint64, interface{}, error) {
+	return UnmarshalCustom(b, func(id uint64) reflect.Type {
+		return GetRegistry().GetSpecial(id, special)
+	})
 }

@@ -6,148 +6,103 @@
 package rms
 
 import (
-	"io"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var _ GoGoSerializable = &BodyWithDigest{}
-var _ DigestProvider = &BodyWithDigest{}
+var _ DigestProvider = &RawWithDigest{}
 
-type BodyWithDigest struct {
-	data   Serializable
+type RawWithDigest struct {
+	data   RawBinary
 	digest digestProvider
 }
 
-func (p *BodyWithDigest) GetDigestMethod() cryptkit.DigestMethod {
+func (p *RawWithDigest) GetDigestMethod() cryptkit.DigestMethod {
 	return p.digest.GetDigestMethod()
 }
 
-func (p *BodyWithDigest) GetDigestSize() int {
+func (p *RawWithDigest) GetDigestSize() int {
 	return p.digest.GetDigestSize()
 }
 
-func (p *BodyWithDigest) GetDigest() cryptkit.Digest {
+func (p *RawWithDigest) GetDigest() cryptkit.Digest {
 	return p.digest.GetDigest()
 }
 
-func (p *BodyWithDigest) _digestData(digester cryptkit.DataDigester) cryptkit.Digest {
+func (p *RawWithDigest) _digestData(digester cryptkit.DataDigester) cryptkit.Digest {
+	return digestBy(p.data, digester)
+}
+
+func digestBy(data RawBinary, digester cryptkit.DataDigester) cryptkit.Digest {
 	switch {
 	case digester == nil:
-		if p.data == nil {
+		if data.IsZero() {
 			return cryptkit.NewZeroSizeDigest("")
 		}
 		panic(throw.IllegalState())
-	case p.data == nil:
+	case data.IsZero():
 		return digester.DigestBytes(nil)
 	}
-	data, err := p.data.Marshal()
+	hasher := digester.NewHasher()
+	_, err := data.WriteTo(hasher)
 	if err != nil {
 		panic(throw.WithStackTop(err))
 	}
-	return digester.DigestBytes(data)
+	return hasher.SumToDigest()
 }
 
-func (p *BodyWithDigest) ProtoSize() int {
-	p.digest.calcDigest(p._digestData, nil)
-	return protokit.BinaryProtoSize(p.digestSize())
-}
+// func (p *RawWithDigest) ProtoSize() int {
+// 	p.digest.calcDigest(p._digestData, nil)
+// 	return protokit.BinaryProtoSize(p.digestSize())
+// }
 
-func (p *BodyWithDigest) digestSize() int {
-	return p.digest.digest.FixedByteSize()
-}
-
-func (p *BodyWithDigest) mustDigestSize() int {
-	if !p.digest.isReady() {
-		panic(throw.IllegalState())
-	}
-	return p.digestSize()
-}
-
-func (p *BodyWithDigest) MarshalTo(b []byte) (int, error) {
-	return protokit.BinaryMarshalTo(b, func(b []byte) (int, error) {
-		switch n := p.mustDigestSize(); {
-		case n == 0:
-			return 0, nil
-		case n > len(b):
-			return 0, io.ErrShortBuffer
-		}
-		return p.digest.digest.CopyTo(b), nil
-	})
-}
-
-func (p *BodyWithDigest) MarshalToSizedBuffer(b []byte) (int, error) {
-	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
-		switch n := p.mustDigestSize(); {
-		case n == 0:
-			return 0, nil
-		case n > len(b):
-			return 0, io.ErrShortBuffer
-		default:
-			i := len(b) - n
-			p.digest.digest.CopyTo(b[i:])
-			return n, nil
-		}
-	})
-}
-
-func (p *BodyWithDigest) Unmarshal(b []byte) error {
-	return protokit.BinaryUnmarshal(b, func(b []byte) error {
-		digest := cryptkit.NewZeroSizeDigest("")
-		if len(b) > 0 {
-			digest = cryptkit.NewDigest(longbits.NewImmutableFixedSize(b[1:]), "")
-		}
-		p.digest.setDigest(digest, nil)
-		return nil
-	})
-}
-
-func (p *BodyWithDigest) SetPayload(data Serializable, digester cryptkit.DataDigester) {
+func (p *RawWithDigest) SetPayload(data RawBinary, digester cryptkit.DataDigester) {
 	p.digest.setDigester(digester, func() {
 		p.data = data
 	})
 }
 
-func (p *BodyWithDigest) GetPayload() Serializable {
+func (p *RawWithDigest) GetPayload() RawBinary {
 	if p.digest.ready.WasStarted() {
 		return p.data
 	}
-	return nil
+	return RawBinary{}
 }
 
-func (p *BodyWithDigest) VerifyPayloadBytes(data []byte, digester cryptkit.DataDigester) error {
+func (p *RawWithDigest) VerifyPayloadBytes(data []byte, digester cryptkit.DataDigester) error {
+	b := RawBinary{}
+	b.SetBytes(data)
+	return p.VerifyPayload(b, digester)
+}
+
+func (p *RawWithDigest) VerifyPayload(data RawBinary, digester cryptkit.DataDigester) error {
 	d0 := p.digest.GetDigest()
+
 	var d1 cryptkit.Digest
 	switch {
+	case digester == nil:
+		switch {
+		case !data.IsEmpty():
+			panic(throw.IllegalValue())
+		case d0.IsEmpty():
+			return nil
+		}
 	case !d0.IsEmpty():
-		d1 := digester.DigestBytes(data)
+		d1 := digestBy(data, digester)
 		if m0 := d0.GetDigestMethod(); m0 != "" && m0 == d1.GetDigestMethod() {
 			return throw.E("digest method mismatched", struct{ M0, M1 cryptkit.DigestMethod }{m0, d1.GetDigestMethod()})
 		}
 		if longbits.Equal(d0, d1) {
 			return nil
 		}
-	case len(data) == 0:
+	case data.IsEmpty():
 		return nil
 	}
 	return throw.E("digest mismatched", struct{ D0, D1 cryptkit.Digest }{d0, d1})
 }
 
-func (p *BodyWithDigest) VerifyPayload(data Serializable, digester cryptkit.DataDigester) error {
-	if data == nil {
-		return p.VerifyPayloadBytes(nil, digester)
-	}
-	b, err := data.Marshal()
-	if err != nil {
-		return err
-	}
-	return p.VerifyPayloadBytes(b, digester)
-}
-
-func (p *BodyWithDigest) Equal(o *BodyWithDigest) bool {
+func (p *RawWithDigest) Equal(o *RawWithDigest) bool {
 	switch {
 	case p == o:
 		return true

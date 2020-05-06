@@ -73,9 +73,9 @@ type marshalto struct {
 	*generator.Generator
 	generator.PluginImports
 
-	headGen    extra.Head
-	polyGen    extra.Polymorph
-	contextGen extra.Context
+	projections extra.Projection
+	polyGen     extra.Polymorph
+	contextGen  extra.Context
 
 	atleastOne  bool
 	errorsPkg   generator.Single
@@ -100,8 +100,8 @@ func (p *marshalto) Name() string {
 
 func (p *marshalto) Init(g *generator.Generator) {
 	p.Generator = g
-	p.headGen.Generator = g
-	p.headGen.Init(g) // runs Head propagation
+	p.projections.Generator = g
+	p.projections.Init(g) // runs Projection propagation
 }
 
 func (p *marshalto) callFixed64(varName ...string) {
@@ -881,12 +881,11 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		zeroableDefault := insproto.IsZeroableDefault(file.FileDescriptorProto, message.DescriptorProto)
 
-		isHead := extra.IsMessageHead(message)
+		isHead := extra.IsMessageHead(file.FileDescriptorProto, message)
 
 		if !isHead {
-			p.headGen.Generate(message, ccTypeName)
+			p.projections.Generate(file, message, ccTypeName)
 			p.contextGen.Generate(file, message, ccTypeName)
-
 		}
 		p.polyGen.GenerateMsg(file, message, ccTypeName, isHead)
 

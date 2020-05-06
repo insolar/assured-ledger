@@ -42,7 +42,7 @@ func (p *refProvider) setRefByDigest(digest cryptkit.Digest) {
 }
 
 func (p *refProvider) isReady() bool {
-	return p.digestProvider != nil || p.digestProvider.isReady()
+	return p.digestProvider != nil && p.digestProvider.isReady()
 }
 
 func (p *refProvider) getReference() reference.Global {

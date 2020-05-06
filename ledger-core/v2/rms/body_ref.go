@@ -9,11 +9,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var _ GoGoSerializable = &BodyWithReference{}
+// var _ GoGoSerializable = &BodyWithReference{}
 var _ ReferenceProvider = &BodyWithReference{}
 
 type BodyWithReference struct {
@@ -21,11 +20,12 @@ type BodyWithReference struct {
 	template reference.MutableTemplate
 }
 
-type bodyWithDigest = BodyWithDigest
+type bodyWithDigest = RawWithDigest
 
 func (p *BodyWithReference) ProtoSize() int {
-	p.digest.calcDigest(p._digestDataWithRef, nil)
-	return protokit.BinaryProtoSize(p.digestSize())
+	// p.digest.calcDigest(p._digestDataWithRef, nil)
+	// return protokit.BinaryProtoSize(p.digestSize())
+	panic(throw.NotImplemented())
 }
 
 func (p *BodyWithReference) _digestDataWithRef(digester cryptkit.DataDigester) cryptkit.Digest {

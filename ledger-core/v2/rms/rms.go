@@ -8,26 +8,20 @@ package rms
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
+	"github.com/gogo/protobuf/proto"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
-type RecordExtension = BodyWithDigest
-type RecordBody = BodyWithDigest
-
-type ByteString = longbits.ByteString
 type PulseNumber = pulse.Number
 
 type RecordContext interface {
 	Record(BasicRecord, uint64) error
+	RecReference(BasicRecord, uint64, *Reference) error
 }
 
 type BasicRecord interface {
 	SetupContext(RecordContext) error
-	GetFieldMap() *insproto.FieldMap
-	GetBody() *RecordBody
-	GetExtension() []RecordExtension
 }
 
 type MessageContext interface {
@@ -39,10 +33,10 @@ type BasicMessage interface {
 	SetupContext(MessageContext) error
 }
 
-func RegisterRecordType(id uint64, t BasicRecord) {
-	GetRegistry().Put(id, reflect.TypeOf(t))
+func RegisterRecordType(id uint64, special string, t BasicRecord) {
+	GetRegistry().PutSpecial(id, special, reflect.TypeOf(t))
 }
 
-func RegisterMessageType(id uint64, t BasicMessage) {
-	GetRegistry().Put(id, reflect.TypeOf(t))
+func RegisterMessageType(id uint64, special string, t proto.Message) {
+	GetRegistry().PutSpecial(id, special, reflect.TypeOf(t))
 }

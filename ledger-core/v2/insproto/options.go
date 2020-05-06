@@ -6,6 +6,8 @@
 package insproto
 
 import (
+	"strings"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 )
@@ -98,8 +100,19 @@ func HasPolymorphID(msg *descriptor.DescriptorProto) bool {
 	return false
 }
 
-func IsHead(msg *descriptor.DescriptorProto) bool {
-	return proto.GetBoolExtension(msg.Options, E_Head, msg.GetName() == `Head`)
+func GetProjectionID(msg *descriptor.DescriptorProto) uint64 {
+	if msg != nil && msg.Options != nil {
+		v, err := proto.GetExtension(msg.Options, E_ProjectionId)
+		if err == nil && v.(*uint64) != nil {
+			return *(v.(*uint64))
+		}
+	}
+	return 0
+}
+
+func IsProjection(file *descriptor.FileDescriptorProto, msg *descriptor.DescriptorProto) bool {
+	names := `,` + GetStrFileExtension(file, E_ProjectionNames, "") + `,`
+	return proto.GetBoolExtension(msg.Options, E_Projection, strings.Contains(names, `,`+msg.GetName()+`,`))
 }
 
 func IsRawBytes(field *descriptor.FieldDescriptorProto, defValue bool) bool {

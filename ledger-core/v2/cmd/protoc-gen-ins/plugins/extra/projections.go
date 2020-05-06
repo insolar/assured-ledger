@@ -19,49 +19,48 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 )
 
-type Head struct {
+type Projection struct {
 	*generator.Generator
 }
 
-func IsMessageHead(message *generator.Descriptor) bool {
+func IsMessageHead(file *descriptor.FileDescriptorProto, message *generator.Descriptor) bool {
 	names := message.TypeName()
-	return len(names) > 1 && insproto.IsHead(message.DescriptorProto)
+	return len(names) > 1 && insproto.IsProjection(file, message.DescriptorProto)
 }
 
-// This does Head field mapping before any plugin.Generate()
+// This does Projection field mapping before any plugin.Generate()
 // Mapping requires a map of all types, that is available on plugin.Init(), but there is no
 
-func (p *Head) Init(g *generator.Generator) {
+func (p *Projection) Init(g *generator.Generator) {
 	files := p.Generator.Request.GetProtoFile()
 
 	files = vanity.FilterFiles(files, vanity.NotGoogleProtobufDescriptorProto)
-	vanity.ForEachFile(files, p.setFileHeads)
+	vanity.ForEachFile(files, p.setFileProjections)
 
 }
 
-func (p *Head) setFileHeads(file *descriptor.FileDescriptorProto) {
+func (p *Projection) setFileProjections(file *descriptor.FileDescriptorProto) {
 	for _, message := range file.GetMessageType() {
 		for _, child := range message.GetNestedType() {
-			p.setMessageHeads(message, child)
+			p.setMessageProjections(file, message, child)
 		}
 	}
 }
 
-func (p *Head) setMessageHeads(parent, message *descriptor.DescriptorProto) {
-	if insproto.IsHead(message) {
+func (p *Projection) setMessageProjections(file *descriptor.FileDescriptorProto, parent, message *descriptor.DescriptorProto) {
+	if insproto.IsProjection(file, message) {
 		p.setMessageHeadDesc(parent, message)
-		// Head can't have heads
+		// Projection can't have projections
 		return
 	}
 	for _, child := range message.GetNestedType() {
-		p.setMessageHeads(message, child)
+		p.setMessageProjections(file, message, child)
 	}
 }
 
-func (p *Head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
+func (p *Projection) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
 	vanity.SetBoolMessageOption(gogoproto.E_Typedecl, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_GoprotoGetters, false)(message)
-	vanity.SetBoolMessageOption(gogoproto.E_Equal, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_Face, true)(message)
 
 	if insproto.GetPolymorphID(message) == 0 {
@@ -97,11 +96,11 @@ func (p *Head) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
 	}
 }
 
-func (p *Head) Generate(message *generator.Descriptor, ccTypeName string) {
+func (p *Projection) Generate(file *generator.FileDescriptor, message *generator.Descriptor, ccTypeName string) {
 	var headName []string
 
 	for _, subMsg := range message.GetNestedType() {
-		if !insproto.IsHead(subMsg) {
+		if !insproto.IsProjection(file.FileDescriptorProto, subMsg) {
 			continue
 		}
 		if len(headName) == 0 {
@@ -125,6 +124,12 @@ func (p *Head) Generate(message *generator.Descriptor, ccTypeName string) {
 		p.P(`func (m *`, ccTypeName, `) As`, name, `Face() `, ccTypeName, name, ` {`)
 		p.In()
 		p.P(`return (*`, ccHeadTypeName, `)(m)`)
+		p.Out()
+		p.P(`}`)
+		p.P()
+		p.P(`func (m *`, ccHeadTypeName, `) As`, message.GetName(), `() *`, ccTypeName, ` {`)
+		p.In()
+		p.P(`return (*`, ccTypeName, `)(m)`)
 		p.Out()
 		p.P(`}`)
 		p.P()

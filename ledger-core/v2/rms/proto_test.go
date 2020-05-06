@@ -9,6 +9,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
 func TestExample(t *testing.T) {
@@ -24,6 +28,7 @@ func TestExample(t *testing.T) {
 
 func TestExampleUnmarshal(t *testing.T) {
 	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
 	m.InitFieldMap(true)
 	b, err := m.Marshal()
 	require.NoError(t, err)
@@ -31,6 +36,8 @@ func TestExampleUnmarshal(t *testing.T) {
 
 	recordBytes := m.FieldMap.Message
 	require.NotEmpty(t, recordBytes)
+
+	// m.SetPayload()
 
 	// Polymorph == 0 uses default value on serialization
 	// so it has to be set explicitly to equal with a deserialized form
@@ -51,13 +58,122 @@ func TestExampleUnmarshal(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, b)
 
-	id, m2, err = Unmarshal(b)
+	id, m2, err = UnmarshalSpecial(b, "Head")
 	require.NoError(t, err)
 	require.Equal(t, m.GetDefaultPolymorphID(), id)
+
+	require.True(t, m.AsHead().Equal(m2))
 
 	// head doesn't pass all fields
 	m.MsgBytes = nil
 	m.RecordExample = RecordExample{Str: m.RecordExample.Str}
 
-	require.Equal(t, m, m2)
+	require.True(t, m2.(*MessageExample_Head).AsMessageExample().Equal(m))
+}
+
+func TestExampleUnmarshalWithPayload(t *testing.T) {
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
+
+	m.SetDigester(TestDigester{})
+	payload := NewRaw(longbits.WrapStr("SomeData"))
+	m.SetPayload(payload)
+
+	m.InitFieldMap(true)
+	b, err := m.Marshal()
+	require.NoError(t, err)
+	require.NotEmpty(t, b)
+
+	recordBytes := m.FieldMap.Message
+	require.NotEmpty(t, recordBytes)
+
+	// Polymorph == 0 uses default value on serialization
+	// so it has to be set explicitly to equal with a deserialized form
+	m.RecordExample.Polymorph = uint32(m.RecordExample.GetDefaultPolymorphID())
+
+	id, m2, err := Unmarshal(b)
+	require.NoError(t, err)
+	require.Equal(t, m.GetDefaultPolymorphID(), id)
+	require.True(t, m.Equal(m2))
+
+	m2e := m2.(*MessageExample)
+	m2e.SetDigester(TestDigester{})
+	err = m2e.VerifyPayload(payload)
+	require.NoError(t, err)
+
+	id, r2, err := Unmarshal(recordBytes)
+	require.NoError(t, err)
+	require.Equal(t, m.RecordExample.GetDefaultPolymorphID(), id)
+	require.True(t, m.RecordExample.Equal(r2))
+
+	head := m.AsHead()
+	b, err = head.Marshal()
+	require.NoError(t, err)
+	require.NotEmpty(t, b)
+
+	id, m2, err = UnmarshalSpecial(b, "Head")
+	require.NoError(t, err)
+	require.Equal(t, m.GetDefaultPolymorphID(), id)
+
+	require.True(t, m.AsHead().Equal(m2))
+
+	// head doesn't pass all fields
+	m.MsgBytes = nil
+	m.RecordExample = RecordExample{Str: m.RecordExample.Str}
+
+	m2e = m2.(*MessageExample_Head).AsMessageExample()
+	require.True(t, m2e.Equal(m))
+
+	err = m2e.VerifyPayload(NewRaw(nil))
+	require.NoError(t, err)
+
+	m2e.SetDigester(TestDigester{})
+	err = m2e.VerifyPayload(NewRaw(nil))
+	require.NoError(t, err)
+
+	err = m2e.VerifyPayload(payload)
+	require.Error(t, err)
+}
+
+func TestExampleRecordRef(t *testing.T) {
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
+
+	m.SetDigester(TestDigester{})
+	payload := NewRaw(longbits.WrapStr("SomeData"))
+	m.SetPayload(payload)
+
+	InitReferenceFactory(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
+
+	lazyRef := DefaultLazyReferenceTo(m)
+	require.True(t, lazyRef.GetReference().IsZero())
+	require.True(t, lazyRef.TryPullReference().IsZero())
+
+	b, err := m.Marshal()
+	require.NoError(t, err)
+	require.NotEmpty(t, b)
+
+	require.False(t, lazyRef.GetReference().IsZero())
+	require.False(t, lazyRef.TryPullReference().IsZero())
+}
+
+func TestExampleRecordRefPull(t *testing.T) {
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
+
+	m.SetDigester(TestDigester{})
+	payload := NewRaw(longbits.WrapStr("SomeData"))
+	m.SetPayload(payload)
+
+	InitReferenceFactory(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
+	SetReferenceFactoryCanPull(m, true)
+
+	lazyRef := DefaultLazyReferenceTo(m)
+	require.True(t, lazyRef.GetReference().IsZero())
+	require.False(t, lazyRef.TryPullReference().IsZero())
+	require.False(t, lazyRef.GetReference().IsZero())
+
+	ref := lazyRef.GetReference()
+	require.True(t, reference.IsSelfScope(ref))
+	require.Equal(t, pulse.MinTimePulse, int(ref.GetLocal().Pulse()))
 }

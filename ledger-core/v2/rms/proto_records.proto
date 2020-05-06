@@ -18,14 +18,13 @@ message RecordExample {
     option (insproto.id) = 999999999;
 
     //*** Start of predefined section ***//
-    reserved 1 to 15, 17 to 19, 1792 to max;
+    reserved 1 to 15, 18 to 19, 1792 to max;
     uint32 Polymorph = 16;
-    RecordBody Body = 1790 [(gogoproto.nullable)=true];
-    repeated RecordExtension Extension = 1791;
+    RecordBody RecordBody = 17 [(gogoproto.embed)=true];
     //*** End of predefined section ***//
 
     // Add custom fields here
-    string Str = 21 [(gogoproto.customtype) = "ByteString", (insproto.raw_bytes) = true];
-    Reference Ref1 = 22;
+    Binary Str = 21;
+    Reference Ref1 = 22 [(insproto.ctx_apply)="RecReference"];
 }
 

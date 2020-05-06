@@ -59,11 +59,11 @@ func (p *FieldMap) GetMessage() []byte {
 	return p.Message
 }
 
-func (FieldMap) MarshalTo([]byte) (int, error) {
+func (*FieldMap) MarshalTo([]byte) (int, error) {
 	return 0, nil
 }
 
-func (FieldMap) MarshalToSizedBuffer([]byte) (int, error) {
+func (*FieldMap) MarshalToSizedBuffer([]byte) (int, error) {
 	return 0, nil
 }
 
@@ -71,11 +71,14 @@ func (FieldMap) Unmarshal([]byte) error {
 	return throw.Impossible()
 }
 
-func (FieldMap) Equal(*FieldMap) bool {
+func (*FieldMap) Equal(*FieldMap) bool {
 	return true
 }
 
 func (p *FieldMap) UnsetMap() {
+	if p == nil {
+		return
+	}
 	p.Message = nil
 	p.Fields = nil
 }
