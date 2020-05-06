@@ -68,7 +68,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	objectRef := gen.Reference()
 	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
-		// send VStateRequest: save wallet
+		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
@@ -117,7 +117,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	objectRef := gen.Reference()
 	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
-		// send VStateRequest: save wallet
+		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
