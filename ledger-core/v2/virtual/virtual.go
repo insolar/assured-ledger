@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -49,6 +50,7 @@ type Dispatcher struct {
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
 	MachineLogger  smachine.SlotMachineLogger
+	ObjectCatalog  object.Catalog
 
 	// Components
 	Runner        runner.Service
@@ -92,6 +94,11 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
 	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
+
+	if lr.ObjectCatalog == nil {
+		lr.ObjectCatalog = object.NewLocalCatalog()
+	}
+	lr.Conveyor.AddInterfaceDependency(&lr.ObjectCatalog)
 
 	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker()
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)

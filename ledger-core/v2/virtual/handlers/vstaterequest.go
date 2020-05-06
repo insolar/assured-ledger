@@ -27,8 +27,10 @@ type SMVStateRequest struct {
 
 	failReason payload.VStateUnavailable_ReasonType
 
+	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
+	objectCatalog object.Catalog
 }
 
 /* -------- Declaration ------------- */
@@ -44,6 +46,7 @@ func (*dSMVStateRequest) InjectDependencies(sm smachine.StateMachine, _ smachine
 
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
+	injector.MustInject(&s.objectCatalog)
 }
 
 func (*dSMVStateRequest) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -69,10 +72,7 @@ func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.Stat
 }
 
 func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		objectCatalog = object.Catalog{}
-	)
-	objectSharedState, stateFound := objectCatalog.TryGet(ctx, s.Payload.Callee)
+	objectSharedState, stateFound := s.objectCatalog.TryGet(ctx, s.Payload.Callee)
 	if !stateFound {
 		s.failReason = payload.Missing
 		return ctx.Jump(s.stepReturnStateUnavailable)

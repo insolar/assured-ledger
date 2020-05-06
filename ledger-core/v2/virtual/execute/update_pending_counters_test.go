@@ -82,7 +82,7 @@ func (s *FakeSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 
 func (s *FakeSM) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	objectID := reference.NewSelf(s.Payload.CallOutgoing)
-	objectCatalog := object.Catalog{}
+	objectCatalog := object.NewLocalCatalog()
 	objectSharedState, ok := objectCatalog.TryGet(ctx, objectID)
 	if !ok {
 		return ctx.Yield().ThenRepeat()
@@ -125,6 +125,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 
 	callFlags := payload.CallRequestFlags(0)
 	callFlags.SetTolerance(payload.CallTolerable)
+	callFlags.SetState(payload.CallDirty)
 
 	vCallRequest := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
@@ -229,6 +230,9 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 
 	pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 	slotMachine.AddDependency(&pulseSlot)
+
+	var objectCatalog object.Catalog = object.NewLocalCatalog()
+	slotMachine.AddInterfaceDependency(&objectCatalog)
 
 	slotMachine.AddNewByFunc(ctx, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &smExecute

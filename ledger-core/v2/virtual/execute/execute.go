@@ -59,6 +59,7 @@ type SMExecute struct {
 	runner        *runnerAdapter.Runner
 	messageSender *messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
+	objectCatalog object.Catalog
 }
 
 /* -------- Declaration ------------- */
@@ -75,6 +76,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.runner)
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
+	injector.MustInject(&s.objectCatalog)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -107,8 +109,7 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		objectCatalog = object.Catalog{}
-		callType      = s.Payload.CallType
+		callType = s.Payload.CallType
 
 		isConstructor     bool
 		objectSharedState object.SharedStateAccessor
@@ -137,7 +138,7 @@ func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) sma
 		s.execution.Unordered = true
 	}
 
-	objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object, reason)
+	objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.execution.Object, reason)
 
 	switch objectSharedState.Prepare(func(state *object.SharedState) {
 		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
