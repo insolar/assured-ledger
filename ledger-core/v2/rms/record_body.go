@@ -16,11 +16,6 @@ var _ GoGoSerializable = &RecordBody{}
 
 const maxExtensionCount = 0x7F
 
-type recordBodyFace interface {
-	RecordBody()
-	SetDigester(cryptkit.DataDigester)
-}
-
 type RecordBody struct {
 	digester cryptkit.DataDigester
 	payloads []RawBinary

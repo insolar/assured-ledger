@@ -38,6 +38,7 @@ func (p *digestProvider) setDigester(digester cryptkit.DataDigester, setFn func(
 	}
 }
 
+//nolint:unused
 func (p *digestProvider) setDigest(digest cryptkit.Digest, setFn func(cryptkit.Digest)) {
 	switch {
 	case digest.IsEmpty():
@@ -79,6 +80,7 @@ func (p *digestProvider) calcDigest(fn func(cryptkit.DataDigester) cryptkit.Dige
 	}
 }
 
+//nolint:unused
 func (p *digestProvider) tryCancel(setFn func(cryptkit.Digest)) bool {
 	return p.ready.DoDiscardByOne(func(bool) {
 		digest := cryptkit.Digest{}

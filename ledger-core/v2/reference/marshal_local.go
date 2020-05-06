@@ -157,7 +157,7 @@ func UnmarshalLocal(data []byte) (v Local, err error) {
 	}(); err != nil {
 		return Local{}, err
 	}
-	return
+	return v, nil
 }
 
 func WriteWholeLocalTo(v Local, b []byte) int {
