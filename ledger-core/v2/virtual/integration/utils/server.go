@@ -28,23 +28,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mimic"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/pulsemanager"
 )
 
-type PublisherMock struct {
-	Checker func(topic string, messages ...*message.Message) error
-}
-
-func (p *PublisherMock) Publish(topic string, messages ...*message.Message) error {
-	if err := p.Checker(topic, messages...); err != nil {
-		panic(err)
-	}
-	return nil
-}
-
-func (*PublisherMock) Close() error { return nil }
-
-var _ message.Publisher = &PublisherMock{}
+var _ message.Publisher = &mock.PublisherMock{}
 
 type Server struct {
 	lock sync.Mutex
@@ -55,7 +43,7 @@ type Server struct {
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
-	PublisherMock      *PublisherMock
+	PublisherMock      *mock.PublisherMock
 	JetCoordinatorMock *jet.CoordinatorMock
 	pulseGenerator     *mimic.PulseGenerator
 	pulseStorage       *pulse.StorageMem
@@ -110,7 +98,7 @@ func NewServer(t *testing.T) *Server {
 		MeMock.Return(gen.Reference()).
 		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 
-	s.PublisherMock = &PublisherMock{}
+	s.PublisherMock = &mock.PublisherMock{}
 
 	runnerService := runner.NewService()
 	if err := runnerService.Init(); err != nil {

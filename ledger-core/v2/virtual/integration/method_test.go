@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
@@ -194,7 +195,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceMachinesManager(manager)
 
 	prototype := gen.Reference()
-	cacheMock := utils.NewDescriptorsCacheMockWrapper(t)
+	cacheMock := mock.NewDescriptorsCacheMockWrapper(t)
 	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.ID(), gen.Reference())
 	cacheMock.IntenselyPanic = true
 	server.ReplaceCache(cacheMock)
@@ -335,4 +336,62 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 		<-testIsDone
 	}
+}
+
+func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
+	server := utils.NewServer(t)
+	ctx := inslogger.TestContext(t)
+
+	server.IncrementPulse(ctx)
+
+	var (
+		vCallRequestCount  uint
+		vStateRequestCount uint
+		vStateReportCount  uint
+		vCallResultCount   uint
+	)
+
+	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+		require.Len(t, messages, 1)
+
+		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
+		require.NoError(t, err)
+
+		switch pl.(type) {
+		case *payload.VCallResult:
+			vCallResultCount++
+		case *payload.VCallRequest:
+			vCallRequestCount++
+		case *payload.VStateReport:
+			vStateRequestCount++
+		case *payload.VStateRequest:
+			vStateReportCount++
+		default:
+			require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
+		}
+
+		server.SendMessage(ctx, messages[0])
+		return nil
+	}
+
+	testBalance := uint32(555)
+	rawWalletState := makeRawWalletState(t, testBalance)
+	objectRef := reference.NewRecordRef(server.RandomLocalWithPulse())
+	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	{
+		// send VStateReport: save wallet
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
+		require.NoError(t, server.AddInput(ctx, msg))
+	}
+
+	// Change pulse to force send VStateRequest
+	server.IncrementPulse(ctx)
+
+	checkBalance(t, server, objectRef, testBalance)
+
+	expectedNum := uint(1)
+	require.Equal(t, expectedNum, vStateReportCount)
+	require.Equal(t, expectedNum, vStateRequestCount)
+	require.Equal(t, expectedNum, vCallRequestCount)
+	require.Equal(t, expectedNum, vCallResultCount)
 }

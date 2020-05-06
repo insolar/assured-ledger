@@ -11,8 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-// ObjectDescriptor represents meta info required to fetch all object data.
-type ObjectDescriptor interface {
+// Object represents meta info required to fetch all object data.
+type Object interface {
 	// HeadRef returns head reference to represented object record.
 	HeadRef() reference.Global
 
@@ -27,37 +27,31 @@ type ObjectDescriptor interface {
 
 	// Parent returns object's parent.
 	Parent() reference.Global
-
-	// EarliestRequestID returns latest requestID for this object
-	EarliestRequestID() reference.Local
 }
 
-func NewObjectDescriptor(
-	head reference.Global, state reference.Local, prototype reference.Global, memory []byte, parent reference.Global, requestID reference.Local,
-) ObjectDescriptor {
-	return &objectDescriptor{
+func NewObject(
+	head reference.Global, state reference.Local, prototype reference.Global, memory []byte, parent reference.Global,
+) Object {
+	return &object{
 		head:      head,
 		state:     state,
 		prototype: prototype,
 		memory:    memory,
 		parent:    parent,
-		requestID: requestID,
 	}
 }
 
-// ObjectDescriptor represents meta info required to fetch all object data.
-type objectDescriptor struct {
+// Object represents meta info required to fetch all object data.
+type object struct {
 	head      reference.Global
 	state     reference.Local
 	prototype reference.Global
 	memory    []byte
 	parent    reference.Global
-
-	requestID reference.Local
 }
 
 // Prototype returns prototype reference.
-func (d *objectDescriptor) Prototype() (reference.Global, error) {
+func (d *object) Prototype() (reference.Global, error) {
 	if d.prototype.IsEmpty() {
 		return reference.Global{}, errors.New("object has no prototype")
 	}
@@ -65,25 +59,21 @@ func (d *objectDescriptor) Prototype() (reference.Global, error) {
 }
 
 // HeadRef returns reference to represented object record.
-func (d *objectDescriptor) HeadRef() reference.Global {
+func (d *object) HeadRef() reference.Global {
 	return d.head
 }
 
 // StateID returns reference to object state record.
-func (d *objectDescriptor) StateID() reference.Local {
+func (d *object) StateID() reference.Local {
 	return d.state
 }
 
 // Memory fetches latest memory of the object known to storage.
-func (d *objectDescriptor) Memory() []byte {
+func (d *object) Memory() []byte {
 	return d.memory
 }
 
 // Parent returns object's parent.
-func (d *objectDescriptor) Parent() reference.Global {
+func (d *object) Parent() reference.Global {
 	return d.parent
-}
-
-func (d *objectDescriptor) EarliestRequestID() reference.Local {
-	return d.requestID
 }

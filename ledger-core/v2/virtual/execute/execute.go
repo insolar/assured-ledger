@@ -16,6 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
@@ -95,10 +97,10 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx)
 
-	return ctx.Jump(s.stepWaitObjectReady)
+	return ctx.Jump(s.stepUpdatePendingCounters)
 }
 
-func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		objectCatalog = object.Catalog{}
 		callType      = s.Payload.CallType
@@ -126,7 +128,35 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		panic(throw.IllegalValue())
 	}
 
+	if s.Payload.CallFlags&callflag.Unordered > 0 {
+		s.execution.Unordered = true
+	}
+
 	objectSharedState = objectCatalog.GetOrCreate(ctx, s.execution.Object, reason)
+
+	switch objectSharedState.Prepare(func(state *object.SharedState) {
+		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
+	}).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
+	s.objectSharedState = objectSharedState
+	s.isConstructor = isConstructor
+
+	return ctx.Jump(s.stepWaitObjectReady)
+}
+
+func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		isConstructor     = s.isConstructor
+		objectSharedState = s.objectSharedState
+	)
 
 	var (
 		semaphoreReadyToWork    smachine.SyncLink
@@ -166,10 +196,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		panic(throw.NotImplemented())
 	}
 
-	s.isConstructor = isConstructor
 	s.semaphoreOrdered = semaphoreOrdered
 	s.semaphoreUnordered = semaphoreUnordered
-	s.objectSharedState = objectSharedState
 
 	// TODO[bigbes]: we're ready to execute here, so lets execute
 	return ctx.Jump(s.stepTakeLock)
@@ -178,8 +206,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var executionSemaphore smachine.SyncLink
 
-	if s.Payload.CallFlags&callflag.Unordered > 0 {
-		s.execution.Unordered = true
+	if s.execution.Unordered {
 		executionSemaphore = s.semaphoreUnordered
 	} else {
 		executionSemaphore = s.semaphoreOrdered
@@ -198,7 +225,7 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 }
 
 func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var objectDescriptor descriptor.ObjectDescriptor
+	var objectDescriptor descriptor.Object
 
 	action := func(state *object.SharedState) {
 		objectDescriptor = state.Descriptor()
@@ -222,20 +249,6 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 }
 
 func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
-	objectSharedState := s.objectSharedState
-	switch objectSharedState.Prepare(func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
-	}).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
-	case smachine.Passed:
-	default:
-		panic(throw.NotImplemented())
-	}
-
 	var (
 		executionContext = s.execution
 		asyncLogger      = ctx.LogAsync()
@@ -284,19 +297,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	case insolar.RequestSideEffectNone:
 	case insolar.RequestSideEffectActivate:
 		_, prototype, memory = executionNewState.Activate()
-		action = func(state *object.SharedState) {
-			state.Info.SetDescriptor(prototype, memory)
-			state.SetState(object.HasState)
-		}
-
+		action = s.setNewState(prototype, memory)
 	case insolar.RequestSideEffectAmend:
 		_, prototype, memory = executionNewState.Amend()
-		action = func(state *object.SharedState) {
-			ctx.Log().Trace("applying new state")
-			state.Info.SetDescriptor(prototype, memory)
-			state.SetState(object.HasState)
-		}
-
+		action = s.setNewState(prototype, memory)
 	case insolar.RequestSideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
@@ -318,6 +322,32 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(state *object.SharedState) {
+	return func(state *object.SharedState) {
+
+		parentReference := reference.Global{}
+		var prevStateIDBytes []byte
+		if state.Descriptor() != nil {
+			parentReference = state.Descriptor().Parent()
+			prevStateIDBytes = state.Descriptor().StateID().AsBytes()
+		}
+
+		objectRefBytes := s.execution.Object.AsBytes()
+		stateHash := append(memory, objectRefBytes...)
+		stateHash = append(stateHash, prevStateIDBytes...)
+
+		stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+		state.Info.SetDescriptor(descriptor.NewObject(
+			s.execution.Object,
+			stateID,
+			prototype,
+			memory,
+			parentReference,
+		))
+		state.SetState(object.HasState)
+	}
 }
 
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -348,4 +378,10 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}).Send()
 
 	return ctx.Stop()
+}
+
+func NewStateID(pn pulse.Number, data []byte) reference.Local {
+	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
+	hash := hasher.Hash(data)
+	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
 }

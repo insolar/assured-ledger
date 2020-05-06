@@ -32,12 +32,14 @@ func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemach
 	}
 }
 
-func makeVStateReportEvent(t *testing.T, ref reference.Global, rawState []byte) *statemachine.DispatcherMessage {
+func makeVStateReportEvent(t *testing.T, objectRef reference.Global, stateRef reference.Local, rawState []byte) *statemachine.DispatcherMessage {
+	proto := testwalletProxy.GetPrototype()
 	payLoadMeta := &payload.VStateReport{
+		Callee: objectRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
-				Reference: ref,
-				Prototype: testwalletProxy.GetPrototype(),
+				Reference: stateRef,
+				Prototype: proto,
 				State:     rawState,
 			},
 		},
@@ -80,9 +82,10 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
+	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
-		// send VStateRequest: save wallet
-		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
+		// send VStateReport: save wallet
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
@@ -103,17 +106,18 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
+	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
-		// send VStateRequest: save wallet
-		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
+		// send VStateReport: save wallet
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
 	checkBalance(t, server, objectRef, testBalance)
-
+	newStateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateRequest: one more time to simulate rewrite
-		msg := makeVStateReportEvent(t, objectRef, makeRawWalletState(t, 444))
+		msg := makeVStateReportEvent(t, objectRef, newStateID, makeRawWalletState(t, 444))
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 

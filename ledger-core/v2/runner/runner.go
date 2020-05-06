@@ -120,8 +120,8 @@ func generateCallContext(
 	ctx context.Context,
 	id uuid.UUID,
 	execution execution.Context,
-	protoDesc descriptor.PrototypeDescriptor,
-	codeDesc descriptor.CodeDescriptor,
+	protoDesc descriptor.Prototype,
+	codeDesc descriptor.Code,
 ) *insolar.LogicCallContext {
 	request := execution.Request
 	res := &insolar.LogicCallContext{

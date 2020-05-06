@@ -11,6 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -44,4 +45,34 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 		msg := makeVStateUnavailableEvent(t, objectRef, reason)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
+}
+
+func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
+	server := utils.NewServer(t)
+	ctx := inslogger.TestContext(t)
+
+	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+		require.Len(t, messages, 1)
+
+		server.SendMessage(ctx, messages[0])
+		return nil
+	}
+
+	testBalance := uint32(555)
+	rawWalletState := makeRawWalletState(t, testBalance)
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
+	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	{
+		// send VStateReport: save wallet
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
+		require.NoError(t, server.AddInput(ctx, msg))
+	}
+
+	reasons := []payload.VStateUnavailable_ReasonType{payload.Inactive, payload.Missing, payload.Unknown}
+	for _, reason := range reasons {
+		msg := makeVStateUnavailableEvent(t, objectRef, reason)
+		require.NoError(t, server.AddInput(ctx, msg))
+	}
+
+	checkBalance(t, server, objectRef, testBalance)
 }
