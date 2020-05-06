@@ -18,6 +18,6 @@ type CacheCallbackType func(reference reference.Global) (interface{}, error)
 // Cache provides convenient way to get prototype and code descriptors
 // of objects without fetching them twice
 type Cache interface {
-	ByPrototypeRef(ctx context.Context, protoRef reference.Global) (PrototypeDescriptor, CodeDescriptor, error)
+	ByPrototypeRef(ctx context.Context, protoRef reference.Global) (Prototype, Code, error)
 	RegisterCallback(cb CacheCallbackType)
 }

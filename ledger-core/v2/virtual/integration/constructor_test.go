@@ -44,8 +44,8 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototypeDescriptor(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCodeDescriptor(nil, insolar.MachineTypeBuiltin, gen.Reference()),
+		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
+		descriptor.NewCode(nil, insolar.MachineTypeBuiltin, gen.Reference()),
 		nil,
 	)
 

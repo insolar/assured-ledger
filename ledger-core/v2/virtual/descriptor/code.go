@@ -10,8 +10,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-// CodeDescriptor represents meta info required to fetch all code data.
-type CodeDescriptor interface {
+// Code represents meta info required to fetch all code data.
+type Code interface {
 	// Ref returns reference to represented code record.
 	Ref() reference.Global
 
@@ -22,32 +22,32 @@ type CodeDescriptor interface {
 	Code() ([]byte, error)
 }
 
-func NewCodeDescriptor(code []byte, machineType insolar.MachineType, ref reference.Global) CodeDescriptor {
-	return &codeDescriptor{
-		code:        code,
+func NewCode(content []byte, machineType insolar.MachineType, ref reference.Global) Code {
+	return &code{
+		code:        content,
 		machineType: machineType,
 		ref:         ref,
 	}
 }
 
-// CodeDescriptor represents meta info required to fetch all code data.
-type codeDescriptor struct {
+// Code represents meta info required to fetch all code data.
+type code struct {
 	code        []byte
 	machineType insolar.MachineType
 	ref         reference.Global
 }
 
 // Ref returns reference to represented code record.
-func (d *codeDescriptor) Ref() reference.Global {
+func (d *code) Ref() reference.Global {
 	return d.ref
 }
 
 // MachineType returns code machine type for represented code.
-func (d *codeDescriptor) MachineType() insolar.MachineType {
+func (d *code) MachineType() insolar.MachineType {
 	return d.machineType
 }
 
 // Code returns code data.
-func (d *codeDescriptor) Code() ([]byte, error) {
+func (d *code) Code() ([]byte, error) {
 	return d.code, nil
 }

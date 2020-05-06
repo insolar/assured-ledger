@@ -10,6 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 )
 
@@ -45,14 +46,30 @@ func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.State
 
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	catalog := object.Catalog{}
+
+	objectRef := s.Payload.Callee
+	var (
+		objectDescriptor descriptor.Object
+
+		deactivated *bool
+	)
+
 	if s.Payload.ProvidedContent == nil || s.Payload.ProvidedContent.LatestDirtyState == nil {
 		panic(throw.IllegalValue())
 	}
-	incomingObjectState := s.Payload.ProvidedContent.LatestDirtyState
 
-	objectRef := incomingObjectState.Reference
+	dirtyState := s.Payload.ProvidedContent.LatestDirtyState
+	objectDescriptor = descriptor.NewObject(
+		objectRef,
+		dirtyState.Reference,
+		dirtyState.Prototype,
+		dirtyState.State,
+		dirtyState.Parent,
+	)
+
+	deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
+
 	sharedObjectState := catalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
-
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if state.IsReady() {
@@ -61,8 +78,16 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 			})
 			return false
 		}
-		state.SetDescriptor(incomingObjectState.Prototype, incomingObjectState.State)
+
+		state.ActiveImmutablePendingCount = uint8(s.Payload.ImmutablePendingCount)
+		state.ActiveMutablePendingCount = uint8(s.Payload.MutablePendingCount)
+
+		state.SetDescriptor(objectDescriptor)
 		state.SetState(object.HasState)
+
+		if deactivated != nil {
+			state.Deactivated = *deactivated
+		}
 		return true
 	}
 

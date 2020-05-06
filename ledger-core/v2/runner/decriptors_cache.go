@@ -40,7 +40,7 @@ func (c *descriptorsCache) RegisterCallback(cb descriptor.CacheCallbackType) {
 func (c *descriptorsCache) ByPrototypeRef(
 	ctx context.Context, protoRef reference.Global,
 ) (
-	descriptor.PrototypeDescriptor, descriptor.CodeDescriptor, error,
+	descriptor.Prototype, descriptor.Code, error,
 ) {
 	protoDesc, err := c.GetPrototype(ctx, protoRef)
 	if err != nil {
@@ -57,9 +57,9 @@ func (c *descriptorsCache) ByPrototypeRef(
 }
 
 func (c *descriptorsCache) ByObjectDescriptor(
-	ctx context.Context, obj descriptor.ObjectDescriptor,
+	ctx context.Context, obj descriptor.Object,
 ) (
-	descriptor.PrototypeDescriptor, descriptor.CodeDescriptor, error,
+	descriptor.Prototype, descriptor.Code, error,
 ) {
 	protoRef, err := obj.Prototype()
 	if err != nil {
@@ -76,7 +76,7 @@ func (c *descriptorsCache) ByObjectDescriptor(
 func (c *descriptorsCache) GetPrototype(
 	ctx context.Context, ref reference.Global,
 ) (
-	descriptor.PrototypeDescriptor, error,
+	descriptor.Prototype, error,
 ) {
 	rawResult, err := c.protoCache.get(ref, func() (interface{}, error) {
 		for _, cb := range c.callbacks {
@@ -94,9 +94,9 @@ func (c *descriptorsCache) GetPrototype(
 		return nil, errors.Errorf("failed to find prototype descriptor %s", ref.String())
 	}
 
-	result, ok := rawResult.(descriptor.PrototypeDescriptor)
+	result, ok := rawResult.(descriptor.Prototype)
 	if !ok {
-		return nil, errors.Errorf("unexpected type %T, expected PrototypeDescriptor", rawResult)
+		return nil, errors.Errorf("unexpected type %T, expected Prototype", rawResult)
 	}
 
 	return result, nil
@@ -105,7 +105,7 @@ func (c *descriptorsCache) GetPrototype(
 func (c *descriptorsCache) GetCode(
 	ctx context.Context, ref reference.Global,
 ) (
-	descriptor.CodeDescriptor, error,
+	descriptor.Code, error,
 ) {
 	rawResult, err := c.codeCache.get(ref, func() (interface{}, error) {
 		for _, cb := range c.callbacks {
@@ -123,7 +123,7 @@ func (c *descriptorsCache) GetCode(
 		return nil, errors.Errorf("failed to find code descriptor %s", ref.String())
 	}
 
-	result, ok := rawResult.(descriptor.CodeDescriptor)
+	result, ok := rawResult.(descriptor.Code)
 	if !ok {
 		return nil, errors.Errorf("unexpected type %T, expected CodeDescriptor", rawResult)
 	}

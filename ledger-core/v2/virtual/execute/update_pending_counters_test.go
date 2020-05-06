@@ -171,8 +171,8 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	cacheMock := descriptor.NewCacheMock(t)
 	runnerService.Cache = cacheMock
 	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototypeDescriptor(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCodeDescriptor(nil, insolar.MachineTypeBuiltin, gen.Reference()),
+		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
+		descriptor.NewCode(nil, insolar.MachineTypeBuiltin, gen.Reference()),
 		nil,
 	)
 	runnerAdapter := adapter.CreateRunnerServiceAdapter(ctx, runnerService)

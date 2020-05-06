@@ -16,6 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
@@ -223,7 +225,7 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 }
 
 func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var objectDescriptor descriptor.ObjectDescriptor
+	var objectDescriptor descriptor.Object
 
 	action := func(state *object.SharedState) {
 		objectDescriptor = state.Descriptor()
@@ -295,19 +297,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	case insolar.RequestSideEffectNone:
 	case insolar.RequestSideEffectActivate:
 		_, prototype, memory = executionNewState.Activate()
-		action = func(state *object.SharedState) {
-			state.Info.SetDescriptor(prototype, memory)
-			state.SetState(object.HasState)
-		}
-
+		action = s.setNewState(prototype, memory)
 	case insolar.RequestSideEffectAmend:
 		_, prototype, memory = executionNewState.Amend()
-		action = func(state *object.SharedState) {
-			ctx.Log().Trace("applying new state")
-			state.Info.SetDescriptor(prototype, memory)
-			state.SetState(object.HasState)
-		}
-
+		action = s.setNewState(prototype, memory)
 	case insolar.RequestSideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
@@ -329,6 +322,32 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(state *object.SharedState) {
+	return func(state *object.SharedState) {
+
+		parentReference := reference.Global{}
+		var prevStateIDBytes []byte
+		if state.Descriptor() != nil {
+			parentReference = state.Descriptor().Parent()
+			prevStateIDBytes = state.Descriptor().StateID().AsBytes()
+		}
+
+		objectRefBytes := s.execution.Object.AsBytes()
+		stateHash := append(memory, objectRefBytes...)
+		stateHash = append(stateHash, prevStateIDBytes...)
+
+		stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+		state.Info.SetDescriptor(descriptor.NewObject(
+			s.execution.Object,
+			stateID,
+			prototype,
+			memory,
+			parentReference,
+		))
+		state.SetState(object.HasState)
+	}
 }
 
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -359,4 +378,10 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}).Send()
 
 	return ctx.Stop()
+}
+
+func NewStateID(pn pulse.Number, data []byte) reference.Local {
+	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
+	hash := hasher.Hash(data)
+	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
 }

@@ -17,7 +17,7 @@ import (
 
 // TODO[bigbes]: redo context, extract what is needed from VCallRequest to Context level and etc
 type Context struct {
-	ObjectDescriptor descriptor.ObjectDescriptor
+	ObjectDescriptor descriptor.Object
 	Context          context.Context
 	Request          *payload.VCallRequest
 	Sequence         uint32

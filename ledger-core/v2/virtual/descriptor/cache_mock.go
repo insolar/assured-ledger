@@ -16,7 +16,7 @@ import (
 type CacheMock struct {
 	t minimock.Tester
 
-	funcByPrototypeRef          func(ctx context.Context, protoRef reference.Global) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error)
+	funcByPrototypeRef          func(ctx context.Context, protoRef reference.Global) (p1 Prototype, c2 Code, err error)
 	inspectFuncByPrototypeRef   func(ctx context.Context, protoRef reference.Global)
 	afterByPrototypeRefCounter  uint64
 	beforeByPrototypeRefCounter uint64
@@ -70,8 +70,8 @@ type CacheMockByPrototypeRefParams struct {
 
 // CacheMockByPrototypeRefResults contains results of the Cache.ByPrototypeRef
 type CacheMockByPrototypeRefResults struct {
-	p1  PrototypeDescriptor
-	c2  CodeDescriptor
+	p1  Prototype
+	c2  Code
 	err error
 }
 
@@ -107,7 +107,7 @@ func (mmByPrototypeRef *mCacheMockByPrototypeRef) Inspect(f func(ctx context.Con
 }
 
 // Return sets up results that will be returned by Cache.ByPrototypeRef
-func (mmByPrototypeRef *mCacheMockByPrototypeRef) Return(p1 PrototypeDescriptor, c2 CodeDescriptor, err error) *CacheMock {
+func (mmByPrototypeRef *mCacheMockByPrototypeRef) Return(p1 Prototype, c2 Code, err error) *CacheMock {
 	if mmByPrototypeRef.mock.funcByPrototypeRef != nil {
 		mmByPrototypeRef.mock.t.Fatalf("CacheMock.ByPrototypeRef mock is already set by Set")
 	}
@@ -120,7 +120,7 @@ func (mmByPrototypeRef *mCacheMockByPrototypeRef) Return(p1 PrototypeDescriptor,
 }
 
 //Set uses given function f to mock the Cache.ByPrototypeRef method
-func (mmByPrototypeRef *mCacheMockByPrototypeRef) Set(f func(ctx context.Context, protoRef reference.Global) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error)) *CacheMock {
+func (mmByPrototypeRef *mCacheMockByPrototypeRef) Set(f func(ctx context.Context, protoRef reference.Global) (p1 Prototype, c2 Code, err error)) *CacheMock {
 	if mmByPrototypeRef.defaultExpectation != nil {
 		mmByPrototypeRef.mock.t.Fatalf("Default expectation is already set for the Cache.ByPrototypeRef method")
 	}
@@ -149,13 +149,13 @@ func (mmByPrototypeRef *mCacheMockByPrototypeRef) When(ctx context.Context, prot
 }
 
 // Then sets up Cache.ByPrototypeRef return parameters for the expectation previously defined by the When method
-func (e *CacheMockByPrototypeRefExpectation) Then(p1 PrototypeDescriptor, c2 CodeDescriptor, err error) *CacheMock {
+func (e *CacheMockByPrototypeRefExpectation) Then(p1 Prototype, c2 Code, err error) *CacheMock {
 	e.results = &CacheMockByPrototypeRefResults{p1, c2, err}
 	return e.mock
 }
 
 // ByPrototypeRef implements Cache
-func (mmByPrototypeRef *CacheMock) ByPrototypeRef(ctx context.Context, protoRef reference.Global) (p1 PrototypeDescriptor, c2 CodeDescriptor, err error) {
+func (mmByPrototypeRef *CacheMock) ByPrototypeRef(ctx context.Context, protoRef reference.Global) (p1 Prototype, c2 Code, err error) {
 	mm_atomic.AddUint64(&mmByPrototypeRef.beforeByPrototypeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmByPrototypeRef.afterByPrototypeRefCounter, 1)
 

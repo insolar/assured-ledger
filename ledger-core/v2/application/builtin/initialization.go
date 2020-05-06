@@ -59,11 +59,11 @@ func InitializePrototypeRefs() map[XXX_reference.Global]string {
 	return rv
 }
 
-func InitializeCodeDescriptors() []XXX_descriptor.CodeDescriptor {
-	rv := make([]XXX_descriptor.CodeDescriptor, 0, 1)
+func InitializeCodeDescriptors() []XXX_descriptor.Code {
+	rv := make([]XXX_descriptor.Code, 0, 1)
 
 	// testwallet
-	rv = append(rv, XXX_descriptor.NewCodeDescriptor(
+	rv = append(rv, XXX_descriptor.NewCode(
 		/* code:        */ nil,
 		/* machineType: */ XXX_insolar.MachineTypeBuiltin,
 		/* ref:         */ shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record"),
@@ -72,13 +72,13 @@ func InitializeCodeDescriptors() []XXX_descriptor.CodeDescriptor {
 	return rv
 }
 
-func InitializePrototypeDescriptors() []XXX_descriptor.PrototypeDescriptor {
-	rv := make([]XXX_descriptor.PrototypeDescriptor, 0, 1)
+func InitializePrototypeDescriptors() []XXX_descriptor.Prototype {
+	rv := make([]XXX_descriptor.Prototype, 0, 1)
 
 	{ // testwallet
 		pRef := shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 		cRef := shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")
-		rv = append(rv, XXX_descriptor.NewPrototypeDescriptor(
+		rv = append(rv, XXX_descriptor.NewPrototype(
 			/* head:         */ pRef,
 			/* state:        */ pRef.GetLocal(),
 			/* code:         */ cRef,
