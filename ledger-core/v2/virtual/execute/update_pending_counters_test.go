@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package small
+package execute
 
 import (
 	"testing"
@@ -36,7 +36,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
@@ -144,7 +143,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	}
 
 	// create primary state machine
-	smExecute := execute.SMExecute{
+	smExecute := SMExecute{
 		Payload: &vCallRequest,
 		Meta: &payload.Meta{
 			Sender: caller,
