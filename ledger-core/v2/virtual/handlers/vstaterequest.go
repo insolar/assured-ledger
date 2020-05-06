@@ -103,36 +103,28 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		}
 
 		descriptor := state.Descriptor()
-
-		stateRef := descriptor.HeadRef()
-
-		immutableCounts, _ := state.ImmutableExecute.GetCounts()
-		mutableCounts, _ := state.MutableExecute.GetCounts()
-
 		s.objectStateReport = &payload.VStateReport{
 			AsOf:                  s.Payload.AsOf,
 			Callee:                s.Payload.Callee,
-			LatestDirtyState:      stateRef,
-			ImmutablePendingCount: int32(immutableCounts),
-			MutablePendingCount:   int32(mutableCounts),
+			LatestDirtyState:      descriptor.HeadRef(),
+			ImmutablePendingCount: int32(state.ActiveImmutablePendingCount),
+			MutablePendingCount:   int32(state.ActiveMutablePendingCount),
 		}
 
 		if s.Payload.RequestedContent.Contains(payload.RequestLatestDirtyState) {
-			parent := descriptor.Parent()
-			proto, _ := descriptor.Prototype()
-
-			memory := descriptor.Memory()
+			proto, err := descriptor.Prototype()
+			if err != nil {
+				panic(throw.W(err, "failed to get prototype from descriptor", nil))
+			}
 
 			s.objectStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
-					Reference:   stateRef,
-					Parent:      parent,
-					State:       memory,
+					Reference:   descriptor.StateID(),
+					Parent:      descriptor.Parent(),
+					Prototype:   proto,
+					State:       descriptor.Memory(),
 					Deactivated: state.Deactivated,
 				},
-			}
-			if !proto.IsEmpty() {
-				s.objectStateReport.ProvidedContent.LatestDirtyState.Prototype = proto
 			}
 		}
 	}

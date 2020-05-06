@@ -32,7 +32,7 @@ const (
 
 type Info struct {
 	Reference   reference.Global
-	descriptor  descriptor.ObjectDescriptor
+	descriptor  descriptor.Object
 	Deactivated bool
 
 	ImmutableExecute smachine.SyncLink
@@ -67,17 +67,15 @@ func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
 	}
 }
 
-func (i *Info) SetDescriptor(prototype reference.Global, memory []byte) {
-	i.descriptor = descriptor.NewObjectDescriptor(
-		i.Reference, reference.Local{}, prototype, memory, reference.Global{}, reference.Local{},
-	)
+func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
+	i.descriptor = objectDescriptor
 }
 
 func (i *Info) Deactivate() {
 	i.Deactivated = true
 }
 
-func (i *Info) Descriptor() descriptor.ObjectDescriptor {
+func (i *Info) Descriptor() descriptor.Object {
 	return i.descriptor
 }
 

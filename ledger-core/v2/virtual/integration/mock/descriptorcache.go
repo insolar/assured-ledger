@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package utils
+package mock
 
 import (
 	"context"
@@ -18,8 +18,8 @@ import (
 )
 
 type descriptorPair struct {
-	proto descriptor.PrototypeDescriptor
-	code  descriptor.CodeDescriptor
+	proto descriptor.Prototype
+	code  descriptor.Code
 }
 
 type DescriptorCacheMockWrapper struct {
@@ -46,8 +46,8 @@ func (w *DescriptorCacheMockWrapper) byPrototypeRefImpl(
 	_ context.Context,
 	protoRef reference.Global,
 ) (
-	descriptor.PrototypeDescriptor,
-	descriptor.CodeDescriptor,
+	descriptor.Prototype,
+	descriptor.Code,
 	error,
 ) {
 	if pair, ok := w.Prototypes[protoRef]; ok {
@@ -61,7 +61,6 @@ func (w *DescriptorCacheMockWrapper) byPrototypeRefImpl(
 	return nil, nil, errors.New("object not found")
 }
 
-// nolint:unused
 func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
 	head reference.Global,
 	state reference.Local,
@@ -72,7 +71,7 @@ func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
 	}
 
 	w.Prototypes[head] = descriptorPair{
-		proto: descriptor.NewPrototypeDescriptor(head, state, code),
-		code:  descriptor.NewCodeDescriptor(gen.Reference().AsBytes(), insolar.MachineTypeBuiltin, code),
+		proto: descriptor.NewPrototype(head, state, code),
+		code:  descriptor.NewCode(gen.Reference().AsBytes(), insolar.MachineTypeBuiltin, code),
 	}
 }
