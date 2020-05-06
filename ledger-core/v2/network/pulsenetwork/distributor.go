@@ -29,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/sequence"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -108,7 +109,7 @@ func (d *distributor) Start(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "[ NewDistributor ] failed to create pulsar host")
 	}
-	pulsarHost.NodeID = *insolar.NewEmptyReference()
+	pulsarHost.NodeID = reference.Global{}
 
 	d.pulsarHost = pulsarHost
 	return nil

@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
@@ -25,12 +24,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/pool"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/sequence"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // NewHostNetwork constructor creates new NewHostNetwork component
 func NewHostNetwork(nodeRef string) (network.HostNetwork, error) {
 
-	id, err := insolar.NewReferenceFromString(nodeRef)
+	id, err := reference.GlobalFromString(nodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid nodeRef")
 	}
@@ -40,7 +40,7 @@ func NewHostNetwork(nodeRef string) (network.HostNetwork, error) {
 	result := &hostNetwork{
 		handlers:          make(map[types.PacketType]network.RequestHandler),
 		sequenceGenerator: sequence.NewGenerator(),
-		nodeID:            *id,
+		nodeID:            id,
 		futureManager:     futureManager,
 		responseHandler:   future.NewPacketHandler(futureManager),
 	}
@@ -52,7 +52,7 @@ type hostNetwork struct {
 	Resolver network.RoutingTable `inject:""`
 	Factory  transport.Factory    `inject:""`
 
-	nodeID            insolar.Reference
+	nodeID            reference.Global
 	started           uint32
 	transport         transport.StreamTransport
 	sequenceGenerator sequence.Generator
@@ -220,7 +220,7 @@ func (hn *hostNetwork) BuildResponse(ctx context.Context, request network.Packet
 
 // SendRequest send request to a remote node.
 func (hn *hostNetwork) SendRequest(ctx context.Context, packetType types.PacketType,
-	requestData interface{}, receiver insolar.Reference) (network.Future, error) {
+	requestData interface{}, receiver reference.Global) (network.Future, error) {
 
 	h, err := hn.Resolver.Resolve(receiver)
 	if err != nil {

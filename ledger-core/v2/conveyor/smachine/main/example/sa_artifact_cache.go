@@ -13,13 +13,13 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type ArtifactCacheID string
 
 type ArtifactCacheService interface {
-	Set(objectID insolar.ID, object []byte) ArtifactCacheID
+	Set(objectID reference.Local, object []byte) ArtifactCacheID
 	SetRandomID(object []byte) (ArtifactCacheID, error)
 	Get(id ArtifactCacheID) ([]byte, bool)
 }
@@ -61,7 +61,7 @@ type unlimitedArtifactCacheService struct {
 	cache map[ArtifactCacheID][]byte
 }
 
-func (a *unlimitedArtifactCacheService) Set(objectID insolar.ID, object []byte) ArtifactCacheID {
+func (a *unlimitedArtifactCacheService) Set(objectID reference.Local, object []byte) ArtifactCacheID {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 

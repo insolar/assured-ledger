@@ -41,7 +41,7 @@ func (hc *HealthChecker) CheckHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, node := range hc.CertificateManager.GetCertificate().GetDiscoveryNodes() {
-		if hc.NodeNetwork.GetAccessor(p.PulseNumber).GetWorkingNode(*node.GetNodeRef()) == nil {
+		if hc.NodeNetwork.GetAccessor(p.PulseNumber).GetWorkingNode(node.GetNodeRef()) == nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("FAIL"))
 			return

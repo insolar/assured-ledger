@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
@@ -79,7 +80,7 @@ type CandidateProfileMock struct {
 	beforeGetPrimaryRoleCounter uint64
 	GetPrimaryRoleMock          mCandidateProfileMockGetPrimaryRole
 
-	funcGetReference          func() (r1 insolar.Reference)
+	funcGetReference          func() (g1 reference.Global)
 	inspectFuncGetReference   func()
 	afterGetReferenceCounter  uint64
 	beforeGetReferenceCounter uint64
@@ -1588,7 +1589,7 @@ type CandidateProfileMockGetReferenceExpectation struct {
 
 // CandidateProfileMockGetReferenceResults contains results of the CandidateProfile.GetReference
 type CandidateProfileMockGetReferenceResults struct {
-	r1 insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for CandidateProfile.GetReference
@@ -1616,7 +1617,7 @@ func (mmGetReference *mCandidateProfileMockGetReference) Inspect(f func()) *mCan
 }
 
 // Return sets up results that will be returned by CandidateProfile.GetReference
-func (mmGetReference *mCandidateProfileMockGetReference) Return(r1 insolar.Reference) *CandidateProfileMock {
+func (mmGetReference *mCandidateProfileMockGetReference) Return(g1 reference.Global) *CandidateProfileMock {
 	if mmGetReference.mock.funcGetReference != nil {
 		mmGetReference.mock.t.Fatalf("CandidateProfileMock.GetReference mock is already set by Set")
 	}
@@ -1624,12 +1625,12 @@ func (mmGetReference *mCandidateProfileMockGetReference) Return(r1 insolar.Refer
 	if mmGetReference.defaultExpectation == nil {
 		mmGetReference.defaultExpectation = &CandidateProfileMockGetReferenceExpectation{mock: mmGetReference.mock}
 	}
-	mmGetReference.defaultExpectation.results = &CandidateProfileMockGetReferenceResults{r1}
+	mmGetReference.defaultExpectation.results = &CandidateProfileMockGetReferenceResults{g1}
 	return mmGetReference.mock
 }
 
 //Set uses given function f to mock the CandidateProfile.GetReference method
-func (mmGetReference *mCandidateProfileMockGetReference) Set(f func() (r1 insolar.Reference)) *CandidateProfileMock {
+func (mmGetReference *mCandidateProfileMockGetReference) Set(f func() (g1 reference.Global)) *CandidateProfileMock {
 	if mmGetReference.defaultExpectation != nil {
 		mmGetReference.mock.t.Fatalf("Default expectation is already set for the CandidateProfile.GetReference method")
 	}
@@ -1643,7 +1644,7 @@ func (mmGetReference *mCandidateProfileMockGetReference) Set(f func() (r1 insola
 }
 
 // GetReference implements CandidateProfile
-func (mmGetReference *CandidateProfileMock) GetReference() (r1 insolar.Reference) {
+func (mmGetReference *CandidateProfileMock) GetReference() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetReference.beforeGetReferenceCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetReference.afterGetReferenceCounter, 1)
 
@@ -1658,7 +1659,7 @@ func (mmGetReference *CandidateProfileMock) GetReference() (r1 insolar.Reference
 		if mm_results == nil {
 			mmGetReference.t.Fatal("No results are set for the CandidateProfileMock.GetReference")
 		}
-		return (*mm_results).r1
+		return (*mm_results).g1
 	}
 	if mmGetReference.funcGetReference != nil {
 		return mmGetReference.funcGetReference()

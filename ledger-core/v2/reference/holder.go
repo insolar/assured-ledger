@@ -7,7 +7,7 @@ package reference
 
 type LocalHolder interface {
 	// GetLocal returns local portion of a full reference
-	GetLocal() *Local
+	GetLocal() Local
 
 	IsEmpty() bool
 }
@@ -18,7 +18,15 @@ type Holder interface {
 	GetScope() Scope
 
 	// GetBase returns base portion of a full reference
-	GetBase() *Local
+	GetBase() Local
+}
+
+type PtrHolder interface {
+	Holder
+
+	// GetBase returns base portion of a full reference
+	GetLocalPtr() *Local
+	GetBasePtr() *Local
 }
 
 func IsRecordScope(ref Holder) bool {
@@ -30,7 +38,7 @@ func IsObjectReference(ref Holder) bool {
 }
 
 func IsSelfScope(ref Holder) bool {
-	return ref.GetBase() == ref.GetLocal() || *ref.GetBase() == *ref.GetLocal()
+	return ref.GetBase() == ref.GetLocal()
 }
 
 func IsLifelineScope(ref Holder) bool {
@@ -46,29 +54,27 @@ func IsGlobalScope(ref Holder) bool {
 }
 
 func Equal(ref0, ref1 Holder) bool {
-	if p := ref1.GetLocal(); p == nil || !p.EqualPtr(ref0.GetLocal()) {
+	switch {
+	case ref0 == nil || ref1 == nil:
 		return false
-	}
-	if p := ref1.GetBase(); p == nil || !p.EqualPtr(ref0.GetBase()) {
+	case ref1.GetLocal() != ref0.GetLocal():
 		return false
+	default:
+		return ref1.GetBase() == ref0.GetBase()
 	}
-	return true
 }
 
 func Compare(ref0, ref1 Holder) int {
-	if cmp := ref0.GetBase().Compare(*ref1.GetBase()); cmp != 0 {
+	switch {
+	case ref0 == ref1:
+		return 0
+	case ref0 == nil:
+		return -1
+	case ref1 == nil:
+		return 1
+	}
+	if cmp := ref0.GetBase().Compare(ref1.GetBase()); cmp != 0 {
 		return cmp
 	}
-	return ref0.GetLocal().Compare(*ref1.GetLocal())
-}
-
-func ReadTo(h Holder, b []byte) (int, error) {
-	n, err := h.GetLocal().Read(b)
-	if err != nil || n < LocalBinarySize {
-		return n, err
-	}
-
-	n2 := 0
-	n2, err = h.GetBase().Read(b[n:])
-	return n + n2, err
+	return ref0.GetLocal().Compare(ref1.GetLocal())
 }

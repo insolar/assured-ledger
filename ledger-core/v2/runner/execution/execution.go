@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -22,9 +23,9 @@ type Context struct {
 	Sequence         uint32
 	Pulse            pulse.Data
 
-	Object   insolar.Reference
-	Incoming insolar.Reference
-	Outgoing insolar.Reference
+	Object   reference.Global
+	Incoming reference.Global
+	Outgoing reference.Global
 
 	Unordered bool
 

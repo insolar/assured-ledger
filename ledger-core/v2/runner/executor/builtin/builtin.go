@@ -13,29 +13,30 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
 // Runner is a contract runner engine
 type Runner struct {
-	DescriptorRegistry   map[insolar.Reference]interface{}
+	DescriptorRegistry   map[reference.Global]interface{}
 	CodeRegistry         map[string]insolar.ContractWrapper
-	CodeRefRegistry      map[insolar.Reference]string
-	PrototypeRefRegistry map[insolar.Reference]string
+	CodeRefRegistry      map[reference.Global]string
+	PrototypeRefRegistry map[reference.Global]string
 }
 
 // New is an constructor
 func New(stub common.RunnerRPCStub) *Runner {
 	common.CurrentProxyCtx = NewProxyHelper(stub)
 
-	descriptorRegistry := make(map[insolar.Reference]interface{})
+	descriptorRegistry := make(map[reference.Global]interface{})
 
 	for _, prototypeDescriptor := range builtin.InitializePrototypeDescriptors() {
-		descriptorRegistry[*prototypeDescriptor.HeadRef()] = prototypeDescriptor
+		descriptorRegistry[prototypeDescriptor.HeadRef()] = prototypeDescriptor
 	}
 	for _, codeDescriptor := range builtin.InitializeCodeDescriptors() {
-		descriptorRegistry[*codeDescriptor.Ref()] = codeDescriptor
+		descriptorRegistry[codeDescriptor.Ref()] = codeDescriptor
 	}
 
 	return &Runner{
@@ -49,7 +50,7 @@ func New(stub common.RunnerRPCStub) *Runner {
 func (b *Runner) CallConstructor(
 	_ context.Context,
 	callCtx *insolar.LogicCallContext,
-	codeRef insolar.Reference,
+	codeRef reference.Global,
 	name string,
 	args insolar.Arguments,
 ) ([]byte, insolar.Arguments, error) {
@@ -67,13 +68,13 @@ func (b *Runner) CallConstructor(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	return constructorFunc(*callCtx.Callee, args)
+	return constructorFunc(callCtx.Callee, args)
 }
 
 func (b *Runner) CallMethod(
 	_ context.Context,
 	callCtx *insolar.LogicCallContext,
-	codeRef insolar.Reference,
+	codeRef reference.Global,
 	data []byte,
 	method string,
 	args insolar.Arguments,
@@ -109,6 +110,6 @@ func (b *Runner) CallMethod(
 	return methodObject.Func(data, args)
 }
 
-func (b *Runner) GetDescriptor(ref insolar.Reference) (interface{}, error) {
+func (b *Runner) GetDescriptor(ref reference.Global) (interface{}, error) {
 	return b.DescriptorRegistry[ref], nil
 }

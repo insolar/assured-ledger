@@ -5,7 +5,7 @@
 
 package reference
 
-func Empty() Holder {
+func Empty() PtrHolder {
 	return emptyHolder
 }
 
@@ -13,25 +13,25 @@ func EmptyLocal() *Local {
 	return &emptyLocal
 }
 
-func NewRecord(local Local) Holder {
+func NewPtrRecord(local Local) PtrHolder {
 	if local.IsEmpty() {
 		return Empty()
 	}
 	return NewNoCopy(&local, &emptyLocal)
 }
 
-func NewSelf(local Local) Holder {
+func NewPtrSelf(local Local) PtrHolder {
 	if local.IsEmpty() {
 		return Empty()
 	}
 	return compact{&local, &local}
 }
 
-func New(local, base Local) Holder {
+func NewPtrHolder(local, base Local) PtrHolder {
 	return NewNoCopy(&local, &base)
 }
 
-func NewNoCopy(local, base *Local) Holder {
+func NewNoCopy(local, base *Local) PtrHolder {
 	switch {
 	case local.IsEmpty():
 		if base.IsEmpty() {
@@ -61,13 +61,27 @@ func (v compact) IsEmpty() bool {
 }
 
 func (v compact) GetScope() Scope {
-	return v.addressBase.SubScope().AsBaseOf(v.addressLocal.SubScope())
+	return v.GetBase().SubScope().AsBaseOf(v.GetLocal().SubScope())
 }
 
-func (v compact) GetBase() *Local {
-	return v.addressBase
+func (v compact) GetBase() Local {
+	if v.addressBase == nil {
+		return Local{}
+	}
+	return *v.addressBase
 }
 
-func (v compact) GetLocal() *Local {
+func (v compact) GetLocal() Local {
+	if v.addressLocal == nil {
+		return Local{}
+	}
+	return *v.addressLocal
+}
+
+func (v compact) GetLocalPtr() *Local {
 	return v.addressLocal
+}
+
+func (v compact) GetBasePtr() *Local {
+	return v.addressBase
 }

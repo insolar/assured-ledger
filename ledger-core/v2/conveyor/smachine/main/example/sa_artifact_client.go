@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type ArtifactClientService interface {
@@ -17,7 +17,7 @@ type ArtifactClientService interface {
 }
 
 type ArtifactBinary interface {
-	GetReference() insolar.Reference
+	GetReference() reference.Global
 	GetCacheId() ArtifactCacheID
 }
 

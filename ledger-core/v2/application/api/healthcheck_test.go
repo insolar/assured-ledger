@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -52,8 +53,8 @@ func randomNodeList(t *testing.T, size int) []insolar.DiscoveryNode {
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
 		r := gen.Reference()
-		dn.GetNodeRefMock.Set(func() *insolar.Reference {
-			return &r
+		dn.GetNodeRefMock.Set(func() reference.Global {
+			return r
 		})
 		list[i] = dn
 	}
@@ -74,13 +75,13 @@ func mockCertManager(t *testing.T, nodeList []insolar.DiscoveryNode) *testutils.
 
 func mockNodeNetwork(t *testing.T, nodeList []insolar.DiscoveryNode) *network.NodeNetworkMock {
 	nn := network.NewNodeNetworkMock(t)
-	nodeMap := make(map[insolar.Reference]insolar.DiscoveryNode)
+	nodeMap := make(map[reference.Global]insolar.DiscoveryNode)
 	for _, node := range nodeList {
-		nodeMap[*node.GetNodeRef()] = node
+		nodeMap[node.GetNodeRef()] = node
 	}
 
 	accessorMock := network.NewAccessorMock(t)
-	accessorMock.GetWorkingNodeMock.Set(func(ref insolar.Reference) insolar.NetworkNode {
+	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) insolar.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return network.NewNetworkNodeMock(t)
 		}

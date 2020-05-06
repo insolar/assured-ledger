@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func (g *certGen) generateKeys() {
@@ -41,7 +42,7 @@ func (g *certGen) loadKeys() {
 	g.pubKey = g.keyProcessor.ExtractPublicKey(g.privKey)
 }
 
-func extractReference(response []byte, requestTypeMsg string) insolar.Reference {
+func extractReference(response []byte, requestTypeMsg string) reference.Global {
 	r := requester.ContractResponse{}
 	err := json.Unmarshal(response, &r)
 	checkError(fmt.Sprintf("Failed to parse response from '%s' node request", requestTypeMsg), err)
@@ -53,13 +54,13 @@ func extractReference(response []byte, requestTypeMsg string) insolar.Reference 
 		os.Exit(1)
 	}
 
-	ref, err := insolar.NewReferenceFromString(r.Result.CallResult.(string))
+	ref, err := reference.GlobalFromString(r.Result.CallResult.(string))
 	checkError(fmt.Sprintf("Failed to construct ref from '%s' node response", requestTypeMsg), err)
 
-	return *ref
+	return ref
 }
 
-func (g *certGen) registerNode() insolar.Reference {
+func (g *certGen) registerNode() reference.Global {
 	userCfg := g.getUserConfig()
 
 	keySerialized, err := g.keyProcessor.ExportPublicKeyPEM(g.pubKey)
@@ -92,7 +93,7 @@ type GetCertificateResponse struct {
 	Error   ErrorData            `json:"error"`
 }
 
-func (g *certGen) fetchCertificate(ref insolar.Reference) []byte {
+func (g *certGen) fetchCertificate(ref reference.Global) []byte {
 
 	response, err := requester.GetResponseBodyPlatform(g.API, "cert.get", map[string]string{"ref": ref.String()})
 	checkError("Failed to get certificate for the registered node:", err)
@@ -165,7 +166,7 @@ func (g *certGen) getUserConfig() *requester.UserConfigJSON {
 	return userCfg
 }
 
-func (g *certGen) getNodeRefByPublicKey() insolar.Reference {
+func (g *certGen) getNodeRefByPublicKey() reference.Global {
 	userCfg := g.getUserConfig()
 
 	keySerialized, err := g.keyProcessor.ExportPublicKeyPEM(g.privKey)
@@ -221,7 +222,7 @@ func genCertificate(
 		certFileOut:  certFile,
 	}
 
-	var ref insolar.Reference
+	var ref reference.Global
 	if reuseKeys {
 		g.loadKeys()
 		ref = g.getNodeRefByPublicKey()

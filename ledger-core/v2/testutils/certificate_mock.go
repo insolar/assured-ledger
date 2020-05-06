@@ -9,6 +9,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // CertificateMock implements insolar.Certificate
@@ -21,7 +22,7 @@ type CertificateMock struct {
 	beforeGetDiscoveryNodesCounter uint64
 	GetDiscoveryNodesMock          mCertificateMockGetDiscoveryNodes
 
-	funcGetDiscoverySigns          func() (m1 map[mm_insolar.Reference][]byte)
+	funcGetDiscoverySigns          func() (m1 map[reference.Global][]byte)
 	inspectFuncGetDiscoverySigns   func()
 	afterGetDiscoverySignsCounter  uint64
 	beforeGetDiscoverySignsCounter uint64
@@ -39,7 +40,7 @@ type CertificateMock struct {
 	beforeGetMinRolesCounter uint64
 	GetMinRolesMock          mCertificateMockGetMinRoles
 
-	funcGetNodeRef          func() (rp1 *mm_insolar.Reference)
+	funcGetNodeRef          func() (g1 reference.Global)
 	inspectFuncGetNodeRef   func()
 	afterGetNodeRefCounter  uint64
 	beforeGetNodeRefCounter uint64
@@ -249,7 +250,7 @@ type CertificateMockGetDiscoverySignsExpectation struct {
 
 // CertificateMockGetDiscoverySignsResults contains results of the Certificate.GetDiscoverySigns
 type CertificateMockGetDiscoverySignsResults struct {
-	m1 map[mm_insolar.Reference][]byte
+	m1 map[reference.Global][]byte
 }
 
 // Expect sets up expected params for Certificate.GetDiscoverySigns
@@ -277,7 +278,7 @@ func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Inspect(f func()) 
 }
 
 // Return sets up results that will be returned by Certificate.GetDiscoverySigns
-func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Return(m1 map[mm_insolar.Reference][]byte) *CertificateMock {
+func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Return(m1 map[reference.Global][]byte) *CertificateMock {
 	if mmGetDiscoverySigns.mock.funcGetDiscoverySigns != nil {
 		mmGetDiscoverySigns.mock.t.Fatalf("CertificateMock.GetDiscoverySigns mock is already set by Set")
 	}
@@ -290,7 +291,7 @@ func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Return(m1 map[mm_i
 }
 
 //Set uses given function f to mock the Certificate.GetDiscoverySigns method
-func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Set(f func() (m1 map[mm_insolar.Reference][]byte)) *CertificateMock {
+func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Set(f func() (m1 map[reference.Global][]byte)) *CertificateMock {
 	if mmGetDiscoverySigns.defaultExpectation != nil {
 		mmGetDiscoverySigns.mock.t.Fatalf("Default expectation is already set for the Certificate.GetDiscoverySigns method")
 	}
@@ -304,7 +305,7 @@ func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Set(f func() (m1 m
 }
 
 // GetDiscoverySigns implements insolar.Certificate
-func (mmGetDiscoverySigns *CertificateMock) GetDiscoverySigns() (m1 map[mm_insolar.Reference][]byte) {
+func (mmGetDiscoverySigns *CertificateMock) GetDiscoverySigns() (m1 map[reference.Global][]byte) {
 	mm_atomic.AddUint64(&mmGetDiscoverySigns.beforeGetDiscoverySignsCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetDiscoverySigns.afterGetDiscoverySignsCounter, 1)
 
@@ -680,7 +681,7 @@ type CertificateMockGetNodeRefExpectation struct {
 
 // CertificateMockGetNodeRefResults contains results of the Certificate.GetNodeRef
 type CertificateMockGetNodeRefResults struct {
-	rp1 *mm_insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for Certificate.GetNodeRef
@@ -708,7 +709,7 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Inspect(f func()) *mCertificateM
 }
 
 // Return sets up results that will be returned by Certificate.GetNodeRef
-func (mmGetNodeRef *mCertificateMockGetNodeRef) Return(rp1 *mm_insolar.Reference) *CertificateMock {
+func (mmGetNodeRef *mCertificateMockGetNodeRef) Return(g1 reference.Global) *CertificateMock {
 	if mmGetNodeRef.mock.funcGetNodeRef != nil {
 		mmGetNodeRef.mock.t.Fatalf("CertificateMock.GetNodeRef mock is already set by Set")
 	}
@@ -716,12 +717,12 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Return(rp1 *mm_insolar.Reference
 	if mmGetNodeRef.defaultExpectation == nil {
 		mmGetNodeRef.defaultExpectation = &CertificateMockGetNodeRefExpectation{mock: mmGetNodeRef.mock}
 	}
-	mmGetNodeRef.defaultExpectation.results = &CertificateMockGetNodeRefResults{rp1}
+	mmGetNodeRef.defaultExpectation.results = &CertificateMockGetNodeRefResults{g1}
 	return mmGetNodeRef.mock
 }
 
 //Set uses given function f to mock the Certificate.GetNodeRef method
-func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (rp1 *mm_insolar.Reference)) *CertificateMock {
+func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (g1 reference.Global)) *CertificateMock {
 	if mmGetNodeRef.defaultExpectation != nil {
 		mmGetNodeRef.mock.t.Fatalf("Default expectation is already set for the Certificate.GetNodeRef method")
 	}
@@ -735,7 +736,7 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (rp1 *mm_insolar.Re
 }
 
 // GetNodeRef implements insolar.Certificate
-func (mmGetNodeRef *CertificateMock) GetNodeRef() (rp1 *mm_insolar.Reference) {
+func (mmGetNodeRef *CertificateMock) GetNodeRef() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetNodeRef.beforeGetNodeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeRef.afterGetNodeRefCounter, 1)
 
@@ -750,7 +751,7 @@ func (mmGetNodeRef *CertificateMock) GetNodeRef() (rp1 *mm_insolar.Reference) {
 		if mm_results == nil {
 			mmGetNodeRef.t.Fatal("No results are set for the CertificateMock.GetNodeRef")
 		}
-		return (*mm_results).rp1
+		return (*mm_results).g1
 	}
 	if mmGetNodeRef.funcGetNodeRef != nil {
 		return mmGetNodeRef.funcGetNodeRef()

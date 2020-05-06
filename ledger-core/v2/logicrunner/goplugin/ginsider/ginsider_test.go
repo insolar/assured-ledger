@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
@@ -72,11 +73,11 @@ func TestHealthCheck(t *testing.T) {
 	gi := NewGoInsider(tmpDir, protocol, socket)
 
 	refString := "insolar:1MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI"
-	ref, err := insolar.NewReferenceFromString(refString)
+	ref, err := reference.GlobalFromString(refString)
 	require.NoError(t, err)
 
 	healthcheckSoFile := path.Join(tmpDir, "healthcheck.so")
-	err = gi.AddPlugin(*ref, healthcheckSoFile)
+	err = gi.AddPlugin(ref, healthcheckSoFile)
 	require.NoError(t, err, "failed to add plugin by path "+healthcheckSoFile)
 
 	prepareGoInsider(t, gi, protocol, socket)

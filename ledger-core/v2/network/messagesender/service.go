@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/pkg/errors"
 )
@@ -44,8 +45,8 @@ func WithSyncBody() SendOption {
 
 type Service interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn insolar.PulseNumber, opts ...SendOption) error
-	SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error
+	SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error
+	SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error
 }
 
 type DefaultService struct {
@@ -62,13 +63,13 @@ func NewDefaultService(pub message.Publisher, coordinator jet.Coordinator, pulse
 	}
 }
 
-func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object insolar.Reference, pn insolar.PulseNumber, opts ...SendOption) error {
+func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
 	}
 
-	nodes, err := dm.coordinator.QueryRole(ctx, role, *object.GetLocal(), pn)
+	nodes, err := dm.coordinator.QueryRole(ctx, role, object.GetLocal(), pn)
 	if err != nil {
 		return errors.Wrap(err, "failed to calculate role")
 	}
@@ -76,7 +77,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 	return dm.sendTarget(ctx, waterMillMsg, nodes[0], pn)
 }
 
-func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target insolar.Reference, opts ...SendOption) error {
+func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
@@ -98,7 +99,7 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler,
 const TopicOutgoing = "TopicOutgoing"
 
 func (dm *DefaultService) sendTarget(
-	ctx context.Context, msg *message.Message, target insolar.Reference, pulse insolar.PulseNumber,
+	ctx context.Context, msg *message.Message, target reference.Global, pulse insolar.PulseNumber,
 ) error {
 
 	ctx, logger := inslogger.WithField(ctx, "sending_uuid", msg.UUID)
@@ -132,7 +133,7 @@ func (dm *DefaultService) sendTarget(
 // Note: this method has side effect - msg-argument mutating
 func (dm *DefaultService) wrapMeta(
 	msg *message.Message,
-	receiver insolar.Reference,
+	receiver reference.Global,
 	originHash payload.MessageHash,
 	pulse insolar.PulseNumber,
 ) (payload.Meta, *message.Message, error) {

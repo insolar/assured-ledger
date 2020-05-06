@@ -9,6 +9,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // MachineType is a type of virtual machine
@@ -33,14 +35,14 @@ func (m MachineType) Equal(other MachineType) bool {
 type MachineLogicExecutor interface {
 	CallMethod(
 		ctx context.Context, callContext *LogicCallContext,
-		code Reference, data []byte,
+		code reference.Global, data []byte,
 		method string, args Arguments,
 	) (
 		newObjectState []byte, methodResults Arguments, err error,
 	)
 	CallConstructor(
 		ctx context.Context, callContext *LogicCallContext,
-		code Reference, name string, args Arguments,
+		code reference.Global, name string, args Arguments,
 	) (
 		objectState []byte, result Arguments, err error,
 	)
@@ -80,18 +82,18 @@ type LogicCallContext struct {
 	ID   uuid.UUID
 	Mode CallMode // either "execution" or "validation"
 
-	Request *Reference // reference of incoming request record
+	Request reference.Global // reference of incoming request record
 
-	Callee    *Reference // Contract that is called
-	Parent    *Reference // Parent of the callee
-	Prototype *Reference // Prototype (base class) of the callee
-	Code      *Reference // Code reference of the callee
+	Callee    reference.Global // Contract that is called
+	Parent    reference.Global // Parent of the callee
+	Prototype reference.Global // Prototype (base class) of the callee
+	Code      reference.Global // Code reference of the callee
 
-	Caller          *Reference // Contract that made the call
-	CallerPrototype *Reference // Prototype (base class) of the caller
+	Caller          reference.Global // Contract that made the call
+	CallerPrototype reference.Global // Prototype (base class) of the caller
 
 	TraceID   string // trace mark for Jaeger and friends
-	Pulse     Pulse  // prefetched pulse for call context
+	Pulse     Pulse  // pre-fetched pulse for call context
 	Unordered bool
 }
 
@@ -108,7 +110,7 @@ type ContractMethod struct {
 type ContractMethods map[string]ContractMethod
 
 // ContractConstructor is a typedef of typical contract constructor
-type ContractConstructor func(ref Reference, args []byte) (state []byte, result []byte, err error)
+type ContractConstructor func(ref reference.Global, args []byte) (state []byte, result []byte, err error)
 
 // ContractConstructors maps name to contract constructor
 type ContractConstructors map[string]ContractConstructor

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
@@ -21,7 +22,7 @@ func TestDecoder_Decode_legacy(t *testing.T) {
 		dec := NewDefaultDecoder(AllowLegacy)
 		global, err := dec.Decode(legacyReference_ok)
 		if assert.NoError(t, err) {
-			assert.Equal(t, *global.GetLocal(), *global.GetBase())
+			assert.Equal(t, global.GetLocal(), global.GetBase())
 			assert.Equal(t, pulse.Number(65537), global.GetLocal().GetPulseNumber())
 			assert.Equal(t, SubScope(0x0), global.GetBase().SubScope())
 		}
@@ -324,4 +325,10 @@ func TestCycle(t *testing.T) {
 
 	assert.Equal(t, inp, out)
 
+}
+
+func TestDecoderZero(t *testing.T) {
+	v, err := DefaultDecoder().Decode("0")
+	require.NoError(t, err)
+	require.Equal(t, Global{}, v)
 }

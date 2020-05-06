@@ -128,14 +128,14 @@ func generateCallContext(
 		ID:   id,
 		Mode: insolar.ExecuteCallMode,
 
-		Callee:    nil, // below
+		// Callee:    reference.Global{}, // is assigned below
 		Prototype: protoDesc.HeadRef(),
 		Code:      codeDesc.Ref(),
 
-		Caller:          &request.Caller,
-		CallerPrototype: &request.CallSiteDeclaration,
+		Caller:          request.Caller,
+		CallerPrototype: request.CallSiteDeclaration,
 
-		Request: &execution.Incoming,
+		Request: execution.Incoming,
 
 		TraceID: inslogger.TraceID(ctx),
 	}
@@ -145,7 +145,7 @@ func generateCallContext(
 		// should be the same as request.Object
 		res.Callee = oDesc.HeadRef()
 	} else {
-		res.Callee = &execution.Object
+		res.Callee = execution.Object
 	}
 
 	res.Unordered = execution.Unordered
@@ -172,11 +172,11 @@ func (r *DefaultService) executeMethod(
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't get prototype reference")
 	}
-	if prototypeReference == nil {
+	if prototypeReference.IsEmpty() {
 		panic(throw.IllegalState())
 	}
 
-	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, *prototypeReference)
+	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, prototypeReference)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't get descriptors")
 	}
@@ -189,7 +189,7 @@ func (r *DefaultService) executeMethod(
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
 
 	newData, result, err := codeExecutor.CallMethod(
-		ctx, logicContext, *codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
+		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "execution error")
@@ -202,7 +202,7 @@ func (r *DefaultService) executeMethod(
 	}
 
 	// form and return result
-	res := requestresult.New(result, *objectDescriptor.HeadRef())
+	res := requestresult.New(result, objectDescriptor.HeadRef())
 
 	if !bytes.Equal(objectDescriptor.Memory(), newData) {
 		res.SetAmend(objectDescriptor, newData)
@@ -236,7 +236,7 @@ func (r *DefaultService) executeConstructor(
 
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
 
-	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, *codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
+	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
 		return nil, errors.Wrap(err, "execution error")
 	}

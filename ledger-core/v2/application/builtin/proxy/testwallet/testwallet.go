@@ -20,20 +20,20 @@
 package testwallet
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 )
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = insolar.NewObjectReferenceFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+var PrototypeReference, _ = reference.GlobalFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
 // Wallet holds proxy type
 type Wallet struct {
-	Reference insolar.Reference
-	Prototype insolar.Reference
-	Code      insolar.Reference
+	Reference reference.Global
+	Prototype reference.Global
+	Code      reference.Global
 }
 
 // ContractConstructorHolder holds logic with object construction
@@ -43,13 +43,13 @@ type ContractConstructorHolder struct {
 }
 
 // AsChild saves object as child
-func (r *ContractConstructorHolder) AsChild(objRef insolar.Reference) (*Wallet, error) {
-	ret, err := common.CurrentProxyCtx.SaveAsChild(objRef, *PrototypeReference, r.constructorName, r.argsSerialized)
+func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, error) {
+	ret, err := common.CurrentProxyCtx.SaveAsChild(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
 	}
 
-	var ref insolar.Reference
+	var ref reference.Global
 	var constructorError *foundation.Error
 	resultContainer := foundation.Result{
 		Returns: []interface{}{&ref, &constructorError},
@@ -71,7 +71,7 @@ func (r *ContractConstructorHolder) AsChild(objRef insolar.Reference) (*Wallet, 
 }
 
 // GetObject returns proxy object
-func GetObject(ref insolar.Reference) *Wallet {
+func GetObject(ref reference.Global) *Wallet {
 	if !ref.IsObjectReference() {
 		return nil
 	}
@@ -79,8 +79,8 @@ func GetObject(ref insolar.Reference) *Wallet {
 }
 
 // GetPrototype returns reference to the prototype
-func GetPrototype() insolar.Reference {
-	return *PrototypeReference
+func GetPrototype() reference.Global {
+	return PrototypeReference
 }
 
 // New is constructor
@@ -97,20 +97,20 @@ func New() *ContractConstructorHolder {
 }
 
 // GetReference returns reference of the object
-func (r *Wallet) GetReference() insolar.Reference {
+func (r *Wallet) GetReference() reference.Global {
 	return r.Reference
 }
 
 // GetPrototype returns reference to the code
-func (r *Wallet) GetPrototype() (insolar.Reference, error) {
+func (r *Wallet) GetPrototype() (reference.Global, error) {
 	if r.Prototype.IsEmpty() {
 		ret := [2]interface{}{}
-		var ret0 insolar.Reference
+		var ret0 reference.Global
 		ret[0] = &ret0
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetPrototype", make([]byte, 0), *PrototypeReference)
+		res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetPrototype", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -132,15 +132,15 @@ func (r *Wallet) GetPrototype() (insolar.Reference, error) {
 }
 
 // GetCode returns reference to the code
-func (r *Wallet) GetCode() (insolar.Reference, error) {
+func (r *Wallet) GetCode() (reference.Global, error) {
 	if r.Code.IsEmpty() {
 		ret := [2]interface{}{}
-		var ret0 insolar.Reference
+		var ret0 reference.Global
 		ret[0] = &ret0
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetCode", make([]byte, 0), *PrototypeReference)
+		res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetCode", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -177,7 +177,7 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetBalance", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -216,7 +216,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "GetBalance", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -254,7 +254,7 @@ func (r *Wallet) Accept(amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Accept", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Accept", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -315,7 +315,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 }
 
 // Transfer is proxy generated method
-func (r *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
+func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 	var args [2]interface{}
 	args[0] = toWallet
 	args[1] = amount
@@ -331,7 +331,7 @@ func (r *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Transfer", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -354,7 +354,7 @@ func (r *Wallet) Transfer(toWallet insolar.Reference, amount uint32) error {
 }
 
 // TransferAsImmutable is proxy generated method
-func (r *Wallet) TransferAsImmutable(toWallet insolar.Reference, amount uint32) error {
+func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) error {
 	var args [2]interface{}
 	args[0] = toWallet
 	args[1] = amount
@@ -370,7 +370,7 @@ func (r *Wallet) TransferAsImmutable(toWallet insolar.Reference, amount uint32) 
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Transfer", argsSerialized, *PrototypeReference)
+	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}

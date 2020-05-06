@@ -22,12 +22,14 @@ const (
 
 	NilRef   = "<nil>" // non-parsable
 	SchemaV1 = "insolar"
+
+	RecordRefIDSeparator = '.'
 )
 
 type Encoder interface {
 	Encode(ref Holder) (string, error)
 	EncodeToBuilder(ref Holder, b *strings.Builder) error
-	EncodeRecord(rec *Local) (string, error)
+	EncodeRecord(rec LocalHolder) (string, error)
 }
 
 func DefaultEncoder() Encoder {
@@ -82,6 +84,7 @@ func (v encoder) EncodeToBuilder(ref Holder, b *strings.Builder) error {
 
 	if ref.IsEmpty() {
 		b.WriteString("0")
+		return nil
 	}
 	if IsRecordScope(ref) {
 		return v.encodeRecord(ref.GetLocal(), b)
@@ -110,12 +113,12 @@ func (v encoder) EncodeToBuilder(ref Holder, b *strings.Builder) error {
 		if IsReservedName(domainName) || !IsValidDomainName(domainName) {
 			return fmt.Errorf("illegal domain name from IdentityEncoder: ref=%v, domain='%s', object='%s'", ref, domainName, objectName)
 		}
-		b.WriteByte('.')
+		b.WriteByte(RecordRefIDSeparator)
 		b.WriteString(domainName)
 	case IsSelfScope(ref):
 		// nothing
 	default:
-		b.WriteByte('.')
+		b.WriteByte(RecordRefIDSeparator)
 		err := v.encodeBinary(ref.GetBase(), b)
 		if err != nil {
 			return err
@@ -154,7 +157,7 @@ func (v encoder) appendPrefix(b *strings.Builder) {
 	}
 }
 
-func (v encoder) encodeBinary(rec *Local, b *strings.Builder) error {
+func (v encoder) encodeBinary(rec Local, b *strings.Builder) error {
 	if rec.IsEmpty() {
 		b.WriteByte('0')
 		return nil
@@ -169,7 +172,7 @@ func (v encoder) encodeBinary(rec *Local, b *strings.Builder) error {
 			return err
 		}
 
-	case pn.IsSpecial():
+	case pn.IsSpecialOrPrivate():
 		b.WriteString("0")
 
 		limit := len(rec.hash) - 1
@@ -187,7 +190,7 @@ func (v encoder) encodeBinary(rec *Local, b *strings.Builder) error {
 	return nil
 }
 
-func (v encoder) encodeRecord(rec *Local, b *strings.Builder) error {
+func (v encoder) encodeRecord(rec Local, b *strings.Builder) error {
 	if rec.IsEmpty() {
 		b.WriteString("0." + RecordDomainName)
 		return nil
@@ -204,13 +207,13 @@ func (v encoder) encodeRecord(rec *Local, b *strings.Builder) error {
 	return nil
 }
 
-func (v encoder) EncodeRecord(rec *Local) (string, error) {
+func (v encoder) EncodeRecord(rec LocalHolder) (string, error) {
 	if rec == nil {
 		return NilRef, nil
 	}
 
 	b := strings.Builder{}
 	v.appendPrefix(&b)
-	err := v.encodeRecord(rec, &b)
+	err := v.encodeRecord(rec.GetLocal(), &b)
 	return b.String(), err
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
@@ -437,12 +438,12 @@ func (r *FullIntroductionReader) GetExtraEndpoints() []endpoints.Outbound {
 	return nil
 }
 
-func (r *FullIntroductionReader) GetReference() insolar.Reference {
+func (r *FullIntroductionReader) GetReference() reference.Global {
 	if r.body.FullSelfIntro.ProofLen > 0 {
-		return *insolar.NewReferenceFromBytes(r.intro.NodeRefProof[0].AsBytes())
+		return reference.GlobalFromBytes(r.intro.NodeRefProof[0].AsBytes())
 	}
 
-	return *insolar.NewEmptyReference()
+	return reference.Global{}
 }
 
 func (r *FullIntroductionReader) GetIssuerID() insolar.ShortNodeID {

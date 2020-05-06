@@ -8,10 +8,10 @@ package routing
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/pkg/errors"
 )
@@ -21,16 +21,16 @@ type Table struct {
 	PulseAccessor storage.PulseAccessor `inject:""`
 }
 
-func (t *Table) isLocalNode(insolar.Reference) bool {
+func (t *Table) isLocalNode(reference.Global) bool {
 	return true
 }
 
-func (t *Table) resolveRemoteNode(insolar.Reference) (*host.Host, error) {
+func (t *Table) resolveRemoteNode(reference.Global) (*host.Host, error) {
 	return nil, errors.New("not implemented")
 }
 
 // Resolve NodeID -> ShortID, Address. Can initiate network requests.
-func (t *Table) Resolve(ref insolar.Reference) (*host.Host, error) {
+func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
 		p, err := t.PulseAccessor.GetLatestPulse(context.Background())
 		if err != nil {

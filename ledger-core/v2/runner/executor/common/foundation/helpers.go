@@ -12,22 +12,23 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // GetPulseNumber returns current pulse from context.
 func GetPulseNumber() (insolar.PulseNumber, error) {
 	req := GetLogicalContext().Request
-	if req == nil {
+	if req.IsEmpty() {
 		return insolar.PulseNumber(0), errors.New("request from LogicCallContext is nil, get pulse is failed")
 	}
 	return req.GetLocal().Pulse(), nil
 }
 
 // GetRequestReference - Returns request reference from context.
-func GetRequestReference() (*insolar.Reference, error) {
+func GetRequestReference() (reference.Global, error) {
 	ctx := GetLogicalContext()
-	if ctx.Request == nil {
-		return nil, errors.New("request from LogicCallContext is nil, get pulse is failed")
+	if ctx.Request.IsEmpty() {
+		return reference.Global{}, errors.New("request from LogicCallContext is nil, get pulse is failed")
 	}
 	return ctx.Request, nil
 }
@@ -40,7 +41,7 @@ func NewSource() rand.Source {
 
 // GetObject creates proxy by address
 // unimplemented
-func GetObject(ref insolar.Reference) ProxyInterface {
+func GetObject(ref reference.Global) ProxyInterface {
 	panic("not implemented")
 }
 

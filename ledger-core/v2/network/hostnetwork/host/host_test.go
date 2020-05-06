@@ -10,10 +10,12 @@ import (
 	"net"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func TestNewHost(t *testing.T) {
@@ -77,16 +79,16 @@ func TestHost_String(t *testing.T) {
 func TestHost_Equal(t *testing.T) {
 	id1 := gen.Reference()
 	id2 := gen.Reference()
-	idNil := *insolar.NewEmptyReference()
+	idNil := reference.Global{}
 	addr1, _ := NewAddress("127.0.0.1:31337")
 	addr2, _ := NewAddress("10.10.11.11:12345")
 
 	require.NotEqual(t, id1, id2)
 
 	tests := []struct {
-		id1   insolar.Reference
+		id1   reference.Global
 		addr1 *Address
-		id2   insolar.Reference
+		id2   reference.Global
 		addr2 *Address
 		equal bool
 		name  string

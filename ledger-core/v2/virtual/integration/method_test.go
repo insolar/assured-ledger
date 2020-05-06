@@ -36,8 +36,8 @@ func wrapVCallRequest(pulseNumber insolar.PulseNumber, pl payload.VCallRequest) 
 	msg, err := payload.NewMessage(&payload.Meta{
 		Polymorph:  uint32(payload.TypeMeta),
 		Payload:    plBytes,
-		Sender:     insolar.Reference{},
-		Receiver:   insolar.Reference{},
+		Sender:     reference.Global{},
+		Receiver:   reference.Global{},
 		Pulse:      pulseNumber,
 		ID:         nil,
 		OriginHash: payload.MessageHash{},
@@ -56,15 +56,15 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 		CallFlags:           0,
 		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
-		Callee:              insolar.Reference{},
+		Callee:              reference.Global{},
 		CallSiteDeclaration: prototype,
 		CallSiteMethod:      "New",
 		CallSequence:        0,
-		CallReason:          insolar.Reference{},
-		RootTX:              insolar.Reference{},
-		CallTX:              insolar.Reference{},
+		CallReason:          reference.Global{},
+		RootTX:              reference.Global{},
+		CallTX:              reference.Global{},
 		CallRequestFlags:    0,
-		KnownCalleeIncoming: insolar.Reference{},
+		KnownCalleeIncoming: reference.Global{},
 		EntryHeadHash:       nil,
 		CallOutgoing:        object,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -110,7 +110,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 
 	prototype := testwallet.GetPrototype()
 	objectLocal := server.RandomLocalWithPulse()
-	objectGlobal := reference.NewGlobalSelf(objectLocal)
+	objectGlobal := reference.NewSelf(objectLocal)
 
 	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
 	require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	executorMock := testutils.NewMachineLogicExecutorMock(t)
 	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
 	executorMock.CallMethodMock.Set(func(
-		ctx context.Context, callContext *insolar.LogicCallContext, code insolar.Reference,
+		ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global,
 		data []byte, method string, args insolar.Arguments,
 	) (
 		newObjectState []byte, methodResults insolar.Arguments, err error,
@@ -227,7 +227,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallFlags:           callflag.Unordered,
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
-				Callee:              reference.NewGlobalSelf(objectLocal),
+				Callee:              reference.NewSelf(objectLocal),
 				CallSiteDeclaration: prototype,
 				CallSiteMethod:      "GetBalance",
 				CallRequestFlags:    0,
@@ -271,16 +271,16 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			CallType:            payload.CTConstructor,
 			CallFlags:           0,
 			CallAsOf:            0,
-			Caller:              insolar.Reference{},
+			Caller:              reference.Global{},
 			Callee:              gen.Reference(),
 			CallSiteDeclaration: testwallet.GetPrototype(),
 			CallSiteMethod:      "New",
 			CallSequence:        0,
-			CallReason:          insolar.Reference{},
-			RootTX:              insolar.Reference{},
-			CallTX:              insolar.Reference{},
+			CallReason:          reference.Global{},
+			RootTX:              reference.Global{},
+			CallTX:              reference.Global{},
 			CallRequestFlags:    0,
-			KnownCalleeIncoming: insolar.Reference{},
+			KnownCalleeIncoming: reference.Global{},
 			EntryHeadHash:       nil,
 			CallOutgoing:        gen.ID(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -292,8 +292,8 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		msg := payload.MustNewMessage(&payload.Meta{
 			Polymorph:  uint32(payload.TypeMeta),
 			Payload:    plBytes,
-			Sender:     insolar.Reference{},
-			Receiver:   insolar.Reference{},
+			Sender:     reference.Global{},
+			Receiver:   reference.Global{},
 			Pulse:      server.GetPulse().PulseNumber,
 			ID:         nil,
 			OriginHash: payload.MessageHash{},

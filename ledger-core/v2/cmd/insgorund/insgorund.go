@@ -18,10 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/spf13/pflag"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/goplugin/ginsider"
 )
 
@@ -65,13 +65,13 @@ func main() {
 		if len(codeSlice) != 2 {
 			global.Fatal("code param format is <ref>:</path/to/plugin.so>")
 		}
-		ref, err := insolar.NewReferenceFromString(codeSlice[0])
+		ref, err := reference.GlobalFromString(codeSlice[0])
 		if err != nil {
 			global.Fatalf("Couldn't parse ref: %s", err.Error())
 		}
 		pluginPath := codeSlice[1]
 
-		err = insider.AddPlugin(*ref, pluginPath)
+		err = insider.AddPlugin(ref, pluginPath)
 		if err != nil {
 			global.Fatalf("Couldn't add plugin by ref %s with .so from %s, err: %s ", ref, pluginPath, err.Error())
 		}

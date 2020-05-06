@@ -9,6 +9,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // NetworkNodeMock implements insolar.NetworkNode
@@ -39,7 +40,7 @@ type NetworkNodeMock struct {
 	beforeGetStateCounter uint64
 	GetStateMock          mNetworkNodeMockGetState
 
-	funcID          func() (r1 mm_insolar.Reference)
+	funcID          func() (g1 reference.Global)
 	inspectFuncID   func()
 	afterIDCounter  uint64
 	beforeIDCounter uint64
@@ -694,7 +695,7 @@ type NetworkNodeMockIDExpectation struct {
 
 // NetworkNodeMockIDResults contains results of the NetworkNode.ID
 type NetworkNodeMockIDResults struct {
-	r1 mm_insolar.Reference
+	g1 reference.Global
 }
 
 // Expect sets up expected params for NetworkNode.ID
@@ -722,7 +723,7 @@ func (mmID *mNetworkNodeMockID) Inspect(f func()) *mNetworkNodeMockID {
 }
 
 // Return sets up results that will be returned by NetworkNode.ID
-func (mmID *mNetworkNodeMockID) Return(r1 mm_insolar.Reference) *NetworkNodeMock {
+func (mmID *mNetworkNodeMockID) Return(g1 reference.Global) *NetworkNodeMock {
 	if mmID.mock.funcID != nil {
 		mmID.mock.t.Fatalf("NetworkNodeMock.ID mock is already set by Set")
 	}
@@ -730,12 +731,12 @@ func (mmID *mNetworkNodeMockID) Return(r1 mm_insolar.Reference) *NetworkNodeMock
 	if mmID.defaultExpectation == nil {
 		mmID.defaultExpectation = &NetworkNodeMockIDExpectation{mock: mmID.mock}
 	}
-	mmID.defaultExpectation.results = &NetworkNodeMockIDResults{r1}
+	mmID.defaultExpectation.results = &NetworkNodeMockIDResults{g1}
 	return mmID.mock
 }
 
 //Set uses given function f to mock the NetworkNode.ID method
-func (mmID *mNetworkNodeMockID) Set(f func() (r1 mm_insolar.Reference)) *NetworkNodeMock {
+func (mmID *mNetworkNodeMockID) Set(f func() (g1 reference.Global)) *NetworkNodeMock {
 	if mmID.defaultExpectation != nil {
 		mmID.mock.t.Fatalf("Default expectation is already set for the NetworkNode.ID method")
 	}
@@ -749,7 +750,7 @@ func (mmID *mNetworkNodeMockID) Set(f func() (r1 mm_insolar.Reference)) *Network
 }
 
 // ID implements insolar.NetworkNode
-func (mmID *NetworkNodeMock) ID() (r1 mm_insolar.Reference) {
+func (mmID *NetworkNodeMock) ID() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmID.beforeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmID.afterIDCounter, 1)
 
@@ -764,7 +765,7 @@ func (mmID *NetworkNodeMock) ID() (r1 mm_insolar.Reference) {
 		if mm_results == nil {
 			mmID.t.Fatal("No results are set for the NetworkNodeMock.ID")
 		}
-		return (*mm_results).r1
+		return (*mm_results).g1
 	}
 	if mmID.funcID != nil {
 		return mmID.funcID()

@@ -5,6 +5,8 @@
 
 package insolar
 
+//go:generate stringer -type=DynamicRole
+
 // DynamicRole is number representing a node role.
 type DynamicRole int
 

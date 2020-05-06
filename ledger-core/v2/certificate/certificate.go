@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // BootstrapNode holds info about bootstrap nodes
@@ -45,11 +46,11 @@ func NewBootstrapNode(pubKey crypto.PublicKey, publicKey, host, noderef, role st
 }
 
 // GetNodeRef returns reference of bootstrap node
-func (bn *BootstrapNode) GetNodeRef() *insolar.Reference {
-	ref, err := insolar.NewReferenceFromString(bn.NodeRef)
+func (bn *BootstrapNode) GetNodeRef() reference.Global {
+	ref, err := reference.GlobalFromString(bn.NodeRef)
 	if err != nil {
 		global.Errorf("Invalid bootstrap node reference: %s. Error: %s", bn.NodeRef, err.Error())
-		return nil
+		return reference.Global{}
 	}
 	return ref
 }
@@ -113,9 +114,9 @@ func newCertificate(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcesso
 		return nil, errors.Wrap(err, "[ newCertificate ] Incorrect fields")
 	}
 
-	cert.DiscoverySigns = make(map[insolar.Reference][]byte)
+	cert.DiscoverySigns = make(map[reference.Global][]byte)
 	for _, node := range cert.BootstrapNodes {
-		cert.DiscoverySigns[*(node.GetNodeRef())] = node.NodeSign
+		cert.DiscoverySigns[node.GetNodeRef()] = node.NodeSign
 	}
 
 	return &cert, nil

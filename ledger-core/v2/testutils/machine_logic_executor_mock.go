@@ -10,20 +10,21 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // MachineLogicExecutorMock implements insolar.MachineLogicExecutor
 type MachineLogicExecutorMock struct {
 	t minimock.Tester
 
-	funcCallConstructor          func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments) (objectState []byte, result mm_insolar.Arguments, err error)
-	inspectFuncCallConstructor   func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments)
+	funcCallConstructor          func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments) (objectState []byte, result mm_insolar.Arguments, err error)
+	inspectFuncCallConstructor   func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments)
 	afterCallConstructorCounter  uint64
 	beforeCallConstructorCounter uint64
 	CallConstructorMock          mMachineLogicExecutorMockCallConstructor
 
-	funcCallMethod          func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments) (newObjectState []byte, methodResults mm_insolar.Arguments, err error)
-	inspectFuncCallMethod   func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments)
+	funcCallMethod          func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments) (newObjectState []byte, methodResults mm_insolar.Arguments, err error)
+	inspectFuncCallMethod   func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments)
 	afterCallMethodCounter  uint64
 	beforeCallMethodCounter uint64
 	CallMethodMock          mMachineLogicExecutorMockCallMethod
@@ -66,7 +67,7 @@ type MachineLogicExecutorMockCallConstructorExpectation struct {
 type MachineLogicExecutorMockCallConstructorParams struct {
 	ctx         context.Context
 	callContext *mm_insolar.LogicCallContext
-	code        mm_insolar.Reference
+	code        reference.Global
 	name        string
 	args        mm_insolar.Arguments
 }
@@ -79,7 +80,7 @@ type MachineLogicExecutorMockCallConstructorResults struct {
 }
 
 // Expect sets up expected params for MachineLogicExecutor.CallConstructor
-func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Expect(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments) *mMachineLogicExecutorMockCallConstructor {
+func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Expect(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments) *mMachineLogicExecutorMockCallConstructor {
 	if mmCallConstructor.mock.funcCallConstructor != nil {
 		mmCallConstructor.mock.t.Fatalf("MachineLogicExecutorMock.CallConstructor mock is already set by Set")
 	}
@@ -99,7 +100,7 @@ func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Expect(ctx co
 }
 
 // Inspect accepts an inspector function that has same arguments as the MachineLogicExecutor.CallConstructor
-func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Inspect(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments)) *mMachineLogicExecutorMockCallConstructor {
+func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Inspect(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments)) *mMachineLogicExecutorMockCallConstructor {
 	if mmCallConstructor.mock.inspectFuncCallConstructor != nil {
 		mmCallConstructor.mock.t.Fatalf("Inspect function is already set for MachineLogicExecutorMock.CallConstructor")
 	}
@@ -123,7 +124,7 @@ func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Return(object
 }
 
 //Set uses given function f to mock the MachineLogicExecutor.CallConstructor method
-func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Set(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments) (objectState []byte, result mm_insolar.Arguments, err error)) *MachineLogicExecutorMock {
+func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Set(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments) (objectState []byte, result mm_insolar.Arguments, err error)) *MachineLogicExecutorMock {
 	if mmCallConstructor.defaultExpectation != nil {
 		mmCallConstructor.mock.t.Fatalf("Default expectation is already set for the MachineLogicExecutor.CallConstructor method")
 	}
@@ -138,7 +139,7 @@ func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) Set(f func(ct
 
 // When sets expectation for the MachineLogicExecutor.CallConstructor which will trigger the result defined by the following
 // Then helper
-func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) When(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments) *MachineLogicExecutorMockCallConstructorExpectation {
+func (mmCallConstructor *mMachineLogicExecutorMockCallConstructor) When(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments) *MachineLogicExecutorMockCallConstructorExpectation {
 	if mmCallConstructor.mock.funcCallConstructor != nil {
 		mmCallConstructor.mock.t.Fatalf("MachineLogicExecutorMock.CallConstructor mock is already set by Set")
 	}
@@ -158,7 +159,7 @@ func (e *MachineLogicExecutorMockCallConstructorExpectation) Then(objectState []
 }
 
 // CallConstructor implements insolar.MachineLogicExecutor
-func (mmCallConstructor *MachineLogicExecutorMock) CallConstructor(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, name string, args mm_insolar.Arguments) (objectState []byte, result mm_insolar.Arguments, err error) {
+func (mmCallConstructor *MachineLogicExecutorMock) CallConstructor(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, name string, args mm_insolar.Arguments) (objectState []byte, result mm_insolar.Arguments, err error) {
 	mm_atomic.AddUint64(&mmCallConstructor.beforeCallConstructorCounter, 1)
 	defer mm_atomic.AddUint64(&mmCallConstructor.afterCallConstructorCounter, 1)
 
@@ -287,7 +288,7 @@ type MachineLogicExecutorMockCallMethodExpectation struct {
 type MachineLogicExecutorMockCallMethodParams struct {
 	ctx         context.Context
 	callContext *mm_insolar.LogicCallContext
-	code        mm_insolar.Reference
+	code        reference.Global
 	data        []byte
 	method      string
 	args        mm_insolar.Arguments
@@ -301,7 +302,7 @@ type MachineLogicExecutorMockCallMethodResults struct {
 }
 
 // Expect sets up expected params for MachineLogicExecutor.CallMethod
-func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Expect(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments) *mMachineLogicExecutorMockCallMethod {
+func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Expect(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments) *mMachineLogicExecutorMockCallMethod {
 	if mmCallMethod.mock.funcCallMethod != nil {
 		mmCallMethod.mock.t.Fatalf("MachineLogicExecutorMock.CallMethod mock is already set by Set")
 	}
@@ -321,7 +322,7 @@ func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Expect(ctx context.Cont
 }
 
 // Inspect accepts an inspector function that has same arguments as the MachineLogicExecutor.CallMethod
-func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Inspect(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments)) *mMachineLogicExecutorMockCallMethod {
+func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Inspect(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments)) *mMachineLogicExecutorMockCallMethod {
 	if mmCallMethod.mock.inspectFuncCallMethod != nil {
 		mmCallMethod.mock.t.Fatalf("Inspect function is already set for MachineLogicExecutorMock.CallMethod")
 	}
@@ -345,7 +346,7 @@ func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Return(newObjectState [
 }
 
 //Set uses given function f to mock the MachineLogicExecutor.CallMethod method
-func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Set(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments) (newObjectState []byte, methodResults mm_insolar.Arguments, err error)) *MachineLogicExecutorMock {
+func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Set(f func(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments) (newObjectState []byte, methodResults mm_insolar.Arguments, err error)) *MachineLogicExecutorMock {
 	if mmCallMethod.defaultExpectation != nil {
 		mmCallMethod.mock.t.Fatalf("Default expectation is already set for the MachineLogicExecutor.CallMethod method")
 	}
@@ -360,7 +361,7 @@ func (mmCallMethod *mMachineLogicExecutorMockCallMethod) Set(f func(ctx context.
 
 // When sets expectation for the MachineLogicExecutor.CallMethod which will trigger the result defined by the following
 // Then helper
-func (mmCallMethod *mMachineLogicExecutorMockCallMethod) When(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments) *MachineLogicExecutorMockCallMethodExpectation {
+func (mmCallMethod *mMachineLogicExecutorMockCallMethod) When(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments) *MachineLogicExecutorMockCallMethodExpectation {
 	if mmCallMethod.mock.funcCallMethod != nil {
 		mmCallMethod.mock.t.Fatalf("MachineLogicExecutorMock.CallMethod mock is already set by Set")
 	}
@@ -380,7 +381,7 @@ func (e *MachineLogicExecutorMockCallMethodExpectation) Then(newObjectState []by
 }
 
 // CallMethod implements insolar.MachineLogicExecutor
-func (mmCallMethod *MachineLogicExecutorMock) CallMethod(ctx context.Context, callContext *mm_insolar.LogicCallContext, code mm_insolar.Reference, data []byte, method string, args mm_insolar.Arguments) (newObjectState []byte, methodResults mm_insolar.Arguments, err error) {
+func (mmCallMethod *MachineLogicExecutorMock) CallMethod(ctx context.Context, callContext *mm_insolar.LogicCallContext, code reference.Global, data []byte, method string, args mm_insolar.Arguments) (newObjectState []byte, methodResults mm_insolar.Arguments, err error) {
 	mm_atomic.AddUint64(&mmCallMethod.beforeCallMethodCounter, 1)
 	defer mm_atomic.AddUint64(&mmCallMethod.afterCallMethodCounter, 1)
 

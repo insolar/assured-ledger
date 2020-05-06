@@ -8,16 +8,16 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // RoutingTableMock implements network.RoutingTable
 type RoutingTableMock struct {
 	t minimock.Tester
 
-	funcResolve          func(r1 insolar.Reference) (hp1 *host.Host, err error)
-	inspectFuncResolve   func(r1 insolar.Reference)
+	funcResolve          func(g1 reference.Global) (hp1 *host.Host, err error)
+	inspectFuncResolve   func(g1 reference.Global)
 	afterResolveCounter  uint64
 	beforeResolveCounter uint64
 	ResolveMock          mRoutingTableMockResolve
@@ -55,7 +55,7 @@ type RoutingTableMockResolveExpectation struct {
 
 // RoutingTableMockResolveParams contains parameters of the RoutingTable.Resolve
 type RoutingTableMockResolveParams struct {
-	r1 insolar.Reference
+	g1 reference.Global
 }
 
 // RoutingTableMockResolveResults contains results of the RoutingTable.Resolve
@@ -65,7 +65,7 @@ type RoutingTableMockResolveResults struct {
 }
 
 // Expect sets up expected params for RoutingTable.Resolve
-func (mmResolve *mRoutingTableMockResolve) Expect(r1 insolar.Reference) *mRoutingTableMockResolve {
+func (mmResolve *mRoutingTableMockResolve) Expect(g1 reference.Global) *mRoutingTableMockResolve {
 	if mmResolve.mock.funcResolve != nil {
 		mmResolve.mock.t.Fatalf("RoutingTableMock.Resolve mock is already set by Set")
 	}
@@ -74,7 +74,7 @@ func (mmResolve *mRoutingTableMockResolve) Expect(r1 insolar.Reference) *mRoutin
 		mmResolve.defaultExpectation = &RoutingTableMockResolveExpectation{}
 	}
 
-	mmResolve.defaultExpectation.params = &RoutingTableMockResolveParams{r1}
+	mmResolve.defaultExpectation.params = &RoutingTableMockResolveParams{g1}
 	for _, e := range mmResolve.expectations {
 		if minimock.Equal(e.params, mmResolve.defaultExpectation.params) {
 			mmResolve.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolve.defaultExpectation.params)
@@ -85,7 +85,7 @@ func (mmResolve *mRoutingTableMockResolve) Expect(r1 insolar.Reference) *mRoutin
 }
 
 // Inspect accepts an inspector function that has same arguments as the RoutingTable.Resolve
-func (mmResolve *mRoutingTableMockResolve) Inspect(f func(r1 insolar.Reference)) *mRoutingTableMockResolve {
+func (mmResolve *mRoutingTableMockResolve) Inspect(f func(g1 reference.Global)) *mRoutingTableMockResolve {
 	if mmResolve.mock.inspectFuncResolve != nil {
 		mmResolve.mock.t.Fatalf("Inspect function is already set for RoutingTableMock.Resolve")
 	}
@@ -109,7 +109,7 @@ func (mmResolve *mRoutingTableMockResolve) Return(hp1 *host.Host, err error) *Ro
 }
 
 //Set uses given function f to mock the RoutingTable.Resolve method
-func (mmResolve *mRoutingTableMockResolve) Set(f func(r1 insolar.Reference) (hp1 *host.Host, err error)) *RoutingTableMock {
+func (mmResolve *mRoutingTableMockResolve) Set(f func(g1 reference.Global) (hp1 *host.Host, err error)) *RoutingTableMock {
 	if mmResolve.defaultExpectation != nil {
 		mmResolve.mock.t.Fatalf("Default expectation is already set for the RoutingTable.Resolve method")
 	}
@@ -124,14 +124,14 @@ func (mmResolve *mRoutingTableMockResolve) Set(f func(r1 insolar.Reference) (hp1
 
 // When sets expectation for the RoutingTable.Resolve which will trigger the result defined by the following
 // Then helper
-func (mmResolve *mRoutingTableMockResolve) When(r1 insolar.Reference) *RoutingTableMockResolveExpectation {
+func (mmResolve *mRoutingTableMockResolve) When(g1 reference.Global) *RoutingTableMockResolveExpectation {
 	if mmResolve.mock.funcResolve != nil {
 		mmResolve.mock.t.Fatalf("RoutingTableMock.Resolve mock is already set by Set")
 	}
 
 	expectation := &RoutingTableMockResolveExpectation{
 		mock:   mmResolve.mock,
-		params: &RoutingTableMockResolveParams{r1},
+		params: &RoutingTableMockResolveParams{g1},
 	}
 	mmResolve.expectations = append(mmResolve.expectations, expectation)
 	return expectation
@@ -144,15 +144,15 @@ func (e *RoutingTableMockResolveExpectation) Then(hp1 *host.Host, err error) *Ro
 }
 
 // Resolve implements network.RoutingTable
-func (mmResolve *RoutingTableMock) Resolve(r1 insolar.Reference) (hp1 *host.Host, err error) {
+func (mmResolve *RoutingTableMock) Resolve(g1 reference.Global) (hp1 *host.Host, err error) {
 	mm_atomic.AddUint64(&mmResolve.beforeResolveCounter, 1)
 	defer mm_atomic.AddUint64(&mmResolve.afterResolveCounter, 1)
 
 	if mmResolve.inspectFuncResolve != nil {
-		mmResolve.inspectFuncResolve(r1)
+		mmResolve.inspectFuncResolve(g1)
 	}
 
-	mm_params := &RoutingTableMockResolveParams{r1}
+	mm_params := &RoutingTableMockResolveParams{g1}
 
 	// Record call args
 	mmResolve.ResolveMock.mutex.Lock()
@@ -169,7 +169,7 @@ func (mmResolve *RoutingTableMock) Resolve(r1 insolar.Reference) (hp1 *host.Host
 	if mmResolve.ResolveMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmResolve.ResolveMock.defaultExpectation.Counter, 1)
 		mm_want := mmResolve.ResolveMock.defaultExpectation.params
-		mm_got := RoutingTableMockResolveParams{r1}
+		mm_got := RoutingTableMockResolveParams{g1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmResolve.t.Errorf("RoutingTableMock.Resolve got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -181,9 +181,9 @@ func (mmResolve *RoutingTableMock) Resolve(r1 insolar.Reference) (hp1 *host.Host
 		return (*mm_results).hp1, (*mm_results).err
 	}
 	if mmResolve.funcResolve != nil {
-		return mmResolve.funcResolve(r1)
+		return mmResolve.funcResolve(g1)
 	}
-	mmResolve.t.Fatalf("Unexpected call to RoutingTableMock.Resolve. %v", r1)
+	mmResolve.t.Fatalf("Unexpected call to RoutingTableMock.Resolve. %v", g1)
 	return
 }
 

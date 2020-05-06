@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -221,8 +222,8 @@ func (c *EmuNodeIntro) GetStartPower() member.Power {
 	return 10
 }
 
-func (c *EmuNodeIntro) GetReference() insolar.Reference {
-	return *insolar.NewEmptyReference()
+func (c *EmuNodeIntro) GetReference() reference.Global {
+	return reference.Global{}
 }
 
 func (c *EmuNodeIntro) ConvertPowerRequest(request power.Request) member.Power {

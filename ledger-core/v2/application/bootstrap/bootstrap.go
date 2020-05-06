@@ -19,8 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Generator is a component for generating bootstrap files required for discovery nodes bootstrap and heavy genesis.
@@ -122,7 +122,7 @@ type nodeInfo struct {
 	certName   string
 }
 
-func (ni nodeInfo) reference() insolar.Reference {
+func (ni nodeInfo) reference() reference.Global {
 	return genesisrefs.GenesisRef(ni.publicKey)
 }
 

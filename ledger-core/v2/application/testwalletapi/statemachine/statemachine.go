@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var APICaller, _ = insolar.NewObjectReferenceFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
 type SMTestAPICall struct {
 	requestPayload  payload.VCallRequest
@@ -66,16 +66,16 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
-	s.requestPayload.Caller = *APICaller
+	s.requestPayload.Caller = APICaller
 	s.requestPayload.CallOutgoing = gen.IDWithPulse(pulseNumber)
 
-	var obj insolar.Reference
+	var obj reference.Global
 	switch s.requestPayload.CallType {
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee
 
 	case payload.CTConstructor:
-		obj = reference.NewGlobalSelf(s.requestPayload.CallOutgoing)
+		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
 
 	default:
 		panic(throw.IllegalValue())
@@ -93,7 +93,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	})
 
-	outgoingRef := reference.NewGlobal(*s.requestPayload.Caller.GetLocal(), s.requestPayload.CallOutgoing)
+	outgoingRef := reference.NewRecordOf(s.requestPayload.Caller, s.requestPayload.CallOutgoing)
 
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))

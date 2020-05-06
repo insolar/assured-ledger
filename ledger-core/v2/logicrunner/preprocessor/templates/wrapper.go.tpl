@@ -64,7 +64,7 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 	}
 
 	ret := []byte{}
-	err = ph.Serialize([]interface{} { self.GetCode().Bytes() }, &ret)
+	err = ph.Serialize([]interface{} { self.GetCode().AsBytes() }, &ret)
 
 	return state, ret, err
 }
@@ -90,7 +90,7 @@ func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) 
 	}
 
 	ret := []byte{}
-	err = ph.Serialize([]interface{} { self.GetPrototype().Bytes() }, &ret)
+	err = ph.Serialize([]interface{} { self.GetPrototype().AsBytes() }, &ret)
 
 	return state, ret, err
 }
@@ -180,7 +180,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 
 
 {{ range $f := .Functions }}
-func INSCONSTRUCTOR_{{ $f.Name }}(ref insolar.Reference, data []byte) (state []byte, result []byte, err error) {
+func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
 	ph := common.CurrentProxyCtx
 	ph.SetSystemError(nil)
 

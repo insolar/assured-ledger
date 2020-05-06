@@ -12,11 +12,11 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 const deliverWatermillMsg = "ServiceNetwork.processIncoming"
@@ -46,7 +46,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	if receiver == "" {
 		return errors.New("failed to send message: Receiver in message metadata is not set")
 	}
-	node, err := insolar.NewReferenceFromString(receiver)
+	node, err := reference.GlobalFromString(receiver)
 	if err != nil {
 		return errors.Wrap(err, "failed to send message: Receiver in message metadata is invalid")
 	}
@@ -67,7 +67,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	if err != nil {
 		return errors.Wrap(err, "error while converting message to bytes")
 	}
-	res, err := n.RPC.SendBytes(ctx, *node, deliverWatermillMsg, msgBytes)
+	res, err := n.RPC.SendBytes(ctx, node, deliverWatermillMsg, msgBytes)
 	if err != nil {
 		return errors.Wrap(err, "error while sending watermillMsg to controller")
 	}

@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type MutableNode interface {
@@ -29,12 +30,12 @@ type MutableNode interface {
 }
 
 // GenerateUintShortID generate short ID for node without checking collisions
-func GenerateUintShortID(ref insolar.Reference) uint32 {
-	return crc32.ChecksumIEEE(ref.Bytes())
+func GenerateUintShortID(ref reference.Global) uint32 {
+	return crc32.ChecksumIEEE(ref.AsBytes())
 }
 
 type node struct {
-	NodeID        insolar.Reference
+	NodeID        reference.Global
 	NodeShortID   uint32
 	NodeRole      insolar.StaticRole
 	NodePublicKey crypto.PublicKey
@@ -75,7 +76,7 @@ func (n *node) ChangeState() {
 }
 
 func newMutableNode(
-	id insolar.Reference,
+	id reference.Global,
 	role insolar.StaticRole,
 	publicKey crypto.PublicKey,
 	state insolar.NodeState,
@@ -93,14 +94,14 @@ func newMutableNode(
 }
 
 func NewNode(
-	id insolar.Reference,
+	id reference.Global,
 	role insolar.StaticRole,
 	publicKey crypto.PublicKey,
 	address, version string) insolar.NetworkNode {
 	return newMutableNode(id, role, publicKey, insolar.NodeReady, address, version)
 }
 
-func (n *node) ID() insolar.Reference {
+func (n *node) ID() reference.Global {
 	return n.NodeID
 }
 

@@ -67,9 +67,9 @@ func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
 	}
 }
 
-func (i *Info) SetDescriptor(prototype *insolar.Reference, memory []byte) {
+func (i *Info) SetDescriptor(prototype reference.Global, memory []byte) {
 	i.descriptor = descriptor.NewObjectDescriptor(
-		i.Reference, insolar.ID{}, prototype, memory, insolar.Reference{}, nil,
+		i.Reference, reference.Local{}, prototype, memory, reference.Global{}, reference.Local{},
 	)
 }
 
@@ -94,7 +94,7 @@ const (
 	InitReasonVStateReport
 )
 
-func NewStateMachineObject(objectReference insolar.Reference, reason InitReason) *SMObject {
+func NewStateMachineObject(objectReference reference.Global, reason InitReason) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{Reference: objectReference},

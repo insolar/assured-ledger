@@ -8,16 +8,16 @@ package descriptor
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-type CacheCallbackType func(reference insolar.Reference) (interface{}, error)
+type CacheCallbackType func(reference reference.Global) (interface{}, error)
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor.Cache -o ./ -s _mock.go -g
 
 // Cache provides convenient way to get prototype and code descriptors
 // of objects without fetching them twice
 type Cache interface {
-	ByPrototypeRef(ctx context.Context, protoRef insolar.Reference) (PrototypeDescriptor, CodeDescriptor, error)
+	ByPrototypeRef(ctx context.Context, protoRef reference.Global) (PrototypeDescriptor, CodeDescriptor, error)
 	RegisterCallback(cb CacheCallbackType)
 }

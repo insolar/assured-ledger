@@ -10,16 +10,17 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/pkg/errors"
 )
 
 // AuthorizationCertificate holds info about node from it certificate
 type AuthorizationCertificate struct {
-	PublicKey      string                       `json:"public_key"`
-	Reference      string                       `json:"reference"`
-	Role           string                       `json:"role"`
-	DiscoverySigns map[insolar.Reference][]byte `json:"-" codec:"discoverysigns"`
+	PublicKey      string                      `json:"public_key"`
+	Reference      string                      `json:"reference"`
+	Role           string                      `json:"role"`
+	DiscoverySigns map[reference.Global][]byte `json:"-" codec:"discoverysigns"`
 
 	nodePublicKey crypto.PublicKey
 }
@@ -30,11 +31,11 @@ func (authCert *AuthorizationCertificate) GetPublicKey() crypto.PublicKey {
 }
 
 // GetNodeRef returns reference from node certificate
-func (authCert *AuthorizationCertificate) GetNodeRef() *insolar.Reference {
-	ref, err := insolar.NewReferenceFromString(authCert.Reference)
+func (authCert *AuthorizationCertificate) GetNodeRef() reference.Global {
+	ref, err := reference.GlobalFromString(authCert.Reference)
 	if err != nil {
 		global.Errorf("Invalid node reference in auth cert: %s\n", authCert.Reference)
-		return nil
+		return reference.Global{}
 	}
 	return ref
 }
@@ -45,7 +46,7 @@ func (authCert *AuthorizationCertificate) GetRole() insolar.StaticRole {
 }
 
 // GetDiscoverySigns return map of discovery nodes signs
-func (authCert *AuthorizationCertificate) GetDiscoverySigns() map[insolar.Reference][]byte {
+func (authCert *AuthorizationCertificate) GetDiscoverySigns() map[reference.Global][]byte {
 	return authCert.DiscoverySigns
 }
 

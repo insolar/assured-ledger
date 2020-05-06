@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 )
@@ -92,7 +93,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var (
-		ref             insolar.Reference
+		ref             reference.Global
 		contractCallErr *foundation.Error
 	)
 	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
@@ -148,7 +149,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		s.mustWriteResult(w, result)
 	}()
 
-	fromRef, err := insolar.NewReferenceFromString(params.From)
+	fromRef, err := reference.GlobalFromString(params.From)
 	if err != nil {
 		result.Error = throw.W(err,
 			"Failed to create reference from string", struct{ From string }{From: params.From},
@@ -156,7 +157,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	toRef, err := insolar.NewReferenceFromString(params.To)
+	toRef, err := reference.GlobalFromString(params.To)
 	if err != nil {
 		result.Error = throw.W(err,
 			"Failed to create reference from string", struct{ To string }{To: params.To},
@@ -172,7 +173,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		Callee:         *fromRef,
+		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
 	}
@@ -236,7 +237,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		s.mustWriteResult(w, result)
 	}()
 
-	ref, err := insolar.NewReferenceFromString(params.WalletRef)
+	ref, err := reference.GlobalFromString(params.WalletRef)
 
 	if err != nil {
 		result.Error = throw.W(err,
@@ -248,7 +249,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
 		CallFlags:      callflag.Unordered,
-		Callee:         *ref,
+		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
@@ -316,7 +317,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		s.mustWriteResult(w, result)
 	}()
 
-	ref, err := insolar.NewReferenceFromString(params.To)
+	ref, err := reference.GlobalFromString(params.To)
 	if err != nil {
 		result.Error = throw.W(err,
 			fmt.Sprintf("Failed to create reference from string (%s)", params.To), nil,
@@ -333,7 +334,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		Callee:         *ref,
+		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,
 	}

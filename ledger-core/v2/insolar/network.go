@@ -8,6 +8,8 @@ package insolar
 import (
 	"context"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type StatusReply struct {
@@ -40,7 +42,7 @@ type Leaver interface {
 
 type CertificateGetter interface {
 	// GetCert registers reference and returns new certificate for it
-	GetCert(context.Context, *Reference) (Certificate, error)
+	GetCert(context.Context, reference.Global) (Certificate, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseDistributor -o ../testutils -s _mock.go -g

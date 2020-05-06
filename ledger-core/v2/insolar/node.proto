@@ -10,7 +10,7 @@ message Node {
 
     int32 polymorph = 16;
 
-    bytes ID = 20 [(gogoproto.customtype) = "Reference", (gogoproto.nullable) = false];
+    bytes ID = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     uint32 Role = 21 [(gogoproto.customtype) = "StaticRole", (gogoproto.nullable) = false];
 }
 
