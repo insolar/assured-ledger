@@ -21,6 +21,13 @@ const (
 	Antique // non-individual past
 )
 
+func NewPresentPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot {
+	return PulseSlot{
+		pulseManager: pulseManager,
+		pulseData:    &presentPulseDataHolder{pr: pr},
+	}
+}
+
 type PulseSlot struct {
 	pulseManager *PulseDataManager
 	pulseData    pulseDataHolder

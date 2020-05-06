@@ -98,8 +98,6 @@ func TestVirtual_Method_API(t *testing.T) {
 
 // 10 parallel executions
 func TestVirtual_Scenario1(t *testing.T) {
-	t.Skip("hangs?")
-
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

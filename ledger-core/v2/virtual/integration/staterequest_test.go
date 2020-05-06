@@ -66,9 +66,10 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
+	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
@@ -114,9 +115,10 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
+	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
@@ -133,7 +135,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
-					Reference: objectRef,
+					Reference: stateID,
 					State:     rawWalletState,
 					Prototype: testwallet.PrototypeReference,
 				},
