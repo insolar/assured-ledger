@@ -109,11 +109,11 @@ func (v Local) AsBytes() []byte {
 }
 
 func (v Local) pulseAndScopeToBytes(b []byte) {
-	binary.LittleEndian.PutUint32(b, uint32(v.pulseAndScope))
+	binary.BigEndian.PutUint32(b, uint32(v.pulseAndScope))
 }
 
 func pulseAndScopeFromBytes(b []byte) LocalHeader {
-	return LocalHeader(binary.LittleEndian.Uint32(b))
+	return LocalHeader(binary.BigEndian.Uint32(b))
 }
 
 func (v Local) asEncoderReader(limit uint8) *byteReader {

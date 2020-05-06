@@ -44,7 +44,7 @@ func randLocal() Local {
 
 func flipHeader(b []byte) []byte {
 	// Encoder uses BigEndian, while AsBytes uses LittleEndian for the header
-	b[0], b[1], b[2], b[3] = b[3], b[2], b[1], b[0]
+	// b[0], b[1], b[2], b[3] = b[3], b[2], b[1], b[0]
 	return b
 }
 
