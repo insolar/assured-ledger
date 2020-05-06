@@ -210,7 +210,10 @@ func (p *RecordBody) verifyPayload(d0 cryptkit.Digest, data RawBinary) error {
 			return nil
 		}
 	case !d0.IsEmpty():
-		d1 := digestBy(data, p.digester)
+		hasher := p.digester.NewHasher()
+		_, _ = data.WriteTo(hasher)
+		d1 := hasher.SumToDigest()
+
 		if m0 := d0.GetDigestMethod(); m0 != "" && m0 == d1.GetDigestMethod() {
 			return throw.E("digest method mismatched", struct{ M0, M1 cryptkit.DigestMethod }{m0, d1.GetDigestMethod()})
 		}
