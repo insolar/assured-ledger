@@ -11,7 +11,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -60,7 +59,7 @@ func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, rawWalletState)
