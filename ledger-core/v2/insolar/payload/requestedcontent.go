@@ -23,5 +23,11 @@ func (f StateRequestContentFlags) Equal(other StateRequestContentFlags) bool {
 }
 
 func (f StateRequestContentFlags) Contains(other StateRequestContentFlags) bool {
-	return f^other == 0
+	return f&other != 0
+}
+
+func (f *StateRequestContentFlags) Set(flags ...StateRequestContentFlags) {
+	for _, flag := range flags {
+		*f = StateRequestContentFlags(uint32(*f) | uint32(flag))
+	}
 }

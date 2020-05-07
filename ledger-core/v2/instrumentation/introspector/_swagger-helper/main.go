@@ -11,6 +11,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -27,6 +28,27 @@ var (
 )
 
 var inDir = flag.String("in", ".", "directory with swagger files")
+
+// copyFile copies file `fromName` to file `toName`. Sadly there is no such method in standard library.
+func copyFile(fromName, toName string) error {
+ 	from, err := os.Open(fromName)
+	if err != nil {
+		return errors.Wrap(err, "os.Open")
+	}
+	defer from.Close() // nolint
+
+	to, err := os.OpenFile(toName, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return errors.Wrap(err, "os.OpenFile")
+	}
+	defer to.Close() // nolint
+
+	_, err = io.Copy(to, from)
+	if err != nil {
+		return errors.Wrap(err, "io.Copy")
+	}
+	return nil
+}
 
 func main() {
 	flag.Parse()
@@ -60,9 +82,14 @@ func main() {
 	}
 	sw.writeString(")\n")
 
-	err = os.Rename(tmpF.Name(), outFileName)
+	tmpName := tmpF.Name()
+	_ = tmpF.Close()
+
+	// We can't use os.Rename here because it gives "The system cannot move the file to a different disk drive"
+	// error on Windows. Temp directory can be on drive C:\ and the program can be executed on D:\
+	err = copyFile(tmpName, outFileName)
 	if err != nil {
-		global.Fatalf("failed move file from %v to %v: %s", tmpF.Name(), outFileName, err)
+		global.Fatalf("failed to copy file from %v to %v: %s", tmpF.Name(), outFileName, err)
 	}
 
 	cwd, _ := os.Getwd()
