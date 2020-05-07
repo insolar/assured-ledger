@@ -159,9 +159,12 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 // we get CallMethod but we have no object data
 // we need to ask previous executor
 func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	flags := payload.StateRequestContentFlags(0)
+	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
+		payload.RequestMutableQueue, payload.RequestImmutableQueue)
 	msg := payload.VStateRequest{
 		Callee:           sm.Reference,
-		RequestedContent: payload.RequestLatestDirtyState,
+		RequestedContent: flags,
 	}
 
 	goCtx := ctx.GetContext()
