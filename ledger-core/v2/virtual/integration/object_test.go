@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -39,8 +40,12 @@ func TestInitViaCTMethod(t *testing.T) {
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
 		require.NoError(t, err)
 
-		switch pl.(type) {
+		switch request := pl.(type) {
 		case *payload.VStateRequest:
+			for _, flag := range []payload.StateRequestContentFlags{payload.RequestLatestValidatedState, payload.RequestLatestDirtyState,
+				payload.RequestMutableQueue, payload.RequestImmutableQueue} {
+				assert.True(t, request.RequestedContent.Contains(flag))
+			}
 		default:
 			require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
 		}
