@@ -40,19 +40,26 @@ func TestLocalHeader(t *testing.T) {
 	require.Equal(t, 100000, int(r.GetPulseNumber()))
 	require.Equal(t, 1, int(r.SubScope()))
 	require.Equal(t, NewLocalHeader(100000, 1), r.GetHeader())
-	require.Equal(t, r0.IdentityHash(), r.IdentityHash())
+	require.Equal(t, r0.IdentityHashBytes(), r.IdentityHashBytes())
 
 	r = r.WithPulse(100001)
 	require.Equal(t, 100001, int(r.GetPulseNumber()))
 	require.Equal(t, 1, int(r.SubScope()))
 	require.Equal(t, NewLocalHeader(100001, 1), r.GetHeader())
-	require.Equal(t, r0.IdentityHash(), r.IdentityHash())
+	require.Equal(t, r0.IdentityHashBytes(), r.IdentityHashBytes())
 
 	r = r.WithSubScope(0)
 	require.Equal(t, 100001, int(r.GetPulseNumber()))
 	require.Equal(t, 0, int(r.SubScope()))
 	require.Equal(t, NewLocalHeader(100001, 0), r.GetHeader())
-	require.Equal(t, r0.IdentityHash(), r.IdentityHash())
+	require.Equal(t, r0.IdentityHashBytes(), r.IdentityHashBytes())
+
+	h2 := r0.IdentityHash()
+	h2[10] += 99
+	r = r.WithHash(h2)
+	require.Equal(t, NewLocal(100001, 0, h2), r.WithHash(h2))
+	require.Equal(t, h2, r.IdentityHash())
+	require.Equal(t, h2[:], r.IdentityHashBytes())
 }
 
 func TestLocalShortForm(t *testing.T) {

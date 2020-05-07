@@ -147,10 +147,14 @@ func (v Local) Pulse() pulse.Number {
 	return v.GetPulseNumber()
 }
 
-func (v Local) IdentityHash() []byte {
+func (v Local) IdentityHashBytes() []byte {
 	rv := make([]byte, len(v.hash))
 	copy(rv, v.hash[:])
 	return rv
+}
+
+func (v Local) IdentityHash() LocalHash {
+	return v.hash
 }
 
 func (v Local) hashLen() int {
@@ -166,7 +170,7 @@ func (v Local) GetLocal() Local {
 
 // DebugString prints ID in human readable form.
 func (v Local) DebugString() string {
-	return fmt.Sprintf("%s [%d | %d | %s]", v.String(), v.Pulse(), v.SubScope(), base64.RawURLEncoding.EncodeToString(v.IdentityHash()))
+	return fmt.Sprintf("%s [%d | %d | %s]", v.String(), v.Pulse(), v.SubScope(), base64.RawURLEncoding.EncodeToString(v.IdentityHashBytes()))
 }
 
 func (v Local) canConvertToSelf() bool {

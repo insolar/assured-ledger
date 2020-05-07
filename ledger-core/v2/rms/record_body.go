@@ -182,12 +182,6 @@ func (p *RecordBody) Unmarshal(b []byte) error {
 	})
 }
 
-func (p *RecordBody) VerifyPayloadBytes(data []byte) error {
-	b := RawBinary{}
-	b.SetBytes(data)
-	return p.VerifyPayload(b)
-}
-
 func (p *RecordBody) VerifyPayload(data RawBinary) error {
 	if len(p.digests) == 0 {
 		return p.verifyPayload(cryptkit.Digest{}, data)
