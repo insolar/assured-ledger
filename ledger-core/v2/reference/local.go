@@ -253,7 +253,7 @@ func (p *byteWriter) WriteByte(c byte) error {
 		shift := (3 - p.o) << 3
 		p.v.pulseAndScope = LocalHeader(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
 	case p.isFull():
-		return io.ErrUnexpectedEOF
+		return io.ErrShortBuffer
 	default:
 		p.v.hash[p.o-LocalBinaryPulseAndScopeSize] = c
 	}

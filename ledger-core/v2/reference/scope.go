@@ -91,7 +91,7 @@ func (v Scope) Scope() Scope {
 type SelfScope uint8
 
 const (
-	SelfScopeObject       SelfScope = baseScopeLifeline
+	SelfScopeLifeline     SelfScope = baseScopeLifeline
 	SelfScopeLocalDomain  SelfScope = baseScopeLocalDomain
 	SelfScopeGlobalDomain SelfScope = baseScopeGlobal
 )

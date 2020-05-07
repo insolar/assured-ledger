@@ -15,12 +15,19 @@ type Template struct {
 	local LocalHeader
 }
 
+const selfRefTemplate pulse.Number = 1
+
 func NewSelfRefTemplate(pn pulse.Number, scope SelfScope) Template {
+	return NewSelfRefTemplateExt(pn, scope.Scope())
+}
+
+func NewSelfRefTemplateExt(pn pulse.Number, scope Scope) Template {
 	if !pn.IsSpecialOrTimePulse() {
 		panic(throw.IllegalValue())
 	}
-	h := NewLocalHeader(pn, scope.SubScope())
-	return Template{local: h, base: Local{pulseAndScope: h}}
+	return Template{
+		local: NewLocalHeader(pn, scope.SubScope()),
+		base:  Local{pulseAndScope: NewLocalHeader(selfRefTemplate, scope.SuperScope())}}
 }
 
 func NewRecordRefTemplate(pn pulse.Number) Template {
@@ -32,6 +39,10 @@ func NewRecordRefTemplate(pn pulse.Number) Template {
 }
 
 func NewRefTemplate(template Holder, pn pulse.Number) Template {
+	if !pn.IsSpecialOrTimePulse() {
+		panic(throw.IllegalValue())
+	}
+
 	return NewRefTemplateExt(template.GetBase(), template.GetLocal().GetHeader().WithPulse(pn))
 }
 
@@ -53,15 +64,15 @@ func (v Template) GetScope() Scope {
 	return v.base.SubScope().AsBaseOf(v.local.SubScope())
 }
 
+func (v Template) isSelfRef() bool {
+	return v.base.Pulse() == selfRefTemplate
+}
+
 func (v Template) CanAsRecord() bool {
-	switch {
-	case v.local == 0:
+	if v.local == 0 {
 		return false
-	case v.base.pulseAndScope == 0:
-		return true
-	default:
-		return v.local == v.base.pulseAndScope
 	}
+	return v.base.pulseAndScope == 0 || v.isSelfRef()
 }
 
 func (v Template) HasBase() bool {
@@ -75,10 +86,15 @@ func (v Template) WithHash(h LocalHash) Global {
 		panic(throw.IllegalState())
 	case v.base.pulseAndScope == 0:
 		panic(throw.IllegalState())
+	case v.isSelfRef():
+		return Global{
+			addressLocal: Local{v.local, h},
+			addressBase:  Local{v.local.WithSubScope(v.base.SubScope()), h},
+		}
 	}
 	return Global{
 		addressLocal: Local{v.local, h},
-		addressBase:  Local{v.base.pulseAndScope, h},
+		addressBase:  v.base,
 	}
 }
 
@@ -89,7 +105,7 @@ func (v Template) WithHashAsRecord(h LocalHash) Local {
 		panic(throw.IllegalState())
 	case v.base.pulseAndScope == 0:
 		//
-	case v.base.pulseAndScope != v.local:
+	case !v.isSelfRef():
 		panic(throw.IllegalState())
 	}
 	return Local{v.local, h}
@@ -112,8 +128,16 @@ type MutableTemplate struct {
 	hasHash bool
 }
 
+func (p *MutableTemplate) IsZero() bool {
+	return p.local.IsZero()
+}
+
 func (p *MutableTemplate) IsEmpty() bool {
 	return !p.hasHash
+}
+
+func (p *MutableTemplate) isSelfRef() bool {
+	return p.base.Pulse() == selfRefTemplate
 }
 
 func (p *MutableTemplate) GetScope() Scope {
@@ -128,14 +152,18 @@ func (p *MutableTemplate) GetLocal() Local {
 }
 
 func (p *MutableTemplate) GetBase() Local {
-	if !p.hasHash {
+	switch {
+	case !p.hasHash:
 		panic(throw.IllegalState())
+	case p.base.pulseAndScope == 0:
+		return Local{}
+	case !p.isSelfRef():
+		return p.base
+	case p.base.SubScope() == p.local.SubScope():
+		return p.local
+	default:
+		return Local{p.local.pulseAndScope.WithSubScope(p.base.SubScope()), p.local.hash}
 	}
-	return p.base
-}
-
-func (p *MutableTemplate) IsZero() bool {
-	return p.local.IsZero()
 }
 
 // WithHash panics on zero template
@@ -144,13 +172,19 @@ func (p *MutableTemplate) WithHash(h LocalHash) Global {
 	case p.local.IsZero():
 		panic(throw.IllegalState())
 	case p.base.pulseAndScope == 0:
+		panic(throw.IllegalState())
+	case !p.isSelfRef():
 		return Global{
 			addressLocal: Local{p.local.pulseAndScope, h},
+			addressBase:  p.base,
 		}
-	}
-	return Global{
-		addressLocal: Local{p.local.pulseAndScope, h},
-		addressBase:  Local{p.base.pulseAndScope, h},
+	case p.base.SubScope() == p.local.SubScope():
+		return NewSelf(Local{p.local.pulseAndScope, h})
+	default:
+		return Global{
+			addressLocal: Local{p.local.pulseAndScope, h},
+			addressBase:  Local{p.local.pulseAndScope.WithSubScope(p.base.SubScope()), h},
+		}
 	}
 }
 
@@ -161,21 +195,14 @@ func (p *MutableTemplate) WithHashAsRecord(h LocalHash) Local {
 		panic(throw.IllegalState())
 	case p.base.pulseAndScope == 0:
 		//
-	case p.base.pulseAndScope != p.local.pulseAndScope:
+	case !p.isSelfRef():
 		panic(throw.IllegalState())
 	}
 	return Local{p.local.pulseAndScope, h}
 }
 
 func (p *MutableTemplate) CanAsRecord() bool {
-	switch {
-	case p.local.IsZero():
-		return false
-	case p.base.pulseAndScope == 0:
-		return true
-	default:
-		return p.local.pulseAndScope == p.base.pulseAndScope
-	}
+	return p.base.pulseAndScope == 0 || p.isSelfRef()
 }
 
 func (p *MutableTemplate) HasBase() bool {
@@ -189,9 +216,6 @@ func (p *MutableTemplate) SetHash(h LocalHash) {
 	}
 	p.hasHash = true
 	p.local.hash = h
-	if p.base.pulseAndScope != 0 {
-		p.base.hash = h
-	}
 }
 
 func (p *MutableTemplate) HasHash() bool {
@@ -199,19 +223,20 @@ func (p *MutableTemplate) HasHash() bool {
 }
 
 func (p *MutableTemplate) MustGlobal() Global {
-	if !p.hasHash {
+	switch {
+	case !p.hasHash:
+		panic(throw.IllegalState())
+	case p.base.pulseAndScope == 0:
 		panic(throw.IllegalState())
 	}
-	return Global{addressLocal: p.local, addressBase: p.base}
+	return Global{addressLocal: p.local, addressBase: p.GetBase()}
 }
 
 func (p *MutableTemplate) MustRecord() Local {
 	switch {
 	case !p.hasHash:
 		panic(throw.IllegalState())
-	case p.base.pulseAndScope == 0:
-		//
-	case p.base.pulseAndScope != p.local.pulseAndScope:
+	case !p.CanAsRecord():
 		panic(throw.IllegalState())
 	}
 	return p.local
