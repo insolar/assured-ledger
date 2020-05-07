@@ -6,22 +6,92 @@
 package runner
 
 import (
+	"fmt"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 func (r *DefaultService) GetCode(_ rpctypes.UpGetCodeReq, _ *rpctypes.UpGetCodeResp) error {
-	panic(throw.NotImplemented())
+	panic(throw.Unsupported())
 }
 
-func (r *DefaultService) RouteCall(_ rpctypes.UpRouteReq, _ *rpctypes.UpRouteResp) error {
-	panic(throw.NotImplemented())
+func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.UpRouteResp) error {
+	sink := r.getExecutionSink(in.ID)
+	if sink == nil {
+		panic(throw.E("failed to find ExecutionContext", nil))
+	}
+
+	event := executionevent.NewRPCBuilder(in.Request, in.Callee).
+		CallMethod(in.Object, in.Prototype, in.Method, in.Arguments).
+		SetImmutable(in.Immutable)
+	sink.ExternalCall(event)
+
+	rawValue := <-sink.input
+
+	switch val := rawValue.(type) {
+	case insolar.Arguments:
+		out.Result = val
+	case []uint8:
+		out.Result = val
+	case error:
+		return val
+	default:
+		description := struct{ _type string }{fmt.Sprintf("%T", val)}
+		panic(throw.E("CallMethod result unexpected type", description))
+	}
+
+	return nil
+
 }
 
-func (r *DefaultService) SaveAsChild(_ rpctypes.UpSaveAsChildReq, _ *rpctypes.UpSaveAsChildResp) error {
-	panic(throw.NotImplemented())
+func (r *DefaultService) CallConstructor(in rpctypes.UpCallConstructorReq, out *rpctypes.UpCallConstructorResp) error {
+	sink := r.getExecutionSink(in.ID)
+	if sink == nil {
+		panic(throw.E("failed to find ExecutionContext", nil))
+	}
+
+	event := executionevent.NewRPCBuilder(in.Request, in.Callee).
+		CallConstructor(in.Prototype, in.ConstructorName, in.ArgsSerialized)
+	sink.ExternalCall(event)
+
+	rawValue := <-sink.input
+
+	switch val := rawValue.(type) {
+	case insolar.Arguments:
+		out.Result = val
+	case []uint8:
+		out.Result = val
+	case error:
+		return val
+	default:
+		description := struct{ _type string }{fmt.Sprintf("%T", val)}
+		panic(throw.E("CallConstructor result unexpected type", description))
+	}
+
+	return nil
 }
 
-func (r *DefaultService) DeactivateObject(_ rpctypes.UpDeactivateObjectReq, _ *rpctypes.UpDeactivateObjectResp) error {
-	panic(throw.NotImplemented())
+func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out *rpctypes.UpDeactivateObjectResp) error {
+	sink := r.getExecutionSink(in.ID)
+	if sink == nil {
+		panic(throw.E("failed to find ExecutionContext", nil))
+	}
+
+	event := executionevent.NewRPCBuilder(in.Request, in.Callee).Deactivate()
+	sink.ExternalCall(event)
+
+	rawValue := <-sink.input
+
+	switch val := rawValue.(type) {
+	case nil:
+		return nil
+	case error:
+		return val
+	default:
+		description := struct{ _type string }{fmt.Sprintf("%T", val)}
+		panic(throw.E("Deactivate result unexpected type", description))
+	}
 }

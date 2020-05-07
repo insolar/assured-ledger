@@ -12,8 +12,8 @@ import (
 
 type RunnerRPCStub interface {
 	GetCode(rpctypes.UpGetCodeReq, *rpctypes.UpGetCodeResp) error
-	RouteCall(rpctypes.UpRouteReq, *rpctypes.UpRouteResp) error
-	SaveAsChild(rpctypes.UpSaveAsChildReq, *rpctypes.UpSaveAsChildResp) error
+	CallMethod(rpctypes.UpCallMethodReq, *rpctypes.UpRouteResp) error
+	CallConstructor(rpctypes.UpCallConstructorReq, *rpctypes.UpCallConstructorResp) error
 	DeactivateObject(rpctypes.UpDeactivateObjectReq, *rpctypes.UpDeactivateObjectResp) error
 }
 
@@ -21,12 +21,12 @@ type RunnerRPCStub interface {
 type ProxyHelper interface {
 	SystemError
 	Serializer
-	RouteCall(
+	CallMethod(
 		ref reference.Global,
 		immutable bool, saga bool,
 		method string, args []byte, proxyPrototype reference.Global,
 	) (result []byte, err error)
-	SaveAsChild(
+	CallConstructor(
 		parentRef, classRef reference.Global, constructorName string, argsSerialized []byte,
 	) (result []byte, err error)
 	DeactivateObject(object reference.Global) error
