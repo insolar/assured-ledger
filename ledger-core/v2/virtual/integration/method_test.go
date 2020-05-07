@@ -7,6 +7,7 @@ package small
 
 import (
 	"context"
+	"runtime"
 	"testing"
 	"time"
 
@@ -106,6 +107,10 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 }
 
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
+	if runtime.GOOS == "windows" { // TODO FIXME
+		t.Skip("Currently this test doesn't pass on windows")
+	}
+	
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

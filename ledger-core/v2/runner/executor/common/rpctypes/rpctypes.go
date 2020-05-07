@@ -6,6 +6,8 @@
 package rpctypes
 
 import (
+	"github.com/google/uuid"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -51,6 +53,7 @@ type UpBaseReq struct {
 	Callee          reference.Global
 	CalleePrototype reference.Global
 	Request         reference.Global
+	ID              uuid.UUID
 }
 
 // UpRespIface interface for UpBaseReq descendant responses
@@ -68,10 +71,10 @@ type UpGetCodeResp struct {
 	Code []byte
 }
 
-// UpRouteReq is a set of arguments for Send RPC in goplugin
-type UpRouteReq struct {
+// UpCallMethodReq is a set of arguments for Send RPC in goplugin
+type UpCallMethodReq struct {
 	UpBaseReq
-	Immutable bool
+	Unordered bool
 	Saga      bool
 	Object    reference.Global
 	Method    string
@@ -84,8 +87,8 @@ type UpRouteResp struct {
 	Result insolar.Arguments
 }
 
-// UpSaveAsChildReq is a set of arguments for SaveAsChild RPC in goplugin
-type UpSaveAsChildReq struct {
+// UpCallConstructorReq is a set of arguments for CallConstructor RPC in goplugin
+type UpCallConstructorReq struct {
 	UpBaseReq
 	Parent          reference.Global
 	Prototype       reference.Global
@@ -93,8 +96,8 @@ type UpSaveAsChildReq struct {
 	ArgsSerialized  []byte
 }
 
-// UpSaveAsChildResp is a set of arguments for SaveAsChild RPC in goplugin
-type UpSaveAsChildResp struct {
+// UpCallConstructorResp is a set of arguments for CallConstructor RPC in goplugin
+type UpCallConstructorResp struct {
 	Result insolar.Arguments
 }
 

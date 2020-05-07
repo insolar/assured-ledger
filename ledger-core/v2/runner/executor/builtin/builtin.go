@@ -47,7 +47,7 @@ func New(stub common.RunnerRPCStub) *Runner {
 	}
 }
 
-func (b *Runner) CallConstructor(
+func (r *Runner) CallConstructor(
 	_ context.Context,
 	callCtx *insolar.LogicCallContext,
 	codeRef reference.Global,
@@ -57,21 +57,21 @@ func (b *Runner) CallConstructor(
 	foundation.SetLogicalContext(callCtx)
 	defer foundation.ClearContext()
 
-	contractName, ok := b.CodeRefRegistry[codeRef]
+	contractName, ok := r.CodeRefRegistry[codeRef]
 	if !ok {
 		return nil, nil, errors.New("failed to find contract with reference")
 	}
-	contract := b.CodeRegistry[contractName]
+	contract := r.CodeRegistry[contractName]
 
 	constructorFunc, ok := contract.Constructors[name]
 	if !ok {
-		return nil, nil, errors.New("failed to find contracts method")
+		return nil, nil, errors.New("failed to find contracts constructor")
 	}
 
 	return constructorFunc(callCtx.Callee, args)
 }
 
-func (b *Runner) CallMethod(
+func (r *Runner) CallMethod(
 	_ context.Context,
 	callCtx *insolar.LogicCallContext,
 	codeRef reference.Global,
@@ -82,11 +82,11 @@ func (b *Runner) CallMethod(
 	foundation.SetLogicalContext(callCtx)
 	defer foundation.ClearContext()
 
-	contractName, ok := b.CodeRefRegistry[codeRef]
+	contractName, ok := r.CodeRefRegistry[codeRef]
 	if !ok {
 		return nil, nil, errors.New("failed to find contract with reference")
 	}
-	contract := b.CodeRegistry[contractName]
+	contract := r.CodeRegistry[contractName]
 
 	methodObject, ok := contract.Methods[method]
 	if !ok {
@@ -110,6 +110,6 @@ func (b *Runner) CallMethod(
 	return methodObject.Func(data, args)
 }
 
-func (b *Runner) GetDescriptor(ref reference.Global) (interface{}, error) {
-	return b.DescriptorRegistry[ref], nil
+func (r *Runner) GetDescriptor(ref reference.Global) (interface{}, error) {
+	return r.DescriptorRegistry[ref], nil
 }
