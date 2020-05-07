@@ -53,6 +53,7 @@ func DecodeFixed64(r io.ByteReader) (uint64, error) {
 }
 
 func DecodeFixed32(r io.ByteReader) (v uint64, err error) {
+	// NB! uint64 result is NOT a mistake
 	var b byte
 	if b, err = r.ReadByte(); err != nil {
 		return 0, err

@@ -24,12 +24,12 @@ const (
 	illegalUtf8FirstByte byte = 0x80
 	legalUtf8            byte = 0xC0
 
-	ObjectMarker = illegalUtf8FirstByte | byte(WireVarint) //16:varint
-	//  _Marker		 = illegalUtf8FirstByte | byte(WireFixed64)	//16:fixed64
-	//  _Marker		 = illegalUtf8FirstByte | byte(WireBytes)	//16:bytes
-	//	DO_NOT_USE	 = illegalUtf8FirstByte | byte(WireStartGroup)	//16:groupStart
-	BinaryMarker = illegalUtf8FirstByte | byte(WireEndGroup) //16:groupEnd
-//  _Marker		 = illegalUtf8FirstByte | byte(WireFixed32)	//16:fixed32
+	ObjectMarker = illegalUtf8FirstByte | byte(WireVarint) // 16:varint
+	//  _Marker		 = illegalUtf8FirstByte | byte(WireFixed64)	// 16:fixed64
+	//  _Marker		 = illegalUtf8FirstByte | byte(WireBytes)	// 16:bytes
+	//	DO_NOT_USE	 = illegalUtf8FirstByte | byte(WireStartGroup)	// 16:groupStart
+	BinaryMarker = illegalUtf8FirstByte | byte(WireEndGroup) // 16:groupEnd
+//  _Marker		 = illegalUtf8FirstByte | byte(WireFixed32)		// 16:fixed32
 )
 
 const PolymorphFieldID = illegalUtf8FirstByte >> WireTypeBits // = 16
@@ -51,51 +51,72 @@ const (
 type ContentType uint8
 
 const (
-	/* Content is unclear, can either be text or binary */
+	/* Content is unclear */
 	ContentUndefined ContentType = iota
 	/* Content is text */
 	ContentText
 	/* Content is binary */
 	ContentBinary
-	/* Content is protobuf that follows the notation, but doesn't have ObjectMarker */
+	/* Content is protobuf message */
 	ContentMessage
-	/* Content is protobuf that follows the notation and has ObjectMarker */
-	ContentObject
+	/* Content is protobuf that follows the notation and has polymorph marker */
+	ContentPolymorph
+)
+
+type ContentTypeOptions uint8
+
+const (
+	// ContentOptionText indicates that the content can be text
+	ContentOptionText ContentTypeOptions = 1 << iota
+
+	// ContentOptionMessage indicates that the content can be a protobuf message
+	ContentOptionMessage
+
+	// ContentOptionNotation indicates the content has either Polymorph or Binary markers
+	ContentOptionNotation
 )
 
 // Provides content type detection of a notation-friendly payload.
-func ContentTypeOf(firstByte byte) ContentType {
-	switch {
-	case firstByte < 10 /* LF */ :
-		if firstByte == 0 {
-			return ContentBinary
-		}
-		return ContentUndefined
-	case firstByte >= legalUtf8:
-		return ContentText
-	case firstByte < illegalUtf8FirstByte:
-		return ContentText
+func PossibleContentTypes(firstByte byte) (ct ContentTypeOptions) {
+	if firstByte == 0 {
+		return 0
 	}
 
-	switch wt := firstByte & maskWireType; {
-	case wt == ObjectMarker&maskWireType:
-		return ContentObject
-	case wt == BinaryMarker&maskWireType:
-		return ContentBinary
-	case WireType(wt).IsValid():
-		return ContentMessage
-	default:
-		return ContentUndefined
+	switch {
+	case firstByte < '\t' /* 9 */ :
+		// not a text
+		if firstByte&^maskWireType == 0 {
+			return 0
+		}
+	case firstByte >= legalUtf8:
+		ct |= ContentOptionText
+	case firstByte < illegalUtf8FirstByte:
+		ct |= ContentOptionText
 	}
+
+	switch WireType(firstByte & maskWireType) {
+	case WireVarint:
+		if ct&ContentOptionText == 0 {
+			ct |= ContentOptionNotation
+		}
+		ct |= ContentOptionMessage
+	case WireFixed64, WireBytes, WireFixed32, WireStartGroup:
+		ct |= ContentOptionMessage
+	case WireEndGroup:
+		if ct&ContentOptionText == 0 {
+			ct |= ContentOptionNotation
+		}
+	}
+	return ct
 }
 
-func PeekContentType(r io.ByteScanner) (ContentType, error) {
+func PeekPossibleContentTypes(r io.ByteScanner) (ContentTypeOptions, error) {
 	b, err := r.ReadByte()
 	if err != nil {
-		return ContentUndefined, err
+		return 0, err
 	}
 	err = r.UnreadByte()
-	return ContentTypeOf(b), err
+	return PossibleContentTypes(b), err
 }
 
 var ErrUnexpectedHeader = errors.New("unexpected header")
@@ -105,21 +126,37 @@ func PeekContentTypeAndPolymorphID(r io.ByteScanner) (ContentType, uint64, error
 	if err != nil {
 		return ContentUndefined, 0, err
 	}
-	if ct := ContentTypeOf(b); ct != ContentObject {
-		return ct, 0, r.UnreadByte()
-	}
-	switch b, err = r.ReadByte(); {
-	case err != nil:
-		return ContentUndefined, 0, err
-	case b != 0x01:
-		return ContentMessage, 0, ErrUnexpectedHeader // we can't recover here
-	}
 
-	var id uint64
-	if id, err = DecodeVarint(r); err != nil {
-		return ContentUndefined, 0, err
+	ct := ContentUndefined
+	switch pct := PossibleContentTypes(b); pct {
+	case 0:
+	case ContentOptionMessage:
+		ct = ContentMessage
+	case ContentOptionNotation:
+		ct = ContentBinary
+	case ContentOptionNotation | ContentOptionMessage:
+		switch b, err = r.ReadByte(); {
+		case err != nil:
+			return ContentUndefined, 0, err
+		case b != 0x01:
+			return ContentMessage, 0, ErrUnexpectedHeader // we can't recover here
+		}
+
+		var id uint64
+		if id, err = DecodeVarint(r); err != nil {
+			return ContentUndefined, 0, err
+		}
+		return ContentPolymorph, id, nil
+
+	default:
+		if pct&ContentOptionText != 0 {
+			ct = ContentText
+			break
+		}
+		_ = r.UnreadByte()
+		panic(throw.Impossible())
 	}
-	return ContentObject, id, nil
+	return ct, 0, r.UnreadByte()
 }
 
 func PeekContentTypeAndPolymorphIDFromBytes(b []byte) (ContentType, uint64, error) {
@@ -127,34 +164,41 @@ func PeekContentTypeAndPolymorphIDFromBytes(b []byte) (ContentType, uint64, erro
 	if n == 0 {
 		return ContentUndefined, 0, nil
 	}
-	ct := ContentTypeOf(b[0])
 
-	switch ct {
-	case ContentBinary, ContentUndefined:
-		return ct, 0, nil
-	case ContentText:
-		if n == 1 && b[0] >= illegalUtf8FirstByte {
-			// only one byte can't be >=0x80
-			return ContentText, 0, throw.FailHere("bad utf")
-		}
-		return ContentText, 0, nil
-	case ContentMessage:
+	switch pct := PossibleContentTypes(b[0]); pct {
+	case 0:
+		return ContentUndefined, 0, nil
+
+	case ContentOptionMessage:
 		if n == 1 || n == 2 && b[0] >= 0x80 {
 			return ContentMessage, 0, throw.FailHere("bad message")
 		}
 		return ContentMessage, 0, nil
-	case ContentObject:
-		switch {
-		case n < 3 || b[1] != 0x01:
-		default:
-			id, n := DecodeVarintFromBytes(b[2:])
-			if n == 0 {
-				break
-			}
-			return ContentObject, id, nil
+
+	case ContentOptionNotation:
+		return ContentBinary, 0, nil
+
+	case ContentOptionNotation | ContentOptionMessage:
+		if n < 3 || b[1] != 0x01 {
+			return ContentPolymorph, 0, throw.FailHere("bad message")
 		}
-		return ContentObject, 0, throw.FailHere("bad message")
+
+		id, n := DecodeVarintFromBytes(b[2:])
+		if n == 0 {
+			return ContentPolymorph, 0, throw.FailHere("bad message")
+		}
+		return ContentPolymorph, id, nil
+
 	default:
-		panic(throw.Impossible())
+		switch {
+		case pct&ContentOptionText == 0:
+			panic(throw.Impossible())
+		case b[0] < illegalUtf8FirstByte:
+			return ContentText, 0, nil
+		case n == 1:
+			return ContentText, 0, throw.FailHere("bad utf")
+		default:
+			return ContentText, 0, nil
+		}
 	}
 }
