@@ -249,12 +249,12 @@ func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 	wg.Add(1)
 
 	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
+		defer wg.Done()
 		inslogger.FromContext(ctx).Info("handler triggered")
 		ref, err := reference.GlobalFromString(id1)
 		require.NoError(t, err)
 		require.Equal(t, ref, r.GetSender())
 		require.Equal(t, s.n1.PublicAddress(), r.GetSenderHost().Address.String())
-		wg.Done()
 		return s.n2.BuildResponse(ctx, r, &packet.RPCResponse{}), nil
 	}
 
