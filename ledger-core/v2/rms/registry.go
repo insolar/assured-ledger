@@ -124,7 +124,7 @@ func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type) (uint64, interf
 	switch {
 	case err != nil:
 		return 0, nil, err
-	case ct != protokit.ContentObject:
+	case ct != protokit.ContentPolymorph:
 		return 0, nil, throw.E("unexpected content", struct{ protokit.ContentType }{ct})
 	case id == 0:
 		return 0, nil, throw.E("untyped object")
