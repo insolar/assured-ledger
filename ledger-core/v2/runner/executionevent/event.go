@@ -199,8 +199,8 @@ func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.
 	}
 }
 
-func (e CallMethod) SetImmutable(isImmutable bool) CallMethod {
-	e.unordered = isImmutable
+func (e CallMethod) SetUnordered(isUnordered bool) CallMethod {
+	e.unordered = isUnordered
 	return e
 }
 

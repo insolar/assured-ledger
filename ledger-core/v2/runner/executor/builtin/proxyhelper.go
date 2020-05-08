@@ -42,7 +42,7 @@ func (h *ProxyHelper) getUpBaseReq() rpctypes.UpBaseReq {
 	}
 }
 
-func (h *ProxyHelper) CallMethod(ref reference.Global, immutable bool, _ bool, method string, args []byte,
+func (h *ProxyHelper) CallMethod(ref reference.Global, unordered bool, _ bool, method string, args []byte,
 	proxyPrototype reference.Global) ([]byte, error) {
 
 	if h.GetSystemError() != nil {
@@ -54,7 +54,7 @@ func (h *ProxyHelper) CallMethod(ref reference.Global, immutable bool, _ bool, m
 		UpBaseReq: h.getUpBaseReq(),
 
 		Object:    ref,
-		Immutable: immutable,
+		Unordered: unordered,
 		Method:    method,
 		Arguments: args,
 		Prototype: proxyPrototype,

@@ -301,7 +301,7 @@ func (gi *GoInsider) CallMethod(ref reference.Global, immutable bool, saga bool,
 
 	req := rpctypes.UpCallMethodReq{
 		UpBaseReq: MakeUpBaseReq(),
-		Immutable: immutable,
+		Unordered: immutable,
 		Saga:      saga,
 		Object:    ref,
 		Method:    method,

@@ -74,7 +74,7 @@ type UpGetCodeResp struct {
 // UpCallMethodReq is a set of arguments for Send RPC in goplugin
 type UpCallMethodReq struct {
 	UpBaseReq
-	Immutable bool
+	Unordered bool
 	Saga      bool
 	Object    reference.Global
 	Method    string
