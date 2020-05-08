@@ -309,7 +309,7 @@ func (gi *GoInsider) CallMethod(ref reference.Global, immutable bool, saga bool,
 		Prototype: proxyPrototype,
 	}
 
-	res := rpctypes.UpRouteResp{}
+	res := rpctypes.UpCallMethodResp{}
 	err = client.Call("RPC.CallMethod", req, &res)
 	if err != nil {
 		gi.SetSystemError(err)

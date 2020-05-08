@@ -15,7 +15,7 @@ func (r *DefaultService) GetCode(_ rpctypes.UpGetCodeReq, _ *rpctypes.UpGetCodeR
 	panic(throw.Unsupported())
 }
 
-func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.UpRouteResp) error {
+func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.UpCallMethodResp) error {
 	sink := r.getExecutionSink(in.ID)
 	if sink == nil {
 		panic(throw.E("failed to find ExecutionContext", nil))

@@ -8,8 +8,6 @@ package builtin
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
@@ -42,14 +40,18 @@ func (h *ProxyHelper) getUpBaseReq() rpctypes.UpBaseReq {
 	}
 }
 
-func (h *ProxyHelper) CallMethod(ref reference.Global, unordered bool, _ bool, method string, args []byte,
-	proxyPrototype reference.Global) ([]byte, error) {
-
+func (h *ProxyHelper) CallMethod(
+	ref reference.Global, unordered bool,
+	_ bool, method string, args []byte,
+	proxyPrototype reference.Global,
+) (
+	[]byte, error,
+) {
 	if h.GetSystemError() != nil {
 		return nil, h.GetSystemError()
 	}
 
-	res := rpctypes.UpRouteResp{}
+	res := rpctypes.UpCallMethodResp{}
 	req := rpctypes.UpCallMethodReq{
 		UpBaseReq: h.getUpBaseReq(),
 
@@ -75,10 +77,6 @@ func (h *ProxyHelper) CallConstructor(
 ) (
 	[]byte, error,
 ) {
-	if !parentRef.IsObjectReference() {
-		return nil, errors.Errorf("Failed to save AsChild: objRef should be ObjectReference; ref=%s", parentRef.String())
-	}
-
 	if h.GetSystemError() != nil {
 		// There was a system error during execution of the contract.
 		// Immediately return this error to the calling contract - any

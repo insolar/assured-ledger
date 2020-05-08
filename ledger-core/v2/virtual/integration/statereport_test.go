@@ -82,7 +82,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
@@ -106,7 +106,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
@@ -114,7 +114,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	}
 
 	checkBalance(t, server, objectRef, testBalance)
-	newStateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateRequest: one more time to simulate rewrite
 		msg := makeVStateReportEvent(t, objectRef, newStateID, makeRawWalletState(t, 444))
