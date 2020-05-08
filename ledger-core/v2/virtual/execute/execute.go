@@ -53,7 +53,7 @@ type SMExecute struct {
 	executionNewState *executionupdate.ContractExecutionStateUpdate
 	executionID       uuid.UUID
 	executionError    error
-	outgoingResult    interface{}
+	outgoingResult    []byte
 	deactivate        bool
 
 	// dependencies

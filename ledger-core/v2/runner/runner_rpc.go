@@ -6,9 +6,6 @@
 package runner
 
 import (
-	"fmt"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -29,18 +26,10 @@ func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.U
 		SetImmutable(in.Immutable)
 	sink.ExternalCall(event)
 
-	rawValue := <-sink.input
+	out.Result = <-sink.input
 
-	switch val := rawValue.(type) {
-	case insolar.Arguments:
-		out.Result = val
-	case []uint8:
-		out.Result = val
-	case error:
-		return val
-	default:
-		description := struct{ _type string }{fmt.Sprintf("%T", val)}
-		panic(throw.E("CallMethod result unexpected type", description))
+	if out.Result == nil {
+		panic(throw.E("CallMethod result unexpected type, got nil"))
 	}
 
 	return nil
@@ -57,18 +46,10 @@ func (r *DefaultService) CallConstructor(in rpctypes.UpCallConstructorReq, out *
 		CallConstructor(in.Prototype, in.ConstructorName, in.ArgsSerialized)
 	sink.ExternalCall(event)
 
-	rawValue := <-sink.input
+	out.Result = <-sink.input
 
-	switch val := rawValue.(type) {
-	case insolar.Arguments:
-		out.Result = val
-	case []uint8:
-		out.Result = val
-	case error:
-		return val
-	default:
-		description := struct{ _type string }{fmt.Sprintf("%T", val)}
-		panic(throw.E("CallConstructor result unexpected type", description))
+	if out.Result == nil {
+		panic(throw.E("CallConstructor result unexpected type, got nil"))
 	}
 
 	return nil
@@ -85,13 +66,9 @@ func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out
 
 	rawValue := <-sink.input
 
-	switch val := rawValue.(type) {
-	case nil:
-		return nil
-	case error:
-		return val
-	default:
-		description := struct{ _type string }{fmt.Sprintf("%T", val)}
-		panic(throw.E("Deactivate result unexpected type", description))
+	if rawValue == nil {
+		return throw.E("Deactivate result unexpected type, expected nil")
 	}
+
+	return nil
 }

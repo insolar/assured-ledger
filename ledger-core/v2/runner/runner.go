@@ -29,7 +29,7 @@ import (
 
 type Service interface {
 	ExecutionStart(ctx context.Context, execution execution.Context) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error)
-	ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error)
+	ExecutionContinue(ctx context.Context, id uuid.UUID, result []byte) (*executionupdate.ContractExecutionStateUpdate, error)
 	ExecutionAbort(ctx context.Context, id uuid.UUID)
 	ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType
 	ContractCompile(ctx context.Context, contract interface{})
@@ -298,7 +298,7 @@ func (r *DefaultService) ExecutionClassify(ctx context.Context, execution execut
 	return calltype.ContractCallOrdered
 }
 
-func (r *DefaultService) ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error) {
+func (r *DefaultService) ExecutionContinue(ctx context.Context, id uuid.UUID, result []byte) (*executionupdate.ContractExecutionStateUpdate, error) {
 	sink := r.getExecutionSink(id)
 
 	sink.input <- result
