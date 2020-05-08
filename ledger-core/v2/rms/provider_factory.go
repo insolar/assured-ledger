@@ -33,7 +33,7 @@ func SetReferenceFactoryCanPull(r Referencable, canPull bool) {
 	rd.canPull = canPull
 }
 
-func ReferenceOf(r Referencable, digester cryptkit.DataDigester, template reference.Template) reference.Global {
+func ForceReferenceOf(r Referencable, digester cryptkit.DataDigester, template reference.Template) reference.Global {
 	switch {
 	case digester == nil:
 		panic(throw.IllegalValue())
@@ -42,11 +42,12 @@ func ReferenceOf(r Referencable, digester cryptkit.DataDigester, template refere
 	}
 	fm := r.InitFieldMap(false)
 
-	if rd, ok := fm.Callback.(*referenceDispenser); ok && rd.isCompatibleDigester(digester) {
+	if rd, ok := fm.Callback.(*referenceDispenser); ok && rd.isCompatibleDigester(digester) && rd.canPull {
 		rp := rd.createRefProvider(template)
 		if ref := rp.TryPullReference(); !ref.IsZero() {
 			return ref
 		}
+		panic(throw.Impossible())
 	}
 
 	prevCallback := fm.Callback

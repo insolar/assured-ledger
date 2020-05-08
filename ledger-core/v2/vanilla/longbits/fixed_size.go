@@ -137,7 +137,11 @@ func (c fixedSize) AsBytes() []byte {
 }
 
 func AsBytes(v FixedReader) []byte {
-	data := make([]byte, v.FixedByteSize())
+	n := v.FixedByteSize()
+	if n == 0 {
+		return nil
+	}
+	data := make([]byte, n)
 	if v.CopyTo(data) != len(data) {
 		panic(throw.Impossible())
 	}

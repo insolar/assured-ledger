@@ -12,9 +12,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
-type TestDigester struct{}
+type TestDigester struct {
+	altName bool
+}
 
 func (p TestDigester) GetDigestMethod() cryptkit.DigestMethod {
+	if p.altName {
+		return "X-sha224"
+	}
 	return "sha224"
 }
 

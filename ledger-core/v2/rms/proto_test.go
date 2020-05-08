@@ -145,9 +145,18 @@ func TestExampleRecordRef(t *testing.T) {
 
 	InitReferenceFactory(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
 
+	require.Panics(t, func() { InitReferenceFactory(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0)) })
+
+	ForceReferenceOf(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
+	ForceReferenceOf(m, TestDigester{true}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
+
 	lazyRef := DefaultLazyReferenceTo(m)
 	require.True(t, lazyRef.GetReference().IsZero())
 	require.True(t, lazyRef.TryPullReference().IsZero())
+
+	lazyRef2 := LazyReferenceTo(m, reference.NewSelfRefTemplate(pulse.MinTimePulse+1, 0))
+	require.True(t, lazyRef2.GetReference().IsZero())
+	require.True(t, lazyRef2.TryPullReference().IsZero())
 
 	b, err := m.Marshal()
 	require.NoError(t, err)
@@ -155,6 +164,16 @@ func TestExampleRecordRef(t *testing.T) {
 
 	require.False(t, lazyRef.GetReference().IsZero())
 	require.False(t, lazyRef.TryPullReference().IsZero())
+	require.Equal(t, pulse.Number(pulse.MinTimePulse), lazyRef.GetReference().GetLocal().Pulse())
+
+	require.False(t, lazyRef2.GetReference().IsZero())
+	require.False(t, lazyRef2.TryPullReference().IsZero())
+	require.Equal(t, pulse.Number(pulse.MinTimePulse)+1, lazyRef2.GetReference().GetLocal().Pulse())
+
+	require.Equal(t, lazyRef.GetReference().GetLocal().IdentityHash(), lazyRef2.GetReference().GetLocal().IdentityHash())
+
+	ForceReferenceOf(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
+	ForceReferenceOf(m, TestDigester{true}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
 }
 
 func TestExampleRecordRefPull(t *testing.T) {
@@ -176,4 +195,51 @@ func TestExampleRecordRefPull(t *testing.T) {
 	ref := lazyRef.GetReference()
 	require.True(t, reference.IsSelfScope(ref))
 	require.Equal(t, pulse.MinTimePulse, int(ref.GetLocal().Pulse()))
+}
+
+func TestExampleChainedRef(t *testing.T) {
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
+	payload := NewRaw(longbits.WrapStr("SomeData"))
+	m.SetPayload(payload)
+	m.SetDigester(TestDigester{})
+
+	InitReferenceFactory(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
+
+	m2 := &MessageExample{MsgParam: 11, MsgBytes: []byte("klm")}
+	m2.Str.Set(longbits.WrapStr("opq"))
+	m2.Ref1.SetLazy(DefaultLazyReferenceTo(m))
+
+	payload2 := NewRaw(longbits.WrapStr("AnotherData"))
+	m2.SetPayload(payload2)
+	m2.SetDigester(TestDigester{})
+
+	require.Panics(t, func() { _, _ = m2.Marshal() })
+
+	b, err := m.Marshal()
+	require.NoError(t, err)
+	require.NotEmpty(t, b)
+
+	// Polymorph == 0 uses default value on serialization
+	// so it has to be set explicitly to equal with a deserialized form
+	m.RecordExample.Polymorph = uint32(m.RecordExample.GetDefaultPolymorphID())
+
+	id, mu, err := Unmarshal(b)
+	require.NoError(t, err)
+	require.Equal(t, m.GetDefaultPolymorphID(), id)
+	require.True(t, m.Equal(mu))
+
+	m2.RecordExample.Polymorph = uint32(m2.RecordExample.GetDefaultPolymorphID())
+
+	b, err = m2.Marshal()
+	require.NoError(t, err)
+	require.NotEmpty(t, b)
+	require.Equal(t, pulse.Number(pulse.MinTimePulse), m2.Ref1.Get().GetLocal().Pulse())
+
+	id, mu, err = Unmarshal(b)
+	require.NoError(t, err)
+	require.Equal(t, m.GetDefaultPolymorphID(), id)
+	require.False(t, m.Equal(mu))
+	require.Equal(t, pulse.Number(pulse.MinTimePulse), mu.(*MessageExample).Ref1.Get().GetLocal().Pulse())
+	require.True(t, m2.Equal(mu))
 }

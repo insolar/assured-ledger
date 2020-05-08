@@ -8,6 +8,7 @@ package rms
 import (
 	"bytes"
 	"io"
+	"reflect"
 
 	"github.com/gogo/protobuf/proto"
 
@@ -210,20 +211,32 @@ func (p *RawBinary) GetBytes() []byte {
 	case nil:
 		return nil
 	case longbits.FixedReader:
-		return longbits.AsBytes(vv)
-	case interface{ Marshal() ([]byte, error) }:
-		b, err := vv.Marshal()
-		if err != nil {
-			panic(throw.WithStackTop(err))
+		b := longbits.AsBytes(vv)
+		if len(b) == 0 {
+			return nil
 		}
 		return b
+
+	case interface{ Marshal() ([]byte, error) }:
+		switch b, err := vv.Marshal(); {
+		case err != nil:
+			panic(throw.WithStackTop(err))
+		case len(b) == 0:
+			return nil
+		default:
+			return b
+		}
 	case interface{ MarshalTo(b []byte) (int, error) }:
 		b := make([]byte, p._serializableSize())
-		n, err := vv.MarshalTo(b)
-		if err != nil {
+
+		switch n, err := vv.MarshalTo(b); {
+		case err != nil:
 			panic(throw.WithStackTop(err))
+		case n == 0:
+			return nil
+		default:
+			return b[:n]
 		}
-		return b[:n]
 	default:
 		panic(throw.Unsupported())
 	}
@@ -260,9 +273,10 @@ func (p *RawBinary) _equal(o *RawBinary) bool {
 		return longbits.EqualToBytes(vv, o.GetBytes())
 
 	case interface{ Equal(interface{}) bool }:
-		// both have gogo-generated Equal
-		if ov, ok := o.value.(interface{ Equal(interface{}) bool }); ok {
-			return vv.Equal(ov)
+		if reflect.TypeOf(p.value) == reflect.TypeOf(o.value) {
+			if ov, ok := o.value.(interface{ Equal(interface{}) bool }); ok {
+				return vv.Equal(ov)
+			}
 		}
 	}
 
