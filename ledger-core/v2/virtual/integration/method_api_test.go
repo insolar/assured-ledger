@@ -84,15 +84,25 @@ func TestVirtual_Method_API(t *testing.T) {
 	})
 
 	t.Run("Transfer", func(t *testing.T) {
-		t.Skip("Not implemented yet")
+		{ // Transfer request
+			code, byteBuffer := server.CallAPITransfer(walletReference1, walletReference2, 500)
+			require.Equal(t, 200, code, string(byteBuffer))
 
-		code, byteBuffer := server.CallAPITransfer(walletReference1, walletReference2, 500)
-		require.Equal(t, 200, code, string(byteBuffer))
+			response, err := utils.UnmarshalWalletTransferResponse(byteBuffer)
+			require.NoError(t, err)
+			assert.Empty(t, response.Err)
+			assert.NotEmpty(t, response.TraceID)
+		}
+		{ // GetBalance request
+			code, byteBuffer := server.CallAPIGetBalance(walletReference1)
+			require.Equal(t, 200, code, string(byteBuffer))
 
-		response, err := utils.UnmarshalWalletTransferResponse(byteBuffer)
-		require.NoError(t, err)
-		assert.Empty(t, response.Err)
-		assert.NotEmpty(t, response.TraceID)
+			response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
+			require.NoError(t, err)
+			assert.Empty(t, response.Err)
+			assert.NotEmpty(t, response.TraceID)
+			assert.Equal(t, uint(1000000000), response.Amount)
+		}
 	})
 }
 

@@ -17,7 +17,7 @@ import (
 type executionEventSink struct {
 	context execution.Context
 	output  chan *executionupdate.ContractExecutionStateUpdate
-	input   chan interface{}
+	input   chan []byte
 }
 
 func (c *executionEventSink) Error(err error) bool {
@@ -65,6 +65,6 @@ func newEventSink(execution execution.Context) *executionEventSink {
 	return &executionEventSink{
 		context: execution,
 		output:  make(chan *executionupdate.ContractExecutionStateUpdate, 1),
-		input:   make(chan interface{}, 1),
+		input:   make(chan []byte, 1),
 	}
 }

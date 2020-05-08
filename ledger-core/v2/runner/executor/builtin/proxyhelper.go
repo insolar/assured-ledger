@@ -38,10 +38,11 @@ func (h *ProxyHelper) getUpBaseReq() rpctypes.UpBaseReq {
 		Callee:          callContext.Callee,
 		CalleePrototype: callContext.CallerPrototype,
 		Request:         callContext.Request,
+		ID:              callContext.ID,
 	}
 }
 
-func (h *ProxyHelper) RouteCall(ref reference.Global, immutable bool, saga bool, method string, args []byte,
+func (h *ProxyHelper) CallMethod(ref reference.Global, unordered bool, _ bool, method string, args []byte,
 	proxyPrototype reference.Global) ([]byte, error) {
 
 	if h.GetSystemError() != nil {
@@ -49,18 +50,17 @@ func (h *ProxyHelper) RouteCall(ref reference.Global, immutable bool, saga bool,
 	}
 
 	res := rpctypes.UpRouteResp{}
-	req := rpctypes.UpRouteReq{
+	req := rpctypes.UpCallMethodReq{
 		UpBaseReq: h.getUpBaseReq(),
 
 		Object:    ref,
-		Immutable: immutable,
-		Saga:      saga,
+		Unordered: unordered,
 		Method:    method,
 		Arguments: args,
 		Prototype: proxyPrototype,
 	}
 
-	err := h.methods.RouteCall(req, &res)
+	err := h.methods.CallMethod(req, &res)
 	if err != nil {
 		h.SetSystemError(err)
 		return nil, err
@@ -69,7 +69,7 @@ func (h *ProxyHelper) RouteCall(ref reference.Global, immutable bool, saga bool,
 	return res.Result, nil
 }
 
-func (h *ProxyHelper) SaveAsChild(
+func (h *ProxyHelper) CallConstructor(
 	parentRef, classRef reference.Global,
 	constructorName string, argsSerialized []byte,
 ) (
@@ -86,8 +86,8 @@ func (h *ProxyHelper) SaveAsChild(
 		return nil, h.GetSystemError()
 	}
 
-	res := rpctypes.UpSaveAsChildResp{}
-	req := rpctypes.UpSaveAsChildReq{
+	res := rpctypes.UpCallConstructorResp{}
+	req := rpctypes.UpCallConstructorReq{
 		UpBaseReq: h.getUpBaseReq(),
 
 		Parent:          parentRef,
@@ -96,7 +96,7 @@ func (h *ProxyHelper) SaveAsChild(
 		ArgsSerialized:  argsSerialized,
 	}
 
-	err := h.methods.SaveAsChild(req, &res)
+	err := h.methods.CallConstructor(req, &res)
 	if err != nil {
 		h.SetSystemError(err)
 		return nil, err
