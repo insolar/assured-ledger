@@ -57,6 +57,17 @@ func TestFieldMapOps(t *testing.T) {
 	}
 }
 
+func TestNewFieldMapDescriptorProto(t *testing.T) {
+	d := NewFieldMapDescriptorProto(0)
+	require.NotNil(t, d)
+	require.NotZero(t, d.GetNumber())
+	require.Equal(t, FieldMapFieldName, d.GetName())
+
+	d = NewFieldMapDescriptorProto(11)
+	require.NotNil(t, d)
+	require.Equal(t, int32(11), d.GetNumber())
+}
+
 type testFieldMapCallback struct {
 	t    *testing.T
 	flag bool

@@ -51,7 +51,8 @@ func IsSelfScope(ref Holder) bool {
 }
 
 func IsLifelineScope(ref Holder) bool {
-	return ref.GetBase().SubScope() == baseScopeLifeline
+	base := ref.GetBase()
+	return base.SubScope() == baseScopeLifeline && !base.IsEmpty()
 }
 
 func IsLocalDomainScope(ref Holder) bool {

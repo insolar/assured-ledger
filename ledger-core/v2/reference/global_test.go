@@ -62,3 +62,45 @@ func TestFromString(t *testing.T) {
 
 	assert.Equal(t, expectedRef, actualRef)
 }
+
+func TestGlobalZero(t *testing.T) {
+	require.True(t, Global{}.IsEmpty())
+	require.True(t, Global{}.IsZero())
+	require.False(t, New(Local{}, NewLocal(1, 0, LocalHash{})).IsZero())
+}
+
+func TestGlobalRecRef(t *testing.T) {
+	local := randLocal().WithSubScope(0)
+	ref := NewRecordRef(local)
+	require.Equal(t, local, ref.AsRecordID())
+	require.Equal(t, local, AsRecordID(ref))
+
+	require.True(t, ref.IsRecordScope())
+	require.False(t, ref.IsSelfScope())
+	require.False(t, ref.IsGlobalScope())
+	require.False(t, ref.IsLifelineScope())
+	require.False(t, ref.IsLocalDomainScope())
+	require.False(t, ref.IsObjectReference())
+}
+
+func TestGlobalSelfRef(t *testing.T) {
+	local := randLocal().WithSubScope(0)
+	ref := NewSelf(local)
+	require.Equal(t, local, ref.AsRecordID())
+	require.False(t, ref.IsRecordScope())
+	require.True(t, ref.IsSelfScope())
+	require.False(t, ref.IsGlobalScope())
+	require.True(t, ref.IsLifelineScope())
+	require.False(t, ref.IsLocalDomainScope())
+	require.True(t, ref.IsObjectReference())
+}
+
+func TestGlobalCopy(t *testing.T) {
+	require.Equal(t, Global{}, Copy(nil))
+
+	ref := New(randLocal(), randLocal())
+	require.Equal(t, ref, Copy(ref))
+
+	rp := NewPtrHolder(ref.GetBase(), ref.GetLocal())
+	require.Equal(t, ref, Copy(rp))
+}

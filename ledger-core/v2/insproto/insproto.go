@@ -89,7 +89,7 @@ func NewFieldMapDescriptorProto(number int32) *descriptor.FieldDescriptorProto {
 	label := descriptor.FieldDescriptorProto_LABEL_OPTIONAL
 	fieldType := descriptor.FieldDescriptorProto_TYPE_MESSAGE
 	if number == 0 {
-		number = 999999
+		number = 19999 // reserved by proto
 	}
 	return &descriptor.FieldDescriptorProto{
 		Name:     &name,

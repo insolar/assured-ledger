@@ -28,6 +28,7 @@ func TestCompareNilZero(t *testing.T) {
 	require.Equal(t, DigestMethod(""), Digest{}.GetDigestMethod())
 	require.Nil(t, Digest{}.AsDigestHolder())
 	require.True(t, Digest{}.IsEmpty())
+	require.True(t, Digest{}.IsZero())
 
 	require.Equal(t, 0, Signature{}.FixedByteSize())
 	require.Equal(t, SignatureMethod(""), Signature{}.GetSignatureMethod())
@@ -412,4 +413,13 @@ func TestSignDataByDataSigner(t *testing.T) {
 	signer.SignDigestMock.Return(Signature{})
 	sdata := SignDataByDataSigner(data, signer)
 	require.True(t, longbits.Equal(data, sdata))
+}
+
+func TestNewZeroSizeDigest(t *testing.T) {
+	d := NewZeroSizeDigest("test")
+	require.Equal(t, 0, d.FixedByteSize())
+	require.Equal(t, DigestMethod("test"), d.GetDigestMethod())
+	require.NotNil(t, d.AsDigestHolder())
+	require.False(t, d.IsEmpty())
+	require.False(t, d.IsZero())
 }

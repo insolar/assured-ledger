@@ -18,7 +18,11 @@ func TestRegistry(t *testing.T) {
 
 	temp := &TypeRegistry{}
 	SetRegistry(temp)
+	require.Panics(t, func() { SetRegistry(nil) })
 	require.Equal(t, temp, GetRegistry())
+
+	require.Panics(t, func() { temp.Put(1, nil) })
+	require.Panics(t, func() { temp.Put(1, reflect.TypeOf(0)) })
 
 	temp.Put(999999990, reflect.TypeOf((*MessageExample)(nil)))
 	require.Panics(t, func() { temp.Put(999999990, reflect.TypeOf((*MessageExample)(nil))) })
@@ -26,6 +30,7 @@ func TestRegistry(t *testing.T) {
 	temp.Put(1, reflect.TypeOf((*MessageExample)(nil)))
 
 	temp.PutSpecial(999999990, "Head", reflect.TypeOf((*MessageExample_Head)(nil)))
+	temp.PutSpecial(999999990, "HeadX", reflect.TypeOf((*MessageExample_Head)(nil)))
 	require.Panics(t, func() { temp.PutSpecial(999999990, "Head", reflect.TypeOf((*MessageExample_Head)(nil))) })
 	require.Panics(t, func() { temp.PutSpecial(999999990, "", reflect.TypeOf((*MessageExample_Head)(nil))) })
 	require.Panics(t, func() { temp.PutSpecial(0, "", reflect.TypeOf((*MessageExample_Head)(nil))) })
@@ -47,6 +52,12 @@ func TestRegistry(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), id)
 	require.Equal(t, &MessageExample{}, m)
+
+	id, m, err = Unmarshal([]byte{0x80, 0x1, 0})
+	require.Error(t, err)
+
+	id, m, err = Unmarshal([]byte{0x08, 0x1, 1})
+	require.Error(t, err)
 
 	id, m, err = UnmarshalSpecial([]byte{0x80, 0x1, 1}, "Head")
 	require.Error(t, err)
