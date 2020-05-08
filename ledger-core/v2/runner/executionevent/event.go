@@ -9,7 +9,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 )
 
 type RPC interface{ rpc() }
@@ -124,6 +123,7 @@ func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *pay
 
 	return &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
+		CallFlags:           execution.Request.CallFlags,
 		Caller:              e.parentObjectReference,
 		Callee:              reference.Global{},
 		CallSiteDeclaration: e.prototype,
@@ -180,14 +180,14 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
 	execution.Sequence++
 
-	var callFlags callflag.CallFlag
-	if e.unordered {
-		callFlags |= callflag.Unordered
+	callFlags := execution.Request.CallFlags
+	if !e.unordered {
+		callFlags.SetTolerance(payload.CallTolerable)
 	}
 
 	return &payload.VCallRequest{
 		CallType:            payload.CTMethod,
-		CallFlags:           callFlags,
+		CallFlags:           execution.Request.CallFlags,
 		Caller:              e.parentObjectReference,
 		Callee:              e.object,
 		CallSiteDeclaration: e.prototype,

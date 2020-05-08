@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -223,10 +222,12 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 
 		for i := 0; i < 2; i++ {
+			flags := payload.CallRequestFlags(0)
+			flags.SetTolerance(payload.CallIntolerable)
 			pl := payload.VCallRequest{
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
-				CallFlags:           callflag.Unordered,
+				CallFlags:           flags,
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
