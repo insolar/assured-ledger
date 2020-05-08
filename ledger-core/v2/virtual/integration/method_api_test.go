@@ -36,7 +36,7 @@ func TestVirtual_Method_API(t *testing.T) {
 		walletReference2 reference.Global
 	)
 	{
-		code, byteBuffer := server.CallAPICreateWallet()
+		code, byteBuffer := server.CallAPICreateWallet(ctx)
 		require.Equal(t, 200, code, string(byteBuffer))
 
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
@@ -49,7 +49,7 @@ func TestVirtual_Method_API(t *testing.T) {
 		require.NoError(t, err)
 	}
 	{
-		code, byteBuffer := server.CallAPICreateWallet()
+		code, byteBuffer := server.CallAPICreateWallet(ctx)
 		require.Equal(t, 200, code, string(byteBuffer))
 
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
@@ -63,7 +63,7 @@ func TestVirtual_Method_API(t *testing.T) {
 	}
 
 	t.Run("AddAmount", func(t *testing.T) {
-		code, byteBuffer := server.CallAPIAddAmount(walletReference1, 500)
+		code, byteBuffer := server.CallAPIAddAmount(ctx, walletReference1, 500)
 		require.Equal(t, 200, code, string(byteBuffer))
 
 		response, err := utils.UnmarshalWalletAddAmountResponse(byteBuffer)
@@ -73,7 +73,7 @@ func TestVirtual_Method_API(t *testing.T) {
 	})
 
 	t.Run("GetBalance", func(t *testing.T) {
-		code, byteBuffer := server.CallAPIGetBalance(walletReference1)
+		code, byteBuffer := server.CallAPIGetBalance(ctx, walletReference1)
 		require.Equal(t, 200, code, string(byteBuffer))
 
 		response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
@@ -85,7 +85,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 	t.Run("Transfer", func(t *testing.T) {
 		{ // Transfer request
-			code, byteBuffer := server.CallAPITransfer(walletReference1, walletReference2, 500)
+			code, byteBuffer := server.CallAPITransfer(ctx, walletReference1, walletReference2, 500)
 			require.Equal(t, 200, code, string(byteBuffer))
 
 			response, err := utils.UnmarshalWalletTransferResponse(byteBuffer)
@@ -94,7 +94,7 @@ func TestVirtual_Method_API(t *testing.T) {
 			assert.NotEmpty(t, response.TraceID)
 		}
 		{ // GetBalance request
-			code, byteBuffer := server.CallAPIGetBalance(walletReference1)
+			code, byteBuffer := server.CallAPIGetBalance(ctx, walletReference1)
 			require.Equal(t, 200, code, string(byteBuffer))
 
 			response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
@@ -131,7 +131,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 		walletReference reference.Global
 	)
 	{
-		code, byteBuffer := server.CallAPICreateWallet()
+		code, byteBuffer := server.CallAPICreateWallet(ctx)
 		require.Equal(t, 200, code, string(byteBuffer))
 
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
@@ -146,7 +146,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		go func() {
-			code, byteBuffer := server.CallAPIAddAmount(walletReference, amount)
+			code, byteBuffer := server.CallAPIAddAmount(ctx, walletReference, amount)
 			if code != 200 {
 				outChan <- errors.Errorf("bad code, expected 200 got %d", code)
 				return
@@ -173,7 +173,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 	}
 	close(outChan)
 
-	code, byteBuffer := server.CallAPIGetBalance(walletReference)
+	code, byteBuffer := server.CallAPIGetBalance(ctx, walletReference)
 	require.Equal(t, 200, code, string(byteBuffer))
 
 	response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
@@ -207,7 +207,7 @@ func TestVirtual_Scenario2(t *testing.T) {
 		walletReference reference.Global
 	)
 	{
-		code, byteBuffer := server.CallAPICreateWallet()
+		code, byteBuffer := server.CallAPICreateWallet(ctx)
 		require.Equal(t, 200, code, string(byteBuffer))
 
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
@@ -221,7 +221,7 @@ func TestVirtual_Scenario2(t *testing.T) {
 	}
 
 	for i := 0; i < count; i++ {
-		code, byteBuffer := server.CallAPIAddAmount(walletReference, amount)
+		code, byteBuffer := server.CallAPIAddAmount(ctx, walletReference, amount)
 		assert.Equal(t, 200, code)
 
 		// testing.T isn't goroutine safe, so that we will check responses in main goroutine
@@ -230,7 +230,7 @@ func TestVirtual_Scenario2(t *testing.T) {
 		assert.Empty(t, response.Err)
 	}
 
-	code, byteBuffer := server.CallAPIGetBalance(walletReference)
+	code, byteBuffer := server.CallAPIGetBalance(ctx, walletReference)
 	require.Equal(t, 200, code, string(byteBuffer))
 
 	response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)

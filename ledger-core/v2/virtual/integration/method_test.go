@@ -389,7 +389,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	// Change pulse to force send VStateRequest
 	server.IncrementPulse(ctx)
 
-	checkBalance(t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectRef, testBalance)
 
 	expectedNum := uint(1)
 	require.Equal(t, expectedNum, vStateReportCount)
