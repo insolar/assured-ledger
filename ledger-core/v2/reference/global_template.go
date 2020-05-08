@@ -227,6 +227,9 @@ func (p *MutableTemplate) MustGlobal() Global {
 	case !p.hasHash:
 		panic(throw.IllegalState())
 	case p.base.pulseAndScope == 0:
+		if p.local.pulseAndScope == 0 {
+			return Global{}
+		}
 		panic(throw.IllegalState())
 	}
 	return Global{addressLocal: p.local, addressBase: p.GetBase()}

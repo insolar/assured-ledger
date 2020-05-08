@@ -158,3 +158,21 @@ func TestMutableRefTemplate(t *testing.T) {
 	require.Equal(t, New(g.GetBase(), NewLocal(100_002, SubScopeGlobal, h3)), tm.WithHash(h3))
 	require.Equal(t, tt, tm.AsTemplate())
 }
+
+func TestMutableZeroTemplate(t *testing.T) {
+	h := CopyToLocalHash(hash256())
+	g := New(NewLocal(100_000, SubScopeLifeline, h), NewLocal(100_001, SubScopeGlobal, h))
+
+	tt := NewRefTemplate(g, 100_002)
+	tm := tt.AsMutable()
+
+	tm.SetZeroValue()
+	require.True(t, tm.HasHash())
+	require.True(t, tm.IsZero())
+	require.Equal(t, Global{}, Copy(&tm))
+	require.True(t, Equal(Global{}, &tm))
+	require.True(t, Equal(Global{}, tm.MustGlobal()))
+	require.Equal(t, Local{}, tm.MustRecord())
+
+	require.Panics(t, func() { tm.AsTemplate() })
+}
