@@ -14,7 +14,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run `test_slow` with generation of coverage file
-	$(GOTEST) -tags slowtest -coverprofile=coverage.tmp.out -covermode=count -count=1 $(TEST_ARGS) $(PACKAGES)
+	$(GOTEST) -tags slowtest -coverprofile=coverage.tmp.out -covermode=count -count=1 -test.v $(TEST_ARGS) $(PACKAGES)
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 

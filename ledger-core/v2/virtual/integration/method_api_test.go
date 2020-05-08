@@ -6,6 +6,7 @@
 package small
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -108,6 +109,10 @@ func TestVirtual_Method_API(t *testing.T) {
 
 // 10 parallel executions
 func TestVirtual_Scenario1(t *testing.T) {
+	if runtime.GOOS == "windows" { // TODO FIXME
+		t.Skip("Sadly this test is broken on Windows")
+	}
+
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

@@ -2,7 +2,7 @@ export GO111MODULE ?= on
 export GOSUMDB ?= sum.golang.org
 export GOFLAGS ?= -mod=vendor
 
-BIN_DIR ?= bin
+BIN_DIR ?= ./bin
 ARTIFACTS_DIR ?= .artifacts
 INSGOCC = insgocc
 
