@@ -7,6 +7,7 @@ package defaults
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,10 @@ var cases = []tCase{
 }
 
 func TestDefaults(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Patch separator differs on Windows")
+	}
+
 	for _, tc := range cases {
 		for name, value := range tc.env {
 			os.Setenv(name, value)
