@@ -53,7 +53,6 @@ func main() {
 	vanity.ForEachFile(files, vanity.TurnOnMarshalerAll)
 	vanity.ForEachFile(files, vanity.TurnOnStable_MarshalerAll)
 	vanity.ForEachFile(files, vanity.TurnOnUnmarshalerAll)
-	vanity.ForEachFile(files, vanity.TurnOffGoGettersAll)
 	vanity.ForEachFile(files, vanity.TurnOffGoUnrecognizedAll)
 
 	vanity.ForEachFile(files, vanity.TurnOffGoUnrecognizedAll)
@@ -119,15 +118,15 @@ func resetDefaultPlugins() {
 	generator.RegisterPlugin(compare.NewPlugin())
 	generator.RegisterPlugin(defaultcheck.NewPlugin()) // this is custom
 	generator.RegisterPlugin(description.NewPlugin())
-	generator.RegisterPlugin(embedcheck.NewPlugin()) // this is custom
+	generator.RegisterPlugin(embedcheck.NewPlugin())
 	generator.RegisterPlugin(enumstringer.NewEnumStringer())
 	generator.RegisterPlugin(equal.NewPlugin())
 	generator.RegisterPlugin(face.NewPlugin())
 	generator.RegisterPlugin(gostring.NewGoString())
-	generator.RegisterPlugin(gogobased.NewMarshal()) // this is custom, also includes "context", "head" and "polymorph"
+	generator.RegisterPlugin(gogobased.NewMarshal()) // this is custom, also includes "context", "projection" and "polymorph"
 	generator.RegisterPlugin(oneofcheck.NewPlugin())
 	generator.RegisterPlugin(populate.NewPlugin())
-	generator.RegisterPlugin(gogobased.NewSize())
+	generator.RegisterPlugin(gogobased.NewSize()) // this is custom
 	generator.RegisterPlugin(stringer.NewStringer())
 	// NB! testgen can't be reused as it is unexported
 	generator.RegisterPlugin(union.NewUnion())
