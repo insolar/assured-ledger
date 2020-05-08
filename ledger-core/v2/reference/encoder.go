@@ -195,9 +195,6 @@ func (v encoder) encodeRecord(rec Local, b *strings.Builder) error {
 		b.WriteString("0." + RecordDomainName)
 		return nil
 	}
-	if rec.SubScope() != 0 {
-		panic("illegal value")
-	}
 	err := v.encodeBinary(rec, b)
 	if err != nil {
 		return err

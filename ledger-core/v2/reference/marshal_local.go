@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -20,7 +21,7 @@ func BinarySizeLocal(h LocalHolder) int {
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
 		return 0
-	case pn.IsTimePulse():
+	case pn.IsTimePulse() || pn == pulse.LocalRelative:
 		return LocalBinarySize
 	}
 	return LocalBinaryPulseAndScopeSize + v.hashLen()
@@ -46,7 +47,7 @@ func MarshalLocalTo(h LocalHolder, data []byte) (int, error) {
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
 		return 0, nil
-	case pn.IsTimePulse():
+	case pn.IsTimePulse() || pn == pulse.LocalRelative:
 		if len(data) >= LocalBinarySize {
 			return WriteWholeLocalTo(v, data), nil
 		}
@@ -70,7 +71,7 @@ func MarshalLocalToSizedBuffer(h LocalHolder, data []byte) (int, error) {
 	case pn.IsUnknown():
 		return 0, nil
 
-	case pn.IsTimePulse():
+	case pn.IsTimePulse() || pn == pulse.LocalRelative:
 		if len(data) >= LocalBinarySize {
 			return WriteWholeLocalTo(v, data[len(data)-LocalBinarySize:]), nil
 		}
@@ -84,7 +85,7 @@ func MarshalLocalToSizedBuffer(h LocalHolder, data []byte) (int, error) {
 		n := len(data) - i
 
 		v.pulseAndScopeToBytes(data[n : n+LocalBinaryPulseAndScopeSize])
-		copy(data[n+LocalBinaryPulseAndScopeSize:], v.hash[:i])
+		copy(data[n+LocalBinaryPulseAndScopeSize:], v.hash[:i-LocalBinaryPulseAndScopeSize])
 		return i, nil
 	}
 
@@ -131,17 +132,20 @@ func UnmarshalLocal(data []byte) (v Local, err error) {
 		case n > LocalBinarySize:
 			return throw.FailHere("too many bytes to unmarshal")
 		case n < LocalBinaryPulseAndScopeSize:
+			if n == 0 {
+				return nil
+			}
 			return throw.FailHere("not enough bytes to unmarshal")
 		default:
 			v.pulseAndScope = pulseAndScopeFromBytes(data)
 
 			switch pn := v.pulseAndScope.Pulse(); {
-			case pn.IsTimePulse():
+			case pn.IsTimePulse() || pn == pulse.LocalRelative:
 				if len(data) != LocalBinarySize {
 					return throw.FailHere("incorrect size of local hash")
 				}
-			case pn.IsSpecial():
-				if data[len(data)-1] == 0 {
+			case pn.IsSpecialOrPrivate():
+				if len(data) > LocalBinaryPulseAndScopeSize && data[len(data)-1] == 0 {
 					return throw.FailHere("incorrect padding of local hash")
 				}
 			case pn.IsUnknown():
@@ -150,6 +154,8 @@ func UnmarshalLocal(data []byte) (v Local, err error) {
 					return throw.FailHere("too many bytes to unmarshal zero ref")
 				}
 				return nil
+			default:
+				return throw.Impossible()
 			}
 			copy(v.hash[:], data[LocalBinaryPulseAndScopeSize:])
 			return nil

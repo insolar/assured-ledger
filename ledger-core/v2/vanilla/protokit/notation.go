@@ -96,7 +96,7 @@ func PossibleContentTypes(firstByte byte) (ct ContentTypeOptions) {
 
 	switch WireType(firstByte & maskWireType) {
 	case WireVarint:
-		if ct&ContentOptionText == 0 {
+		if ct&ContentOptionText == 0 && firstByte >= illegalUtf8FirstByte {
 			ct |= ContentOptionNotation
 		}
 		ct |= ContentOptionMessage

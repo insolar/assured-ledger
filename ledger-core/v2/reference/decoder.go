@@ -23,6 +23,7 @@ const (
 	AllowLegacy DecoderOptions = 1 << iota
 	AllowRecords
 	IgnoreParity
+	DoNotVerify
 )
 
 func DefaultDecoder() GlobalDecoder {
@@ -242,7 +243,7 @@ func (v decoder) parseAddress(ref string, byteDecoder ByteDecodeFunc, result *Gl
 			return v.parseAddressWithBase(localAddrName, resolveBase, byteDecoder, result)
 		}
 	default:
-		return v.parseAddressWithBase(ref, &Global{}, byteDecoder, result)
+		return v.parseAddressWithBase(ref, nil, byteDecoder, result)
 	}
 }
 
@@ -251,10 +252,10 @@ func (v decoder) parseAddressWithBase(name string, base *Global, byteDecoder Byt
 
 	switch {
 	case err != nil:
-		if err != errAliasedReference {
+		switch {
+		case err != errAliasedReference:
 			return err
-		}
-		if v.nameDecoder == nil {
+		case base == nil || v.nameDecoder == nil:
 			return errors.New("aliases are not allowed")
 		}
 		resolved := v.nameDecoder(base, name)
@@ -262,21 +263,37 @@ func (v decoder) parseAddressWithBase(name string, base *Global, byteDecoder Byt
 			return errors.New("unknown object alias")
 		}
 		*result = *resolved
-	case base.IsEmpty():
+		return nil
+
+	case base == nil:
 		if result.IsEmpty() {
 			return nil
 		}
 		if !result.tryConvertToSelf() {
 			return errors.New("invalid self reference")
 		}
+		return nil
+
+	case base.IsEmpty():
+		if result.IsEmpty() {
+			return nil
+		}
+		if v.options&DoNotVerify == 0 {
+			return errors.New("empty base part of reference")
+		}
+		return nil
+
 	case result.addressLocal.IsEmpty():
-		return errors.New("empty local part of reference")
+		if v.options&DoNotVerify == 0 {
+			return errors.New("empty local part of reference")
+		}
+		fallthrough
 	default:
 		if !result.tryApplyBase(base) {
 			return errors.New("scope mismatch between base and local parts of address")
 		}
+		return nil
 	}
-	return nil
 }
 
 var errAliasedReference = errors.New("record reference alias")

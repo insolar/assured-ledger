@@ -5,7 +5,11 @@
 
 package reference
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+import (
+	"strconv"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+)
 
 type LocalHeader uint32
 
@@ -27,4 +31,12 @@ func (v LocalHeader) WithPulse(pn pulse.Number) LocalHeader {
 
 func (v LocalHeader) WithSubScope(scope SubScope) LocalHeader {
 	return LocalHeader(v.Pulse().WithFlags(int(scope)))
+}
+
+func (v LocalHeader) String() string {
+	sc := v.SubScope()
+	if sc == 0 {
+		return v.Pulse().String()
+	}
+	return v.Pulse().String() + `[` + strconv.Itoa(int(sc)) + `]`
 }

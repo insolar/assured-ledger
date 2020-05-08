@@ -92,6 +92,13 @@ func hash256() (v longbits.Bits256) {
 	return
 }
 
+func hashLocal() (v LocalHash) {
+	for i := range v {
+		v[i] = uint8(i)
+	}
+	return
+}
+
 func TestLocalHash(t *testing.T) {
 	buf := hash256()
 

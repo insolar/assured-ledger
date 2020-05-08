@@ -130,7 +130,7 @@ func (v Local) Encode(enc Encoder) string {
 }
 
 func (v Local) String() string {
-	return v.Encode(DefaultEncoder())
+	return v.pulseAndScope.String() + `/` + v.Encode(DefaultEncoder())
 }
 
 func (v Local) Compare(other Local) int {

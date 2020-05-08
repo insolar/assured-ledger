@@ -15,6 +15,7 @@ import (
 func TestContentType(t *testing.T) {
 	buf := []byte{0, 1, 99}
 	reader := bytes.NewReader(buf)
+	counters := [ContentPolymorph + 1]int{}
 
 	for i := 256; i > 0; i-- {
 		n := buf[0]
@@ -22,8 +23,10 @@ func TestContentType(t *testing.T) {
 		require.NoError(t, err, "0x%X", n)
 
 		if n <= maskWireType {
+			counters[ContentUndefined]++
 			require.Equal(t, ContentUndefined, ct)
 		} else {
+			counters[ct]++
 			switch ct {
 			case ContentUndefined:
 				switch WireType(n & maskWireType) {
@@ -35,7 +38,7 @@ func TestContentType(t *testing.T) {
 				require.True(t, n < illegalUtf8FirstByte || n >= legalUtf8, "0x%X", n)
 			case ContentBinary:
 				require.True(t, n&maskWireType == 4, "0x%X", n)
-				require.True(t, n >= illegalUtf8FirstByte || n < legalUtf8, "0x%X", n)
+				require.True(t, n >= illegalUtf8FirstByte && n < legalUtf8, "0x%X", n)
 			case ContentMessage:
 				u, c := DecodeVarintFromBytes(buf)
 				require.NotZero(t, c)
@@ -47,6 +50,7 @@ func TestContentType(t *testing.T) {
 					require.Fail(t, "invalid wire type", "0x%X", n)
 				}
 			case ContentPolymorph:
+				require.True(t, n >= illegalUtf8FirstByte && n < legalUtf8, "0x%X", n)
 				require.Equal(t, uint64(99), id)
 			default:
 				t.FailNow()
@@ -67,4 +71,16 @@ func TestContentType(t *testing.T) {
 
 		buf[0]++
 	}
+
+	n := 0
+	for _, c := range counters {
+		n += c
+	}
+	require.Equal(t, 256, n)
+
+	require.Equal(t, 24, counters[ContentUndefined])
+	require.Equal(t, 183, counters[ContentText])
+	require.Equal(t, 8, counters[ContentBinary])
+	require.Equal(t, 33, counters[ContentMessage])
+	require.Equal(t, 8, counters[ContentPolymorph])
 }

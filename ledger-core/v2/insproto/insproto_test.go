@@ -18,3 +18,53 @@ func TestFieldMapFQN(t *testing.T) {
 	require.Equal(t, `.`+name, FieldMapFQN)
 	require.Equal(t, FieldMapPackage, reflect.TypeOf(FieldMap{}).PkgPath())
 }
+
+func TestFieldMapOps(t *testing.T) {
+	for _, m := range []*FieldMap{{Message: []byte{1}}, nil} {
+		require.True(t, m.Equal(m))
+		require.True(t, m.Equal(&FieldMap{}))
+		require.True(t, m.Equal(&FieldMap{Message: []byte{2}}))
+		require.True(t, m.Equal(nil))
+
+		require.Error(t, m.Unmarshal(nil))
+
+		n, err := m.MarshalTo(make([]byte, 16))
+		require.NoError(t, err)
+		require.Zero(t, n)
+
+		n, err = m.MarshalToSizedBuffer(make([]byte, 16))
+		require.NoError(t, err)
+		require.Zero(t, n)
+
+		require.Nil(t, m.Get(1))
+		m.Put(1, []byte{99})
+		require.True(t, (m.Get(1) != nil) == (m != nil))
+		require.True(t, (m.GetMessage() != nil) == (m != nil))
+		m.PutMessage(nil)
+		require.Nil(t, m.GetMessage())
+		m.PutMessage([]byte{1})
+		m.UnsetMap()
+		require.Nil(t, m.GetMessage())
+		require.Nil(t, m.Get(1))
+
+		if m == nil {
+			continue
+		}
+		c := &testFieldMapCallback{t, false}
+		m.Callback = c
+		m.PutMessage([]byte{1})
+		require.True(t, c.flag)
+	}
+}
+
+type testFieldMapCallback struct {
+	t    *testing.T
+	flag bool
+}
+
+func (p *testFieldMapCallback) OnMessage(m *FieldMap) {
+	require.NotNil(p.t, m)
+	require.Equal(p.t, p, m.Callback)
+	require.False(p.t, p.flag)
+	p.flag = true
+}

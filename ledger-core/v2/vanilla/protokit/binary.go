@@ -19,27 +19,33 @@ func BinaryProtoSize(n int) int {
 }
 
 func BinaryMarshalTo(b []byte, marshalTo func([]byte) (int, error)) (int, error) {
-	switch {
-	case len(b) > 0:
-		b[0] = BinaryMarker
-		return marshalTo(b[1:])
-	default:
-		// make sure that buf size was checked
+	if len(b) == 0 {
 		return marshalTo(nil)
+	}
+	b[0] = BinaryMarker
+	switch n, err := marshalTo(b[1:]); {
+	case err != nil:
+		return 0, err
+	case n == 0:
+		return 0, nil
+	default:
+		return n + 1, nil
 	}
 }
 
 func BinaryMarshalToSizedBuffer(b []byte, marshalToSizedBuffer func([]byte) (int, error)) (int, error) {
-	switch n, err := marshalToSizedBuffer(b); {
-	case err != nil || n == 0:
-		return n, err
+	switch n, err := marshalToSizedBuffer(b[1:]); {
+	case err != nil:
+		return 0, err
 	case n == 0:
 		return 0, nil
-	case n == len(b):
-		return 0, io.ErrShortBuffer
 	default:
 		n++
-		b[len(b)-n] = BinaryMarker
+		i := len(b) - n
+		if i < 0 {
+			return 0, io.ErrShortBuffer
+		}
+		b[i] = BinaryMarker
 		return n, nil
 	}
 }

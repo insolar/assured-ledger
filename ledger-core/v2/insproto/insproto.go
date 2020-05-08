@@ -67,7 +67,7 @@ func (*FieldMap) MarshalToSizedBuffer([]byte) (int, error) {
 	return 0, nil
 }
 
-func (FieldMap) Unmarshal([]byte) error {
+func (*FieldMap) Unmarshal([]byte) error {
 	return throw.Impossible()
 }
 

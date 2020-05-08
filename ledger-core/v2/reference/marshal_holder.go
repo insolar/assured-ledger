@@ -31,7 +31,7 @@ func BinarySize(h Holder) int {
 		// compact form for self-ref
 		return BinarySizeLocal(local)
 	}
-	return LocalBinarySize + BinarySizeLocal(local)
+	return LocalBinarySize + BinarySizeLocal(base)
 }
 
 func MarshalTo(h Holder, b []byte) (int, error) {
@@ -170,11 +170,11 @@ func MarshalJSON(h Holder) ([]byte, error) {
 }
 
 func UnmarshalJSON(b []byte) (v Global, err error) {
-	err = _unmarshalJSON(&v, b)
+	err = _unmarshalJSON(&v, b, DefaultDecoder())
 	return
 }
 
-func _unmarshalJSON(v *Global, data []byte) error {
+func _unmarshalJSON(v *Global, data []byte, decoder GlobalDecoder) error {
 	var repr interface{}
 
 	err := json.Unmarshal(data, &repr)
@@ -184,7 +184,7 @@ func _unmarshalJSON(v *Global, data []byte) error {
 
 	switch realRepr := repr.(type) {
 	case string:
-		decoded, err := Decode(realRepr)
+		decoded, err := decoder.DecodeHolder(realRepr)
 		if err != nil {
 			return throw.W(err, "failed to unmarshal reference.Global")
 		}
@@ -209,7 +209,7 @@ func UnmarshalGlobal(b []byte) (v Global, err error) {
 	switch n := len(b); {
 	case n == 0:
 		return
-	case n <= LocalBinaryPulseAndScopeSize:
+	case n < LocalBinaryPulseAndScopeSize:
 		err = throw.WithStackTop(io.ErrShortBuffer)
 		return
 	case n <= LocalBinarySize:
@@ -223,6 +223,9 @@ func UnmarshalGlobal(b []byte) (v Global, err error) {
 	default:
 		v.addressLocal = ReadWholeLocalFrom(b[:LocalBinarySize])
 		v.addressBase, err = UnmarshalLocal(b[LocalBinarySize:])
+		if err != nil {
+			return Global{}, err
+		}
 		return
 	}
 }
