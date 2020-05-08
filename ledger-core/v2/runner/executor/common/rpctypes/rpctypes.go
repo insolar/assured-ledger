@@ -82,8 +82,8 @@ type UpCallMethodReq struct {
 	Prototype reference.Global
 }
 
-// UpRouteResp is response from Send RPC in goplugin
-type UpRouteResp struct {
+// UpCallMethodResp is response from Send RPC in goplugin
+type UpCallMethodResp struct {
 	Result insolar.Arguments
 }
 

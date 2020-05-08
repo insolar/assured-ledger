@@ -174,5 +174,5 @@ func (s *Server) GlobalCaller() reference.Global {
 }
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
-	return gen.IDWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueIDWithPulse(s.GetPulse().PulseNumber)
 }

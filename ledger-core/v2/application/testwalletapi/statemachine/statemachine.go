@@ -7,7 +7,6 @@ package statemachine
 
 import (
 	"errors"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -67,7 +66,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
 	s.requestPayload.Caller = APICaller
-	s.requestPayload.CallOutgoing = gen.IDWithPulse(pulseNumber)
+	s.requestPayload.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 
 	var obj reference.Global
 	switch s.requestPayload.CallType {
@@ -94,7 +93,6 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	})
 
 	outgoingRef := reference.NewRecordOf(s.requestPayload.Caller, s.requestPayload.CallOutgoing)
-
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}

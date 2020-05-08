@@ -44,7 +44,6 @@ func ID() reference.Local {
 
 func UniqueIDWithPulse(pn insolar.PulseNumber) reference.Local {
 	return generateUniqueID(pn)
-
 }
 
 // IDWithPulse generates random id with provided pulse.
