@@ -150,8 +150,20 @@ func MarshalToSizedBuffer(h Holder, b []byte) (int, error) {
 	return n, nil
 }
 
-func Encode(h Holder) (string, error) {
-	return DefaultEncoder().Encode(h)
+func Encode(h Holder) string {
+	s, err := DefaultEncoder().Encode(h)
+	if err != nil {
+		panic(throw.WithStackTop(err))
+	}
+	return s
+}
+
+func EncodeLocal(h LocalHolder) string {
+	s, err := DefaultEncoder().EncodeRecord(h)
+	if err != nil {
+		panic(throw.WithStackTop(err))
+	}
+	return s
 }
 
 func Decode(s string) (Holder, error) {
@@ -162,7 +174,7 @@ func MarshalJSON(h Holder) ([]byte, error) {
 	if h == nil {
 		return json.Marshal(nil)
 	}
-	s, err := Encode(h)
+	s, err := DefaultEncoder().Encode(h)
 	if err != nil {
 		return nil, err
 	}
