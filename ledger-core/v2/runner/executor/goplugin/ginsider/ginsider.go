@@ -289,8 +289,8 @@ func MakeUpBaseReq() rpctypes.UpBaseReq {
 	}
 }
 
-// RouteCall ...
-func (gi *GoInsider) RouteCall(ref reference.Global, immutable bool, saga bool, method string, args []byte, proxyPrototype reference.Global) ([]byte, error) {
+// CallMethod ...
+func (gi *GoInsider) CallMethod(ref reference.Global, immutable bool, saga bool, method string, args []byte, proxyPrototype reference.Global) ([]byte, error) {
 	client, err := gi.Upstream()
 	if err != nil {
 		return nil, err
@@ -299,9 +299,9 @@ func (gi *GoInsider) RouteCall(ref reference.Global, immutable bool, saga bool, 
 		return nil, gi.GetSystemError()
 	}
 
-	req := rpctypes.UpRouteReq{
+	req := rpctypes.UpCallMethodReq{
 		UpBaseReq: MakeUpBaseReq(),
-		Immutable: immutable,
+		Unordered: immutable,
 		Saga:      saga,
 		Object:    ref,
 		Method:    method,
@@ -309,22 +309,22 @@ func (gi *GoInsider) RouteCall(ref reference.Global, immutable bool, saga bool, 
 		Prototype: proxyPrototype,
 	}
 
-	res := rpctypes.UpRouteResp{}
-	err = client.Call("RPC.RouteCall", req, &res)
+	res := rpctypes.UpCallMethodResp{}
+	err = client.Call("RPC.CallMethod", req, &res)
 	if err != nil {
 		gi.SetSystemError(err)
 		if err == rpc.ErrShutdown {
 			global.Error("Insgorund can't connect to Insolard")
 			os.Exit(0)
 		}
-		return nil, errors.Wrap(err, "[ RouteCall ] on calling main API")
+		return nil, errors.Wrap(err, "[ CallMethod ] on calling main API")
 	}
 
 	return []byte(res.Result), nil
 }
 
-// SaveAsChild ...
-func (gi *GoInsider) SaveAsChild(
+// CallConstructor ...
+func (gi *GoInsider) CallConstructor(
 	parentRef, classRef reference.Global, constructorName string, argsSerialized []byte,
 ) (
 	[]byte, error,
@@ -337,7 +337,7 @@ func (gi *GoInsider) SaveAsChild(
 		return nil, gi.GetSystemError()
 	}
 
-	req := rpctypes.UpSaveAsChildReq{
+	req := rpctypes.UpCallConstructorReq{
 		UpBaseReq:       MakeUpBaseReq(),
 		Parent:          parentRef,
 		Prototype:       classRef,
@@ -345,15 +345,15 @@ func (gi *GoInsider) SaveAsChild(
 		ArgsSerialized:  argsSerialized,
 	}
 
-	res := rpctypes.UpSaveAsChildResp{}
-	err = client.Call("RPC.SaveAsChild", req, &res)
+	res := rpctypes.UpCallConstructorResp{}
+	err = client.Call("RPC.CallConstructor", req, &res)
 	if err != nil {
 		gi.SetSystemError(err)
 		if err == rpc.ErrShutdown {
 			global.Error("Insgorund can't connect to Insolard")
 			os.Exit(0)
 		}
-		return nil, errors.Wrap(err, "[ SaveAsChild ] on calling main API")
+		return nil, errors.Wrap(err, "[ CallConstructor ] on calling main API")
 	}
 
 	return res.Result, nil

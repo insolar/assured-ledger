@@ -334,6 +334,86 @@ func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []b
 	return
 }
 
+func INSMETHOD_Destroy(object []byte, data []byte) (newState []byte, result []byte, err error) {
+	ph := common.CurrentProxyCtx
+	ph.SetSystemError(nil)
+
+	self := new(Wallet)
+
+	if len(object) == 0 {
+		err = &foundation.Error{S: "[ FakeDestroy ] ( INSMETHOD_* ) ( Generated Method ) Object is nil"}
+		return
+	}
+
+	err = ph.Deserialize(object, self)
+	if err != nil {
+		err = &foundation.Error{S: "[ FakeDestroy ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Data: " + err.Error()}
+		return
+	}
+
+	args := []interface{}{}
+
+	err = ph.Deserialize(data, &args)
+	if err != nil {
+		err = &foundation.Error{S: "[ FakeDestroy ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Arguments: " + err.Error()}
+		return
+	}
+
+	var ret0 error
+
+	serializeResults := func() error {
+		return ph.Serialize(
+			foundation.Result{Returns: []interface{}{ret0}},
+			&result,
+		)
+	}
+
+	needRecover := true
+	defer func() {
+		if !needRecover {
+			return
+		}
+		if r := recover(); r != nil {
+			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+			recoveredError = ph.MakeErrorSerializable(recoveredError)
+
+			if PanicIsLogicalError {
+				ret0 = recoveredError
+
+				newState = object
+				err = serializeResults()
+				if err == nil {
+					newState = object
+				}
+			} else {
+				err = recoveredError
+			}
+		}
+	}()
+
+	ret0 = self.Destroy()
+
+	needRecover = false
+
+	if ph.GetSystemError() != nil {
+		return nil, nil, ph.GetSystemError()
+	}
+
+	err = ph.Serialize(self, &newState)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ret0 = ph.MakeErrorSerializable(ret0)
+
+	err = serializeResults()
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
 	ph := common.CurrentProxyCtx
 	ph.SetSystemError(nil)
@@ -426,6 +506,10 @@ func Initialize() insolar.ContractWrapper {
 			},
 			"Transfer": insolar.ContractMethod{
 				Func:      INSMETHOD_Transfer,
+				Unordered: false,
+			},
+			"Destroy": insolar.ContractMethod{
+				Func:      INSMETHOD_Destroy,
 				Unordered: false,
 			},
 		},

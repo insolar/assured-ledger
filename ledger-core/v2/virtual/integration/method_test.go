@@ -106,6 +106,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 }
 
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
+
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -377,7 +378,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := reference.NewRecordRef(server.RandomLocalWithPulse())
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)

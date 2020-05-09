@@ -16,8 +16,6 @@ import (
 
 // Creates wallets, calls /wallet/transfer and checks it's response body, also checks balances after transfer.
 func TestWalletTransfer(t *testing.T) {
-	t.Skip("Wait for API realisation: https://insolar.atlassian.net/browse/PLAT-269")
-
 	var transferAmount uint = 100
 
 	walletRefFrom, err := createSimpleWallet()

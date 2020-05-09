@@ -66,7 +66,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
@@ -115,7 +115,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
