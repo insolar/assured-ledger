@@ -29,7 +29,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
@@ -134,7 +133,7 @@ func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) sma
 		panic(throw.IllegalValue())
 	}
 
-	if s.Payload.CallFlags&callflag.Unordered > 0 {
+	if s.Payload.CallFlags.GetTolerance() == payload.CallIntolerable {
 		s.execution.Unordered = true
 	}
 

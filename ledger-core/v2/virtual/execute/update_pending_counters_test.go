@@ -122,10 +122,14 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	pd := pulse2.NewFirstPulsarData(10, longbits.Bits256{})
 	caller := reference.Global{}
 	prototype := gen.Reference()
+
+	callFlags := payload.CallRequestFlags(0)
+	callFlags.SetTolerance(payload.CallTolerable)
+
 	vCallRequest := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           0,
+		CallFlags:           callFlags,
 		CallAsOf:            0,
 		Caller:              caller,
 		Callee:              gen.Reference(),
