@@ -242,10 +242,14 @@ func (p *size) generateField(proto3, notation, zeroableDefault bool, message *ge
 			p.P(`n+=`, strconv.Itoa(key+1))
 		}
 	case descriptor.FieldDescriptorProto_TYPE_STRING:
+		isRaw := insproto.IsRawBytes(field, true)
 		if repeated {
 			p.P(`for _, s := range m.`, fieldname, ` { `)
 			p.In()
 			p.P(`l = len(s)`)
+			if !isRaw {
+				p.P(`if l > 0 { l++ }`)
+			}
 			p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 			p.Out()
 			p.P(`}`)
@@ -253,14 +257,23 @@ func (p *size) generateField(proto3, notation, zeroableDefault bool, message *ge
 			p.P(`l=len(m.`, fieldname, `)`)
 			p.P(`if l > 0 {`)
 			p.In()
+			if !isRaw {
+				p.P(`l++`)
+			}
 			p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 			p.Out()
 			p.P(`}`)
 		} else if nullable {
 			p.P(`l=len(*m.`, fieldname, `)`)
+			if !isRaw {
+				p.P(`if l > 0 { l++ }`)
+			}
 			p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 		} else {
 			p.P(`l=len(m.`, fieldname, `)`)
+			if !isRaw {
+				p.P(`if l > 0 { l++ }`)
+			}
 			p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 		}
 	case descriptor.FieldDescriptorProto_TYPE_GROUP:
@@ -426,10 +439,14 @@ func (p *size) generateField(proto3, notation, zeroableDefault bool, message *ge
 		}
 	case descriptor.FieldDescriptorProto_TYPE_BYTES:
 		if !gogoproto.IsCustomType(field) {
+			isRaw := insproto.IsRawBytes(field, !notation)
 			if repeated {
 				p.P(`for _, b := range m.`, fieldname, ` { `)
 				p.In()
 				p.P(`l = len(b)`)
+				if !isRaw {
+					p.P(`if l > 0 { l++ }`)
+				}
 				p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 				p.Out()
 				p.P(`}`)
@@ -437,23 +454,36 @@ func (p *size) generateField(proto3, notation, zeroableDefault bool, message *ge
 				p.P(`l=len(m.`, fieldname, `)`)
 				p.P(`if l > 0 {`)
 				p.In()
+				if !isRaw {
+					p.P(`l++`)
+				}
 				p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 				p.Out()
 				p.P(`}`)
 			} else {
 				p.P(`l=len(m.`, fieldname, `)`)
+				if !isRaw {
+					p.P(`if l > 0 { l++ }`)
+				}
 				p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 			}
 		} else {
+			isRaw := insproto.IsRawBytes(field, true)
 			if repeated {
 				p.P(`for _, e := range m.`, fieldname, ` { `)
 				p.In()
 				p.P(`l=e.`, sizeName, `()`)
+				if !isRaw {
+					p.P(`if l > 0 { l++ }`)
+				}
 				p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 				p.Out()
 				p.P(`}`)
 			} else {
 				p.P(`l=m.`, fieldname, `.`, sizeName, `()`)
+				if !isRaw {
+					p.P(`if l > 0 { l++ }`)
+				}
 				p.P(`n+=`, strconv.Itoa(key), `+l+sov`, p.localName, `(uint64(l))`)
 			}
 		}

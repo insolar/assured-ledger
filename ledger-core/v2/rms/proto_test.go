@@ -27,7 +27,7 @@ func TestExample(t *testing.T) {
 }
 
 func TestExampleUnmarshal(t *testing.T) {
-	m := &MessageExample{MsgParam: 11, MsgBytes: "abc"}
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
 	m.Str.Set(longbits.WrapStr("xyz"))
 	m.InitFieldMap(true)
 	b, err := m.Marshal()
@@ -65,14 +65,14 @@ func TestExampleUnmarshal(t *testing.T) {
 	require.True(t, m.AsHead().Equal(m2))
 
 	// head doesn't pass all fields
-	m.MsgBytes = ""
+	m.MsgBytes = nil
 	m.RecordExample = RecordExample{Str: m.RecordExample.Str}
 
 	require.True(t, m2.(*MessageExample_Head).AsMessageExample().Equal(m))
 }
 
 func TestExampleUnmarshalWithPayload(t *testing.T) {
-	m := &MessageExample{MsgParam: 11, MsgBytes: "abc"}
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
 	m.Str.Set(longbits.WrapStr("xyz"))
 
 	m.SetDigester(TestDigester{})
@@ -118,7 +118,7 @@ func TestExampleUnmarshalWithPayload(t *testing.T) {
 	require.True(t, m.AsHead().Equal(m2))
 
 	// head doesn't pass all fields
-	m.MsgBytes = ""
+	m.MsgBytes = nil
 	m.RecordExample = RecordExample{Str: m.RecordExample.Str}
 
 	m2e = m2.(*MessageExample_Head).AsMessageExample()
@@ -136,7 +136,7 @@ func TestExampleUnmarshalWithPayload(t *testing.T) {
 }
 
 func TestExampleRecordRef(t *testing.T) {
-	m := &MessageExample{MsgParam: 11, MsgBytes: "abc"}
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
 	m.Str.Set(longbits.WrapStr("xyz"))
 
 	m.SetDigester(TestDigester{})
@@ -177,7 +177,7 @@ func TestExampleRecordRef(t *testing.T) {
 }
 
 func TestExampleRecordRefPull(t *testing.T) {
-	m := &MessageExample{MsgParam: 11, MsgBytes: "abc"}
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
 	m.Str.Set(longbits.WrapStr("xyz"))
 
 	m.SetDigester(TestDigester{})
@@ -198,7 +198,7 @@ func TestExampleRecordRefPull(t *testing.T) {
 }
 
 func TestExampleChainedRef(t *testing.T) {
-	m := &MessageExample{MsgParam: 11, MsgBytes: "abc"}
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
 	m.Str.Set(longbits.WrapStr("xyz"))
 	payload := NewRaw(longbits.WrapStr("SomeData"))
 	m.SetPayload(payload)
@@ -206,7 +206,7 @@ func TestExampleChainedRef(t *testing.T) {
 
 	InitReferenceFactory(m, TestDigester{}, reference.NewSelfRefTemplate(pulse.MinTimePulse, 0))
 
-	m2 := &MessageExample{MsgParam: 11, MsgBytes: "klm"}
+	m2 := &MessageExample{MsgParam: 11, MsgBytes: []byte("klm")}
 	m2.Str.Set(longbits.WrapStr("opq"))
 	m2.Ref1.SetLazy(DefaultLazyReferenceTo(m))
 

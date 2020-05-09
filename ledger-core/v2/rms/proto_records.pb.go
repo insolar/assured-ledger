@@ -305,6 +305,9 @@ func sozProtoRecords(x uint64) (n int) {
 	return sovProtoRecords(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
 func (m *RecordExample) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RecordExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -332,6 +335,7 @@ func (m *RecordExample) Unmarshal(dAtA []byte) error {
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: RecordExample: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
+		m.FieldMap.UnsetMap()
 		switch fieldNum {
 		case 16:
 			if wireType != 0 {
@@ -451,50 +455,15 @@ func (m *RecordExample) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 19999:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FieldMap", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoRecords
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoRecords
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoRecords
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.FieldMap == nil {
-				m.FieldMap = &insproto.FieldMap{}
-			}
-			if err := m.FieldMap.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipProtoRecords(dAtA[iNdEx:])
+			skippy, err := skipFn(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				return ErrInvalidLengthProtoRecords
+				l = iNdEx
+				break
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthProtoRecords
@@ -509,6 +478,7 @@ func (m *RecordExample) Unmarshal(dAtA []byte) error {
 	if iNdEx > l {
 		return io.ErrUnexpectedEOF
 	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
 	return nil
 }
 func skipProtoRecords(dAtA []byte) (n int, err error) {
@@ -594,4 +564,5 @@ var (
 	ErrInvalidLengthProtoRecords        = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowProtoRecords          = fmt.Errorf("proto: integer overflow")
 	ErrUnexpectedEndOfGroupProtoRecords = fmt.Errorf("proto: unexpected end of group")
+	ErrExpectedBinaryMarkerProtoRecords = fmt.Errorf("proto: binary marker was expected")
 )

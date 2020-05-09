@@ -17,7 +17,6 @@ import (
 	"github.com/gogo/protobuf/plugin/populate"
 	"github.com/gogo/protobuf/plugin/stringer"
 	"github.com/gogo/protobuf/plugin/union"
-	"github.com/gogo/protobuf/plugin/unmarshal"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
@@ -133,7 +132,7 @@ func resetDefaultPlugins() {
 	generator.RegisterPlugin(stringer.NewStringer())
 	// NB! testgen can't be reused as it is unexported
 	generator.RegisterPlugin(union.NewUnion())
-	generator.RegisterPlugin(unmarshal.NewUnmarshal())
+	generator.RegisterPlugin(gogobased.NewUnmarshal()) // this is custom
 }
 
 type stubPlugin struct{}

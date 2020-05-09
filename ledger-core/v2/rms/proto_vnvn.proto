@@ -25,7 +25,7 @@ message MessageExample {
 
     // Add here custom fields
     uint64 MsgParam = 1800;
-    string MsgBytes = 1801;
+    bytes MsgBytes = 1801;
 
     message Head {
         reserved 1 to 19;
