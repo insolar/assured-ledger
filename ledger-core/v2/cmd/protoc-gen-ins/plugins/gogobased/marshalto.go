@@ -187,13 +187,15 @@ func (p *marshalto) mapField(numGen marshal.NumGen, field *descriptor.FieldDescr
 	}
 }
 
-func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer bool, numGen marshal.NumGen, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
+func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer, hasFieldMap bool,
+	numGen marshal.NumGen, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto,
+) {
 	fieldname := p.GetOneOfFieldName(message, field)
 	nullable := gogoproto.IsNullable(field)
 	repeated := field.IsRepeated()
 	required := field.IsRequired()
 
-	needsMapping := insproto.IsMappingForField(field, message.DescriptorProto, file.FileDescriptorProto)
+	needsMapping := hasFieldMap && insproto.IsMappingForField(field, message.DescriptorProto, file.FileDescriptorProto)
 	if needsMapping {
 		p.P(`fieldEnd = i`)
 	}
@@ -759,7 +761,7 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer 
 		p.P(`}`)
 	}
 	if needsMapping {
-		p.P(`if fieldEnd != i { m.FieldMap.Put(`, strconv.FormatUint(uint64(fieldNumber), 10), `, dAtA[i:fieldEnd]) }`)
+		p.P(`if fieldEnd != i { m.FieldMap.Put(`, strconv.FormatUint(uint64(fieldNumber), 10), `, i, fieldEnd, dAtA) }`)
 	}
 }
 
@@ -975,14 +977,20 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		hasFieldMap := false
 
 		for i := len(fields) - 1; i >= 0; i-- {
+			// FieldMap should be the last field
+			field := fields[i]
+			if field.GetName() == insproto.FieldMapFieldName && field.GetTypeName() == insproto.FieldMapFQN {
+				hasFieldMap = true
+				p.P(`m.FieldMap.UnsetMap()`)
+				break
+			}
+		}
+
+		for i := len(fields) - 1; i >= 0; i-- {
 			field := fields[i]
 
-			switch {
-			case field.GetTypeName() == insproto.FieldMapFQN:
-				hasFieldMap = hasFieldMap || field.GetName() == insproto.FieldMapFieldName
-				continue
-			case field.OneofIndex == nil:
-				p.generateField(proto3, notation, zeroableDefault, protoSizer, numGen, file, message, field)
+			if field.OneofIndex == nil {
+				p.generateField(proto3, notation, zeroableDefault, protoSizer, hasFieldMap, numGen, file, message, field)
 				continue
 			}
 
@@ -1053,7 +1061,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 				p.In()
 				p.P(`i := len(dAtA)`)
 				vanity.TurnOffNullableForNativeTypes(field)
-				p.generateField(false, notation, zeroableDefault, protoSizer, numGen, file, message, field)
+				p.generateField(false, notation, zeroableDefault, protoSizer, false, numGen, file, message, field)
 				p.P(`return len(dAtA) - i, nil`)
 				p.Out()
 				p.P(`}`)

@@ -35,14 +35,14 @@ func (p *FieldMap) PutMessage(b []byte) {
 	}
 }
 
-func (p *FieldMap) Put(fieldNum int32, fieldSlice []byte) {
+func (p *FieldMap) Put(fieldNum int32, fieldStart, fieldEnd int, data []byte) {
 	if p == nil {
 		return
 	}
 	if p.Fields == nil {
 		p.Fields = map[int32][]byte{}
 	}
-	p.Fields[fieldNum] = fieldSlice
+	p.Fields[fieldNum] = data[fieldStart:fieldEnd]
 }
 
 func (p *FieldMap) Get(fieldNum int32) []byte {

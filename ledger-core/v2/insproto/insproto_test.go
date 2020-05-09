@@ -37,7 +37,7 @@ func TestFieldMapOps(t *testing.T) {
 		require.Zero(t, n)
 
 		require.Nil(t, m.Get(1))
-		m.Put(1, []byte{99})
+		m.Put(1, 0, 1, []byte{99})
 		require.True(t, (m.Get(1) != nil) == (m != nil))
 		require.True(t, (m.GetMessage() != nil) == (m != nil))
 		m.PutMessage(nil)

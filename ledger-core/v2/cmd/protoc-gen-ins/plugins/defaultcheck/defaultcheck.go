@@ -75,8 +75,9 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 		face := gogoproto.IsFace(file.FileDescriptorProto, message.DescriptorProto)
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		has1619 := false
+		projection := insproto.IsProjection(file.FileDescriptorProto, message.DescriptorProto)
 		hasFieldMap := false
-		needsFieldMap := insproto.IsMappingForMessage(file.FileDescriptorProto, message.DescriptorProto)
+		needsFieldMap := !projection && insproto.IsMappingForMessage(file.FileDescriptorProto, message.DescriptorProto)
 
 		fields := message.GetField()
 		if notation {
@@ -107,7 +108,9 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 				hasFieldMap = true
 			}
 
-			needsFieldMap = needsFieldMap || insproto.IsMappingForField(field, message.DescriptorProto, file.FileDescriptorProto)
+			if !projection {
+				needsFieldMap = needsFieldMap || insproto.IsMappingForField(field, message.DescriptorProto, file.FileDescriptorProto)
+			}
 
 			if notation {
 				switch fieldNumber := field.GetNumber(); {
