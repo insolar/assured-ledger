@@ -48,6 +48,9 @@ That is if you want to use the unsafe package in your generated code.
 The speed up using the unsafe package is not very significant.
 
 */
+
+// This version was modified by Insolar Network Ltd.
+
 //nolint // the most of code is reused from gogo-proto
 package gogobased
 
@@ -987,7 +990,19 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			}
 		}
 
-		fields := message.GetField()
+		fields := append([]*descriptor.FieldDescriptorProto(nil), message.GetField()...)
+
+		fieldMapNo := int32(0)
+		for i := len(fields) - 1; i >= 0; i-- {
+			// FieldMap should be the last field
+			field := fields[i]
+			if field.GetName() == insproto.FieldMapFieldName && field.GetTypeName() == insproto.FieldMapFQN {
+				fieldMapNo = field.GetNumber()
+				p.P(`m.FieldMap.UnsetMap()`)
+				break
+			}
+		}
+
 		sort.Sort(extra.OrderedFields(fields))
 
 		oneofs := make(map[string]struct{})
@@ -1000,27 +1015,15 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			fields = fields[1:]
 		}
 
-		fieldMapIdx := -1
-
 		for i := len(fields) - 1; i >= 0; i-- {
-			// FieldMap should be the last field
 			field := fields[i]
-			if field.GetName() == insproto.FieldMapFieldName && field.GetTypeName() == insproto.FieldMapFQN {
-				fieldMapIdx = i
-				p.P(`m.FieldMap.UnsetMap()`)
-				break
-			}
-		}
 
-		for i := len(fields) - 1; i >= 0; i-- {
-			if i == fieldMapIdx {
+			if field.GetNumber() == fieldMapNo {
 				continue
 			}
 
-			field := fields[i]
-
 			if field.OneofIndex == nil {
-				p.generateField(proto3, notation, zeroableDefault, protoSizer, fieldMapIdx >= 0, numGen, file, message, field)
+				p.generateField(proto3, notation, zeroableDefault, protoSizer, fieldMapNo > 0, numGen, file, message, field)
 				continue
 			}
 
@@ -1045,7 +1048,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			p.generatePolymorphField(proto3, message, nil)
 		}
 
-		if fieldMapIdx >= 0 {
+		if fieldMapNo > 0 {
 			p.P(`m.FieldMap.PutMessage(dAtA[i:])`)
 		}
 
@@ -1054,7 +1057,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.P(`}`)
 		p.P()
 
-		if fieldMapIdx >= 0 {
+		if fieldMapNo > 0 {
 			p.P(`func (m *`, ccTypeName, `) InitFieldMap(reset bool) *`, p.fieldMapPkg.Use(), `.FieldMap {`)
 			p.In()
 			p.P(`if reset || m.FieldMap == nil {`)

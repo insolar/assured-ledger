@@ -17,6 +17,9 @@ It is enabled by the following extensions:
   - protosizer
   - protosizer_all
 */
+
+// This version was modified by Insolar Network Ltd.
+
 //nolint // the most of code is reused from gogo-proto
 package gogobased
 
@@ -534,6 +537,7 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 		fields := message.GetField()
 
 		if notation {
+			fields = append([]*descriptor.FieldDescriptorProto(nil), fields...)
 			sort.Sort(extra.OrderedFields(fields))
 
 			switch {
