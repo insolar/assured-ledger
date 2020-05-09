@@ -1000,23 +1000,27 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			fields = fields[1:]
 		}
 
-		hasFieldMap := false
+		fieldMapIdx := -1
 
 		for i := len(fields) - 1; i >= 0; i-- {
 			// FieldMap should be the last field
 			field := fields[i]
 			if field.GetName() == insproto.FieldMapFieldName && field.GetTypeName() == insproto.FieldMapFQN {
-				hasFieldMap = true
+				fieldMapIdx = i
 				p.P(`m.FieldMap.UnsetMap()`)
 				break
 			}
 		}
 
 		for i := len(fields) - 1; i >= 0; i-- {
+			if i == fieldMapIdx {
+				continue
+			}
+
 			field := fields[i]
 
 			if field.OneofIndex == nil {
-				p.generateField(proto3, notation, zeroableDefault, protoSizer, hasFieldMap, numGen, file, message, field)
+				p.generateField(proto3, notation, zeroableDefault, protoSizer, fieldMapIdx >= 0, numGen, file, message, field)
 				continue
 			}
 
@@ -1041,7 +1045,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			p.generatePolymorphField(proto3, message, nil)
 		}
 
-		if hasFieldMap {
+		if fieldMapIdx >= 0 {
 			p.P(`m.FieldMap.PutMessage(dAtA[i:])`)
 		}
 
@@ -1050,7 +1054,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		p.P(`}`)
 		p.P()
 
-		if hasFieldMap {
+		if fieldMapIdx >= 0 {
 			p.P(`func (m *`, ccTypeName, `) InitFieldMap(reset bool) *`, p.fieldMapPkg.Use(), `.FieldMap {`)
 			p.In()
 			p.P(`if reset || m.FieldMap == nil {`)

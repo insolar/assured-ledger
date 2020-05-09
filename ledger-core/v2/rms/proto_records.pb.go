@@ -195,6 +195,7 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
 	{
 		size, err := m.Ref1.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
