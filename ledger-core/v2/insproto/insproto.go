@@ -25,11 +25,11 @@ type FieldMap struct {
 	Callback FieldMapCallback
 }
 
-func (p *FieldMap) PutMessage(b []byte) {
+func (p *FieldMap) PutMessage(msgStart, msgEnd int, b []byte) {
 	if p == nil {
 		return
 	}
-	p.Message = b
+	p.Message = b[msgStart:msgEnd]
 	if p.Callback != nil {
 		p.Callback.OnMessage(p)
 	}

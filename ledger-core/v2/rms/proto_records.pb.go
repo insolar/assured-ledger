@@ -247,7 +247,7 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x80
 	}
-	m.FieldMap.PutMessage(dAtA[i:])
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
 	return len(dAtA) - i, nil
 }
 

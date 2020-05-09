@@ -1049,7 +1049,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		}
 
 		if fieldMapNo > 0 {
-			p.P(`m.FieldMap.PutMessage(dAtA[i:])`)
+			p.P(`m.FieldMap.PutMessage(i, len(dAtA), dAtA)`)
 		}
 
 		p.P(`return len(dAtA) - i, nil`)

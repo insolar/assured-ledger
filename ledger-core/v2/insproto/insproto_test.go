@@ -40,9 +40,9 @@ func TestFieldMapOps(t *testing.T) {
 		m.Put(1, 0, 1, []byte{99})
 		require.True(t, (m.Get(1) != nil) == (m != nil))
 		require.True(t, (m.GetMessage() != nil) == (m != nil))
-		m.PutMessage(nil)
+		m.PutMessage(0, 0, nil)
 		require.Nil(t, m.GetMessage())
-		m.PutMessage([]byte{1})
+		m.PutMessage(0, 1, []byte{1})
 		m.UnsetMap()
 		require.Nil(t, m.GetMessage())
 		require.Nil(t, m.Get(1))
@@ -52,7 +52,7 @@ func TestFieldMapOps(t *testing.T) {
 		}
 		c := &testFieldMapCallback{t, false}
 		m.Callback = c
-		m.PutMessage([]byte{1})
+		m.PutMessage(0, 1, []byte{1})
 		require.True(t, c.flag)
 	}
 }
