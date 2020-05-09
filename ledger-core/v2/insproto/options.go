@@ -26,6 +26,11 @@ func IsNotation(file *descriptor.FileDescriptorProto, message *descriptor.Descri
 		proto.GetBoolExtension(file.Options, E_NotationAll, false))
 }
 
+func IsNullableAll(file *descriptor.FileDescriptorProto) bool {
+	return proto.GetBoolExtension(file.Options, E_NullableAll,
+		!proto.GetBoolExtension(file.Options, E_NotationAll, false))
+}
+
 func GetStrFileExtension(file *descriptor.FileDescriptorProto, extension *proto.ExtensionDesc, defValue string) string {
 	if file != nil && file.Options != nil {
 		v, err := proto.GetExtension(file.Options, extension)

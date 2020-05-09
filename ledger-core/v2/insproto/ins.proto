@@ -19,6 +19,7 @@ extend google.protobuf.FileOptions {
     optional bool message_mapping_all = 63908;
     optional string register_all = 63909;
     optional string context_all = 63910;
+    optional bool nullable_all = 63912;
 }
 
 extend google.protobuf.MessageOptions {

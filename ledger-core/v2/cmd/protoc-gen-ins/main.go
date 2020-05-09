@@ -74,11 +74,14 @@ func PropagateDefaultOptions(file *descriptor.FileDescriptorProto) {
 func propagateOptions(file *descriptor.FileDescriptorProto, msgParent *descriptor.DescriptorProto, parentNotation bool) {
 	if !insproto.IsProjection(file, msgParent) {
 		// do not touch projections
+		nullableAll := insproto.IsNullableAll(file)
 
 		hasMapping := insproto.IsMappingForMessage(file, msgParent)
 		for _, field := range msgParent.GetField() {
 			hasMapping = hasMapping || insproto.IsMappingForField(field, msgParent, file)
-			vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(field)
+			if !nullableAll {
+				vanity.SetBoolFieldOption(gogoproto.E_Nullable, false)(field)
+			}
 		}
 
 		if hasMapping {

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
@@ -49,7 +50,11 @@ func (p *Context) Generate(file *generator.FileDescriptor, message *generator.De
 		}
 		fieldName := p.GetFieldName(message, field)
 		n := uint64(field.GetNumber())
-		p.P(`if err := ctx.`, applyName, `(m, `, strconv.FormatUint(n, 10), `, &m.`, fieldName, `); err != nil {`)
+		prefix := `m.`
+		if !gogoproto.IsNullable(field) {
+			prefix = `&m.`
+		}
+		p.P(`if err := ctx.`, applyName, `(m, `, strconv.FormatUint(n, 10), `, `, prefix, fieldName, `); err != nil {`)
 		p.In()
 		p.P(`return err`)
 		p.Out()

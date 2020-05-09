@@ -121,7 +121,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 					//
 				case !has1619:
 					if gogoproto.IsNullable(field) || field.IsRepeated() || field.IsPacked() || (proto3 && field.IsPacked3()) || field.DefaultValue != nil || field.OneofIndex != nil {
-						printerr("ERROR: field %v.%v violates notation, first field with number [16..19] can't have be nullable, repeated, packed, oneof or with default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+						printerr("ERROR: field %v.%v violates notation, first field with number [16..19] can't be nullable, repeated, packed, oneof or with default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 						os.Exit(1)
 					}
 					has1619 = true
@@ -133,7 +133,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 				continue
 			}
 			if len(field.GetDefaultValue()) > 0 {
-				printerr("ERROR: field %v.%v cannot be non-nullable and have a default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+				printerr("ERROR: field %v.%v can't be non-nullable and have a default value", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 				os.Exit(1)
 			}
 			if !field.IsEnum() {

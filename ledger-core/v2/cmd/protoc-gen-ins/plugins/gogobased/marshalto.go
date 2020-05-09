@@ -66,6 +66,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/extra"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -472,34 +473,46 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 			p.encodeKey(fieldNumber, wireType)
 		}
 	case descriptor.FieldDescriptorProto_TYPE_STRING:
-		// TODO add binary/UTF checker
+		isRaw := insproto.IsRawBytes(field, true)
 		if repeated {
 			val := p.reverseListRange(`m.`, fieldname)
 			p.P(`i -= len(`, val, `)`)
 			p.P(`copy(dAtA[i:], `, val, `)`)
-			p.callVarint(`len(`, val, `)`)
+			if isRaw {
+				p.callVarint(`len(`, val, `)`)
+			} else {
+				p.P(`i--`)
+				p.P(`dAtA[i]=`, int(protokit.BinaryMarker))
+				p.callVarint(`len(`, val, `)+1`)
+			}
 			p.encodeKey(fieldNumber, wireType)
 			p.Out()
 			p.P(`}`)
-		} else if proto3 && !mustBeIncluded {
-			p.P(`if len(m.`, fieldname, `) > 0 {`)
-			p.In()
-			p.P(`i -= len(m.`, fieldname, `)`)
-			p.P(`copy(dAtA[i:], m.`, fieldname, `)`)
-			p.callVarint(`len(m.`, fieldname, `)`)
-			p.encodeKey(fieldNumber, wireType)
-			p.Out()
-			p.P(`}`)
-		} else if !nullable {
-			p.P(`i -= len(m.`, fieldname, `)`)
-			p.P(`copy(dAtA[i:], m.`, fieldname, `)`)
-			p.callVarint(`len(m.`, fieldname, `)`)
-			p.encodeKey(fieldNumber, wireType)
 		} else {
-			p.P(`i -= len(*m.`, fieldname, `)`)
-			p.P(`copy(dAtA[i:], *m.`, fieldname, `)`)
-			p.callVarint(`len(*m.`, fieldname, `)`)
+			hasIf := proto3 && !mustBeIncluded
+			prefix := `m.`
+			if !hasIf && nullable {
+				// this check is a bit strange, but it mimics gogo behavior
+				prefix = `*m.`
+			}
+			if hasIf {
+				p.P(`if len(`, prefix, fieldname, `) > 0 {`)
+				p.In()
+			}
+			p.P(`i -= len(`, prefix, fieldname, `)`)
+			p.P(`copy(dAtA[i:], `, prefix, fieldname, `)`)
+			if isRaw {
+				p.callVarint(`len(`, prefix, fieldname, `)`)
+			} else {
+				p.P(`i--`)
+				p.P(`dAtA[i]=`, int(protokit.BinaryMarker))
+				p.callVarint(`len(`, prefix, fieldname, `)+1`)
+			}
 			p.encodeKey(fieldNumber, wireType)
+			if hasIf {
+				p.Out()
+				p.P(`}`)
+			}
 		}
 	case descriptor.FieldDescriptorProto_TYPE_GROUP:
 		panic(fmt.Errorf("marshaler does not support group %v", fieldname))
@@ -609,7 +622,7 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 						p.encodeKey(fieldNumber, wireType)
 					}
 					if gogoproto.IsCustomType(field) {
-						p.forwardZeroable(`m.`+fieldname, true, protoSizer, keyFn)
+						p.forwardZeroable(`m.`+fieldname, true, protoSizer, true, keyFn)
 					} else {
 						p.backwardZeroable(`m.`+fieldname, true, keyFn)
 					}
@@ -625,39 +638,52 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 		}
 	case descriptor.FieldDescriptorProto_TYPE_BYTES:
 		if !gogoproto.IsCustomType(field) {
-			// TODO add binary/UTF checker
+			isRaw := insproto.IsRawBytes(field, !notation)
 			if repeated {
 				val := p.reverseListRange(`m.`, fieldname)
 				p.P(`i -= len(`, val, `)`)
 				p.P(`copy(dAtA[i:], `, val, `)`)
-				p.callVarint(`len(`, val, `)`)
-				p.encodeKey(fieldNumber, wireType)
-				p.Out()
-				p.P(`}`)
-			} else if proto3 && !mustBeIncluded {
-				p.P(`if len(m.`, fieldname, `) > 0 {`)
-				p.In()
-				p.P(`i -= len(m.`, fieldname, `)`)
-				p.P(`copy(dAtA[i:], m.`, fieldname, `)`)
-				p.callVarint(`len(m.`, fieldname, `)`)
+				if isRaw {
+					p.callVarint(`len(`, val, `)`)
+				} else {
+					p.P(`i--`)
+					p.P(`dAtA[i]=`, int(protokit.BinaryMarker))
+					p.callVarint(`len(`, val, `)+1`)
+				}
 				p.encodeKey(fieldNumber, wireType)
 				p.Out()
 				p.P(`}`)
 			} else {
+				hasIf := proto3 && !mustBeIncluded
+				if hasIf {
+					p.P(`if len(m.`, fieldname, `) > 0 {`)
+					p.In()
+				}
 				p.P(`i -= len(m.`, fieldname, `)`)
 				p.P(`copy(dAtA[i:], m.`, fieldname, `)`)
-				p.callVarint(`len(m.`, fieldname, `)`)
+				if isRaw {
+					p.callVarint(`len(m.`, fieldname, `)`)
+				} else {
+					p.P(`i--`)
+					p.P(`dAtA[i]=`, int(protokit.BinaryMarker))
+					p.callVarint(`len(m.`, fieldname, `)+1`)
+				}
 				p.encodeKey(fieldNumber, wireType)
+				if hasIf {
+					p.Out()
+					p.P(`}`)
+				}
 			}
 		} else {
+			isRaw := insproto.IsRawBytes(field, true)
 			if repeated {
 				val := p.reverseListRange(`m.`, fieldname)
-				p.forward(val, true, protoSizer)
+				p.forwardZeroable(val, true, protoSizer, isRaw, nil)
 				p.encodeKey(fieldNumber, wireType)
 				p.Out()
 				p.P(`}`)
 			} else {
-				p.forward(`m.`+fieldname, true, protoSizer)
+				p.forwardZeroable(`m.`+fieldname, true, protoSizer, isRaw, nil)
 				p.encodeKey(fieldNumber, wireType)
 			}
 		}
@@ -761,7 +787,7 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 		p.P(`}`)
 	}
 	if needsMapping {
-		p.P(`if fieldEnd != i { m.FieldMap.Put(`, strconv.FormatUint(uint64(fieldNumber), 10), `, i, fieldEnd, dAtA) }`)
+		p.P(`if fieldEnd != i { m.FieldMap.Put(`, int(fieldNumber), `, i, fieldEnd, dAtA) }`)
 	}
 }
 
@@ -1187,10 +1213,10 @@ func (p *marshalto) backwardZeroable(varName string, varInt bool, encodeKeyFn fu
 }
 
 func (p *marshalto) forward(varName string, varInt, protoSizer bool) {
-	p.forwardZeroable(varName, varInt, protoSizer, nil)
+	p.forwardZeroable(varName, varInt, protoSizer, true, nil)
 }
 
-func (p *marshalto) forwardZeroable(varName string, varInt, protoSizer bool, encodeKeyFn func()) {
+func (p *marshalto) forwardZeroable(varName string, varInt, protoSizer, isRaw bool, encodeKeyFn func()) {
 	p.P(`{`)
 	p.In()
 	if protoSizer {
@@ -1212,7 +1238,13 @@ func (p *marshalto) forwardZeroable(varName string, varInt, protoSizer bool, enc
 	p.P(`}`)
 	p.Out()
 	if varInt {
-		p.callVarint(`size`)
+		if isRaw {
+			p.callVarint(`size`)
+		} else {
+			p.P(`i--`)
+			p.P(`dAtA[i]=`, int(protokit.BinaryMarker))
+			p.callVarint(`size+1`)
+		}
 	}
 
 	if encodeKeyFn != nil {
