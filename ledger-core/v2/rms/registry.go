@@ -119,7 +119,7 @@ func (p *TypeRegistry) GetSpecial(id uint64, special string) reflect.Type {
 	return p.getMap(special)[id]
 }
 
-func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type) (uint64, interface{}, error) {
+func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) (uint64, interface{}, error) {
 	ct, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b)
 	switch {
 	case err != nil:
@@ -134,17 +134,26 @@ func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type) (uint64, interf
 			return 0, nil, throw.E("unknown object", struct{ ID uint64 }{id})
 		}
 		obj := reflect.New(t).Interface()
-		err := obj.(unmarshaler).Unmarshal(b)
+
+		var err error
+		if skipFn == nil {
+			err = obj.(unmarshaler).Unmarshal(b)
+		} else if un, ok := obj.(unmarshalerWithUnknownCallback); ok {
+			err = un.UnmarshalWithUnknownCallback(b, skipFn)
+		} else {
+			return id, nil, throw.E("wrong type", struct{ ID uint64 }{id})
+		}
+
 		return id, obj, err
 	}
 }
 
 func Unmarshal(b []byte) (uint64, interface{}, error) {
-	return UnmarshalCustom(b, GetRegistry().Get)
+	return UnmarshalCustom(b, GetRegistry().Get, nil)
 }
 
 func UnmarshalSpecial(b []byte, special string) (uint64, interface{}, error) {
 	return UnmarshalCustom(b, func(id uint64) reflect.Type {
 		return GetRegistry().GetSpecial(id, special)
-	})
+	}, nil)
 }

@@ -135,35 +135,65 @@ func (p *RecordBody) prepare() {
 	}
 }
 
-func (p *RecordBody) ensure() {
+func (p *RecordBody) isPrepared() bool {
 	switch {
 	case len(p.payloads) != len(p.digests):
-		panic(throw.IllegalState())
+		return false
 	case len(p.digests) > 0 && p.digests[0].IsZero():
-		panic(throw.IllegalState())
+		return false
+	}
+	return true
+}
+
+func (p *RecordBody) ensure() {
+	if !p.isPrepared() {
+		estSize := p._rawEstimateSize()
+		p.prepare()
+		if actSize := p._rawPreparedSize(); estSize != actSize {
+			panic(throw.IllegalState())
+		}
 	}
 }
 
 func (p *RecordBody) ProtoSize() int {
-	return protokit.BinaryProtoSize(p._rawSize())
+	if p.isPrepared() {
+		return protokit.BinaryProtoSize(p._rawPreparedSize())
+	}
+	return protokit.BinaryProtoSize(p._rawEstimateSize())
 }
 
-func (p *RecordBody) _rawSize() int {
+func (p *RecordBody) _rawEstimateSize() int {
+	n := len(p.payloads)
+	switch n {
+	case 1:
+		if p.payloads[0].IsZero() {
+			return 0
+		}
+	case 0:
+		return 0
+	}
+	n *= p.digester.GetDigestSize()
+	n++ // 1 byte for count
+	return n
+}
+
+func (p *RecordBody) _rawPreparedSize() int {
 	p.prepare()
 	n := 0
 	switch len(p.digests) {
 	case 1:
 		// body can be empty, hence first digest can be 0
 		n = p.digests[0].FixedByteSize()
+		if n == 0 {
+			return 0
+		}
 	case 0:
-		n = 0
+		return 0
 	default:
 		// extensions can only exists with a body
 		n = len(p.digests) * p.digester.GetDigestSize()
 	}
-	if n > 0 {
-		n++ // 1 byte for count
-	}
+	n++ // 1 byte for count
 	return n
 }
 
@@ -191,7 +221,7 @@ func (p *RecordBody) _marshal(b []byte) (int, error) {
 func (p *RecordBody) MarshalToSizedBuffer(b []byte) (int, error) {
 	p.ensure()
 	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
-		n := p._rawSize()
+		n := p._rawPreparedSize()
 		return p._marshal(b[len(b)-n:])
 	})
 }
@@ -313,4 +343,8 @@ func (p *RecordBody) Equal(o *RecordBody) bool {
 		}
 	}
 	return true
+}
+
+func (p *RecordBody) GetRecordPayloads() RecordPayloads {
+	return RecordPayloads{payloads: p.payloads}
 }

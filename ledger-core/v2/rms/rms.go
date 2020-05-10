@@ -22,6 +22,7 @@ type RecordContext interface {
 
 type BasicRecord interface {
 	SetupContext(RecordContext) error
+	GetRecordPayloads() RecordPayloads
 }
 
 type MessageContext interface {

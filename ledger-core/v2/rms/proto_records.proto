@@ -18,9 +18,9 @@ message RecordExample {
     option (insproto.id) = 999999999;
 
     //*** Start of predefined section ***//
-    reserved 1 to 15, 18 to 19, 1792 to max;
+    reserved 1 to 15, 17 to 18, 1792 to max;
     uint32 Polymorph = 16;
-    RecordBody RecordBody = 17 [(gogoproto.embed)=true];
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
     //*** End of predefined section ***//
 
     // Add custom fields here
