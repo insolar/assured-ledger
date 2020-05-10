@@ -225,6 +225,7 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 	packed := field.IsPacked() || (proto3 && field.IsPacked3())
 	wireType := field.WireType()
 	fieldNumber := field.GetNumber()
+	// TODO only a first field of 16-19 must be included, not all
 	mustBeIncluded := notation && (fieldNumber >= 16 && fieldNumber < 20)
 	if packed {
 		wireType = proto.WireBytes
@@ -916,8 +917,8 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 
 		if !isHead {
 			p.projections.Generate(file, message, ccTypeName)
-			p.contextGen.Generate(file, message, ccTypeName)
 		}
+		p.contextGen.Generate(file, message, ccTypeName)
 		p.polyGen.GenerateMsg(file, message, ccTypeName, isHead)
 
 		if !hasMarshaler {

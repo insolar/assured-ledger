@@ -49,7 +49,7 @@ func (p *Projection) setFileProjections(file *descriptor.FileDescriptorProto) {
 
 func (p *Projection) setMessageProjections(file *descriptor.FileDescriptorProto, parent, message *descriptor.DescriptorProto) {
 	if insproto.IsProjection(file, message) {
-		p.setMessageHeadDesc(parent, message)
+		p.setMessageProjDesc(file, parent, message)
 		// Projection can't have projections
 		return
 	}
@@ -58,7 +58,7 @@ func (p *Projection) setMessageProjections(file *descriptor.FileDescriptorProto,
 	}
 }
 
-func (p *Projection) setMessageHeadDesc(parent, message *descriptor.DescriptorProto) {
+func (p *Projection) setMessageProjDesc(file *descriptor.FileDescriptorProto, parent, message *descriptor.DescriptorProto) {
 	vanity.SetBoolMessageOption(gogoproto.E_Typedecl, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_GoprotoGetters, false)(message)
 	vanity.SetBoolMessageOption(gogoproto.E_Face, true)(message)
@@ -68,6 +68,13 @@ func (p *Projection) setMessageHeadDesc(parent, message *descriptor.DescriptorPr
 			if err := proto.SetExtension(message.Options, insproto.E_Id, &id); err != nil {
 				panic(err)
 			}
+		}
+	}
+
+	{
+		context := insproto.GetCustomContext(file, parent)
+		if err := proto.SetExtension(message.Options, insproto.E_Context, &context); err != nil {
+			panic(err)
 		}
 	}
 
