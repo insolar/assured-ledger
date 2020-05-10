@@ -35,7 +35,18 @@ func (p *RecordBody) SetDigester(digester cryptkit.DataDigester) {
 	p.digester = digester
 }
 
+func (p *RecordBody) HasPayload() bool {
+	return len(p.payloads) > 0
+}
+
+func (p *RecordBody) HasPayloadDigest() bool {
+	return len(p.digests) > 0
+}
+
 func (p *RecordBody) SetPayload(body RawBinary) {
+	if body.IsZero() {
+		panic(throw.IllegalValue())
+	}
 	if len(p.payloads) == 0 {
 		p.payloads = []RawBinary{body}
 	} else {
@@ -44,7 +55,30 @@ func (p *RecordBody) SetPayload(body RawBinary) {
 	p.digests = nil
 }
 
-func (p *RecordBody) AddExtension(body RawBinary) {
+func (p *RecordBody) GetPayload() RawBinary {
+	if len(p.payloads) == 0 {
+		return RawBinary{}
+	}
+	return p.payloads[0]
+}
+
+func (p *RecordBody) GetExtensionPayloadCount() int {
+	n := len(p.payloads)
+	if n < 2 {
+		return 0
+	}
+	return n - 1
+}
+
+func (p *RecordBody) GetExtensionDigestCount() int {
+	n := len(p.digests)
+	if n < 2 {
+		return 0
+	}
+	return n - 1
+}
+
+func (p *RecordBody) AddExtensionPayload(body RawBinary) {
 	switch n := len(p.payloads); {
 	case n == 0:
 		panic(throw.IllegalState())
@@ -55,6 +89,20 @@ func (p *RecordBody) AddExtension(body RawBinary) {
 	}
 	p.payloads = append(p.payloads, body)
 	p.digests = nil
+}
+
+func (p *RecordBody) GetExtensionPayload(index int) RawBinary {
+	index++
+	switch {
+	case index < 1:
+		panic(throw.IllegalValue())
+	case index < len(p.payloads):
+		return p.payloads[index]
+	case index >= len(p.digests):
+		panic(throw.IllegalValue())
+	default:
+		return RawBinary{}
+	}
 }
 
 func (p *RecordBody) prepare() {
@@ -149,6 +197,7 @@ func (p *RecordBody) MarshalToSizedBuffer(b []byte) (int, error) {
 }
 
 func (p *RecordBody) Unmarshal(b []byte) error {
+	p.payloads = nil
 	return protokit.BinaryUnmarshal(b, func(b []byte) error {
 		n := len(b)
 		if n == 0 {
@@ -182,11 +231,42 @@ func (p *RecordBody) Unmarshal(b []byte) error {
 	})
 }
 
-func (p *RecordBody) VerifyPayload(data RawBinary) error {
-	if len(p.digests) == 0 {
+func (p *RecordBody) VerifyAnyPayload(index int, data RawBinary) (err error) {
+	if len(p.digests) == 0 && index == -1 {
 		return p.verifyPayload(cryptkit.Digest{}, data)
 	}
-	return p.verifyPayload(p.digests[0], data)
+	return p.verifyPayload(p.digests[index+1], data)
+}
+
+func (p *RecordBody) PostUnmarshalVerifyAndAdd(data RawBinary) (err error) {
+	n := len(p.payloads)
+	switch {
+	case len(p.digests) == 0:
+		if n == 0 {
+			err = p.verifyPayload(cryptkit.Digest{}, data)
+			break
+		}
+		fallthrough
+	case len(p.digests) <= n:
+		return throw.FailHere("too many payloads")
+	default:
+		err = p.verifyPayload(p.digests[n], data)
+	}
+
+	if err != nil {
+		p.payloads = append(p.payloads, RawBinary{})
+		return err
+	}
+	p.payloads = append(p.payloads, data)
+	return nil
+}
+
+func (p *RecordBody) IsPostUnmarshalCompleted() bool {
+	n := len(p.digests)
+	if n > 0 {
+		return len(p.payloads) == n
+	}
+	return len(p.payloads) == 0 || p.payloads[0].IsZero()
 }
 
 func (p *RecordBody) verifyPayload(d0 cryptkit.Digest, data RawBinary) error {

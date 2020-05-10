@@ -76,8 +76,23 @@ func TestExampleUnmarshalWithPayload(t *testing.T) {
 	m.Str.Set(longbits.WrapStr("xyz"))
 
 	m.SetDigester(TestDigester{})
+
+	require.Panics(t, func() { m.SetPayload(RawBinary{}) })
+	require.Panics(t, func() { m.AddExtensionPayload(RawBinary{}) })
+
+	require.False(t, m.HasPayload())
+	require.False(t, m.HasPayloadDigest())
 	payload := NewRaw(longbits.WrapStr("SomeData"))
 	m.SetPayload(payload)
+	require.True(t, m.HasPayload())
+	require.False(t, m.HasPayloadDigest())
+
+	require.Zero(t, m.GetExtensionPayloadCount())
+	require.Zero(t, m.GetExtensionDigestCount())
+	extension := NewRaw(longbits.WrapStr("SomeExtData"))
+	m.AddExtensionPayload(extension)
+	require.Equal(t, 1, m.GetExtensionPayloadCount())
+	require.Zero(t, m.GetExtensionDigestCount())
 
 	m.InitFieldMap(true)
 	b, err := m.Marshal()
@@ -97,9 +112,41 @@ func TestExampleUnmarshalWithPayload(t *testing.T) {
 	require.True(t, m.Equal(m2))
 
 	m2e := m2.(*MessageExample)
+	require.False(t, m2e.HasPayload())
+	require.True(t, m2e.HasPayloadDigest())
+	require.Zero(t, m2e.GetExtensionPayloadCount())
+	require.Equal(t, 1, m2e.GetExtensionDigestCount())
+	require.False(t, m2e.IsPostUnmarshalCompleted())
+
+	require.True(t, m2e.GetPayload().IsZero())
+	require.True(t, m2e.GetExtensionPayload(0).IsZero())
+
 	m2e.SetDigester(TestDigester{})
-	err = m2e.VerifyPayload(payload)
+	err = m2e.PostUnmarshalVerifyAndAdd(payload)
 	require.NoError(t, err)
+
+	require.True(t, m2e.HasPayload())
+	require.Zero(t, m2e.GetExtensionPayloadCount())
+	require.False(t, m2e.GetPayload().IsZero())
+	require.True(t, m2e.GetExtensionPayload(0).IsZero())
+
+	err = m2e.PostUnmarshalVerifyAndAdd(extension)
+	require.NoError(t, err)
+	require.Equal(t, 1, m2e.GetExtensionPayloadCount())
+	require.True(t, m2e.IsPostUnmarshalCompleted())
+
+	err = m2e.VerifyAnyPayload(-1, payload)
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(0, extension)
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(0, payload)
+	require.Error(t, err)
+	err = m2e.VerifyAnyPayload(-1, extension)
+	require.Error(t, err)
+
+	require.False(t, m2e.GetPayload().IsZero())
+	require.False(t, m2e.GetExtensionPayload(0).IsZero())
+	require.Panics(t, func() { m2e.GetExtensionPayload(1) })
 
 	id, r2, err := Unmarshal(recordBytes)
 	require.NoError(t, err)
@@ -124,14 +171,22 @@ func TestExampleUnmarshalWithPayload(t *testing.T) {
 	m2e = m2.(*MessageExample_Head).AsMessageExample()
 	require.True(t, m2e.Equal(m))
 
-	err = m2e.VerifyPayload(NewRaw(nil))
+	err = m2e.PostUnmarshalVerifyAndAdd(NewRaw(nil))
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(-1, NewRaw(nil))
 	require.NoError(t, err)
 
 	m2e.SetDigester(TestDigester{})
-	err = m2e.VerifyPayload(NewRaw(nil))
+	err = m2e.PostUnmarshalVerifyAndAdd(NewRaw(nil))
+	require.Error(t, err)
+
+	m2e.payloads = nil
+	err = m2e.PostUnmarshalVerifyAndAdd(NewRaw(nil))
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(-1, NewRaw(nil))
 	require.NoError(t, err)
 
-	err = m2e.VerifyPayload(payload)
+	err = m2e.PostUnmarshalVerifyAndAdd(payload)
 	require.Error(t, err)
 }
 

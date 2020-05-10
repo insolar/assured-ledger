@@ -42,7 +42,7 @@ type RawBinary struct {
 	value interface{}
 }
 
-func (p *RawBinary) IsZero() bool {
+func (p RawBinary) IsZero() bool {
 	return p.value == nil
 }
 
