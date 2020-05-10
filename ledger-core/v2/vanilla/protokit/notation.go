@@ -47,6 +47,12 @@ const (
 	// _BinaryMarker
 )
 
+const MaxPolymorphFieldSize = 2 + MaxVarintSize
+
+func GetPolymorphFieldSize(id uint64) int {
+	return int(WireVarint.FieldSize(int(PolymorphFieldID), id))
+}
+
 // Content type detection of a notation-friendly payload.
 type ContentType uint8
 
