@@ -74,6 +74,35 @@ func DecodeFixed32(r io.ByteReader) (v uint64, err error) {
 	return v, nil
 }
 
+func DecodeFixed64FromBytes(b []byte) (uint64, int, error) {
+	if len(b) < 8 {
+		return 0, 0, io.ErrUnexpectedEOF
+	}
+	v := uint64(b[0])
+	v |= uint64(b[1]) << 8
+	v |= uint64(b[2]) << 16
+	v |= uint64(b[3]) << 24
+	v |= uint64(b[4]) << 32
+	v |= uint64(b[5]) << 40
+	v |= uint64(b[6]) << 48
+	v |= uint64(b[7]) << 56
+
+	return v, 8, nil
+}
+
+func DecodeFixed32FromBytes(b []byte) (uint64, int, error) {
+	// NB! uint64 result is NOT a mistake
+	if len(b) < 4 {
+		return 0, 0, io.ErrUnexpectedEOF
+	}
+	v := uint64(b[0])
+	v |= uint64(b[1]) << 8
+	v |= uint64(b[2]) << 16
+	v |= uint64(b[3]) << 24
+
+	return v, 4, nil
+}
+
 func DecodeVarintFromBytes(bb []byte) (u uint64, n int) {
 	b := bb[0]
 
@@ -93,6 +122,33 @@ func DecodeVarintFromBytes(bb []byte) (u uint64, n int) {
 	}
 	n++
 	return v, n
+}
+
+func DecodeVarintFromBytesWithError(bb []byte) (u uint64, n int, err error) {
+	if len(bb) == 0 {
+		return 0, 0, io.ErrUnexpectedEOF
+	}
+	b := bb[0]
+
+	v := uint64(b & 0x7F)
+
+	for i := uint8(7); i < 64; i += 7 {
+		n++
+		if b&0x80 == 0 {
+			return v, n, nil
+		}
+		if len(bb) <= n {
+			return 0, 0, io.ErrUnexpectedEOF
+		}
+		b = bb[n]
+		v |= uint64(b&0x7F) << i
+	}
+
+	if b > 1 {
+		return 0, 0, errOverflow
+	}
+	n++
+	return v, n, nil
 }
 
 func IsValidFirstByteOfTag(firstByte byte) bool {

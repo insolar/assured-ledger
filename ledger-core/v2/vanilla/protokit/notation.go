@@ -48,9 +48,10 @@ const (
 )
 
 const MaxPolymorphFieldSize = 2 + MaxVarintSize
+const MinPolymorphFieldSize = 2 + MinVarintSize
 
 func GetPolymorphFieldSize(id uint64) int {
-	return int(WireVarint.FieldSize(int(PolymorphFieldID), id))
+	return int(WireVarint.Tag(int(PolymorphFieldID)).FieldSize(id))
 }
 
 // Content type detection of a notation-friendly payload.

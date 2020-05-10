@@ -7,6 +7,7 @@ package protokit
 
 import (
 	"bytes"
+	"io"
 	"math"
 	"testing"
 
@@ -42,13 +43,38 @@ func testEncodeDecode(t *testing.T, v uint64) int {
 	if v <= math.MaxUint32 {
 		require.Equal(t, n, SizeVarint32(uint32(v)))
 	}
+
 	u, n2 := DecodeVarintFromBytes(b[:])
 	require.Equal(t, n, n2)
 	require.Equal(t, v, u)
 
+	var err error
+	u, n2, err = DecodeVarintFromBytesWithError(b[:])
+	require.NoError(t, err)
+	require.Equal(t, n, n2)
+	require.Equal(t, v, u)
+
+	for i := n - 1; i > 0; i-- {
+		u, n2, err = DecodeVarintFromBytesWithError(b[:i])
+		require.Equal(t, io.ErrUnexpectedEOF, err)
+		require.Zero(t, n2)
+		require.Zero(t, u)
+	}
+
+	var b2 [MaxVarintSize]byte
+	n2, err = EncodeVarintToBytesWithError(b2[:], v)
+	require.NoError(t, err)
+	require.Equal(t, b[:n], b2[:n2])
+
+	for i := n - 1; i > 0; i-- {
+		n2, err = EncodeVarintToBytesWithError(b2[:i], v)
+		require.Equal(t, io.ErrShortBuffer, err)
+		require.Zero(t, n2)
+	}
+
 	buf := bytes.Buffer{}
 
-	err := EncodeVarint(&buf, v)
+	err = EncodeVarint(&buf, v)
 	require.NoError(t, err)
 	u, err = DecodeVarint(&buf)
 	require.NoError(t, err)

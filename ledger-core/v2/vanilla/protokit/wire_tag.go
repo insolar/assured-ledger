@@ -99,6 +99,14 @@ func (v WireTag) CheckTag(expected WireTag) error {
 	return v._checkTag(expected)
 }
 
+func (v WireTag) CheckActualTagValue(actual uint64) error {
+	wt, err := SafeWireTag(actual)
+	if err != nil {
+		return err
+	}
+	return wt._checkTag(v)
+}
+
 func (v WireTag) Check(expectedType WireType, expectedID int) error {
 	return v._checkTag(expectedType.Tag(expectedID))
 }
