@@ -183,6 +183,13 @@ func (m *SlotMachine) AddDependency(v interface{}) {
 	}
 }
 
+func (m *SlotMachine) AddInterfaceDependency(v interface{}) {
+	vv, vt := injector.GetInterfaceTypeAndValue(v)
+	if !m.TryPutDependency(injector.GetDefaultInjectionIDByType(vt), vv) {
+		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
+	}
+}
+
 func (m *SlotMachine) PutDependency(id string, v interface{}) {
 	if id == "" {
 		panic("illegal key")
