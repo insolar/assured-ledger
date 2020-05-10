@@ -61,7 +61,7 @@ func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)

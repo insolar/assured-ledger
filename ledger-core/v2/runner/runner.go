@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -30,7 +29,7 @@ import (
 
 type Service interface {
 	ExecutionStart(ctx context.Context, execution execution.Context) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error)
-	ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error)
+	ExecutionContinue(ctx context.Context, id uuid.UUID, result []byte) (*executionupdate.ContractExecutionStateUpdate, error)
 	ExecutionAbort(ctx context.Context, id uuid.UUID)
 	ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType
 	ContractCompile(ctx context.Context, contract interface{})
@@ -64,7 +63,7 @@ func (r *DefaultService) getExecutionSink(id uuid.UUID) *executionEventSink {
 	return r.eventSinkMap[id]
 }
 
-func (r *DefaultService) waitForReply(id uuid.UUID) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
+func (r *DefaultService) waitForReply(id uuid.UUID) (*executionupdate.ContractExecutionStateUpdate, error) {
 	executionContext := r.getExecutionSink(id)
 	if executionContext == nil {
 		panic("failed to find ExecutionContext")
@@ -75,7 +74,7 @@ func (r *DefaultService) waitForReply(id uuid.UUID) (*executionupdate.ContractEx
 		_ = r.stopExecution(id)
 		fallthrough
 	case executionupdate.TypeError, executionupdate.TypeOutgoingCall:
-		return update, id, nil
+		return update, nil
 	default:
 		panic(fmt.Sprintf("unknown return type %v", update.Type))
 	}
@@ -101,14 +100,15 @@ func (r *DefaultService) createExecutionSink(execution execution.Context) uuid.U
 }
 
 func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
-	if err := recover(); err != nil {
+	if rec := recover(); rec != nil {
 		// replace with custom error, not RecoverSlotPanicWithStack
-		err := smachine.RecoverSlotPanicWithStack("ContractRunnerService panic", err, nil, smachine.AsyncCallArea)
+		err := throw.R(rec, throw.E("ContractRunnerService panic"))
 
 		executionContext := r.getExecutionSink(id)
 		if executionContext == nil {
-			inslogger.FromContext(ctx).Errorf("[executionRecover] Failed to find a job execution context %s", id.String())
-			inslogger.FromContext(ctx).Errorf("[executionRecover] Failed to execute a job, panic: %v", r)
+			logger := inslogger.FromContext(ctx)
+			logger.Errorf("[executionRecover] Failed to find a job execution context %s", id.String())
+			logger.Errorf("[executionRecover] Failed to execute a job, panic: %v", r)
 			return
 		}
 
@@ -290,15 +290,20 @@ func (r *DefaultService) ExecutionStart(ctx context.Context, execution execution
 
 	go r.execute(ctx, id)
 
-	return r.waitForReply(id)
+	stateUpdate, err := r.waitForReply(id)
+	return stateUpdate, id, err
 }
 
 func (r *DefaultService) ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType {
 	return calltype.ContractCallOrdered
 }
 
-func (r *DefaultService) ExecutionContinue(ctx context.Context, id uuid.UUID, result interface{}) (*executionupdate.ContractExecutionStateUpdate, error) {
-	panic(throw.NotImplemented())
+func (r *DefaultService) ExecutionContinue(ctx context.Context, id uuid.UUID, result []byte) (*executionupdate.ContractExecutionStateUpdate, error) {
+	sink := r.getExecutionSink(id)
+
+	sink.input <- result
+
+	return r.waitForReply(id)
 }
 
 func (r *DefaultService) ExecutionAbort(ctx context.Context, id uuid.UUID) {

@@ -6,6 +6,7 @@
 package execute
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
@@ -22,10 +24,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
@@ -49,6 +52,8 @@ type SMExecute struct {
 	executionNewState *executionupdate.ContractExecutionStateUpdate
 	executionID       uuid.UUID
 	executionError    error
+	outgoingResult    []byte
+	deactivate        bool
 
 	// dependencies
 	runner        *runnerAdapter.Runner
@@ -128,7 +133,7 @@ func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) sma
 		panic(throw.IllegalValue())
 	}
 
-	if s.Payload.CallFlags&callflag.Unordered > 0 {
+	if s.Payload.CallFlags.GetTolerance() == payload.CallIntolerable {
 		s.execution.Unordered = true
 	}
 
@@ -245,10 +250,10 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 
 	s.execution.ObjectDescriptor = objectDescriptor
 
-	return ctx.Jump(s.stepExecute)
+	return ctx.Jump(s.stepExecuteStart)
 }
 
-func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		executionContext = s.execution
 		asyncLogger      = ctx.LogAsync()
@@ -276,12 +281,92 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	case executionupdate.TypeError:
 		panic(throw.W(s.executionNewState.Error, "failed to execute request", nil))
 	case executionupdate.TypeAborted:
-		fallthrough
+		return ctx.Jump(s.stepExecuteAborted)
 	case executionupdate.TypeOutgoingCall:
-		panic(throw.NotImplemented())
+		return ctx.Jump(s.stepExecuteOutgoing)
 	default:
 		panic(throw.IllegalValue())
 	}
+}
+
+func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
+func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		msg    *payload.VCallRequest
+		object reference.Global
+
+		goCtx       = ctx.GetContext()
+		pulseNumber = s.pulseSlot.PulseData().PulseNumber
+	)
+
+	switch outgoing := s.executionNewState.Outgoing.(type) {
+	case executionevent.GetCode:
+		panic(throw.Unsupported())
+	case executionevent.Deactivate:
+		s.deactivate = true
+	case executionevent.CallConstructor:
+		msg = outgoing.ConstructVCallRequest(s.execution)
+		msg.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		object = reference.NewSelf(msg.CallOutgoing)
+	case executionevent.CallMethod:
+		msg = outgoing.ConstructVCallRequest(s.execution)
+		msg.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		object = msg.Callee
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	if msg != nil {
+		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+			res, ok := param.(*payload.VCallResult)
+			if !ok || res == nil {
+				panic(throw.IllegalValue())
+			}
+			s.outgoingResult = res.ReturnArguments
+
+			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				return ctx.WakeUp()
+			}
+		})
+
+		outgoingRef := reference.NewRecordOf(msg.Caller, msg.CallOutgoing)
+
+		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
+			return ctx.Error(errors.New("failed to publish bargeInCallback"))
+		}
+
+		return s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+			err := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, object, pulseNumber)
+			if err != nil {
+				panic(err)
+			}
+		}).DelayedSend().Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
+	}
+
+	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		outgoingResult = s.outgoingResult
+		asyncLogger    = ctx.LogAsync()
+		goCtx          = ctx.GetContext()
+		executionID    = s.executionID
+	)
+
+	return s.runner.PrepareAsync(ctx, func(svc runner.Service) smachine.AsyncResultFunc {
+		defer statemachine.LogAsyncTime(asyncLogger, time.Now(), "ExecutionStart")
+
+		newState, err := svc.ExecutionContinue(goCtx, executionID, outgoingResult)
+
+		return func(ctx smachine.AsyncResultContext) {
+			s.executionNewState = newState
+			s.executionError = err
+		}
+	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -292,6 +377,15 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		prototype reference.Global
 		action    func(state *object.SharedState)
 	)
+
+	if s.deactivate {
+		oldRequestResult := s.executionNewState.Result
+
+		// we should overwrite old side effect with new one - deactivation of object
+		// TODO[bigbes]: maybe we should move that logic to runner
+		s.executionNewState.Result = requestresult.New(oldRequestResult.Result(), oldRequestResult.ObjectReference())
+		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
+	}
 
 	switch s.executionNewState.Result.Type() {
 	case insolar.RequestSideEffectNone:

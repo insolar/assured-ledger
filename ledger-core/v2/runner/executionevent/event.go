@@ -9,61 +9,24 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type RPC interface{}
+type RPC interface{ rpc() }
 
-type GetCode interface {
-	CodeReference() reference.Global
-}
-
-type Deactivate interface {
-	ParentObjectReference() reference.Global
-	ParentRequestReference() reference.Global
-}
-
-type SaveAsChild interface {
-	Prototype() reference.Global
-	Arguments() []byte
-	Constructor() string
-	ParentObjectReference() reference.Global
-	ParentRequestReference() reference.Global
-	ConstructOutgoing(transcript execution.Context) payload.VCallRequest
-}
-
-type RouteCall interface {
-	Saga() bool
-	Immutable() bool
-	Prototype() reference.Global
-	Object() reference.Global
-	Arguments() []byte
-	Method() string
-	ParentObjectReference() reference.Global
-	ParentRequestReference() reference.Global
-}
-
-type Builder interface {
-	Deactivate() RPC
-	SaveAsChild(prototype reference.Global, constructor string, arguments []byte) RPC
-	RouteCall(object reference.Global, prototype reference.Global, method string, arguments []byte) RouteCallBuilder
-	GetCode(code reference.Global) RPC
-}
-
-type builder struct {
+type Builder struct {
 	request reference.Global
 	object  reference.Global
 }
 
-func (r builder) Deactivate() RPC {
-	return deactivate{
+func (r Builder) Deactivate() Deactivate {
+	return Deactivate{
 		parentObjectReference:  r.object,
 		parentRequestReference: r.request,
 	}
 }
 
-func (r builder) SaveAsChild(prototype reference.Global, constructor string, arguments []byte) RPC {
-	return saveAsChild{
+func (r Builder) CallConstructor(prototype reference.Global, constructor string, arguments []byte) CallConstructor {
+	return CallConstructor{
 		parentRequestReference: r.request,
 		parentObjectReference:  r.object,
 
@@ -73,13 +36,13 @@ func (r builder) SaveAsChild(prototype reference.Global, constructor string, arg
 	}
 }
 
-func (r builder) RouteCall(
+func (r Builder) CallMethod(
 	object reference.Global,
 	prototype reference.Global,
 	method string,
 	arguments []byte,
-) RouteCallBuilder {
-	return &routeCall{
+) CallMethod {
+	return CallMethod{
 		parentRequestReference: r.request,
 		parentObjectReference:  r.object,
 
@@ -87,43 +50,46 @@ func (r builder) RouteCall(
 		method:    method,
 		arguments: arguments,
 		prototype: prototype,
-		immutable: false,
-		saga:      false,
+		unordered: false,
 	}
 }
 
-func (r builder) GetCode(code reference.Global) RPC {
-	return &getCode{
+func (r Builder) GetCode(code reference.Global) GetCode {
+	return GetCode{
 		codeReference: code,
 	}
 }
 
 func NewRPCBuilder(request reference.Global, object reference.Global) Builder {
-	return &builder{request: request, object: object}
+	return Builder{request: request, object: object}
 }
 
-type getCode struct {
+type GetCode struct {
 	codeReference reference.Global
 }
 
-func (e getCode) CodeReference() reference.Global {
+func (e GetCode) CodeReference() reference.Global {
 	return e.codeReference
 }
 
-type deactivate struct {
+func (e GetCode) rpc() {}
+
+type Deactivate struct {
 	parentRequestReference reference.Global
 	parentObjectReference  reference.Global
 }
 
-func (e deactivate) ParentObjectReference() reference.Global {
+func (e Deactivate) ParentObjectReference() reference.Global {
 	return e.parentObjectReference
 }
 
-func (e deactivate) ParentRequestReference() reference.Global {
+func (e Deactivate) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-type saveAsChild struct {
+func (e Deactivate) rpc() {}
+
+type CallConstructor struct {
 	parentRequestReference reference.Global
 	parentObjectReference  reference.Global
 
@@ -132,31 +98,47 @@ type saveAsChild struct {
 	prototype   reference.Global
 }
 
-func (e saveAsChild) Prototype() reference.Global {
+func (e CallConstructor) Prototype() reference.Global {
 	return e.prototype
 }
 
-func (e saveAsChild) Arguments() []byte {
+func (e CallConstructor) Arguments() []byte {
 	return e.arguments
 }
 
-func (e saveAsChild) Constructor() string {
+func (e CallConstructor) Constructor() string {
 	return e.constructor
 }
 
-func (e saveAsChild) ParentObjectReference() reference.Global {
+func (e CallConstructor) ParentObjectReference() reference.Global {
 	return e.parentObjectReference
 }
 
-func (e saveAsChild) ParentRequestReference() reference.Global {
+func (e CallConstructor) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-func (e saveAsChild) ConstructOutgoing(execution execution.Context) payload.VCallRequest {
-	panic(throw.NotImplemented())
+func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
+	execution.Sequence++
+
+	return &payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           execution.Request.CallFlags,
+		Caller:              e.parentObjectReference,
+		Callee:              reference.Global{},
+		CallSiteDeclaration: e.prototype,
+		CallSiteMethod:      e.constructor,
+		CallSequence:        execution.Sequence,
+		CallReason:          e.parentRequestReference,
+		KnownCalleeIncoming: reference.Global{},
+		CallOutgoing:        reference.Local{}, // must be filled in the caller
+		Arguments:           e.arguments,
+	}
 }
 
-type routeCall struct {
+func (e CallConstructor) rpc() {}
+
+type CallMethod struct {
 	parentRequestReference reference.Global
 	parentObjectReference  reference.Global
 
@@ -164,57 +146,62 @@ type routeCall struct {
 	arguments []byte
 	object    reference.Global
 	prototype reference.Global
-	immutable bool
-	saga      bool
+	unordered bool
 }
 
-func (e routeCall) Saga() bool {
-	return e.saga
+func (e CallMethod) Unordered() bool {
+	return e.unordered
 }
 
-func (e routeCall) Immutable() bool {
-	return e.immutable
-}
-
-func (e routeCall) Prototype() reference.Global {
+func (e CallMethod) Prototype() reference.Global {
 	return e.prototype
 }
 
-func (e routeCall) Object() reference.Global {
+func (e CallMethod) Object() reference.Global {
 	return e.object
 }
 
-func (e routeCall) Arguments() []byte {
+func (e CallMethod) Arguments() []byte {
 	return e.arguments
 }
 
-func (e routeCall) Method() string {
+func (e CallMethod) Method() string {
 	return e.method
 }
 
-func (e routeCall) ParentObjectReference() reference.Global {
+func (e CallMethod) ParentObjectReference() reference.Global {
 	return e.parentObjectReference
 }
 
-func (e routeCall) ParentRequestReference() reference.Global {
+func (e CallMethod) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-type RouteCallBuilder interface {
-	SetSaga(isSaga bool) RouteCallBuilder
-	SetImmutable(isImmutable bool) RouteCallBuilder
+func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
+	execution.Sequence++
+
+	callFlags := execution.Request.CallFlags
+	if !e.unordered {
+		callFlags.SetTolerance(payload.CallTolerable)
+	}
+
+	return &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           execution.Request.CallFlags,
+		Caller:              e.parentObjectReference,
+		Callee:              e.object,
+		CallSiteDeclaration: e.prototype,
+		CallSiteMethod:      e.method,
+		CallSequence:        execution.Sequence,
+		CallReason:          e.parentRequestReference,
+		CallOutgoing:        reference.Local{}, // must be filled in the caller
+		Arguments:           e.arguments,
+	}
 }
 
-func (e routeCall) ConstructOutgoing(execution execution.Context) payload.VCallRequest {
-	panic(throw.NotImplemented())
-}
-
-func (e *routeCall) SetSaga(isSaga bool) RouteCallBuilder {
-	e.saga = isSaga
+func (e CallMethod) SetUnordered(isUnordered bool) CallMethod {
+	e.unordered = isUnordered
 	return e
 }
 
-func (e *routeCall) SetImmutable(isImmutable bool) RouteCallBuilder {
-	e.immutable = isImmutable
-	return e
-}
+func (e CallMethod) rpc() {}

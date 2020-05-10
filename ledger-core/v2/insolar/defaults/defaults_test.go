@@ -7,6 +7,7 @@ package defaults
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,11 @@ type tCase struct {
 	expect string
 }
 
+var BlahBla = func() string {
+	// Path separator differs on Linux and Windows
+	return filepath.Join("blah", "bla")
+}()
+
 var cases = []tCase{
 
 	// ArtifactsDir checks
@@ -27,30 +33,34 @@ var cases = []tCase{
 	},
 	{
 		env: map[string]string{
-			"INSOLAR_ARTIFACTS_DIR": "blah/bla",
+			"INSOLAR_ARTIFACTS_DIR": BlahBla,
 		},
 		defFn:  ArtifactsDir,
-		expect: "blah/bla",
+		expect: BlahBla,
 	},
 
 	// LaunchnetDir checks
 	{
 		defFn:  LaunchnetDir,
-		expect: ".artifacts/launchnet",
+		expect: func() string {
+			return filepath.Join(".artifacts", "launchnet")
+		}(),
 	},
 	{
 		env: map[string]string{
-			"INSOLAR_ARTIFACTS_DIR": "blah/bla",
+			"INSOLAR_ARTIFACTS_DIR": BlahBla,
 		},
 		defFn:  LaunchnetDir,
-		expect: "blah/bla/launchnet",
+		expect: func() string {
+			return filepath.Join("blah","bla","launchnet")
+		}(),
 	},
 	{
 		env: map[string]string{
-			"LAUNCHNET_BASE_DIR": "blah/bla",
+			"LAUNCHNET_BASE_DIR": BlahBla,
 		},
 		defFn:  LaunchnetDir,
-		expect: "blah/bla",
+		expect: BlahBla,
 	},
 }
 

@@ -57,3 +57,7 @@ func (w *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 
 	return nil
 }
+
+func (w *Wallet) Destroy() error {
+	return w.SelfDestruct()
+}
