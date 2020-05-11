@@ -26,7 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 )
 
 type logIncomingRequest struct {
@@ -171,8 +170,13 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	callFlags := payload.CallRequestFlags(0)
+	callFlags.SetTolerance(payload.CallTolerable)
+	callFlags.SetState(payload.CallDirty)
+
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
+		CallFlags:      callFlags,
 		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
@@ -246,9 +250,13 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
+	callFlags := payload.CallRequestFlags(0)
+	callFlags.SetTolerance(payload.CallIntolerable)
+	callFlags.SetState(payload.CallValidated)
+
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callflag.Unordered,
+		CallFlags:      callFlags,
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -332,8 +340,13 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	callFlags := payload.CallRequestFlags(0)
+	callFlags.SetTolerance(payload.CallTolerable)
+	callFlags.SetState(payload.CallDirty)
+
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
+		CallFlags:      callFlags,
 		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,
