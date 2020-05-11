@@ -49,7 +49,7 @@ var wireTypes = []struct {
 	minSize, maxSize int8
 }{
 	WireFixed64: {"fixed64", DecodeFixed64, EncodeFixed64,
-		DecodeFixed64FromBytes, EncodeFixed64ToBytes,
+		DecodeFixed64FromBytesWithError, EncodeFixed64ToBytes,
 		nil, 8, 8},
 
 	WireFixed32: {"fixed32", DecodeFixed32, func(w io.ByteWriter, u uint64) error {
@@ -57,7 +57,7 @@ var wireTypes = []struct {
 			panic(errOverflow)
 		}
 		return EncodeFixed32(w, uint32(u))
-	}, DecodeFixed32FromBytes, func(b []byte, u uint64) (int, error) {
+	}, DecodeFixed32FromBytesWithError, func(b []byte, u uint64) (int, error) {
 		if u > math.MaxUint32 {
 			panic(errOverflow)
 		}

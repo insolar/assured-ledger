@@ -74,10 +74,8 @@ func DecodeFixed32(r io.ByteReader) (v uint64, err error) {
 	return v, nil
 }
 
-func DecodeFixed64FromBytes(b []byte) (uint64, int, error) {
-	if len(b) < 8 {
-		return 0, 0, io.ErrUnexpectedEOF
-	}
+func DecodeFixed64FromBytes(b []byte) (uint64, int) {
+	_ = b[7]
 	v := uint64(b[0])
 	v |= uint64(b[1]) << 8
 	v |= uint64(b[2]) << 16
@@ -87,20 +85,35 @@ func DecodeFixed64FromBytes(b []byte) (uint64, int, error) {
 	v |= uint64(b[6]) << 48
 	v |= uint64(b[7]) << 56
 
-	return v, 8, nil
+	return v, 8
 }
 
-func DecodeFixed32FromBytes(b []byte) (uint64, int, error) {
-	// NB! uint64 result is NOT a mistake
-	if len(b) < 4 {
+func DecodeFixed64FromBytesWithError(b []byte) (v uint64, n int, err error) {
+	if len(b) < 8 {
 		return 0, 0, io.ErrUnexpectedEOF
 	}
+	v, n = DecodeFixed64FromBytes(b)
+	return
+}
+
+func DecodeFixed32FromBytes(b []byte) (uint64, int) {
+	// NB! uint64 result is NOT a mistake
+	_ = b[3]
 	v := uint64(b[0])
 	v |= uint64(b[1]) << 8
 	v |= uint64(b[2]) << 16
 	v |= uint64(b[3]) << 24
 
-	return v, 4, nil
+	return v, 4
+}
+
+func DecodeFixed32FromBytesWithError(b []byte) (v uint64, n int, err error) {
+	// NB! uint64 result is NOT a mistake
+	if len(b) < 4 {
+		return 0, 0, io.ErrUnexpectedEOF
+	}
+	v, n = DecodeFixed32FromBytes(b)
+	return
 }
 
 func DecodeVarintFromBytes(bb []byte) (u uint64, n int) {
