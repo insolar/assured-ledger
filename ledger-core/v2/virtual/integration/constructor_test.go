@@ -196,7 +196,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		server.SendMessage(ctx, msg)
 
 		select {
-		case <-time.After(3 * time.Second):
+		case <-time.After(10 * time.Second):
 			require.Failf(t, "", "timeout")
 		case <-testIsDone:
 		}

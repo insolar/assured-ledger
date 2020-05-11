@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	apiTimeout = 5 * time.Second
+	apiTimeout = 10 * time.Second
 )
 
 type WalletCreateResponse struct {
