@@ -212,8 +212,8 @@ func TestByteString_FoldToBits64(t *testing.T) {
 			res:        Bits64{0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
 		},
 		{
-			ByteString: ByteString("\x02\x01\x02\x01\x02\x01\x02\x01\x02\x01"),
-			res:        Bits64{0x2, 0x1, 0x2, 0x1, 0x2, 0x1, 0x2, 0x1},
+			ByteString: ByteString("\x03\x03\x02\x01\x02\x01\x02\x01\x02\x01"),
+			res:        Bits64{0x1, 0x2, 0x2, 0x1, 0x2, 0x1, 0x2, 0x1},
 		},
 	} {
 		require.Equal(t, tc.res, tc.ByteString.FoldToBits64())
@@ -234,8 +234,8 @@ func TestByteString_String(t *testing.T) {
 			res:        "bits[8]0x00000002",
 		},
 		{
-			ByteString: ByteString("\x02\x01\x02\x01\x02\x01\x02\x01\x02\x01"),
-			res:        "bits[80]0x102010201020102",
+			ByteString: ByteString("\x03\x03\x02\x01\x02\x01\x02\x01\x02\x01"),
+			res:        "bits[80]0x102010201020201",
 		},
 	} {
 		require.Equal(t, tc.res, tc.ByteString.String())
