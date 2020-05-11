@@ -13,7 +13,7 @@ type unmarshaler interface {
 	Unmarshal([]byte) error
 }
 
-type UnknownCallbackFunc func([]byte) (int, error)
+type UnknownCallbackFunc = func([]byte) (int, error)
 type unmarshalerWithUnknownCallback interface {
 	UnmarshalWithUnknownCallback([]byte, UnknownCallbackFunc) error
 }

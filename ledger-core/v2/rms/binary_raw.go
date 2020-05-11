@@ -242,6 +242,10 @@ func (p *RawBinary) GetBytes() []byte {
 	}
 }
 
+func (p *RawBinary) EqualRaw(o RawBinary) bool {
+	return p._equal(&o)
+}
+
 func (p *RawBinary) Equal(o longbits.FixedReader) bool {
 	switch {
 	case p == o:

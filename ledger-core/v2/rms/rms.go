@@ -11,6 +11,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
 type PulseNumber = pulse.Number
@@ -23,6 +24,7 @@ type RecordContext interface {
 type BasicRecord interface {
 	SetupContext(RecordContext) error
 	GetRecordPayloads() RecordPayloads
+	SetRecordPayloads(RecordPayloads, cryptkit.DataDigester) error
 }
 
 type MessageContext interface {

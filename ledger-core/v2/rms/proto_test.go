@@ -71,7 +71,7 @@ func TestExampleUnmarshal(t *testing.T) {
 	require.True(t, m2.(*MessageExample_Head).AsMessageExample().Equal(m))
 }
 
-func TestExampleUnmarshalWithPayload(t *testing.T) {
+func TestExampleUnmarshalWithSeparatePayload(t *testing.T) {
 	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
 	m.Str.Set(longbits.WrapStr("xyz"))
 
@@ -297,4 +297,51 @@ func TestExampleChainedRef(t *testing.T) {
 	require.False(t, m.Equal(mu))
 	require.Equal(t, pulse.Number(pulse.MinTimePulse), mu.(*MessageExample).Ref1.Get().GetLocal().Pulse())
 	require.True(t, m2.Equal(mu))
+}
+
+func TestExampleMessageWithEmbeddedPayloads(t *testing.T) {
+	m := &MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
+
+	m.SetDigester(TestDigester{})
+
+	payload := NewRaw(longbits.WrapStr("SomeData"))
+	m.SetPayload(payload)
+
+	extension := NewRaw(longbits.WrapStr("SomeExtData"))
+	m.AddExtensionPayload(extension)
+
+	b, err := MarshalMessageWithPayloadsToBytes(m)
+
+	// Polymorph == 0 uses default value on serialization
+	// so it has to be set explicitly to equal with a deserialized form
+	m.RecordExample.Polymorph = uint32(m.RecordExample.GetDefaultPolymorphID())
+
+	id, m2, err := UnmarshalMessageWithPayloadsFromBytes(b, TestDigester{})
+	require.NoError(t, err)
+
+	require.Equal(t, m.GetDefaultPolymorphID(), id)
+	require.True(t, m.Equal(m2))
+
+	m2e := m2.(*MessageExample)
+	require.True(t, m2e.HasPayload())
+	require.True(t, m2e.HasPayloadDigest())
+	require.Equal(t, 1, m2e.GetExtensionDigestCount())
+	require.Equal(t, 1, m2e.GetExtensionPayloadCount())
+	require.True(t, m2e.IsPostUnmarshalCompleted())
+
+	require.True(t, payload.EqualRaw(m2e.GetPayload()))
+	require.True(t, extension.EqualRaw(m2e.GetExtensionPayload(0)))
+	require.Panics(t, func() { m2e.GetExtensionPayload(1) })
+	require.False(t, extension.EqualRaw(m2e.GetPayload()))
+	require.False(t, payload.EqualRaw(m2e.GetExtensionPayload(0)))
+
+	err = m2e.VerifyAnyPayload(-1, payload)
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(0, extension)
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(0, payload)
+	require.Error(t, err)
+	err = m2e.VerifyAnyPayload(-1, extension)
+	require.Error(t, err)
 }

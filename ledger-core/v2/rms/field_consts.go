@@ -11,6 +11,6 @@ const RecordBodyField = 19
 const RecordFirstField = 20
 const RecordLastField = MaxTwoByteField - 256 // 1791
 
-const MessageRecordPayloadsField = 18
+const MessageRecordPayloadsField = 17 // MUST be immediately after 16
 const MessageRecordField = RecordBodyField
 const MessageFirstField = 1800

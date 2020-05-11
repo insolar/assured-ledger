@@ -348,3 +348,31 @@ func (p *RecordBody) Equal(o *RecordBody) bool {
 func (p *RecordBody) GetRecordPayloads() RecordPayloads {
 	return RecordPayloads{payloads: p.payloads}
 }
+
+func (p *RecordBody) SetRecordPayloads(rp RecordPayloads, digester cryptkit.DataDigester) error {
+	switch {
+	case p.digester == nil:
+		p.digester = digester
+	case digester == nil:
+		//
+	case digester.GetDigestMethod() != p.digester.GetDigestMethod():
+		panic(throw.IllegalState())
+	}
+
+	n := len(rp.payloads)
+	if n == 0 {
+		p.payloads = nil
+	} else {
+		p.payloads = make([]RawBinary, 0, n)
+		for i := range rp.payloads {
+			if err := p.PostUnmarshalVerifyAndAdd(rp.payloads[i]); err != nil {
+				return err
+			}
+		}
+	}
+
+	if !p.IsPostUnmarshalCompleted() {
+		return throw.FailHere("payload number mismatched")
+	}
+	return nil
+}

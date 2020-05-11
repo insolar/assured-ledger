@@ -8,6 +8,7 @@ package rms
 import (
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
@@ -81,27 +82,27 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 	return b, nil
 }
 
-func UnmarshalMessageWithPayloadsFromBytes(b []byte) (BasicMessage, error) {
+func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDigester) (uint64, BasicMessage, error) {
 	payloads := RecordPayloads{}
 	id, um, err := UnmarshalCustom(b, GetRegistry().Get, func(b []byte) (int, error) {
 		return payloads.TryUnmarshalPayloadFromBytes(b)
 	})
 	if err != nil {
-		return nil, err
+		return id, nil, err
 	}
 
 	if m, ok := um.(BasicMessage); ok {
 		ctx := &msgMarshalContext{m: m}
 		if err := m.SetupContext(ctx); err != nil {
-			return nil, err
+			return id, nil, err
 		}
 
-		if err := payloads.ApplyPayloadsTo(ctx.record); err != nil {
-			return nil, err
+		if err := payloads.ApplyPayloadsTo(ctx.record, digester); err != nil {
+			return id, nil, err
 		}
-		return m, err
+		return id, m, err
 	}
-	return nil, throw.E("expected BasicMessage", struct{ ID uint64 }{id})
+	return id, nil, throw.E("expected BasicMessage", struct{ ID uint64 }{id})
 }
 
 func MarshalMessageWithPayloads(m BasicMessage, w io.Writer) error {
@@ -132,7 +133,7 @@ func (p *msgMarshalContext) Message(m BasicMessage, id uint64) error {
 		panic(throw.IllegalValue())
 	}
 	p.id = id
-	panic(throw.NotImplemented())
+	return nil
 }
 
 func (p *msgMarshalContext) MsgRecord(m BasicMessage, fieldNum int, record BasicRecord) error {
