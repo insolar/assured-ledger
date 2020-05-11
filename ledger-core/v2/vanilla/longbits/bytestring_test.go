@@ -248,3 +248,19 @@ func TestByteStringEqual(t *testing.T) {
 	require.True(t, EmptyByteString.Equal(NewMutableFixedSize([]byte{})))
 	require.True(t, WrapStr("abc").Equal(NewMutableFixedSize([]byte("abc"))))
 }
+
+func TestByteStringFold64Unaligned(t *testing.T) {
+	var b [64 * 3 / 8]byte
+	for i := range b {
+		require.Zero(t, CopyBytes(b[:i+1]).FoldToUint64())
+		require.Zero(t, CopyBytes(b[:i+1]).FoldToBits64())
+	}
+}
+
+func TestByteStringCutOut64Unaligned(t *testing.T) {
+	var b [64 * 3 / 8]byte
+	for i := range b {
+		require.Zero(t, CopyBytes(b[:i+1]).CutOutUint64())
+		require.Zero(t, CopyBytes(b[:i+1]).CutOutBits64())
+	}
+}
