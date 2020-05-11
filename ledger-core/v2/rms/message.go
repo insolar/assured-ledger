@@ -84,9 +84,7 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 
 func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDigester) (uint64, BasicMessage, error) {
 	payloads := RecordPayloads{}
-	id, um, err := UnmarshalCustom(b, GetRegistry().Get, func(b []byte) (int, error) {
-		return payloads.TryUnmarshalPayloadFromBytes(b)
-	})
+	id, um, err := UnmarshalCustom(b, GetRegistry().Get, payloads.TryUnmarshalPayloadFromBytes)
 	if err != nil {
 		return id, nil, err
 	}
