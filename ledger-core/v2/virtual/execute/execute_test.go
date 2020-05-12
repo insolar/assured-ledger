@@ -39,6 +39,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		catalog         = object.NewCatalogMock(mc)
 		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef, object.InitReasonCTConstructor)
@@ -62,7 +63,8 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 			CallOutgoing:        smObjectID,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
-		pulseSlot: &pulseSlot,
+		objectCatalog: catalog,
+		pulseSlot:     &pulseSlot,
 	}
 
 	stepChecker := NewSMStepChecker()
@@ -75,12 +77,18 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	execCtx := smachine.NewExecutionContextMock(mc).
 		GetContextMock.Return(ctx).
 		JumpMock.Set(CheckWrapper(stepChecker, t)).
-		GetPublishedLinkMock.Return(sharedStateData).
 		UseSharedMock.Set(CallSharedDataAccessor)
 
 	execCtx.SetDefaultMigrationMock.Return()
 
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef, object.InitReasonCTConstructor).Return(smObjectAccessor)
+
 	smExecute.Init(execCtx)
+
+	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
+
 	smExecute.stepUpdatePendingCounters(execCtx)
 
 	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)

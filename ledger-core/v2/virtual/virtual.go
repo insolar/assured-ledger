@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -92,6 +93,9 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
 	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
+
+	var objectCatalog object.Catalog = object.NewLocalCatalog()
+	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
 
 	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker()
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
