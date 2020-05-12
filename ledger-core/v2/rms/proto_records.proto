@@ -26,5 +26,6 @@ message RecordExample {
     // Add custom fields here
     Binary Str = 21;
     Reference Ref1 = 22 [(insproto.ctx_apply)="RecReference"];
+    uint32 AsOf = 23 [(gogoproto.casttype)="PulseNumber"];
 }
 
