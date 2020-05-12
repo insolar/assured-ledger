@@ -57,7 +57,7 @@ func TestInitViaCTMethod(t *testing.T) {
 
 	select {
 	case <-requestIsDone:
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 }
