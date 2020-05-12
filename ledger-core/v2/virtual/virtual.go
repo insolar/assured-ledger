@@ -50,7 +50,6 @@ type Dispatcher struct {
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
 	MachineLogger  smachine.SlotMachineLogger
-	ObjectCatalog  object.Catalog
 
 	// Components
 	Runner        runner.Service
@@ -95,10 +94,8 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
 	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
 
-	if lr.ObjectCatalog == nil {
-		lr.ObjectCatalog = object.NewLocalCatalog()
-	}
-	lr.Conveyor.AddInterfaceDependency(&lr.ObjectCatalog)
+	var objectCatalog object.Catalog = object.NewLocalCatalog()
+	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
 
 	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker()
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
