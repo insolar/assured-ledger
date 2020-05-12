@@ -44,7 +44,7 @@ type ContractConstructorHolder struct {
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, error) {
-	ret, err := common.CurrentProxyCtx.SaveAsChild(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
+	ret, err := common.CurrentProxyCtx.CallConstructor(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (r *Wallet) GetPrototype() (reference.Global, error) {
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetPrototype", make([]byte, 0), PrototypeReference)
+		res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "GetPrototype", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -140,7 +140,7 @@ func (r *Wallet) GetCode() (reference.Global, error) {
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetCode", make([]byte, 0), PrototypeReference)
+		res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "GetCode", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -177,7 +177,7 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "GetBalance", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -216,7 +216,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "GetBalance", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -254,7 +254,7 @@ func (r *Wallet) Accept(amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Accept", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Accept", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, false, false, "Transfer", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -370,7 +370,81 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.RouteCall(r.Reference, true, false, "Transfer", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "Transfer", argsSerialized, PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	resultContainer := foundation.Result{
+		Returns: ret,
+	}
+	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	if err != nil {
+		return err
+	}
+	if resultContainer.Error != nil {
+		err = resultContainer.Error
+		return err
+	}
+	if ret0 != nil {
+		return ret0
+	}
+	return nil
+}
+
+// Destroy is proxy generated method
+func (r *Wallet) Destroy() error {
+	var args [0]interface{}
+
+	var argsSerialized []byte
+
+	ret := make([]interface{}, 1)
+	var ret0 *foundation.Error
+	ret[0] = &ret0
+
+	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "Destroy", argsSerialized, PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	resultContainer := foundation.Result{
+		Returns: ret,
+	}
+	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	if err != nil {
+		return err
+	}
+	if resultContainer.Error != nil {
+		err = resultContainer.Error
+		return err
+	}
+	if ret0 != nil {
+		return ret0
+	}
+	return nil
+}
+
+// DestroyAsImmutable is proxy generated method
+func (r *Wallet) DestroyAsImmutable() error {
+	var args [0]interface{}
+
+	var argsSerialized []byte
+
+	ret := make([]interface{}, 1)
+	var ret0 *foundation.Error
+	ret[0] = &ret0
+
+	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "Destroy", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}

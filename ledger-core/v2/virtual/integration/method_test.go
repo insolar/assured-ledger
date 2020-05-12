@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -106,6 +105,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 }
 
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
+
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -222,10 +222,12 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 
 		for i := 0; i < 2; i++ {
+			flags := payload.CallRequestFlags(0)
+			flags.SetTolerance(payload.CallIntolerable)
 			pl := payload.VCallRequest{
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
-				CallFlags:           callflag.Unordered,
+				CallFlags:           flags,
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
@@ -377,7 +379,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := reference.NewRecordRef(server.RandomLocalWithPulse())
-	stateID := gen.IDWithPulse(server.GetPulse().PulseNumber)
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)

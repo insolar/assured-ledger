@@ -1,4 +1,4 @@
-name: all-checks
+name: linux-checks
 on:
   push:
     branches:
@@ -12,7 +12,7 @@ env:
   INSOLAR_LOG_LEVEL: warn
   GOTEST: 'gotestsum --'
 jobs:
-  all-checks:
+  tests-on-linux:
     name: checks # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
