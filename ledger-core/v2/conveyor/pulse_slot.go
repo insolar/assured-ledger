@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type PulseSlotState uint8
@@ -58,6 +59,27 @@ func (p *PulseSlot) PulseRange() (pulse.Range, PulseSlotState) {
 
 func (p *PulseSlot) PulseStartedAt() time.Time {
 	return p.pulseData.PulseStartedAt()
+}
+
+func (p *PulseSlot) CurrentPulseNumber() pulse.Number {
+	pr, st := p.PulseRange()
+	if st == Present {
+		return pr.RightBoundData().PulseNumber
+	}
+	pn, _ := p.pulseManager.GetPresentPulse()
+	return pn
+}
+
+func (p *PulseSlot) CurrentPulseData() pulse.Data {
+	pr, st := p.PulseRange()
+	if st == Present {
+		return pr.RightBoundData()
+	}
+	pn, _ := p.pulseManager.GetPresentPulse()
+	if pd, ok := p.pulseManager.GetPulseData(pn); ok {
+		return pd
+	}
+	panic(throw.Impossible())
 }
 
 func (p *PulseSlot) isAcceptedFutureOrPresent(pn pulse.Number) (isFuture, isAccepted bool) {
