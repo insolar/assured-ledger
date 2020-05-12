@@ -102,7 +102,6 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	s.prepareExecution(ctx)
 
 	return ctx.Jump(s.stepUpdatePendingCounters)
@@ -157,6 +156,7 @@ func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) sma
 	s.objectSharedState = objectSharedState
 	s.isConstructor = isConstructor
 
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	return ctx.Jump(s.stepWaitObjectReady)
 }
 
