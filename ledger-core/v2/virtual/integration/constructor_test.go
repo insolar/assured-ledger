@@ -7,6 +7,7 @@ package small
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
@@ -194,6 +195,10 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 		server.SendMessage(ctx, msg)
 
-		<-testIsDone
+		select {
+		case <-time.After(10 * time.Second):
+			require.Failf(t, "", "timeout")
+		case <-testIsDone:
+		}
 	}
 }

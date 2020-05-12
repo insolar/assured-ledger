@@ -29,7 +29,7 @@ func Test_API_Create(t *testing.T) {
 		return nil
 	}
 
-	code, byteBuffer := server.CallAPICreateWallet()
+	code, byteBuffer := server.CallAPICreateWallet(ctx)
 	if !assert.Equal(t, 200, code) {
 		t.Log(string(byteBuffer))
 	} else {
