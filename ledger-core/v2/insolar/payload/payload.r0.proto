@@ -167,7 +167,7 @@ message VDelegatedRequestFinished {
     uint32 Polymorph = 16;
 
     CallTypeNew CallType = 20;
-    bytes CallFlags = 21;
+    uint32 CallFlags = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag.CallFlag", (gogoproto.nullable) = false];
     bytes Callee = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
 
     bytes ResultFlags = 23;

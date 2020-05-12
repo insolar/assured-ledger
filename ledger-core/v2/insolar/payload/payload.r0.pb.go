@@ -13,7 +13,6 @@ import (
 	github_com_insolar_assured_ledger_ledger_core_v2_virtual_callflag "github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	reflect "reflect"
 	strconv "strconv"
 	strings "strings"
@@ -28,7 +27,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 type CallTypeNew int32
 
@@ -140,7 +139,7 @@ func (m *VCallRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_VCallRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +196,7 @@ func (m *VCallResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_VCallResult.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +241,7 @@ func (m *VStateRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return xxx_messageInfo_VStateRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -294,7 +293,7 @@ func (m *VStateReport) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 		return xxx_messageInfo_VStateReport.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -335,7 +334,7 @@ func (m *VStateReport_ProvidedContentBody) XXX_Marshal(b []byte, deterministic b
 		return xxx_messageInfo_VStateReport_ProvidedContentBody.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -376,7 +375,7 @@ func (m *ObjectState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 		return xxx_messageInfo_ObjectState.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -416,7 +415,7 @@ func (m *VPendingDelegationRequest) XXX_Marshal(b []byte, deterministic bool) ([
 		return xxx_messageInfo_VPendingDelegationRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -436,17 +435,17 @@ func (m *VPendingDelegationRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_VPendingDelegationRequest proto.InternalMessageInfo
 
 type VDelegatedRequestFinished struct {
-	Polymorph          uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	CallType           CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
-	CallFlags          []byte                                                            `protobuf:"bytes,21,opt,name=CallFlags,proto3" json:"CallFlags,omitempty"`
-	Callee             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Callee"`
-	ResultFlags        []byte                                                            `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
-	CallOutgoing       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallOutgoing"`
-	CallIncoming       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallIncoming"`
-	DelegationSpec     []byte                                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec,omitempty"`
-	DelegatorSignature []byte                                                            `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature,omitempty"`
-	EntryHeadHash      []byte                                                            `protobuf:"bytes,28,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash,omitempty"`
-	ObjectBody         []byte                                                            `protobuf:"bytes,29,opt,name=ObjectBody,proto3" json:"ObjectBody,omitempty"`
+	Polymorph          uint32                                                                     `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	CallType           CallTypeNew                                                                `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
+	CallFlags          github_com_insolar_assured_ledger_ledger_core_v2_virtual_callflag.CallFlag `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/virtual/callflag.CallFlag" json:"CallFlags"`
+	Callee             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global          `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Callee"`
+	ResultFlags        []byte                                                                     `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
+	CallOutgoing       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local           `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallOutgoing"`
+	CallIncoming       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local           `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallIncoming"`
+	DelegationSpec     []byte                                                                     `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec,omitempty"`
+	DelegatorSignature []byte                                                                     `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature,omitempty"`
+	EntryHeadHash      []byte                                                                     `protobuf:"bytes,28,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash,omitempty"`
+	ObjectBody         []byte                                                                     `protobuf:"bytes,29,opt,name=ObjectBody,proto3" json:"ObjectBody,omitempty"`
 }
 
 func (m *VDelegatedRequestFinished) Reset()      { *m = VDelegatedRequestFinished{} }
@@ -462,7 +461,7 @@ func (m *VDelegatedRequestFinished) XXX_Marshal(b []byte, deterministic bool) ([
 		return xxx_messageInfo_VDelegatedRequestFinished.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -500,7 +499,7 @@ func (m *VStateUnavailable) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_VStateUnavailable.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -536,119 +535,118 @@ func init() {
 func init() { proto.RegisterFile("insolar/payload/payload.r0.proto", fileDescriptor_7337ffe8f992c543) }
 
 var fileDescriptor_7337ffe8f992c543 = []byte{
-	// 1780 bytes of a gzipped FileDescriptorProto
+	// 1774 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x5a, 0xcd, 0x72, 0xdb, 0xc8,
 	0x11, 0x26, 0x6c, 0x49, 0xb6, 0x5a, 0x3f, 0xa6, 0xc6, 0xb2, 0x05, 0xfd, 0xc1, 0x5c, 0xda, 0xde,
 	0xe5, 0x3a, 0x6b, 0xca, 0x71, 0x5c, 0xa9, 0xbd, 0x24, 0x65, 0x89, 0xd2, 0xae, 0x95, 0xc8, 0x36,
 	0x03, 0x72, 0x55, 0x3a, 0x06, 0x02, 0x5a, 0x14, 0x12, 0x70, 0x86, 0x1e, 0x0c, 0x64, 0xb1, 0x52,
-	0xa9, 0xca, 0x31, 0xa9, 0xfc, 0x56, 0x5e, 0x20, 0x87, 0x54, 0xaa, 0xf2, 0x28, 0x3e, 0xfa, 0xb8,
-	0xd9, 0xc3, 0x56, 0x2c, 0x5f, 0x72, 0xdc, 0x47, 0x48, 0x61, 0x06, 0x24, 0x41, 0x10, 0x94, 0xc5,
-	0x2c, 0xb8, 0x17, 0xe7, 0x24, 0xe0, 0xeb, 0x41, 0x7f, 0xd3, 0xd3, 0x3d, 0xdd, 0x3d, 0x43, 0x41,
-	0xc1, 0xa5, 0x3e, 0xf3, 0x2c, 0xbe, 0xd1, 0xb2, 0xda, 0x1e, 0xb3, 0x9c, 0xce, 0xdf, 0x32, 0x7f,
-	0x50, 0x6e, 0x71, 0x26, 0x18, 0xb9, 0x12, 0x21, 0x2b, 0xf7, 0x1b, 0xae, 0x38, 0x0e, 0x0e, 0xcb,
-	0x36, 0x6b, 0x6e, 0x34, 0x58, 0x83, 0x6d, 0x48, 0xf9, 0x61, 0x70, 0x24, 0xdf, 0xe4, 0x8b, 0x7c,
-	0x52, 0xdf, 0x15, 0x7f, 0xb7, 0x00, 0xb3, 0xfb, 0x15, 0xcb, 0xf3, 0x4c, 0x7c, 0x11, 0xa0, 0x2f,
-	0xc8, 0x1a, 0x4c, 0x57, 0x99, 0xd7, 0x6e, 0x32, 0xde, 0x3a, 0xd6, 0xf3, 0x05, 0xad, 0x34, 0x67,
-	0xf6, 0x00, 0xf2, 0x00, 0xae, 0x86, 0x83, 0xeb, 0xed, 0x16, 0xea, 0x8b, 0x05, 0xad, 0x34, 0xff,
-	0x70, 0xb1, 0xdc, 0x99, 0x4b, 0x47, 0xf0, 0x0c, 0x5f, 0x9a, 0xdd, 0x51, 0xa4, 0x05, 0xd3, 0xe1,
-	0xf3, 0x67, 0x9e, 0xd5, 0xf0, 0xf5, 0x1b, 0xa1, 0xbe, 0x2d, 0xf3, 0xd5, 0xd7, 0xb7, 0x72, 0x5f,
-	0x7d, 0x7d, 0xeb, 0x27, 0xb1, 0xa9, 0x76, 0x0c, 0xb4, 0x7c, 0x3f, 0xe0, 0xe8, 0xdc, 0xf7, 0xd0,
-	0x69, 0x20, 0xdf, 0x50, 0x7f, 0xee, 0xdb, 0x8c, 0xe3, 0xc6, 0xc9, 0xc3, 0x8d, 0x13, 0x97, 0x8b,
-	0xc0, 0xf2, 0x36, 0x6c, 0xcb, 0xf3, 0x8e, 0x3c, 0xab, 0x51, 0xee, 0xa8, 0x36, 0x7b, 0x24, 0xe4,
-	0x58, 0xcd, 0x71, 0xd3, 0x7f, 0x7e, 0xa4, 0xdf, 0x94, 0x84, 0x7b, 0x11, 0xe1, 0xf6, 0xc8, 0x84,
-	0xd1, 0xa8, 0x72, 0x35, 0xf0, 0x7c, 0x7c, 0x16, 0x34, 0x0f, 0x91, 0x9b, 0x5d, 0xed, 0xc4, 0x82,
-	0xa9, 0xf0, 0x19, 0xb9, 0xbe, 0x54, 0xd0, 0x4a, 0xb3, 0x5b, 0xbb, 0x11, 0xcf, 0xe6, 0xc8, 0x3c,
-	0x1c, 0x8f, 0x90, 0x23, 0xb5, 0xb1, 0xfc, 0xb9, 0xc7, 0x0e, 0x2d, 0xcf, 0x8c, 0x14, 0x77, 0x29,
-	0x50, 0xd7, 0xc7, 0x43, 0x81, 0xe4, 0x57, 0x70, 0x3d, 0x7c, 0xaa, 0xb9, 0x02, 0xb7, 0xd1, 0xf6,
-	0x2c, 0x6e, 0x09, 0x97, 0x51, 0x7d, 0x39, 0x6b, 0xbe, 0x34, 0x16, 0xf2, 0x21, 0xcc, 0x77, 0xe0,
-	0xa7, 0x28, 0x8e, 0x99, 0xa3, 0xaf, 0x14, 0xb4, 0xd2, 0xb4, 0x99, 0x40, 0x49, 0x11, 0x66, 0x25,
-	0x12, 0x46, 0x29, 0xb5, 0x51, 0x5f, 0x95, 0x91, 0xd9, 0x87, 0x11, 0x17, 0x40, 0x45, 0xb2, 0xe5,
-	0x33, 0xaa, 0xaf, 0x65, 0x3d, 0xff, 0x98, 0xf2, 0xd0, 0x2d, 0x26, 0x63, 0xa2, 0x7e, 0xa0, 0xaf,
-	0x67, 0xee, 0x16, 0xa5, 0xb8, 0xe3, 0xf9, 0xfa, 0x81, 0x6e, 0x8c, 0xc5, 0xf3, 0xf5, 0x03, 0xc2,
-	0x60, 0x6e, 0xe7, 0xb4, 0x85, 0xd4, 0xc7, 0x0a, 0x52, 0x81, 0x5c, 0xbf, 0x95, 0x35, 0x53, 0xbf,
-	0x7e, 0xf2, 0x02, 0xe6, 0x4d, 0xf4, 0x59, 0xc0, 0xed, 0x0e, 0x63, 0x21, 0x6b, 0xc6, 0x04, 0x01,
-	0x29, 0xc0, 0x4c, 0x55, 0x25, 0xa8, 0x27, 0x96, 0x7f, 0xac, 0x7f, 0x10, 0xf2, 0x99, 0x71, 0x28,
-	0x0c, 0xc1, 0x6d, 0xf4, 0xb0, 0x21, 0x03, 0xb2, 0xd6, 0x42, 0x5b, 0x2f, 0xca, 0x41, 0x09, 0x94,
-	0x94, 0x81, 0x44, 0x08, 0xe3, 0x35, 0xb7, 0x41, 0x2d, 0x11, 0x70, 0xd4, 0x6f, 0xcb, 0xb1, 0x29,
-	0x12, 0xf2, 0x09, 0x2c, 0x54, 0x39, 0x73, 0x02, 0x1b, 0x63, 0xc3, 0xef, 0xc8, 0xe1, 0x83, 0x82,
-	0x50, 0xbb, 0x89, 0x0d, 0xd7, 0x17, 0xdc, 0x8a, 0x0d, 0xbf, 0xab, 0xb4, 0x0f, 0x4a, 0xc8, 0xa7,
-	0xb0, 0xd4, 0x45, 0x13, 0xd3, 0xff, 0x50, 0x7e, 0x34, 0x4c, 0x4c, 0x1e, 0xc3, 0x6a, 0x52, 0x14,
-	0x37, 0xe8, 0x23, 0xf9, 0xf5, 0x79, 0x43, 0xc8, 0x3d, 0xc8, 0xc7, 0x4a, 0x86, 0x4a, 0xed, 0xa5,
-	0x82, 0x56, 0x9a, 0x34, 0x07, 0xf0, 0x30, 0xbb, 0xfc, 0x94, 0xb2, 0x97, 0x54, 0x25, 0x9b, 0x5d,
-	0x6a, 0xb3, 0xa6, 0x4b, 0x1b, 0xfa, 0xc7, 0x99, 0x67, 0x97, 0x14, 0x16, 0x72, 0x07, 0xe6, 0x76,
-	0xa8, 0xe0, 0xed, 0x27, 0x18, 0xb9, 0xff, 0x9e, 0x34, 0xae, 0x1f, 0x24, 0x9e, 0xca, 0x2d, 0xcf,
-	0x03, 0xd1, 0x60, 0xe1, 0xdc, 0xbe, 0x27, 0xe7, 0xf6, 0x24, 0x9a, 0xdb, 0xe3, 0x6f, 0x31, 0xb7,
-	0x3d, 0x66, 0x5b, 0x9e, 0xd9, 0xa7, 0x3d, 0x2c, 0x4f, 0xf5, 0x83, 0x9d, 0xd3, 0x96, 0xcb, 0xdb,
-	0xfa, 0x27, 0x92, 0x29, 0xe3, 0xf2, 0xd4, 0xd1, 0x4e, 0x4a, 0x70, 0xad, 0x86, 0x76, 0xc0, 0x5d,
-	0xd1, 0xae, 0x30, 0x2a, 0xf0, 0x54, 0xe8, 0xf7, 0xa5, 0xfd, 0x49, 0x38, 0x2c, 0xfa, 0xf5, 0x83,
-	0xce, 0x98, 0xb2, 0x1c, 0xd3, 0x03, 0x42, 0xe9, 0x26, 0x6f, 0x04, 0x4d, 0xa4, 0xc2, 0xd7, 0x37,
-	0x94, 0xb4, 0x0b, 0x84, 0x2c, 0x3b, 0xa7, 0x02, 0xa9, 0xef, 0x32, 0x1a, 0x2e, 0x27, 0xfa, 0xfa,
-	0x03, 0xc5, 0x92, 0x80, 0x89, 0x01, 0xd0, 0x85, 0x7c, 0xfd, 0xfb, 0x72, 0x50, 0x0c, 0x29, 0xfe,
-	0x79, 0x06, 0x66, 0xa2, 0x5e, 0xc4, 0x0f, 0xbc, 0xff, 0xb7, 0x22, 0xef, 0x5f, 0x2b, 0x52, 0x80,
-	0x19, 0xe5, 0x7b, 0xe5, 0xa3, 0x65, 0x95, 0xac, 0x63, 0xd0, 0xc0, 0x5e, 0x5d, 0x19, 0xeb, 0x5e,
-	0x8d, 0xd8, 0xba, 0x59, 0x6b, 0x75, 0x1c, 0x6c, 0xdd, 0x6c, 0x95, 0x28, 0x55, 0x6b, 0x17, 0x29,
-	0x55, 0xeb, 0x23, 0x94, 0x2a, 0x63, 0x68, 0xa9, 0x3a, 0x05, 0x12, 0x9f, 0x89, 0x5a, 0xf0, 0xa8,
-	0x1b, 0xc8, 0xce, 0xda, 0x14, 0x8e, 0xf4, 0x22, 0x59, 0x18, 0xad, 0x48, 0x7e, 0xf0, 0xbf, 0x14,
-	0xc9, 0xe2, 0xb7, 0x2a, 0x92, 0xb7, 0xdf, 0x5d, 0x24, 0x07, 0x6a, 0xcf, 0x9d, 0xb4, 0xda, 0x93,
-	0x92, 0xa3, 0xef, 0xa6, 0xe7, 0xe8, 0x12, 0x5c, 0x33, 0x51, 0x04, 0x9c, 0xf6, 0x72, 0xb1, 0x2a,
-	0xf4, 0x49, 0x38, 0x2d, 0x23, 0x7f, 0x74, 0x91, 0x8c, 0x5c, 0x1a, 0xc8, 0xc8, 0x5f, 0x4d, 0xc0,
-	0xdc, 0x7e, 0x4d, 0x58, 0x02, 0x2f, 0x76, 0x3c, 0xfc, 0x39, 0x4c, 0xc8, 0x5c, 0xb7, 0x38, 0x86,
-	0xba, 0x36, 0xd1, 0x97, 0xe7, 0x50, 0x26, 0xf0, 0xb1, 0x24, 0xa1, 0x3d, 0xc8, 0x47, 0xd6, 0xa2,
-	0x23, 0x17, 0x9f, 0x0a, 0x99, 0xbc, 0x27, 0xb7, 0x0a, 0x11, 0x99, 0x1e, 0x5f, 0x92, 0x68, 0x88,
-	0x4c, 0x4f, 0xe6, 0xc0, 0x97, 0xe4, 0x11, 0xdc, 0x48, 0x62, 0x7b, 0x6e, 0xd3, 0x15, 0x2a, 0x4f,
-	0x9b, 0xe9, 0x42, 0xf2, 0x00, 0xae, 0xd7, 0x82, 0x56, 0x8b, 0x71, 0x81, 0x4e, 0xcc, 0x43, 0x32,
-	0xf1, 0x9a, 0x69, 0xa2, 0x94, 0xd4, 0xb0, 0x3c, 0x42, 0x6a, 0x58, 0x19, 0xad, 0x8b, 0x5d, 0x1d,
-	0xb6, 0x41, 0xd3, 0x3a, 0xc3, 0xb5, 0xf4, 0xce, 0xb0, 0xf8, 0xf7, 0x3c, 0xcc, 0x76, 0x82, 0x2b,
-	0x34, 0xe7, 0x7d, 0x88, 0xad, 0x41, 0x2f, 0x2d, 0x8d, 0xe0, 0x25, 0x7d, 0xa8, 0x97, 0x1e, 0xc1,
-	0x8d, 0xdd, 0x66, 0x33, 0x10, 0xd6, 0xa1, 0x87, 0x55, 0xa4, 0x8e, 0x4b, 0x1b, 0x15, 0x16, 0x50,
-	0x21, 0x83, 0x60, 0xd2, 0x4c, 0x17, 0x92, 0xbf, 0x6a, 0xb0, 0x9e, 0x94, 0xec, 0x58, 0xdc, 0x73,
-	0xd1, 0x17, 0x72, 0x79, 0xa2, 0xf2, 0x9a, 0xed, 0x62, 0x9f, 0x4f, 0x19, 0x86, 0xfe, 0xd3, 0x14,
-	0x43, 0x56, 0xa5, 0x21, 0x69, 0x22, 0xf2, 0x27, 0x0d, 0x56, 0x9f, 0x9e, 0x63, 0xc4, 0xda, 0x18,
-	0x8c, 0x38, 0x8f, 0x30, 0x2c, 0x3b, 0x55, 0x8e, 0xaa, 0x38, 0x20, 0x47, 0xe7, 0x67, 0x01, 0x06,
-	0xa8, 0xcc, 0x58, 0x97, 0x66, 0x0c, 0x13, 0x93, 0x3f, 0x68, 0xb0, 0xd2, 0x27, 0xeb, 0xb7, 0xc4,
-	0x18, 0x83, 0x25, 0xe7, 0xf0, 0x91, 0x1f, 0xc2, 0xcd, 0x2a, 0x77, 0x99, 0x2c, 0x43, 0x96, 0xe7,
-	0xc5, 0xec, 0xb8, 0x25, 0xed, 0x18, 0x22, 0x25, 0xbf, 0x86, 0xc5, 0x3d, 0x4b, 0xa0, 0x2f, 0xf6,
-	0x2d, 0xcf, 0x75, 0x2c, 0x81, 0x8e, 0xdc, 0xe7, 0xd9, 0x9f, 0xf6, 0x53, 0x69, 0xc2, 0x33, 0x67,
-	0x02, 0xaf, 0x30, 0x27, 0xea, 0x13, 0x32, 0x3d, 0x73, 0xa6, 0xb0, 0x90, 0x00, 0xf2, 0x0a, 0xde,
-	0x76, 0xb9, 0x68, 0x2b, 0xbb, 0x8b, 0x59, 0x33, 0x0f, 0x50, 0x10, 0x1f, 0xae, 0xc5, 0x30, 0x69,
-	0xef, 0xed, 0xac, 0x59, 0x93, 0x0c, 0xa4, 0x06, 0xd7, 0xaa, 0x9c, 0x9d, 0xb8, 0x4e, 0xaf, 0x52,
-	0x86, 0x5d, 0xce, 0xcc, 0xc3, 0x8f, 0xbb, 0x47, 0xb1, 0x78, 0x86, 0x2f, 0x27, 0x06, 0x6f, 0x31,
-	0xa7, 0x6d, 0x26, 0x35, 0xac, 0xfc, 0x7e, 0x02, 0xae, 0xa7, 0x0c, 0x24, 0x4f, 0x86, 0x04, 0x95,
-	0x2e, 0x19, 0x7b, 0x87, 0xbf, 0xe7, 0x87, 0xbf, 0x40, 0x5b, 0x28, 0xda, 0xf4, 0xf8, 0x78, 0x9c,
-	0xe2, 0xa2, 0xe5, 0x73, 0xb4, 0x0c, 0xae, 0xf6, 0x67, 0xe9, 0x11, 0xb6, 0x72, 0x8e, 0x92, 0xd4,
-	0x60, 0xf9, 0xf1, 0xa0, 0xd7, 0x56, 0xcf, 0xd1, 0x31, 0xe0, 0x80, 0x26, 0xcc, 0x46, 0x89, 0x48,
-	0xee, 0x3e, 0x7d, 0xad, 0x70, 0x39, 0x5b, 0x97, 0xf7, 0xa9, 0x27, 0x2f, 0x60, 0xbe, 0x9b, 0xbc,
-	0x15, 0xe1, 0x7a, 0xd6, 0x84, 0x09, 0x82, 0xe2, 0xdf, 0x2e, 0xc3, 0x4c, 0x6c, 0x09, 0xc8, 0x11,
-	0x4c, 0x9b, 0x9d, 0x6f, 0xa2, 0x83, 0x68, 0x76, 0x27, 0x94, 0x9e, 0xea, 0xb0, 0x19, 0xa8, 0x5a,
-	0x1c, 0xa3, 0x12, 0x9a, 0x6d, 0x33, 0xa0, 0x14, 0x93, 0x06, 0x4c, 0x57, 0x39, 0x13, 0x4c, 0xb4,
-	0x5b, 0x9d, 0x4a, 0x9b, 0x21, 0x4b, 0x4f, 0x37, 0x59, 0x84, 0x49, 0x15, 0xe4, 0xaa, 0x6f, 0x53,
-	0x2f, 0xe1, 0x01, 0xa5, 0xca, 0xf1, 0xc4, 0x65, 0x81, 0xaf, 0xa4, 0xea, 0xc0, 0xd9, 0x0f, 0x86,
-	0x87, 0xd2, 0x6d, 0xb4, 0x6c, 0xe1, 0x9e, 0x84, 0x41, 0x2b, 0xeb, 0xd7, 0x55, 0x33, 0x0e, 0x15,
-	0xff, 0x75, 0x09, 0x96, 0xf7, 0xa3, 0x3a, 0xd8, 0x6b, 0x63, 0x2e, 0x76, 0x60, 0xb0, 0x60, 0x4a,
-	0x39, 0x37, 0x6a, 0xeb, 0xb2, 0x5c, 0x65, 0xa5, 0x98, 0xd8, 0x70, 0x25, 0x9a, 0x4b, 0xf6, 0x6d,
-	0x5d, 0x47, 0x73, 0x4a, 0x5f, 0x77, 0x73, 0x84, 0xbe, 0x6e, 0x69, 0x58, 0x5f, 0x57, 0xfc, 0xed,
-	0x24, 0x2c, 0xef, 0x47, 0x38, 0x3a, 0x9d, 0xf6, 0xd9, 0xa5, 0xae, 0x7f, 0x8c, 0x4e, 0xe6, 0x17,
-	0x64, 0x6b, 0xc9, 0x0b, 0xb2, 0xd9, 0xf8, 0x65, 0x56, 0xaf, 0x3d, 0xbe, 0xf9, 0x1d, 0xdd, 0xff,
-	0x2c, 0xbd, 0xfb, 0xfe, 0x47, 0xff, 0x4e, 0xef, 0x7f, 0x96, 0xc7, 0x7a, 0xff, 0x33, 0x18, 0x44,
-	0x2b, 0x23, 0x04, 0xd1, 0xea, 0xd0, 0xc3, 0xc1, 0xc0, 0x4d, 0xc4, 0x5a, 0xda, 0x4d, 0x84, 0x01,
-	0xa0, 0x76, 0x4c, 0x58, 0x6c, 0xa3, 0x7b, 0xa5, 0x18, 0x52, 0xfc, 0xe3, 0x25, 0x58, 0x50, 0xc5,
-	0xfc, 0x0b, 0x6a, 0x9d, 0x58, 0xae, 0x17, 0xe6, 0xe8, 0x77, 0x84, 0xe0, 0x8f, 0x60, 0x2a, 0xfa,
-	0x35, 0x4e, 0x05, 0xe0, 0xdd, 0x44, 0x5b, 0x10, 0xd3, 0x54, 0x56, 0x03, 0xc3, 0x38, 0x34, 0xa3,
-	0x8f, 0x08, 0xc2, 0xd5, 0x3d, 0xf7, 0x08, 0x3d, 0x97, 0x8e, 0xe1, 0x48, 0xd6, 0x55, 0x5d, 0x7c,
-	0x04, 0xd0, 0x23, 0x27, 0x33, 0x70, 0xe5, 0x0b, 0xfa, 0x4b, 0xca, 0x5e, 0xd2, 0x7c, 0x2e, 0x7c,
-	0x79, 0xea, 0xfa, 0xbe, 0x4b, 0x1b, 0x79, 0x8d, 0xcc, 0xc2, 0xd5, 0x5d, 0x2a, 0xf3, 0x1e, 0xe6,
-	0x2f, 0xdd, 0xfb, 0x87, 0x06, 0x33, 0xb1, 0x6d, 0x44, 0x16, 0x21, 0x5f, 0xa9, 0xef, 0xd2, 0x43,
-	0x16, 0x50, 0x67, 0xb3, 0xba, 0x1b, 0x8a, 0xf2, 0x39, 0x72, 0x03, 0x16, 0x2a, 0xf5, 0xe7, 0x81,
-	0xe8, 0x83, 0xa5, 0xaa, 0x4a, 0x5d, 0xfd, 0xb4, 0x99, 0xbf, 0x44, 0x16, 0x60, 0xae, 0x52, 0xaf,
-	0x30, 0xea, 0x0b, 0x1e, 0xd8, 0x82, 0xf1, 0xfc, 0x65, 0x92, 0x87, 0xd9, 0x4a, 0xfd, 0x19, 0x13,
-	0xee, 0x91, 0xec, 0xad, 0xf3, 0x13, 0x64, 0x1e, 0xa0, 0x52, 0xaf, 0x6d, 0x7e, 0xbe, 0x29, 0xdf,
-	0x27, 0x09, 0x81, 0xf9, 0x4a, 0xbd, 0x6a, 0xf1, 0x70, 0xe7, 0x78, 0x12, 0x9b, 0x52, 0x58, 0xcd,
-	0x3e, 0x46, 0x27, 0xf0, 0x50, 0x62, 0x57, 0xb6, 0x3e, 0x7d, 0xf5, 0xc6, 0xc8, 0xbd, 0x7e, 0x63,
-	0xe4, 0xbe, 0x7c, 0x63, 0xe4, 0xbe, 0x79, 0x63, 0x68, 0xbf, 0x39, 0x33, 0xb4, 0x7f, 0x9e, 0x19,
-	0xda, 0xab, 0x33, 0x43, 0x7b, 0x7d, 0x66, 0x68, 0xff, 0x3e, 0x33, 0xb4, 0xff, 0x9c, 0x19, 0xb9,
-	0x6f, 0xce, 0x0c, 0xed, 0x2f, 0x6f, 0x8d, 0xdc, 0xeb, 0xb7, 0x46, 0xee, 0xcb, 0xb7, 0x46, 0xee,
-	0x70, 0x4a, 0xfe, 0x8b, 0xc0, 0x0f, 0xfe, 0x1b, 0x00, 0x00, 0xff, 0xff, 0xc9, 0x6e, 0xd9, 0xfb,
-	0x7e, 0x20, 0x00, 0x00,
+	0xa9, 0xca, 0x35, 0x95, 0xdf, 0xca, 0x0b, 0xe4, 0x90, 0x4a, 0x55, 0x1e, 0xc5, 0x47, 0x1f, 0x37,
+	0x5b, 0xa9, 0xad, 0x58, 0xbe, 0xe4, 0xb8, 0x8f, 0x90, 0xc2, 0x0c, 0x48, 0x82, 0x20, 0x28, 0x8b,
+	0x59, 0x70, 0x0f, 0xd9, 0x3d, 0x09, 0xf8, 0xba, 0xd1, 0xdf, 0xf4, 0x74, 0xa3, 0xbb, 0x07, 0x14,
+	0x14, 0x5c, 0xea, 0x33, 0xcf, 0xe2, 0x1b, 0x2d, 0xab, 0xed, 0x31, 0xcb, 0xe9, 0xfc, 0x2d, 0xf3,
+	0x07, 0xe5, 0x16, 0x67, 0x82, 0x91, 0x2b, 0x11, 0xb2, 0x72, 0xbf, 0xe1, 0x8a, 0xe3, 0xe0, 0xb0,
+	0x6c, 0xb3, 0xe6, 0x46, 0x83, 0x35, 0xd8, 0x86, 0x94, 0x1f, 0x06, 0x47, 0xf2, 0x4e, 0xde, 0xc8,
+	0x2b, 0xf5, 0x5c, 0xf1, 0xb7, 0x0b, 0x30, 0xbb, 0x5f, 0xb1, 0x3c, 0xcf, 0xc4, 0x17, 0x01, 0xfa,
+	0x82, 0xac, 0xc1, 0x74, 0x95, 0x79, 0xed, 0x26, 0xe3, 0xad, 0x63, 0x3d, 0x5f, 0xd0, 0x4a, 0x73,
+	0x66, 0x0f, 0x20, 0x0f, 0xe0, 0x6a, 0xa8, 0x5c, 0x6f, 0xb7, 0x50, 0x5f, 0x2c, 0x68, 0xa5, 0xf9,
+	0x87, 0x8b, 0xe5, 0xce, 0x5a, 0x3a, 0x82, 0x67, 0xf8, 0xd2, 0xec, 0x6a, 0x91, 0x16, 0x4c, 0x87,
+	0xd7, 0x9f, 0x78, 0x56, 0xc3, 0xd7, 0x6f, 0x84, 0xf6, 0xb6, 0xcc, 0x57, 0x5f, 0xde, 0xca, 0x7d,
+	0xf1, 0xe5, 0xad, 0x9f, 0xc4, 0x96, 0xda, 0x71, 0xd0, 0xf2, 0xfd, 0x80, 0xa3, 0x73, 0xdf, 0x43,
+	0xa7, 0x81, 0x7c, 0x43, 0xfd, 0xb9, 0x6f, 0x33, 0x8e, 0x1b, 0x27, 0x0f, 0x37, 0x4e, 0x5c, 0x2e,
+	0x02, 0xcb, 0xdb, 0xb0, 0x2d, 0xcf, 0x3b, 0xf2, 0xac, 0x46, 0xb9, 0x63, 0xda, 0xec, 0x91, 0x90,
+	0x63, 0xb5, 0xc6, 0x4d, 0xff, 0xf9, 0x91, 0x7e, 0x53, 0x12, 0xee, 0x45, 0x84, 0xdb, 0x23, 0x13,
+	0x46, 0x5a, 0xe5, 0x6a, 0xe0, 0xf9, 0xf8, 0x2c, 0x68, 0x1e, 0x22, 0x37, 0xbb, 0xd6, 0x89, 0x05,
+	0x53, 0xe1, 0x35, 0x72, 0x7d, 0xa9, 0xa0, 0x95, 0x66, 0xb7, 0x76, 0x23, 0x9e, 0xcd, 0x91, 0x79,
+	0x38, 0x1e, 0x21, 0x47, 0x6a, 0x63, 0xf9, 0x53, 0x8f, 0x1d, 0x5a, 0x9e, 0x19, 0x19, 0xee, 0x52,
+	0xa0, 0xae, 0x8f, 0x87, 0x02, 0xc9, 0xaf, 0xe0, 0x7a, 0x78, 0x55, 0x73, 0x05, 0x6e, 0xa3, 0xed,
+	0x59, 0xdc, 0x12, 0x2e, 0xa3, 0xfa, 0x72, 0xd6, 0x7c, 0x69, 0x2c, 0xe4, 0x7d, 0x98, 0xef, 0xc0,
+	0x4f, 0x51, 0x1c, 0x33, 0x47, 0x5f, 0x29, 0x68, 0xa5, 0x69, 0x33, 0x81, 0x92, 0x22, 0xcc, 0x4a,
+	0x24, 0xcc, 0x52, 0x6a, 0xa3, 0xbe, 0x2a, 0x33, 0xb3, 0x0f, 0x23, 0x2e, 0x80, 0xca, 0x64, 0xcb,
+	0x67, 0x54, 0x5f, 0xcb, 0x7a, 0xfd, 0x31, 0xe3, 0x61, 0x58, 0x4c, 0xc6, 0x44, 0xfd, 0x40, 0x5f,
+	0xcf, 0x3c, 0x2c, 0xca, 0x70, 0x27, 0xf2, 0xf5, 0x03, 0xdd, 0x18, 0x4b, 0xe4, 0xeb, 0x07, 0x84,
+	0xc1, 0xdc, 0xce, 0x69, 0x0b, 0xa9, 0x8f, 0x15, 0xa4, 0x02, 0xb9, 0x7e, 0x2b, 0x6b, 0xa6, 0x7e,
+	0xfb, 0xe4, 0x05, 0xcc, 0x9b, 0xe8, 0xb3, 0x80, 0xdb, 0x1d, 0xc6, 0x42, 0xd6, 0x8c, 0x09, 0x02,
+	0x52, 0x80, 0x99, 0xaa, 0x2a, 0x50, 0x4f, 0x2c, 0xff, 0x58, 0x7f, 0x2f, 0xe4, 0x33, 0xe3, 0x50,
+	0x98, 0x82, 0xdb, 0xe8, 0x61, 0x43, 0x26, 0x64, 0xad, 0x85, 0xb6, 0x5e, 0x94, 0x4a, 0x09, 0x94,
+	0x94, 0x81, 0x44, 0x08, 0xe3, 0x35, 0xb7, 0x41, 0x2d, 0x11, 0x70, 0xd4, 0x6f, 0x4b, 0xdd, 0x14,
+	0x09, 0xf9, 0x08, 0x16, 0xaa, 0x9c, 0x39, 0x81, 0x8d, 0x31, 0xf5, 0x3b, 0x52, 0x7d, 0x50, 0x10,
+	0x5a, 0x37, 0xb1, 0xe1, 0xfa, 0x82, 0x5b, 0x31, 0xf5, 0xbb, 0xca, 0xfa, 0xa0, 0x84, 0x7c, 0x0c,
+	0x4b, 0x5d, 0x34, 0xb1, 0xfc, 0xf7, 0xe5, 0x43, 0xc3, 0xc4, 0xe4, 0x31, 0xac, 0x26, 0x45, 0x71,
+	0x87, 0x3e, 0x90, 0x4f, 0x9f, 0xa7, 0x42, 0xee, 0x41, 0x3e, 0xd6, 0x32, 0x54, 0x69, 0x2f, 0x15,
+	0xb4, 0xd2, 0xa4, 0x39, 0x80, 0x87, 0xd5, 0xe5, 0xa7, 0x94, 0xbd, 0xa4, 0xaa, 0xd8, 0xec, 0x52,
+	0x9b, 0x35, 0x5d, 0xda, 0xd0, 0x3f, 0xcc, 0xbc, 0xba, 0xa4, 0xb0, 0x90, 0x3b, 0x30, 0xb7, 0x43,
+	0x05, 0x6f, 0x3f, 0xc1, 0x28, 0xfc, 0xf7, 0xa4, 0x73, 0xfd, 0x20, 0xf1, 0x54, 0x6d, 0x79, 0x1e,
+	0x88, 0x06, 0x0b, 0xd7, 0xf6, 0x3d, 0xb9, 0xb6, 0x27, 0xd1, 0xda, 0x1e, 0x7f, 0x8d, 0xb5, 0xed,
+	0x31, 0xdb, 0xf2, 0xcc, 0x3e, 0xeb, 0x61, 0x7b, 0xaa, 0x1f, 0xec, 0x9c, 0xb6, 0x5c, 0xde, 0xd6,
+	0x3f, 0x92, 0x4c, 0x19, 0xb7, 0xa7, 0x8e, 0x75, 0x52, 0x82, 0x6b, 0x35, 0xb4, 0x03, 0xee, 0x8a,
+	0x76, 0x85, 0x51, 0x81, 0xa7, 0x42, 0xbf, 0x2f, 0xfd, 0x4f, 0xc2, 0x61, 0xd3, 0xaf, 0x1f, 0x74,
+	0x74, 0xca, 0x52, 0xa7, 0x07, 0x84, 0xd2, 0x4d, 0xde, 0x08, 0x9a, 0x48, 0x85, 0xaf, 0x6f, 0x28,
+	0x69, 0x17, 0x08, 0x59, 0x76, 0x4e, 0x05, 0x52, 0xdf, 0x65, 0x34, 0xdc, 0x4e, 0xf4, 0xf5, 0x07,
+	0x8a, 0x25, 0x01, 0x13, 0x03, 0xa0, 0x0b, 0xf9, 0xfa, 0xf7, 0xa5, 0x52, 0x0c, 0x29, 0xfe, 0x69,
+	0x06, 0x66, 0xa2, 0x59, 0xc4, 0x0f, 0xbc, 0xef, 0x46, 0x91, 0x6f, 0xdf, 0x28, 0x52, 0x80, 0x19,
+	0x15, 0x7b, 0x15, 0xa3, 0x65, 0x55, 0xac, 0x63, 0xd0, 0xc0, 0xbb, 0xba, 0x32, 0xd6, 0x77, 0x35,
+	0x62, 0xeb, 0x56, 0xad, 0xd5, 0x71, 0xb0, 0x75, 0xab, 0x55, 0xa2, 0x55, 0xad, 0x5d, 0xa4, 0x55,
+	0xad, 0x8f, 0xd0, 0xaa, 0x8c, 0xa1, 0xad, 0xea, 0x14, 0x48, 0x7c, 0x25, 0x6a, 0xc3, 0xa3, 0x69,
+	0x20, 0x3b, 0x6f, 0x53, 0x38, 0xd2, 0x9b, 0x64, 0x61, 0xb4, 0x26, 0xf9, 0xde, 0xff, 0xd2, 0x24,
+	0x8b, 0x5f, 0xab, 0x49, 0xde, 0x7e, 0x77, 0x93, 0x1c, 0xe8, 0x3d, 0x77, 0xd2, 0x7a, 0x4f, 0x4a,
+	0x8d, 0xbe, 0x9b, 0x5e, 0xa3, 0x4b, 0x70, 0xcd, 0x44, 0x11, 0x70, 0xda, 0xab, 0xc5, 0xaa, 0xd1,
+	0x27, 0xe1, 0xb4, 0x8a, 0xfc, 0xc1, 0x45, 0x2a, 0x72, 0x69, 0xa0, 0x22, 0x7f, 0x31, 0x01, 0x73,
+	0xfb, 0x35, 0x61, 0x09, 0xbc, 0xd8, 0xf1, 0xf0, 0xe7, 0x30, 0x21, 0x6b, 0xdd, 0xe2, 0x18, 0xfa,
+	0xda, 0x44, 0x5f, 0x9d, 0x43, 0x59, 0xc0, 0xc7, 0x52, 0x84, 0xf6, 0x20, 0x1f, 0x79, 0x8b, 0x8e,
+	0xdc, 0x7c, 0x2a, 0x64, 0xf1, 0x9e, 0xdc, 0x2a, 0x44, 0x64, 0x7a, 0x7c, 0x4b, 0x22, 0x15, 0x59,
+	0x9e, 0xcc, 0x81, 0x27, 0xc9, 0x23, 0xb8, 0x91, 0xc4, 0xf6, 0xdc, 0xa6, 0x2b, 0x54, 0x9d, 0x36,
+	0xd3, 0x85, 0xe4, 0x01, 0x5c, 0xaf, 0x05, 0xad, 0x16, 0xe3, 0x02, 0x9d, 0x58, 0x84, 0x64, 0xe1,
+	0x35, 0xd3, 0x44, 0x29, 0xa5, 0x61, 0x79, 0x84, 0xd2, 0xb0, 0x32, 0xda, 0x14, 0xbb, 0x3a, 0xec,
+	0x05, 0x4d, 0x9b, 0x0c, 0xd7, 0xd2, 0x27, 0xc3, 0xe2, 0xdf, 0xf2, 0x30, 0xdb, 0x49, 0xae, 0xd0,
+	0x9d, 0x6f, 0x43, 0x6e, 0x0d, 0x46, 0x69, 0x69, 0x84, 0x28, 0xe9, 0x43, 0xa3, 0xf4, 0x08, 0x6e,
+	0xec, 0x36, 0x9b, 0x81, 0xb0, 0x0e, 0x3d, 0xac, 0x22, 0x75, 0x5c, 0xda, 0xa8, 0xb0, 0x80, 0x0a,
+	0x99, 0x04, 0x93, 0x66, 0xba, 0x90, 0xfc, 0x45, 0x83, 0xf5, 0xa4, 0x64, 0xc7, 0xe2, 0x9e, 0x8b,
+	0xbe, 0x90, 0xdb, 0x13, 0xb5, 0xd7, 0x6c, 0x37, 0xfb, 0x7c, 0xca, 0x30, 0xf5, 0x9f, 0xa6, 0x38,
+	0xb2, 0x2a, 0x1d, 0x49, 0x13, 0x91, 0x3f, 0x6a, 0xb0, 0xfa, 0xf4, 0x1c, 0x27, 0xd6, 0xc6, 0xe0,
+	0xc4, 0x79, 0x84, 0x61, 0xdb, 0xa9, 0x72, 0x54, 0xcd, 0x01, 0x39, 0x3a, 0x3f, 0x0b, 0x30, 0x40,
+	0xe5, 0xc6, 0xba, 0x74, 0x63, 0x98, 0x98, 0xfc, 0x5e, 0x83, 0x95, 0x3e, 0x59, 0xbf, 0x27, 0xc6,
+	0x18, 0x3c, 0x39, 0x87, 0x8f, 0xfc, 0x10, 0x6e, 0x56, 0xb9, 0xcb, 0x64, 0x1b, 0xb2, 0x3c, 0x2f,
+	0xe6, 0xc7, 0x2d, 0xe9, 0xc7, 0x10, 0x29, 0xf9, 0x35, 0x2c, 0xee, 0x59, 0x02, 0x7d, 0xb1, 0x6f,
+	0x79, 0xae, 0x63, 0x09, 0x74, 0xe4, 0x7b, 0x9e, 0xfd, 0x69, 0x3f, 0x95, 0x26, 0x3c, 0x73, 0x26,
+	0xf0, 0x0a, 0x73, 0xa2, 0x39, 0x21, 0xd3, 0x33, 0x67, 0x0a, 0x0b, 0x09, 0x20, 0xaf, 0xe0, 0x6d,
+	0x97, 0x8b, 0xb6, 0xf2, 0xbb, 0x98, 0x35, 0xf3, 0x00, 0x05, 0xf1, 0xe1, 0x5a, 0x0c, 0x93, 0xfe,
+	0xde, 0xce, 0x9a, 0x35, 0xc9, 0x40, 0x6a, 0x70, 0xad, 0xca, 0xd9, 0x89, 0xeb, 0xf4, 0x3a, 0x65,
+	0x38, 0xe5, 0xcc, 0x3c, 0xfc, 0xb0, 0x7b, 0x14, 0x8b, 0x57, 0xf8, 0x72, 0x42, 0x79, 0x8b, 0x39,
+	0x6d, 0x33, 0x69, 0x61, 0xe5, 0x77, 0x13, 0x70, 0x3d, 0x45, 0x91, 0x3c, 0x19, 0x92, 0x54, 0xba,
+	0x64, 0xec, 0x1d, 0xfe, 0x9e, 0x1f, 0xfe, 0x02, 0x6d, 0xa1, 0x68, 0xd3, 0xf3, 0xe3, 0x71, 0x4a,
+	0x88, 0x96, 0xcf, 0xb1, 0x32, 0xb8, 0xdb, 0x9f, 0xa4, 0x67, 0xd8, 0xca, 0x39, 0x46, 0x52, 0x93,
+	0xe5, 0xc7, 0x83, 0x51, 0x5b, 0x3d, 0xc7, 0xc6, 0x40, 0x00, 0x9a, 0x30, 0x1b, 0x15, 0x22, 0xf9,
+	0xf6, 0xe9, 0x6b, 0x85, 0xcb, 0xd9, 0x86, 0xbc, 0xcf, 0x3c, 0x79, 0x01, 0xf3, 0xdd, 0xe2, 0xad,
+	0x08, 0xd7, 0xb3, 0x26, 0x4c, 0x10, 0x14, 0xff, 0x7a, 0x19, 0x66, 0x62, 0x5b, 0x40, 0x8e, 0x60,
+	0xda, 0xec, 0x3c, 0x13, 0x1d, 0x44, 0xb3, 0x3b, 0xa1, 0xf4, 0x4c, 0x87, 0xc3, 0x40, 0xd5, 0xe2,
+	0x18, 0xb5, 0xd0, 0x6c, 0x87, 0x01, 0x65, 0x98, 0x34, 0x60, 0xba, 0xca, 0x99, 0x60, 0xa2, 0xdd,
+	0xea, 0x74, 0xda, 0x0c, 0x59, 0x7a, 0xb6, 0xc9, 0x22, 0x4c, 0xaa, 0x24, 0x57, 0x73, 0x9b, 0xba,
+	0x09, 0x0f, 0x28, 0x55, 0x8e, 0x27, 0x2e, 0x0b, 0x7c, 0x25, 0x55, 0x07, 0xce, 0x7e, 0x30, 0x3c,
+	0x94, 0x6e, 0xa3, 0x65, 0x0b, 0xf7, 0x24, 0x4c, 0x5a, 0xd9, 0xbf, 0xae, 0x9a, 0x71, 0xa8, 0xf8,
+	0xcf, 0x4b, 0xb0, 0xbc, 0x1f, 0xf5, 0xc1, 0xde, 0x18, 0x73, 0xb1, 0x03, 0x83, 0x05, 0x53, 0x2a,
+	0xb8, 0xd1, 0x58, 0x97, 0xe5, 0x2e, 0x2b, 0xc3, 0xc4, 0x86, 0x2b, 0xd1, 0x5a, 0xb2, 0x1f, 0xeb,
+	0x3a, 0x96, 0x53, 0xe6, 0xba, 0x9b, 0x23, 0xcc, 0x75, 0x4b, 0xc3, 0xe6, 0xba, 0xe2, 0xbf, 0x26,
+	0x61, 0x79, 0x3f, 0xc2, 0xd1, 0xe9, 0x8c, 0xcf, 0x2e, 0x75, 0xfd, 0x63, 0x74, 0xfe, 0x0f, 0x3e,
+	0x90, 0xf5, 0x46, 0xee, 0x9b, 0xdf, 0xd0, 0x37, 0xa5, 0xa5, 0x77, 0x7f, 0x53, 0xd2, 0xbf, 0xd1,
+	0x6f, 0x4a, 0xcb, 0x63, 0xfd, 0xa6, 0x34, 0x98, 0x98, 0x2b, 0x23, 0x24, 0xe6, 0xea, 0xd0, 0x03,
+	0xc7, 0xc0, 0xd7, 0x8d, 0xb5, 0xb4, 0xaf, 0x1b, 0x06, 0x80, 0x7a, 0x0b, 0xc3, 0x06, 0x1e, 0x7d,
+	0xab, 0x8a, 0x21, 0xc5, 0x3f, 0x5c, 0x82, 0x05, 0x35, 0x20, 0x7c, 0x46, 0xad, 0x13, 0xcb, 0xf5,
+	0xc2, 0xba, 0xff, 0x8e, 0xb4, 0xfe, 0x11, 0x4c, 0x45, 0xbf, 0xf0, 0xa9, 0xa4, 0xbe, 0x9b, 0x18,
+	0x35, 0x62, 0x96, 0xca, 0x4a, 0x31, 0xcc, 0x6d, 0x33, 0x7a, 0x88, 0x20, 0x5c, 0xdd, 0x73, 0x8f,
+	0xd0, 0x73, 0xe9, 0x18, 0x8e, 0x79, 0x5d, 0xd3, 0xc5, 0x47, 0x00, 0x3d, 0x72, 0x32, 0x03, 0x57,
+	0x3e, 0xa3, 0xbf, 0xa4, 0xec, 0x25, 0xcd, 0xe7, 0xc2, 0x9b, 0xa7, 0xae, 0xef, 0xbb, 0xb4, 0x91,
+	0xd7, 0xc8, 0x2c, 0x5c, 0xdd, 0xa5, 0xb2, 0x96, 0x62, 0xfe, 0xd2, 0xbd, 0xbf, 0x6b, 0x30, 0x13,
+	0x7b, 0x35, 0xc9, 0x22, 0xe4, 0x2b, 0xf5, 0x5d, 0x7a, 0xc8, 0x02, 0xea, 0x6c, 0x56, 0x77, 0x43,
+	0x51, 0x3e, 0x47, 0x6e, 0xc0, 0x42, 0xa5, 0xfe, 0x3c, 0x10, 0x7d, 0xb0, 0x34, 0x55, 0xa9, 0xab,
+	0x9f, 0x4b, 0xf3, 0x97, 0xc8, 0x02, 0xcc, 0x55, 0xea, 0x15, 0x46, 0x7d, 0xc1, 0x03, 0x5b, 0x30,
+	0x9e, 0xbf, 0x4c, 0xf2, 0x30, 0x5b, 0xa9, 0x3f, 0x63, 0xc2, 0x3d, 0x92, 0xf3, 0x7a, 0x7e, 0x82,
+	0xcc, 0x03, 0x54, 0xea, 0xb5, 0xcd, 0x4f, 0x37, 0xe5, 0xfd, 0x24, 0x21, 0x30, 0x5f, 0xa9, 0x57,
+	0x2d, 0x1e, 0xbe, 0x39, 0x9e, 0xc4, 0xa6, 0x14, 0x56, 0xb3, 0x8f, 0xd1, 0x09, 0x3c, 0x94, 0xd8,
+	0x95, 0xad, 0x8f, 0x5f, 0xbd, 0x31, 0x72, 0xaf, 0xdf, 0x18, 0xb9, 0xcf, 0xdf, 0x18, 0xb9, 0xaf,
+	0xde, 0x18, 0xda, 0x6f, 0xce, 0x0c, 0xed, 0x1f, 0x67, 0x86, 0xf6, 0xea, 0xcc, 0xd0, 0x5e, 0x9f,
+	0x19, 0xda, 0xbf, 0xcf, 0x0c, 0xed, 0x3f, 0x67, 0x46, 0xee, 0xab, 0x33, 0x43, 0xfb, 0xf3, 0x5b,
+	0x23, 0xf7, 0xfa, 0xad, 0x91, 0xfb, 0xfc, 0xad, 0x91, 0x3b, 0x9c, 0x92, 0xff, 0x76, 0xf0, 0x83,
+	0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0xd8, 0x0e, 0x49, 0x7d, 0xd2, 0x20, 0x00, 0x00,
 }
 
 func (x CallTypeNew) String() string {
@@ -1138,7 +1136,7 @@ func (this *VDelegatedRequestFinished) Equal(that interface{}) bool {
 	if this.CallType != that1.CallType {
 		return false
 	}
-	if !bytes.Equal(this.CallFlags, that1.CallFlags) {
+	if !this.CallFlags.Equal(that1.CallFlags) {
 		return false
 	}
 	if !this.Callee.Equal(that1.Callee) {
@@ -1410,7 +1408,7 @@ func valueToGoStringPayloadR0(v interface{}, typ string) string {
 func (m *VCallRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1418,322 +1416,281 @@ func (m *VCallRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VCallRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Extensions) > 0 {
-		i -= len(m.Extensions)
-		copy(dAtA[i:], m.Extensions)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.Extensions)))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0x8a
-	}
-	if len(m.ExtensionHashes) > 0 {
-		i -= len(m.ExtensionHashes)
-		copy(dAtA[i:], m.ExtensionHashes)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ExtensionHashes)))
-		i--
-		dAtA[i] = 0x3
-		i--
-		dAtA[i] = 0x82
-	}
-	if len(m.Arguments) > 0 {
-		i -= len(m.Arguments)
-		copy(dAtA[i:], m.Arguments)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.Arguments)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xfa
-	}
-	if len(m.TXContext) > 0 {
-		i -= len(m.TXContext)
-		copy(dAtA[i:], m.TXContext)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.TXContext)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xf2
-	}
-	if len(m.SecurityContext) > 0 {
-		i -= len(m.SecurityContext)
-		copy(dAtA[i:], m.SecurityContext)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.SecurityContext)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xea
-	}
-	{
-		size := m.TXExpiry.Size()
-		i -= size
-		if _, err := m.TXExpiry.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0xe2
-	{
-		size := m.CallOutgoing.Size()
-		i -= size
-		if _, err := m.CallOutgoing.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0xda
-	if len(m.EntryHeadHash) > 0 {
-		i -= len(m.EntryHeadHash)
-		copy(dAtA[i:], m.EntryHeadHash)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.EntryHeadHash)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xd2
-	}
-	{
-		size := m.KnownCalleeIncoming.Size()
-		i -= size
-		if _, err := m.KnownCalleeIncoming.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0xca
-	if m.CallRequestFlags != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallRequestFlags))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xc0
-	}
-	if len(m.RegistrarDelegatorSignature) > 0 {
-		i -= len(m.RegistrarDelegatorSignature)
-		copy(dAtA[i:], m.RegistrarDelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegatorSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xba
-	}
-	if len(m.RegistrarDelegationSpec) > 0 {
-		i -= len(m.RegistrarDelegationSpec)
-		copy(dAtA[i:], m.RegistrarDelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegationSpec)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xb2
-	}
-	if len(m.RegistrarSignature) > 0 {
-		i -= len(m.RegistrarSignature)
-		copy(dAtA[i:], m.RegistrarSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xaa
-	}
-	if len(m.ProducerSignature) > 0 {
-		i -= len(m.ProducerSignature)
-		copy(dAtA[i:], m.ProducerSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProducerSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xa2
-	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x9a
-	}
-	if len(m.DelegationSpec) > 0 {
-		i -= len(m.DelegationSpec)
-		copy(dAtA[i:], m.DelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x92
-	}
-	if len(m.PayloadHash) > 0 {
-		i -= len(m.PayloadHash)
-		copy(dAtA[i:], m.PayloadHash)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PayloadHash)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x8a
-	}
-	{
-		size := m.ResourceCenter.Size()
-		i -= size
-		if _, err := m.ResourceCenter.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x82
-	{
-		size := m.ExpenseCenter.Size()
-		i -= size
-		if _, err := m.ExpenseCenter.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xfa
-	{
-		size := m.CallTX.Size()
-		i -= size
-		if _, err := m.CallTX.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xf2
-	{
-		size := m.RootTX.Size()
-		i -= size
-		if _, err := m.RootTX.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xea
-	{
-		size := m.CallReason.Size()
-		i -= size
-		if _, err := m.CallReason.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xe2
-	if m.CallSequence != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallSequence))
-		i--
+	if m.Polymorph != 0 {
+		dAtA[i] = 0x80
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd8
-	}
-	if len(m.CallSiteMethod) > 0 {
-		i -= len(m.CallSiteMethod)
-		copy(dAtA[i:], m.CallSiteMethod)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.CallSiteMethod)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd2
-	}
-	{
-		size := m.CallSiteDeclaration.Size()
-		i -= size
-		if _, err := m.CallSiteDeclaration.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xca
-	{
-		size := m.Callee.Size()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
-	{
-		size := m.Caller.Size()
-		i -= size
-		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xba
-	if m.CallAsOf != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallAsOf))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb0
-	}
-	if m.CallFlags != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallFlags))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa8
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
 	if m.CallType != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallType))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0xa0
-	}
-	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallType))
 	}
-	return len(dAtA) - i, nil
+	if m.CallFlags != 0 {
+		dAtA[i] = 0xa8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallFlags))
+	}
+	if m.CallAsOf != 0 {
+		dAtA[i] = 0xb0
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallAsOf))
+	}
+	dAtA[i] = 0xba
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Caller.Size()))
+	n1, err := m.Caller.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n1
+	dAtA[i] = 0xc2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Callee.Size()))
+	n2, err := m.Callee.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n2
+	dAtA[i] = 0xca
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallSiteDeclaration.Size()))
+	n3, err := m.CallSiteDeclaration.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n3
+	if len(m.CallSiteMethod) > 0 {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.CallSiteMethod)))
+		i += copy(dAtA[i:], m.CallSiteMethod)
+	}
+	if m.CallSequence != 0 {
+		dAtA[i] = 0xd8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallSequence))
+	}
+	dAtA[i] = 0xe2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallReason.Size()))
+	n4, err := m.CallReason.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n4
+	dAtA[i] = 0xea
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.RootTX.Size()))
+	n5, err := m.RootTX.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n5
+	dAtA[i] = 0xf2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallTX.Size()))
+	n6, err := m.CallTX.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n6
+	dAtA[i] = 0xfa
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.ExpenseCenter.Size()))
+	n7, err := m.ExpenseCenter.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n7
+	dAtA[i] = 0x82
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.ResourceCenter.Size()))
+	n8, err := m.ResourceCenter.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n8
+	if len(m.PayloadHash) > 0 {
+		dAtA[i] = 0x8a
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PayloadHash)))
+		i += copy(dAtA[i:], m.PayloadHash)
+	}
+	if len(m.DelegationSpec) > 0 {
+		dAtA[i] = 0x92
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
+		i += copy(dAtA[i:], m.DelegationSpec)
+	}
+	if len(m.DelegatorSignature) > 0 {
+		dAtA[i] = 0x9a
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
+		i += copy(dAtA[i:], m.DelegatorSignature)
+	}
+	if len(m.ProducerSignature) > 0 {
+		dAtA[i] = 0xa2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProducerSignature)))
+		i += copy(dAtA[i:], m.ProducerSignature)
+	}
+	if len(m.RegistrarSignature) > 0 {
+		dAtA[i] = 0xaa
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarSignature)))
+		i += copy(dAtA[i:], m.RegistrarSignature)
+	}
+	if len(m.RegistrarDelegationSpec) > 0 {
+		dAtA[i] = 0xb2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegationSpec)))
+		i += copy(dAtA[i:], m.RegistrarDelegationSpec)
+	}
+	if len(m.RegistrarDelegatorSignature) > 0 {
+		dAtA[i] = 0xba
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegatorSignature)))
+		i += copy(dAtA[i:], m.RegistrarDelegatorSignature)
+	}
+	if m.CallRequestFlags != 0 {
+		dAtA[i] = 0xc0
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallRequestFlags))
+	}
+	dAtA[i] = 0xca
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.KnownCalleeIncoming.Size()))
+	n9, err := m.KnownCalleeIncoming.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n9
+	if len(m.EntryHeadHash) > 0 {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.EntryHeadHash)))
+		i += copy(dAtA[i:], m.EntryHeadHash)
+	}
+	dAtA[i] = 0xda
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallOutgoing.Size()))
+	n10, err := m.CallOutgoing.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n10
+	dAtA[i] = 0xe2
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.TXExpiry.Size()))
+	n11, err := m.TXExpiry.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n11
+	if len(m.SecurityContext) > 0 {
+		dAtA[i] = 0xea
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.SecurityContext)))
+		i += copy(dAtA[i:], m.SecurityContext)
+	}
+	if len(m.TXContext) > 0 {
+		dAtA[i] = 0xf2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.TXContext)))
+		i += copy(dAtA[i:], m.TXContext)
+	}
+	if len(m.Arguments) > 0 {
+		dAtA[i] = 0xfa
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.Arguments)))
+		i += copy(dAtA[i:], m.Arguments)
+	}
+	if len(m.ExtensionHashes) > 0 {
+		dAtA[i] = 0x82
+		i++
+		dAtA[i] = 0x3
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ExtensionHashes)))
+		i += copy(dAtA[i:], m.ExtensionHashes)
+	}
+	if len(m.Extensions) > 0 {
+		dAtA[i] = 0x8a
+		i++
+		dAtA[i] = 0x3
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.Extensions)))
+		i += copy(dAtA[i:], m.Extensions)
+	}
+	return i, nil
 }
 
 func (m *VCallResult) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1741,227 +1698,199 @@ func (m *VCallResult) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VCallResult) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VCallResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.Extensions) > 0 {
-		i -= len(m.Extensions)
-		copy(dAtA[i:], m.Extensions)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.Extensions)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xc2
-	}
-	if len(m.ExtensionHashes) > 0 {
-		i -= len(m.ExtensionHashes)
-		copy(dAtA[i:], m.ExtensionHashes)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ExtensionHashes)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xba
-	}
-	if len(m.ReturnArguments) > 0 {
-		i -= len(m.ReturnArguments)
-		copy(dAtA[i:], m.ReturnArguments)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ReturnArguments)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xb2
-	}
-	if len(m.SecurityContext) > 0 {
-		i -= len(m.SecurityContext)
-		copy(dAtA[i:], m.SecurityContext)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.SecurityContext)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xaa
-	}
-	if len(m.EntryHeadHash) > 0 {
-		i -= len(m.EntryHeadHash)
-		copy(dAtA[i:], m.EntryHeadHash)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.EntryHeadHash)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xa2
-	}
-	if len(m.RegistrarDelegatorSignature) > 0 {
-		i -= len(m.RegistrarDelegatorSignature)
-		copy(dAtA[i:], m.RegistrarDelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegatorSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x9a
-	}
-	if len(m.RegistrarDelegationSpec) > 0 {
-		i -= len(m.RegistrarDelegationSpec)
-		copy(dAtA[i:], m.RegistrarDelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegationSpec)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x92
-	}
-	if len(m.RegistrarSignature) > 0 {
-		i -= len(m.RegistrarSignature)
-		copy(dAtA[i:], m.RegistrarSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x8a
-	}
-	if len(m.ProducerSignature) > 0 {
-		i -= len(m.ProducerSignature)
-		copy(dAtA[i:], m.ProducerSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProducerSignature)))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x82
-	}
-	{
-		size := m.CallIncomingResult.Size()
-		i -= size
-		if _, err := m.CallIncomingResult.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xfa
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
-		i--
+	if m.Polymorph != 0 {
+		dAtA[i] = 0x80
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xf2
-	}
-	if len(m.DelegationSpec) > 0 {
-		i -= len(m.DelegationSpec)
-		copy(dAtA[i:], m.DelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xea
-	}
-	if len(m.PayloadHash) > 0 {
-		i -= len(m.PayloadHash)
-		copy(dAtA[i:], m.PayloadHash)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PayloadHash)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xe2
-	}
-	{
-		size := m.CallIncoming.Size()
-		i -= size
-		if _, err := m.CallIncoming.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xda
-	{
-		size := m.CallOutgoing.Size()
-		i -= size
-		if _, err := m.CallOutgoing.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xd2
-	if len(m.ResultFlags) > 0 {
-		i -= len(m.ResultFlags)
-		copy(dAtA[i:], m.ResultFlags)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ResultFlags)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xca
-	}
-	{
-		size := m.Callee.Size()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
-	{
-		size := m.Caller.Size()
-		i -= size
-		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xba
-	if m.CallAsOf != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallAsOf))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb0
-	}
-	if m.CallFlags != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallFlags))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa8
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
 	if m.CallType != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallType))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0xa0
-	}
-	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallType))
 	}
-	return len(dAtA) - i, nil
+	if m.CallFlags != 0 {
+		dAtA[i] = 0xa8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallFlags))
+	}
+	if m.CallAsOf != 0 {
+		dAtA[i] = 0xb0
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallAsOf))
+	}
+	dAtA[i] = 0xba
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Caller.Size()))
+	n12, err := m.Caller.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n12
+	dAtA[i] = 0xc2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Callee.Size()))
+	n13, err := m.Callee.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n13
+	if len(m.ResultFlags) > 0 {
+		dAtA[i] = 0xca
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ResultFlags)))
+		i += copy(dAtA[i:], m.ResultFlags)
+	}
+	dAtA[i] = 0xd2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallOutgoing.Size()))
+	n14, err := m.CallOutgoing.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n14
+	dAtA[i] = 0xda
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallIncoming.Size()))
+	n15, err := m.CallIncoming.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n15
+	if len(m.PayloadHash) > 0 {
+		dAtA[i] = 0xe2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PayloadHash)))
+		i += copy(dAtA[i:], m.PayloadHash)
+	}
+	if len(m.DelegationSpec) > 0 {
+		dAtA[i] = 0xea
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
+		i += copy(dAtA[i:], m.DelegationSpec)
+	}
+	if len(m.DelegatorSignature) > 0 {
+		dAtA[i] = 0xf2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
+		i += copy(dAtA[i:], m.DelegatorSignature)
+	}
+	dAtA[i] = 0xfa
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallIncomingResult.Size()))
+	n16, err := m.CallIncomingResult.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n16
+	if len(m.ProducerSignature) > 0 {
+		dAtA[i] = 0x82
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProducerSignature)))
+		i += copy(dAtA[i:], m.ProducerSignature)
+	}
+	if len(m.RegistrarSignature) > 0 {
+		dAtA[i] = 0x8a
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarSignature)))
+		i += copy(dAtA[i:], m.RegistrarSignature)
+	}
+	if len(m.RegistrarDelegationSpec) > 0 {
+		dAtA[i] = 0x92
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegationSpec)))
+		i += copy(dAtA[i:], m.RegistrarDelegationSpec)
+	}
+	if len(m.RegistrarDelegatorSignature) > 0 {
+		dAtA[i] = 0x9a
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RegistrarDelegatorSignature)))
+		i += copy(dAtA[i:], m.RegistrarDelegatorSignature)
+	}
+	if len(m.EntryHeadHash) > 0 {
+		dAtA[i] = 0xa2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.EntryHeadHash)))
+		i += copy(dAtA[i:], m.EntryHeadHash)
+	}
+	if len(m.SecurityContext) > 0 {
+		dAtA[i] = 0xaa
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.SecurityContext)))
+		i += copy(dAtA[i:], m.SecurityContext)
+	}
+	if len(m.ReturnArguments) > 0 {
+		dAtA[i] = 0xb2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ReturnArguments)))
+		i += copy(dAtA[i:], m.ReturnArguments)
+	}
+	if len(m.ExtensionHashes) > 0 {
+		dAtA[i] = 0xba
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ExtensionHashes)))
+		i += copy(dAtA[i:], m.ExtensionHashes)
+	}
+	if len(m.Extensions) > 0 {
+		dAtA[i] = 0xc2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.Extensions)))
+		i += copy(dAtA[i:], m.Extensions)
+	}
+	return i, nil
 }
 
 func (m *VStateRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1969,112 +1898,98 @@ func (m *VStateRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VStateRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VStateRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.CallRequestFlags != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallRequestFlags))
-		i--
+	if m.Polymorph != 0 {
+		dAtA[i] = 0x80
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xe0
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
-	if len(m.ProducerSignature) > 0 {
-		i -= len(m.ProducerSignature)
-		copy(dAtA[i:], m.ProducerSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProducerSignature)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xda
+	dAtA[i] = 0xa2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.AsOf.Size()))
+	n17, err := m.AsOf.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd2
+	i += n17
+	dAtA[i] = 0xaa
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Callee.Size()))
+	n18, err := m.Callee.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	if len(m.DelegationSpec) > 0 {
-		i -= len(m.DelegationSpec)
-		copy(dAtA[i:], m.DelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
-		i--
+	i += n18
+	if m.RequestedContent != 0 {
+		dAtA[i] = 0xb0
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xca
-	}
-	if len(m.SupportedExtensions) > 0 {
-		i -= len(m.SupportedExtensions)
-		copy(dAtA[i:], m.SupportedExtensions)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.SupportedExtensions)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.RequestedContent))
 	}
 	if len(m.RequestedContentLimit) > 0 {
-		i -= len(m.RequestedContentLimit)
-		copy(dAtA[i:], m.RequestedContentLimit)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RequestedContentLimit)))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0xba
-	}
-	if m.RequestedContent != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.RequestedContent))
-		i--
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb0
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.RequestedContentLimit)))
+		i += copy(dAtA[i:], m.RequestedContentLimit)
 	}
-	{
-		size := m.Callee.Size()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
-	{
-		size := m.AsOf.Size()
-		i -= size
-		if _, err := m.AsOf.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
-	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
+	if len(m.SupportedExtensions) > 0 {
+		dAtA[i] = 0xc2
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.SupportedExtensions)))
+		i += copy(dAtA[i:], m.SupportedExtensions)
 	}
-	return len(dAtA) - i, nil
+	if len(m.DelegationSpec) > 0 {
+		dAtA[i] = 0xca
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
+		i += copy(dAtA[i:], m.DelegationSpec)
+	}
+	if len(m.DelegatorSignature) > 0 {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
+		i += copy(dAtA[i:], m.DelegatorSignature)
+	}
+	if len(m.ProducerSignature) > 0 {
+		dAtA[i] = 0xda
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ProducerSignature)))
+		i += copy(dAtA[i:], m.ProducerSignature)
+	}
+	if m.CallRequestFlags != 0 {
+		dAtA[i] = 0xe0
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallRequestFlags))
+	}
+	return i, nil
 }
 
 func (m *VStateReport) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2082,197 +1997,170 @@ func (m *VStateReport) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VStateReport) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VStateReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.ProvidedContent != nil {
-		{
-			size, err := m.ProvidedContent.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xa2
-	}
-	{
-		size := m.LatestDirtyCode.Size()
-		i -= size
-		if _, err := m.LatestDirtyCode.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x9a
-	{
-		size := m.LatestDirtyState.Size()
-		i -= size
-		if _, err := m.LatestDirtyState.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x92
-	{
-		size := m.LatestValidatedCode.Size()
-		i -= size
-		if _, err := m.LatestValidatedCode.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x8a
-	{
-		size := m.LatestValidatedState.Size()
-		i -= size
-		if _, err := m.LatestValidatedState.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x82
-	if m.PriorityCallQueueCount != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.PriorityCallQueueCount))
-		i--
+	if m.Polymorph != 0 {
+		dAtA[i] = 0x80
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xf8
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
-	{
-		size := m.PreRegisteredEarliestPulse.Size()
-		i -= size
-		if _, err := m.PreRegisteredEarliestPulse.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
+	dAtA[i] = 0xa2
+	i++
 	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xf2
-	if m.PreRegisteredQueueCount != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.PreRegisteredQueueCount))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xe8
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.AsOf.Size()))
+	n19, err := m.AsOf.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	{
-		size := m.MutablePendingEarliestPulse.Size()
-		i -= size
-		if _, err := m.MutablePendingEarliestPulse.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
+	i += n19
+	dAtA[i] = 0xaa
+	i++
 	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xe2
-	if m.MutablePendingCount != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.MutablePendingCount))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd8
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Callee.Size()))
+	n20, err := m.Callee.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
 	}
-	{
-		size := m.ImmutablePendingEarliestPulse.Size()
-		i -= size
-		if _, err := m.ImmutablePendingEarliestPulse.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xd2
-	if m.ImmutablePendingCount != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.ImmutablePendingCount))
-		i--
+	i += n20
+	if len(m.DelegationSpec) > 0 {
+		dAtA[i] = 0xba
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc8
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
+		i += copy(dAtA[i:], m.DelegationSpec)
 	}
 	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0xc2
-	}
-	if len(m.DelegationSpec) > 0 {
-		i -= len(m.DelegationSpec)
-		copy(dAtA[i:], m.DelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
-		i--
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xba
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
+		i += copy(dAtA[i:], m.DelegatorSignature)
 	}
-	{
-		size := m.Callee.Size()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+	if m.ImmutablePendingCount != 0 {
+		dAtA[i] = 0xc8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.ImmutablePendingCount))
+	}
+	dAtA[i] = 0xd2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.ImmutablePendingEarliestPulse.Size()))
+	n21, err := m.ImmutablePendingEarliestPulse.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n21
+	if m.MutablePendingCount != 0 {
+		dAtA[i] = 0xd8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.MutablePendingCount))
+	}
+	dAtA[i] = 0xe2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.MutablePendingEarliestPulse.Size()))
+	n22, err := m.MutablePendingEarliestPulse.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n22
+	if m.PreRegisteredQueueCount != 0 {
+		dAtA[i] = 0xe8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.PreRegisteredQueueCount))
+	}
+	dAtA[i] = 0xf2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.PreRegisteredEarliestPulse.Size()))
+	n23, err := m.PreRegisteredEarliestPulse.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n23
+	if m.PriorityCallQueueCount != 0 {
+		dAtA[i] = 0xf8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.PriorityCallQueueCount))
+	}
+	dAtA[i] = 0x82
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestValidatedState.Size()))
+	n24, err := m.LatestValidatedState.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n24
+	dAtA[i] = 0x8a
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestValidatedCode.Size()))
+	n25, err := m.LatestValidatedCode.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n25
+	dAtA[i] = 0x92
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestDirtyState.Size()))
+	n26, err := m.LatestDirtyState.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n26
+	dAtA[i] = 0x9a
+	i++
+	dAtA[i] = 0x2
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestDirtyCode.Size()))
+	n27, err := m.LatestDirtyCode.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n27
+	if m.ProvidedContent != nil {
+		dAtA[i] = 0xa2
+		i++
+		dAtA[i] = 0x2
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.ProvidedContent.Size()))
+		n28, err := m.ProvidedContent.MarshalTo(dAtA[i:])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
+		i += n28
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
-	{
-		size := m.AsOf.Size()
-		i -= size
-		if _, err := m.AsOf.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
-	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
-	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *VStateReport_ProvidedContentBody) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2280,110 +2168,93 @@ func (m *VStateReport_ProvidedContentBody) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VStateReport_ProvidedContentBody) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VStateReport_ProvidedContentBody) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.ImmutableQueue) > 0 {
-		for iNdEx := len(m.ImmutableQueue) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size := m.ImmutableQueue[iNdEx].Size()
-				i -= size
-				if _, err := m.ImmutableQueue[iNdEx].MarshalTo(dAtA[i:]); err != nil {
-					return 0, err
-				}
-				i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xea
-		}
-	}
-	if len(m.MutableQueue) > 0 {
-		for iNdEx := len(m.MutableQueue) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size := m.MutableQueue[iNdEx].Size()
-				i -= size
-				if _, err := m.MutableQueue[iNdEx].MarshalTo(dAtA[i:]); err != nil {
-					return 0, err
-				}
-				i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1
-			i--
-			dAtA[i] = 0xe2
-		}
-	}
-	if m.LatestDirtyCode != nil {
-		{
-			size, err := m.LatestDirtyCode.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-		}
-		i--
+	if m.LatestValidatedState != nil {
+		dAtA[i] = 0xc2
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xda
-	}
-	if m.LatestValidatedCode != nil {
-		{
-			size, err := m.LatestValidatedCode.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintPayloadR0(dAtA, i, uint64(size))
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestValidatedState.Size()))
+		n29, err := m.LatestValidatedState.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd2
+		i += n29
 	}
 	if m.LatestDirtyState != nil {
-		{
-			size, err := m.LatestDirtyState.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0xca
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestDirtyState.Size()))
+		n30, err := m.LatestDirtyState.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n30
 	}
-	if m.LatestValidatedState != nil {
-		{
-			size, err := m.LatestValidatedState.MarshalToSizedBuffer(dAtA[:i])
+	if m.LatestValidatedCode != nil {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestValidatedCode.Size()))
+		n31, err := m.LatestValidatedCode.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n31
+	}
+	if m.LatestDirtyCode != nil {
+		dAtA[i] = 0xda
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.LatestDirtyCode.Size()))
+		n32, err := m.LatestDirtyCode.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n32
+	}
+	if len(m.MutableQueue) > 0 {
+		for _, msg := range m.MutableQueue {
+			dAtA[i] = 0xe2
+			i++
+			dAtA[i] = 0x1
+			i++
+			i = encodeVarintPayloadR0(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintPayloadR0(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc2
 	}
-	return len(dAtA) - i, nil
+	if len(m.ImmutableQueue) > 0 {
+		for _, msg := range m.ImmutableQueue {
+			dAtA[i] = 0xea
+			i++
+			dAtA[i] = 0x1
+			i++
+			i = encodeVarintPayloadR0(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
 }
 
 func (m *ObjectState) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2391,88 +2262,75 @@ func (m *ObjectState) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ObjectState) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *ObjectState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
+	dAtA[i] = 0xc2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Reference.Size()))
+	n33, err := m.Reference.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n33
+	dAtA[i] = 0xca
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Parent.Size()))
+	n34, err := m.Parent.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n34
+	dAtA[i] = 0xd2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Prototype.Size()))
+	n35, err := m.Prototype.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n35
+	if len(m.State) > 0 {
+		dAtA[i] = 0xda
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.State)))
+		i += copy(dAtA[i:], m.State)
+	}
+	if len(m.PreviousState) > 0 {
+		dAtA[i] = 0xe2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PreviousState)))
+		i += copy(dAtA[i:], m.PreviousState)
+	}
 	if m.Deactivated {
-		i--
+		dAtA[i] = 0xe8
+		i++
+		dAtA[i] = 0x1
+		i++
 		if m.Deactivated {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xe8
+		i++
 	}
-	if len(m.PreviousState) > 0 {
-		i -= len(m.PreviousState)
-		copy(dAtA[i:], m.PreviousState)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.PreviousState)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xe2
-	}
-	if len(m.State) > 0 {
-		i -= len(m.State)
-		copy(dAtA[i:], m.State)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.State)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xda
-	}
-	{
-		size := m.Prototype.Size()
-		i -= size
-		if _, err := m.Prototype.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xd2
-	{
-		size := m.Parent.Size()
-		i -= size
-		if _, err := m.Parent.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xca
-	{
-		size := m.Reference.Size()
-		i -= size
-		if _, err := m.Reference.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *VPendingDelegationRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2480,71 +2338,60 @@ func (m *VPendingDelegationRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VPendingDelegationRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VPendingDelegationRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xba
-	}
-	if len(m.DelegationSpec) > 0 {
-		i -= len(m.DelegationSpec)
-		copy(dAtA[i:], m.DelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb2
-	}
-	{
-		size := m.Request.Size()
-		i -= size
-		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
-	{
-		size := m.Object.Size()
-		i -= size
-		if _, err := m.Object.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
 	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0x80
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
-	return len(dAtA) - i, nil
+	dAtA[i] = 0xa2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Object.Size()))
+	n36, err := m.Object.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n36
+	dAtA[i] = 0xaa
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Request.Size()))
+	n37, err := m.Request.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n37
+	if len(m.DelegationSpec) > 0 {
+		dAtA[i] = 0xb2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
+		i += copy(dAtA[i:], m.DelegationSpec)
+	}
+	if len(m.DelegatorSignature) > 0 {
+		dAtA[i] = 0xba
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
+		i += copy(dAtA[i:], m.DelegatorSignature)
+	}
+	return i, nil
 }
 
 func (m *VDelegatedRequestFinished) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2552,126 +2399,108 @@ func (m *VDelegatedRequestFinished) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VDelegatedRequestFinished) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VDelegatedRequestFinished) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if len(m.ObjectBody) > 0 {
-		i -= len(m.ObjectBody)
-		copy(dAtA[i:], m.ObjectBody)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ObjectBody)))
-		i--
+	if m.Polymorph != 0 {
+		dAtA[i] = 0x80
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xea
-	}
-	if len(m.EntryHeadHash) > 0 {
-		i -= len(m.EntryHeadHash)
-		copy(dAtA[i:], m.EntryHeadHash)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.EntryHeadHash)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xe2
-	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xda
-	}
-	if len(m.DelegationSpec) > 0 {
-		i -= len(m.DelegationSpec)
-		copy(dAtA[i:], m.DelegationSpec)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd2
-	}
-	{
-		size := m.CallIncoming.Size()
-		i -= size
-		if _, err := m.CallIncoming.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xca
-	{
-		size := m.CallOutgoing.Size()
-		i -= size
-		if _, err := m.CallOutgoing.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
-	if len(m.ResultFlags) > 0 {
-		i -= len(m.ResultFlags)
-		copy(dAtA[i:], m.ResultFlags)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ResultFlags)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xba
-	}
-	{
-		size := m.Callee.Size()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xb2
-	if len(m.CallFlags) > 0 {
-		i -= len(m.CallFlags)
-		copy(dAtA[i:], m.CallFlags)
-		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.CallFlags)))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xaa
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
 	if m.CallType != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallType))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0xa0
-	}
-	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
+		i++
 		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallType))
 	}
-	return len(dAtA) - i, nil
+	if m.CallFlags != 0 {
+		dAtA[i] = 0xa8
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallFlags))
+	}
+	dAtA[i] = 0xb2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Callee.Size()))
+	n38, err := m.Callee.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n38
+	if len(m.ResultFlags) > 0 {
+		dAtA[i] = 0xba
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ResultFlags)))
+		i += copy(dAtA[i:], m.ResultFlags)
+	}
+	dAtA[i] = 0xc2
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallOutgoing.Size()))
+	n39, err := m.CallOutgoing.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n39
+	dAtA[i] = 0xca
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.CallIncoming.Size()))
+	n40, err := m.CallIncoming.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n40
+	if len(m.DelegationSpec) > 0 {
+		dAtA[i] = 0xd2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegationSpec)))
+		i += copy(dAtA[i:], m.DelegationSpec)
+	}
+	if len(m.DelegatorSignature) > 0 {
+		dAtA[i] = 0xda
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.DelegatorSignature)))
+		i += copy(dAtA[i:], m.DelegatorSignature)
+	}
+	if len(m.EntryHeadHash) > 0 {
+		dAtA[i] = 0xe2
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.EntryHeadHash)))
+		i += copy(dAtA[i:], m.EntryHeadHash)
+	}
+	if len(m.ObjectBody) > 0 {
+		dAtA[i] = 0xea
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(len(m.ObjectBody)))
+		i += copy(dAtA[i:], m.ObjectBody)
+	}
+	return i, nil
 }
 
 func (m *VStateUnavailable) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -2679,54 +2508,45 @@ func (m *VStateUnavailable) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *VStateUnavailable) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *VStateUnavailable) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	{
-		size := m.Lifeline.Size()
-		i -= size
-		if _, err := m.Lifeline.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayloadR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
-	if m.Reason != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Reason))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa0
-	}
 	if m.Polymorph != 0 {
-		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
-		i--
-		dAtA[i] = 0x1
-		i--
 		dAtA[i] = 0x80
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Polymorph))
 	}
-	return len(dAtA) - i, nil
+	if m.Reason != 0 {
+		dAtA[i] = 0xa0
+		i++
+		dAtA[i] = 0x1
+		i++
+		i = encodeVarintPayloadR0(dAtA, i, uint64(m.Reason))
+	}
+	dAtA[i] = 0xaa
+	i++
+	dAtA[i] = 0x1
+	i++
+	i = encodeVarintPayloadR0(dAtA, i, uint64(m.Lifeline.Size()))
+	n41, err := m.Lifeline.MarshalTo(dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n41
+	return i, nil
 }
 
 func encodeVarintPayloadR0(dAtA []byte, offset int, v uint64) int {
-	offset -= sovPayloadR0(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *VCallRequest) Size() (n int) {
 	if m == nil {
@@ -3111,9 +2931,8 @@ func (m *VDelegatedRequestFinished) Size() (n int) {
 	if m.CallType != 0 {
 		n += 2 + sovPayloadR0(uint64(m.CallType))
 	}
-	l = len(m.CallFlags)
-	if l > 0 {
-		n += 2 + l + sovPayloadR0(uint64(l))
+	if m.CallFlags != 0 {
+		n += 2 + sovPayloadR0(uint64(m.CallFlags))
 	}
 	l = m.Callee.Size()
 	n += 2 + l + sovPayloadR0(uint64(l))
@@ -3162,7 +2981,14 @@ func (m *VStateUnavailable) Size() (n int) {
 }
 
 func sovPayloadR0(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozPayloadR0(x uint64) (n int) {
 	return sovPayloadR0(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -3288,10 +3114,10 @@ func (this *VStateReport_ProvidedContentBody) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&VStateReport_ProvidedContentBody{`,
-		`LatestValidatedState:` + strings.Replace(this.LatestValidatedState.String(), "ObjectState", "ObjectState", 1) + `,`,
-		`LatestDirtyState:` + strings.Replace(this.LatestDirtyState.String(), "ObjectState", "ObjectState", 1) + `,`,
-		`LatestValidatedCode:` + strings.Replace(this.LatestValidatedCode.String(), "ObjectState", "ObjectState", 1) + `,`,
-		`LatestDirtyCode:` + strings.Replace(this.LatestDirtyCode.String(), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestValidatedState:` + strings.Replace(fmt.Sprintf("%v", this.LatestValidatedState), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestDirtyState:` + strings.Replace(fmt.Sprintf("%v", this.LatestDirtyState), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestValidatedCode:` + strings.Replace(fmt.Sprintf("%v", this.LatestValidatedCode), "ObjectState", "ObjectState", 1) + `,`,
+		`LatestDirtyCode:` + strings.Replace(fmt.Sprintf("%v", this.LatestDirtyCode), "ObjectState", "ObjectState", 1) + `,`,
 		`MutableQueue:` + fmt.Sprintf("%v", this.MutableQueue) + `,`,
 		`ImmutableQueue:` + fmt.Sprintf("%v", this.ImmutableQueue) + `,`,
 		`}`,
@@ -6783,10 +6609,10 @@ func (m *VDelegatedRequestFinished) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 21:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
 			}
-			var byteLen int
+			m.CallFlags = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowPayloadR0
@@ -6796,26 +6622,11 @@ func (m *VDelegatedRequestFinished) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				m.CallFlags |= github_com_insolar_assured_ledger_ledger_core_v2_virtual_callflag.CallFlag(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPayloadR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPayloadR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CallFlags = append(m.CallFlags[:0], dAtA[iNdEx:postIndex]...)
-			if m.CallFlags == nil {
-				m.CallFlags = []byte{}
-			}
-			iNdEx = postIndex
 		case 22:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
@@ -7236,7 +7047,6 @@ func (m *VStateUnavailable) Unmarshal(dAtA []byte) error {
 func skipPayloadR0(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
-	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -7268,8 +7078,10 @@ func skipPayloadR0(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
+			return iNdEx, nil
 		case 1:
 			iNdEx += 8
+			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -7290,30 +7102,55 @@ func skipPayloadR0(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthPayloadR0
 			}
 			iNdEx += length
-		case 3:
-			depth++
-		case 4:
-			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupPayloadR0
+			if iNdEx < 0 {
+				return 0, ErrInvalidLengthPayloadR0
 			}
-			depth--
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowPayloadR0
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipPayloadR0(dAtA[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthPayloadR0
+				}
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
 		case 5:
 			iNdEx += 4
+			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
-		if iNdEx < 0 {
-			return 0, ErrInvalidLengthPayloadR0
-		}
-		if depth == 0 {
-			return iNdEx, nil
-		}
 	}
-	return 0, io.ErrUnexpectedEOF
+	panic("unreachable")
 }
 
 var (
-	ErrInvalidLengthPayloadR0        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowPayloadR0          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupPayloadR0 = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthPayloadR0 = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowPayloadR0   = fmt.Errorf("proto: integer overflow")
 )

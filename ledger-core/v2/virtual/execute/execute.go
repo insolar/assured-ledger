@@ -54,6 +54,8 @@ type SMExecute struct {
 	runner        *runnerAdapter.Runner
 	messageSender *messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
+
+	migrationHappened bool
 }
 
 /* -------- Declaration ------------- */
@@ -95,6 +97,7 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	s.prepareExecution(ctx)
 
 	return ctx.Jump(s.stepUpdatePendingCounters)
@@ -248,6 +251,11 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 	return ctx.Jump(s.stepExecute)
 }
 
+func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.migrationHappened = true
+	return ctx.Stay()
+}
+
 func (s *SMExecute) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		executionContext = s.execution
@@ -321,6 +329,34 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		}
 	}
 
+	if s.migrationHappened {
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	}
+
+	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	msg := payload.VDelegatedRequestFinished{
+		CallType:           s.Payload.CallType,
+		CallFlags:          s.Payload.CallFlags,
+		Callee:             s.execution.Object,
+		ResultFlags:        nil,
+		CallOutgoing:       s.Payload.CallOutgoing,
+		CallIncoming:       reference.Local{},
+		EntryHeadHash:      nil,
+		DelegationSpec:     nil,
+		DelegatorSignature: nil,
+		ObjectBody:         s.executionNewState.Result.Memory,
+	}
+
+	s.pulseSlot.PulseData().NextPulseNumber()
+
+	goCtx := ctx.GetContext()
+	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.PulseData().NextPulseNumber())
+	}).Send()
+
 	return ctx.Jump(s.stepSendCallResult)
 }
 
@@ -346,6 +382,9 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			memory,
 			parentReference,
 		))
+		if !s.migrationHappened {
+			state.DecrementPotentialPendingCounter(!s.execution.Unordered)
+		}
 		state.SetState(object.HasState)
 	}
 }
