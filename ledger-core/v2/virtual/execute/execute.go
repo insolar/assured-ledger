@@ -448,7 +448,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 
 	goCtx := ctx.GetContext()
 	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
-		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.PulseData().NextPulseNumber())
+		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
 	}).Send()
 
 	return ctx.Jump(s.stepSendCallResult)
