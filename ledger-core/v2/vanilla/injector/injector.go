@@ -140,6 +140,31 @@ func (p *DependencyInjector) tryInjectVar(id string, varRef interface{}) error {
 	return fmt.Errorf("dependency is missing: id=%s expectedType=%v", id, vt)
 }
 
+func GetInterfaceTypeAndValue(varRef interface{}) (interface{}, reflect.Type) {
+	if varRef == nil {
+		panic("illegal value")
+	}
+
+	v := reflect.ValueOf(varRef)
+	switch {
+	case v.Kind() != reflect.Ptr:
+		panic("illegal value: not a reference")
+	case v.IsNil():
+		panic("illegal value: nil reference")
+	}
+	v = v.Elem()
+	if v.Kind() != reflect.Interface {
+		panic("illegal value: not an interface")
+	}
+	vv := v.Interface()
+	if vv == nil {
+		panic("illegal value: nil interface")
+	}
+
+	vt := v.Type()
+	return vv, vt
+}
+
 func (p *DependencyInjector) check(v reflect.Value, vt reflect.Type) (bool, bool) {
 	if !v.CanSet() {
 		panic("illegal value: readonly")
