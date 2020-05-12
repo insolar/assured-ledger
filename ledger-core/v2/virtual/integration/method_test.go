@@ -21,8 +21,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -172,13 +172,13 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		waitOutputChannel = make(chan struct{}, 0)
 	)
 
-	executorMock := testutils.NewMachineLogicExecutorMock(t)
+	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
 	executorMock.CallMethodMock.Set(func(
-		ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global,
-		data []byte, method string, args insolar.Arguments,
+		ctx context.Context, callContext *call.LogicContext, code reference.Global,
+		data []byte, method string, args []byte,
 	) (
-		newObjectState []byte, methodResults insolar.Arguments, err error,
+		newObjectState []byte, methodResults []byte, err error,
 	) {
 		// tell the test that we know about next request
 		waitInputChannel <- struct{}{}
@@ -189,8 +189,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		return []byte("456"), []byte("345"), nil
 	})
 
-	manager := executor.NewManager()
-	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+	manager := machine.NewManager()
+	err := manager.RegisterExecutor(machine.Builtin, executorMock)
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 

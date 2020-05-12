@@ -7,8 +7,8 @@
 package foundation
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 )
 
@@ -50,7 +50,7 @@ func (bc *BaseContract) GetCode() reference.Global {
 }
 
 // getContext returns current calling context
-func (bc *BaseContract) getContext() *insolar.LogicCallContext {
+func (bc *BaseContract) getContext() *call.LogicContext {
 	return GetLogicalContext()
 }
 

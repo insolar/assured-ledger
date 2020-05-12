@@ -8,19 +8,19 @@ package foundation
 import (
 	"github.com/insolar/gls"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 )
 
 const glsCallContextKey = "callCtx"
 
 // GetLogicalContext returns current calling context.
-func GetLogicalContext() *insolar.LogicCallContext {
+func GetLogicalContext() *call.LogicContext {
 	ctx := gls.Get(glsCallContextKey)
 	if ctx == nil {
 		panic("object has no context")
 	}
 
-	if ctx, ok := ctx.(*insolar.LogicCallContext); ok {
+	if ctx, ok := ctx.(*call.LogicContext); ok {
 		return ctx
 	}
 
@@ -28,7 +28,7 @@ func GetLogicalContext() *insolar.LogicCallContext {
 }
 
 // SetLogicalContext saves current calling context
-func SetLogicalContext(ctx *insolar.LogicCallContext) {
+func SetLogicalContext(ctx *call.LogicContext) {
 	gls.Set(glsCallContextKey, ctx)
 }
 

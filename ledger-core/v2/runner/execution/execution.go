@@ -8,10 +8,10 @@ package execution
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -29,5 +29,5 @@ type Context struct {
 
 	Unordered bool
 
-	LogicContext insolar.LogicCallContext
+	LogicContext call.LogicContext
 }

@@ -14,13 +14,13 @@ import (
 type StateUpdateType int
 
 const (
-	_ StateUpdateType = iota
+	Undefined StateUpdateType = iota
 
-	TypeError
-	TypeAborted
-	TypeDone
+	Error
+	Aborted
+	Done
 
-	TypeOutgoingCall
+	OutgoingCall
 )
 
 type ContractExecutionStateUpdate struct {
