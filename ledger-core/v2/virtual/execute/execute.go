@@ -474,9 +474,8 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			memory,
 			parentReference,
 		))
-		if !s.migrationHappened {
-			state.DecrementPotentialPendingCounter(!s.execution.Unordered)
-		}
+
+		state.DecrementPotentialPendingCounter(!s.execution.Unordered)
 		state.SetState(object.HasState)
 	}
 }
