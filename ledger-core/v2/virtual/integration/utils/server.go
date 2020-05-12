@@ -169,10 +169,6 @@ func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
 	return s.virtual.Conveyor.AddInput(ctx, s.GetPulse().PulseNumber, msg)
 }
 
-func (s *Server) AddInputWithPulse(ctx context.Context, msg interface{}, pn insolar.PulseNumber) error {
-	return s.virtual.Conveyor.AddInput(ctx, pn, msg)
-}
-
 func (s *Server) GlobalCaller() reference.Global {
 	return s.caller
 }

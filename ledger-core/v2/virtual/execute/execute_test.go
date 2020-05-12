@@ -78,6 +78,8 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		GetPublishedLinkMock.Return(sharedStateData).
 		UseSharedMock.Set(CallSharedDataAccessor)
 
+	execCtx.SetDefaultMigrationMock.Return()
+
 	smExecute.Init(execCtx)
 	smExecute.stepUpdatePendingCounters(execCtx)
 
