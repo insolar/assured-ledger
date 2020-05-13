@@ -5,6 +5,8 @@
 
 package reference
 
+import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
 type LocalHolder interface {
 	// GetLocal returns local portion of a full reference
 	GetLocal() Local
@@ -29,6 +31,13 @@ type PtrHolder interface {
 	GetBasePtr() *Local
 }
 
+func AsRecordID(v Holder) Local {
+	if IsSelfScope(v) || IsRecordScope(v) {
+		return v.GetLocal()
+	}
+	panic(throw.IllegalState())
+}
+
 func IsRecordScope(ref Holder) bool {
 	return ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
 }
@@ -42,7 +51,8 @@ func IsSelfScope(ref Holder) bool {
 }
 
 func IsLifelineScope(ref Holder) bool {
-	return ref.GetBase().SubScope() == baseScopeLifeline
+	base := ref.GetBase()
+	return base.SubScope() == baseScopeLifeline && !base.IsEmpty()
 }
 
 func IsLocalDomainScope(ref Holder) bool {
@@ -77,4 +87,15 @@ func Compare(ref0, ref1 Holder) int {
 		return cmp
 	}
 	return ref0.GetLocal().Compare(ref1.GetLocal())
+}
+
+func Copy(h Holder) Global {
+	switch hh := h.(type) {
+	case nil:
+		return Global{}
+	case Global:
+		return hh
+	default:
+		return New(h.GetBase(), h.GetLocal())
+	}
 }

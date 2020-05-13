@@ -212,8 +212,8 @@ func TestByteString_FoldToBits64(t *testing.T) {
 			res:        Bits64{0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
 		},
 		{
-			ByteString: ByteString("\x02\x01\x02\x01\x02\x01\x02\x01\x02\x01"),
-			res:        Bits64{0x2, 0x1, 0x2, 0x1, 0x2, 0x1, 0x2, 0x1},
+			ByteString: ByteString("\x03\x03\x02\x01\x02\x01\x02\x01\x02\x01"),
+			res:        Bits64{0x1, 0x2, 0x2, 0x1, 0x2, 0x1, 0x2, 0x1},
 		},
 	} {
 		require.Equal(t, tc.res, tc.ByteString.FoldToBits64())
@@ -234,10 +234,33 @@ func TestByteString_String(t *testing.T) {
 			res:        "bits[8]0x00000002",
 		},
 		{
-			ByteString: ByteString("\x02\x01\x02\x01\x02\x01\x02\x01\x02\x01"),
-			res:        "bits[80]0x102010201020102",
+			ByteString: ByteString("\x03\x03\x02\x01\x02\x01\x02\x01\x02\x01"),
+			res:        "bits[80]0x102010201020201",
 		},
 	} {
 		require.Equal(t, tc.res, tc.ByteString.String())
+	}
+}
+
+func TestByteStringEqual(t *testing.T) {
+	require.False(t, EmptyByteString.Equal(nil))
+	require.True(t, EmptyByteString.Equal(EmptyByteString))
+	require.True(t, EmptyByteString.Equal(NewMutableFixedSize([]byte{})))
+	require.True(t, WrapStr("abc").Equal(NewMutableFixedSize([]byte("abc"))))
+}
+
+func TestByteStringFold64Unaligned(t *testing.T) {
+	var b [64 * 3 / 8]byte
+	for i := range b {
+		require.Zero(t, CopyBytes(b[:i+1]).FoldToUint64())
+		require.Zero(t, CopyBytes(b[:i+1]).FoldToBits64())
+	}
+}
+
+func TestByteStringCutOut64Unaligned(t *testing.T) {
+	var b [64 * 3 / 8]byte
+	for i := range b {
+		require.Zero(t, CopyBytes(b[:i+1]).CutOutUint64())
+		require.Zero(t, CopyBytes(b[:i+1]).CutOutBits64())
 	}
 }

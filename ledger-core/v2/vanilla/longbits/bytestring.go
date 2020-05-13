@@ -193,8 +193,9 @@ func (v ByteString) FoldToBits64() (folded Bits64) {
 		return folded
 	}
 
-	alignedLen := len(v) &^ (len(folded) - 1)
-	copy(folded[alignedLen:], v)
+	alignedLen := len(v)
+	alignedLen &^= len(folded) - 1
+	copy(folded[:], v[alignedLen:])
 
 	for i := 0; i < alignedLen; i += len(folded) {
 		folded[0] ^= v[i+0]
@@ -224,4 +225,14 @@ func (v ByteString) Hex() string {
 	b := make([]byte, hex.EncodedLen(len(v)))
 	hex.Encode(b, []byte(v))
 	return string(b)
+}
+
+func (v ByteString) Equal(other FixedReader) bool {
+	if other == nil {
+		return false
+	}
+	if s, ok := other.(ByteString); ok {
+		return s == v
+	}
+	return Equal(v, other)
 }

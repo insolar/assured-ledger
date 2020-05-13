@@ -54,6 +54,14 @@ type Global struct {
 	addressBase  Local
 }
 
+func (v Global) IsZero() bool {
+	return v.addressLocal.IsZero() && v.addressBase.IsZero()
+}
+
+func (v Global) IsEmpty() bool {
+	return v.addressLocal.IsEmpty() && v.addressBase.IsEmpty()
+}
+
 func (v Global) GetScope() Scope {
 	return v.addressBase.SubScope().AsBaseOf(v.addressLocal.SubScope())
 }
@@ -78,8 +86,8 @@ func (v Global) AsBytes() []byte {
 	return val
 }
 
-func (v Global) IsEmpty() bool {
-	return v.addressLocal.IsEmpty() && v.addressBase.IsEmpty()
+func (v Global) AsRecordID() Local {
+	return AsRecordID(v)
 }
 
 func (v Global) IsRecordScope() bool {
@@ -149,7 +157,7 @@ func (v *Global) tryConvertToCompact() Holder {
 	case v.addressBase.IsEmpty():
 		return NewPtrRecord(v.addressLocal)
 	case v.addressLocal.IsEmpty():
-		return NewPtrHolder(v.addressLocal, v.addressBase)
+		return NewPtrHolder(v.addressBase, v.addressLocal)
 	case v.addressBase == v.addressLocal:
 		return NewPtrSelf(v.addressLocal)
 	default:
@@ -215,7 +223,7 @@ func (v *Global) Unmarshal(data []byte) (err error) {
 		*v = Global{}
 		return nil
 	}
-	v.addressLocal, v.addressBase, err = Unmarshal(data)
+	*v, err = UnmarshalGlobal(data)
 	return
 }
 
@@ -224,21 +232,26 @@ func (v *Global) UnmarshalBinary(data []byte) error {
 	return v.Unmarshal(data)
 }
 
-// deprecated: use reference.ProtoSize
+// deprecated: use reference.BinarySize
 func (v Global) Size() int {
-	return ProtoSize(v)
+	return BinarySize(v)
 }
 
 // deprecated
 func (v *Global) ProtoSize() int {
-	return ProtoSize(v)
+	return BinarySize(v)
 }
 
 func GlobalFromString(input string) (Global, error) {
 	global, err := DefaultDecoder().Decode(input)
-	if err != nil {
+	switch {
+	case err != nil:
 		return Global{}, err
+	case global.addressBase.IsZero():
+		// TODO enable when relevant logic in tests will be fixed
+		// return Global{}, errors.New("base is zero")
 	}
+
 	return global, nil
 }
 
@@ -256,10 +269,11 @@ func GlobalObjectFromString(input string) (Global, error) {
 	return global, nil
 }
 
-func GlobalFromBytes(data []byte) Global {
-	local, base, err := Unmarshal(data)
+func GlobalFromBytes(data []byte) (v Global) {
+	var err error
+	v, err = UnmarshalGlobal(data)
 	if err != nil {
 		panic(throw.IllegalValue())
 	}
-	return New(base, local)
+	return v
 }
