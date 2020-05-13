@@ -97,7 +97,7 @@ func (p *plugin) Generate(file *generator.FileDescriptor) {
 			}
 
 			if insproto.IsCustomContextApply(field) && !insproto.IsCustomContext(file.FileDescriptorProto, message.DescriptorProto) {
-				printerr("WARNING: field %v.%v has delegate without context\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
+				printerr("WARNING: field %v.%v has context apply without a context type\n", generator.CamelCase(*message.Name), generator.CamelCase(*field.Name))
 			}
 
 			if field.GetTypeName() == insproto.FieldMapFQN {

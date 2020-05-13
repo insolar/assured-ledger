@@ -29,14 +29,13 @@ func IsMessageHead(file *descriptor.FileDescriptorProto, message *generator.Desc
 }
 
 // This does Projection field mapping before any plugin.Generate()
-// Mapping requires a map of all types, that is available on plugin.Init(), but there is no
+// Mapping requires a map of all types, that is available on plugin.Init()
 
 func (p *Projection) Init(g *generator.Generator) {
 	files := p.Generator.Request.GetProtoFile()
 
 	files = vanity.FilterFiles(files, vanity.NotGoogleProtobufDescriptorProto)
 	vanity.ForEachFile(files, p.setFileProjections)
-
 }
 
 func (p *Projection) setFileProjections(file *descriptor.FileDescriptorProto) {
@@ -74,6 +73,11 @@ func (p *Projection) setMessageProjDesc(file *descriptor.FileDescriptorProto, pa
 	{
 		context := insproto.GetCustomContext(file, parent)
 		if err := proto.SetExtension(message.Options, insproto.E_Context, &context); err != nil {
+			panic(err)
+		}
+
+		contextMethod := insproto.GetCustomContextMethod(file, parent)
+		if err := proto.SetExtension(message.Options, insproto.E_ContextMethod, &contextMethod); err != nil {
 			panic(err)
 		}
 	}
@@ -211,7 +215,7 @@ func (p *fieldScanner) scanFields(prefix []string, parent *descriptor.Descriptor
 	for _, parentField := range parent.GetField() {
 		field := p.popField(parentField.GetNumber())
 		if field == nil {
-			if parentField.IsMessage() && gogoproto.IsEmbed(parentField) {
+			if parentField.IsMessage() && gogoproto.IsEmbed(parentField) && !gogoproto.IsNullable(parentField) {
 				typeName := parentField.GetTypeName()
 				embedded := p.findType(prefix, typeName)
 				if pos := strings.LastIndexByte(typeName, '.'); pos >= 0 {
