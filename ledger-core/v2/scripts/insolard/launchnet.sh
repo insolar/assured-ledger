@@ -10,7 +10,6 @@ LAUNCHNET_BASE_DIR=${LAUNCHNET_BASE_DIR:-"${INSOLAR_ARTIFACTS_DIR}launchnet"}/
 
 INSOLAR_LOG_FORMATTER=${INSOLAR_LOG_FORMATTER:-""}
 INSOLAR_LOG_LEVEL=${INSOLAR_LOG_LEVEL:-"debug"}
-GORUND_LOG_LEVEL=${GORUND_LOG_LEVEL:-${INSOLAR_LOG_LEVEL}}
 # we can skip build binaries (by default in CI environment they skips)
 SKIP_BUILD=${SKIP_BUILD:-${CI_ENV}}
 BUILD_TAGS=${BUILD_TAGS:-'-tags "debug"'}
@@ -19,12 +18,10 @@ BUILD_TAGS=${BUILD_TAGS:-'-tags "debug"'}
 
 LAUNCHNET_LOGS_DIR=${LAUNCHNET_BASE_DIR}logs/
 DISCOVERY_NODE_LOGS=${LAUNCHNET_LOGS_DIR}discoverynodes/
-INSGORUND_LOGS=${LAUNCHNET_LOGS_DIR}insgorund/
 
 BIN_DIR=bin
 INSOLAR_CLI=${BIN_DIR}/insolar
 INSOLARD=$BIN_DIR/insolard
-INSGORUND=$BIN_DIR/insgorund
 KEEPERD=$BIN_DIR/keeperd
 PULSARD=$BIN_DIR/pulsard
 PULSEWATCHER=$BIN_DIR/pulsewatcher
@@ -55,8 +52,6 @@ KEEPERD_CONFIG=${LAUNCHNET_BASE_DIR}keeperd.yaml
 KEEPERD_LOG=${LAUNCHNET_LOGS_DIR}keeperd.log
 
 PULSEWATCHER_CONFIG=${LAUNCHNET_BASE_DIR}pulsewatcher.yaml
-
-INSGORUND_PORT_FILE=${CONFIGS_DIR}insgorund_ports.txt
 
 set -x
 export INSOLAR_LOG_FORMATTER=${INSOLAR_LOG_FORMATTER}
@@ -105,9 +100,8 @@ kill_port()
 
 kill_all()
 {
-  echo "kill all processes: insgorund, insolard, pulsard"
+  echo "kill all processes: insolard, pulsard"
   set +e
-  killall insgorund
   killall insolard
   killall pulsard
   set -e
@@ -116,22 +110,7 @@ kill_all()
 stop_listening()
 {
     echo "stop_listening(): starts ..."
-    stop_insgorund=$1
     ports="$ports 58090" # Pulsar
-    if [[ "$stop_insgorund" == "true" ]]
-    then
-        echo "stop_listening(): stop insgorund"
-        gorund_ports=
-        while read -r line; do
-            listen_port=$( echo "$line" | awk '{print $1}' )
-            rpc_port=$( echo "$line" | awk '{print $2}' )
-
-            gorund_ports="$gorund_ports $listen_port $rpc_port"
-        done < "$INSGORUND_PORT_FILE"
-
-        gorund_ports="$gorund_ports $(echo $(pgrep insgorund ))"
-        ports="$ports $gorund_ports"
-    fi
 
     transport_ports=$( grep "host:" ${BOOTSTRAP_CONFIG} | grep -o ":\d\+" | grep -o "\d\+" | tr '\n' ' ' )
     keeperd_port=$( grep "listenaddress:" ${KEEPERD_CONFIG} | grep -o ":\d\+" | grep -o "\d\+" | tr '\n' ' ' )
@@ -178,8 +157,6 @@ create_required_dirs()
 
     mkdir -p ${PULSAR_DATA_DIR}
 
-    mkdir -p ${INSGORUND_LOGS}
-    touch $INSGORUND_PORT_FILE
     { set +x; } 2>/dev/null
 
     for i in `seq 1 $NUM_DISCOVERY_NODES`
@@ -196,7 +173,7 @@ generate_insolard_configs()
 {
     echo "generate configs"
     set -x
-    go run -mod=vendor scripts/generate_insolar_configs.go -p ${INSGORUND_PORT_FILE}
+    go run -mod=vendor scripts/generate_insolar_configs.go
     { set +x; } 2>/dev/null
 }
 
@@ -204,7 +181,7 @@ prepare()
 {
     echo "prepare() starts ..."
     if [[ "$NO_STOP_LISTENING_ON_PREPARE" != "1" ]]; then
-        stop_listening $run_insgorund
+        stop_listening
     fi
     clear_dirs
     create_required_dirs
@@ -293,7 +270,6 @@ usage()
     echo "usage: $0 [options]"
     echo "possible options: "
     echo -e "\t-h - show help"
-    echo -e "\t-n - don't run insgorund"
     echo -e "\t-g - start launchnet"
     echo -e "\t-b - do bootstrap only and exit, show bootstrap logs"
     echo -e "\t-l - clear all and exit"
@@ -316,9 +292,6 @@ process_input_params()
         h|\?)
             usage
             exit 0
-            ;;
-        n)
-            run_insgorund=false
             ;;
         g)
             if [[ "$OPTARG" == "headless" ]]
@@ -349,26 +322,6 @@ process_input_params()
             exit $?
         esac
     done
-}
-
-launch_insgorund()
-{
-    host=127.0.0.1
-    metrics_port=28223
-    while read -r line; do
-
-        metrics_port=$((metrics_port + 20))
-        listen_port=$( echo "$line" | awk '{print $1}' )
-        rpc_port=$( echo "$line" | awk '{print $2}' )
-
-        ${INSGORUND} \
-            -l ${host}:${listen_port} \
-            --rpc ${host}:${rpc_port} \
-            --log-level=${GORUND_LOG_LEVEL} \
-            --metrics :${metrics_port} \
-            &> ${INSGORUND_LOGS}${rpc_port}.log &
-
-    done < "${INSGORUND_PORT_FILE}"
 }
 
 launch_keeperd()
@@ -452,7 +405,6 @@ bootstrap()
     copy_discovery_certs
 }
 
-run_insgorund=true
 watch_pulse=true
 run_pulsar=true
 check_working_dir
@@ -474,14 +426,6 @@ else
 fi
 
 launch_keeperd
-
-if [[ "$run_insgorund" == "true" ]]
-then
-    echo "start insgorund ..."
-    launch_insgorund
-else
-    echo "insgorund launch skip"
-fi
 
 handle_sigchld()
 {
@@ -523,7 +467,7 @@ done
 
 echo "discovery nodes started ..."
 
-if [[ "$NUM_NODES" -ne "0"  && "$run_insgorund" == "true" ]]
+if [[ "$NUM_NODES" -ne "0" ]]
 then
     wait_for_complete_network_state
     if [[ "$GENESIS" == "1" ]]; then

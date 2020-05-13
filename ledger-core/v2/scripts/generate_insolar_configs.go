@@ -52,9 +52,8 @@ var (
 )
 
 var (
-	outputDir       string
-	debugLevel      string
-	gorundPortsPath string
+	outputDir  string
+	debugLevel string
 )
 
 func parseInputParams() {
@@ -64,16 +63,9 @@ func parseInputParams() {
 		&outputDir, "output", "o", baseDir(), "output directory")
 	rootCmd.Flags().StringVarP(
 		&debugLevel, "debuglevel", "d", "Debug", "debug level")
-	rootCmd.Flags().StringVarP(
-		&gorundPortsPath, "gorundports", "p", "", "path to insgorund ports (required)")
 
 	err := rootCmd.Execute()
 	check("Wrong input params:", err)
-
-	if gorundPortsPath == "" {
-		err := rootCmd.Usage()
-		check("[ parseInputParams ]", err)
-	}
 }
 
 func writeInsolardConfigs(dir string, insolardConfigs []configuration.Configuration) {

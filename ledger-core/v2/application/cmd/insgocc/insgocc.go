@@ -19,8 +19,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/preprocessor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/preprocessor"
 )
 
 type outputFlag struct {
