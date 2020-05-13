@@ -104,37 +104,45 @@ func (p *Projection) setMessageProjDesc(file *descriptor.FileDescriptorProto, pa
 }
 
 func (p *Projection) Generate(file *generator.FileDescriptor, message *generator.Descriptor, ccTypeName string) {
-	var headName []string
+	var projName []string
+	var projections []string
 
 	for _, subMsg := range message.GetNestedType() {
 		if !insproto.IsProjection(file.FileDescriptorProto, subMsg) {
 			continue
 		}
-		if len(headName) == 0 {
-			headName = message.TypeName()
-			headName = append(headName, "")
+		if len(projName) == 0 {
+			projName = message.TypeName()
+			projName = append(projName, "")
 			p.P()
 		}
 		name := subMsg.GetName()
-		headName[len(headName)-1] = name
-		ccHeadTypeName := generator.CamelCaseSlice(headName)
+		projName[len(projName)-1] = name
+		projections = append(projections, name)
+		ccProjTypeName := generator.CamelCaseSlice(projName)
 
-		p.P(`type `, ccTypeName, name, ` `, ccHeadTypeName, `Face`)
-		p.P(`type `, ccHeadTypeName, ` `, ccTypeName)
+		p.P(`type `, ccTypeName, name, ` `, ccProjTypeName, `Face`)
+		p.P(`type `, ccProjTypeName, ` `, ccTypeName)
 		p.P()
-		p.P(`func (m *`, ccTypeName, `) As`, name, `() *`, ccHeadTypeName, ` {`)
+		p.P(`func (m *`, ccTypeName, `) As`, name, `() *`, ccProjTypeName, ` {`)
 		p.In()
-		p.P(`return (*`, ccHeadTypeName, `)(m)`)
+		p.P(`return (*`, ccProjTypeName, `)(m)`)
 		p.Out()
 		p.P(`}`)
 		p.P()
 		p.P(`func (m *`, ccTypeName, `) As`, name, `Face() `, ccTypeName, name, ` {`)
 		p.In()
-		p.P(`return (*`, ccHeadTypeName, `)(m)`)
+		p.P(`return (*`, ccProjTypeName, `)(m)`)
 		p.Out()
 		p.P(`}`)
 		p.P()
-		p.P(`func (m *`, ccHeadTypeName, `) As`, message.GetName(), `() *`, ccTypeName, ` {`)
+		p.P(`func (m *`, ccProjTypeName, `) As`, message.GetName(), `() *`, ccTypeName, ` {`)
+		p.In()
+		p.P(`return (*`, ccTypeName, `)(m)`)
+		p.Out()
+		p.P(`}`)
+		p.P()
+		p.P(`func (m *`, ccProjTypeName, `) AsProjectionBase() interface{} {`)
 		p.In()
 		p.P(`return (*`, ccTypeName, `)(m)`)
 		p.Out()
@@ -142,7 +150,21 @@ func (p *Projection) Generate(file *generator.FileDescriptor, message *generator
 		p.P()
 	}
 
-	if len(headName) > 0 {
+	if len(projections) > 0 {
+		p.P()
+		p.P(`func (m *`, ccTypeName, `) AsProjection(name string) interface{} {`)
+		p.In()
+		p.P(`switch name {`)
+		for _, name := range projections {
+			p.P(`case "`, name, `":`)
+			p.In()
+			p.P(`return m.As`, name, `()`)
+			p.Out()
+		}
+		p.P(`}`)
+		p.P(`return nil`)
+		p.Out()
+		p.P(`}`)
 		p.P()
 	}
 }

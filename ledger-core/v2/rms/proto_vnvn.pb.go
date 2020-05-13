@@ -245,6 +245,18 @@ func (m *MessageExample_Head) AsMessageExample() *MessageExample {
 	return (*MessageExample)(m)
 }
 
+func (m *MessageExample_Head) AsProjectionBase() interface{} {
+	return (*MessageExample)(m)
+}
+
+func (m *MessageExample) AsProjection(name string) interface{} {
+	switch name {
+	case "Head":
+		return m.AsHead()
+	}
+	return nil
+}
+
 func (m *MessageExample) SetupContext(ctx MessageContext) error {
 	if err := ctx.MsgRecord(m, 19, &m.RecordExample); err != nil {
 		return err

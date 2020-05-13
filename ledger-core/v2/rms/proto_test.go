@@ -54,6 +54,11 @@ func TestExampleUnmarshal(t *testing.T) {
 	require.True(t, m.RecordExample.Equal(r2))
 
 	head := m.AsHead()
+
+	require.True(t, head == m.AsProjection("Head"))
+	require.True(t, m == head.AsProjectionBase())
+	require.True(t, m == head.AsMessageExample())
+
 	b, err = head.Marshal()
 	require.NoError(t, err)
 	require.NotEmpty(t, b)
