@@ -4,7 +4,6 @@ run:
   skip-dirs:
     - application/contract/
     - application/proxy/
-    - logicrunner/goplugin/ginsider/healthcheck
     - ledger-v2/*
 
 linters:

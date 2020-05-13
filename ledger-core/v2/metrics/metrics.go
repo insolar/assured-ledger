@@ -25,7 +25,6 @@ import (
 )
 
 const insolarNamespace = "insolar"
-const insgorundNamespace = "insgorund"
 
 // Metrics is a component which serve metrics data to Prometheus.
 type Metrics struct {
