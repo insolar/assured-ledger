@@ -432,6 +432,12 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 }
 
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	var memory []byte = nil
+	if !s.execution.Unordered {
+		memory = s.executionNewState.Result.Memory
+	}
+
 	msg := payload.VDelegatedRequestFinished{
 		CallType:           s.Payload.CallType,
 		CallFlags:          s.Payload.CallFlags,
@@ -442,7 +448,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		EntryHeadHash:      nil,
 		DelegationSpec:     nil,
 		DelegatorSignature: nil,
-		ObjectBody:         s.executionNewState.Result.Memory,
+		ObjectBody:         memory,
 	}
 
 	goCtx := ctx.GetContext()
@@ -476,7 +482,9 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			parentReference,
 		))
 
-		state.DecrementPotentialPendingCounter(!s.execution.Unordered)
+		if !s.migrationHappened {
+			state.DecrementPotentialPendingCounter(!s.execution.Unordered)
+		}
 		state.SetState(object.HasState)
 	}
 }

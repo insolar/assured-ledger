@@ -7,6 +7,7 @@ package small
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -36,15 +37,11 @@ func makeEmptyResult(t *testing.T) []byte {
 	return emptyResult
 }
 
-func mockExecutor(t *testing.T, server *utils.Server, newRawWalletState []byte) {
-	executorMock := testutils.NewMachineLogicExecutorMock(t)
-	executorMock.CallMethodMock.Set(func(ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global, data []byte, method string, args insolar.Arguments) (newObjectState []byte, methodResults insolar.Arguments, err error) {
-		// we want to change pulse during execution
-		server.IncrementPulse(ctx)
+type callMethodFunc = func(ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global, data []byte, method string, args insolar.Arguments) (newObjectState []byte, methodResults insolar.Arguments, err error)
 
-		emptyResult := makeEmptyResult(t)
-		return newRawWalletState, emptyResult, nil
-	})
+func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc) {
+	executorMock := testutils.NewMachineLogicExecutorMock(t)
+	executorMock.CallMethodMock.Set(callMethod)
 	manager := executor.NewManager()
 	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
 	require.NoError(t, err)
@@ -69,13 +66,30 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
+	objectRef := gen.Reference()
+
+	{
+		// send VStateReport: save wallet
+		rawWalletState := makeRawWalletState(t, testBalance)
+		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
+		require.NoError(t, server.AddInput(ctx, msg))
+
+		server.IncrementPulse(ctx)
+	}
 
 	// generate new state since it will be changed by CallAPIAddAmount
 	newRawWalletState := makeRawWalletState(t, testBalance+uint32(additionalBalance))
 
-	mockExecutor(t, server, newRawWalletState)
+	callMethod := func(ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global, data []byte, method string, args insolar.Arguments) (newObjectState []byte, methodResults insolar.Arguments, err error) {
+		// we want to change pulse during execution
+		server.IncrementPulse(ctx)
 
-	objectRef := gen.Reference()
+		emptyResult := makeEmptyResult(t)
+		return newRawWalletState, emptyResult, nil
+	}
+
+	mockExecutor(t, server, callMethod)
 
 	var countVCallResult int
 	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
@@ -90,18 +104,10 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 		switch payLoadData := pl.(type) {
 		case *payload.VDelegatedRequestFinished:
 			gotDelegatedRequestFinished <- payLoadData
-		case *payload.VStateRequest:
-			{
-				// send VStateReport: save wallet
-				rawWalletState := makeRawWalletState(t, testBalance)
-				stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-				msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-				require.NoError(t, server.AddInput(ctx, msg))
-			}
-			return nil
 		case *payload.VCallResult:
 			countVCallResult++
 		default:
+			fmt.Printf("Going message: %T", payLoadData)
 		}
 
 		server.SendMessage(ctx, messages[0])
