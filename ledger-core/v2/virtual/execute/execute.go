@@ -396,7 +396,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}
 
-	action = s.updateCounters()
+	action = func(state *object.SharedState) {
+		s.decrementCounters(state)
+	}
 
 	switch s.executionNewState.Result.Type() {
 	case insolar.RequestSideEffectNone:
@@ -462,11 +464,9 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	return ctx.Jump(s.stepSendCallResult)
 }
 
-func (s *SMExecute) updateCounters() func(state *object.SharedState) {
-	return func(state *object.SharedState) {
-		if !s.migrationHappened {
-			state.DecrementPotentialPendingCounter(!s.execution.Unordered)
-		}
+func (s *SMExecute) decrementCounters(state *object.SharedState) {
+	if !s.migrationHappened {
+		state.DecrementPotentialPendingCounter(!s.execution.Unordered)
 	}
 }
 
@@ -493,7 +493,7 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			parentReference,
 		))
 
-		s.updateCounters()
+		s.decrementCounters(state)
 		state.SetState(object.HasState)
 	}
 }
