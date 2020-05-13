@@ -99,7 +99,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 	select {
 	case err := <-requestIsDone:
 		return err
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		return errors.New("timeout")
 	}
 }
@@ -157,7 +157,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 
 		select {
 		case <-requestIsDone:
-		case <-time.After(3 * time.Second):
+		case <-time.After(10 * time.Second):
 			require.Failf(t, "", "timeout")
 		}
 	}
@@ -246,7 +246,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			select {
 			case <-waitInputChannel:
-			case <-time.After(3 * time.Second):
+			case <-time.After(10 * time.Second):
 				require.Failf(t, "", "timeout")
 			}
 		}
@@ -256,7 +256,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 			select {
 			case <-requestIsDone:
-			case <-time.After(3 * time.Second):
+			case <-time.After(10 * time.Second):
 				require.Failf(t, "", "timeout")
 			}
 		}
@@ -389,7 +389,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	// Change pulse to force send VStateRequest
 	server.IncrementPulse(ctx)
 
-	checkBalance(t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectRef, testBalance)
 
 	expectedNum := uint(1)
 	require.Equal(t, expectedNum, vStateReportCount)

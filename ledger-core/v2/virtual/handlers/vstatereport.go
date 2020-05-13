@@ -18,6 +18,9 @@ type SMVStateReport struct {
 	// input arguments
 	Meta    *payload.Meta
 	Payload *payload.VStateReport
+
+	// dependencies
+	objectCatalog object.Catalog
 }
 
 var dSMVStateReportInstance smachine.StateMachineDeclaration = &dSMVStateReport{}
@@ -26,7 +29,10 @@ type dSMVStateReport struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVStateReport) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (*dSMVStateReport) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := sm.(*SMVStateReport)
+
+	injector.MustInject(&s.objectCatalog)
 }
 
 func (*dSMVStateReport) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -45,8 +51,6 @@ func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.State
 }
 
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	catalog := object.Catalog{}
-
 	objectRef := s.Payload.Callee
 	var (
 		objectDescriptor descriptor.Object
@@ -69,7 +73,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 
 	deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
 
-	sharedObjectState := catalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
+	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if state.IsReady() {

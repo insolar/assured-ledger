@@ -7,14 +7,20 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+)
+
+const (
+	apiTimeout = 10 * time.Second
 )
 
 type WalletCreateResponse struct {
@@ -93,10 +99,13 @@ func UnmarshalWalletTransferResponse(resp []byte) (WalletTransferResponse, error
 }
 
 // Utility function RE wallet + HTTP API
-func (s *Server) CallAPICreateWallet() (int, []byte) {
+func (s *Server) CallAPICreateWallet(ctx context.Context) (int, []byte) {
+	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
+	defer cancel()
+
 	var (
 		responseWriter = httptest.NewRecorder()
-		httpRequest    = httptest.NewRequest("POST", "/wallet/create", strings.NewReader(""))
+		httpRequest    = httptest.NewRequest("POST", "/wallet/create", strings.NewReader("")).WithContext(ctx)
 	)
 
 	s.testWalletServer.Create(responseWriter, httpRequest)
@@ -114,7 +123,10 @@ func (s *Server) CallAPICreateWallet() (int, []byte) {
 }
 
 // nolint:interfacer
-func (s *Server) CallAPIAddAmount(wallet reference.Global, amount uint) (int, []byte) {
+func (s *Server) CallAPIAddAmount(ctx context.Context, wallet reference.Global, amount uint) (int, []byte) {
+	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
+	defer cancel()
+
 	bodyBuffer := bytes.NewBuffer(nil)
 
 	{
@@ -129,7 +141,7 @@ func (s *Server) CallAPIAddAmount(wallet reference.Global, amount uint) (int, []
 
 	var (
 		responseWriter = httptest.NewRecorder()
-		httpRequest    = httptest.NewRequest("POST", "/wallet/add_amount", bodyBuffer)
+		httpRequest    = httptest.NewRequest("POST", "/wallet/add_amount", bodyBuffer).WithContext(ctx)
 	)
 
 	s.testWalletServer.AddAmount(responseWriter, httpRequest)
@@ -147,7 +159,10 @@ func (s *Server) CallAPIAddAmount(wallet reference.Global, amount uint) (int, []
 }
 
 // nolint:interfacer
-func (s *Server) CallAPITransfer(walletFrom reference.Global, walletTo reference.Global, amount uint) (int, []byte) {
+func (s *Server) CallAPITransfer(ctx context.Context, walletFrom reference.Global, walletTo reference.Global, amount uint) (int, []byte) {
+	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
+	defer cancel()
+
 	bodyBuffer := bytes.NewBuffer(nil)
 
 	{
@@ -163,7 +178,7 @@ func (s *Server) CallAPITransfer(walletFrom reference.Global, walletTo reference
 
 	var (
 		responseWriter = httptest.NewRecorder()
-		httpRequest    = httptest.NewRequest("POST", "/wallet/transfer", bodyBuffer)
+		httpRequest    = httptest.NewRequest("POST", "/wallet/transfer", bodyBuffer).WithContext(ctx)
 	)
 
 	s.testWalletServer.Transfer(responseWriter, httpRequest)
@@ -181,7 +196,10 @@ func (s *Server) CallAPITransfer(walletFrom reference.Global, walletTo reference
 }
 
 // nolint:interfacer
-func (s *Server) CallAPIGetBalance(wallet reference.Global) (int, []byte) {
+func (s *Server) CallAPIGetBalance(ctx context.Context, wallet reference.Global) (int, []byte) {
+	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
+	defer cancel()
+
 	bodyBuffer := bytes.NewBuffer(nil)
 
 	{
@@ -195,7 +213,7 @@ func (s *Server) CallAPIGetBalance(wallet reference.Global) (int, []byte) {
 
 	var (
 		responseWriter = httptest.NewRecorder()
-		httpRequest    = httptest.NewRequest("POST", "/wallet/get_balance", bodyBuffer)
+		httpRequest    = httptest.NewRequest("POST", "/wallet/get_balance", bodyBuffer).WithContext(ctx)
 	)
 
 	s.testWalletServer.GetBalance(responseWriter, httpRequest)

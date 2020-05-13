@@ -17,8 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var byteOrder = binary.BigEndian
-
 type LocalHash = longbits.Bits224
 
 var nearestPo2 = int(args.CeilingPowerOfTwo(uint(len(LocalHash{}))))
@@ -50,16 +48,16 @@ func NewLocal(pn pulse.Number, scope SubScope, hash LocalHash) Local {
 	if !pn.IsSpecialOrTimePulse() {
 		panic(fmt.Sprintf("illegal value: %d", pn))
 	}
-	return Local{pulseAndScope: pn.WithFlags(int(scope)), hash: hash}
-}
-
-func NewLocalTemplate(pn pulse.Number, scope SubScope) Local {
-	return Local{pulseAndScope: pn.WithFlags(int(scope))}
+	return Local{pulseAndScope: NewLocalHeader(pn, scope), hash: hash}
 }
 
 type Local struct {
-	pulseAndScope uint32 // pulse + scope
+	pulseAndScope LocalHeader
 	hash          LocalHash
+}
+
+func (v Local) IsZero() bool {
+	return v.pulseAndScope == 0
 }
 
 func (v Local) IsEmpty() bool {
@@ -71,19 +69,25 @@ func (v Local) NotEmpty() bool {
 }
 
 func (v Local) GetPulseNumber() pulse.Number {
-	return pulse.OfUint32(v.pulseAndScope)
+	return v.pulseAndScope.Pulse()
 }
 
 func (v Local) GetHash() LocalHash {
 	return v.hash
 }
 
+func (v Local) GetHeader() LocalHeader {
+	return v.pulseAndScope
+}
+
 func (v Local) SubScope() SubScope {
-	return SubScope(pulse.FlagsOf(v.pulseAndScope))
+	return v.pulseAndScope.SubScope()
 }
 
 func (v Local) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write(v.pulseAndScopeAsBytes())
+	val := make([]byte, LocalBinaryPulseAndScopeSize)
+	v.pulseAndScopeToBytes(val)
+	n, err := w.Write(val)
 	if err != nil {
 		return int64(n), err
 	}
@@ -99,22 +103,20 @@ func (v Local) AsByteString() longbits.ByteString {
 
 func (v Local) AsBytes() []byte {
 	val := make([]byte, LocalBinarySize)
-	byteOrder.PutUint32(val, v.pulseAndScope)
+	v.pulseAndScopeToBytes(val)
 	_ = v.hash.CopyTo(val[LocalBinaryPulseAndScopeSize:])
 	return val
 }
 
-func (v Local) pulseAndScopeAsBytes() []byte {
-	val := make([]byte, LocalBinaryPulseAndScopeSize)
-	byteOrder.PutUint32(val, v.pulseAndScope)
-	return val
+func (v Local) pulseAndScopeToBytes(b []byte) {
+	binary.BigEndian.PutUint32(b, uint32(v.pulseAndScope))
 }
 
-func (v Local) AsReader() io.ByteReader {
-	return v.asReader(LocalBinarySize)
+func pulseAndScopeFromBytes(b []byte) LocalHeader {
+	return LocalHeader(binary.BigEndian.Uint32(b))
 }
 
-func (v Local) asReader(limit uint8) *byteReader {
+func (v Local) asEncoderReader(limit uint8) *byteReader {
 	return &byteReader{v: v, s: limit}
 }
 
@@ -128,7 +130,7 @@ func (v Local) Encode(enc Encoder) string {
 }
 
 func (v Local) String() string {
-	return v.Encode(DefaultEncoder())
+	return v.pulseAndScope.String() + `/` + v.Encode(DefaultEncoder())
 }
 
 func (v Local) Compare(other Local) int {
@@ -145,10 +147,14 @@ func (v Local) Pulse() pulse.Number {
 	return v.GetPulseNumber()
 }
 
-func (v Local) IdentityHash() []byte {
+func (v Local) IdentityHashBytes() []byte {
 	rv := make([]byte, len(v.hash))
 	copy(rv, v.hash[:])
 	return rv
+}
+
+func (v Local) IdentityHash() LocalHash {
+	return v.hash
 }
 
 func (v Local) hashLen() int {
@@ -164,7 +170,7 @@ func (v Local) GetLocal() Local {
 
 // DebugString prints ID in human readable form.
 func (v Local) DebugString() string {
-	return fmt.Sprintf("%s [%d | %d | %s]", v.String(), v.Pulse(), v.SubScope(), base64.RawURLEncoding.EncodeToString(v.IdentityHash()))
+	return fmt.Sprintf("%s [%d | %d | %s]", v.String(), v.Pulse(), v.SubScope(), base64.RawURLEncoding.EncodeToString(v.IdentityHashBytes()))
 }
 
 func (v Local) canConvertToSelf() bool {
@@ -180,13 +186,28 @@ func (v Local) WithHash(hash LocalHash) Local {
 	return v
 }
 
-func (v *Local) asWriter() *byteWriter {
+func (v Local) WithPulse(pn pulse.Number) Local {
+	v.pulseAndScope = v.pulseAndScope.WithPulse(pn)
+	return v
+}
+
+func (v Local) WithSubScope(scope SubScope) Local {
+	v.pulseAndScope = v.pulseAndScope.WithSubScope(scope)
+	return v
+}
+
+func (v Local) WithHeader(h LocalHeader) Local {
+	v.pulseAndScope = h
+	return v
+}
+
+func (v *Local) asDecoderWriter() *byteWriter {
 	return &byteWriter{v: v}
 }
 
-// deprecated: use reference.ProtoSizeLocal
+// deprecated: use reference.BinarySizeLocal
 func (v Local) Size() int {
-	return ProtoSizeLocal(v)
+	return BinarySizeLocal(v)
 }
 
 // deprecated: use reference.MarshalLocalTo
@@ -234,9 +255,9 @@ func (p *byteWriter) WriteByte(c byte) error {
 	switch {
 	case p.o < LocalBinaryPulseAndScopeSize:
 		shift := (3 - p.o) << 3
-		p.v.pulseAndScope = uint32(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
+		p.v.pulseAndScope = LocalHeader(c)<<shift | p.v.pulseAndScope&^(0xFF<<shift)
 	case p.isFull():
-		return io.ErrUnexpectedEOF
+		return io.ErrShortBuffer
 	default:
 		p.v.hash[p.o-LocalBinaryPulseAndScopeSize] = c
 	}

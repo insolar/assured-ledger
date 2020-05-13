@@ -74,5 +74,5 @@ func ParseLevel(levelStr string) (Level, error) {
 	case PanicLevel.String():
 		return PanicLevel, nil
 	}
-	return Disabled, fmt.Errorf("unknown Level String: '%s', defaulting to NoLevel", levelStr)
+	return NoLevel, fmt.Errorf("unknown Level String: '%s', defaulting to NoLevel", levelStr)
 }

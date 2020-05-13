@@ -111,6 +111,10 @@ func (c fixedSize) AsByteString() ByteString {
 	return ByteString(c.data)
 }
 
+func (c fixedSize) String() string {
+	return ByteString(c.data).String()
+}
+
 func (c fixedSize) WriteTo(w io.Writer) (n int64, err error) {
 	n32, err := w.Write(c.data)
 	return int64(n32), err
@@ -137,7 +141,11 @@ func (c fixedSize) AsBytes() []byte {
 }
 
 func AsBytes(v FixedReader) []byte {
-	data := make([]byte, v.FixedByteSize())
+	n := v.FixedByteSize()
+	if n == 0 {
+		return nil
+	}
+	data := make([]byte, n)
 	if v.CopyTo(data) != len(data) {
 		panic(throw.Impossible())
 	}

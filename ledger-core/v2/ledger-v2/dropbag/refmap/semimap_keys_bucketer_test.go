@@ -22,10 +22,10 @@ func TestBucketing(t *testing.T) {
 		refLocal := makeLocal(i)
 		for j := i & 3; j >= 0; j-- {
 			refBase := makeLocal(i + j*1e6)
-			ref := reference.NewNoCopy(&refLocal, &refBase)
+			ref := reference.NewNoCopy(&refBase, &refLocal)
 			locator := ValueLocator(i*100 + 99)
 			m.Put(ref, locator)
-			//fmt.Println("	REF[", i, "]	", refLocal.GetPulseNumber(), refBase.GetPulseNumber(), "=>", locator)
+			// fmt.Println("	REF[", i, "]	", refLocal.GetPulseNumber(), refBase.GetPulseNumber(), "=>", locator)
 		}
 	}
 

@@ -107,6 +107,10 @@ func (p *PulseConveyor) AddDependency(v interface{}) {
 	p.slotMachine.AddDependency(v)
 }
 
+func (p *PulseConveyor) AddInterfaceDependency(v interface{}) {
+	p.slotMachine.AddInterfaceDependency(v)
+}
+
 func (p *PulseConveyor) FindDependency(id string) (interface{}, bool) {
 	return p.slotMachine.FindDependency(id)
 }
