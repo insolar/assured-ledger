@@ -396,6 +396,8 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}
 
+	action = s.updateCounters()
+
 	switch s.executionNewState.Result.Type() {
 	case insolar.RequestSideEffectNone:
 	case insolar.RequestSideEffectActivate:
@@ -410,18 +412,16 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if action != nil {
-		switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-		case smachine.NotPassed:
-			return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-		case smachine.Impossible:
-			ctx.Log().Fatal("failed to get object state: already dead")
-		case smachine.Passed:
-			// go further
-		default:
-			// TODO[bigbes]: handle object is gone here the right way
-			panic(throw.NotImplemented())
-		}
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+		// go further
+	default:
+		// TODO[bigbes]: handle object is gone here the right way
+		panic(throw.NotImplemented())
 	}
 
 	if s.migrationHappened {
@@ -459,6 +459,14 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	return ctx.Jump(s.stepSendCallResult)
 }
 
+func (s *SMExecute) updateCounters() func(state *object.SharedState) {
+	return func(state *object.SharedState) {
+		if !s.migrationHappened {
+			state.DecrementPotentialPendingCounter(!s.execution.Unordered)
+		}
+	}
+}
+
 func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(state *object.SharedState) {
 	return func(state *object.SharedState) {
 
@@ -482,9 +490,7 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			parentReference,
 		))
 
-		if !s.migrationHappened {
-			state.DecrementPotentialPendingCounter(!s.execution.Unordered)
-		}
+		s.updateCounters()
 		state.SetState(object.HasState)
 	}
 }
