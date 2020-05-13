@@ -4,8 +4,8 @@ package rms;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "github.com/insolar/assured-ledger/ledger-core/v2/insproto/ins.proto";
-import "rms.proto";
-import "proto_records.proto";
+import "github.com/insolar/assured-ledger/ledger-core/v2/rms/rms.proto";
+import "github.com/insolar/assured-ledger/ledger-core/v2/rms/proto_records.proto";
 
 option (insproto.notation_all) = true;
 option (insproto.context_all) = "MessageContext";

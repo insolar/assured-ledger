@@ -70,6 +70,10 @@ vendor: ## update vendor dependencies
 	rm -rf vendor
 	go mod vendor
 
+.PHONY: generate-proto-options
+generate-proto-options:
+	protoc -I./vendor -I./ --gogofaster_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:./ insproto/ins.proto
+
 .PHONY: generate-protobuf
 generate-protobuf: ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ network/node/internal/node/node.proto
@@ -81,6 +85,12 @@ generate-protobuf: ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src network/consensus/adapters/candidate/profile.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ network/servicenetwork/watermillmessage.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ instrumentation/instracer/span_data.proto
+
+	protoc -I./vendor -I=./ --ins_out=./ --proto_path=${GOPATH}/src rms/proto_records.proto
+	protoc -I./vendor -I=./ --ins_out=./ --proto_path=${GOPATH}/src rms/proto_vnvn.proto
+
+.PHONY: proto
+proto: generate-proto-options protoc-gen-ins generate-protobuf
 
 .PHONY: regen-builtin
 regen-builtin: $(INSGOCC) ## regenerate builtin contracts code

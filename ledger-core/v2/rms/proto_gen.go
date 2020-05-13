@@ -5,4 +5,7 @@
 
 package rms
 
-// go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ proto_*.proto
+// `go:generate` commands below are here just for information. It should not be used by go generate.
+// Actual generation is in the Makefile.
+// go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ proto_records.proto
+// go:generate protoc -I=. -I=$GOPATH/src --ins_out=./ proto_vnvn.proto
