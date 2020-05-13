@@ -81,6 +81,23 @@ func EncodeVarintToBytes(b []byte, u uint64) (n int) {
 	return
 }
 
+func EncodeVarintToBytesWithError(b []byte, u uint64) (n int, err error) {
+	for u > 0x7F {
+		if n >= len(b) {
+			return 0, io.ErrShortBuffer
+		}
+		b[n] = byte(u | 0x80)
+		n++
+		u >>= 7
+	}
+	if n >= len(b) {
+		return 0, io.ErrShortBuffer
+	}
+	b[n] = byte(u)
+	n++
+	return
+}
+
 func EncodeFixed64(w io.ByteWriter, u uint64) error {
 	if err := EncodeFixed32(w, uint32(u)); err != nil {
 		return err
@@ -105,4 +122,32 @@ func EncodeFixed32(w io.ByteWriter, u uint32) error {
 		return err
 	}
 	return nil
+}
+
+func EncodeFixed64ToBytes(b []byte, u uint64) (int, error) {
+	if len(b) < 8 {
+		return 0, io.ErrShortBuffer
+	}
+
+	b[0] = byte(u)
+	b[1] = byte(u >> 8)
+	b[2] = byte(u >> 16)
+	b[3] = byte(u >> 24)
+	b[4] = byte(u >> 32)
+	b[5] = byte(u >> 40)
+	b[6] = byte(u >> 48)
+	b[7] = byte(u >> 56)
+	return 8, nil
+}
+
+func EncodeFixed32ToBytes(b []byte, u uint32) (int, error) {
+	if len(b) < 4 {
+		return 0, io.ErrShortBuffer
+	}
+
+	b[0] = byte(u)
+	b[1] = byte(u >> 8)
+	b[2] = byte(u >> 16)
+	b[3] = byte(u >> 24)
+	return 4, nil
 }

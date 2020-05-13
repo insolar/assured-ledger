@@ -23,8 +23,8 @@ func TestKeys(t *testing.T) {
 		refBase := makeLocal(i)
 		for j := keyCount; j > 0; j-- {
 			refLocal := makeLocal(j)
-			ref := reference.NewNoCopy(&refLocal, &refBase)
-			refCopy := reference.NewPtrHolder(refLocal, refBase)
+			ref := reference.NewNoCopy(&refBase, &refLocal)
+			refCopy := reference.NewPtrHolder(refBase, refLocal)
 			require.True(t, reference.Equal(ref, refCopy))
 			require.False(t, ref == refCopy, i)
 
