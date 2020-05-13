@@ -74,5 +74,5 @@ func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
-	checkBalance(t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectRef, testBalance)
 }

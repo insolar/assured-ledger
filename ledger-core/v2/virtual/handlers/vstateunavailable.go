@@ -18,6 +18,9 @@ type SMVStateUnavailable struct {
 	// input arguments
 	Meta    *payload.Meta
 	Payload *payload.VStateUnavailable
+
+	// dependencies
+	objectCatalog object.Catalog
 }
 
 var dSMVStateUnavailableInstance smachine.StateMachineDeclaration = &dSMVStateUnavailable{}
@@ -26,7 +29,10 @@ type dSMVStateUnavailable struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVStateUnavailable) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (*dSMVStateUnavailable) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := sm.(*SMVStateUnavailable)
+
+	injector.MustInject(&s.objectCatalog)
 }
 
 func (*dSMVStateUnavailable) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -56,9 +62,8 @@ type stateAlreadyExistsErrorMsg struct {
 }
 
 func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	catalog := object.Catalog{}
 	objectRef := s.Payload.Lifeline
-	sharedObjectState, ok := catalog.TryGet(ctx, objectRef)
+	sharedObjectState, ok := s.objectCatalog.TryGet(ctx, objectRef)
 	if !ok {
 		ctx.Log().Error(noObjectErrorMsg{Reference: objectRef.String()}, nil)
 		return ctx.Stop()

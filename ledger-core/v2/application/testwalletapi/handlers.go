@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -61,9 +61,13 @@ type TestWalletServerAddAmountResult struct {
 	Error   string `json:"error"`
 }
 
+const (
+	APIRequestTimeout = 25 * time.Second
+)
+
 func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	var (
-		ctx     = context.Background()
+		ctx     = req.Context()
 		traceID = utils.RandTraceID()
 		logger  = inslogger.FromContext(ctx)
 	)
@@ -120,7 +124,7 @@ const badRequestErrorPattern = "%s. " + traceIDField + ": %s"
 
 func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	var (
-		ctx     = context.Background()
+		ctx     = req.Context()
 		traceID = utils.RandTraceID()
 		logger  = inslogger.FromContext(ctx)
 	)
@@ -210,7 +214,7 @@ func (g *GetBalanceParams) isValid() bool {
 
 func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
 	var (
-		ctx     = context.Background()
+		ctx     = req.Context()
 		traceID = utils.RandTraceID()
 		logger  = inslogger.FromContext(ctx)
 	)
@@ -296,7 +300,7 @@ func (a *AddAmountParams) isValid() bool {
 
 func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	var (
-		ctx     = context.Background()
+		ctx     = req.Context()
 		traceID = utils.RandTraceID()
 		logger  = inslogger.FromContext(ctx)
 	)
@@ -381,8 +385,8 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		Payload: req,
 	}
 
-	ready := &sync.WaitGroup{}
-	ready.Add(1)
+	readyChan := make(chan struct{}, 1)
+	timer := time.NewTimer(APIRequestTimeout)
 
 	var (
 		fail error
@@ -391,7 +395,9 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 
 	createDefaults := smachine.CreateDefaultValues{
 		TerminationHandler: func(data smachine.TerminationData) {
-			defer ready.Done()
+			defer func() {
+				close(readyChan)
+			}()
 
 			fail = data.Error
 
@@ -407,7 +413,14 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		return nil, throw.W(err, "Failed to add call to conveyor", nil)
 	}
 
-	ready.Wait()
+	select {
+	case <-ctx.Done():
+		return nil, throw.E("request cancelled")
+	case <-timer.C:
+		return nil, throw.E("request timeout")
+	case <-readyChan:
+		// result is ready
+	}
 
 	if fail != nil {
 		return nil, throw.W(fail, "Failed to process request", nil)

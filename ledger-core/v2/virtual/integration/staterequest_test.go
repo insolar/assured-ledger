@@ -85,7 +85,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
 		}, data)
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 
@@ -141,7 +141,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 				},
 			},
 		}, data)
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 }
@@ -179,7 +179,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 			Reason:    payload.Missing,
 			Lifeline:  objectRef,
 		}, data)
-	case <-time.After(3 * time.Second):
+	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 }

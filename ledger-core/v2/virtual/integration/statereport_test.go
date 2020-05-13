@@ -6,6 +6,7 @@
 package small
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -57,8 +58,8 @@ func makeRawWalletState(t *testing.T, balance uint32) []byte {
 	return buf
 }
 
-func checkBalance(t *testing.T, server *utils.Server, objectRef reference.Global, testBalance uint32) {
-	code, byteBuffer := server.CallAPIGetBalance(objectRef)
+func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objectRef reference.Global, testBalance uint32) {
+	code, byteBuffer := server.CallAPIGetBalance(ctx, objectRef)
 	require.Equal(t, 200, code, string(byteBuffer))
 
 	response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
@@ -89,7 +90,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
-	checkBalance(t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectRef, testBalance)
 }
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
@@ -113,7 +114,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
-	checkBalance(t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectRef, testBalance)
 	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateRequest: one more time to simulate rewrite
@@ -121,5 +122,5 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
 
-	checkBalance(t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectRef, testBalance)
 }
