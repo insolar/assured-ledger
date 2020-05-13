@@ -57,7 +57,7 @@ type SMExecute struct {
 
 	// dependencies
 	runner        *runnerAdapter.Runner
-	messageSender *messageSenderAdapter.MessageSender
+	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 
 	migrationHappened bool

@@ -116,11 +116,12 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl smsync.BoolConditionalLink
-	initReason     InitReason
+	readyToWorkCtl    smsync.BoolConditionalLink
+	initReason        InitReason
+	migrateTransition smachine.StateFunc
 
 	// dependencies
-	messageSender *messageSenderAdapter.MessageSender
+	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 }
 
@@ -153,6 +154,8 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
 	}
+
+	ctx.SetDefaultMigration(sm.migrateDuringExecution)
 
 	switch sm.initReason {
 	case InitReasonCTConstructor:
@@ -219,4 +222,42 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}, func() {
 		sm.AwaitPendingOrdered = syncSM.stop
 	})
+}
+
+func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
+	)
+
+	objDescriptor := sm.Descriptor()
+	prototype, _ := objDescriptor.Prototype()
+	msg := payload.VStateReport{
+		AsOf:                  sm.pulseSlot.PulseData().PulseNumber,
+		Callee:                sm.SharedState.Info.Reference,
+		ImmutablePendingCount: int32(sm.ActiveImmutablePendingCount) + int32(sm.PotentialImmutablePendingCount),
+		MutablePendingCount:   int32(sm.ActiveMutablePendingCount) + int32(sm.PotentialMutablePendingCount),
+		LatestDirtyState:      objDescriptor.HeadRef(),
+		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				Reference:   objDescriptor.StateID(),
+				Parent:      objDescriptor.Parent(),
+				Prototype:   prototype,
+				State:       objDescriptor.Memory(),
+				Deactivated: sm.Deactivated,
+			},
+		},
+	}
+	goCtx := ctx.GetContext()
+	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		if err != nil {
+			panic(err)
+		}
+	}).Send()
+	return ctx.Jump(sm.migrateTransition)
+}
+
+func (sm *SMObject) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	sm.migrateTransition = ctx.AffectedStep().Transition
+	return ctx.Jump(sm.stepSendVStateReport)
 }
