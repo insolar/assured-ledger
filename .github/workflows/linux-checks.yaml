@@ -149,7 +149,6 @@ jobs:
           kubectl --kubeconfig=k3s.yaml -n insolar get po
           docker images insolar/assured-ledger
           docker ps
-          docker exec -it k3s crictl images
       - name: wait for bootstrap pod to up and running
         run: until kubectl --kubeconfig=k3s.yaml -n insolar get po --field-selector=status.phase=Running | grep bootstrap; do echo "nope"; sleep 1; done
       - name: wait for net
