@@ -172,6 +172,17 @@ func (p *StartStopFlag) DoDiscard(discardFn, stopFn func()) bool {
 	}
 }
 
+func (p *StartStopFlag) DoDiscardByOne(fn func(wasStarted bool)) bool {
+	if fn == nil {
+		return p.DoDiscard(nil, nil)
+	}
+	return p.DoDiscard(func() {
+		fn(false)
+	}, func() {
+		fn(true)
+	})
+}
+
 func (p *StartStopFlag) Start() bool {
 	return !atomic.CompareAndSwapInt32(&p.done, 0, active)
 }

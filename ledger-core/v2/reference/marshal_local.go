@@ -7,13 +7,13 @@ package reference
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-func ProtoSizeLocal(h LocalHolder) int {
+func BinarySizeLocal(h LocalHolder) int {
 	if h == nil || h.IsEmpty() {
 		return 0
 	}
@@ -21,7 +21,7 @@ func ProtoSizeLocal(h LocalHolder) int {
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
 		return 0
-	case pn.IsTimePulse():
+	case pn.IsTimePulse() || pn == pulse.LocalRelative:
 		return LocalBinarySize
 	}
 	return LocalBinaryPulseAndScopeSize + v.hashLen()
@@ -47,17 +47,48 @@ func MarshalLocalTo(h LocalHolder, data []byte) (int, error) {
 	switch pn := v.GetPulseNumber(); {
 	case pn.IsUnknown():
 		return 0, nil
-	case pn.IsTimePulse():
+	case pn.IsTimePulse() || pn == pulse.LocalRelative:
 		if len(data) >= LocalBinarySize {
 			return WriteWholeLocalTo(v, data), nil
 		}
 	case len(data) >= LocalBinaryPulseAndScopeSize:
-		copy(data, v.pulseAndScopeAsBytes())
+		v.pulseAndScopeToBytes(data)
 		i := v.hashLen()
 		if copy(data[LocalBinaryPulseAndScopeSize:], v.hash[:i]) == i {
 			return LocalBinaryPulseAndScopeSize + i, nil
 		}
 	}
+	return 0, throw.WithStackTop(io.ErrShortBuffer)
+}
+
+func MarshalLocalToSizedBuffer(h LocalHolder, data []byte) (int, error) {
+	if h == nil || h.IsEmpty() {
+		return 0, nil
+	}
+
+	v := h.GetLocal()
+	switch pn := v.GetPulseNumber(); {
+	case pn.IsUnknown():
+		return 0, nil
+
+	case pn.IsTimePulse() || pn == pulse.LocalRelative:
+		if len(data) >= LocalBinarySize {
+			return WriteWholeLocalTo(v, data[len(data)-LocalBinarySize:]), nil
+		}
+		return 0, throw.WithStackTop(io.ErrShortBuffer)
+
+	case len(data) >= LocalBinaryPulseAndScopeSize:
+		i := v.hashLen() + LocalBinaryPulseAndScopeSize
+		if len(data) < i {
+			return 0, throw.WithStackTop(io.ErrShortBuffer)
+		}
+		n := len(data) - i
+
+		v.pulseAndScopeToBytes(data[n : n+LocalBinaryPulseAndScopeSize])
+		copy(data[n+LocalBinaryPulseAndScopeSize:], v.hash[:i-LocalBinaryPulseAndScopeSize])
+		return i, nil
+	}
+
 	return 0, throw.WithStackTop(io.ErrShortBuffer)
 }
 
@@ -96,38 +127,57 @@ func MarshalLocalJSON(v LocalHolder) (b []byte, err error) {
 }
 
 func UnmarshalLocal(data []byte) (v Local, err error) {
-	switch n := len(data); {
-	case n > LocalBinarySize:
-		return Local{}, errors.New("too many bytes to unmarshal")
-	case n < LocalBinaryPulseAndScopeSize:
-		return Local{}, errors.New("not enough bytes to unmarshal")
-	default:
-		writer := v.asWriter()
-		for i := 0; i < n; i++ {
-			_ = writer.WriteByte(data[i])
+	if err = func() error {
+		switch n := len(data); {
+		case n > LocalBinarySize:
+			return throw.FailHere("too many bytes to unmarshal")
+		case n < LocalBinaryPulseAndScopeSize:
+			if n == 0 {
+				return nil
+			}
+			return throw.FailHere("not enough bytes to unmarshal")
+		default:
+			v.pulseAndScope = pulseAndScopeFromBytes(data)
+
+			switch pn := v.pulseAndScope.Pulse(); {
+			case pn.IsTimePulse() || pn == pulse.LocalRelative:
+				if len(data) != LocalBinarySize {
+					return throw.FailHere("incorrect size of local hash")
+				}
+			case pn.IsSpecialOrPrivate():
+				if len(data) > LocalBinaryPulseAndScopeSize && data[len(data)-1] == 0 {
+					return throw.FailHere("incorrect padding of local hash")
+				}
+			case pn.IsUnknown():
+				// this is a special case to represent base of record-ref
+				if len(data) != LocalBinaryPulseAndScopeSize {
+					return throw.FailHere("too many bytes to unmarshal zero ref")
+				}
+				return nil
+			default:
+				return throw.Impossible()
+			}
+			copy(v.hash[:], data[LocalBinaryPulseAndScopeSize:])
+			return nil
 		}
-		// TODO do strick check that with Pulse().IsTimePulse() size == LocalBinarySize, and there are no tailing zeros otherwise
-		for i := n; i < LocalBinarySize; i++ {
-			_ = writer.WriteByte(0)
-		}
-		return
+	}(); err != nil {
+		return Local{}, err
 	}
+	return v, nil
 }
 
 func WriteWholeLocalTo(v Local, b []byte) int {
 	if len(b) < LocalBinaryPulseAndScopeSize {
-		return copy(b, v.pulseAndScopeAsBytes())
+		return 0
 	}
-
-	byteOrder.PutUint32(b, v.pulseAndScope)
+	v.pulseAndScopeToBytes(b)
 	n := v.hash.CopyTo(b[LocalBinaryPulseAndScopeSize:])
 	return LocalBinaryPulseAndScopeSize + n
 }
 
 func ReadWholeLocalFrom(b []byte) (v Local) {
-	writer := v.asWriter()
-	for i := 0; i < LocalBinarySize; i++ {
-		_ = writer.WriteByte(b[i])
-	}
+	_ = b[LocalBinarySize-1]
+	v.pulseAndScope = pulseAndScopeFromBytes(b)
+	copy(v.hash[:], b[LocalBinaryPulseAndScopeSize:])
 	return v
 }

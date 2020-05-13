@@ -18,11 +18,20 @@ func NewDigest(data longbits.FoldableReader, method DigestMethod) Digest {
 	return Digest{hFoldReader: data, digestMethod: method}
 }
 
+func NewZeroSizeDigest(method DigestMethod) Digest {
+	return Digest{hFoldReader: longbits.EmptyByteString, digestMethod: method}
+}
+
 type Digest struct {
 	hFoldReader
 	digestMethod DigestMethod
 }
 
+func (d Digest) IsZero() bool {
+	return d.hFoldReader == nil
+}
+
+// TODO move users to IsZero and use IsEmpty for zero length, not zero state
 func (d Digest) IsEmpty() bool {
 	return d.hFoldReader == nil
 }

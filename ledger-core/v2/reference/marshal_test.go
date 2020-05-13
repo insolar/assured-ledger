@@ -53,7 +53,7 @@ func TestMarshallUnmarshall(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, count, len(l1Buf))
 
-	l, b, err := Unmarshal(l1Buf)
+	b, l, err := Unmarshal(l1Buf)
 	assert.NoError(t, err)
 
 	assert.Equal(t, 0, g1.Compare(New(b, l)))

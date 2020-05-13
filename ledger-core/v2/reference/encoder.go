@@ -167,7 +167,7 @@ func (v encoder) encodeBinary(rec Local, b *strings.Builder) error {
 	case pn.IsTimePulse():
 		b.WriteByte('1')
 		// full encode
-		err := v.byteEncoder(rec.AsReader(), b)
+		err := v.byteEncoder(rec.asEncoderReader(LocalBinarySize), b)
 		if err != nil {
 			return err
 		}
@@ -180,7 +180,7 @@ func (v encoder) encodeBinary(rec Local, b *strings.Builder) error {
 		}
 		limit += 1 + LocalBinaryPulseAndScopeSize
 
-		err := v.byteEncoder(rec.asReader(uint8(limit)), b)
+		err := v.byteEncoder(rec.asEncoderReader(uint8(limit)), b)
 		if err != nil {
 			return err
 		}
@@ -194,9 +194,6 @@ func (v encoder) encodeRecord(rec Local, b *strings.Builder) error {
 	if rec.IsEmpty() {
 		b.WriteString("0." + RecordDomainName)
 		return nil
-	}
-	if rec.SubScope() != 0 {
-		panic("illegal value")
 	}
 	err := v.encodeBinary(rec, b)
 	if err != nil {

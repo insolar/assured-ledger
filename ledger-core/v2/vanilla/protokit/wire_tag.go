@@ -99,6 +99,14 @@ func (v WireTag) CheckTag(expected WireTag) error {
 	return v._checkTag(expected)
 }
 
+func (v WireTag) CheckActualTagValue(actual uint64) error {
+	wt, err := SafeWireTag(actual)
+	if err != nil {
+		return err
+	}
+	return wt._checkTag(v)
+}
+
 func (v WireTag) Check(expectedType WireType, expectedID int) error {
 	return v._checkTag(expectedType.Tag(expectedID))
 }
@@ -111,11 +119,32 @@ func (v WireTag) WriteValue(w io.ByteWriter, u uint64) error {
 	return v.Type().WriteValue(w, u)
 }
 
+func (v WireTag) ReadValueFromBytes(b []byte) (uint64, int, error) {
+	return v.Type().ReadValueFromBytes(b)
+}
+
+func (v WireTag) WriteValueToBytes(b []byte, u uint64) (int, error) {
+	return v.Type().WriteValueToBytes(b, u)
+}
+
 func (v WireTag) WriteTagValue(w io.ByteWriter, u uint64) error {
 	if err := EncodeVarint(w, uint64(v)); err != nil {
 		return err
 	}
 	return v.Type().WriteValue(w, u)
+}
+
+func (v WireTag) WriteTagValueToBytes(b []byte, u uint64) (int, error) {
+	n, err := EncodeVarintToBytesWithError(b, uint64(v))
+	if err != nil {
+		return 0, err
+	}
+	n2 := n
+	n, err = v.Type().WriteValueToBytes(b[n:], u)
+	if err != nil {
+		return 0, err
+	}
+	return n + n2, nil
 }
 
 func (v WireTag) EnsureType(expectedType WireType) {
