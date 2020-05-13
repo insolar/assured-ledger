@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 # Usage:
-# scripts/gitstatus.sh [-v]
+# scripts/gitstatus.sh
 #
 # Script checks if working directory is clean and exits with 0. Exits with 1 otherwise.
 
@@ -16,10 +16,6 @@ if [ -z "$output" ]; then
   exit 0
 else
   # There are uncommitted changes
-  if [ $1 = "-v" ]; then
-    git diff
-  else
-    git status
-  fi
+  git status
   exit 1
 fi
