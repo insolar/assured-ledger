@@ -10,7 +10,10 @@ APIREQUESTER     = apirequester
 HEALTHCHECK      = healthcheck
 KEEPERD          = keeperd
 
+PROTOC_GEN_INS   = protoc-gen-ins
+
 GOBUILD ?= go build
+GOINSTALL ?= go install
 
 .PHONY: build
 build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD) \
@@ -59,3 +62,6 @@ $(KEEPERD):
 build-track: ## build logs event tracker tool
 	$(GOBUILD) -o $(BIN_DIR)/track ./scripts/cmd/track
 
+.PHONY: $(PROTOC_GEN_INS)
+$(PROTOC_GEN_INS):
+	$(GOINSTALL) -ldflags "${LDFLAGS}" ./cmd/protoc-gen-ins
