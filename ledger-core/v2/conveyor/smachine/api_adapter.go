@@ -19,6 +19,7 @@ type AdapterCallFunc func(ctx context.Context, arg interface{}) AsyncResultFunc
 type AdapterNotifyFunc func(ctx context.Context, arg interface{})
 type CreateFactoryFunc func(eventPayload interface{}) CreateFunc
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.AsyncCallRequester -o ./ -s _mock.go -g
 type AsyncCallRequester interface {
 	// Allocates and provides cancellation function. Repeated call returns same.
 	WithCancel(*context.CancelFunc) AsyncCallRequester

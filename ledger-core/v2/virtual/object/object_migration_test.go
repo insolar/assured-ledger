@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -28,7 +29,8 @@ import (
 
 func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	var (
-		mc = minimock.NewController(t)
+		mc  = minimock.NewController(t)
+		ctx = inslogger.TestContext(t)
 
 		pd                   = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot            = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
@@ -39,6 +41,7 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 	defer mc.Finish()
+
 	smObject.pulseSlot = &pulseSlot
 	messageService := messagesender.NewServiceMock(mc).
 		SendRoleMock.Set(
@@ -50,9 +53,12 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 			return nil
 		})
 	messageSender := messageSenderAdapter.NewMessageSenderMock(mc).
-		PrepareNotifyMock.Set(func(e1 smachine.ExecutionContext, fn func(context.Context, messagesender.Service)) (n1 smachine.NotifyRequester) {
-		fn(context.Background(), messageService)
-		return smachine.NewNotifyRequesterMock(mc).SendMock.Return()
+		PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn func(ctx context.Context, svc messagesender.Service) smachine.AsyncResultFunc) (a1 smachine.AsyncCallRequester) {
+		fn(ctx, messageService)
+		mock := smachine.NewAsyncCallRequesterMock(mc)
+		return mock.WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
+			return mock
+		}).StartMock.Return()
 	})
 	smObject.messageSender = messageSender
 	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))

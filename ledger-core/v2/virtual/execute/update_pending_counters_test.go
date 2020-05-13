@@ -113,6 +113,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		SlotPageSize:      1000,
 		ScanCountLimit:    100000,
 		SlotMachineLogger: statemachine.ConveyorLoggerFactory{},
+		LogAdapterCalls:   true,
 	}
 
 	// create VCallRequest
