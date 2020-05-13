@@ -23,8 +23,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 

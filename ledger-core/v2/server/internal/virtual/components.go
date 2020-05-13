@@ -12,31 +12,29 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
-	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
-
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jetcoordinator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/pulsemanager"
 )
 
 type bootstrapComponents struct {
