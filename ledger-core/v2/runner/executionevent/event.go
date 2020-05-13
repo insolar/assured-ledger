@@ -50,7 +50,6 @@ func (r Builder) CallMethod(
 		method:    method,
 		arguments: arguments,
 		prototype: prototype,
-		unordered: false,
 	}
 }
 
@@ -146,11 +145,12 @@ type CallMethod struct {
 	arguments []byte
 	object    reference.Global
 	prototype reference.Global
-	unordered bool
+	tolerance payload.ToleranceFlag
+	isolation payload.StateFlag
 }
 
-func (e CallMethod) Unordered() bool {
-	return e.unordered
+func (e CallMethod) Tolerance() payload.ToleranceFlag {
+	return e.tolerance
 }
 
 func (e CallMethod) Prototype() reference.Global {
@@ -180,10 +180,10 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
 	execution.Sequence++
 
-	callFlags := execution.Request.CallFlags
-	if !e.unordered {
-		callFlags.SetTolerance(payload.CallTolerable)
-	}
+	var callFlags payload.CallRequestFlags
+
+	callFlags.SetTolerance(e.tolerance)
+	callFlags.SetState(e.isolation)
 
 	return &payload.VCallRequest{
 		CallType:            payload.CTMethod,
@@ -199,8 +199,13 @@ func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.
 	}
 }
 
-func (e CallMethod) SetUnordered(isUnordered bool) CallMethod {
-	e.unordered = isUnordered
+func (e CallMethod) SetTolerance(tolerance payload.ToleranceFlag) CallMethod {
+	e.tolerance = tolerance
+	return e
+}
+
+func (e CallMethod) SetIsolation(isolation payload.StateFlag) CallMethod {
+	e.isolation = isolation
 	return e
 }
 

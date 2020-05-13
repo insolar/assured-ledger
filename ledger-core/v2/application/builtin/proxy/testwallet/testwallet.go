@@ -20,6 +20,7 @@
 package testwallet
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
@@ -110,7 +111,8 @@ func (r *Wallet) GetPrototype() (reference.Global, error) {
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "GetPrototype", make([]byte, 0), PrototypeReference)
+		res, err := common.CurrentProxyCtx.CallMethod(
+			r.Reference, payload.CallIntolerable, payload.CallValidated, false, "GetPrototype", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -140,7 +142,8 @@ func (r *Wallet) GetCode() (reference.Global, error) {
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "GetCode", make([]byte, 0), PrototypeReference)
+		res, err := common.CurrentProxyCtx.CallMethod(
+			r.Reference, payload.CallIntolerable, payload.CallValidated, false, "GetCode", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -177,7 +180,7 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "GetBalance", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, payload.CallTolerable, payload.CallDirty, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -216,7 +219,8 @@ func (r *Wallet) GetBalance() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "GetBalance", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(
+		r.Reference, payload.CallIntolerable, payload.CallValidated, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -254,7 +258,7 @@ func (r *Wallet) Accept(amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "Accept", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, payload.CallTolerable, payload.CallDirty, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -292,7 +296,8 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "Accept", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(
+		r.Reference, payload.CallIntolerable, payload.CallValidated, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -331,7 +336,7 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "Transfer", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, payload.CallTolerable, payload.CallDirty, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -370,7 +375,8 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "Transfer", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(
+		r.Reference, payload.CallIntolerable, payload.CallValidated, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -407,7 +413,7 @@ func (r *Wallet) Destroy() error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, false, false, "Destroy", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, payload.CallTolerable, payload.CallDirty, false, "Destroy", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -444,7 +450,8 @@ func (r *Wallet) DestroyAsImmutable() error {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, true, false, "Destroy", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(
+		r.Reference, payload.CallIntolerable, payload.CallValidated, false, "Destroy", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}

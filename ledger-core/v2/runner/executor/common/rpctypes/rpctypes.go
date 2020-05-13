@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -74,7 +75,8 @@ type UpGetCodeResp struct {
 // UpCallMethodReq is a set of arguments for Send RPC in goplugin
 type UpCallMethodReq struct {
 	UpBaseReq
-	Unordered bool
+	Tolerance payload.ToleranceFlag
+	Isolation payload.StateFlag
 	Saga      bool
 	Object    reference.Global
 	Method    string
