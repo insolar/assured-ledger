@@ -26,6 +26,8 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: ${{env.GO_VERSION}}
+      - name: Install Protoc
+        uses: arduino/setup-protoc@master
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
       - name: Fetch vendor and check succesful build
