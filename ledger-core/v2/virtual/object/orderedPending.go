@@ -5,25 +5,25 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
-type WaitPendingSM struct {
+type AwaitOrderedPendingSM struct {
 	smachine.StateMachineDeclTemplate
 	sync smachine.SyncLink
 	stop smachine.BargeIn
 }
 
-func (sm *WaitPendingSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (sm *AwaitOrderedPendingSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
 	// No-op.
 }
 
-func (sm *WaitPendingSM) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
+func (sm *AwaitOrderedPendingSM) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 	return sm.Init
 }
 
-func (sm *WaitPendingSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (sm *AwaitOrderedPendingSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return sm
 }
 
-func (sm *WaitPendingSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (sm *AwaitOrderedPendingSM) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if !ctx.Acquire(sm.sync) {
 		panic("failed to acquire semaphore")
 	}
