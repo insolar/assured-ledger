@@ -13,8 +13,10 @@ const (
 	SubScopeGlobal   SubScope = baseScopeGlobal
 )
 
+const scopeBits = 2
+
 func (v SubScope) AsBaseOf(o SubScope) Scope {
-	return Scope(v<<2 | o)
+	return Scope(v<<scopeBits | o)
 }
 
 func (v SubScope) AsSelfScope() SelfScope {
@@ -31,13 +33,13 @@ const ( // super-scopes
 )
 
 const ( // super-scopes
-	superScopeLifeline    Scope = 0x04 * baseScopeLifeline
-	superScopeLocalDomain Scope = 0x04 * baseScopeLocalDomain
-	superScopeGlobal      Scope = 0x04 * baseScopeGlobal
+	superScopeLifeline    Scope = baseScopeLifeline << scopeBits
+	superScopeLocalDomain Scope = baseScopeLocalDomain << scopeBits
+	superScopeGlobal      Scope = baseScopeGlobal << scopeBits
 )
 
-const SuperScopeMask = 0x0C
-const SubScopeMask = 0x03
+const SubScopeMask = 1<<scopeBits - 1
+const SuperScopeMask = SubScopeMask << scopeBits
 
 const (
 	LifelineRecordOrSelf Scope = superScopeLifeline + iota
