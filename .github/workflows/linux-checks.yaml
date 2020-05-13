@@ -112,13 +112,8 @@ jobs:
           free -h
       - name: fire up k3s
         run: |
-          pwd
-          touch k3s.yaml
-          curl -sfL https://get.k3s.io | sh -
-          sudo chmod 755 /etc/rancher/k3s/k3s.yaml
-          cp /etc/rancher/k3s/k3s.yaml k3s.yaml
-          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-          docker ps
+          touch "$HOME"/k3s.yaml
+          docker run -d --name=k3s --net=host --privileged --tmpfs /run --tmpfs /var/run -e "K3S_TOKEN=197813248412582" -p 6443:6443 -v "$PWD"/registries.yaml:/etc/rancher/k3s/registries.yaml -v "$PWD"/k3s.yaml:/etc/rancher/k3s/k3s.yaml rancher/k3s:$K3S_TAG server
       - name: wait for k3s
         run:  until kubectl --kubeconfig=k3s.yaml version; do echo "k3s is not up yet"; sleep 3; done
       - name: describe node
@@ -128,6 +123,8 @@ jobs:
           docker ps
       - name: apply ingress
         run:  kubectl --kubeconfig=k3s.yaml apply -f ledger-core/v2/deploy/ingress-nginx.yaml
+      - name: launch registry
+        run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - name: build images
         run: |
           pwd

@@ -373,7 +373,7 @@ spec:
         - /etc/pulsewatcher/pulsewatcher.yaml
         command:
         - pulsewatcher
-        image: insolar/assured-ledger:latest
+        image: ci:5000/assured-ledger:latest
         imagePullPolicy: IfNotPresent
         name: pulsewatcher
         volumeMounts:
@@ -422,7 +422,7 @@ spec:
           value: /etc/insolar/keys/$(NODENAME).json
         - name: INSOLAR_PULSAR_DISTRIBUTIONTRANSPORT_ADDRESS
           value: $(POD_IP):58091
-        image: insolar/assured-ledger:latest
+        image: ci:5000/assured-ledger:latest
         imagePullPolicy: IfNotPresent
         name: pulsar
         ports:
@@ -508,7 +508,7 @@ spec:
           value: $(POD_IP):19001
         - name: INSOLAR_TESTWALLETAPI_ADDRESS
           value: $(POD_IP):32301
-        image: insolar/assured-ledger:latest
+        image: ci:5000/assured-ledger:latest
         imagePullPolicy: IfNotPresent
         name: insolar
         ports:
@@ -591,7 +591,7 @@ spec:
     - bash
     - -c
     - bash /app/bootstrap/run.sh
-    image: insolar/assured-ledger:latest
+    image: ci:5000/assured-ledger:latest
     imagePullPolicy: IfNotPresent
     name: gen
     volumeMounts:

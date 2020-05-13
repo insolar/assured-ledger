@@ -126,6 +126,8 @@ docker-build: ## build image with binaries and files required for kubernetes dep
 		--build-arg BUILD_VERSION="$(BUILD_VERSION)" \
 		-f Dockerfile .
 	docker tag insolar/assured-ledger:$(DOCKER_IMAGE_TAG) insolar/assured-ledger:latest
+	docker tag insolar/assured-ledger:latest localhost:5000/assured-ledger:latest
+	docker push localhost:5000/assured-ledger:latest
 	docker images "insolar/assured-ledger"
 
 $(ARTIFACTS_DIR):
