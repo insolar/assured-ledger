@@ -171,8 +171,11 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	ref := sm.Reference
 
-	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
-		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
+	sm.messageSender.PrepareNotify(ctx, func(logger smachine.Logger, svc messagesender.Service) {
+		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
+		if err != nil {
+			logger.Warn(throw.W(err, "failed to send state"))
+		}
 	}).Send()
 
 	return ctx.Jump(sm.stepWaitState)

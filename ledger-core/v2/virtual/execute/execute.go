@@ -339,10 +339,10 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
 
-		return s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		return s.messageSender.PrepareNotify(ctx, func(logger smachine.Logger, svc messagesender.Service) {
 			err := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, object, pulseNumber)
 			if err != nil {
-				panic(err)
+				logger.Error("failed to send message", err)
 			}
 		}).DelayedSend().Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
 	}
@@ -468,8 +468,11 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	target := s.Meta.Sender
 
 	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
-		_ = svc.SendTarget(goCtx, &msg, target)
+	s.messageSender.PrepareNotify(ctx, func(logger smachine.Logger, svc messagesender.Service) {
+		err := svc.SendTarget(goCtx, &msg, target)
+		if err != nil {
+			logger.Error("failed to send message", err)
+		}
 	}).Send()
 
 	return ctx.Stop()

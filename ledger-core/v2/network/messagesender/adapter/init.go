@@ -38,10 +38,10 @@ func (a *MessageSender) PrepareAsync(
 
 func (a *MessageSender) PrepareNotify(
 	ctx smachine.ExecutionContext,
-	fn func(svc messagesender.Service),
+	fn func(logger smachine.Logger, svc messagesender.Service),
 ) smachine.NotifyRequester {
 	return a.exec.PrepareNotify(ctx, func(interface{}) {
-		fn(a.svc)
+		fn(ctx.LogAsync(), a.svc)
 	})
 }
 

@@ -166,10 +166,10 @@ func (s *SMVStateRequest) stepReturnStateUnavailable(ctx smachine.ExecutionConte
 	target := s.Meta.Sender
 
 	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(logger smachine.Logger, svc messagesender.Service) {
 		err := svc.SendTarget(goCtx, msg, target)
 		if err != nil {
-			ctx.Log().Warn(throw.W(err, "failed to send state"))
+			logger.Error("failed to send message", err)
 		}
 	}).Send()
 
@@ -180,10 +180,10 @@ func (s *SMVStateRequest) stepSendResult(ctx smachine.ExecutionContext) smachine
 	target := s.Meta.Sender
 
 	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(logger smachine.Logger, svc messagesender.Service) {
 		err := svc.SendTarget(goCtx, s.objectStateReport, target)
 		if err != nil {
-			ctx.Log().Warn(throw.W(err, "failed to send state"))
+			logger.Error("failed to send message", err)
 		}
 	}).Send()
 
