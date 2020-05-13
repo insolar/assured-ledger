@@ -238,6 +238,9 @@ func (m *MessageExample) AsHead() *MessageExample_Head {
 }
 
 func (m *MessageExample) AsHeadFace() MessageExampleHead {
+	if m == nil {
+		return nil
+	}
 	return (*MessageExample_Head)(m)
 }
 
@@ -246,10 +249,16 @@ func (m *MessageExample_Head) AsMessageExample() *MessageExample {
 }
 
 func (m *MessageExample_Head) AsProjectionBase() interface{} {
+	if m == nil {
+		return nil
+	}
 	return (*MessageExample)(m)
 }
 
 func (m *MessageExample) AsProjection(name string) interface{} {
+	if m == nil {
+		return nil
+	}
 	switch name {
 	case "Head":
 		return m.AsHead()

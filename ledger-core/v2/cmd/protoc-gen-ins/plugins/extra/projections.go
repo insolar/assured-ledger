@@ -132,6 +132,7 @@ func (p *Projection) Generate(file *generator.FileDescriptor, message *generator
 		p.P()
 		p.P(`func (m *`, ccTypeName, `) As`, name, `Face() `, ccTypeName, name, ` {`)
 		p.In()
+		p.P(`if m == nil { return nil }`)
 		p.P(`return (*`, ccProjTypeName, `)(m)`)
 		p.Out()
 		p.P(`}`)
@@ -144,6 +145,7 @@ func (p *Projection) Generate(file *generator.FileDescriptor, message *generator
 		p.P()
 		p.P(`func (m *`, ccProjTypeName, `) AsProjectionBase() interface{} {`)
 		p.In()
+		p.P(`if m == nil { return nil }`)
 		p.P(`return (*`, ccTypeName, `)(m)`)
 		p.Out()
 		p.P(`}`)
@@ -154,6 +156,7 @@ func (p *Projection) Generate(file *generator.FileDescriptor, message *generator
 		p.P()
 		p.P(`func (m *`, ccTypeName, `) AsProjection(name string) interface{} {`)
 		p.In()
+		p.P(`if m == nil { return nil }`)
 		p.P(`switch name {`)
 		for _, name := range projections {
 			p.P(`case "`, name, `":`)
