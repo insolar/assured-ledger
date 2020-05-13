@@ -86,8 +86,7 @@ generate-protobuf: ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ network/servicenetwork/watermillmessage.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ instrumentation/instracer/span_data.proto
 
-	protoc -I./vendor -I=./ --ins_out=./ --proto_path=${GOPATH}/src rms/proto_records.proto
-	protoc -I./vendor -I=./ --ins_out=./ --proto_path=${GOPATH}/src rms/proto_vnvn.proto
+	cd rms; protoc -I./ --ins_out=./ --proto_path=${GOPATH}/src proto_*.proto
 
 .PHONY: proto
 proto: generate-proto-options protoc-gen-ins generate-protobuf
