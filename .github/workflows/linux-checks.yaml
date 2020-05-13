@@ -26,16 +26,18 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: ${{env.GO_VERSION}}
+      - name: Install Protoc
+        uses: arduino/setup-protoc@master
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
-          make vendor pre-build build
+          make vendor pre-build generate-protobuf build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Check if working directory is clean after build
         if: always()
-        run: scripts/gitstatus.sh
+        run: scripts/gitstatus.sh -v
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Install golangci-lint
         if: always()
@@ -62,7 +64,7 @@ jobs:
         with:
           name: nodes-output
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/nodes-output.tgz
-      - name: Upload coverage to Codecov  
+      - name: Upload coverage to Codecov
         run: ./scripts/dev/codecov-upload.sh -f ./coverage.out -y ./.codecov.yml -n coverage-report -F
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Add coverage.html to artifacts
