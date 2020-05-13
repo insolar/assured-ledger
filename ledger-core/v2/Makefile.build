@@ -13,9 +13,8 @@ KEEPERD          = keeperd
 GOBUILD ?= go build
 
 .PHONY: build
-build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD)      \
-		$(TESTPULSARD) $(HEALTHCHECK) $(BENCHMARK) $(APIREQUESTER)  \
-		$(PULSEWATCHER) $(KEEPERD)                                  ## build all binaries
+build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD) \
+		$(TESTPULSARD) $(BENCHMARK) $(APIREQUESTER) $(KEEPERD) ## build all binaries
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -51,10 +50,6 @@ $(PULSEWATCHER):
 .PHONY: $(APIREQUESTER)
 $(APIREQUESTER):
 	$(GOBUILD) -o $(BIN_DIR)/$(APIREQUESTER) -ldflags "${LDFLAGS}" ./cmd/apirequester
-
-.PHONY: $(HEALTHCHECK)
-$(HEALTHCHECK):
-	$(GOBUILD) -o $(BIN_DIR)/$(HEALTHCHECK) -ldflags "${LDFLAGS}" ./cmd/healthcheck
 
 .PHONY: $(KEEPERD)
 $(KEEPERD):
