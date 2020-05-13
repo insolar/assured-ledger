@@ -70,11 +70,6 @@ vendor: ## update vendor dependencies
 	rm -rf vendor
 	go mod vendor
 
-.PHONY: regen-proxies
-CONTRACTS = $(wildcard application/contract/*)
-regen-proxies: $(INSGOCC) ## regen contracts proxies
-	$(foreach c, $(CONTRACTS), $(BIN_DIR)/$(INSGOCC) proxy application/contract/$(notdir $(c))/$(notdir $(c)).go; )
-
 .PHONY: generate-protobuf
 generate-protobuf: ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ network/node/internal/node/node.proto

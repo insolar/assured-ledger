@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"

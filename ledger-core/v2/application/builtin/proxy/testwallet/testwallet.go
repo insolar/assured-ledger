@@ -20,9 +20,9 @@
 package testwallet
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/logicrunner/builtin/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
 // PrototypeReference to prototype of this contract
