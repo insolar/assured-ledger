@@ -33,7 +33,7 @@ jobs:
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
-          make vendor pre-build proto build
+          make vendor install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Check if working directory is clean after build
         if: always()
