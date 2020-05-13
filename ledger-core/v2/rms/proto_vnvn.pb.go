@@ -321,13 +321,15 @@ func (m *MessageExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		i -= size
-		i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0x9a
 	i = encodeVarintProtoVnvn(dAtA, i, uint64(999999990))
 	i--
 	dAtA[i] = 0x1
@@ -416,9 +418,9 @@ func (m *MessageExample) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	n += 2 + sovProtoVnvn(999999990)
-	l = m.RecordExample.ProtoSize()
-	n += 2 + l + sovProtoVnvn(uint64(l))
+	if l = m.RecordExample.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
 	if m.MsgParam != 0 {
 		n += 2 + sovProtoVnvn(uint64(m.MsgParam))
 	}
@@ -427,6 +429,7 @@ func (m *MessageExample) ProtoSize() (n int) {
 		l++
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
+	n += 2 + sovProtoVnvn(999999990)
 	return n
 }
 
@@ -436,13 +439,13 @@ func (m *MessageExample_Head) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	n += 2 + sovProtoVnvn(999999990)
 	if l = m.Str.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvn(uint64(l))
 	}
 	if m.MsgParam != 0 {
 		n += 2 + sovProtoVnvn(uint64(m.MsgParam))
 	}
+	n += 2 + sovProtoVnvn(999999990)
 	return n
 }
 

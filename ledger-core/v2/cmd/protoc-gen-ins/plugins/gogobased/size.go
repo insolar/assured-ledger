@@ -134,7 +134,7 @@ func (p *size) std(field *descriptor.FieldDescriptorProto, name string) (string,
 	return "", false
 }
 
-func (p *size) generateField(proto3, notation, zeroableDefault bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto, sizeName string) {
+func (p *size) generateField(proto3, notation, zeroableDefault, mustBeIncluded bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto, sizeName string) {
 	fieldname := p.GetOneOfFieldName(message, field)
 	nullable := gogoproto.IsNullable(field)
 	repeated := field.IsRepeated()
@@ -152,7 +152,7 @@ func (p *size) generateField(proto3, notation, zeroableDefault bool, message *ge
 	_, wire := p.GoType(message, field)
 	wireType := wireToType(wire)
 	fieldNumber := field.GetNumber()
-	mustBeIncluded := notation && (fieldNumber >= 16 && fieldNumber < 20)
+
 	if packed {
 		wireType = proto.WireBytes
 	}
@@ -325,12 +325,12 @@ func (p *size) generateField(proto3, notation, zeroableDefault bool, message *ge
 				descriptor.FieldDescriptorProto_TYPE_FIXED64,
 				descriptor.FieldDescriptorProto_TYPE_SFIXED64:
 				sum = append(sum, strconv.Itoa(valueKeySize))
-				sum = append(sum, strconv.Itoa(8))
+				sum = append(sum, `8`)
 			case descriptor.FieldDescriptorProto_TYPE_FLOAT,
 				descriptor.FieldDescriptorProto_TYPE_FIXED32,
 				descriptor.FieldDescriptorProto_TYPE_SFIXED32:
 				sum = append(sum, strconv.Itoa(valueKeySize))
-				sum = append(sum, strconv.Itoa(4))
+				sum = append(sum, `4`)
 			case descriptor.FieldDescriptorProto_TYPE_INT64,
 				descriptor.FieldDescriptorProto_TYPE_UINT64,
 				descriptor.FieldDescriptorProto_TYPE_UINT32,
@@ -566,21 +566,26 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 
 		fields := message.GetField()
 
+		mustBeIncluded := false
+		addMissingPolymorph := false
+		var polymorphField *descriptor.FieldDescriptorProto
+
 		if notation {
 			fields = append([]*descriptor.FieldDescriptorProto(nil), fields...)
 			sort.Sort(extra.OrderedFields(fields))
 
 			switch {
-			case len(fields) == 0 || fields[0].GetNumber() >= 20:
-				p.generatePolymorphField(message, nil)
+			case len(fields) == 0 || fields[0].GetNumber() > 19:
+				addMissingPolymorph = true
 			case fields[0].GetNumber() < 16:
 				panic("unexpected field number")
 			case fields[0].GetNumber() == 16:
-				field := fields[0]
+				polymorphField = fields[0]
 				fields = fields[1:]
-				p.generatePolymorphField(message, field)
 			case insproto.HasPolymorphID(message.DescriptorProto):
-				p.generatePolymorphField(message, nil)
+				addMissingPolymorph = true
+			default:
+				mustBeIncluded = !extra.IsMessageProjection(file.FileDescriptorProto, message)
 			}
 		}
 
@@ -589,7 +594,8 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 			case field.GetTypeName() == insproto.FieldMapFQN:
 				continue
 			case field.OneofIndex == nil:
-				p.generateField(proto3, notation, zeroableDefault, message, field, sizeName)
+				p.generateField(proto3, notation, zeroableDefault, mustBeIncluded, message, field, sizeName)
+				mustBeIncluded = false
 				continue
 			}
 
@@ -603,6 +609,10 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 			p.P(`n+=m.`, fieldname, `.`, sizeName, `()`)
 			p.Out()
 			p.P(`}`)
+		}
+
+		if addMissingPolymorph || polymorphField != nil {
+			p.generatePolymorphField(zeroableDefault, message, polymorphField)
 		}
 
 		if message.DescriptorProto.HasExtension() {
@@ -647,7 +657,7 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 				p.P(`var l int`)
 				p.P(`_ = l`)
 				vanity.TurnOffNullableForNativeTypes(f)
-				p.generateField(false, notation, zeroableDefault, message, f, sizeName)
+				p.generateField(false, notation, zeroableDefault, false, message, f, sizeName)
 				p.P(`return n`)
 				p.Out()
 				p.P(`}`)
@@ -663,22 +673,75 @@ func (p *size) Generate(file *generator.FileDescriptor) {
 	p.sizeZigZag()
 }
 
-func (p *size) generatePolymorphField(message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
+func (p *size) generatePolymorphField(zeroableDefault bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
 	polymorphID := insproto.GetPolymorphID(message.DescriptorProto)
 	if field == nil {
+		if polymorphID == 0 {
+			p.P(`if n > 0 {`)
+			p.In()
+		}
 		p.P(`n+=2 + sov`, p.localName, `(`, strconv.FormatUint(polymorphID, 10), `)`)
+		if polymorphID == 0 {
+			p.Out()
+			p.P(`}`)
+		}
 		return
 	}
-	fieldName := p.GetOneOfFieldName(message, field)
-	if polymorphID == 0 {
-		p.P(`n+=2 + sov`, p.localName, `(uint64(m.`, fieldName, `))`)
-		return
+
+	fieldName := `uint64(m.` + p.GetOneOfFieldName(message, field) + `)`
+
+	hasIf := false
+	if insproto.IsZeroable(field, zeroableDefault) {
+		p.P(`if n > 0 {`)
+		p.In()
+		hasIf = true
 	}
-	p.P(`{`)
-	p.In()
-	p.P(`id := uint64(m.`, fieldName, `)`)
-	p.P(`if id == 0 { id = `, strconv.FormatUint(polymorphID, 10), ` }`)
-	p.P(`n+=2 + sov`, p.localName, `(id)`)
-	p.Out()
-	p.P(`}`)
+
+	funcName := `sov`
+	switch field.GetType() {
+	case descriptor.FieldDescriptorProto_TYPE_DOUBLE,
+		descriptor.FieldDescriptorProto_TYPE_FIXED64,
+		descriptor.FieldDescriptorProto_TYPE_SFIXED64:
+
+		p.P(`n+=2 + `, 8)
+
+	case descriptor.FieldDescriptorProto_TYPE_FLOAT,
+		descriptor.FieldDescriptorProto_TYPE_FIXED32,
+		descriptor.FieldDescriptorProto_TYPE_SFIXED32:
+
+		p.P(`n+=2 + `, 4)
+
+	case descriptor.FieldDescriptorProto_TYPE_SINT32,
+		descriptor.FieldDescriptorProto_TYPE_SINT64:
+
+		funcName = `soz`
+		fallthrough
+
+	case descriptor.FieldDescriptorProto_TYPE_INT64,
+		descriptor.FieldDescriptorProto_TYPE_UINT64,
+		descriptor.FieldDescriptorProto_TYPE_INT32,
+		descriptor.FieldDescriptorProto_TYPE_UINT32,
+		descriptor.FieldDescriptorProto_TYPE_ENUM:
+
+		if polymorphID != 0 {
+			if !hasIf {
+				p.P(`{`)
+				p.In()
+				hasIf = true
+			}
+			p.P(`id := `, fieldName)
+			p.P(`if id == 0 { id = `, strconv.FormatUint(polymorphID, 10), ` }`)
+			fieldName = `id`
+		}
+
+		p.P(`n+=2 + `, funcName, p.localName, `(`, fieldName, `)`)
+
+	default:
+		panic(fmt.Errorf("marshaler does not support type (%d) for %v", field.GetType(), fieldName))
+	}
+
+	if hasIf {
+		p.Out()
+		p.P(`}`)
+	}
 }

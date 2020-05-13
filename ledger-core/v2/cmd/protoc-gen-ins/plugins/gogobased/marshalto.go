@@ -191,7 +191,7 @@ func (p *marshalto) mapField(numGen marshal.NumGen, field *descriptor.FieldDescr
 	}
 }
 
-func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer, hasFieldMap bool,
+func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer, hasFieldMap, mustBeIncluded bool,
 	numGen marshal.NumGen, file *generator.FileDescriptor, message *generator.Descriptor, field *descriptor.FieldDescriptorProto,
 ) {
 	fieldname := p.GetOneOfFieldName(message, field)
@@ -225,8 +225,6 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 	packed := field.IsPacked() || (proto3 && field.IsPacked3())
 	wireType := field.WireType()
 	fieldNumber := field.GetNumber()
-	// TODO only a first field of 16-19 must be included, not all
-	mustBeIncluded := notation && (fieldNumber >= 16 && fieldNumber < 20)
 	if packed {
 		wireType = proto.WireBytes
 	}
@@ -795,7 +793,7 @@ func (p *marshalto) generateField(proto3, notation, zeroableDefault, protoSizer,
 	}
 }
 
-func (p *marshalto) generatePolymorphField(proto3 bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
+func (p *marshalto) generatePolymorphField(proto3, zeroableDefault bool, message *generator.Descriptor, field *descriptor.FieldDescriptorProto) {
 	wireType := 0
 	fieldType := descriptor.FieldDescriptorProto_TYPE_UINT64
 	polymorphID := insproto.GetPolymorphID(message.DescriptorProto)
@@ -805,6 +803,11 @@ func (p *marshalto) generatePolymorphField(proto3 bool, message *generator.Descr
 
 	if field == nil {
 		polymorphArg = strconv.FormatUint(polymorphID, 10)
+		if polymorphID == 0 {
+			p.P(`if i < len(dAtA) {`)
+			p.In()
+			hasIf = true
+		}
 	} else {
 		switch {
 		case gogoproto.IsNullable(field):
@@ -822,16 +825,26 @@ func (p *marshalto) generatePolymorphField(proto3 bool, message *generator.Descr
 			panic(throw.IllegalState())
 		}
 
+		zeroable := insproto.IsZeroable(field, zeroableDefault)
 		fieldType = *field.Type
 		fieldName = p.GetOneOfFieldName(message, field)
 		if polymorphID != 0 {
-			p.P(`{`)
+			if zeroable {
+				p.P(`if i < len(dAtA) {`)
+			} else {
+				p.P(`{`)
+			}
 			p.In()
 			p.P(`id := uint64(m.`, fieldName, `)`)
 			p.P(`if id == 0 { id = `, strconv.FormatUint(polymorphID, 10), ` }`)
 			polymorphArg = `id`
 			hasIf = true
 		} else {
+			if zeroable {
+				p.P(`if i < len(dAtA) {`)
+				p.In()
+				hasIf = true
+			}
 			polymorphArg = `m.` + fieldName
 		}
 	}
@@ -860,9 +873,6 @@ func (p *marshalto) generatePolymorphField(proto3 bool, message *generator.Descr
 
 	case descriptor.FieldDescriptorProto_TYPE_SINT64:
 		p.callVarint(`(uint64(`, polymorphArg, `) << 1) ^ (uint64(`, polymorphArg, `) >> 63)`)
-
-	case descriptor.FieldDescriptorProto_TYPE_GROUP:
-		panic(fmt.Errorf("marshaler does not support group %v", fieldName))
 
 	default:
 		panic(fmt.Errorf("marshaler does not support type (%d) for %v", fieldType, fieldName))
@@ -913,13 +923,13 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		notation := insproto.IsNotation(file.FileDescriptorProto, message.DescriptorProto)
 		zeroableDefault := insproto.IsZeroableDefault(file.FileDescriptorProto, message.DescriptorProto)
 
-		isHead := extra.IsMessageHead(file.FileDescriptorProto, message)
+		isProjection := extra.IsMessageProjection(file.FileDescriptorProto, message)
 
-		if !isHead {
+		if !isProjection {
 			p.projections.Generate(file, message, ccTypeName)
 		}
 		p.contextGen.Generate(file, message, ccTypeName)
-		p.polyGen.GenerateMsg(file, message, ccTypeName, isHead)
+		p.polyGen.GenerateMsg(file, message, ccTypeName, isProjection)
 
 		if !hasMarshaler {
 			continue
@@ -1010,21 +1020,43 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 		protoSizer := gogoproto.IsProtoSizer(file.FileDescriptorProto, message.DescriptorProto)
 		proto3 := gogoproto.IsProto3(file.FileDescriptorProto)
 
+		mustBeIncluded := false
+		addMissingPolymorph := false
 		var polymorphField *descriptor.FieldDescriptorProto
-		if notation && len(fields) > 0 && fields[0].GetNumber() == 16 {
+
+		switch {
+		case !notation:
+			//
+		case len(fields) == 0 || fields[0].GetNumber() > 19:
+			addMissingPolymorph = true
+		case fields[0].GetNumber() == 16:
 			polymorphField = fields[0]
 			fields = fields[1:]
+		case insproto.HasPolymorphID(message.DescriptorProto):
+			addMissingPolymorph = true
+		default:
+			mustBeIncluded = !isProjection
 		}
 
 		for i := len(fields) - 1; i >= 0; i-- {
 			field := fields[i]
 
-			if field.GetNumber() == fieldMapNo {
+			fieldNum := field.GetNumber()
+			if fieldNum == fieldMapNo {
 				continue
 			}
 
+			fieldMustBeIncluded := mustBeIncluded && i == 0
+			if fieldMustBeIncluded {
+				if field.OneofIndex != nil || fieldNum < 16 || fieldNum > 19 {
+					panic(fmt.Errorf("notation violation %v", ccTypeName))
+				}
+				mustBeIncluded = false
+			}
+
 			if field.OneofIndex == nil {
-				p.generateField(proto3, notation, zeroableDefault, protoSizer, fieldMapNo > 0, numGen, file, message, field)
+				p.generateField(proto3, notation, zeroableDefault, protoSizer, fieldMapNo > 0, fieldMustBeIncluded,
+					numGen, file, message, field)
 				continue
 			}
 
@@ -1040,13 +1072,8 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 			p.P(`}`)
 		}
 
-		switch {
-		case polymorphField != nil:
-			p.generatePolymorphField(proto3, message, polymorphField)
-		case !notation:
-			//
-		case len(fields) == 0 || fields[0].GetNumber() >= 20 || insproto.HasPolymorphID(message.DescriptorProto):
-			p.generatePolymorphField(proto3, message, nil)
+		if addMissingPolymorph || polymorphField != nil {
+			p.generatePolymorphField(proto3, zeroableDefault, message, polymorphField)
 		}
 
 		if fieldMapNo > 0 {
@@ -1095,7 +1122,7 @@ func (p *marshalto) Generate(file *generator.FileDescriptor) {
 				p.In()
 				p.P(`i := len(dAtA)`)
 				vanity.TurnOffNullableForNativeTypes(field)
-				p.generateField(false, notation, zeroableDefault, protoSizer, false, numGen, file, message, field)
+				p.generateField(false, notation, zeroableDefault, protoSizer, false, false, numGen, file, message, field)
 				p.P(`return len(dAtA) - i, nil`)
 				p.Out()
 				p.P(`}`)

@@ -23,7 +23,7 @@ type Projection struct {
 	*generator.Generator
 }
 
-func IsMessageHead(file *descriptor.FileDescriptorProto, message *generator.Descriptor) bool {
+func IsMessageProjection(file *descriptor.FileDescriptorProto, message *generator.Descriptor) bool {
 	names := message.TypeName()
 	return len(names) > 1 && insproto.IsProjection(file, message.DescriptorProto)
 }

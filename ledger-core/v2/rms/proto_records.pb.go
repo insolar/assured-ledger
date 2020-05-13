@@ -249,14 +249,16 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		i -= size
-		i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0x9a
-	{
+	if i < len(dAtA) {
 		id := uint64(m.Polymorph)
 		if id == 0 {
 			id = 999999999
@@ -300,15 +302,9 @@ func (m *RecordExample) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	{
-		id := uint64(m.Polymorph)
-		if id == 0 {
-			id = 999999999
-		}
-		n += 2 + sovProtoRecords(id)
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
 	}
-	l = m.RecordBody.ProtoSize()
-	n += 2 + l + sovProtoRecords(uint64(l))
 	if l = m.Str.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoRecords(uint64(l))
 	}
@@ -317,6 +313,13 @@ func (m *RecordExample) ProtoSize() (n int) {
 	}
 	if m.AsOf != 0 {
 		n += 2 + sovProtoRecords(uint64(m.AsOf))
+	}
+	if n > 0 {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 999999999
+		}
+		n += 2 + sovProtoRecords(id)
 	}
 	return n
 }
