@@ -67,11 +67,10 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
 	objectRef := gen.Reference()
-
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 		rawWalletState := makeRawWalletState(t, testBalance)
-		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
 		require.NoError(t, server.AddInput(ctx, msg))
 
@@ -127,7 +126,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)
 		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
 
-		require.Equal(t, newRawWalletState, delegateFinishedMsg.ObjectBody)
+		latestState := delegateFinishedMsg.LatestState
+		require.Equal(t, newRawWalletState, latestState.State)
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
