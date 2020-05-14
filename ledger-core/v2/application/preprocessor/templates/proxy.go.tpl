@@ -20,7 +20,6 @@
 package {{ .PackageName }}
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 {{- range $import, $i := .Imports }}
 	{{ $import }}
 {{- end }}

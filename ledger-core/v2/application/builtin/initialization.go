@@ -20,13 +20,12 @@
 package builtin
 
 import (
-	"github.com/pkg/errors"
-
-	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
-
 	XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	XXX_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
+	errors "github.com/pkg/errors"
+
+	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 )
 
 func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
