@@ -157,9 +157,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
-	pulseData := sm.pulseSlot.PulseData()
-	ctx.Log().Warn(pulseData)
-
 	waitDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta) / 10
 	sm.waitGetStateUntil = sm.pulseSlot.PulseStartedAt().Add(waitDuration)
 
