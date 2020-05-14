@@ -59,7 +59,9 @@ type SMExecute struct {
 	runner        *runnerAdapter.Runner
 	messageSender *messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
-	objectCatalog object.Catalog
+
+	migrationHappened bool
+	objectCatalog     object.Catalog
 }
 
 /* -------- Declaration ------------- */
@@ -155,6 +157,7 @@ func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) sma
 	s.objectSharedState = objectSharedState
 	s.isConstructor = isConstructor
 
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	return ctx.Jump(s.stepWaitObjectReady)
 }
 
@@ -252,6 +255,11 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 	s.execution.ObjectDescriptor = objectDescriptor
 
 	return ctx.Jump(s.stepExecuteStart)
+}
+
+func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.migrationHappened = true
+	return ctx.Stay()
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -388,6 +396,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}
 
+	action = func(state *object.SharedState) {
+		s.decrementCounters(state)
+	}
+
 	switch s.executionNewState.Result.Type() {
 	case insolar.RequestSideEffectNone:
 	case insolar.RequestSideEffectActivate:
@@ -402,21 +414,60 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if action != nil {
-		switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-		case smachine.NotPassed:
-			return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-		case smachine.Impossible:
-			ctx.Log().Fatal("failed to get object state: already dead")
-		case smachine.Passed:
-			// go further
-		default:
-			// TODO[bigbes]: handle object is gone here the right way
-			panic(throw.NotImplemented())
-		}
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+		// go further
+	default:
+		// TODO[bigbes]: handle object is gone here the right way
+		panic(throw.NotImplemented())
+	}
+
+	if s.migrationHappened {
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	var lastState *payload.ObjectState = nil
+	if !s.execution.Unordered {
+		lastState = &payload.ObjectState{
+			Reference: s.executionNewState.Result.ObjectStateID,
+			State:     s.executionNewState.Result.Memory,
+		}
+	}
+
+	msg := payload.VDelegatedRequestFinished{
+		CallType:           s.Payload.CallType,
+		CallFlags:          s.Payload.CallFlags,
+		Callee:             s.execution.Object,
+		ResultFlags:        nil,
+		CallOutgoing:       s.Payload.CallOutgoing,
+		CallIncoming:       reference.Local{},
+		EntryHeadHash:      nil,
+		DelegationSpec:     nil,
+		DelegatorSignature: nil,
+		LatestState:        lastState,
+	}
+
+	goCtx := ctx.GetContext()
+	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
+	}).Send()
+
+	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) decrementCounters(state *object.SharedState) {
+	if !s.migrationHappened {
+		state.DecrementPotentialPendingCounter(!s.execution.Unordered)
+	}
 }
 
 func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(state *object.SharedState) {
@@ -441,6 +492,8 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			memory,
 			parentReference,
 		))
+
+		s.decrementCounters(state)
 		state.SetState(object.HasState)
 	}
 }
