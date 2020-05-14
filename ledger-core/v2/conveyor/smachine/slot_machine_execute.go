@@ -282,7 +282,12 @@ func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitF
 		}
 	}()
 
-	postInitFn()
+	switch stateUpdKind(stateUpdate.updKind) {
+	case stateUpdStop, stateUpdError, stateUpdPanic:
+		// init has failed, so there is no reason to call postInitFn
+	default:
+		postInitFn()
+	}
 }
 
 func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker,
