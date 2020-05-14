@@ -31,7 +31,10 @@ func (sm *AwaitOrderedPendingSM) Init(ctx smachine.InitializationContext) smachi
 	// Sync will be released on machine stop.
 	sm.stop = ctx.NewBargeIn().WithStop()
 
-	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		return ctx.Sleep().ThenRepeat()
-	})
+	return ctx.Jump(sm.stepWaitIndefinitely)
+}
+
+// Await until SM will be destroyed
+func (sm *AwaitOrderedPendingSM) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Sleep().ThenRepeat()
 }
