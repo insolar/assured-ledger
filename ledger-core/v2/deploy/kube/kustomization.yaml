@@ -9,3 +9,8 @@ resources:
   - 3-pulsewatcher.yaml
   - 3-virtual.yaml
   - 4-ingress.yaml
+
+images:
+  - name: insolar/assured-ledger
+    newName: ci:5000/assured-ledger
+    newTag: latest
