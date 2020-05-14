@@ -128,8 +128,7 @@ jobs:
       - name: build images
         run: |
           pwd
-          echo $GITHUB_WORKSPACE
-          cd /home/runner/work/assured-ledger/assured-ledger/ledger-core/v2
+          cd $GITHUB_WORKSPACE/ledger-core/v2
           make docker-build
       - name: push assured ledger image to local registry
         run: |
@@ -177,6 +176,8 @@ jobs:
           kubectl --kubeconfig=k3s.yaml -n insolar describe statefulsets/virtual
           kubectl --kubeconfig=k3s.yaml -n insolar get po
       - name: run tests
-        run: make test_func_kubernetes_ci
+        run: |
+          cd $GITHUB_WORKSPACE/ledger-core/v2
+          make test_func_kubernetes_ci
       - name: stop insolar network
         run:  kubectl --kubeconfig=k3s.yaml delete -f ledger-core/v2/deploy/kube/generated.yaml
