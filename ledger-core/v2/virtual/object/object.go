@@ -6,6 +6,8 @@
 package object
 
 import (
+	"time"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
@@ -117,6 +119,9 @@ type SMObject struct {
 	readyToWorkCtl smsync.BoolConditionalLink
 	initReason     InitReason
 
+	waitGetStateUntil time.Time
+	stateWasRequested bool
+
 	// dependencies
 	messageSender *messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
@@ -152,12 +157,19 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
+	pulseData := sm.pulseSlot.PulseData()
+	ctx.Log().Warn(pulseData)
+
+	waitDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta) / 10
+	sm.waitGetStateUntil = sm.pulseSlot.PulseStartedAt().Add(waitDuration)
+
 	switch sm.initReason {
 	case InitReasonCTConstructor:
 		return ctx.Jump(sm.stepReadyToWork)
-	case InitReasonCTMethod:
-		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will jump to stepWaitState
 	case InitReasonVStateReport:
+		sm.stateWasRequested = true
+		fallthrough
+	case InitReasonCTMethod:
 		return ctx.Jump(sm.stepWaitState)
 	default:
 		panic(throw.IllegalValue())
@@ -183,6 +195,7 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
 	}).Send()
 
+	sm.stateWasRequested = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
@@ -191,7 +204,11 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
-	return ctx.Sleep().ThenRepeat()
+	if !sm.stateWasRequested && time.Now().After(sm.waitGetStateUntil) {
+		return ctx.Jump(sm.stepGetObjectState)
+	}
+
+	return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
