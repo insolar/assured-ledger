@@ -77,9 +77,8 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	execCtx := smachine.NewExecutionContextMock(mc).
 		GetContextMock.Return(ctx).
 		JumpMock.Set(CheckWrapper(stepChecker, t)).
-		UseSharedMock.Set(CallSharedDataAccessor)
-
-	execCtx.SetDefaultMigrationMock.Return()
+		UseSharedMock.Set(CallSharedDataAccessor).
+		SetDefaultMigrationMock.Return()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef, object.InitReasonCTConstructor).Return(smObjectAccessor)

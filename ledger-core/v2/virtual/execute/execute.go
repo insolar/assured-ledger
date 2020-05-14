@@ -434,7 +434,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 }
 
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
 	var lastState *payload.ObjectState = nil
 	if !s.execution.Unordered {
 		lastState = &payload.ObjectState{
