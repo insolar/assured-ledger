@@ -202,7 +202,7 @@ type ExecutionContextMock struct {
 	beforeParentLinkCounter uint64
 	ParentLinkMock          mExecutionContextMockParentLink
 
-	funcPoll          func() (s1 StateConditionalBuilder)
+	funcPoll          func() (c1 ConditionalBuilder)
 	inspectFuncPoll   func()
 	afterPollCounter  uint64
 	beforePollCounter uint64
@@ -304,7 +304,7 @@ type ExecutionContextMock struct {
 	beforeShareCounter uint64
 	ShareMock          mExecutionContextMockShare
 
-	funcSleep          func() (s1 StateConditionalBuilder)
+	funcSleep          func() (c1 ConditionalBuilder)
 	inspectFuncSleep   func()
 	afterSleepCounter  uint64
 	beforeSleepCounter uint64
@@ -364,7 +364,7 @@ type ExecutionContextMock struct {
 	beforeUseSharedCounter uint64
 	UseSharedMock          mExecutionContextMockUseShared
 
-	funcWaitAny          func() (s1 StateConditionalBuilder)
+	funcWaitAny          func() (c1 ConditionalBuilder)
 	inspectFuncWaitAny   func()
 	afterWaitAnyCounter  uint64
 	beforeWaitAnyCounter uint64
@@ -382,7 +382,7 @@ type ExecutionContextMock struct {
 	beforeWaitSharedCounter uint64
 	WaitSharedMock          mExecutionContextMockWaitShared
 
-	funcYield          func() (s1 StateConditionalBuilder)
+	funcYield          func() (c1 ConditionalBuilder)
 	inspectFuncYield   func()
 	afterYieldCounter  uint64
 	beforeYieldCounter uint64
@@ -6652,7 +6652,7 @@ type ExecutionContextMockPollExpectation struct {
 
 // ExecutionContextMockPollResults contains results of the ExecutionContext.Poll
 type ExecutionContextMockPollResults struct {
-	s1 StateConditionalBuilder
+	c1 ConditionalBuilder
 }
 
 // Expect sets up expected params for ExecutionContext.Poll
@@ -6680,7 +6680,7 @@ func (mmPoll *mExecutionContextMockPoll) Inspect(f func()) *mExecutionContextMoc
 }
 
 // Return sets up results that will be returned by ExecutionContext.Poll
-func (mmPoll *mExecutionContextMockPoll) Return(s1 StateConditionalBuilder) *ExecutionContextMock {
+func (mmPoll *mExecutionContextMockPoll) Return(c1 ConditionalBuilder) *ExecutionContextMock {
 	if mmPoll.mock.funcPoll != nil {
 		mmPoll.mock.t.Fatalf("ExecutionContextMock.Poll mock is already set by Set")
 	}
@@ -6688,12 +6688,12 @@ func (mmPoll *mExecutionContextMockPoll) Return(s1 StateConditionalBuilder) *Exe
 	if mmPoll.defaultExpectation == nil {
 		mmPoll.defaultExpectation = &ExecutionContextMockPollExpectation{mock: mmPoll.mock}
 	}
-	mmPoll.defaultExpectation.results = &ExecutionContextMockPollResults{s1}
+	mmPoll.defaultExpectation.results = &ExecutionContextMockPollResults{c1}
 	return mmPoll.mock
 }
 
 //Set uses given function f to mock the ExecutionContext.Poll method
-func (mmPoll *mExecutionContextMockPoll) Set(f func() (s1 StateConditionalBuilder)) *ExecutionContextMock {
+func (mmPoll *mExecutionContextMockPoll) Set(f func() (c1 ConditionalBuilder)) *ExecutionContextMock {
 	if mmPoll.defaultExpectation != nil {
 		mmPoll.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.Poll method")
 	}
@@ -6707,7 +6707,7 @@ func (mmPoll *mExecutionContextMockPoll) Set(f func() (s1 StateConditionalBuilde
 }
 
 // Poll implements ExecutionContext
-func (mmPoll *ExecutionContextMock) Poll() (s1 StateConditionalBuilder) {
+func (mmPoll *ExecutionContextMock) Poll() (c1 ConditionalBuilder) {
 	mm_atomic.AddUint64(&mmPoll.beforePollCounter, 1)
 	defer mm_atomic.AddUint64(&mmPoll.afterPollCounter, 1)
 
@@ -6722,7 +6722,7 @@ func (mmPoll *ExecutionContextMock) Poll() (s1 StateConditionalBuilder) {
 		if mm_results == nil {
 			mmPoll.t.Fatal("No results are set for the ExecutionContextMock.Poll")
 		}
-		return (*mm_results).s1
+		return (*mm_results).c1
 	}
 	if mmPoll.funcPoll != nil {
 		return mmPoll.funcPoll()
@@ -9999,7 +9999,7 @@ type ExecutionContextMockSleepExpectation struct {
 
 // ExecutionContextMockSleepResults contains results of the ExecutionContext.Sleep
 type ExecutionContextMockSleepResults struct {
-	s1 StateConditionalBuilder
+	c1 ConditionalBuilder
 }
 
 // Expect sets up expected params for ExecutionContext.Sleep
@@ -10027,7 +10027,7 @@ func (mmSleep *mExecutionContextMockSleep) Inspect(f func()) *mExecutionContextM
 }
 
 // Return sets up results that will be returned by ExecutionContext.Sleep
-func (mmSleep *mExecutionContextMockSleep) Return(s1 StateConditionalBuilder) *ExecutionContextMock {
+func (mmSleep *mExecutionContextMockSleep) Return(c1 ConditionalBuilder) *ExecutionContextMock {
 	if mmSleep.mock.funcSleep != nil {
 		mmSleep.mock.t.Fatalf("ExecutionContextMock.Sleep mock is already set by Set")
 	}
@@ -10035,12 +10035,12 @@ func (mmSleep *mExecutionContextMockSleep) Return(s1 StateConditionalBuilder) *E
 	if mmSleep.defaultExpectation == nil {
 		mmSleep.defaultExpectation = &ExecutionContextMockSleepExpectation{mock: mmSleep.mock}
 	}
-	mmSleep.defaultExpectation.results = &ExecutionContextMockSleepResults{s1}
+	mmSleep.defaultExpectation.results = &ExecutionContextMockSleepResults{c1}
 	return mmSleep.mock
 }
 
 //Set uses given function f to mock the ExecutionContext.Sleep method
-func (mmSleep *mExecutionContextMockSleep) Set(f func() (s1 StateConditionalBuilder)) *ExecutionContextMock {
+func (mmSleep *mExecutionContextMockSleep) Set(f func() (c1 ConditionalBuilder)) *ExecutionContextMock {
 	if mmSleep.defaultExpectation != nil {
 		mmSleep.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.Sleep method")
 	}
@@ -10054,7 +10054,7 @@ func (mmSleep *mExecutionContextMockSleep) Set(f func() (s1 StateConditionalBuil
 }
 
 // Sleep implements ExecutionContext
-func (mmSleep *ExecutionContextMock) Sleep() (s1 StateConditionalBuilder) {
+func (mmSleep *ExecutionContextMock) Sleep() (c1 ConditionalBuilder) {
 	mm_atomic.AddUint64(&mmSleep.beforeSleepCounter, 1)
 	defer mm_atomic.AddUint64(&mmSleep.afterSleepCounter, 1)
 
@@ -10069,7 +10069,7 @@ func (mmSleep *ExecutionContextMock) Sleep() (s1 StateConditionalBuilder) {
 		if mm_results == nil {
 			mmSleep.t.Fatal("No results are set for the ExecutionContextMock.Sleep")
 		}
-		return (*mm_results).s1
+		return (*mm_results).c1
 	}
 	if mmSleep.funcSleep != nil {
 		return mmSleep.funcSleep()
@@ -11753,7 +11753,7 @@ type ExecutionContextMockWaitAnyExpectation struct {
 
 // ExecutionContextMockWaitAnyResults contains results of the ExecutionContext.WaitAny
 type ExecutionContextMockWaitAnyResults struct {
-	s1 StateConditionalBuilder
+	c1 ConditionalBuilder
 }
 
 // Expect sets up expected params for ExecutionContext.WaitAny
@@ -11781,7 +11781,7 @@ func (mmWaitAny *mExecutionContextMockWaitAny) Inspect(f func()) *mExecutionCont
 }
 
 // Return sets up results that will be returned by ExecutionContext.WaitAny
-func (mmWaitAny *mExecutionContextMockWaitAny) Return(s1 StateConditionalBuilder) *ExecutionContextMock {
+func (mmWaitAny *mExecutionContextMockWaitAny) Return(c1 ConditionalBuilder) *ExecutionContextMock {
 	if mmWaitAny.mock.funcWaitAny != nil {
 		mmWaitAny.mock.t.Fatalf("ExecutionContextMock.WaitAny mock is already set by Set")
 	}
@@ -11789,12 +11789,12 @@ func (mmWaitAny *mExecutionContextMockWaitAny) Return(s1 StateConditionalBuilder
 	if mmWaitAny.defaultExpectation == nil {
 		mmWaitAny.defaultExpectation = &ExecutionContextMockWaitAnyExpectation{mock: mmWaitAny.mock}
 	}
-	mmWaitAny.defaultExpectation.results = &ExecutionContextMockWaitAnyResults{s1}
+	mmWaitAny.defaultExpectation.results = &ExecutionContextMockWaitAnyResults{c1}
 	return mmWaitAny.mock
 }
 
 //Set uses given function f to mock the ExecutionContext.WaitAny method
-func (mmWaitAny *mExecutionContextMockWaitAny) Set(f func() (s1 StateConditionalBuilder)) *ExecutionContextMock {
+func (mmWaitAny *mExecutionContextMockWaitAny) Set(f func() (c1 ConditionalBuilder)) *ExecutionContextMock {
 	if mmWaitAny.defaultExpectation != nil {
 		mmWaitAny.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.WaitAny method")
 	}
@@ -11808,7 +11808,7 @@ func (mmWaitAny *mExecutionContextMockWaitAny) Set(f func() (s1 StateConditional
 }
 
 // WaitAny implements ExecutionContext
-func (mmWaitAny *ExecutionContextMock) WaitAny() (s1 StateConditionalBuilder) {
+func (mmWaitAny *ExecutionContextMock) WaitAny() (c1 ConditionalBuilder) {
 	mm_atomic.AddUint64(&mmWaitAny.beforeWaitAnyCounter, 1)
 	defer mm_atomic.AddUint64(&mmWaitAny.afterWaitAnyCounter, 1)
 
@@ -11823,7 +11823,7 @@ func (mmWaitAny *ExecutionContextMock) WaitAny() (s1 StateConditionalBuilder) {
 		if mm_results == nil {
 			mmWaitAny.t.Fatal("No results are set for the ExecutionContextMock.WaitAny")
 		}
-		return (*mm_results).s1
+		return (*mm_results).c1
 	}
 	if mmWaitAny.funcWaitAny != nil {
 		return mmWaitAny.funcWaitAny()
@@ -12326,7 +12326,7 @@ type ExecutionContextMockYieldExpectation struct {
 
 // ExecutionContextMockYieldResults contains results of the ExecutionContext.Yield
 type ExecutionContextMockYieldResults struct {
-	s1 StateConditionalBuilder
+	c1 ConditionalBuilder
 }
 
 // Expect sets up expected params for ExecutionContext.Yield
@@ -12354,7 +12354,7 @@ func (mmYield *mExecutionContextMockYield) Inspect(f func()) *mExecutionContextM
 }
 
 // Return sets up results that will be returned by ExecutionContext.Yield
-func (mmYield *mExecutionContextMockYield) Return(s1 StateConditionalBuilder) *ExecutionContextMock {
+func (mmYield *mExecutionContextMockYield) Return(c1 ConditionalBuilder) *ExecutionContextMock {
 	if mmYield.mock.funcYield != nil {
 		mmYield.mock.t.Fatalf("ExecutionContextMock.Yield mock is already set by Set")
 	}
@@ -12362,12 +12362,12 @@ func (mmYield *mExecutionContextMockYield) Return(s1 StateConditionalBuilder) *E
 	if mmYield.defaultExpectation == nil {
 		mmYield.defaultExpectation = &ExecutionContextMockYieldExpectation{mock: mmYield.mock}
 	}
-	mmYield.defaultExpectation.results = &ExecutionContextMockYieldResults{s1}
+	mmYield.defaultExpectation.results = &ExecutionContextMockYieldResults{c1}
 	return mmYield.mock
 }
 
 //Set uses given function f to mock the ExecutionContext.Yield method
-func (mmYield *mExecutionContextMockYield) Set(f func() (s1 StateConditionalBuilder)) *ExecutionContextMock {
+func (mmYield *mExecutionContextMockYield) Set(f func() (c1 ConditionalBuilder)) *ExecutionContextMock {
 	if mmYield.defaultExpectation != nil {
 		mmYield.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.Yield method")
 	}
@@ -12381,7 +12381,7 @@ func (mmYield *mExecutionContextMockYield) Set(f func() (s1 StateConditionalBuil
 }
 
 // Yield implements ExecutionContext
-func (mmYield *ExecutionContextMock) Yield() (s1 StateConditionalBuilder) {
+func (mmYield *ExecutionContextMock) Yield() (c1 ConditionalBuilder) {
 	mm_atomic.AddUint64(&mmYield.beforeYieldCounter, 1)
 	defer mm_atomic.AddUint64(&mmYield.afterYieldCounter, 1)
 
@@ -12396,7 +12396,7 @@ func (mmYield *ExecutionContextMock) Yield() (s1 StateConditionalBuilder) {
 		if mm_results == nil {
 			mmYield.t.Fatal("No results are set for the ExecutionContextMock.Yield")
 		}
-		return (*mm_results).s1
+		return (*mm_results).c1
 	}
 	if mmYield.funcYield != nil {
 		return mmYield.funcYield()
