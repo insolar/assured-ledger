@@ -316,9 +316,9 @@ type ExecutionContext interface {
 	Repeat(limitPerCycle int) StateUpdate
 
 	// Yield will apply an action chosen by the builder and wait till next work cycle.
-	Yield() StateConditionalBuilder
+	Yield() ConditionalBuilder
 	// Poll will apply an action chosen by the builder and wait for a poll interval (configured on SlotMachine).
-	Poll() StateConditionalBuilder
+	Poll() ConditionalBuilder
 
 	// EXPERIMENTAL! SM will apply an action chosen by the builder and wait for activation or stop of the given slot.
 	// TODO PLAT-42 WaitActivation(SlotLink) StateConditionalBuilder
@@ -327,12 +327,12 @@ type ExecutionContext interface {
 	// WaitShared will apply an action chosen by the builder and wait for availability of the SharedDataLink.
 	WaitShared(SharedDataLink) StateConditionalBuilder
 	// WaitAny will apply an action chosen by the builder and wait for any event (even for one irrelevant to this SM).
-	WaitAny() StateConditionalBuilder
+	WaitAny() ConditionalBuilder
 	// WaitAnyUntil will apply an action chosen by the builder and wait for any event (even for one irrelevant to this SM), but not later than the given time.
 	WaitAnyUntil(time.Time) StateConditionalBuilder
 
 	// Sleep will apply an action chosen by the builder and wait for an explicit activation of this slot, e.g. any WakeUp() action.
-	Sleep() StateConditionalBuilder
+	Sleep() ConditionalBuilder
 }
 
 type LongRunFlags uint8
