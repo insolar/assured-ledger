@@ -90,6 +90,12 @@ jobs:
         uses: actions/checkout@master
 #        with:
 #          path: go/src/github.com/insolar/assured-ledger
+      - name: Set up go ${{env.GO_VERSION}}
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{env.GO_VERSION}}
+      - name: Add bin to path
+        run: echo "::add-path::${{env.GOPATH}}/bin"
       - name: get kubectl
         run: |
           curl -L -s --create-dirs https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl -o bin/kubectl
@@ -177,6 +183,7 @@ jobs:
           kubectl --kubeconfig=k3s.yaml -n insolar get po
       - name: run tests
         run: |
+          go get gotest.tools/gotestsum
           cd $GITHUB_WORKSPACE/ledger-core/v2
           make test_func_kubernetes_ci
       - name: stop insolar network
