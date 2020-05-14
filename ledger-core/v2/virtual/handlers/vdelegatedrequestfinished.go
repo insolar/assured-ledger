@@ -52,17 +52,9 @@ func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) s
 
 func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	objectRef := s.Payload.Callee
-	var (
-		objectDescriptor descriptor.Object
 
-		deactivated *bool
-	)
+	var objectDescriptor descriptor.Object
 
-	if s.Payload.ProvidedContent == nil || s.Payload.ProvidedContent.LatestDirtyState == nil {
-		panic(throw.IllegalValue())
-	}
-
-	dirtyState := s.Payload.ProvidedContent.LatestDirtyState
 	objectDescriptor = descriptor.NewObject(
 		objectRef,
 		dirtyState.Reference,
@@ -70,8 +62,6 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		dirtyState.State,
 		dirtyState.Parent,
 	)
-
-	deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
 
 	sharedObjectState := s.objectCatalog.Get(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
@@ -86,9 +76,6 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		state.SetDescriptor(objectDescriptor)
 		state.SetState(object.HasState)
 
-		if deactivated != nil {
-			state.Deactivated = *deactivated
-		}
 		return true
 	}
 
@@ -102,4 +89,3 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 
 	return ctx.Stop()
 }
-

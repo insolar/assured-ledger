@@ -93,7 +93,6 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			ctx.SetTracerID(traceID)
 			return &SMVStateReport{Meta: payloadMeta, Payload: &pl}
 		}
-
 	case payload.TypeVStateUnavailable:
 		pl := payload.VStateUnavailable{}
 		if err := pl.Unmarshal(payloadBytes); err != nil {
@@ -103,6 +102,16 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
 			return &SMVStateUnavailable{Meta: payloadMeta, Payload: &pl}
+		}
+	case payload.TypeVDelegatedRequestFinished:
+		pl := payload.VDelegatedRequestFinished{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: &pl}
 		}
 	default:
 		panic(errNoHandler{MessageType: payloadType})
