@@ -80,7 +80,7 @@ func ExpandAddresses(ctx context.Context, skipError bool, resolverFn func(contex
 		case 0:
 			continue
 		case 1:
-			keep[i] = aa.AddrNetwork() != nwaddr.IP
+			keep[i] = aa.IdentityType() != nwaddr.IP
 		default:
 			keep[i] = true
 		}

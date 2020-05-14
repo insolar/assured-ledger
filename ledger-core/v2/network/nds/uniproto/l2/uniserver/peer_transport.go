@@ -205,7 +205,7 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamF
 	for {
 		addr := p.aliases[p.addrIndex]
 
-		if p.addrIndex == 0 && addr.AddrNetwork() == nwaddr.DNS {
+		if p.addrIndex == 0 && addr.IdentityType() == nwaddr.DNS {
 			// primary address is always resolved and can be ignored when is DNS
 			// then there MUST be more addresses
 			p.addrIndex++

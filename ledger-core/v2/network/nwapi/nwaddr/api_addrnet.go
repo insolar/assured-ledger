@@ -5,25 +5,50 @@
 
 package nwaddr
 
-type Network uint8
+// Identity is a type of address identity
+// It has a different package to avoid name collision
+type Identity uint8
 
 const (
-	_ Network = iota
+	_ Identity = iota
+	// IP is either IPv4 or IPv6
 	IP
+	// DNS is a symbolic name
 	DNS
+	// HostPK is a PK of a node
 	HostPK
+	// HostID is numeric id of a node
 	HostID
+	// LocalUID is a locally unique id assigned to a node. It changes each time when node is unregistered locally
 	LocalUID
 )
 
-func (a Network) IsIP() bool {
+func (a Identity) IsIP() bool {
 	return a == IP
 }
 
-func (a Network) IsNetCompatible() bool {
+func (a Identity) IsDNS() bool {
+	return a == DNS
+}
+
+func (a Identity) IsHostPK() bool {
+	return a == HostPK
+}
+
+func (a Identity) IsHostID() bool {
+	return a == HostID
+}
+
+func (a Identity) IsLocalUID() bool {
+	return a == LocalUID
+}
+
+// IsNetCompatible is true when address is compatible with "net" package
+func (a Identity) IsNetCompatible() bool {
 	return a == IP || a == DNS
 }
 
-func (a Network) IsResolved() bool {
+// IsResolved is true when address is resolved and represents a single endpoint
+func (a Identity) IsResolved() bool {
 	return a == IP
 }
