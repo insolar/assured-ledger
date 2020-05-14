@@ -14,6 +14,7 @@ type InitFunc func(ctx InitializationContext) StateUpdate
 type StateFunc func(ctx ExecutionContext) StateUpdate
 type CreateFunc func(ctx ConstructionContext) StateMachine
 type MigrateFunc func(ctx MigrationContext) StateUpdate
+type PostInitFunc func()
 type AsyncResultFunc func(ctx AsyncResultContext)
 type ErrorHandlerFunc func(ctx FailureContext)
 type SubroutineExitFunc func(ctx SubroutineExitContext) StateUpdate
@@ -291,7 +292,10 @@ type ExecutionContext interface {
 	// InitChild is same as NewChild, but also grantees that child's initialization will be completed before return.
 	// Please prefer NewChild() to avoid unnecessary dependency.
 	InitChild(CreateFunc) SlotLink
-	InitChildExt(CreateFunc, CreateDefaultValues) SlotLink
+	// InitChildWithPostInit executes provided callback immediately after child's init step.
+	// Inside the callback it is safe to access both the caller and the child.
+	InitChildWithPostInit(CreateFunc, PostInitFunc) SlotLink
+	InitChildExt(CreateFunc, CreateDefaultValues, PostInitFunc) SlotLink
 
 	// Replace creates an update that after completion of the current step, will stop this SM and will create/start the new SM.
 	// The new SM will by default inherit from this SM: parent, context, termination handler/result and injected dependencies.

@@ -263,7 +263,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 const durationUnknownNano = time.Duration(1)
 const durationNotApplicableNano = time.Duration(0)
 
-func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, worker DetachableSlotWorker) {
+func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitFunc, worker DetachableSlotWorker) {
 
 	slot.ensureInitializing()
 	m._boostNewSlot(slot)
@@ -272,13 +272,17 @@ func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, worker DetachableSlo
 
 	ec := executionContext{slotContext: slotContext{s: slot, w: worker}}
 	stateUpdate, _, asyncCnt := ec.executeNextStep()
-
 	slot.addAsyncCount(asyncCnt)
-	if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
-		m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationUnknownNano)
-	}) {
-		m.asyncPostSlotExecution(slot, stateUpdate, 0, durationUnknownNano)
-	}
+
+	defer func() {
+		if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
+			m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationUnknownNano)
+		}) {
+			m.asyncPostSlotExecution(slot, stateUpdate, 0, durationUnknownNano)
+		}
+	}()
+
+	postInitFn()
 }
 
 func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker,
