@@ -4,7 +4,7 @@ NUM_DISCOVERY_NODES=5
 NUM_DISCOVERY_NODES=${NUM_DISCOVERY_NODES:-5}
 KUBECTL=${KUBECTL:-"kubectl"}
 USE_MANIFESTS=${USE_MANIFESTS:-"local"}
-INSOLAR_IMAGE=${INSOLAR_IMAGE:-"insolar/assured-ledger:latest"}
+INSOLAR_IMAGE=${INSOLAR_IMAGE:-"ci/assured-ledger:latest"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
 set -x
 check_dependencies() {
@@ -22,7 +22,7 @@ check_dependencies() {
 
 # Delete this after image templating will be done, and images will be in insolar hub
 check_docker_images() {
-  if [ "$(docker images $INSOLAR_IMAGE -q)" = "" ]; then
+  if [ "$(docker images "$INSOLAR_IMAGE" -q)" = "" ]; then
     echo >&2 "make sure you made 'make docker-build'"
     exit 1
   fi
@@ -46,14 +46,20 @@ run_network() {
 }
 
 wait_for_complete_network_state() {
-  set +x
-  while true; do
+  #set +x
+  ready=0
+  for try in {0..30}; do
     if [ "$($KUBECTL -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
+      ready=1
       break
     fi
     sleep 1s
   done
 
+  if [ $ready = 0 ]; then
+    echo "bootstrap was not started"
+    exit 1
+  fi
   echo "bootstrap completed"
 
   ready=0
