@@ -52,8 +52,8 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 			return nil
 		})
 	messageSender := messageSenderAdapter.NewMessageSenderMock(mc).
-		PrepareNotifyMock.Set(func(e1 smachine.ExecutionContext, fn func(svc messagesender.Service)) (n1 smachine.NotifyRequester) {
-		fn(messageService)
+		PrepareNotifyMock.Set(func(e1 smachine.ExecutionContext, fn func(context.Context, messagesender.Service)) (n1 smachine.NotifyRequester) {
+		fn(context.Background(), messageService)
 		return smachine.NewNotifyRequesterMock(mc).SendMock.Return()
 	})
 	smObject.messageSender = messageSender
