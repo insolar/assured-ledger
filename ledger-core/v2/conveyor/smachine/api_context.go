@@ -244,6 +244,7 @@ const (
 	SubroutineCleanupAliasesAndShares SubroutineCleanupMode = 3
 )
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.InitializationContext -o ./ -s _mock.go -g
 type InitializationContext interface {
 	InOrderStepContext
 
