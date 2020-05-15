@@ -7,7 +7,6 @@ package hostnetwork
 
 import (
 	"context"
-	// "runtime"
 	"sync"
 	"testing"
 	"time"
@@ -171,10 +170,6 @@ func (s *hostSuite) Stop() {
 }
 
 func TestNewHostNetwork(t *testing.T) {
-	//if runtime.GOOS == "windows" { // TODO FIXME
-	//	t.Skip("Currently this test doesn't pass on windows")
-	//}
-
 	defer leaktest.Check(t)()
 
 	s := newHostSuite(t)
