@@ -58,6 +58,7 @@ wait_for_complete_network_state() {
 
   if [ $ready = 0 ]; then
     echo "bootstrap was not started"
+    $KUBECTL -n insolar describe pods
     exit 1
   fi
   echo "bootstrap completed"
@@ -76,6 +77,7 @@ wait_for_complete_network_state() {
 
   if [ $ready = 0 ]; then
     echo "network was not started"
+    $KUBECTL -n insolar describe pods
     exit 1
   fi
   set -x

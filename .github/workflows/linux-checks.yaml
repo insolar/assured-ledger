@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/go
-      INSOLAR_IMAGE: localhost:5000/assured-ledger
+      INSOLAR_IMAGE: ci:5000/assured-ledger
       APPLY_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
       KUBECTL: kubectl --kubeconfig=/tmp/k3s.yaml
@@ -144,6 +144,7 @@ jobs:
       - name: push assured ledger image to local registry
         run: |
           docker tag insolar/assured-ledger:latest localhost:5000/assured-ledger:latest
+          docker tag insolar/assured-ledger:latest ci:5000/assured-ledger:latest
           docker push localhost:5000/assured-ledger:latest
       - name: wait for ingress
         run:  until ${{env.KUBECTL}} get pods -n ingress-nginx | grep controller | grep Running; do echo "ingress is not up yet"; sleep 1; done

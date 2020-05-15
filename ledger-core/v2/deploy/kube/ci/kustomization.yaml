@@ -4,5 +4,5 @@ bases:
   - ../manifests
 images:
   - name: insolar/assured-ledger
-    newName: localhost:5000/assured-ledger
+    newName: ci:5000/assured-ledger
     newTag: latest
