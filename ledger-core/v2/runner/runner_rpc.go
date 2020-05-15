@@ -25,6 +25,7 @@ func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.U
 		CallMethod(in.Object, in.Prototype, in.Method, in.Arguments).
 		SetTolerance(in.Tolerance).SetIsolation(in.Isolation)
 	sink.ExternalCall(event)
+	r.awaitedRunFinish(in.ID)
 
 	out.Result = <-sink.input
 
@@ -45,6 +46,7 @@ func (r *DefaultService) CallConstructor(in rpctypes.UpCallConstructorReq, out *
 	event := executionevent.NewRPCBuilder(in.Request, in.Callee).
 		CallConstructor(in.Prototype, in.ConstructorName, in.ArgsSerialized)
 	sink.ExternalCall(event)
+	r.awaitedRunFinish(in.ID)
 
 	out.Result = <-sink.input
 
@@ -63,6 +65,7 @@ func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out
 
 	event := executionevent.NewRPCBuilder(in.Request, in.Callee).Deactivate()
 	sink.ExternalCall(event)
+	r.awaitedRunFinish(in.ID)
 
 	rawValue := <-sink.input
 

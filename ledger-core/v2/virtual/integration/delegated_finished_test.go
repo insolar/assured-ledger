@@ -14,15 +14,14 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -37,13 +36,13 @@ func makeEmptyResult(t *testing.T) []byte {
 	return emptyResult
 }
 
-type callMethodFunc = func(ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global, data []byte, method string, args insolar.Arguments) (newObjectState []byte, methodResults insolar.Arguments, err error)
+type callMethodFunc = func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error)
 
 func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc) {
-	executorMock := testutils.NewMachineLogicExecutorMock(t)
+	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallMethodMock.Set(callMethod)
-	manager := executor.NewManager()
-	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+	manager := machine.NewManager()
+	err := manager.RegisterExecutor(machine.Builtin, executorMock)
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
@@ -51,7 +50,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByPrototypeRefMock.Return(
 		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCode(nil, insolar.MachineTypeBuiltin, gen.Reference()),
+		descriptor.NewCode(nil, machine.Builtin, gen.Reference()),
 		nil,
 	)
 }
@@ -80,7 +79,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	// generate new state since it will be changed by CallAPIAddAmount
 	newRawWalletState := makeRawWalletState(t, testBalance+uint32(additionalBalance))
 
-	callMethod := func(ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global, data []byte, method string, args insolar.Arguments) (newObjectState []byte, methodResults insolar.Arguments, err error) {
+	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
 		// we want to change pulse during execution
 		server.IncrementPulse(ctx)
 
