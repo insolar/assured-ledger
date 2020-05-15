@@ -55,18 +55,19 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 
 	var objectDescriptor descriptor.Object
 
+	state := s.Payload.LatestState
 	objectDescriptor = descriptor.NewObject(
 		objectRef,
-		dirtyState.Reference,
-		dirtyState.Prototype,
-		dirtyState.State,
-		dirtyState.Parent,
+		state.Reference,
+		state.Prototype,
+		state.State,
+		state.Parent,
 	)
 
 	sharedObjectState := s.objectCatalog.Get(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
-		if state.IsReady() {
+		if !state.IsReady() {
 			ctx.Log().Trace(stateAlreadyExistsErrorMsg{
 				Reference: objectRef.String(),
 			})
@@ -74,7 +75,6 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		}
 
 		state.SetDescriptor(objectDescriptor)
-		state.SetState(object.HasState)
 
 		return true
 	}
