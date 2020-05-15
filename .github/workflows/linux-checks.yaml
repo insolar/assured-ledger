@@ -84,7 +84,7 @@ jobs:
     env:
       GOPATH: /home/runner/work/assured-ledger/go
       INSOLAR_IMAGE: ci:5000/assured-ledger
-      APPLY_MANIFESTS: ci
+      USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
       KUBECTL: kubectl --kubeconfig=/tmp/k3s.yaml
       KUBECTL_VERSION: v1.18.2
