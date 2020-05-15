@@ -6,6 +6,8 @@
 package object
 
 import (
+	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
@@ -180,11 +182,10 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		RequestedContent: flags,
 	}
 
-	goCtx := ctx.GetContext()
 	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	ref := sm.Reference
 
-	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
 	}).Send()
 
@@ -247,8 +248,8 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 			},
 		},
 	}
-	goCtx := ctx.GetContext()
-	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+
+	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
 		if err != nil {
 			panic(err)

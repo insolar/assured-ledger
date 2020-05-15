@@ -29,12 +29,11 @@ func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg strin
 		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, data.Error)
 }
 
-func (MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
-	return conveyorStepLogger{ctx, sm, tracer}
+func (MachineLogger) CreateStepLogger(_ context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
+	return conveyorStepLogger{sm, tracer}
 }
 
 type conveyorStepLogger struct {
-	ctx    context.Context
 	sm     smachine.StateMachine
 	tracer smachine.TracerID
 }
@@ -45,6 +44,10 @@ func (conveyorStepLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLe
 
 func (v conveyorStepLogger) GetTracerID() smachine.TracerID {
 	return v.tracer
+}
+
+func (v conveyorStepLogger) GetLoggerContext() context.Context {
+	return nil
 }
 
 func (v conveyorStepLogger) CreateAsyncLogger(ctx context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {

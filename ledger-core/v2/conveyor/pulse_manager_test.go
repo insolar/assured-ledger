@@ -295,6 +295,10 @@ func (d dummyAsync) WithFlags(flags smachine.AsyncCallFlags) smachine.AsyncCallR
 	return d
 }
 
+func (d dummyAsync) WithoutAutoWakeUp() smachine.AsyncCallRequester {
+	return d
+}
+
 func (d dummyAsync) WithLog(isLogging bool) smachine.AsyncCallRequester {
 	return d
 }
@@ -311,18 +315,20 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 	t.Run("bad input", func(t *testing.T) {
 		require.PanicsWithValue(t, "illegal value", func() {
 			pdm := PulseDataManager{}
-			pdm.init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-				return dummyAsync{}
-			})
+			pdm.init(1, 10, 0,
+				func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+					return dummyAsync{}
+				})
 			pdm.PreparePulseDataRequest(nil, 1, nil)
 		})
 	})
 
 	t.Run("ok", func(t *testing.T) {
 		pdm := PulseDataManager{}
-		pdm.init(1, 10, 0, func(executionContext smachine.ExecutionContext, f func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-			return dummyAsync{}
-		})
+		pdm.init(1, 10, 0,
+			func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+				return dummyAsync{}
+			})
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 		expected := pulse.Data{
 			PulseNumber: pulseNum,

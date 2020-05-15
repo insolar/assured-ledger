@@ -15,8 +15,8 @@ func (v AdapterID) IsEmpty() bool {
 	return len(v) == 0
 }
 
-type AdapterCallFunc func(arg interface{}) AsyncResultFunc
-type AdapterNotifyFunc func(arg interface{})
+type AdapterCallFunc func(ctx context.Context, arg interface{}) AsyncResultFunc
+type AdapterNotifyFunc func(ctx context.Context, arg interface{})
 type CreateFactoryFunc func(eventPayload interface{}) CreateFunc
 
 type AsyncCallRequester interface {
@@ -85,13 +85,13 @@ type SyncCallRequester interface {
 type AdapterExecutor interface {
 	// Schedules asynchronous execution, MAY return native cancellation function, but only if supported.
 	// This method MUST be fast and MUST NOT lock up. May panic on queue overflow.
-	StartCall(fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc
+	StartCall(ctx context.Context, fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc
 
 	// Schedules asynchronous, fire-and-forget execution.
 	// This method MUST be fast and MUST NOT lock up. May panic on queue overflow.
-	SendNotify(AdapterNotifyFunc)
+	SendNotify(context.Context, AdapterNotifyFunc)
 
 	// Performs sync call ONLY if *natively* supported by the adapter, otherwise must return (false, nil)
 	// TODO PLAT-41 pass in a cancellation object
-	TrySyncCall(AdapterCallFunc) (bool, AsyncResultFunc)
+	TrySyncCall(context.Context, AdapterCallFunc) (bool, AsyncResultFunc)
 }

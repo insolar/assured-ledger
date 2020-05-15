@@ -97,7 +97,7 @@ const (
 
 type StepLogger interface {
 	CanLogEvent(eventType StepLoggerEvent, stepLevel StepLogLevel) bool
-	//LogMetric()
+	// TODO LogMetric()
 	LogUpdate(StepLoggerData, StepLoggerUpdateData)
 	LogInternal(data StepLoggerData, updateType string)
 	LogEvent(data StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller)
@@ -108,6 +108,7 @@ type StepLogger interface {
 	LogAdapter(data StepLoggerData, adapterID AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller)
 
 	GetTracerID() TracerID
+	GetLoggerContext() context.Context
 
 	CreateAsyncLogger(context.Context, *StepLoggerData) (context.Context, StepLogger)
 }

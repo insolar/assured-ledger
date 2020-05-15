@@ -32,6 +32,10 @@ func (v StepLoggerStub) GetTracerID() TracerID {
 	return v.TracerID
 }
 
+func (v StepLoggerStub) GetLoggerContext() context.Context {
+	return nil
+}
+
 type fixedSlotLogger struct {
 	logger StepLogger
 	level  StepLogLevel

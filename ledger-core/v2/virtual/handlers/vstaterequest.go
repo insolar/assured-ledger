@@ -6,6 +6,8 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -165,8 +167,7 @@ func (s *SMVStateRequest) stepReturnStateUnavailable(ctx smachine.ExecutionConte
 
 	target := s.Meta.Sender
 
-	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		err := svc.SendTarget(goCtx, msg, target)
 		if err != nil {
 			ctx.Log().Warn(throw.W(err, "failed to send state"))
@@ -179,8 +180,7 @@ func (s *SMVStateRequest) stepReturnStateUnavailable(ctx smachine.ExecutionConte
 func (s *SMVStateRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
-	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		err := svc.SendTarget(goCtx, s.objectStateReport, target)
 		if err != nil {
 			ctx.Log().Warn(throw.W(err, "failed to send state"))

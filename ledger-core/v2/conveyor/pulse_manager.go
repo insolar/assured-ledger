@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
-type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester
+type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester
 
 type PulseDataManager struct {
 	// set at construction, immutable
@@ -35,7 +35,7 @@ type PulseDataManager struct {
 }
 
 type PulseDataService interface {
-	LoadPulseData(pulse.Number) (pulse.Data, bool)
+	LoadPulseData(context.Context, pulse.Number) (pulse.Data, bool)
 }
 
 func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax, parallelReaders int) PulseDataServicePrepareFunc {
@@ -55,9 +55,9 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 
 	smachine.StartChannelWorkerParallelCalls(ctx, uint16(parallelReaders), callChan, pds)
 
-	return func(ctx smachine.ExecutionContext, fn func(svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-		return pulseDataAdapter.PrepareAsync(ctx, func(svc interface{}) smachine.AsyncResultFunc {
-			fn(svc.(PulseDataService))
+	return func(ctx smachine.ExecutionContext, fn func(ctx context.Context, svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+		return pulseDataAdapter.PrepareAsync(ctx, func(ctx context.Context, svc interface{}) smachine.AsyncResultFunc {
+			fn(ctx, svc.(PulseDataService))
 			return nil
 		})
 	}
@@ -204,8 +204,8 @@ func (p *PulseDataManager) PreparePulseDataRequest(ctx smachine.ExecutionContext
 		resultFn(ok, pd)
 	}
 
-	return p.pulseDataAdapterFn(ctx, func(svc PulseDataService) smachine.AsyncResultFunc {
-		pd, ok := svc.LoadPulseData(pn)
+	return p.pulseDataAdapterFn(ctx, func(ctx context.Context, svc PulseDataService) smachine.AsyncResultFunc {
+		pd, ok := svc.LoadPulseData(ctx, pn)
 
 		return func(ctx smachine.AsyncResultContext) {
 			if ok && pd.IsValidPulsarData() {
