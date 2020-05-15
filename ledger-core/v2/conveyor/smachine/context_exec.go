@@ -36,22 +36,22 @@ func (p *executionContext) Jump(fn StateFunc) StateUpdate {
 	return p.template(stateUpdNextLoop).newStepUint(SlotStep{Transition: fn}, math.MaxUint32)
 }
 
-func (p *executionContext) Yield() StateConditionalBuilder {
+func (p *executionContext) Yield() ConditionalBuilder {
 	ncu := p.newConditionalUpdate(stateUpdNext)
 	return &ncu
 }
 
-func (p *executionContext) Poll() StateConditionalBuilder {
+func (p *executionContext) Poll() ConditionalBuilder {
 	ncu := p.newConditionalUpdate(stateUpdPoll)
 	return &ncu
 }
 
-func (p *executionContext) Sleep() StateConditionalBuilder {
+func (p *executionContext) Sleep() ConditionalBuilder {
 	ncu := p.newConditionalUpdate(stateUpdSleep)
 	return &ncu
 }
 
-func (p *executionContext) WaitAny() StateConditionalBuilder {
+func (p *executionContext) WaitAny() ConditionalBuilder {
 	ncu := p.newConditionalUpdate(stateUpdWaitForEvent)
 	return &ncu
 }

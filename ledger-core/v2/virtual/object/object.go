@@ -41,6 +41,8 @@ type Info struct {
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
 
+	AwaitPendingOrdered smachine.BargeIn
+
 	ActiveImmutablePendingCount    uint8
 	ActiveMutablePendingCount      uint8
 	PotentialImmutablePendingCount uint8
@@ -198,6 +200,9 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 
 func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.IsReady() {
+		if sm.ActiveMutablePendingCount > 0 {
+			sm.createWaitPendingOrderedSM(ctx)
+		}
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
@@ -215,4 +220,17 @@ func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.Stat
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
+}
+
+func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
+	syncSM := AwaitOrderedPendingSM{
+		sync: sm.MutableExecute,
+	}
+
+	// syncSM acquire MutableExecute semaphore in init step.
+	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return &syncSM
+	}, func() {
+		sm.AwaitPendingOrdered = syncSM.stop
+	})
 }
