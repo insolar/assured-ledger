@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -29,8 +28,7 @@ import (
 
 func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
-		mc  = minimock.NewController(t)
+		mc = minimock.NewController(t)
 
 		pd                   = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot            = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
@@ -81,7 +79,6 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	smObject.migrateDuringExecution(migrationCtx)
 
 	execCtx := smachine.NewExecutionContextMock(mc).
-		GetContextMock.Return(ctx).
 		JumpMock.Set(testutils.CheckWrapper(stepChecker, t))
 	smObject.stepSendVStateReport(execCtx)
 	require.Equal(t, 1, msgVStateReportCount)
