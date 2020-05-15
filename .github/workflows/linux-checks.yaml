@@ -146,7 +146,6 @@ jobs:
         run: kubectl --kubeconfig=k3s.yaml apply -f ledger-core/v2/deploy/kube/generated.yaml
       - name: debug
         run: |
-          sleep 5
           kubectl --kubeconfig=k3s.yaml get ns
           kubectl --kubeconfig=k3s.yaml describe ns insolar
           kubectl --kubeconfig=k3s.yaml -n insolar describe pods
@@ -185,7 +184,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/ledger-core/v2
           go mod download
-          make vendor pre-build
+          make vendor install-build-tools
           make test_func_kubernetes_ci
       - name: stop insolar network
         run:  kubectl --kubeconfig=k3s.yaml delete -f ledger-core/v2/deploy/kube/generated.yaml
