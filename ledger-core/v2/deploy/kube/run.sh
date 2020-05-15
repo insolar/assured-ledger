@@ -59,7 +59,7 @@ wait_for_complete_network_state() {
     if [ "$(kubectl -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -c -v 'NOT')" = "1" ]; then
       echo "network is ready!"
       ready=1
-      exit 0
+      break
     else
       echo "network is not ready"
       sleep 2
