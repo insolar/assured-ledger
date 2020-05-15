@@ -32,6 +32,8 @@ const (
 	HasState
 )
 
+const waitStatePulsePercent = 10
+
 type Info struct {
 	Reference   reference.Global
 	descriptor  descriptor.Object
@@ -160,6 +162,8 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
+	sm.initWaitGetStateUntil()
+
 	ctx.SetDefaultMigration(sm.migrateDuringExecution)
 
 	switch sm.initReason {
@@ -173,6 +177,14 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	default:
 		panic(throw.IllegalValue())
 	}
+}
+
+func (sm *SMObject) initWaitGetStateUntil() {
+	pulseDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta)
+	waitDuration :=  pulseDuration / waitStatePulsePercent
+	pulseStartedAt := sm.pulseSlot.PulseStartedAt()
+
+	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
 }
 
 // we get CallMethod but we have no object data
