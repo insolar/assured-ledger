@@ -83,7 +83,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/go
-      ARTIFACTS_DIR: /tmp/insolar
+      INSOLAR_IMAGE: ci:5000/assured-ledger
+      APPLY_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
       KUBECTL: kubectl --kubeconfig=/tmp/k3s.yaml
       KUBECTL_VERSION: v1.18.2
@@ -124,6 +125,8 @@ jobs:
         run: |
           touch /tmp/k3s.yaml
           docker run -d --name=k3s --net=host --privileged --tmpfs /run --tmpfs /var/run -e "K3S_TOKEN=197813248412582" -p 6443:6443 -v "$PWD"/registries.yaml:/etc/rancher/k3s/registries.yaml -v /tmp/k3s.yaml:/etc/rancher/k3s/k3s.yaml rancher/k3s:$K3S_TAG server
+      - name: launch registry
+        run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - name: wait for k3s
         run:  until ${{env.KUBECTL}} version; do echo "k3s is not up yet"; sleep 3; done
       - name: describe node
@@ -133,8 +136,6 @@ jobs:
           docker ps
       - name: apply ingress
         run:  ${{env.KUBECTL}} apply -f ledger-core/v2/deploy/ingress-nginx.yaml
-      - name: launch registry
-        run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - name: build images
         run: |
           pwd

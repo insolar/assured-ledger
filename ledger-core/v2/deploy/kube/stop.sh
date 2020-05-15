@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 KUBECTL=${KUBECTL:-"kubectl"}
+USE_MANIFESTS=${USE_MANIFESTS:-"local"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
 LOG_DIR="$ARTIFACTS_DIR/logs"
 set -x
 
 stop_network() {
-  $KUBECTL delete -k ./deploy/kube/local/
+  $KUBECTL delete -k "$DIR/$USE_MANIFESTS/"
 }
 
 save_logs_to_files() {
@@ -24,5 +25,5 @@ echo "Stopping insolar"
 save_logs_to_files
 echo "Logs saved to $LOG_DIR"
 stop_network
-echo "Insolar stoped"
+echo "Insolar stopped"
 set +x

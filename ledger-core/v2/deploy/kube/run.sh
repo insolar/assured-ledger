@@ -3,6 +3,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 NUM_DISCOVERY_NODES=5
 NUM_DISCOVERY_NODES=${NUM_DISCOVERY_NODES:-5}
 KUBECTL=${KUBECTL:-"kubectl"}
+USE_MANIFESTS=${USE_MANIFESTS:-"local"}
 INSOLAR_IMAGE=${INSOLAR_IMAGE:-"insolar/assured-ledger:latest"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
 set -x
@@ -38,7 +39,7 @@ delete_ingress() {
 }
 
 run_network() {
-  $KUBECTL apply -k "$DIR/local/" 2>&1 || {
+  $KUBECTL apply -k "$DIR/$USE_MANIFESTS/" 2>&1 || {
     echo >&2 "kubectl apply failed. Aborting."
     exit 1
   }
@@ -75,7 +76,7 @@ wait_for_complete_network_state() {
 }
 
 copy_bootstrap_config_to_temp() {
-  mkdir -p $ARTIFACTS_DIR
+  mkdir -p "$ARTIFACTS_DIR"
   $KUBECTL -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' >"$ARTIFACTS_DIR/bootstrap.yaml"
 }
 
