@@ -1,4 +1,4 @@
 mirrors:
-  "ci:5000":
+  "localhost:5000":
     endpoint:
       - "http://localhost:5000"
