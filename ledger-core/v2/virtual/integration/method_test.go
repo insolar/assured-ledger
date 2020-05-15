@@ -119,13 +119,13 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	{
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTConstructor,
+			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
 			CallSiteDeclaration: prototype,
-			CallSiteMethod:      "New",
+			CallSiteMethod:      "GetBalance",
 			CallRequestFlags:    0,
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -271,7 +271,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTConstructor,
+			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              reference.Global{},
@@ -323,11 +323,11 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			callResultPl := metaPayload.(*payload.Meta).Payload
 			callResultPlType, err := payload.UnmarshalType(callResultPl)
 			assert.NoError(t, err)
-			assert.Equal(t, payload.TypeVCallResult, callResultPlType)
+			assert.Equal(t, payload.TypeVStateRequest, callResultPlType)
 
 			callResultPayload, err := payload.Unmarshal(callResultPl)
 			assert.NoError(t, err)
-			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
+			assert.IsType(t, &payload.VStateRequest{}, callResultPayload)
 
 			testIsDone <- struct{}{}
 
