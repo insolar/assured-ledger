@@ -130,11 +130,17 @@ type ExecutionContextMock struct {
 	beforeInitChildCounter uint64
 	InitChildMock          mExecutionContextMockInitChild
 
-	funcInitChildExt          func(c1 CreateFunc, c2 CreateDefaultValues) (s1 SlotLink)
-	inspectFuncInitChildExt   func(c1 CreateFunc, c2 CreateDefaultValues)
+	funcInitChildExt          func(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc) (s1 SlotLink)
+	inspectFuncInitChildExt   func(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc)
 	afterInitChildExtCounter  uint64
 	beforeInitChildExtCounter uint64
 	InitChildExtMock          mExecutionContextMockInitChildExt
+
+	funcInitChildWithPostInit          func(c1 CreateFunc, p1 PostInitFunc) (s1 SlotLink)
+	inspectFuncInitChildWithPostInit   func(c1 CreateFunc, p1 PostInitFunc)
+	afterInitChildWithPostInitCounter  uint64
+	beforeInitChildWithPostInitCounter uint64
+	InitChildWithPostInitMock          mExecutionContextMockInitChildWithPostInit
 
 	funcInitiateLongRun          func(l1 LongRunFlags)
 	inspectFuncInitiateLongRun   func(l1 LongRunFlags)
@@ -452,6 +458,9 @@ func NewExecutionContextMock(t minimock.Tester) *ExecutionContextMock {
 
 	m.InitChildExtMock = mExecutionContextMockInitChildExt{mock: m}
 	m.InitChildExtMock.callArgs = []*ExecutionContextMockInitChildExtParams{}
+
+	m.InitChildWithPostInitMock = mExecutionContextMockInitChildWithPostInit{mock: m}
+	m.InitChildWithPostInitMock.callArgs = []*ExecutionContextMockInitChildWithPostInitParams{}
 
 	m.InitiateLongRunMock = mExecutionContextMockInitiateLongRun{mock: m}
 	m.InitiateLongRunMock.callArgs = []*ExecutionContextMockInitiateLongRunParams{}
@@ -4463,6 +4472,7 @@ type ExecutionContextMockInitChildExtExpectation struct {
 type ExecutionContextMockInitChildExtParams struct {
 	c1 CreateFunc
 	c2 CreateDefaultValues
+	p1 PostInitFunc
 }
 
 // ExecutionContextMockInitChildExtResults contains results of the ExecutionContext.InitChildExt
@@ -4471,7 +4481,7 @@ type ExecutionContextMockInitChildExtResults struct {
 }
 
 // Expect sets up expected params for ExecutionContext.InitChildExt
-func (mmInitChildExt *mExecutionContextMockInitChildExt) Expect(c1 CreateFunc, c2 CreateDefaultValues) *mExecutionContextMockInitChildExt {
+func (mmInitChildExt *mExecutionContextMockInitChildExt) Expect(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc) *mExecutionContextMockInitChildExt {
 	if mmInitChildExt.mock.funcInitChildExt != nil {
 		mmInitChildExt.mock.t.Fatalf("ExecutionContextMock.InitChildExt mock is already set by Set")
 	}
@@ -4480,7 +4490,7 @@ func (mmInitChildExt *mExecutionContextMockInitChildExt) Expect(c1 CreateFunc, c
 		mmInitChildExt.defaultExpectation = &ExecutionContextMockInitChildExtExpectation{}
 	}
 
-	mmInitChildExt.defaultExpectation.params = &ExecutionContextMockInitChildExtParams{c1, c2}
+	mmInitChildExt.defaultExpectation.params = &ExecutionContextMockInitChildExtParams{c1, c2, p1}
 	for _, e := range mmInitChildExt.expectations {
 		if minimock.Equal(e.params, mmInitChildExt.defaultExpectation.params) {
 			mmInitChildExt.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmInitChildExt.defaultExpectation.params)
@@ -4491,7 +4501,7 @@ func (mmInitChildExt *mExecutionContextMockInitChildExt) Expect(c1 CreateFunc, c
 }
 
 // Inspect accepts an inspector function that has same arguments as the ExecutionContext.InitChildExt
-func (mmInitChildExt *mExecutionContextMockInitChildExt) Inspect(f func(c1 CreateFunc, c2 CreateDefaultValues)) *mExecutionContextMockInitChildExt {
+func (mmInitChildExt *mExecutionContextMockInitChildExt) Inspect(f func(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc)) *mExecutionContextMockInitChildExt {
 	if mmInitChildExt.mock.inspectFuncInitChildExt != nil {
 		mmInitChildExt.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.InitChildExt")
 	}
@@ -4515,7 +4525,7 @@ func (mmInitChildExt *mExecutionContextMockInitChildExt) Return(s1 SlotLink) *Ex
 }
 
 //Set uses given function f to mock the ExecutionContext.InitChildExt method
-func (mmInitChildExt *mExecutionContextMockInitChildExt) Set(f func(c1 CreateFunc, c2 CreateDefaultValues) (s1 SlotLink)) *ExecutionContextMock {
+func (mmInitChildExt *mExecutionContextMockInitChildExt) Set(f func(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc) (s1 SlotLink)) *ExecutionContextMock {
 	if mmInitChildExt.defaultExpectation != nil {
 		mmInitChildExt.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.InitChildExt method")
 	}
@@ -4530,14 +4540,14 @@ func (mmInitChildExt *mExecutionContextMockInitChildExt) Set(f func(c1 CreateFun
 
 // When sets expectation for the ExecutionContext.InitChildExt which will trigger the result defined by the following
 // Then helper
-func (mmInitChildExt *mExecutionContextMockInitChildExt) When(c1 CreateFunc, c2 CreateDefaultValues) *ExecutionContextMockInitChildExtExpectation {
+func (mmInitChildExt *mExecutionContextMockInitChildExt) When(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc) *ExecutionContextMockInitChildExtExpectation {
 	if mmInitChildExt.mock.funcInitChildExt != nil {
 		mmInitChildExt.mock.t.Fatalf("ExecutionContextMock.InitChildExt mock is already set by Set")
 	}
 
 	expectation := &ExecutionContextMockInitChildExtExpectation{
 		mock:   mmInitChildExt.mock,
-		params: &ExecutionContextMockInitChildExtParams{c1, c2},
+		params: &ExecutionContextMockInitChildExtParams{c1, c2, p1},
 	}
 	mmInitChildExt.expectations = append(mmInitChildExt.expectations, expectation)
 	return expectation
@@ -4550,15 +4560,15 @@ func (e *ExecutionContextMockInitChildExtExpectation) Then(s1 SlotLink) *Executi
 }
 
 // InitChildExt implements ExecutionContext
-func (mmInitChildExt *ExecutionContextMock) InitChildExt(c1 CreateFunc, c2 CreateDefaultValues) (s1 SlotLink) {
+func (mmInitChildExt *ExecutionContextMock) InitChildExt(c1 CreateFunc, c2 CreateDefaultValues, p1 PostInitFunc) (s1 SlotLink) {
 	mm_atomic.AddUint64(&mmInitChildExt.beforeInitChildExtCounter, 1)
 	defer mm_atomic.AddUint64(&mmInitChildExt.afterInitChildExtCounter, 1)
 
 	if mmInitChildExt.inspectFuncInitChildExt != nil {
-		mmInitChildExt.inspectFuncInitChildExt(c1, c2)
+		mmInitChildExt.inspectFuncInitChildExt(c1, c2, p1)
 	}
 
-	mm_params := &ExecutionContextMockInitChildExtParams{c1, c2}
+	mm_params := &ExecutionContextMockInitChildExtParams{c1, c2, p1}
 
 	// Record call args
 	mmInitChildExt.InitChildExtMock.mutex.Lock()
@@ -4575,7 +4585,7 @@ func (mmInitChildExt *ExecutionContextMock) InitChildExt(c1 CreateFunc, c2 Creat
 	if mmInitChildExt.InitChildExtMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmInitChildExt.InitChildExtMock.defaultExpectation.Counter, 1)
 		mm_want := mmInitChildExt.InitChildExtMock.defaultExpectation.params
-		mm_got := ExecutionContextMockInitChildExtParams{c1, c2}
+		mm_got := ExecutionContextMockInitChildExtParams{c1, c2, p1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmInitChildExt.t.Errorf("ExecutionContextMock.InitChildExt got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -4587,9 +4597,9 @@ func (mmInitChildExt *ExecutionContextMock) InitChildExt(c1 CreateFunc, c2 Creat
 		return (*mm_results).s1
 	}
 	if mmInitChildExt.funcInitChildExt != nil {
-		return mmInitChildExt.funcInitChildExt(c1, c2)
+		return mmInitChildExt.funcInitChildExt(c1, c2, p1)
 	}
-	mmInitChildExt.t.Fatalf("Unexpected call to ExecutionContextMock.InitChildExt. %v %v", c1, c2)
+	mmInitChildExt.t.Fatalf("Unexpected call to ExecutionContextMock.InitChildExt. %v %v %v", c1, c2, p1)
 	return
 }
 
@@ -4655,6 +4665,222 @@ func (m *ExecutionContextMock) MinimockInitChildExtInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcInitChildExt != nil && mm_atomic.LoadUint64(&m.afterInitChildExtCounter) < 1 {
 		m.t.Error("Expected call to ExecutionContextMock.InitChildExt")
+	}
+}
+
+type mExecutionContextMockInitChildWithPostInit struct {
+	mock               *ExecutionContextMock
+	defaultExpectation *ExecutionContextMockInitChildWithPostInitExpectation
+	expectations       []*ExecutionContextMockInitChildWithPostInitExpectation
+
+	callArgs []*ExecutionContextMockInitChildWithPostInitParams
+	mutex    sync.RWMutex
+}
+
+// ExecutionContextMockInitChildWithPostInitExpectation specifies expectation struct of the ExecutionContext.InitChildWithPostInit
+type ExecutionContextMockInitChildWithPostInitExpectation struct {
+	mock    *ExecutionContextMock
+	params  *ExecutionContextMockInitChildWithPostInitParams
+	results *ExecutionContextMockInitChildWithPostInitResults
+	Counter uint64
+}
+
+// ExecutionContextMockInitChildWithPostInitParams contains parameters of the ExecutionContext.InitChildWithPostInit
+type ExecutionContextMockInitChildWithPostInitParams struct {
+	c1 CreateFunc
+	p1 PostInitFunc
+}
+
+// ExecutionContextMockInitChildWithPostInitResults contains results of the ExecutionContext.InitChildWithPostInit
+type ExecutionContextMockInitChildWithPostInitResults struct {
+	s1 SlotLink
+}
+
+// Expect sets up expected params for ExecutionContext.InitChildWithPostInit
+func (mmInitChildWithPostInit *mExecutionContextMockInitChildWithPostInit) Expect(c1 CreateFunc, p1 PostInitFunc) *mExecutionContextMockInitChildWithPostInit {
+	if mmInitChildWithPostInit.mock.funcInitChildWithPostInit != nil {
+		mmInitChildWithPostInit.mock.t.Fatalf("ExecutionContextMock.InitChildWithPostInit mock is already set by Set")
+	}
+
+	if mmInitChildWithPostInit.defaultExpectation == nil {
+		mmInitChildWithPostInit.defaultExpectation = &ExecutionContextMockInitChildWithPostInitExpectation{}
+	}
+
+	mmInitChildWithPostInit.defaultExpectation.params = &ExecutionContextMockInitChildWithPostInitParams{c1, p1}
+	for _, e := range mmInitChildWithPostInit.expectations {
+		if minimock.Equal(e.params, mmInitChildWithPostInit.defaultExpectation.params) {
+			mmInitChildWithPostInit.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmInitChildWithPostInit.defaultExpectation.params)
+		}
+	}
+
+	return mmInitChildWithPostInit
+}
+
+// Inspect accepts an inspector function that has same arguments as the ExecutionContext.InitChildWithPostInit
+func (mmInitChildWithPostInit *mExecutionContextMockInitChildWithPostInit) Inspect(f func(c1 CreateFunc, p1 PostInitFunc)) *mExecutionContextMockInitChildWithPostInit {
+	if mmInitChildWithPostInit.mock.inspectFuncInitChildWithPostInit != nil {
+		mmInitChildWithPostInit.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.InitChildWithPostInit")
+	}
+
+	mmInitChildWithPostInit.mock.inspectFuncInitChildWithPostInit = f
+
+	return mmInitChildWithPostInit
+}
+
+// Return sets up results that will be returned by ExecutionContext.InitChildWithPostInit
+func (mmInitChildWithPostInit *mExecutionContextMockInitChildWithPostInit) Return(s1 SlotLink) *ExecutionContextMock {
+	if mmInitChildWithPostInit.mock.funcInitChildWithPostInit != nil {
+		mmInitChildWithPostInit.mock.t.Fatalf("ExecutionContextMock.InitChildWithPostInit mock is already set by Set")
+	}
+
+	if mmInitChildWithPostInit.defaultExpectation == nil {
+		mmInitChildWithPostInit.defaultExpectation = &ExecutionContextMockInitChildWithPostInitExpectation{mock: mmInitChildWithPostInit.mock}
+	}
+	mmInitChildWithPostInit.defaultExpectation.results = &ExecutionContextMockInitChildWithPostInitResults{s1}
+	return mmInitChildWithPostInit.mock
+}
+
+//Set uses given function f to mock the ExecutionContext.InitChildWithPostInit method
+func (mmInitChildWithPostInit *mExecutionContextMockInitChildWithPostInit) Set(f func(c1 CreateFunc, p1 PostInitFunc) (s1 SlotLink)) *ExecutionContextMock {
+	if mmInitChildWithPostInit.defaultExpectation != nil {
+		mmInitChildWithPostInit.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.InitChildWithPostInit method")
+	}
+
+	if len(mmInitChildWithPostInit.expectations) > 0 {
+		mmInitChildWithPostInit.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.InitChildWithPostInit method")
+	}
+
+	mmInitChildWithPostInit.mock.funcInitChildWithPostInit = f
+	return mmInitChildWithPostInit.mock
+}
+
+// When sets expectation for the ExecutionContext.InitChildWithPostInit which will trigger the result defined by the following
+// Then helper
+func (mmInitChildWithPostInit *mExecutionContextMockInitChildWithPostInit) When(c1 CreateFunc, p1 PostInitFunc) *ExecutionContextMockInitChildWithPostInitExpectation {
+	if mmInitChildWithPostInit.mock.funcInitChildWithPostInit != nil {
+		mmInitChildWithPostInit.mock.t.Fatalf("ExecutionContextMock.InitChildWithPostInit mock is already set by Set")
+	}
+
+	expectation := &ExecutionContextMockInitChildWithPostInitExpectation{
+		mock:   mmInitChildWithPostInit.mock,
+		params: &ExecutionContextMockInitChildWithPostInitParams{c1, p1},
+	}
+	mmInitChildWithPostInit.expectations = append(mmInitChildWithPostInit.expectations, expectation)
+	return expectation
+}
+
+// Then sets up ExecutionContext.InitChildWithPostInit return parameters for the expectation previously defined by the When method
+func (e *ExecutionContextMockInitChildWithPostInitExpectation) Then(s1 SlotLink) *ExecutionContextMock {
+	e.results = &ExecutionContextMockInitChildWithPostInitResults{s1}
+	return e.mock
+}
+
+// InitChildWithPostInit implements ExecutionContext
+func (mmInitChildWithPostInit *ExecutionContextMock) InitChildWithPostInit(c1 CreateFunc, p1 PostInitFunc) (s1 SlotLink) {
+	mm_atomic.AddUint64(&mmInitChildWithPostInit.beforeInitChildWithPostInitCounter, 1)
+	defer mm_atomic.AddUint64(&mmInitChildWithPostInit.afterInitChildWithPostInitCounter, 1)
+
+	if mmInitChildWithPostInit.inspectFuncInitChildWithPostInit != nil {
+		mmInitChildWithPostInit.inspectFuncInitChildWithPostInit(c1, p1)
+	}
+
+	mm_params := &ExecutionContextMockInitChildWithPostInitParams{c1, p1}
+
+	// Record call args
+	mmInitChildWithPostInit.InitChildWithPostInitMock.mutex.Lock()
+	mmInitChildWithPostInit.InitChildWithPostInitMock.callArgs = append(mmInitChildWithPostInit.InitChildWithPostInitMock.callArgs, mm_params)
+	mmInitChildWithPostInit.InitChildWithPostInitMock.mutex.Unlock()
+
+	for _, e := range mmInitChildWithPostInit.InitChildWithPostInitMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.s1
+		}
+	}
+
+	if mmInitChildWithPostInit.InitChildWithPostInitMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmInitChildWithPostInit.InitChildWithPostInitMock.defaultExpectation.Counter, 1)
+		mm_want := mmInitChildWithPostInit.InitChildWithPostInitMock.defaultExpectation.params
+		mm_got := ExecutionContextMockInitChildWithPostInitParams{c1, p1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmInitChildWithPostInit.t.Errorf("ExecutionContextMock.InitChildWithPostInit got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmInitChildWithPostInit.InitChildWithPostInitMock.defaultExpectation.results
+		if mm_results == nil {
+			mmInitChildWithPostInit.t.Fatal("No results are set for the ExecutionContextMock.InitChildWithPostInit")
+		}
+		return (*mm_results).s1
+	}
+	if mmInitChildWithPostInit.funcInitChildWithPostInit != nil {
+		return mmInitChildWithPostInit.funcInitChildWithPostInit(c1, p1)
+	}
+	mmInitChildWithPostInit.t.Fatalf("Unexpected call to ExecutionContextMock.InitChildWithPostInit. %v %v", c1, p1)
+	return
+}
+
+// InitChildWithPostInitAfterCounter returns a count of finished ExecutionContextMock.InitChildWithPostInit invocations
+func (mmInitChildWithPostInit *ExecutionContextMock) InitChildWithPostInitAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmInitChildWithPostInit.afterInitChildWithPostInitCounter)
+}
+
+// InitChildWithPostInitBeforeCounter returns a count of ExecutionContextMock.InitChildWithPostInit invocations
+func (mmInitChildWithPostInit *ExecutionContextMock) InitChildWithPostInitBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmInitChildWithPostInit.beforeInitChildWithPostInitCounter)
+}
+
+// Calls returns a list of arguments used in each call to ExecutionContextMock.InitChildWithPostInit.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmInitChildWithPostInit *mExecutionContextMockInitChildWithPostInit) Calls() []*ExecutionContextMockInitChildWithPostInitParams {
+	mmInitChildWithPostInit.mutex.RLock()
+
+	argCopy := make([]*ExecutionContextMockInitChildWithPostInitParams, len(mmInitChildWithPostInit.callArgs))
+	copy(argCopy, mmInitChildWithPostInit.callArgs)
+
+	mmInitChildWithPostInit.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockInitChildWithPostInitDone returns true if the count of the InitChildWithPostInit invocations corresponds
+// the number of defined expectations
+func (m *ExecutionContextMock) MinimockInitChildWithPostInitDone() bool {
+	for _, e := range m.InitChildWithPostInitMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.InitChildWithPostInitMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterInitChildWithPostInitCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcInitChildWithPostInit != nil && mm_atomic.LoadUint64(&m.afterInitChildWithPostInitCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockInitChildWithPostInitInspect logs each unmet expectation
+func (m *ExecutionContextMock) MinimockInitChildWithPostInitInspect() {
+	for _, e := range m.InitChildWithPostInitMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ExecutionContextMock.InitChildWithPostInit with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.InitChildWithPostInitMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterInitChildWithPostInitCounter) < 1 {
+		if m.InitChildWithPostInitMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ExecutionContextMock.InitChildWithPostInit")
+		} else {
+			m.t.Errorf("Expected call to ExecutionContextMock.InitChildWithPostInit with params: %#v", *m.InitChildWithPostInitMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcInitChildWithPostInit != nil && mm_atomic.LoadUint64(&m.afterInitChildWithPostInitCounter) < 1 {
+		m.t.Error("Expected call to ExecutionContextMock.InitChildWithPostInit")
 	}
 }
 
@@ -12496,6 +12722,8 @@ func (m *ExecutionContextMock) MinimockFinish() {
 
 		m.MinimockInitChildExtInspect()
 
+		m.MinimockInitChildWithPostInitInspect()
+
 		m.MinimockInitiateLongRunInspect()
 
 		m.MinimockJumpInspect()
@@ -12622,6 +12850,7 @@ func (m *ExecutionContextMock) minimockDone() bool {
 		m.MinimockGetPublishedLinkDone() &&
 		m.MinimockInitChildDone() &&
 		m.MinimockInitChildExtDone() &&
+		m.MinimockInitChildWithPostInitDone() &&
 		m.MinimockInitiateLongRunDone() &&
 		m.MinimockJumpDone() &&
 		m.MinimockJumpExtDone() &&
