@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -157,7 +157,7 @@ func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
 	}
 }
 
-func (s *Server) ReplaceMachinesManager(manager executor.Manager) {
+func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
 	s.runner.Manager = manager
 }
 
