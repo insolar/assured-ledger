@@ -7,7 +7,6 @@ package hostnetwork
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -171,10 +170,6 @@ func (s *hostSuite) Stop() {
 }
 
 func TestNewHostNetwork(t *testing.T) {
-	if runtime.GOOS == "windows" { // TODO FIXME
-		t.Skip("Currently this test doesn't pass on windows")
-	}
-
 	defer leaktest.Check(t)()
 
 	s := newHostSuite(t)
@@ -186,7 +181,7 @@ func TestNewHostNetwork(t *testing.T) {
 
 	handler := func(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 		inslogger.FromContext(ctx).Info("handler triggered")
-		wg.Done()
+		defer wg.Done()
 		return s.n2.BuildResponse(ctx, request, &packet.RPCResponse{}), nil
 	}
 	s.n2.RegisterRequestHandler(types.RPC, handler)
