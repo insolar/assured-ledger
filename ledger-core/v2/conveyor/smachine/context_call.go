@@ -86,6 +86,15 @@ func (c *adapterCallRequest) WithFlags(flags AsyncCallFlags) AsyncCallRequester 
 	return &r
 }
 
+func (c *adapterCallRequest) WithoutAutoWakeUp() AsyncCallRequester {
+	c.ensureValid()
+
+	r := *c
+	r.flags &^= AutoWakeUp
+	return &r
+
+}
+
 func (c *adapterCallRequest) Start() {
 	c.ensureMode(adapterAsyncCallContext)
 	defer c.discard()

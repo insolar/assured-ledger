@@ -28,6 +28,8 @@ type AsyncCallRequester interface {
 	WithNested(CreateFactoryFunc) AsyncCallRequester
 	// See AsyncCallFlags, set to AutoWakeUp by default.
 	WithFlags(flags AsyncCallFlags) AsyncCallRequester
+	// See AsyncCallFlags, removes AutoWakeUp.
+	WithoutAutoWakeUp() AsyncCallRequester
 	// Sets internal logging for the call and its result.
 	// This mode is set automatically when tracing is active or StepElevatedLog is set.
 	WithLog(isLogging bool) AsyncCallRequester
