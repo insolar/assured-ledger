@@ -82,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/go
+      ARTIFACTS_DIR: /tmp/insolar
+      GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
       KUBECTL_VERSION: v1.18.2
       KUBEVAL_VERSION: 0.15.0
       K3S_TAG: v1.17.4-k3s1
@@ -183,8 +185,8 @@ jobs:
       - name: run tests
         run: |
           cd $GITHUB_WORKSPACE/ledger-core/v2
-          go mod download
-          make vendor install-build-tools
+          mkdir -p $ARTIFACTS_DIR
+          kubectl -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' >"$ARTIFACTS_DIR/bootstrap.yaml"
           make test_func_kubernetes_ci
       - name: stop insolar network
         run:  kubectl --kubeconfig=k3s.yaml delete -f ledger-core/v2/deploy/kube/generated.yaml

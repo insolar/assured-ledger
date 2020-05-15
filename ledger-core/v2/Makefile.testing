@@ -50,7 +50,8 @@ test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster
 
 .PHONY: test_func_kubernetes_ci
 test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes cluster
-	make vendor
+	go mod download
+	make vendor install-build-tools
 	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
 	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \
