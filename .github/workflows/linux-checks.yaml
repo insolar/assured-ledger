@@ -145,8 +145,10 @@ jobs:
           docker push localhost:5000/assured-ledger:latest
       - name: wait for ingress
         run:  until ${{env.KUBECTL}} get pods -n ingress-nginx | grep controller | grep Running; do echo "ingress is not up yet"; sleep 1; done
-      - name: deploy insolar network
-        run: ${{env.KUBECTL}} apply -f ledger-core/v2/deploy/kube/generated.yaml
+      - name: run tests
+        run: |
+          cd $GITHUB_WORKSPACE/ledger-core/v2
+          make test_func_kubernetes_ci
       - name: debug
         run: |
           ${{env.KUBECTL}} get ns
@@ -156,40 +158,3 @@ jobs:
           ${{env.KUBECTL}} -n insolar get po
           docker images insolar/assured-ledger
           docker ps
-      - name: wait for bootstrap pod to up and running
-        run: until ${{env.KUBECTL}} -n insolar get po --field-selector=status.phase=Running | grep bootstrap; do echo "nope"; sleep 1; done
-      - name: bootstrap logs
-        run: ${{env.KUBECTL}} -n insolar logs -f bootstrap
-      - name: wait for net
-        run: |
-          ready=0
-          for try in {0..30}; do
-            if ${{env.KUBECTL}} -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
-              echo "network ready!"; ready=1; exit 0
-            else
-              ${{env.KUBECTL}} -n insolar get po
-              ${{env.KUBECTL}} -n insolar logs --tail=20 services/pulsewatcher
-              echo "network not ready"; sleep 1
-            fi
-          done
-          if [ $ready = 0 ]; then
-            echo "network was not started"
-            #exit 1
-          fi
-      - name: look pulsewatcher
-        run: ${{env.KUBECTL}} -n insolar logs --tail=20 services/pulsewatcher
-      - name: debug-2
-        run: |
-          ${{env.KUBECTL}} -n insolar describe pods
-          ${{env.KUBECTL}} -n insolar describe statefulsets/virtual
-          ${{env.KUBECTL}} -n insolar get po
-      - name: get bootsprap config
-        run: |
-          mkdir -p $ARTIFACTS_DIR
-          ${{env.KUBECTL}} -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' > "$ARTIFACTS_DIR/bootstrap.yaml"
-      - name: run tests
-        run: |
-          cd $GITHUB_WORKSPACE/ledger-core/v2
-          make test_func_kubernetes_ci
-      - name: stop insolar network
-        run:  ${{env.KUBECTL}} delete -f ledger-core/v2/deploy/kube/generated.yaml
