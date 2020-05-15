@@ -39,7 +39,7 @@ type Info struct {
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
 
-	AwaitPendingOrdered *smachine.BargeIn
+	AwaitPendingOrdered smachine.BargeIn
 
 	ActiveImmutablePendingCount    uint8
 	ActiveMutablePendingCount      uint8
@@ -217,6 +217,6 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &syncSM
 	}, func() {
-		sm.AwaitPendingOrdered = &syncSM.stop
+		sm.AwaitPendingOrdered = syncSM.stop
 	})
 }
