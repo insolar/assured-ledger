@@ -58,6 +58,7 @@ const (
 
 const AutoWakeUp = WakeUpOnResult | WakeUpOnCancel
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.NotifyRequester -o ./ -s _mock.go -g
 type NotifyRequester interface {
 	// Sets internal logging for the call. This mode is set automatically when tracing is active or StepElevatedLog is set.
 	WithLog(isLogging bool) NotifyRequester

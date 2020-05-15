@@ -225,8 +225,8 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 	pulses := pulse.NewStorageMem()
 	messageSender := messagesender.NewDefaultService(publisherMock, jetCoordinatorMock, pulses)
-	messageSenderAdapter := messagesenderadapter.CreateMessageSendService(ctx, messageSender)
-	slotMachine.AddDependency(messageSenderAdapter)
+	var messageSenderAdapter messagesenderadapter.MessageSender = messagesenderadapter.CreateMessageSendService(ctx, messageSender)
+	slotMachine.AddInterfaceDependency(&messageSenderAdapter)
 
 	pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 	slotMachine.AddDependency(&pulseSlot)
