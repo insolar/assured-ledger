@@ -214,9 +214,9 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}
 
 	// syncSM acquire MutableExecute semaphore in init step.
-	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &syncSM
+	}, func() {
+		sm.AwaitPendingOrdered = &syncSM.stop
 	})
-
-	sm.AwaitPendingOrdered = &syncSM.stop
 }
