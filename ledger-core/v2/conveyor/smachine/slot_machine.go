@@ -608,9 +608,9 @@ func (m *SlotMachine) startNewSlot(slot *Slot, worker FixedSlotWorker) {
 	m.updateSlotQueue(slot, worker, activateSlot)
 }
 
-func (m *SlotMachine) startNewSlotByDetachable(slot *Slot, runInit bool, w DetachableSlotWorker) {
-	if runInit {
-		m._executeSlotInitByCreator(slot, w)
+func (m *SlotMachine) startNewSlotByDetachable(slot *Slot, postInitFn PostInitFunc, w DetachableSlotWorker) {
+	if postInitFn != nil {
+		m._executeSlotInitByCreator(slot, postInitFn, w)
 		return
 	}
 

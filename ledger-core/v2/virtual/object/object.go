@@ -69,6 +69,14 @@ func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
 	}
 }
 
+func (i *Info) DecrementPotentialPendingCounter(isOrdered bool) {
+	if isOrdered {
+		i.PotentialMutablePendingCount--
+	} else {
+		i.PotentialImmutablePendingCount--
+	}
+}
+
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
 	i.descriptor = objectDescriptor
 }

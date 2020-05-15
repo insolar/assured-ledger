@@ -178,7 +178,7 @@ message VDelegatedRequestFinished {
     bytes DelegatorSignature = 27;
 
     bytes EntryHeadHash = 28;
-    bytes ObjectBody = 29;
+    ObjectState LatestState = 29;
 }
 
 message VStateUnavailable {
