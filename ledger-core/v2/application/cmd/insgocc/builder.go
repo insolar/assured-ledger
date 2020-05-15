@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 )
 
 var (
@@ -72,7 +73,7 @@ func (cb *contractsBuilder) clean() {
 }
 
 func (cb *contractsBuilder) parseContract(name string) (*preprocessor.ParsedFile, error) {
-	return preprocessor.ParseFile(cb.getContractPath(name), insolar.MachineTypeGoPlugin)
+	return preprocessor.ParseFile(cb.getContractPath(name), machine.Builtin)
 }
 
 type buildResult struct {

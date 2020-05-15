@@ -19,9 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -35,18 +34,18 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	requestResult := requestresult.New([]byte("123"), gen.Reference())
 	requestResult.SetActivate(gen.Reference(), prototype, []byte("234"))
 
-	executorMock := testutils.NewMachineLogicExecutorMock(t)
+	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallConstructorMock.Return(nil, []byte("345"), nil)
-	manager := executor.NewManager()
-	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+	mgr := machine.NewManager()
+	err := mgr.RegisterExecutor(machine.Builtin, executorMock)
 	require.NoError(t, err)
-	server.ReplaceMachinesManager(manager)
+	server.ReplaceMachinesManager(mgr)
 
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByPrototypeRefMock.Return(
 		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCode(nil, insolar.MachineTypeBuiltin, gen.Reference()),
+		descriptor.NewCode(nil, machine.Builtin, gen.Reference()),
 		nil,
 	)
 
@@ -127,7 +126,6 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	ctx := inslogger.TestContext(t)
 
 	for i := 0; i < 10; i++ {
-
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,

@@ -12,12 +12,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 )
 
-type MessageSender struct {
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter.MessageSender -o ./ -s _mock.go -g
+type MessageSender interface {
+	PrepareSync(ctx smachine.ExecutionContext, fn func(svc messagesender.Service)) smachine.SyncCallRequester
+	PrepareAsync(ctx smachine.ExecutionContext, fn func(svc messagesender.Service) smachine.AsyncResultFunc) smachine.AsyncCallRequester
+	PrepareNotify(ctx smachine.ExecutionContext, fn func(svc messagesender.Service)) smachine.NotifyRequester
+}
+
+type ParallelMessageSender struct {
 	svc  messagesender.Service
 	exec smachine.ExecutionAdapter
 }
 
-func (a *MessageSender) PrepareSync(
+func (a *ParallelMessageSender) PrepareSync(
 	ctx smachine.ExecutionContext,
 	fn func(svc messagesender.Service),
 ) smachine.SyncCallRequester {
@@ -27,7 +34,7 @@ func (a *MessageSender) PrepareSync(
 	})
 }
 
-func (a *MessageSender) PrepareAsync(
+func (a *ParallelMessageSender) PrepareAsync(
 	ctx smachine.ExecutionContext,
 	fn func(svc messagesender.Service) smachine.AsyncResultFunc,
 ) smachine.AsyncCallRequester {
@@ -36,7 +43,7 @@ func (a *MessageSender) PrepareAsync(
 	})
 }
 
-func (a *MessageSender) PrepareNotify(
+func (a *ParallelMessageSender) PrepareNotify(
 	ctx smachine.ExecutionContext,
 	fn func(svc messagesender.Service),
 ) smachine.NotifyRequester {
@@ -45,13 +52,13 @@ func (a *MessageSender) PrepareNotify(
 	})
 }
 
-func CreateMessageSendService(ctx context.Context, messenger messagesender.Service) *MessageSender {
+func CreateMessageSendService(ctx context.Context, messenger messagesender.Service) *ParallelMessageSender {
 	// it's copy/past from other realizations
 	parallelReaders := 16
 	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
-	return &MessageSender{
+	return &ParallelMessageSender{
 		svc:  messenger,
 		exec: smachine.NewExecutionAdapter("MessageSendService", ae),
 	}

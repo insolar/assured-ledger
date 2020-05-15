@@ -28,8 +28,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 
 	"github.com/pkg/errors"
 )
@@ -70,7 +69,7 @@ type ParsedFile struct {
 	code                []byte
 	fileSet             *token.FileSet
 	node                *ast.File
-	machineType         insolar.MachineType
+	machineType         machine.Type
 	panicIsLogicalError bool
 
 	types        map[string]*ast.TypeSpec
@@ -81,7 +80,7 @@ type ParsedFile struct {
 
 // ParseFile parses a file as Go source code of a smart contract
 // and returns it as `ParsedFile`
-func ParseFile(fileName string, machineType insolar.MachineType) (*ParsedFile, error) {
+func ParseFile(fileName string, machineType machine.Type) (*ParsedFile, error) {
 	res := &ParsedFile{
 		name:        fileName,
 		machineType: machineType,
@@ -244,9 +243,8 @@ func (pf *ParsedFile) ContractName() string {
 	return pf.node.Name.Name
 }
 
-func checkMachineType(machineType insolar.MachineType) error {
-	if machineType != insolar.MachineTypeGoPlugin &&
-		machineType != insolar.MachineTypeBuiltin {
+func checkMachineType(machineType machine.Type) error {
+	if machineType != machine.Builtin {
 		return errors.New("Unsupported machine type")
 	}
 	return nil
@@ -322,8 +320,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 	for _, t := range pf.types {
 		extendImportsMapWithType(pf, t, imports)
 	}
-	if pf.machineType == insolar.MachineTypeBuiltin ||
-		len(functionsInfo) > 0 {
+	if pf.machineType == machine.Builtin || len(functionsInfo) > 0 {
 		imports[fmt.Sprintf(`"%s"`, corePath)] = true
 		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	}
@@ -336,7 +333,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		"ParsedCode":          pf.code,
 		"FoundationPath":      foundationPath,
 		"Imports":             imports,
-		"GenerateInitialize":  pf.machineType == insolar.MachineTypeBuiltin,
+		"GenerateInitialize":  pf.machineType == machine.Builtin,
 		"PanicIsLogicalError": pf.panicIsLogicalError,
 	}
 
@@ -1006,6 +1003,7 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 			"XXX_insolar":    `"github.com/insolar/assured-ledger/ledger-core/v2/insolar"`,
 			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"`,
 			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/v2/reference"`,
+			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"`,
 			"errors":         `"github.com/pkg/errors"`,
 		},
 	}

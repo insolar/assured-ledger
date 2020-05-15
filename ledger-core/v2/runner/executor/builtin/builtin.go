@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
@@ -49,11 +50,11 @@ func New(stub common.RunnerRPCStub) *Runner {
 
 func (r *Runner) CallConstructor(
 	_ context.Context,
-	callCtx *insolar.LogicCallContext,
+	callCtx *call.LogicContext,
 	codeRef reference.Global,
 	name string,
-	args insolar.Arguments,
-) ([]byte, insolar.Arguments, error) {
+	args []byte,
+) ([]byte, []byte, error) {
 	foundation.SetLogicalContext(callCtx)
 	defer foundation.ClearContext()
 
@@ -73,12 +74,12 @@ func (r *Runner) CallConstructor(
 
 func (r *Runner) CallMethod(
 	_ context.Context,
-	callCtx *insolar.LogicCallContext,
+	callCtx *call.LogicContext,
 	codeRef reference.Global,
 	data []byte,
 	method string,
-	args insolar.Arguments,
-) ([]byte, insolar.Arguments, error) {
+	args []byte,
+) ([]byte, []byte, error) {
 	foundation.SetLogicalContext(callCtx)
 	defer foundation.ClearContext()
 
