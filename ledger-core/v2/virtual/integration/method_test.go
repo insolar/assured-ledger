@@ -119,13 +119,13 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	{
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTConstructor,
+			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
 			CallSiteDeclaration: prototype,
-			CallSiteMethod:      "New",
+			CallSiteMethod:      "GetBalance",
 			CallRequestFlags:    0,
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -267,17 +267,24 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
+	prototype := testwallet.GetPrototype()
+	objectLocal := server.RandomLocalWithPulse()
+	objectGlobal := reference.NewSelf(objectLocal)
+
+	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
+	require.NoError(t, err)
+
 	for i := 0; i < 10; i++ {
 
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTConstructor,
+			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
-			Caller:              reference.Global{},
-			Callee:              gen.Reference(),
-			CallSiteDeclaration: testwallet.GetPrototype(),
-			CallSiteMethod:      "New",
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: prototype,
+			CallSiteMethod:      "GetBalance",
 			CallSequence:        0,
 			CallReason:          reference.Global{},
 			RootTX:              reference.Global{},
