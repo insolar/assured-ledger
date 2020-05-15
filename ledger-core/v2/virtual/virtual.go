@@ -56,7 +56,7 @@ type Dispatcher struct {
 	MessageSender messagesender.Service
 
 	runnerAdapter        *runnerAdapter.Runner
-	messageSenderAdapter *messageSenderAdapter.MessageSender
+	messageSenderAdapter messageSenderAdapter.MessageSender
 }
 
 func NewDispatcher() *Dispatcher {
@@ -92,7 +92,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
 
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
-	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
+	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)

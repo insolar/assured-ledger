@@ -28,7 +28,7 @@ type SMVStateRequest struct {
 	failReason payload.VStateUnavailable_ReasonType
 
 	// dependencies
-	messageSender *messageSenderAdapter.MessageSender
+	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 	objectCatalog object.Catalog
 }

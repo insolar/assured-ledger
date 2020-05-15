@@ -7,6 +7,7 @@ package statemachine
 
 import (
 	"errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -27,7 +28,7 @@ type SMTestAPICall struct {
 
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
-	messageSender *messageSenderAdapter.MessageSender
+	messageSender messageSenderAdapter.MessageSender
 }
 
 /* -------- Declaration ------------- */
