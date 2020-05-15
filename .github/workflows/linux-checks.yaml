@@ -84,6 +84,7 @@ jobs:
       GOPATH: /home/runner/work/assured-ledger/go
       ARTIFACTS_DIR: /tmp/insolar
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+      KUBECTL: kubectl --kubeconfig=k3s.yaml
       KUBECTL_VERSION: v1.18.2
       KUBEVAL_VERSION: 0.15.0
       K3S_TAG: v1.17.4-k3s1
@@ -123,14 +124,14 @@ jobs:
           touch k3s.yaml
           docker run -d --name=k3s --net=host --privileged --tmpfs /run --tmpfs /var/run -e "K3S_TOKEN=197813248412582" -p 6443:6443 -v "$PWD"/registries.yaml:/etc/rancher/k3s/registries.yaml -v "$PWD"/k3s.yaml:/etc/rancher/k3s/k3s.yaml rancher/k3s:$K3S_TAG server
       - name: wait for k3s
-        run:  until kubectl --kubeconfig=k3s.yaml version; do echo "k3s is not up yet"; sleep 3; done
+        run:  until ${{env.KUBECTL}} version; do echo "k3s is not up yet"; sleep 3; done
       - name: describe node
         run: |
-          kubectl --kubeconfig=k3s.yaml get no
-          kubectl --kubeconfig=k3s.yaml describe no
+          ${{env.KUBECTL}} get no
+          ${{env.KUBECTL}} describe no
           docker ps
       - name: apply ingress
-        run:  kubectl --kubeconfig=k3s.yaml apply -f ledger-core/v2/deploy/ingress-nginx.yaml
+        run:  ${{env.KUBECTL}} apply -f ledger-core/v2/deploy/ingress-nginx.yaml
       - name: launch registry
         run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - name: build images
@@ -143,31 +144,31 @@ jobs:
           docker tag insolar/assured-ledger:latest localhost:5000/assured-ledger:latest
           docker push localhost:5000/assured-ledger:latest
       - name: wait for ingress
-        run:  until kubectl --kubeconfig=k3s.yaml get pods -n ingress-nginx | grep controller | grep Running; do echo "ingress is not up yet"; sleep 1; done
+        run:  until ${{env.KUBECTL}} get pods -n ingress-nginx | grep controller | grep Running; do echo "ingress is not up yet"; sleep 1; done
       - name: deploy insolar network
-        run: kubectl --kubeconfig=k3s.yaml apply -f ledger-core/v2/deploy/kube/generated.yaml
+        run: ${{env.KUBECTL}} apply -f ledger-core/v2/deploy/kube/generated.yaml
       - name: debug
         run: |
-          kubectl --kubeconfig=k3s.yaml get ns
-          kubectl --kubeconfig=k3s.yaml describe ns insolar
-          kubectl --kubeconfig=k3s.yaml -n insolar describe pods
-          kubectl --kubeconfig=k3s.yaml -n insolar describe statefulsets/virtual
-          kubectl --kubeconfig=k3s.yaml -n insolar get po
+          ${{env.KUBECTL}} get ns
+          ${{env.KUBECTL}} describe ns insolar
+          ${{env.KUBECTL}} -n insolar describe pods
+          ${{env.KUBECTL}} -n insolar describe statefulsets/virtual
+          ${{env.KUBECTL}} -n insolar get po
           docker images insolar/assured-ledger
           docker ps
       - name: wait for bootstrap pod to up and running
-        run: until kubectl --kubeconfig=k3s.yaml -n insolar get po --field-selector=status.phase=Running | grep bootstrap; do echo "nope"; sleep 1; done
+        run: until ${{env.KUBECTL}} -n insolar get po --field-selector=status.phase=Running | grep bootstrap; do echo "nope"; sleep 1; done
       - name: bootstrap logs
-        run: kubectl --kubeconfig=k3s.yaml -n insolar logs -f bootstrap
+        run: ${{env.KUBECTL}} -n insolar logs -f bootstrap
       - name: wait for net
         run: |
           ready=0
           for try in {0..30}; do
-            if kubectl --kubeconfig=k3s.yaml -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+            if ${{env.KUBECTL}} -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
               echo "network ready!"; ready=1; exit 0
             else
-              kubectl --kubeconfig=k3s.yaml -n insolar get po
-              kubectl --kubeconfig=k3s.yaml -n insolar logs --tail=20 services/pulsewatcher
+              ${{env.KUBECTL}} -n insolar get po
+              ${{env.KUBECTL}} -n insolar logs --tail=20 services/pulsewatcher
               echo "network not ready"; sleep 1
             fi
           done
@@ -176,19 +177,19 @@ jobs:
             #exit 1
           fi
       - name: look pulsewatcher
-        run: kubectl --kubeconfig=k3s.yaml -n insolar logs --tail=20 services/pulsewatcher
+        run: ${{env.KUBECTL}} -n insolar logs --tail=20 services/pulsewatcher
       - name: debug-2
         run: |
-          kubectl --kubeconfig=k3s.yaml -n insolar describe pods
-          kubectl --kubeconfig=k3s.yaml -n insolar describe statefulsets/virtual
-          kubectl --kubeconfig=k3s.yaml -n insolar get po
+          ${{env.KUBECTL}} -n insolar describe pods
+          ${{env.KUBECTL}} -n insolar describe statefulsets/virtual
+          ${{env.KUBECTL}} -n insolar get po
       - name: get bootsprap config
         run: |
           mkdir -p $ARTIFACTS_DIR
-          kubectl --kubeconfig=k3s.yaml -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' > "$ARTIFACTS_DIR/bootstrap.yaml"
+          ${{env.KUBECTL}} -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' > "$ARTIFACTS_DIR/bootstrap.yaml"
       - name: run tests
         run: |
           cd $GITHUB_WORKSPACE/ledger-core/v2
           make test_func_kubernetes_ci
       - name: stop insolar network
-        run:  kubectl --kubeconfig=k3s.yaml delete -f ledger-core/v2/deploy/kube/generated.yaml
+        run:  ${{env.KUBECTL}} delete -f ledger-core/v2/deploy/kube/generated.yaml

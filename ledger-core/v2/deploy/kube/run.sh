@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 NUM_DISCOVERY_NODES=5
-INSOLAR_IMAGE="insolar/assured-ledger:latest"
-ARTIFACTS_DIR="/tmp/insolar"
+NUM_DISCOVERY_NODES=${NUM_DISCOVERY_NODES:-5}
+KUBECTL=${KUBECTL:-"kubectl"}
+INSOLAR_IMAGE=${INSOLAR_IMAGE:-"insolar/assured-ledger:latest"}
+ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
 set -x
 check_dependencies() {
   command -v docker >/dev/null 2>&1 || {
@@ -26,18 +28,17 @@ check_docker_images() {
 }
 
 check_ingress_installation() {
-  if [ "$(kubectl get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+  if [ "$($KUBECTL get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
+    $KUBECTL apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
   fi
 }
 
 delete_ingress() {
-  kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+  $KUBECTL delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
 }
 
 run_network() {
-  kubectl kustomize "$DIR" >"$DIR/generated.yaml"
-  kubectl apply -f "$DIR/generated.yaml" 2>&1 || {
+  $KUBECTL apply -k "$DIR/local/" 2>&1 || {
     echo >&2 "kubectl apply failed. Aborting."
     exit 1
   }
@@ -46,7 +47,7 @@ run_network() {
 wait_for_complete_network_state() {
   set +x
   while true; do
-    if [ "$(kubectl -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
+    if [ "$($KUBECTL -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
       break
     fi
     sleep 1s
@@ -56,7 +57,7 @@ wait_for_complete_network_state() {
 
   ready=0
   for try in {0..30}; do
-    if [ "$(kubectl -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -c -v 'NOT')" = "1" ]; then
+    if [ "$($KUBECTL -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -c -v 'NOT')" = "1" ]; then
       echo "network is ready!"
       ready=1
       break
@@ -75,7 +76,7 @@ wait_for_complete_network_state() {
 
 copy_bootstrap_config_to_temp() {
   mkdir -p $ARTIFACTS_DIR
-  kubectl -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' >"$ARTIFACTS_DIR/bootstrap.yaml"
+  $KUBECTL -n insolar get cm bootstrap-yaml -o jsonpath='{.data.bootstrap\.yaml}' >"$ARTIFACTS_DIR/bootstrap.yaml"
 }
 
 check_dependencies

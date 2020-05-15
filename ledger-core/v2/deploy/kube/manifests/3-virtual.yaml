@@ -20,28 +20,7 @@ data:
     service:
       cachedirectory: network_cache
     ledger:
-      storage:
-        datadirectory: ./
-        badgervalueloggcdiscardratio: 0.4
-        gcrunfrequency: 1
-      jetsplit:
-        thresholdrecordscount: 1
-        thresholdoverflowcount: 0
-        depthlimit: 4
       lightchainlimit: 5
-      backup:
-        enabled: false
-        tmpdirectory: ""
-        targetdirectory: ""
-        metainfofile: meta.json
-        confirmfile: BACKUPED
-        backupfile: incr.bkp
-        dirnametemplate: pulse-%d
-        backupwaitperiod: 60
-        postprocessbackupcmd: []
-      cleanerdelay: 3
-      maxnotificationsperpulse: 100
-      filamentcachelimit: 3000
     log:
       level: Debug
       adapter: zerolog
