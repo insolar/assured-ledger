@@ -267,6 +267,13 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
+	prototype := testwallet.GetPrototype()
+	objectLocal := server.RandomLocalWithPulse()
+	objectGlobal := reference.NewSelf(objectLocal)
+
+	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
+	require.NoError(t, err)
+
 	for i := 0; i < 10; i++ {
 
 		pl := payload.VCallRequest{
@@ -274,10 +281,10 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
-			Caller:              reference.Global{},
-			Callee:              gen.Reference(),
-			CallSiteDeclaration: testwallet.GetPrototype(),
-			CallSiteMethod:      "New",
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: prototype,
+			CallSiteMethod:      "GetBalance",
 			CallSequence:        0,
 			CallReason:          reference.Global{},
 			RootTX:              reference.Global{},
@@ -323,11 +330,11 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			callResultPl := metaPayload.(*payload.Meta).Payload
 			callResultPlType, err := payload.UnmarshalType(callResultPl)
 			assert.NoError(t, err)
-			assert.Equal(t, payload.TypeVStateRequest, callResultPlType)
+			assert.Equal(t, payload.TypeVCallResult, callResultPlType)
 
 			callResultPayload, err := payload.Unmarshal(callResultPl)
 			assert.NoError(t, err)
-			assert.IsType(t, &payload.VStateRequest{}, callResultPayload)
+			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
 
 			testIsDone <- struct{}{}
 
