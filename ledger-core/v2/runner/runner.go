@@ -8,43 +8,40 @@ package runner
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/calltype"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/builtin"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type Service interface {
-	ExecutionStart(ctx context.Context, execution execution.Context) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error)
-	ExecutionContinue(ctx context.Context, id uuid.UUID, result []byte) (*executionupdate.ContractExecutionStateUpdate, error)
-	ExecutionAbort(ctx context.Context, id uuid.UUID)
-	ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType
-	ContractCompile(ctx context.Context, contract interface{})
+	ExecutionStart(execution execution.Context) *RunState
+	ExecutionContinue(run *RunState, outgoingResult []byte)
+	ExecutionAbort(run *RunState)
 }
 
 type DefaultService struct {
 	Cache descriptor.Cache
 
-	Manager executor.Manager
+	Manager machine.Manager
 
-	eventSinkMap     map[uuid.UUID]*executionEventSink
-	eventSinkMapLock sync.Mutex
+	lastPosition           call.ID
+	eventSinkInProgressMap map[call.ID]*awaitedRun
+	eventSinkMap           map[call.ID]*executionEventSink
+	eventSinkMapLock       sync.Mutex
 }
 
-func (r *DefaultService) stopExecution(id uuid.UUID) error { // nolint
+func (r *DefaultService) stopExecution(id call.ID) error { // nolint
 	r.eventSinkMapLock.Lock()
 	defer r.eventSinkMapLock.Unlock()
 
@@ -56,50 +53,46 @@ func (r *DefaultService) stopExecution(id uuid.UUID) error { // nolint
 	return nil
 }
 
-func (r *DefaultService) getExecutionSink(id uuid.UUID) *executionEventSink {
+func (r *DefaultService) getExecutionSink(id call.ID) *executionEventSink {
 	r.eventSinkMapLock.Lock()
 	defer r.eventSinkMapLock.Unlock()
 
 	return r.eventSinkMap[id]
 }
 
-func (r *DefaultService) waitForReply(id uuid.UUID) (*executionupdate.ContractExecutionStateUpdate, error) {
-	executionContext := r.getExecutionSink(id)
-	if executionContext == nil {
-		panic("failed to find ExecutionContext")
-	}
-
-	switch update := <-executionContext.output; update.Type {
-	case executionupdate.TypeDone, executionupdate.TypeAborted:
-		_ = r.stopExecution(id)
-		fallthrough
-	case executionupdate.TypeError, executionupdate.TypeOutgoingCall:
-		return update, nil
-	default:
-		panic(fmt.Sprintf("unknown return type %v", update.Type))
-	}
-}
-
-func (r *DefaultService) createExecutionSink(execution execution.Context) uuid.UUID {
+func (r *DefaultService) awaitedRunFinish(id call.ID) {
 	r.eventSinkMapLock.Lock()
 	defer r.eventSinkMapLock.Unlock()
 
-	// TODO[bigbes]: think how to change from UUID to natural key, here (execution deduplication)
-	var id uuid.UUID
-	for {
-		id = uuid.New()
-
-		if _, ok := r.eventSinkMap[id]; !ok {
-			break
-		}
-	}
-
-	r.eventSinkMap[id] = newEventSink(execution)
-
-	return id
+	r.eventSinkInProgressMap[id].resumeFn()
+	delete(r.eventSinkInProgressMap, id)
 }
 
-func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
+func (r *DefaultService) awaitedRunAdd(sink *executionEventSink, resumeFn func()) {
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
+
+	r.eventSinkInProgressMap[sink.id] = &awaitedRun{
+		run:      sink,
+		resumeFn: resumeFn,
+	}
+}
+
+func (r *DefaultService) createExecutionSink(execution execution.Context) *executionEventSink {
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
+
+	id := r.lastPosition
+	r.lastPosition++
+
+	eventSink := newEventSink(execution)
+	eventSink.id = id
+	r.eventSinkMap[id] = eventSink
+
+	return eventSink
+}
+
+func (r *DefaultService) executionRecover(ctx context.Context, id call.ID) {
 	if rec := recover(); rec != nil {
 		// replace with custom error, not RecoverSlotPanicWithStack
 		err := throw.R(rec, throw.E("ContractRunnerService panic"))
@@ -107,7 +100,7 @@ func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
 		executionContext := r.getExecutionSink(id)
 		if executionContext == nil {
 			logger := inslogger.FromContext(ctx)
-			logger.Errorf("[executionRecover] Failed to find a job execution context %s", id.String())
+			logger.Errorf("[executionRecover] Failed to find a job execution context %d", id)
 			logger.Errorf("[executionRecover] Failed to execute a job, panic: %v", r)
 			return
 		}
@@ -118,13 +111,13 @@ func (r *DefaultService) executionRecover(ctx context.Context, id uuid.UUID) {
 
 func generateCallContext(
 	ctx context.Context,
-	id uuid.UUID,
+	id call.ID,
 	execution execution.Context,
 	protoDesc descriptor.Prototype,
 	codeDesc descriptor.Code,
-) *insolar.LogicCallContext {
+) *call.LogicContext {
 	request := execution.Request
-	res := &insolar.LogicCallContext{
+	res := &call.LogicContext{
 		ID:   id,
 		Mode: insolar.ExecuteCallMode,
 
@@ -155,7 +148,7 @@ func generateCallContext(
 
 func (r *DefaultService) executeMethod(
 	ctx context.Context,
-	id uuid.UUID,
+	id call.ID,
 	eventSink *executionEventSink,
 ) (
 	*requestresult.RequestResult,
@@ -213,11 +206,10 @@ func (r *DefaultService) executeMethod(
 
 func (r *DefaultService) executeConstructor(
 	ctx context.Context,
-	id uuid.UUID,
+	id call.ID,
 	eventSink *executionEventSink,
 ) (
-	*requestresult.RequestResult,
-	error,
+	*requestresult.RequestResult, error,
 ) {
 	var (
 		executionContext = eventSink.context
@@ -253,7 +245,7 @@ func (r *DefaultService) executeConstructor(
 	return res, nil
 }
 
-func (r *DefaultService) execute(ctx context.Context, id uuid.UUID) {
+func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 	defer r.executionRecover(ctx, id)
 
 	executionSink := r.getExecutionSink(id)
@@ -283,50 +275,43 @@ func (r *DefaultService) execute(ctx context.Context, id uuid.UUID) {
 	default:
 		panic(throw.IllegalValue())
 	}
+
+	r.awaitedRunFinish(id)
 }
 
-func (r *DefaultService) ExecutionStart(ctx context.Context, execution execution.Context) (*executionupdate.ContractExecutionStateUpdate, uuid.UUID, error) {
-	id := r.createExecutionSink(execution)
-
-	go r.execute(ctx, id)
-
-	stateUpdate, err := r.waitForReply(id)
-	return stateUpdate, id, err
+func (r *DefaultService) runPrepare(execution execution.Context) *executionEventSink {
+	return r.createExecutionSink(execution)
 }
 
-func (r *DefaultService) ExecutionClassify(ctx context.Context, execution execution.Context) calltype.ContractCallType {
-	return calltype.ContractCallOrdered
+func (r *DefaultService) runStart(run *executionEventSink, resumeFn func()) {
+	r.awaitedRunAdd(run, resumeFn)
+
+	go r.execute(context.Background(), run.id)
 }
 
-func (r *DefaultService) ExecutionContinue(ctx context.Context, id uuid.UUID, result []byte) (*executionupdate.ContractExecutionStateUpdate, error) {
-	sink := r.getExecutionSink(id)
-
-	sink.input <- result
-
-	return r.waitForReply(id)
+func (r *DefaultService) runContinue(run *executionEventSink, resumeFn func()) {
+	r.awaitedRunAdd(run, resumeFn)
 }
 
-func (r *DefaultService) ExecutionAbort(ctx context.Context, id uuid.UUID) {
-	panic(throw.NotImplemented())
-}
-
-func (r *DefaultService) ContractCompile(ctx context.Context, contract interface{}) {
+func (r *DefaultService) runAbort(_ *executionEventSink, _ func()) {
 	panic(throw.NotImplemented())
 }
 
 func NewService() *DefaultService {
 	return &DefaultService{
 		Cache:   NewDescriptorsCache(),
-		Manager: executor.NewManager(),
+		Manager: machine.NewManager(),
 
-		eventSinkMap:     make(map[uuid.UUID]*executionEventSink),
-		eventSinkMapLock: sync.Mutex{},
+		lastPosition:           0,
+		eventSinkMap:           make(map[call.ID]*executionEventSink),
+		eventSinkInProgressMap: make(map[call.ID]*awaitedRun),
+		eventSinkMapLock:       sync.Mutex{},
 	}
 }
 
 func (r *DefaultService) Init() error {
 	exec := builtin.New(r)
-	if err := r.Manager.RegisterExecutor(insolar.MachineTypeBuiltin, exec); err != nil {
+	if err := r.Manager.RegisterExecutor(machine.Builtin, exec); err != nil {
 		panic(throw.W(err, "failed to register executor", nil))
 	}
 

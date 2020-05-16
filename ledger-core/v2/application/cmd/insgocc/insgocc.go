@@ -20,7 +20,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/preprocessor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 )
 
 type outputFlag struct {
@@ -62,7 +62,7 @@ func (r *outputFlag) Type() string {
 
 type machineTypeFlag struct {
 	name string
-	num  insolar.MachineType
+	num  machine.Type
 }
 
 func newMachineTypeFlag(name string) *machineTypeFlag {
@@ -75,14 +75,8 @@ func newMachineTypeFlag(name string) *machineTypeFlag {
 
 func (r *machineTypeFlag) Set(arg string) error {
 	switch arg {
-	case "":
-		fallthrough
-	case "go":
-		fallthrough
-	case "golang":
-		r.num = insolar.MachineTypeGoPlugin
 	case "builtin":
-		r.num = insolar.MachineTypeBuiltin
+		r.num = machine.Builtin
 	default:
 		return fmt.Errorf("unknown machine type: %s", arg)
 	}
@@ -98,7 +92,7 @@ func (r *machineTypeFlag) Type() string {
 	return "machineType"
 }
 
-func (r *machineTypeFlag) Value() insolar.MachineType {
+func (r *machineTypeFlag) Value() machine.Type {
 	return r.num
 }
 
@@ -138,19 +132,9 @@ func getBuiltinContractDir(dir string) (string, error) {
 	return path.Join(projectRoot, "application", "builtin", dir), nil
 }
 
-func getApplicationContractDir(dir string) (string, error) {
-	projectRoot, err := getRootProjectDir()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(projectRoot, "application", dir), nil
-}
-
-func getAppropriateContractDir(machineType insolar.MachineType, dir string) (string, error) {
-	if machineType == insolar.MachineTypeBuiltin {
+func getAppropriateContractDir(machineType machine.Type, dir string) (string, error) {
+	if machineType == machine.Builtin {
 		return getBuiltinContractDir(dir)
-	} else if machineType == insolar.MachineTypeGoPlugin {
-		return getApplicationContractDir(dir)
 	}
 	panic("unreachable")
 }
@@ -173,7 +157,7 @@ func mkdirIfNotExists(pathParts ...string) (string, error) {
 }
 
 func openDefaultProxyPath(proxyOut *outputFlag,
-	machineType insolar.MachineType,
+	machineType machine.Type,
 	parsed *preprocessor.ParsedFile) error {
 
 	p, err := getAppropriateContractDir(machineType, "proxy")
@@ -235,7 +219,7 @@ func main() {
 	var reference string
 	output := newOutputFlag("-")
 	proxyOut := newOutputFlag("")
-	machineType := newMachineTypeFlag("go")
+	machineType := newMachineTypeFlag("builtin")
 	var panicIsLogicalError bool
 
 	var cmdProxy = &cobra.Command{
@@ -325,7 +309,7 @@ func main() {
 
 					contractPath := findContractPath(contractDirPath)
 					if contractPath != nil {
-						parsedFile, err := preprocessor.ParseFile(*contractPath, insolar.MachineTypeBuiltin)
+						parsedFile, err := preprocessor.ParseFile(*contractPath, machine.Builtin)
 						checkError(err)
 
 						contract := preprocessor.ContractListEntry{
@@ -342,7 +326,7 @@ func main() {
 			for _, contract := range contractList {
 				/* write proxy */
 				output := newOutputFlag("")
-				err := openDefaultProxyPath(output, insolar.MachineTypeBuiltin, contract.Parsed)
+				err := openDefaultProxyPath(output, machine.Builtin, contract.Parsed)
 				checkError(err)
 				reference := genesisrefs.GenerateProtoReferenceFromContractID(preprocessor.PrototypeType, contract.Name, contract.Version)
 				err = contract.Parsed.WriteProxy(reference.String(), output.writer)

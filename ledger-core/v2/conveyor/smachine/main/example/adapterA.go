@@ -35,14 +35,14 @@ type ServiceAdapterA struct {
 }
 
 func (a *ServiceAdapterA) PrepareSync(ctx smachine.ExecutionContext, fn func(svc ServiceA)) smachine.SyncCallRequester {
-	return a.exec.PrepareSync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareSync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		fn(a.svc)
 		return nil
 	})
 }
 
 func (a *ServiceAdapterA) PrepareAsync(ctx smachine.ExecutionContext, fn func(svc ServiceA) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-	return a.exec.PrepareAsync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		return fn(a.svc)
 	})
 }

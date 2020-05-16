@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
@@ -38,11 +39,12 @@ func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg strin
 }
 
 func (l MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
-	return conveyorStepLogger{ctx, sm, tracer, l.EchoToGlobal}
+	ctxWithTrace, _ := inslogger.WithTraceField(ctx, tracer)
+	return conveyorStepLogger{ctxWithTrace, sm, tracer, l.EchoToGlobal}
 }
 
 type conveyorStepLogger struct {
-	ctx          context.Context
+	ctxWithTrace context.Context
 	sm           smachine.StateMachine
 	tracer       smachine.TracerID
 	echoToGlobal bool
@@ -56,8 +58,12 @@ func (v conveyorStepLogger) GetTracerID() smachine.TracerID {
 	return v.tracer
 }
 
-func (v conveyorStepLogger) CreateAsyncLogger(ctx context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
-	return ctx, v
+func (v conveyorStepLogger) GetLoggerContext() context.Context {
+	return v.ctxWithTrace
+}
+
+func (v conveyorStepLogger) CreateAsyncLogger(_ context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
+	return v.ctxWithTrace, v
 }
 
 func getStepName(step interface{}) string {

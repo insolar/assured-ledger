@@ -508,7 +508,7 @@ func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachi
 		// final touch
 		slot.step = SlotStep{Transition: initFn.defaultInit}
 		slot.stepDecl = &defaultInitDecl
-		slot = nil //protect from defer
+		slot = nil // protect from defer
 		return link, true
 	}
 	return link, false // slot will be released by defer
@@ -608,9 +608,9 @@ func (m *SlotMachine) startNewSlot(slot *Slot, worker FixedSlotWorker) {
 	m.updateSlotQueue(slot, worker, activateSlot)
 }
 
-func (m *SlotMachine) startNewSlotByDetachable(slot *Slot, runInit bool, w DetachableSlotWorker) {
-	if runInit {
-		m._executeSlotInitByCreator(slot, w)
+func (m *SlotMachine) startNewSlotByDetachable(slot *Slot, postInitFn PostInitFunc, w DetachableSlotWorker) {
+	if postInitFn != nil {
+		m._executeSlotInitByCreator(slot, postInitFn, w)
 		return
 	}
 
@@ -1016,14 +1016,16 @@ func (s *Slot) needsReleaseOnStepping(prevStepNo uint32) bool {
 	switch dep := s.dependency; {
 	case dep == nil:
 		return false
-	case prevStepNo == 0:
-		// there can be NO dependencies when a slot was just created
-		panic("illegal state")
 	case !dep.IsReleaseOnStepping():
 		return false
 	}
-	if _, newStepNo, _ := s._getState(); newStepNo == prevStepNo || newStepNo <= 1 {
-		// step didn't change or it is initialization (which is considered as a part of creation)
+
+	switch _, newStepNo, _ := s._getState(); {
+	case newStepNo == prevStepNo:
+		// step wasn't changed
+		return false
+	case prevStepNo == 0 && newStepNo <= 1:
+		// step is initialization (which is considered as a part of creation)
 		return false
 	}
 	return true

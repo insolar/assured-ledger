@@ -10,7 +10,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -23,14 +22,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
-
-func CheckWrapper(c *SMStepChecker, t *testing.T) func(smachine.StateFunc) smachine.StateUpdate {
-	return func(stateFunc smachine.StateFunc) smachine.StateUpdate {
-		require.NoError(t, c.Check(stateFunc))
-		return smachine.StateUpdate{}
-	}
-}
 
 func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	var (
@@ -67,7 +60,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		pulseSlot:     &pulseSlot,
 	}
 
-	stepChecker := NewSMStepChecker()
+	stepChecker := testutils.NewSMStepChecker()
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepUpdatePendingCounters)
@@ -76,8 +69,10 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 
 	execCtx := smachine.NewExecutionContextMock(mc).
 		GetContextMock.Return(ctx).
-		JumpMock.Set(CheckWrapper(stepChecker, t)).
+		JumpMock.Set(testutils.CheckWrapper(stepChecker, t)).
 		UseSharedMock.Set(CallSharedDataAccessor)
+
+	execCtx.SetDefaultMigrationMock.Return()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef, object.InitReasonCTConstructor).Return(smObjectAccessor)

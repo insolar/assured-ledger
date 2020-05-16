@@ -7,52 +7,10 @@ package execute
 
 import (
 	"reflect"
-	"runtime"
 	"unsafe"
-
-	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )
-
-type SMStepChecker struct {
-	position int
-	steps    []smachine.StateFunc
-}
-
-func NewSMStepChecker() *SMStepChecker {
-	return &SMStepChecker{}
-}
-
-func (c *SMStepChecker) AddStep(step smachine.StateFunc) {
-	if step == nil {
-		panic("unexpected step: nil")
-	}
-
-	c.steps = append(c.steps, step)
-}
-
-func getFuncName(step smachine.StateFunc) string {
-	if step == nil {
-		panic("unexpected step: nil")
-	}
-
-	return runtime.FuncForPC(reflect.ValueOf(step).Pointer()).Name()
-}
-
-func (c *SMStepChecker) Check(actualStep smachine.StateFunc) error {
-	if c.position > len(c.steps) {
-		return errors.Errorf("unexpected step %s", getFuncName(actualStep))
-	}
-
-	expectedStep := c.steps[c.position]
-	if reflect.ValueOf(actualStep).Pointer() == reflect.ValueOf(expectedStep).Pointer() {
-		c.position++
-		return nil
-	}
-
-	return errors.Errorf("step %d call wrong func (expected %s, got %s)", c.position, getFuncName(expectedStep), getFuncName(actualStep))
-}
 
 type SharedDataAccessorWrapper struct {
 	a *smachine.SharedDataAccessor

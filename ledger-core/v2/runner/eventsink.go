@@ -6,8 +6,7 @@
 package runner
 
 import (
-	"github.com/pkg/errors"
-
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
 	descriptor "github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
@@ -15,56 +14,58 @@ import (
 )
 
 type executionEventSink struct {
+	id      call.ID
 	context execution.Context
-	output  chan *executionupdate.ContractExecutionStateUpdate
+	output  *executionupdate.ContractExecutionStateUpdate
 	input   chan []byte
 }
 
+func (c *executionEventSink) GetResult() *executionupdate.ContractExecutionStateUpdate {
+	output := c.output
+	c.output = nil
+	return output
+}
+
 func (c *executionEventSink) Error(err error) bool {
-	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type:  executionupdate.TypeError,
+	c.output = &executionupdate.ContractExecutionStateUpdate{
+		Type:  executionupdate.Error,
 		Error: err,
 	}
 
 	return true
 }
-func (c *executionEventSink) ErrorString(text string) bool {
-	return c.Error(errors.New(text))
-}
-func (c *executionEventSink) ErrorWrapped(err error, text string) bool {
-	return c.Error(errors.Wrap(err, text))
-}
 
 func (c *executionEventSink) ExternalCall(event descriptor.RPC) bool {
-	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type:     executionupdate.TypeOutgoingCall,
+	c.output = &executionupdate.ContractExecutionStateUpdate{
+		Type:     executionupdate.OutgoingCall,
 		Outgoing: event,
 	}
 	return true
 }
 func (c *executionEventSink) Result(result *requestresult.RequestResult) bool {
-	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type:   executionupdate.TypeDone,
+	c.output = &executionupdate.ContractExecutionStateUpdate{
+		Type:   executionupdate.Done,
 		Result: result,
 	}
 	return true
 }
 
 func (c *executionEventSink) Abort() bool {
-	c.output <- &executionupdate.ContractExecutionStateUpdate{
-		Type: executionupdate.TypeAborted,
+	c.output = &executionupdate.ContractExecutionStateUpdate{
+		Type: executionupdate.Aborted,
 	}
 	return true
 }
 
 func (c *executionEventSink) Stop() {
 	close(c.input)
-	close(c.output)
+	c.output = nil
 }
+
 func newEventSink(execution execution.Context) *executionEventSink {
 	return &executionEventSink{
 		context: execution,
-		output:  make(chan *executionupdate.ContractExecutionStateUpdate, 1),
+		output:  nil,
 		input:   make(chan []byte, 1),
 	}
 }

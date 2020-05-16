@@ -86,6 +86,15 @@ func (c *adapterCallRequest) WithFlags(flags AsyncCallFlags) AsyncCallRequester 
 	return &r
 }
 
+func (c *adapterCallRequest) WithoutAutoWakeUp() AsyncCallRequester {
+	c.ensureValid()
+
+	r := *c
+	r.flags &^= AutoWakeUp
+	return &r
+
+}
+
 func (c *adapterCallRequest) Start() {
 	c.ensureMode(adapterAsyncCallContext)
 	defer c.discard()
@@ -114,6 +123,7 @@ func (c *adapterCallRequest) _startAsync() {
 		panic("overflow")
 	}
 
+	goCtx := c.ctx._getLoggerCtx()
 	var overrideFn AdapterCallbackFunc
 	if c.isLogging {
 		logger, stepNo := c.ctx._newLoggerAsync()
@@ -135,7 +145,7 @@ func (c *adapterCallRequest) _startAsync() {
 
 	stepLink := c.ctx.s.NewStepLink()
 	callback := NewAdapterCallback(c.adapterID, stepLink, overrideFn, c.flags, c.nestedFn)
-	cancelFn := c.executor.StartCall(c.fn, callback, c.cancel != nil)
+	cancelFn := c.executor.StartCall(goCtx, c.fn, callback, c.cancel != nil)
 
 	if c.cancel != nil {
 		c.cancel.SetChain(cancelFn)
@@ -198,7 +208,8 @@ func (c *adapterSyncCallRequest) _startSyncWithResult(isTry bool) AsyncResultFun
 		logger.adapterCall(StepLoggerAdapterSyncCall, c.adapterID, 0, nil)
 	}
 
-	if ok, result := c.executor.TrySyncCall(c.fn); ok {
+	goCtx := c.ctx._getLoggerCtx()
+	if ok, result := c.executor.TrySyncCall(goCtx, c.fn); ok {
 		return result
 	}
 
@@ -219,7 +230,7 @@ func (c *adapterSyncCallRequest) _startSyncWithResult(isTry bool) AsyncResultFun
 		return true
 	}, 0, c.nestedFn)
 
-	cancelFn := c.executor.StartCall(c.fn, callback, false)
+	cancelFn := c.executor.StartCall(goCtx, c.fn, callback, false)
 
 	select {
 	case result := <-resultCh:
@@ -292,7 +303,8 @@ func (c *adapterNotifyRequest) _startAsync() {
 		logger, _ := c.ctx._newLoggerAsync()
 		logger.adapterCall(StepLoggerAdapterNotifyCall, c.adapterID, 0, nil)
 	}
-	c.executor.SendNotify(c.fn)
+	goCtx := c.ctx._getLoggerCtx()
+	c.executor.SendNotify(goCtx, c.fn)
 }
 
 /* ============================================================== */

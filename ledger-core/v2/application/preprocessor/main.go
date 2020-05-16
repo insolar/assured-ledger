@@ -28,8 +28,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 
 	"github.com/pkg/errors"
 )
@@ -38,7 +37,6 @@ var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/ex
 var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 var corePath = "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 var referencePath = "github.com/insolar/assured-ledger/ledger-core/v2/reference"
-var pkgErrorsPath = "github.com/pkg/errors"
 
 var immutableFlag = "ins:immutable"
 var sagaFlagStart = "ins:saga("
@@ -71,7 +69,7 @@ type ParsedFile struct {
 	code                []byte
 	fileSet             *token.FileSet
 	node                *ast.File
-	machineType         insolar.MachineType
+	machineType         machine.Type
 	panicIsLogicalError bool
 
 	types        map[string]*ast.TypeSpec
@@ -82,7 +80,7 @@ type ParsedFile struct {
 
 // ParseFile parses a file as Go source code of a smart contract
 // and returns it as `ParsedFile`
-func ParseFile(fileName string, machineType insolar.MachineType) (*ParsedFile, error) {
+func ParseFile(fileName string, machineType machine.Type) (*ParsedFile, error) {
 	res := &ParsedFile{
 		name:        fileName,
 		machineType: machineType,
@@ -245,9 +243,8 @@ func (pf *ParsedFile) ContractName() string {
 	return pf.node.Name.Name
 }
 
-func checkMachineType(machineType insolar.MachineType) error {
-	if machineType != insolar.MachineTypeGoPlugin &&
-		machineType != insolar.MachineTypeBuiltin {
+func checkMachineType(machineType machine.Type) error {
+	if machineType != machine.Builtin {
 		return errors.New("Unsupported machine type")
 	}
 	return nil
@@ -261,7 +258,7 @@ func formatAndWrite(out io.Writer, templateName string, data map[string]interfac
 	templatePath := templatePathConstruct(templateName)
 	tmpl, err := openTemplate(templatePath)
 	if err != nil {
-		return errors.Wrap(err, "couldn't open template file for wrapper")
+		return errors.Wrapf(err, "couldn't open template file for %s", templateName)
 	}
 
 	var buff bytes.Buffer
@@ -319,9 +316,11 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		return err
 	}
 
-	imports := pf.generateImports(true)
-	if pf.machineType == insolar.MachineTypeBuiltin ||
-		len(functionsInfo) > 0 {
+	imports := pf.generateImports([]string{"github.com/pkg/errors"})
+	for _, t := range pf.types {
+		extendImportsMapWithType(pf, t, imports)
+	}
+	if pf.machineType == machine.Builtin || len(functionsInfo) > 0 {
 		imports[fmt.Sprintf(`"%s"`, corePath)] = true
 		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	}
@@ -334,7 +333,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		"ParsedCode":          pf.code,
 		"FoundationPath":      foundationPath,
 		"Imports":             imports,
-		"GenerateInitialize":  pf.machineType == insolar.MachineTypeBuiltin,
+		"GenerateInitialize":  pf.machineType == machine.Builtin,
 		"PanicIsLogicalError": pf.panicIsLogicalError,
 	}
 
@@ -550,7 +549,9 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 		"MethodsProxies":      filteredMethodsProxies,
 		"ConstructorsProxies": constructorProxies,
 		"ClassReference":      classReference,
-		"Imports":             pf.generateImports(false),
+		"Imports": pf.generateImports([]string{
+			referencePath,
+			"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"}),
 	}
 
 	return formatAndWrite(out, "proxy", data)
@@ -601,16 +602,18 @@ func (pf *ParsedFile) typeName(t ast.Expr) string {
 	return pf.codeOfNode(t)
 }
 
-func (pf *ParsedFile) generateImports(wrapper bool) map[string]bool {
+func (pf *ParsedFile) generateImports(extraImports []string) map[string]bool {
 	imports := make(map[string]bool)
-	imports[fmt.Sprintf(`"%s"`, proxyctxPath)] = true
-	imports[fmt.Sprintf(`"%s"`, foundationPath)] = true
-	if !wrapper {
-		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
-	} else {
-		imports[fmt.Sprintf(`"%s"`, pkgErrorsPath)] = true
+	importList := []string{proxyctxPath, foundationPath}
 
+	if extraImports != nil {
+		importList = append(importList, extraImports...)
 	}
+
+	for _, pack := range importList {
+		imports[fmt.Sprintf(`"%s"`, pack)] = true
+	}
+
 	for _, method := range pf.methods[pf.contract] {
 		extendImportsMap(pf, method.Type.Params, imports)
 		extendImportsMap(pf, method.Type.Results, imports)
@@ -618,11 +621,6 @@ func (pf *ParsedFile) generateImports(wrapper bool) map[string]bool {
 	for _, fun := range pf.constructors[pf.contract] {
 		extendImportsMap(pf, fun.Type.Params, imports)
 		extendImportsMap(pf, fun.Type.Results, imports)
-	}
-	if !wrapper {
-		for _, t := range pf.types {
-			extendImportsMapWithType(pf, t, imports)
-		}
 	}
 
 	return imports
@@ -1001,6 +999,13 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 	data := map[string]interface{}{
 		"Contracts": generateContractList(contracts),
 		"Package":   "builtin",
+		"CustomImports": map[string]string{
+			"XXX_insolar":    `"github.com/insolar/assured-ledger/ledger-core/v2/insolar"`,
+			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"`,
+			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/v2/reference"`,
+			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"`,
+			"errors":         `"github.com/pkg/errors"`,
+		},
 	}
 
 	return formatAndWrite(out, "initialization", data)

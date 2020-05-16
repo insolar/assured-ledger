@@ -20,14 +20,13 @@
 package {{ .Package }}
 
 import (
-	"github.com/pkg/errors"
+{{ range $name, $path := .CustomImports }}
+    {{ $name }} {{ $path }}
+{{- end }}
+
 {{ range $contract := .Contracts }}
     {{ $contract.ImportName }} "{{ $contract.ImportPath }}"
 {{- end }}
-
-    XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-    XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-    XXX_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
@@ -73,7 +72,7 @@ func InitializeCodeDescriptors() []XXX_descriptor.Code {
     // {{ $contract.Name }}
     rv = append(rv, XXX_descriptor.NewCode(
         /* code:        */ nil,
-        /* machineType: */ XXX_insolar.MachineTypeBuiltin,
+        /* machineType: */ XXX_machine.Builtin,
         /* ref:         */ shouldLoadRef("{{ $contract.CodeReference }}"),
     ))
     {{ end }}

@@ -21,8 +21,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -119,13 +119,13 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	{
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTConstructor,
+			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
 			CallSiteDeclaration: prototype,
-			CallSiteMethod:      "New",
+			CallSiteMethod:      "GetBalance",
 			CallRequestFlags:    0,
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -172,13 +172,13 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		waitOutputChannel = make(chan struct{}, 0)
 	)
 
-	executorMock := testutils.NewMachineLogicExecutorMock(t)
+	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
 	executorMock.CallMethodMock.Set(func(
-		ctx context.Context, callContext *insolar.LogicCallContext, code reference.Global,
-		data []byte, method string, args insolar.Arguments,
+		ctx context.Context, callContext *call.LogicContext, code reference.Global,
+		data []byte, method string, args []byte,
 	) (
-		newObjectState []byte, methodResults insolar.Arguments, err error,
+		newObjectState []byte, methodResults []byte, err error,
 	) {
 		// tell the test that we know about next request
 		waitInputChannel <- struct{}{}
@@ -189,8 +189,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		return []byte("456"), []byte("345"), nil
 	})
 
-	manager := executor.NewManager()
-	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+	manager := machine.NewManager()
+	err := manager.RegisterExecutor(machine.Builtin, executorMock)
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
@@ -267,17 +267,24 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
+	prototype := testwallet.GetPrototype()
+	objectLocal := server.RandomLocalWithPulse()
+	objectGlobal := reference.NewSelf(objectLocal)
+
+	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
+	require.NoError(t, err)
+
 	for i := 0; i < 10; i++ {
 
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTConstructor,
+			CallType:            payload.CTMethod,
 			CallFlags:           0,
 			CallAsOf:            0,
-			Caller:              reference.Global{},
-			Callee:              gen.Reference(),
-			CallSiteDeclaration: testwallet.GetPrototype(),
-			CallSiteMethod:      "New",
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: prototype,
+			CallSiteMethod:      "GetBalance",
 			CallSequence:        0,
 			CallReason:          reference.Global{},
 			RootTX:              reference.Global{},

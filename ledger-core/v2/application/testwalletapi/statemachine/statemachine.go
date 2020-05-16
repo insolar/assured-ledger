@@ -6,7 +6,9 @@
 package statemachine
 
 import (
+	"context"
 	"errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -27,7 +29,7 @@ type SMTestAPICall struct {
 
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
-	messageSender *messageSenderAdapter.MessageSender
+	messageSender messageSenderAdapter.MessageSender
 }
 
 /* -------- Declaration ------------- */
@@ -61,8 +63,6 @@ func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateU
 }
 
 func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	goCtx := ctx.GetContext()
-
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
 	s.requestPayload.Caller = APICaller
@@ -97,7 +97,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
 
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &s.requestPayload, insolar.DynamicRoleVirtualExecutor, obj, pulseNumber)
 	}).Send()
 

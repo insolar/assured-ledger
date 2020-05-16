@@ -17,20 +17,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
-	messagesenderadapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+	messagesenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
@@ -165,22 +162,23 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		PotentialMutablePendingCount:   &mutablePendingCount,
 	}
 
-	executorMock := testutils.NewMachineLogicExecutorMock(mc)
+	executorMock := machine.NewExecutorMock(mc)
 	executorMock.CallConstructorMock.Return(nil, []byte("345"), nil)
 	runnerService := runner.NewService()
 	require.NoError(t, runnerService.Init())
-	manager := executor.NewManager()
-	err := manager.RegisterExecutor(insolar.MachineTypeBuiltin, executorMock)
+
+	mgr := machine.NewManager()
+	err := mgr.RegisterExecutor(machine.Builtin, executorMock)
 	require.NoError(t, err)
-	runnerService.Manager = manager
+	runnerService.Manager = mgr
 	cacheMock := descriptor.NewCacheMock(t)
 	runnerService.Cache = cacheMock
 	cacheMock.ByPrototypeRefMock.Return(
 		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCode(nil, insolar.MachineTypeBuiltin, gen.Reference()),
+		descriptor.NewCode(nil, machine.Builtin, gen.Reference()),
 		nil,
 	)
-	runnerAdapter := adapter.CreateRunnerServiceAdapter(ctx, runnerService)
+	runnerAdapter := runner.CreateRunnerService(ctx, runnerService)
 
 	signal := synckit.NewVersionedSignal()
 	slotMachine := smachine.NewSlotMachine(machineConfig,
@@ -224,9 +222,10 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		MeMock.Return(gen.Reference()).
 		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 	pulses := pulse.NewStorageMem()
+
 	messageSender := messagesender.NewDefaultService(publisherMock, jetCoordinatorMock, pulses)
-	messageSenderAdapter := messagesenderadapter.CreateMessageSendService(ctx, messageSender)
-	slotMachine.AddDependency(messageSenderAdapter)
+	var messageSenderAdapter messagesenderAdapter.MessageSender = messagesenderAdapter.CreateMessageSendService(ctx, messageSender)
+	slotMachine.AddInterfaceDependency(&messageSenderAdapter)
 
 	pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 	slotMachine.AddDependency(&pulseSlot)
