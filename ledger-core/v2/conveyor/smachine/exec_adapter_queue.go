@@ -48,11 +48,11 @@ type OverflowPanicCallChannel struct {
 	needCancel bool
 }
 
-func (v OverflowPanicCallChannel) TrySyncCall(AdapterCallFunc) (bool, AsyncResultFunc) {
+func (v OverflowPanicCallChannel) TrySyncCall(context.Context, AdapterCallFunc) (bool, AsyncResultFunc) {
 	return false, nil
 }
 
-func (v OverflowPanicCallChannel) StartCall(fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc {
+func (v OverflowPanicCallChannel) StartCall(ctx context.Context, fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc {
 	switch {
 	case fn == nil:
 		panic("illegal value")
@@ -60,19 +60,19 @@ func (v OverflowPanicCallChannel) StartCall(fn AdapterCallFunc, callback *Adapte
 		panic("illegal value")
 	}
 
-	r := channelRecord{CallFn: fn, Callback: callback}
+	r := channelRecord{Context: ctx, CallFn: fn, Callback: callback}
 	cancelFn := callback.Prepare(needCancel || v.needCancel)
 	v.queueCall(r)
 
 	return cancelFn
 }
 
-func (v OverflowPanicCallChannel) SendNotify(fn AdapterNotifyFunc) {
+func (v OverflowPanicCallChannel) SendNotify(ctx context.Context, fn AdapterNotifyFunc) {
 	if fn == nil {
 		panic("illegal value")
 	}
-	r := channelRecord{CallFn: func(svc interface{}) AsyncResultFunc {
-		fn(svc)
+	r := channelRecord{Context: ctx, CallFn: func(ctx context.Context, svc interface{}) AsyncResultFunc {
+		fn(ctx, svc)
 		return nil
 	}}
 	v.queueCall(r)
@@ -102,11 +102,11 @@ type OverflowBufferCallChannel struct {
 	needCancel bool
 }
 
-func (p *OverflowBufferCallChannel) TrySyncCall(AdapterCallFunc) (bool, AsyncResultFunc) {
+func (p *OverflowBufferCallChannel) TrySyncCall(context.Context, AdapterCallFunc) (bool, AsyncResultFunc) {
 	return false, nil
 }
 
-func (p *OverflowBufferCallChannel) StartCall(fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc {
+func (p *OverflowBufferCallChannel) StartCall(ctx context.Context, fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc {
 	switch {
 	case fn == nil:
 		panic("illegal value")
@@ -114,19 +114,19 @@ func (p *OverflowBufferCallChannel) StartCall(fn AdapterCallFunc, callback *Adap
 		panic("illegal value")
 	}
 
-	r := channelRecord{CallFn: fn, Callback: callback}
+	r := channelRecord{Context: ctx, CallFn: fn, Callback: callback}
 	cancelFn := callback.Prepare(needCancel || p.needCancel)
 	p.queueCall(r)
 
 	return cancelFn
 }
 
-func (p *OverflowBufferCallChannel) SendNotify(fn AdapterNotifyFunc) {
+func (p *OverflowBufferCallChannel) SendNotify(ctx context.Context, fn AdapterNotifyFunc) {
 	if fn == nil {
 		panic("illegal value")
 	}
-	r := channelRecord{CallFn: func(svc interface{}) AsyncResultFunc {
-		fn(svc)
+	r := channelRecord{Context: ctx, CallFn: func(ctx context.Context, svc interface{}) AsyncResultFunc {
+		fn(ctx, svc)
 		return nil
 	}}
 	p.queueCall(r)

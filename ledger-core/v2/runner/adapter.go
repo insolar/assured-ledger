@@ -88,7 +88,7 @@ func (a *ServiceAdapter) PrepareExecutionStart(ctx smachine.ExecutionContext, ex
 		panic(throw.IllegalValue())
 	}
 
-	return a.exec.PrepareAsync(ctx, func(arg interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		state := arg.(Service).ExecutionStart(execution)
 		return func(ctx smachine.AsyncResultContext) { fn(state) }
 	})
@@ -102,7 +102,7 @@ func (a *ServiceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext,
 		panic(throw.IllegalValue())
 	}
 
-	return a.exec.PrepareAsync(ctx, func(arg interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		arg.(Service).ExecutionContinue(state, outgoingResult)
 		return func(ctx smachine.AsyncResultContext) {
 			if fn != nil {
@@ -117,7 +117,7 @@ func (a *ServiceAdapter) PrepareExecutionAbort(ctx smachine.ExecutionContext, st
 		panic(throw.IllegalValue())
 	}
 
-	return a.exec.PrepareAsync(ctx, func(arg interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		arg.(Service).ExecutionAbort(state)
 		return func(ctx smachine.AsyncResultContext) {
 			if fn != nil {

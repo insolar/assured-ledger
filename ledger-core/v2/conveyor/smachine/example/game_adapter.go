@@ -23,7 +23,7 @@ type GameChooseAdapter struct {
 }
 
 func (a *GameChooseAdapter) PrepareAsync(ctx smachine.ExecutionContext, fn func(svc GameChooseService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-	return a.exec.PrepareAsync(ctx, func(i interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(_ context.Context, i interface{}) smachine.AsyncResultFunc {
 		return fn(i.(GameChooseService))
 	})
 }

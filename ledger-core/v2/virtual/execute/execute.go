@@ -6,6 +6,7 @@
 package execute
 
 import (
+	"context"
 	"errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -294,7 +295,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		msg    *payload.VCallRequest
 		object reference.Global
 
-		goCtx       = ctx.GetContext()
 		pulseNumber = s.pulseSlot.PulseData().PulseNumber
 	)
 
@@ -334,7 +334,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
 
-		return s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		return s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 			err := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, object, pulseNumber)
 			if err != nil {
 				panic(err)
@@ -429,8 +429,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		LatestState:        lastState,
 	}
 
-	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
 	}).Send()
 
@@ -493,8 +492,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}
 	target := s.Meta.Sender
 
-	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendTarget(goCtx, &msg, target)
 	}).Send()
 

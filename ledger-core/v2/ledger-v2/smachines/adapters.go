@@ -19,7 +19,7 @@ func (a *HashingAdapter) PrepareAsync(
 	ctx smachine.ExecutionContext,
 	fn func() smachine.AsyncResultFunc,
 ) smachine.AsyncCallRequester {
-	return a.exec.PrepareAsync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		return fn()
 	})
 }
@@ -42,7 +42,7 @@ func (a *SyncAdapter) PrepareAsync(
 	ctx smachine.ExecutionContext,
 	fn func() smachine.AsyncResultFunc,
 ) smachine.AsyncCallRequester {
-	return a.exec.PrepareAsync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		return fn()
 	})
 }

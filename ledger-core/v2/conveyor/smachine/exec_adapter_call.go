@@ -6,13 +6,16 @@
 package smachine
 
 import (
+	"context"
 	"errors"
 	stdlog "log"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type AdapterCall struct {
+	Context  context.Context
 	CallFn   AdapterCallFunc
 	Callback *AdapterCallback
 	ErrorFn  func(error)
@@ -21,6 +24,7 @@ type AdapterCall struct {
 var ErrCancelledCall = errors.New("cancelled")
 
 type AdapterCallDelegateFunc func(
+	ctx context.Context,
 	// Not nil
 	callFn AdapterCallFunc,
 	// Nil for notify calls and when there is no nested call factories are available.
@@ -45,7 +49,7 @@ func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, de
 			err = RecoverSlotPanicWithStack("async call", recover(), err, AsyncCallArea)
 		}()
 		nestedCallFn := c.Callback.getNestedCallHandler(defaultNestedFn)
-		return delegate(c.CallFn, nestedCallFn, c.Callback.ChainedCancel())
+		return delegate(c.Context, c.CallFn, nestedCallFn, c.Callback.ChainedCancel())
 	}()
 
 	switch {
@@ -70,7 +74,7 @@ func (c AdapterCall) delegateNotify(delegate AdapterCallDelegateFunc) error {
 		defer func() {
 			err = RecoverSlotPanicWithStack("async notify", recover(), err, AsyncCallArea)
 		}()
-		return delegate(c.CallFn, nil, nil)
+		return delegate(c.Context, c.CallFn, nil, nil)
 	}()
 	switch {
 	case err == nil:
@@ -88,8 +92,8 @@ func (c AdapterCall) delegateNotify(delegate AdapterCallDelegateFunc) error {
 
 func (c AdapterCall) RunAndSendResult(arg interface{}) error {
 	fn, err := c.DelegateAndSendResult(nil,
-		func(callFn AdapterCallFunc, _ NestedCallFunc, _ *synckit.ChainedCancel) (AsyncResultFunc, error) {
-			return callFn(arg), nil
+		func(ctx context.Context, callFn AdapterCallFunc, _ NestedCallFunc, _ *synckit.ChainedCancel) (AsyncResultFunc, error) {
+			return callFn(ctx, arg), nil
 		})
 	if fn != nil {
 		fn()
@@ -101,6 +105,6 @@ func (c AdapterCall) ReportError(e error) {
 	if c.ErrorFn != nil {
 		c.ErrorFn(e)
 	} else {
-		stdlog.Print(e)
+		stdlog.Print(throw.ErrorWithStack(e))
 	}
 }

@@ -267,8 +267,17 @@ func (p *slotContext) LogAsync() Logger {
 	return logger
 }
 
+func (p *slotContext) _getLoggerCtx() context.Context {
+	if p.s.stepLogger != nil {
+		if ctx := p.s.stepLogger.GetLoggerContext(); ctx != nil {
+			return ctx
+		}
+	}
+	return p.s.ctx
+}
+
 func (p *slotContext) _newLogger() Logger {
-	return Logger{p.s.ctx, p}
+	return Logger{p._getLoggerCtx(), p}
 }
 
 func (p *slotContext) _newLoggerAsync() (Logger, uint32) {
@@ -276,6 +285,9 @@ func (p *slotContext) _newLoggerAsync() (Logger, uint32) {
 	stepLogger, level, _ := p.getStepLogger()
 	if stepLogger == nil {
 		return logger, 0
+	}
+	if ctx := stepLogger.GetLoggerContext(); ctx != nil {
+		logger.ctx = ctx
 	}
 
 	fsl := fixedSlotLogger{logger: stepLogger, level: level, data: p.getStepLoggerData()}

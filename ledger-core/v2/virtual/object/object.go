@@ -6,6 +6,7 @@
 package object
 
 import (
+	"context"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -181,7 +182,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 func (sm *SMObject) initWaitGetStateUntil() {
 	pulseDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta)
-	waitDuration :=  pulseDuration / waitStatePulsePercent
+	waitDuration := pulseDuration / waitStatePulsePercent
 	pulseStartedAt := sm.pulseSlot.PulseStartedAt()
 
 	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
@@ -198,11 +199,10 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		RequestedContent: flags,
 	}
 
-	goCtx := ctx.GetContext()
 	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	ref := sm.Reference
 
-	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
 	}).Send()
 
@@ -270,8 +270,8 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 			},
 		},
 	}
-	goCtx := ctx.GetContext()
-	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+
+	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
 		if err != nil {
 			panic(err)
