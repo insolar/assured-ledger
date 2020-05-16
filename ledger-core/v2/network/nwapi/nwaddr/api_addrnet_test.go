@@ -24,7 +24,8 @@ func TestIdentityIs(t *testing.T) {
 	require.False(t, IP.IsHostID())
 	require.False(t, IP.IsLocalUID())
 
-	require.False(t, IP.IsResolved())
+	require.False(t, DNS.IsResolved())
+	require.True(t, IP.IsResolved())
 	require.True(t, IP.IsNetCompatible())
 	require.True(t, DNS.IsNetCompatible())
 	require.False(t, LocalUID.IsNetCompatible())
