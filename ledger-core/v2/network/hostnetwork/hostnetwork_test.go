@@ -176,27 +176,26 @@ func TestNewHostNetwork(t *testing.T) {
 	defer s.Stop()
 
 	count := 10
-	wg := sync.WaitGroup{}
-	wg.Add(count)
 
-	handler := func(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
+	s.n2.RegisterRequestHandler(types.RPC, func(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 		inslogger.FromContext(ctx).Info("handler triggered")
-		defer wg.Done()
 		return s.n2.BuildResponse(ctx, request, &packet.RPCResponse{}), nil
-	}
-	s.n2.RegisterRequestHandler(types.RPC, handler)
+	})
 
 	s.Start()
 
+	responses := make([]network.Future, count)
 	for i := 0; i < count; i++ {
 		ref, err := reference.GlobalFromString(id2)
 		require.NoError(t, err)
-		f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
+		responses[i], err = s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
 		require.NoError(t, err)
-		f.Cancel()
 	}
 
-	wg.Wait()
+	for i := len(responses) - 1; i >= 0; i-- {
+		_, err := responses[i].WaitResponse(time.Minute)
+		require.NoError(t, err)
+	}
 }
 
 func TestHostNetwork_SendRequestPacket(t *testing.T) {
