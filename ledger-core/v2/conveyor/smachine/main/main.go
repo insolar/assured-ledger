@@ -31,9 +31,9 @@ func main() {
 	sm.PutDependency("example.ServiceAdapterA", example.CreateServiceAdapterA())
 	sm.PutDependency("example.catalogC", example.CreateCatalogC())
 
-	//for i := 0; i < 1e4; i++ {
+	// for i := 0; i < 1e4; i++ {
 	//	sm.AddNew(context.Background(), &example.StateMachine2{Yield: false}, smachine.CreateDefaultValues{})
-	//}
+	// }
 
 	for i := 0; i < 1; i++ {
 		sm.AddNew(context.Background(), &example.StateMachine1{}, smachine.CreateDefaultValues{})

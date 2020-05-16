@@ -30,14 +30,14 @@ type ArtifactCacheServiceAdapter struct {
 }
 
 func (a *ArtifactCacheServiceAdapter) PrepareSync(ctx smachine.ExecutionContext, fn func(svc ArtifactCacheService)) smachine.SyncCallRequester {
-	return a.exec.PrepareSync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareSync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		fn(a.svc)
 		return nil
 	})
 }
 
 func (a *ArtifactCacheServiceAdapter) PrepareAsync(ctx smachine.ExecutionContext, fn func(svc ArtifactCacheService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-	return a.exec.PrepareAsync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		return fn(a.svc)
 	})
 }

@@ -49,8 +49,8 @@ func (w *worker) Run(calls <-chan smachine.AdapterCall) *worker {
 
 func (w worker) runnerAdapterWorkerIteration(call smachine.AdapterCall) {
 	intercept := &runnerServiceInterceptor{svc: w.svc}
-	delegationFn := func(callFn smachine.AdapterCallFunc, _ smachine.NestedCallFunc, _ *synckit.ChainedCancel) (smachine.AsyncResultFunc, error) {
-		return callFn(intercept), nil
+	delegationFn := func(ctx context.Context, callFn smachine.AdapterCallFunc, _ smachine.NestedCallFunc, _ *synckit.ChainedCancel) (smachine.AsyncResultFunc, error) {
+		return callFn(ctx, intercept), nil
 	}
 
 	switch fn, err := call.DelegateAndSendResult(nil, delegationFn); {

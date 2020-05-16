@@ -109,7 +109,7 @@ func (st SuiteTextualLog) TestFields() {
 	require.NoError(t, err, "parseable time")
 	ldur := time.Now().Sub(ltime)
 	require.True(t, ldur >= 0, "worktime is not less than zero")
-	require.True(t, ldur < time.Second, "worktime lesser than second")
+	require.True(t, ldur < time.Minute, "worktime should be less than a minute")
 	require.Equal(t, 200.200, c["testfield"], "customfield")
 	require.NotNil(t, c["writeDuration"], "duration exists")
 }
