@@ -345,34 +345,6 @@ func TestBits512FoldToUint64(t *testing.T) {
 	require.Equal(t, uint64(0x403020100000000), bits.FoldToUint64())
 }
 
-func TestBits512FoldToBits256(t *testing.T) {
-	bits := Bits512{}
-	binary.LittleEndian.PutUint64(bits[:8], uint64(0x807060504030201))
-	binary.LittleEndian.PutUint64(bits[8:16], uint64(0x10F0E0D0C0B0A09))
-	binary.LittleEndian.PutUint64(bits[16:24], uint64(0x0908070605040302))
-	binary.LittleEndian.PutUint64(bits[24:32], uint64(0x02010F0E0D0C0B0A))
-	binary.LittleEndian.PutUint64(bits[32:40], uint64(0x0A09080706050403))
-	binary.LittleEndian.PutUint64(bits[40:48], uint64(0x0302010F0E0D0C0B))
-	binary.LittleEndian.PutUint64(bits[48:56], uint64(0x0B0A090807060504))
-	binary.LittleEndian.PutUint64(bits[56:64], uint64(0x040302010F0E0D0C))
-	require.Equal(t, Bits256{2, 6, 6, 2, 2, 14, 14, 2, 2, 6, 6, 2, 2, 15, 13, 2, 6, 6, 2, 2, 14, 14,
-		2, 2, 6, 6, 2, 2, 15, 13, 2, 6}, bits.FoldToBits256())
-}
-
-func TestBits512FoldToBits224(t *testing.T) {
-	bits := Bits512{}
-	binary.LittleEndian.PutUint64(bits[:8], uint64(0x807060504030201))
-	binary.LittleEndian.PutUint64(bits[8:16], uint64(0x10F0E0D0C0B0A09))
-	binary.LittleEndian.PutUint64(bits[16:24], uint64(0x0908070605040302))
-	binary.LittleEndian.PutUint64(bits[24:32], uint64(0x02010F0E0D0C0B0A))
-	binary.LittleEndian.PutUint64(bits[32:40], uint64(0x0A09080706050403))
-	binary.LittleEndian.PutUint64(bits[40:48], uint64(0x0302010F0E0D0C0B))
-	binary.LittleEndian.PutUint64(bits[48:56], uint64(0x0B0A090807060504))
-	binary.LittleEndian.PutUint64(bits[56:64], uint64(0x040302010F0E0D0C))
-	require.Equal(t, Bits224{2, 6, 6, 2, 2, 14, 14, 2, 2, 6, 6, 2, 2, 15, 13, 2, 6, 6, 2, 2, 14, 14,
-		2, 2, 6, 6, 2, 2}, bits.FoldToBits224())
-}
-
 func TestBits512FixedByteSize(t *testing.T) {
 	bits := Bits512{}
 	require.Equal(t, 64, bits.FixedByteSize())

@@ -243,10 +243,6 @@ func (v Bits256) FoldToBits128() (r Bits128) {
 	return r
 }
 
-func (v Bits256) FoldToBits224() Bits224 {
-	return v.TruncateToBits224()
-}
-
 // TruncateToBits224 returns leftmost bits, and it is compliant with cryptography standards, e.g. FIPS 180‑4 and SP 800-107
 func (v Bits256) TruncateToBits224() (r Bits224) {
 	copy(r[:], v[:])
@@ -298,20 +294,6 @@ func (v Bits512) CutOutUint64() uint64 {
 
 func (v Bits512) FoldToUint64() uint64 {
 	return FoldToUint64(v[:])
-}
-
-func (v Bits512) FoldToBits256() (r Bits256) {
-	for i := range r {
-		r[i] = v[i] ^ v[i+len(r)]
-	}
-	return r
-}
-
-func (v Bits512) FoldToBits224() (r Bits224) {
-	for i := range r {
-		r[i] = v[i] ^ v[i+32]
-	}
-	return r
 }
 
 func (v Bits512) FixedByteSize() int {
