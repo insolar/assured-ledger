@@ -41,11 +41,7 @@ func NewJetCoordinator(lightChainLimit int, originRef reference.Global) *Coordin
 
 // Hardcoded roles count for validation and execution
 const (
-	VirtualValidatorCount  = 3
-	MaterialValidatorCount = 3
-
 	VirtualExecutorCount  = 1
-	MaterialExecutorCount = 1
 )
 
 // Me returns current node.
@@ -60,16 +56,12 @@ func (jc *Coordinator) QueryRole(
 	objID reference.Local,
 	pulseNumber insolar.PulseNumber,
 ) ([]reference.Global, error) {
-	switch role {
-	case insolar.DynamicRoleVirtualExecutor:
+	if role == insolar.DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pulseNumber)
 		if err != nil {
 			return nil, errors.Wrapf(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
 		}
 		return []reference.Global{n}, nil
-
-	case insolar.DynamicRoleVirtualValidator:
-		return jc.VirtualValidatorsForObject(ctx, objID, pulseNumber)
 	}
 
 	inslogger.FromContext(ctx).Panicf("unexpected role %v", role.String())
@@ -85,19 +77,6 @@ func (jc *Coordinator) VirtualExecutorForObject(
 		return reference.Global{}, err
 	}
 	return nodes[0], nil
-}
-
-// VirtualValidatorsForObject returns list of VVs for a provided pulse and objID
-func (jc *Coordinator) VirtualValidatorsForObject(
-	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber,
-) ([]reference.Global, error) {
-	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualValidatorCount+VirtualExecutorCount)
-	if err != nil {
-		return nil, errors.Wrapf(err, "calc VirtualValidatorsForObject for object %v failed", objID.String())
-	}
-	// Skipping `VirtualExecutorCount` for validators
-	// because it will be selected as the executor(s) for the same pulse.
-	return nodes[VirtualExecutorCount:], nil
 }
 
 // IsBeyondLimit calculates if target pulse is behind clean-up limit

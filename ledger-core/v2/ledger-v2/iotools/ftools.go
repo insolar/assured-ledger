@@ -3,12 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package badgertools
+package iotools
 
 import (
-	"github.com/pkg/errors"
 	"os"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // ErrEOF indicates an end of file when trying to read from a memory mapped file

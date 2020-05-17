@@ -14,8 +14,6 @@ func GetInsolarRegistry(nodeRole string) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 	registerer := prometheus.WrapRegistererWith(prometheus.Labels{"role": nodeRole}, registry)
 
-	// badger metrics
-	registerer.MustRegister(badgerCollector(insolarNamespace))
 	// default system collectors
 	registerer.MustRegister(prometheus.NewProcessCollector(
 		prometheus.ProcessCollectorOpts{Namespace: insolarNamespace},
