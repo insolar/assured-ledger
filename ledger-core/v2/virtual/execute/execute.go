@@ -93,64 +93,78 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
-	s.execution.Object = s.Payload.Callee
+	if s.Payload.CallType == payload.CTConstructor {
+		s.isConstructor = true
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing)
+	} else {
+		s.execution.Object = s.Payload.Callee
+	}
+
 	s.execution.Incoming = reference.NewRecordOf(s.Payload.Caller, s.Payload.CallOutgoing)
 	s.execution.Outgoing = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing)
+
+	if s.Payload.CallFlags.GetTolerance() == payload.CallIntolerable {
+		s.execution.Unordered = true
+	}
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx)
 
-	return ctx.Jump(s.stepUpdatePendingCounters)
+	return ctx.Jump(s.stepCheckRequest)
 }
 
-func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		callType = s.Payload.CallType
-
-		isConstructor     bool
-		objectSharedState object.SharedStateAccessor
-	)
-
-	reason := object.InitReasonCTMethod
-
-	switch callType {
+func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	switch s.Payload.CallType {
 	case payload.CTConstructor:
-		isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing)
-		reason = object.InitReasonCTConstructor
-
 	case payload.CTMethod:
-		isConstructor = false
 
-	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTNotifyCall:
-		fallthrough
-	case payload.CTSAGACall, payload.CTParallelCall, payload.CTScheduleCall:
+	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTNotifyCall,
+		payload.CTSAGACall, payload.CTParallelCall, payload.CTScheduleCall:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
 	}
 
-	if s.Payload.CallFlags.GetTolerance() == payload.CallIntolerable {
-		s.execution.Unordered = true
+	return ctx.Jump(s.stepGetObject)
+}
+
+func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.execution.Object)
+
+	if s.isConstructor {
+		action := func(state *object.SharedState) {
+			state.SetState(object.Empty)
+		}
+
+		switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+		case smachine.NotPassed:
+			return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+		case smachine.Impossible:
+			ctx.Log().Fatal("failed to get object state: already dead")
+		case smachine.Passed:
+		default:
+			panic(throw.NotImplemented())
+		}
 	}
 
-	objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.execution.Object, reason)
+	return ctx.Jump(s.stepUpdatePendingCounters)
+}
 
-	switch objectSharedState.Prepare(func(state *object.SharedState) {
+func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	action := func(state *object.SharedState) {
 		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
-	}).TryUse(ctx).GetDecision() {
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
-		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
 		ctx.Log().Fatal("failed to get object state: already dead")
 	case smachine.Passed:
 	default:
 		panic(throw.NotImplemented())
 	}
-
-	s.objectSharedState = objectSharedState
-	s.isConstructor = isConstructor
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	return ctx.Jump(s.stepWaitObjectReady)

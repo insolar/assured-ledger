@@ -34,11 +34,12 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 		pulseSlot            = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID           = gen.IDWithPulse(pd.PulseNumber)
 		smGlobalRef          = reference.NewSelf(smObjectID)
-		smObject             = NewStateMachineObject(smGlobalRef, InitReasonCTConstructor)
+		smObject             = NewStateMachineObject(smGlobalRef)
 		msgVStateReportCount = 0
 		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 	defer mc.Finish()
+	smObject.SharedState.SetState(Empty)
 	smObject.pulseSlot = &pulseSlot
 	messageService := messagesender.NewServiceMock(mc).
 		SendRoleMock.Set(
@@ -60,7 +61,7 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	stepChecker := testutils.NewSMStepChecker()
 	{
 		exec := SMObject{}
-		stepChecker.AddStep(exec.stepReadyToWork)
+		stepChecker.AddStep(exec.stepGetState)
 		stepChecker.AddStep(exec.stepSendVStateReport)
 		stepChecker.AddStep(exec.stepWaitIndefinitely)
 	}
