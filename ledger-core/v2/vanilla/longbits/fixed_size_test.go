@@ -132,19 +132,24 @@ func TestFixedByteSize(t *testing.T) {
 	require.Equal(t, len(fs.data), fs.FixedByteSize())
 }
 
-func TestAsBytes(t *testing.T) {
+func TestCopyTo(t *testing.T) {
 	fs := fixedSize{data: []byte{1, 2}}
-	require.Len(t, fs.AsBytes(), len(fs.data))
+	d := []byte{0, 0, 0}
 
-	require.Equal(t, fs.data, fs.AsBytes())
+	require.Equal(t, 1, fs.CopyTo(d[:1]))
+	require.Equal(t, fs.data[0], d[0])
+	require.Zero(t, d[1])
+
+	require.Equal(t, len(fs.data), fs.CopyTo(d))
+	require.Equal(t, fs.data, d[:len(fs.data)])
 }
 
 func TestNewFixedReader(t *testing.T) {
 	data := []byte{1, 2, 3}
 	fr := NewMutableFixedSize(data)
-	require.Len(t, fr.AsBytes(), len(data))
+	require.Len(t, AsBytes(fr), len(data))
 
-	require.Equal(t, data[1], fr.AsBytes()[1])
+	require.Equal(t, data[1], AsBytes(fr)[1])
 }
 
 func TestCopyFixedSize(t *testing.T) {
@@ -152,11 +157,11 @@ func TestCopyFixedSize(t *testing.T) {
 	bits := NewBits64(uint64(item))
 	fr := CopyToMutable(&bits)
 
-	require.Len(t, fr.AsBytes(), len(bits))
+	require.Len(t, AsBytes(fr), len(bits))
 
-	require.Equal(t, uint8(item), fr.AsBytes()[0])
+	require.Equal(t, uint8(item), AsBytes(fr)[0])
 
-	require.Equal(t, bits[0], fr.AsBytes()[0])
+	require.Equal(t, bits[0], AsBytes(fr)[0])
 }
 
 func TestEqual(t *testing.T) {

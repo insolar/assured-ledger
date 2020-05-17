@@ -21,8 +21,6 @@ type Foldable interface {
 type FixedReader interface {
 	io.WriterTo
 	CopyTo(p []byte) int
-	// deprecated use longbits.AsBytes() or CopyTo() instead
-	AsBytes() []byte
 	AsByteString() ByteString
 
 	FixedByteSize() int
@@ -134,10 +132,6 @@ func (c fixedSize) CutOutUint64() uint64 {
 
 func (c fixedSize) FixedByteSize() int {
 	return len(c.data)
-}
-
-func (c fixedSize) AsBytes() []byte {
-	return c.data
 }
 
 func AsBytes(v FixedReader) []byte {

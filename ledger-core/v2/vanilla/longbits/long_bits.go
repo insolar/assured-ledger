@@ -94,7 +94,8 @@ func FoldToBits64(v []byte) (folded Bits64) {
 	return folded
 }
 
-/* Array size doesnt need to be aligned */
+// CutOutBits64 either copies all bytes or picks evenly bytes from (v). Sizes do not need to be aligned.
+// WARNING! This is NOT compliant with cryptography standards, e.g. FIPS 180‑4 and SP 800-107
 func CutOutBits64(v []byte) (folded Bits64) {
 	if len(v) <= len(folded) {
 		copy(folded[:], v)
@@ -243,13 +244,12 @@ func (v Bits256) FoldToBits128() (r Bits128) {
 }
 
 func (v Bits256) FoldToBits224() Bits224 {
-	return v.CutOutBits224()
+	return v.TruncateToBits224()
 }
 
-func (v Bits256) CutOutBits224() (r Bits224) {
-	for i := range r {
-		r[i] = v[i]
-	}
+// TruncateToBits224 returns leftmost bits, and it is compliant with cryptography standards, e.g. FIPS 180‑4 and SP 800-107
+func (v Bits256) TruncateToBits224() (r Bits224) {
+	copy(r[:], v[:])
 	return r
 }
 

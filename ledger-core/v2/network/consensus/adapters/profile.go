@@ -264,8 +264,8 @@ func NewNetworkNode(profile profiles.ActiveNode) insolar.NetworkNode {
 
 	sd := nip.GetBriefIntroSignedDigest()
 	mutableNode.SetSignature(
-		sd.GetDigestHolder().AsBytes(),
-		insolar.SignatureFromBytes(sd.GetSignatureHolder().AsBytes()),
+		longbits.AsBytes(sd.GetDigestHolder()),
+		insolar.SignatureFromBytes(longbits.AsBytes(sd.GetSignatureHolder())),
 	)
 
 	return networkNode

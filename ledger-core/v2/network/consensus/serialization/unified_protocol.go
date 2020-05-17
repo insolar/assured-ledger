@@ -237,7 +237,7 @@ func (p Packet) String() string {
 }
 
 func (p *Packet) setSignature(signature cryptkit.SignatureHolder) {
-	copy(p.PacketSignature[:], signature.AsBytes())
+	signature.CopyTo(p.PacketSignature[:])
 }
 
 func (p *Packet) setPayloadLength(payloadLength uint16) {

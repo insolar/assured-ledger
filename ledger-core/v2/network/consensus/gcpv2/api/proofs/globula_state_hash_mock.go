@@ -23,12 +23,6 @@ type GlobulaStateHashMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mGlobulaStateHashMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mGlobulaStateHashMockAsBytes
-
 	funcCopyOfDigest          func() (d1 cryptkit.Digest)
 	inspectFuncCopyOfDigest   func()
 	afterCopyOfDigestCounter  uint64
@@ -86,8 +80,6 @@ func NewGlobulaStateHashMock(t minimock.Tester) *GlobulaStateHashMock {
 	}
 
 	m.AsByteStringMock = mGlobulaStateHashMockAsByteString{mock: m}
-
-	m.AsBytesMock = mGlobulaStateHashMockAsBytes{mock: m}
 
 	m.CopyOfDigestMock = mGlobulaStateHashMockCopyOfDigest{mock: m}
 
@@ -252,149 +244,6 @@ func (m *GlobulaStateHashMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to GlobulaStateHashMock.AsByteString")
-	}
-}
-
-type mGlobulaStateHashMockAsBytes struct {
-	mock               *GlobulaStateHashMock
-	defaultExpectation *GlobulaStateHashMockAsBytesExpectation
-	expectations       []*GlobulaStateHashMockAsBytesExpectation
-}
-
-// GlobulaStateHashMockAsBytesExpectation specifies expectation struct of the GlobulaStateHash.AsBytes
-type GlobulaStateHashMockAsBytesExpectation struct {
-	mock *GlobulaStateHashMock
-
-	results *GlobulaStateHashMockAsBytesResults
-	Counter uint64
-}
-
-// GlobulaStateHashMockAsBytesResults contains results of the GlobulaStateHash.AsBytes
-type GlobulaStateHashMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for GlobulaStateHash.AsBytes
-func (mmAsBytes *mGlobulaStateHashMockAsBytes) Expect() *mGlobulaStateHashMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("GlobulaStateHashMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &GlobulaStateHashMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the GlobulaStateHash.AsBytes
-func (mmAsBytes *mGlobulaStateHashMockAsBytes) Inspect(f func()) *mGlobulaStateHashMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for GlobulaStateHashMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by GlobulaStateHash.AsBytes
-func (mmAsBytes *mGlobulaStateHashMockAsBytes) Return(ba1 []byte) *GlobulaStateHashMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("GlobulaStateHashMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &GlobulaStateHashMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &GlobulaStateHashMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the GlobulaStateHash.AsBytes method
-func (mmAsBytes *mGlobulaStateHashMockAsBytes) Set(f func() (ba1 []byte)) *GlobulaStateHashMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the GlobulaStateHash.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the GlobulaStateHash.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements GlobulaStateHash
-func (mmAsBytes *GlobulaStateHashMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the GlobulaStateHashMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to GlobulaStateHashMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished GlobulaStateHashMock.AsBytes invocations
-func (mmAsBytes *GlobulaStateHashMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of GlobulaStateHashMock.AsBytes invocations
-func (mmAsBytes *GlobulaStateHashMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *GlobulaStateHashMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *GlobulaStateHashMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to GlobulaStateHashMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to GlobulaStateHashMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to GlobulaStateHashMock.AsBytes")
 	}
 }
 
@@ -1836,8 +1685,6 @@ func (m *GlobulaStateHashMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyOfDigestInspect()
 
 		m.MinimockCopyToInspect()
@@ -1877,7 +1724,6 @@ func (m *GlobulaStateHashMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
