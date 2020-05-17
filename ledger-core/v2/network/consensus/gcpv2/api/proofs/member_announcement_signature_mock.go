@@ -23,12 +23,6 @@ type MemberAnnouncementSignatureMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mMemberAnnouncementSignatureMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mMemberAnnouncementSignatureMockAsBytes
-
 	funcCopyOfSignature          func() (s1 cryptkit.Signature)
 	inspectFuncCopyOfSignature   func()
 	afterCopyOfSignatureCounter  uint64
@@ -80,8 +74,6 @@ func NewMemberAnnouncementSignatureMock(t minimock.Tester) *MemberAnnouncementSi
 	}
 
 	m.AsByteStringMock = mMemberAnnouncementSignatureMockAsByteString{mock: m}
-
-	m.AsBytesMock = mMemberAnnouncementSignatureMockAsBytes{mock: m}
 
 	m.CopyOfSignatureMock = mMemberAnnouncementSignatureMockCopyOfSignature{mock: m}
 
@@ -243,149 +235,6 @@ func (m *MemberAnnouncementSignatureMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to MemberAnnouncementSignatureMock.AsByteString")
-	}
-}
-
-type mMemberAnnouncementSignatureMockAsBytes struct {
-	mock               *MemberAnnouncementSignatureMock
-	defaultExpectation *MemberAnnouncementSignatureMockAsBytesExpectation
-	expectations       []*MemberAnnouncementSignatureMockAsBytesExpectation
-}
-
-// MemberAnnouncementSignatureMockAsBytesExpectation specifies expectation struct of the MemberAnnouncementSignature.AsBytes
-type MemberAnnouncementSignatureMockAsBytesExpectation struct {
-	mock *MemberAnnouncementSignatureMock
-
-	results *MemberAnnouncementSignatureMockAsBytesResults
-	Counter uint64
-}
-
-// MemberAnnouncementSignatureMockAsBytesResults contains results of the MemberAnnouncementSignature.AsBytes
-type MemberAnnouncementSignatureMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for MemberAnnouncementSignature.AsBytes
-func (mmAsBytes *mMemberAnnouncementSignatureMockAsBytes) Expect() *mMemberAnnouncementSignatureMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("MemberAnnouncementSignatureMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &MemberAnnouncementSignatureMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the MemberAnnouncementSignature.AsBytes
-func (mmAsBytes *mMemberAnnouncementSignatureMockAsBytes) Inspect(f func()) *mMemberAnnouncementSignatureMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for MemberAnnouncementSignatureMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by MemberAnnouncementSignature.AsBytes
-func (mmAsBytes *mMemberAnnouncementSignatureMockAsBytes) Return(ba1 []byte) *MemberAnnouncementSignatureMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("MemberAnnouncementSignatureMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &MemberAnnouncementSignatureMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &MemberAnnouncementSignatureMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the MemberAnnouncementSignature.AsBytes method
-func (mmAsBytes *mMemberAnnouncementSignatureMockAsBytes) Set(f func() (ba1 []byte)) *MemberAnnouncementSignatureMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the MemberAnnouncementSignature.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the MemberAnnouncementSignature.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements MemberAnnouncementSignature
-func (mmAsBytes *MemberAnnouncementSignatureMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the MemberAnnouncementSignatureMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to MemberAnnouncementSignatureMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished MemberAnnouncementSignatureMock.AsBytes invocations
-func (mmAsBytes *MemberAnnouncementSignatureMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of MemberAnnouncementSignatureMock.AsBytes invocations
-func (mmAsBytes *MemberAnnouncementSignatureMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *MemberAnnouncementSignatureMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *MemberAnnouncementSignatureMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to MemberAnnouncementSignatureMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to MemberAnnouncementSignatureMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to MemberAnnouncementSignatureMock.AsBytes")
 	}
 }
 
@@ -1612,8 +1461,6 @@ func (m *MemberAnnouncementSignatureMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyOfSignatureInspect()
 
 		m.MinimockCopyToInspect()
@@ -1651,7 +1498,6 @@ func (m *MemberAnnouncementSignatureMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfSignatureDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&

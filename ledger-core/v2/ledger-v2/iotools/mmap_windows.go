@@ -5,7 +5,7 @@
 
 // +build windows
 
-package badgertools
+package iotools
 
 import (
 	"fmt"

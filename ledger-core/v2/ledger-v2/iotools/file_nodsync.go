@@ -5,7 +5,7 @@
 
 // +build dragonfly freebsd windows
 
-package badgertools
+package iotools
 
 import "syscall"
 

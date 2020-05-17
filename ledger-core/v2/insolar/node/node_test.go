@@ -137,30 +137,3 @@ func TestStorage_Set(t *testing.T) {
 		assert.Equal(t, nodes, nodeStorage.nodes[pulse])
 	})
 }
-
-func TestNewStorage_Delete(t *testing.T) {
-	t.Parallel()
-
-	var nodes []insolar.Node
-	f := fuzz.New().Funcs(func(e *insolar.Node, c fuzz.Continue) {
-		e.ID = gen.Reference()
-	})
-	f.NumElements(5, 10).NilChance(0).Fuzz(&nodes)
-	pulse := gen.PulseNumber()
-	nodeStorage := NewStorage()
-	nodeStorage.nodes[pulse] = nodes
-
-	t.Run("removes nodes for pulse", func(t *testing.T) {
-		{
-			result, err := nodeStorage.All(pulse)
-			assert.NoError(t, err)
-			assert.Equal(t, nodes, result)
-		}
-		{
-			nodeStorage.DeleteForPN(pulse)
-			result, err := nodeStorage.All(pulse)
-			assert.Equal(t, ErrNoNodes, err)
-			assert.Nil(t, result)
-		}
-	})
-}

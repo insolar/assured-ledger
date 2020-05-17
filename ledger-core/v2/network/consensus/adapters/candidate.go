@@ -66,8 +66,8 @@ func NewCandidate(staticProfile *StaticProfile, keyProcessor insolar.KeyProcesso
 		ShortID:     staticProfile.GetStaticNodeID(),
 		PrimaryRole: staticProfile.GetPrimaryRole(),
 		SpecialRole: staticProfile.GetSpecialRoles(),
-		Digest:      signedDigest.GetDigestHolder().AsBytes(),
-		Signature:   signedDigest.GetSignatureHolder().AsBytes(),
+		Digest:      longbits.AsBytes(signedDigest.GetDigestHolder()),
+		Signature:   longbits.AsBytes(signedDigest.GetSignatureHolder()),
 		PublicKey:   pubKey,
 	}
 }

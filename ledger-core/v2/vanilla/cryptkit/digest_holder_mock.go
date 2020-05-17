@@ -22,12 +22,6 @@ type DigestHolderMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mDigestHolderMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mDigestHolderMockAsBytes
-
 	funcCopyOfDigest          func() (d1 Digest)
 	inspectFuncCopyOfDigest   func()
 	afterCopyOfDigestCounter  uint64
@@ -85,8 +79,6 @@ func NewDigestHolderMock(t minimock.Tester) *DigestHolderMock {
 	}
 
 	m.AsByteStringMock = mDigestHolderMockAsByteString{mock: m}
-
-	m.AsBytesMock = mDigestHolderMockAsBytes{mock: m}
 
 	m.CopyOfDigestMock = mDigestHolderMockCopyOfDigest{mock: m}
 
@@ -251,149 +243,6 @@ func (m *DigestHolderMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to DigestHolderMock.AsByteString")
-	}
-}
-
-type mDigestHolderMockAsBytes struct {
-	mock               *DigestHolderMock
-	defaultExpectation *DigestHolderMockAsBytesExpectation
-	expectations       []*DigestHolderMockAsBytesExpectation
-}
-
-// DigestHolderMockAsBytesExpectation specifies expectation struct of the DigestHolder.AsBytes
-type DigestHolderMockAsBytesExpectation struct {
-	mock *DigestHolderMock
-
-	results *DigestHolderMockAsBytesResults
-	Counter uint64
-}
-
-// DigestHolderMockAsBytesResults contains results of the DigestHolder.AsBytes
-type DigestHolderMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for DigestHolder.AsBytes
-func (mmAsBytes *mDigestHolderMockAsBytes) Expect() *mDigestHolderMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("DigestHolderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &DigestHolderMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the DigestHolder.AsBytes
-func (mmAsBytes *mDigestHolderMockAsBytes) Inspect(f func()) *mDigestHolderMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for DigestHolderMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by DigestHolder.AsBytes
-func (mmAsBytes *mDigestHolderMockAsBytes) Return(ba1 []byte) *DigestHolderMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("DigestHolderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &DigestHolderMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &DigestHolderMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the DigestHolder.AsBytes method
-func (mmAsBytes *mDigestHolderMockAsBytes) Set(f func() (ba1 []byte)) *DigestHolderMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the DigestHolder.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the DigestHolder.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements DigestHolder
-func (mmAsBytes *DigestHolderMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the DigestHolderMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to DigestHolderMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished DigestHolderMock.AsBytes invocations
-func (mmAsBytes *DigestHolderMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of DigestHolderMock.AsBytes invocations
-func (mmAsBytes *DigestHolderMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *DigestHolderMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *DigestHolderMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to DigestHolderMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to DigestHolderMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to DigestHolderMock.AsBytes")
 	}
 }
 
@@ -1835,8 +1684,6 @@ func (m *DigestHolderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyOfDigestInspect()
 
 		m.MinimockCopyToInspect()
@@ -1876,7 +1723,6 @@ func (m *DigestHolderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&

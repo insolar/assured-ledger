@@ -5,7 +5,7 @@
 
 // +build windows
 
-package badgertools
+package iotools
 
 // OpenDir opens a directory in windows with write access for syncing.
 import (

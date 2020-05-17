@@ -271,7 +271,7 @@ func TestBits256FoldToBits224(t *testing.T) {
 	binary.LittleEndian.PutUint64(bits[16:24], uint64(0x0908070605040302))
 	binary.LittleEndian.PutUint64(bits[24:32], uint64(0x02010F0E0D0C0B0A))
 	require.Equal(t, Bits224{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-		1, 2, 3, 4, 5, 6, 7, 8, 9, 0x0a, 0x0b, 0x0c, 0x0d}, bits.CutOutBits224())
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 0x0a, 0x0b, 0x0c, 0x0d}, bits.TruncateToBits224())
 }
 
 func TestBits256FixedByteSize(t *testing.T) {
