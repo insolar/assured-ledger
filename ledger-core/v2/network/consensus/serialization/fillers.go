@@ -14,19 +14,12 @@ import (
 )
 
 func fillPulsarPacket(p *EmbeddedPulsarData, pulsarPacket proofs.OriginalPulsarPacket) {
-	p.setData(pulsarPacket.AsBytes())
+	p.setData(longbits.AsBytes(pulsarPacket))
 }
 
 func fillNodeState(s *CompactGlobulaNodeState, nodeStateHash proofs.NodeStateHashEvidence) {
-	signedDigest := nodeStateHash.CopyOfSignedDigest()
-	copy(
-		s.NodeStateHash[:],
-		signedDigest.GetDigest().AsBytes(),
-	)
-	copy(
-		s.NodeStateHashSignature[:],
-		signedDigest.GetSignature().AsBytes(),
-	)
+	nodeStateHash.GetDigestHolder().CopyTo(s.NodeStateHash[:])
+	nodeStateHash.GetSignatureHolder().CopyTo(s.NodeStateHashSignature[:])
 }
 
 func fillMembershipAnnouncement(a *MembershipAnnouncement, sender transport.MembershipAnnouncementReader) {
@@ -38,7 +31,7 @@ func fillMembershipAnnouncement(a *MembershipAnnouncement, sender transport.Memb
 		return
 	}
 
-	copy(a.AnnounceSignature[:], sender.GetAnnouncementSignature().AsBytes())
+	sender.GetAnnouncementSignature().CopyTo(a.AnnounceSignature[:])
 
 	fillNodeState(&a.Member.NodeState, sender.GetNodeStateHashEvidence())
 
@@ -57,9 +50,9 @@ func fillBriefInto(i *NodeBriefIntro, intro transport.BriefIntroductionReader) {
 	i.SetAddrMode(endpoints.IPEndpoint)
 	i.SpecialRoles = intro.GetSpecialRoles()
 	i.StartPower = intro.GetStartPower()
-	copy(i.NodePK[:], intro.GetNodePublicKey().AsBytes())
+	intro.GetNodePublicKey().CopyTo(i.NodePK[:])
 	i.Endpoint = intro.GetDefaultEndpoint().GetIPAddress()
-	copy(i.JoinerSignature[:], intro.GetBriefIntroSignedDigest().GetSignatureHolder().AsBytes())
+	intro.GetBriefIntroSignedDigest().GetSignatureHolder().CopyTo(i.JoinerSignature[:])
 }
 
 func fillExtendedIntro(i *NodeExtendedIntro, intro transport.FullIntroductionReader) {
@@ -74,7 +67,7 @@ func fillExtendedIntro(i *NodeExtendedIntro, intro transport.FullIntroductionRea
 	copy(i.NodeRefProof[0][:], intro.GetReference().AsBytes())
 
 	i.DiscoveryIssuerNodeID = intro.GetIssuerID()
-	copy(i.IssuerSignature[:], intro.GetIssuerSignature().AsBytes())
+	intro.GetIssuerSignature().CopyTo(i.IssuerSignature[:])
 }
 
 func fillFullInto(i *NodeFullIntro, intro transport.FullIntroductionReader) {
@@ -83,10 +76,10 @@ func fillFullInto(i *NodeFullIntro, intro transport.FullIntroductionReader) {
 }
 
 func fillWelcome(b *GlobulaConsensusPacketBody, welcome *proofs.NodeWelcomePackage) {
-	copy(b.CloudIntro.CloudIdentity[:], welcome.CloudIdentity.AsBytes())
-	copy(b.CloudIntro.LastCloudStateHash[:], welcome.LastCloudStateHash.AsBytes())
+	welcome.CloudIdentity.CopyTo(b.CloudIntro.CloudIdentity[:])
+	welcome.LastCloudStateHash.CopyTo(b.CloudIntro.LastCloudStateHash[:])
 	if welcome.JoinerSecret != nil {
-		copy(b.JoinerSecret[:], welcome.JoinerSecret.AsBytes())
+		welcome.JoinerSecret.CopyTo(b.JoinerSecret[:])
 	}
 }
 
@@ -102,7 +95,7 @@ func fillNeighbourAnnouncement(n *NeighbourAnnouncement, neighbour transport.Mem
 	n.NeighbourNodeID = neighbour.GetNodeID()
 	n.CurrentRank = neighbour.GetNodeRank()
 	n.RequestedPower = neighbour.GetRequestedPower()
-	copy(n.AnnounceSignature[:], neighbour.GetAnnouncementSignature().AsBytes())
+	neighbour.GetAnnouncementSignature().CopyTo(n.AnnounceSignature[:])
 
 	if !neighbour.GetNodeRank().IsJoiner() {
 		fillNodeState(&n.Member.NodeState, neighbour.GetNodeStateHashEvidence())
@@ -120,8 +113,8 @@ func fillNeighbourAnnouncement(n *NeighbourAnnouncement, neighbour transport.Mem
 }
 
 func fillVector(v *GlobulaStateVector, vector statevector.SubVector) {
-	copy(v.VectorHash[:], vector.AnnouncementHash.AsBytes())
-	copy(v.SignedGlobulaStateHash[:], vector.StateSignature.AsBytes())
+	vector.AnnouncementHash.CopyTo(v.VectorHash[:])
+	vector.StateSignature.CopyTo(v.SignedGlobulaStateHash[:])
 	v.ExpectedRank = vector.ExpectedRank
 }
 

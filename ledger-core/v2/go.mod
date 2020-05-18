@@ -8,7 +8,6 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.0.2
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/dgraph-io/badger v1.6.0-rc1.0.20191024172150-efb9d9d15d7f
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/fsnotify/fsnotify v1.4.7

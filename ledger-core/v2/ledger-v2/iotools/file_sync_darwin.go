@@ -5,7 +5,7 @@
 
 // +build darwin,!go1.12
 
-package badgertools
+package iotools
 
 import (
 	"os"

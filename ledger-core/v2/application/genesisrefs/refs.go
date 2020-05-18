@@ -20,8 +20,8 @@ const (
 	FundsDepositName = "genesis_deposit"
 )
 
-// Generate reference from hash code.
 // deprecated
+// Generate reference from hash code.
 func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := reference.BytesToLocalHash(hasher.Hash(code))
@@ -29,15 +29,15 @@ func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) refe
 	return reference.NewSelf(id)
 }
 
-// Generate prototype reference from contract id.
 // deprecated
+// Generate prototype reference from contract id.
 func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	return GenerateProtoReferenceFromCode(pulse.BuiltinContract, []byte(contractID))
 }
 
-// Generate contract reference from contract id.
 // deprecated
+// Generate contract reference from contract id.
 func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()

@@ -8,7 +8,6 @@
 package tools
 
 import (
-	_ "github.com/dgraph-io/badger/badger"
 	_ "github.com/gogo/protobuf/protoc-gen-gogofaster"
 	_ "github.com/gogo/protobuf/protoc-gen-gogoslick"
 	_ "github.com/gojuno/minimock/v3/cmd/minimock"

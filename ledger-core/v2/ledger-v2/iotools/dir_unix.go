@@ -5,7 +5,7 @@
 
 // +build !windows
 
-package badgertools
+package iotools
 
 import (
 	"fmt"
@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dgraph-io/badger/y"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
@@ -98,7 +97,7 @@ func syncDir(dir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "While opening directory: %s.", dir)
 	}
-	err = y.FileSync(f)
+	err = f.Sync()
 	closeErr := f.Close()
 	if err != nil {
 		return errors.Wrapf(err, "While syncing directory: %s.", dir)

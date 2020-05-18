@@ -99,7 +99,6 @@ func (st SuiteRawBinary) TestByteString() {
 
 func (st SuiteRawBinary) TestBytes() {
 	t := st.T()
-	require.Equal(t, st.check, st.value.AsBytes())
 	require.Equal(t, st.check, st.value.GetBytes())
 
 	expected := st.check
