@@ -23,7 +23,7 @@ import (
 
 // Beware, test results there depends on test file name (caller_test.go)!
 
-const pkgRegexPrefix = "^instrumentation/inslogger/"
+const pkgRegexPrefix = "^.*instrumentation/inslogger/"
 
 type loggerField struct {
 	Caller string
@@ -54,7 +54,7 @@ func TestLog_ZerologCaller(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
-	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 }
 
@@ -76,7 +76,7 @@ func TestLog_ZerologCallerWithFunc(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
-	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "TestLog_ZerologCallerWithFunc", lf.Func, "log contains func name")
 }
 
@@ -97,7 +97,7 @@ func TestLog_BilogCaller(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
-	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 }
 
@@ -119,7 +119,7 @@ func TestLog_BilogCallerWithFunc(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
-	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "TestLog_BilogCallerWithFunc", lf.Func, "log contains func name")
 }
 
