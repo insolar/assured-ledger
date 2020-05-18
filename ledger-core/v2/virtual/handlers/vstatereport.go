@@ -100,7 +100,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	case smachine.NotPassed:
 		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	return ctx.Stop()
