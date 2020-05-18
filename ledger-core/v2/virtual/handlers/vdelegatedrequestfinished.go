@@ -53,16 +53,19 @@ func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) s
 func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	objectRef := s.Payload.Callee
 
-	var objectDescriptor descriptor.Object
+	var objectDescriptor *descriptor.Object
 
-	state := s.Payload.LatestState
-	objectDescriptor = descriptor.NewObject(
-		objectRef,
-		state.Reference,
-		state.Prototype,
-		state.State,
-		state.Parent,
-	)
+	if s.Payload.LatestState != nil {
+		state := s.Payload.LatestState
+		desc := descriptor.NewObject(
+			objectRef,
+			state.Reference,
+			state.Prototype,
+			state.State,
+			state.Parent,
+		)
+		objectDescriptor = &desc
+	}
 
 	sharedObjectState := s.objectCatalog.Get(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
@@ -74,7 +77,23 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 			return false
 		}
 
-		state.SetDescriptor(objectDescriptor)
+		state.ActiveMutablePendingCount--
+
+		if state.ActiveMutablePendingCount < 0 {
+			//TODO how to handle?
+		}
+
+		if state.ActiveMutablePendingCount == 0 {
+			// If we do not have pending ordered, release sync object.
+			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
+				//TODO how to handle?
+			}
+		}
+
+		// Update object state.
+		if objectDescriptor != nil {
+			state.SetDescriptor(*objectDescriptor)
+		}
 
 		return true
 	}
