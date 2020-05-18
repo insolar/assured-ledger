@@ -62,6 +62,7 @@ spec:
         role: pulsar
         scope: platform
     spec:
+      serviceAccountName: insolar-bootstrap
       initContainers:
         - name: wait
           image: "bitnami/kubectl:1.18"

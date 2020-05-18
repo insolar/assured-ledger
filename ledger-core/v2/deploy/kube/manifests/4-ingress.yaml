@@ -4,7 +4,6 @@ metadata:
   name: api-proxy
   namespace: insolar
   annotations:
-    #todo this is not working yet
     nginx.ingress.kubernetes.io/affinity: cookie
 spec:
   rules:
