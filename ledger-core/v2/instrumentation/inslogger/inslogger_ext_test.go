@@ -29,7 +29,7 @@ import (
 const (
 	pkgRelName   = "instrumentation/inslogger/"
 	testFileName = "inslogger_ext_test.go"
-	callerRe     = "^" + pkgRelName + testFileName + ":"
+	callerRe     = "^.*/" + pkgRelName + testFileName + ":"
 )
 
 type loggerField struct {
