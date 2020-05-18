@@ -64,6 +64,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
+		stepChecker.AddStep(exec.stepUpdateSawRequests)
 		stepChecker.AddStep(exec.stepUpdatePendingCounters)
 		stepChecker.AddStep(exec.stepWaitObjectReady)
 	}
@@ -84,6 +85,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
 
+	smExecute.stepUpdateSawRequests(execCtx)
 	smExecute.stepUpdatePendingCounters(execCtx)
 
 	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)
