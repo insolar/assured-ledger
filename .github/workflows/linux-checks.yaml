@@ -1,8 +1,8 @@
 name: linux-checks
 on:
   push:
-#    branches:
-#      - master
+    branches:
+      - master
   pull_request:
   schedule:
     - cron: '0 2,4,6 * * *'
@@ -13,7 +13,6 @@ env:
   GOTEST: 'gotestsum --'
 jobs:
   tests-on-linux:
-    if: "false"
     name: checks # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
