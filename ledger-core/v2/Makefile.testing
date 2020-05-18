@@ -33,15 +33,15 @@ test_slow: ## run tests with slowtest tag
 
 .PHONY: kube_start_net
 kube_start_net: ## run insolar net in local kubernetes cluster
-	./deploy/kube/run.sh
+	./scripts/deploy/kube/run.sh
 
 .PHONY: kube_stop_net
 kube_stop_net: ## stop insolar net in local kubernetes cluster
-	./deploy/kube/stop.sh
+	./scripts/deploy/kube/stop.sh
 
 .PHONY: kube_collect_artifacts
 kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
-	./deploy/kube/collect_artifacts.sh
+	./scripts/deploy/kube/collect_artifacts.sh
 
 .PHONY: test_func_kubernetes
 test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will be running after tests!

@@ -96,7 +96,7 @@ When the pulse watcher says `INSOLAR STATE: READY`, run the following command in
 
 
 Functional test can be executed in kubernetes cluster. You need to have `kubectl` installed.
-_This will install nginx ingress in your cluster and user 80/443 port_
+_This will install nginx ingress in your cluster and uses 80/443 port_
 
    ```
     make docker-build           # builds new images

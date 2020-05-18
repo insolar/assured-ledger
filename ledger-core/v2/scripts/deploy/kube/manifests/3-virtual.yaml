@@ -67,10 +67,6 @@ data:
       samplingrules: {}
     introspection:
       addr: 0.0.0.0:55503
-    exporter:
-      addr: :5678
-    bus:
-      replytimeout: 15s
 ---
 apiVersion: apps/v1
 kind: StatefulSet

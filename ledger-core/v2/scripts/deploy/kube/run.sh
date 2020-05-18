@@ -28,14 +28,15 @@ check_docker_images() {
   fi
 }
 
+# todo remove ingress
 check_ingress_installation() {
   if [ "$($KUBECTL get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
-    $KUBECTL apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+    $KUBECTL apply -f ./deploy/kube/ingress-nginx-2.0.3.yaml
   fi
 }
 
 delete_ingress() {
-  $KUBECTL delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-0.31.0/deploy/static/provider/cloud/deploy.yaml
+  $KUBECTL delete -f ./deploy/kube/ingress-nginx-2.0.3.yaml
 }
 
 run_network() {

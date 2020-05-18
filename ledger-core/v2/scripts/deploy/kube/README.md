@@ -37,5 +37,5 @@ INSOLAR_FUNC_RPC_URL_PUBLIC=http://localhost/api/rpc;INSOLAR_FUNC_RPC_URL=http:/
 If you want to change application code
 
 ##About CI
-On github actions we use k3s cluster with a local registry.
+On github actions we use k3s cluster (https://k3s.io/) with a local registry.
 As a further improvement, we can run tests inside the cluster on one image.
