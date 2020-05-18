@@ -78,9 +78,9 @@ type awaitedRun struct {
 // ================================= Adapter =================================
 
 type ServiceAdapter struct {
-	svc    *DefaultService
-	exec   smachine.ExecutionAdapter
-	worker *worker
+	svc          *DefaultService
+	runExec      smachine.ExecutionAdapter
+	parallelExec smachine.ExecutionAdapter
 }
 
 func (a *ServiceAdapter) PrepareExecutionStart(ctx smachine.ExecutionContext, execution execution.Context, fn func(*RunState)) smachine.AsyncCallRequester {
@@ -88,7 +88,7 @@ func (a *ServiceAdapter) PrepareExecutionStart(ctx smachine.ExecutionContext, ex
 		panic(throw.IllegalValue())
 	}
 
-	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
+	return a.runExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		state := arg.(Service).ExecutionStart(execution)
 		return func(ctx smachine.AsyncResultContext) { fn(state) }
 	})
@@ -102,7 +102,7 @@ func (a *ServiceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext,
 		panic(throw.IllegalValue())
 	}
 
-	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
+	return a.runExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		arg.(Service).ExecutionContinue(state, outgoingResult)
 		return func(ctx smachine.AsyncResultContext) {
 			if fn != nil {
@@ -117,7 +117,7 @@ func (a *ServiceAdapter) PrepareExecutionAbort(ctx smachine.ExecutionContext, st
 		panic(throw.IllegalValue())
 	}
 
-	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
+	return a.runExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		arg.(Service).ExecutionAbort(state)
 		return func(ctx smachine.AsyncResultContext) {
 			if fn != nil {
@@ -127,13 +127,31 @@ func (a *ServiceAdapter) PrepareExecutionAbort(ctx smachine.ExecutionContext, st
 	})
 }
 
+func (a *ServiceAdapter) PrepareExecutionClassify(ctx smachine.ExecutionContext, execution execution.Context, fn func(interface{})) smachine.AsyncCallRequester {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return a.parallelExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
+		classification := arg.(UnmanagedService).ExecutionClassify(execution)
+		return func(ctx smachine.AsyncResultContext) {
+			fn(classification)
+		}
+	})
+}
+
 func CreateRunnerService(ctx context.Context, svc *DefaultService) *ServiceAdapter {
 	parallelReaders := 16
-	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+
+	runAdapterExecutor, runChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	newWorker(ctx, svc).Run(runChannel)
+
+	parallelAdapterExecutor, parallelChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	smachine.StartChannelWorkerParallelCalls(ctx, 0, parallelChannel, nil)
 
 	return &ServiceAdapter{
-		svc:    svc,
-		exec:   smachine.NewExecutionAdapter("RunnerServiceAdapter", ae),
-		worker: newWorker(ctx, svc).Run(ch),
+		svc:          svc,
+		runExec:      smachine.NewExecutionAdapter("RunnerServiceAdapter", runAdapterExecutor),
+		parallelExec: smachine.NewExecutionAdapter("RunnerServiceAdapterParallel", parallelAdapterExecutor),
 	}
 }
