@@ -54,10 +54,13 @@ func (w worker) runnerAdapterWorkerIteration(call smachine.AdapterCall) {
 	}
 
 	switch fn, err := call.DelegateAndSendResult(nil, delegationFn); {
-	case fn == nil:
-		//
 	case err != nil:
-		fn()
+		call.ReportError(err)
+		if fn != nil {
+			fn()
+		}
+	case fn == nil:
+		panic(throw.NotImplemented())
 	default:
 		switch intercept.last.mode {
 		case Start:
