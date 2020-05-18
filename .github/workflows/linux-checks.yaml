@@ -13,7 +13,6 @@ env:
   GOTEST: 'gotestsum --'
 jobs:
   tests-on-linux:
-    if: "false"
     name: checks # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
@@ -132,9 +131,7 @@ jobs:
         run:  ${{env.KUBECTL}} apply -f deploy/ingress-nginx.yaml
         working-directory: ${{env.V2_PATH}}
       - name: build images
-        run: |
-          pwd
-          make docker-build
+        run: make docker-build
         working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |

@@ -93,6 +93,7 @@ spec:
       serviceAccountName: insolar-bootstrap
       initContainers:
         - name: wait
+          # todo create custom image
           image: "bitnami/kubectl:1.18"
           command: ["/bin/wait-for-bootstrap.sh"]
           volumeMounts:
@@ -102,6 +103,7 @@ spec:
               subPath: wait-for-bootstrap.sh
       containers:
         - name: insolar
+          # todo change to specific tag
           image: insolar/assured-ledger:latest
           imagePullPolicy: IfNotPresent
           command: ["insolard"]
