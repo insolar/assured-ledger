@@ -57,7 +57,13 @@ func TestInitViaCTMethod(t *testing.T) {
 
 	select {
 	case <-requestIsDone:
-	case <-time.After(10 * time.Second):
+		require.Failf(t, "", "SM Object needs to wait until sm.waitGetStateUntil")
+	case <-time.After(500 * time.Millisecond):
+	}
+
+	select {
+	case <-requestIsDone:
+	case <-time.After(1 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 }

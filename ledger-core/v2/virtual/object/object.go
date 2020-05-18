@@ -7,6 +7,7 @@ package object
 
 import (
 	"context"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -31,6 +32,8 @@ const (
 	Inactive
 	HasState
 )
+
+const waitStatePulsePercent = 10
 
 type Info struct {
 	Reference   reference.Global
@@ -122,6 +125,9 @@ type SMObject struct {
 	initReason        InitReason
 	migrateTransition smachine.StateFunc
 
+	waitGetStateUntil time.Time
+	stateWasRequested bool
+
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
@@ -157,18 +163,29 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
+	sm.initWaitGetStateUntil()
+
 	ctx.SetDefaultMigration(sm.migrateDuringExecution)
 
 	switch sm.initReason {
 	case InitReasonCTConstructor:
 		return ctx.Jump(sm.stepReadyToWork)
-	case InitReasonCTMethod:
-		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will jump to stepWaitState
 	case InitReasonVStateReport:
+		sm.stateWasRequested = true
+		fallthrough
+	case InitReasonCTMethod:
 		return ctx.Jump(sm.stepWaitState)
 	default:
 		panic(throw.IllegalValue())
 	}
+}
+
+func (sm *SMObject) initWaitGetStateUntil() {
+	pulseDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta)
+	waitDuration := pulseDuration / waitStatePulsePercent
+	pulseStartedAt := sm.pulseSlot.PulseStartedAt()
+
+	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
 }
 
 // we get CallMethod but we have no object data
@@ -189,6 +206,7 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
 	}).Send()
 
+	sm.stateWasRequested = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
@@ -200,7 +218,11 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
-	return ctx.Sleep().ThenRepeat()
+	if !sm.stateWasRequested && time.Now().After(sm.waitGetStateUntil) {
+		return ctx.Jump(sm.stepGetObjectState)
+	}
+
+	return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
