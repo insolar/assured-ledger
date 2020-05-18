@@ -6,8 +6,8 @@
 package descriptor
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 )
 
 // Code represents meta info required to fetch all code data.
@@ -15,14 +15,14 @@ type Code interface {
 	// Ref returns reference to represented code record.
 	Ref() reference.Global
 
-	// MachineType returns code machine type for represented code.
-	MachineType() insolar.MachineType
+	// Type returns code machine type for represented code.
+	MachineType() machine.Type
 
 	// Code returns code data.
 	Code() ([]byte, error)
 }
 
-func NewCode(content []byte, machineType insolar.MachineType, ref reference.Global) Code {
+func NewCode(content []byte, machineType machine.Type, ref reference.Global) Code {
 	return &code{
 		code:        content,
 		machineType: machineType,
@@ -33,7 +33,7 @@ func NewCode(content []byte, machineType insolar.MachineType, ref reference.Glob
 // Code represents meta info required to fetch all code data.
 type code struct {
 	code        []byte
-	machineType insolar.MachineType
+	machineType machine.Type
 	ref         reference.Global
 }
 
@@ -42,8 +42,8 @@ func (d *code) Ref() reference.Global {
 	return d.ref
 }
 
-// MachineType returns code machine type for represented code.
-func (d *code) MachineType() insolar.MachineType {
+// Type returns code machine type for represented code.
+func (d *code) MachineType() machine.Type {
 	return d.machineType
 }
 

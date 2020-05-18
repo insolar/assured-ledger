@@ -18,7 +18,7 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
-	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
+	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
@@ -52,11 +52,13 @@ type Dispatcher struct {
 	MachineLogger  smachine.SlotMachineLogger
 
 	// Components
-	Runner        runner.Service
+	Runner        *runner.DefaultService
 	MessageSender messagesender.Service
 
-	runnerAdapter        *runnerAdapter.Runner
-	messageSenderAdapter *messageSenderAdapter.MessageSender
+	runnerAdapter        *runnerAdapter.ServiceAdapter
+	messageSenderAdapter messageSenderAdapter.MessageSender
+
+	stopFunc context.CancelFunc
 }
 
 func NewDispatcher() *Dispatcher {
@@ -88,11 +90,11 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, defaultHandlers, nil)
 
-	lr.runnerAdapter = runnerAdapter.CreateRunnerServiceAdapter(ctx, lr.Runner)
+	lr.runnerAdapter = runner.CreateRunnerService(ctx, lr.Runner)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
 
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
-	lr.Conveyor.AddDependency(lr.messageSenderAdapter)
+	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
@@ -111,6 +113,7 @@ func (lr *Dispatcher) Start(_ context.Context) error {
 
 func (lr *Dispatcher) Stop(_ context.Context) error {
 	lr.ConveyorWorker.Stop()
+	lr.stopFunc()
 
 	return nil
 }

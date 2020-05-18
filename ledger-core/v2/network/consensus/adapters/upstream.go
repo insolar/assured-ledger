@@ -71,7 +71,7 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 		ctx,
 		report.PulseNumber,
 		networkNodes,
-		expectedCensus.GetCloudStateHash().AsBytes(),
+		longbits.AsBytes(expectedCensus.GetCloudStateHash()),
 	)
 
 	if _, pd := expectedCensus.GetNearestPulseData(); pd.IsFromEphemeral() {

@@ -68,10 +68,6 @@ func (v ByteString) ReadAt(b []byte, off int64) (n int, err error) {
 	return copy(b, v[off:]), nil
 }
 
-func (v ByteString) AsBytes() []byte {
-	return ([]byte)(v)
-}
-
 func (v ByteString) AsByteString() ByteString {
 	return v
 }

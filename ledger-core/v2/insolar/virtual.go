@@ -6,55 +6,8 @@
 package insolar
 
 import (
-	"context"
-
-	"github.com/google/uuid"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
-
-// MachineType is a type of virtual machine
-type MachineType int
-
-// Real constants of MachineType
-const (
-	MachineTypeNotExist             = 0
-	MachineTypeBuiltin  MachineType = iota + 1
-	MachineTypeGoPlugin
-
-	MachineTypesLastID
-)
-
-func (m MachineType) Equal(other MachineType) bool {
-	return m == other
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.MachineLogicExecutor -o ../testutils -s _mock.go -g
-
-// MachineLogicExecutor is an interface for implementers of one particular machine type
-type MachineLogicExecutor interface {
-	CallMethod(
-		ctx context.Context, callContext *LogicCallContext,
-		code reference.Global, data []byte,
-		method string, args Arguments,
-	) (
-		newObjectState []byte, methodResults Arguments, err error,
-	)
-	CallConstructor(
-		ctx context.Context, callContext *LogicCallContext,
-		code reference.Global, name string, args Arguments,
-	) (
-		objectState []byte, result Arguments, err error,
-	)
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.LogicRunner -o ../testutils -s _mock.go -g
-
-// LogicRunner is an interface that should satisfy logic executor
-type LogicRunner interface {
-	LRI()
-	OnPulse(context.Context, Pulse, Pulse) error
-}
 
 // CallMode indicates whether we execute or validate
 type CallMode int
@@ -73,28 +26,6 @@ func (m CallMode) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-// LogicCallContext is a context of contract execution. Everything
-// that is required to implement foundation functions. This struct
-// shouldn't be used in core components.
-type LogicCallContext struct {
-	ID   uuid.UUID
-	Mode CallMode // either "execution" or "validation"
-
-	Request reference.Global // reference of incoming request record
-
-	Callee    reference.Global // Contract that is called
-	Parent    reference.Global // Parent of the callee
-	Prototype reference.Global // Prototype (base class) of the callee
-	Code      reference.Global // Code reference of the callee
-
-	Caller          reference.Global // Contract that made the call
-	CallerPrototype reference.Global // Prototype (base class) of the caller
-
-	TraceID   string // trace mark for Jaeger and friends
-	Pulse     Pulse  // pre-fetched pulse for call context
-	Unordered bool
 }
 
 // ContractMethodFunc is a typedef for wrapper contract header

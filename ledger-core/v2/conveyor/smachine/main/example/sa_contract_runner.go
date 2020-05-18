@@ -5,7 +5,11 @@
 
 package example
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+import (
+	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+)
 
 type ContractCallType uint8
 
@@ -30,14 +34,14 @@ type ContractRunnerServiceAdapter struct {
 }
 
 func (a *ContractRunnerServiceAdapter) PrepareSync(ctx smachine.ExecutionContext, fn func(svc ContractRunnerService)) smachine.SyncCallRequester {
-	return a.exec.PrepareSync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareSync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		fn(a.svc)
 		return nil
 	})
 }
 
 func (a *ContractRunnerServiceAdapter) PrepareAsync(ctx smachine.ExecutionContext, fn func(svc ContractRunnerService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-	return a.exec.PrepareAsync(ctx, func(interface{}) smachine.AsyncResultFunc {
+	return a.exec.PrepareAsync(ctx, func(context.Context, interface{}) smachine.AsyncResultFunc {
 		return fn(a.svc)
 	})
 }

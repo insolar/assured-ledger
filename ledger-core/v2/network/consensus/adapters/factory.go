@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -133,7 +134,7 @@ type keyStoreFactory struct {
 }
 
 func (p *keyStoreFactory) CreatePublicKeyStore(keyHolder cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
-	pk, err := p.keyProcessor.ImportPublicKeyBinary(keyHolder.AsBytes())
+	pk, err := p.keyProcessor.ImportPublicKeyBinary(longbits.AsBytes(keyHolder))
 	if err != nil {
 		panic(err)
 	}

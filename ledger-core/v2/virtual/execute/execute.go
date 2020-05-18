@@ -6,10 +6,8 @@
 package execute
 
 import (
+	"context"
 	"errors"
-	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -22,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
-	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
@@ -31,7 +28,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
 /* -------- Utilities ------------- */
@@ -50,14 +46,13 @@ type SMExecute struct {
 
 	// execution step
 	executionNewState *executionupdate.ContractExecutionStateUpdate
-	executionID       uuid.UUID
-	executionError    error
 	outgoingResult    []byte
 	deactivate        bool
+	run               *runner.RunState
 
 	// dependencies
-	runner        *runnerAdapter.Runner
-	messageSender *messageSenderAdapter.MessageSender
+	runner        *runner.ServiceAdapter
+	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 
 	migrationHappened bool
@@ -263,35 +258,28 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		executionContext = s.execution
-		asyncLogger      = ctx.LogAsync()
-		goCtx            = ctx.GetContext()
-	)
-
-	return s.runner.PrepareAsync(ctx, func(svc runner.Service) smachine.AsyncResultFunc {
-		defer statemachine.LogAsyncTime(asyncLogger, time.Now(), "ExecutionStart")
-
-		newState, id, err := svc.ExecutionStart(goCtx, executionContext)
-
-		return func(ctx smachine.AsyncResultContext) {
-			s.executionNewState = newState
-			s.executionID = id
-			s.executionError = err
-		}
+	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state *runner.RunState) {
+		s.run = state
 	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
 }
 
 func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	switch s.executionNewState.Type {
-	case executionupdate.TypeDone:
+	newState := s.run.GetResult()
+	if newState == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	s.executionNewState = newState
+
+	switch newState.Type {
+	case executionupdate.Done:
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
-	case executionupdate.TypeError:
-		panic(throw.W(s.executionNewState.Error, "failed to execute request", nil))
-	case executionupdate.TypeAborted:
+	case executionupdate.Error:
+		panic(throw.W(newState.Error, "failed to execute request", nil))
+	case executionupdate.Aborted:
 		return ctx.Jump(s.stepExecuteAborted)
-	case executionupdate.TypeOutgoingCall:
+	case executionupdate.OutgoingCall:
 		return ctx.Jump(s.stepExecuteOutgoing)
 	default:
 		panic(throw.IllegalValue())
@@ -299,7 +287,7 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 }
 
 func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Stop()
+	return ctx.Error(throw.NotImplemented())
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -307,7 +295,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		msg    *payload.VCallRequest
 		object reference.Global
 
-		goCtx       = ctx.GetContext()
 		pulseNumber = s.pulseSlot.PulseData().PulseNumber
 	)
 
@@ -347,7 +334,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
 
-		return s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+		return s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 			err := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, object, pulseNumber)
 			if err != nil {
 				panic(err)
@@ -359,23 +346,9 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		outgoingResult = s.outgoingResult
-		asyncLogger    = ctx.LogAsync()
-		goCtx          = ctx.GetContext()
-		executionID    = s.executionID
-	)
+	outgoingResult := s.outgoingResult
 
-	return s.runner.PrepareAsync(ctx, func(svc runner.Service) smachine.AsyncResultFunc {
-		defer statemachine.LogAsyncTime(asyncLogger, time.Now(), "ExecutionStart")
-
-		newState, err := svc.ExecutionContinue(goCtx, executionID, outgoingResult)
-
-		return func(ctx smachine.AsyncResultContext) {
-			s.executionNewState = newState
-			s.executionError = err
-		}
-	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -456,8 +429,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		LatestState:        lastState,
 	}
 
-	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
 	}).Send()
 
@@ -520,8 +492,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}
 	target := s.Meta.Sender
 
-	goCtx := ctx.GetContext()
-	s.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendTarget(goCtx, &msg, target)
 	}).Send()
 

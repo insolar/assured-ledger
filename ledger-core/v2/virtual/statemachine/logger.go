@@ -22,10 +22,29 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
 )
 
+var _ smachine.StepLogger = ConveyorLogger{}
+
 type ConveyorLogger struct {
-	smachine.StepLoggerStub
+	tracerCtx context.Context
+	tracerID  smachine.TracerID
 
 	logger log.Logger
+}
+
+func (c ConveyorLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
+	// TODO LogInternal
+}
+
+func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
+	// TODO LogAdapter
+}
+
+func (c ConveyorLogger) GetTracerID() smachine.TracerID {
+	return c.tracerID
+}
+
+func (c ConveyorLogger) GetLoggerContext() context.Context {
+	return c.tracerCtx
 }
 
 func (c ConveyorLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
@@ -33,7 +52,7 @@ func (c ConveyorLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLeve
 }
 
 func (c ConveyorLogger) CreateAsyncLogger(ctx context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
-	return ctx, c
+	return c.tracerCtx, c
 }
 
 type LogStepMessage struct {
@@ -150,10 +169,11 @@ type ConveyorLoggerFactory struct {
 }
 
 func (c ConveyorLoggerFactory) CreateStepLogger(ctx context.Context, _ smachine.StateMachine, traceID smachine.TracerID) smachine.StepLogger {
-	_, logger := inslogger.WithTraceField(context.Background(), traceID)
+	ctxWithTrace, logger := inslogger.WithTraceField(ctx, traceID)
 	return &ConveyorLogger{
-		StepLoggerStub: smachine.StepLoggerStub{TracerID: traceID},
-		logger:         logger,
+		tracerCtx: ctxWithTrace,
+		tracerID:  traceID,
+		logger:    logger,
 	}
 }
 

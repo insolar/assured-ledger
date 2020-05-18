@@ -6,6 +6,9 @@
 package object
 
 import (
+	"context"
+	"time"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
@@ -30,6 +33,8 @@ const (
 	HasState
 )
 
+const waitStatePulsePercent = 10
+
 type Info struct {
 	Reference   reference.Global
 	descriptor  descriptor.Object
@@ -38,6 +43,8 @@ type Info struct {
 	ImmutableExecute smachine.SyncLink
 	MutableExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
+
+	AwaitPendingOrdered smachine.BargeIn
 
 	ActiveImmutablePendingCount    uint8
 	ActiveMutablePendingCount      uint8
@@ -114,11 +121,15 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl smsync.BoolConditionalLink
-	initReason     InitReason
+	readyToWorkCtl    smsync.BoolConditionalLink
+	initReason        InitReason
+	migrateTransition smachine.StateFunc
+
+	waitGetStateUntil time.Time
+	stateWasRequested bool
 
 	// dependencies
-	messageSender *messageSenderAdapter.MessageSender
+	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 }
 
@@ -152,16 +163,29 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 		return ctx.Stop()
 	}
 
+	sm.initWaitGetStateUntil()
+
+	ctx.SetDefaultMigration(sm.migrateDuringExecution)
+
 	switch sm.initReason {
 	case InitReasonCTConstructor:
 		return ctx.Jump(sm.stepReadyToWork)
-	case InitReasonCTMethod:
-		return ctx.Jump(sm.stepGetObjectState) // TODO PLAT-294 - we will jump to stepWaitState
 	case InitReasonVStateReport:
+		sm.stateWasRequested = true
+		fallthrough
+	case InitReasonCTMethod:
 		return ctx.Jump(sm.stepWaitState)
 	default:
 		panic(throw.IllegalValue())
 	}
+}
+
+func (sm *SMObject) initWaitGetStateUntil() {
+	pulseDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta)
+	waitDuration := pulseDuration / waitStatePulsePercent
+	pulseStartedAt := sm.pulseSlot.PulseStartedAt()
+
+	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
 }
 
 // we get CallMethod but we have no object data
@@ -175,23 +199,30 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		RequestedContent: flags,
 	}
 
-	goCtx := ctx.GetContext()
 	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	ref := sm.Reference
 
-	sm.messageSender.PrepareNotify(ctx, func(svc messagesender.Service) {
+	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
 		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
 	}).Send()
 
+	sm.stateWasRequested = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
 func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.IsReady() {
+		if sm.ActiveMutablePendingCount > 0 {
+			sm.createWaitPendingOrderedSM(ctx)
+		}
 		return ctx.Jump(sm.stepReadyToWork)
 	}
 
-	return ctx.Sleep().ThenRepeat()
+	if !sm.stateWasRequested && time.Now().After(sm.waitGetStateUntil) {
+		return ctx.Jump(sm.stepGetObjectState)
+	}
+
+	return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -201,4 +232,55 @@ func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.Stat
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
+}
+
+func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
+	syncSM := AwaitOrderedPendingSM{
+		sync: sm.MutableExecute,
+	}
+
+	// syncSM acquire MutableExecute semaphore in init step.
+	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return &syncSM
+	}, func() {
+		sm.AwaitPendingOrdered = syncSM.stop
+	})
+}
+
+func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
+	)
+
+	objDescriptor := sm.Descriptor()
+	prototype, _ := objDescriptor.Prototype()
+	msg := payload.VStateReport{
+		AsOf:                  sm.pulseSlot.PulseData().PulseNumber,
+		Callee:                sm.SharedState.Info.Reference,
+		ImmutablePendingCount: int32(sm.ActiveImmutablePendingCount) + int32(sm.PotentialImmutablePendingCount),
+		MutablePendingCount:   int32(sm.ActiveMutablePendingCount) + int32(sm.PotentialMutablePendingCount),
+		LatestDirtyState:      objDescriptor.HeadRef(),
+		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				Reference:   objDescriptor.StateID(),
+				Parent:      objDescriptor.Parent(),
+				Prototype:   prototype,
+				State:       objDescriptor.Memory(),
+				Deactivated: sm.Deactivated,
+			},
+		},
+	}
+
+	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
+		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		if err != nil {
+			panic(err)
+		}
+	}).Send()
+	return ctx.Jump(sm.migrateTransition)
+}
+
+func (sm *SMObject) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	sm.migrateTransition = ctx.AffectedStep().Transition
+	return ctx.Jump(sm.stepSendVStateReport)
 }

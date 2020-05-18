@@ -6,10 +6,11 @@
 package rpctypes
 
 import (
-	"github.com/google/uuid"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 )
 
 // Types for RPC requests and responses between goplugin and goinsider.
@@ -19,7 +20,7 @@ import (
 // todo it may use foundation.Context
 // DownCallMethodReq is a set of arguments for CallMethod RPC in the runner
 type DownCallMethodReq struct {
-	Context   *insolar.LogicCallContext
+	Context   *call.LogicContext
 	Code      reference.Global
 	Data      []byte
 	Method    string
@@ -35,10 +36,10 @@ type DownCallMethodResp struct {
 // DownCallConstructorReq is a set of arguments for CallConstructor RPC
 // in the runner
 type DownCallConstructorReq struct {
+	Context   *call.LogicContext
 	Code      reference.Global
 	Name      string
 	Arguments insolar.Arguments
-	Context   *insolar.LogicCallContext
 }
 
 // DownCallConstructorResp is response from CallConstructor RPC in the runner
@@ -53,7 +54,7 @@ type UpBaseReq struct {
 	Callee          reference.Global
 	CalleePrototype reference.Global
 	Request         reference.Global
-	ID              uuid.UUID
+	ID              call.ID
 }
 
 // UpRespIface interface for UpBaseReq descendant responses
@@ -62,7 +63,7 @@ type UpRespIface interface{}
 // UpGetCodeReq is a set of arguments for GetCode RPC in goplugin
 type UpGetCodeReq struct {
 	UpBaseReq
-	MType insolar.MachineType
+	MType machine.Type
 	Code  reference.Global
 }
 
@@ -74,7 +75,8 @@ type UpGetCodeResp struct {
 // UpCallMethodReq is a set of arguments for Send RPC in goplugin
 type UpCallMethodReq struct {
 	UpBaseReq
-	Unordered bool
+	Tolerance payload.ToleranceFlag
+	Isolation payload.StateFlag
 	Saga      bool
 	Object    reference.Global
 	Method    string

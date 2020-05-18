@@ -325,10 +325,6 @@ func (p *RawBinary) CopyTo(b []byte) int {
 	}
 }
 
-func (p *RawBinary) AsBytes() []byte {
-	return longbits.AsBytes(p)
-}
-
 func (p *RawBinary) AsByteString() longbits.ByteString {
 	switch vv := p.value.(type) {
 	case nil:
