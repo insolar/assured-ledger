@@ -23,7 +23,7 @@ import (
 
 // Beware, test results there depends on test file name (caller_test.go)!
 
-const pkgRegexPrefix = "^.*/instrumentation/inslogger/"
+const pkgRegexPrefix = "^.*instrumentation/inslogger/"
 
 type loggerField struct {
 	Caller string

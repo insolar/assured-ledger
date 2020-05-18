@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 )
 
-const pkgRegexPrefix = "^.*/instrumentation/inslogger/"
+const pkgRegexPrefix = "^.*instrumentation/inslogger/"
 
 // Beware, test results there depends on test file name (caller_test.go)!
 
