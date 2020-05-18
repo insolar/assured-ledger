@@ -22,12 +22,6 @@ type SignatureKeyHolderMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mSignatureKeyHolderMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mSignatureKeyHolderMockAsBytes
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -85,8 +79,6 @@ func NewSignatureKeyHolderMock(t minimock.Tester) *SignatureKeyHolderMock {
 	}
 
 	m.AsByteStringMock = mSignatureKeyHolderMockAsByteString{mock: m}
-
-	m.AsBytesMock = mSignatureKeyHolderMockAsBytes{mock: m}
 
 	m.CopyToMock = mSignatureKeyHolderMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*SignatureKeyHolderMockCopyToParams{}
@@ -250,149 +242,6 @@ func (m *SignatureKeyHolderMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to SignatureKeyHolderMock.AsByteString")
-	}
-}
-
-type mSignatureKeyHolderMockAsBytes struct {
-	mock               *SignatureKeyHolderMock
-	defaultExpectation *SignatureKeyHolderMockAsBytesExpectation
-	expectations       []*SignatureKeyHolderMockAsBytesExpectation
-}
-
-// SignatureKeyHolderMockAsBytesExpectation specifies expectation struct of the SignatureKeyHolder.AsBytes
-type SignatureKeyHolderMockAsBytesExpectation struct {
-	mock *SignatureKeyHolderMock
-
-	results *SignatureKeyHolderMockAsBytesResults
-	Counter uint64
-}
-
-// SignatureKeyHolderMockAsBytesResults contains results of the SignatureKeyHolder.AsBytes
-type SignatureKeyHolderMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for SignatureKeyHolder.AsBytes
-func (mmAsBytes *mSignatureKeyHolderMockAsBytes) Expect() *mSignatureKeyHolderMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("SignatureKeyHolderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &SignatureKeyHolderMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the SignatureKeyHolder.AsBytes
-func (mmAsBytes *mSignatureKeyHolderMockAsBytes) Inspect(f func()) *mSignatureKeyHolderMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for SignatureKeyHolderMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by SignatureKeyHolder.AsBytes
-func (mmAsBytes *mSignatureKeyHolderMockAsBytes) Return(ba1 []byte) *SignatureKeyHolderMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("SignatureKeyHolderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &SignatureKeyHolderMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &SignatureKeyHolderMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the SignatureKeyHolder.AsBytes method
-func (mmAsBytes *mSignatureKeyHolderMockAsBytes) Set(f func() (ba1 []byte)) *SignatureKeyHolderMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the SignatureKeyHolder.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the SignatureKeyHolder.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements SignatureKeyHolder
-func (mmAsBytes *SignatureKeyHolderMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the SignatureKeyHolderMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to SignatureKeyHolderMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished SignatureKeyHolderMock.AsBytes invocations
-func (mmAsBytes *SignatureKeyHolderMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of SignatureKeyHolderMock.AsBytes invocations
-func (mmAsBytes *SignatureKeyHolderMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *SignatureKeyHolderMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *SignatureKeyHolderMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to SignatureKeyHolderMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to SignatureKeyHolderMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to SignatureKeyHolderMock.AsBytes")
 	}
 }
 
@@ -1762,8 +1611,6 @@ func (m *SignatureKeyHolderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1803,7 +1650,6 @@ func (m *SignatureKeyHolderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&

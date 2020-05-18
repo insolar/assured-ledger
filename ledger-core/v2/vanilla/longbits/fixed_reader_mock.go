@@ -21,12 +21,6 @@ type FixedReaderMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mFixedReaderMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mFixedReaderMockAsBytes
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -54,8 +48,6 @@ func NewFixedReaderMock(t minimock.Tester) *FixedReaderMock {
 	}
 
 	m.AsByteStringMock = mFixedReaderMockAsByteString{mock: m}
-
-	m.AsBytesMock = mFixedReaderMockAsBytes{mock: m}
 
 	m.CopyToMock = mFixedReaderMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*FixedReaderMockCopyToParams{}
@@ -208,149 +200,6 @@ func (m *FixedReaderMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to FixedReaderMock.AsByteString")
-	}
-}
-
-type mFixedReaderMockAsBytes struct {
-	mock               *FixedReaderMock
-	defaultExpectation *FixedReaderMockAsBytesExpectation
-	expectations       []*FixedReaderMockAsBytesExpectation
-}
-
-// FixedReaderMockAsBytesExpectation specifies expectation struct of the FixedReader.AsBytes
-type FixedReaderMockAsBytesExpectation struct {
-	mock *FixedReaderMock
-
-	results *FixedReaderMockAsBytesResults
-	Counter uint64
-}
-
-// FixedReaderMockAsBytesResults contains results of the FixedReader.AsBytes
-type FixedReaderMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for FixedReader.AsBytes
-func (mmAsBytes *mFixedReaderMockAsBytes) Expect() *mFixedReaderMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("FixedReaderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &FixedReaderMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the FixedReader.AsBytes
-func (mmAsBytes *mFixedReaderMockAsBytes) Inspect(f func()) *mFixedReaderMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for FixedReaderMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by FixedReader.AsBytes
-func (mmAsBytes *mFixedReaderMockAsBytes) Return(ba1 []byte) *FixedReaderMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("FixedReaderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &FixedReaderMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &FixedReaderMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the FixedReader.AsBytes method
-func (mmAsBytes *mFixedReaderMockAsBytes) Set(f func() (ba1 []byte)) *FixedReaderMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the FixedReader.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the FixedReader.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements FixedReader
-func (mmAsBytes *FixedReaderMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the FixedReaderMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to FixedReaderMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished FixedReaderMock.AsBytes invocations
-func (mmAsBytes *FixedReaderMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of FixedReaderMock.AsBytes invocations
-func (mmAsBytes *FixedReaderMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *FixedReaderMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *FixedReaderMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to FixedReaderMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to FixedReaderMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to FixedReaderMock.AsBytes")
 	}
 }
 
@@ -933,8 +782,6 @@ func (m *FixedReaderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -964,7 +811,6 @@ func (m *FixedReaderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockWriteToDone()

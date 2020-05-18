@@ -252,30 +252,6 @@ insolar_artifactmanager_latency_bucket{method="registerRequest",result="5xx",rol
 insolar_artifactmanager_latency_bucket{method="registerRequest",result="5xx",role="virtual",le="+Inf"} 27
 insolar_artifactmanager_latency_sum{method="registerRequest",result="5xx",role="virtual"} 855.0000000000002
 insolar_artifactmanager_latency_count{method="registerRequest",result="5xx",role="virtual"} 27
-# HELP insolar_badger_blocked_puts_total badger db metric badger_blocked_puts_total
-# TYPE insolar_badger_blocked_puts_total untyped
-insolar_badger_blocked_puts_total{role="virtual"} 0
-# HELP insolar_badger_disk_reads_total badger db metric badger_disk_reads_total
-# TYPE insolar_badger_disk_reads_total untyped
-insolar_badger_disk_reads_total{role="virtual"} 0
-# HELP insolar_badger_disk_writes_total badger db metric badger_disk_writes_total
-# TYPE insolar_badger_disk_writes_total untyped
-insolar_badger_disk_writes_total{role="virtual"} 0
-# HELP insolar_badger_gets_total badger db metric badger_gets_total
-# TYPE insolar_badger_gets_total untyped
-insolar_badger_gets_total{role="virtual"} 0
-# HELP insolar_badger_memtable_gets_total badger db metric badger_memtable_gets_total
-# TYPE insolar_badger_memtable_gets_total untyped
-insolar_badger_memtable_gets_total{role="virtual"} 0
-# HELP insolar_badger_puts_total badger db metric badger_puts_total
-# TYPE insolar_badger_puts_total untyped
-insolar_badger_puts_total{role="virtual"} 0
-# HELP insolar_badger_read_bytes badger db metric badger_read_bytes
-# TYPE insolar_badger_read_bytes untyped
-insolar_badger_read_bytes{role="virtual"} 0
-# HELP insolar_badger_written_bytes badger db metric badger_written_bytes
-# TYPE insolar_badger_written_bytes untyped
-insolar_badger_written_bytes{role="virtual"} 0
 # HELP insolar_bus_reply_milliseconds reply messages latency
 # TYPE insolar_bus_reply_milliseconds histogram
 insolar_bus_reply_milliseconds_bucket{message_type="TypeActivate",role="virtual",le="1"} 10

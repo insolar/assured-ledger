@@ -23,12 +23,6 @@ type CloudStateHashMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mCloudStateHashMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mCloudStateHashMockAsBytes
-
 	funcCopyOfDigest          func() (d1 cryptkit.Digest)
 	inspectFuncCopyOfDigest   func()
 	afterCopyOfDigestCounter  uint64
@@ -86,8 +80,6 @@ func NewCloudStateHashMock(t minimock.Tester) *CloudStateHashMock {
 	}
 
 	m.AsByteStringMock = mCloudStateHashMockAsByteString{mock: m}
-
-	m.AsBytesMock = mCloudStateHashMockAsBytes{mock: m}
 
 	m.CopyOfDigestMock = mCloudStateHashMockCopyOfDigest{mock: m}
 
@@ -252,149 +244,6 @@ func (m *CloudStateHashMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to CloudStateHashMock.AsByteString")
-	}
-}
-
-type mCloudStateHashMockAsBytes struct {
-	mock               *CloudStateHashMock
-	defaultExpectation *CloudStateHashMockAsBytesExpectation
-	expectations       []*CloudStateHashMockAsBytesExpectation
-}
-
-// CloudStateHashMockAsBytesExpectation specifies expectation struct of the CloudStateHash.AsBytes
-type CloudStateHashMockAsBytesExpectation struct {
-	mock *CloudStateHashMock
-
-	results *CloudStateHashMockAsBytesResults
-	Counter uint64
-}
-
-// CloudStateHashMockAsBytesResults contains results of the CloudStateHash.AsBytes
-type CloudStateHashMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for CloudStateHash.AsBytes
-func (mmAsBytes *mCloudStateHashMockAsBytes) Expect() *mCloudStateHashMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("CloudStateHashMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &CloudStateHashMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the CloudStateHash.AsBytes
-func (mmAsBytes *mCloudStateHashMockAsBytes) Inspect(f func()) *mCloudStateHashMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for CloudStateHashMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by CloudStateHash.AsBytes
-func (mmAsBytes *mCloudStateHashMockAsBytes) Return(ba1 []byte) *CloudStateHashMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("CloudStateHashMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &CloudStateHashMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &CloudStateHashMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the CloudStateHash.AsBytes method
-func (mmAsBytes *mCloudStateHashMockAsBytes) Set(f func() (ba1 []byte)) *CloudStateHashMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the CloudStateHash.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the CloudStateHash.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements CloudStateHash
-func (mmAsBytes *CloudStateHashMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the CloudStateHashMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to CloudStateHashMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished CloudStateHashMock.AsBytes invocations
-func (mmAsBytes *CloudStateHashMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of CloudStateHashMock.AsBytes invocations
-func (mmAsBytes *CloudStateHashMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *CloudStateHashMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *CloudStateHashMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to CloudStateHashMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to CloudStateHashMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to CloudStateHashMock.AsBytes")
 	}
 }
 
@@ -1836,8 +1685,6 @@ func (m *CloudStateHashMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyOfDigestInspect()
 
 		m.MinimockCopyToInspect()
@@ -1877,7 +1724,6 @@ func (m *CloudStateHashMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&

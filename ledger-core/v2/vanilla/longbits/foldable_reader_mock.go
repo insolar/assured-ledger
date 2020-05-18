@@ -21,12 +21,6 @@ type FoldableReaderMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mFoldableReaderMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mFoldableReaderMockAsBytes
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -60,8 +54,6 @@ func NewFoldableReaderMock(t minimock.Tester) *FoldableReaderMock {
 	}
 
 	m.AsByteStringMock = mFoldableReaderMockAsByteString{mock: m}
-
-	m.AsBytesMock = mFoldableReaderMockAsBytes{mock: m}
 
 	m.CopyToMock = mFoldableReaderMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*FoldableReaderMockCopyToParams{}
@@ -216,149 +208,6 @@ func (m *FoldableReaderMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to FoldableReaderMock.AsByteString")
-	}
-}
-
-type mFoldableReaderMockAsBytes struct {
-	mock               *FoldableReaderMock
-	defaultExpectation *FoldableReaderMockAsBytesExpectation
-	expectations       []*FoldableReaderMockAsBytesExpectation
-}
-
-// FoldableReaderMockAsBytesExpectation specifies expectation struct of the FoldableReader.AsBytes
-type FoldableReaderMockAsBytesExpectation struct {
-	mock *FoldableReaderMock
-
-	results *FoldableReaderMockAsBytesResults
-	Counter uint64
-}
-
-// FoldableReaderMockAsBytesResults contains results of the FoldableReader.AsBytes
-type FoldableReaderMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for FoldableReader.AsBytes
-func (mmAsBytes *mFoldableReaderMockAsBytes) Expect() *mFoldableReaderMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("FoldableReaderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &FoldableReaderMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the FoldableReader.AsBytes
-func (mmAsBytes *mFoldableReaderMockAsBytes) Inspect(f func()) *mFoldableReaderMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for FoldableReaderMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by FoldableReader.AsBytes
-func (mmAsBytes *mFoldableReaderMockAsBytes) Return(ba1 []byte) *FoldableReaderMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("FoldableReaderMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &FoldableReaderMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &FoldableReaderMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the FoldableReader.AsBytes method
-func (mmAsBytes *mFoldableReaderMockAsBytes) Set(f func() (ba1 []byte)) *FoldableReaderMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the FoldableReader.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the FoldableReader.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements FoldableReader
-func (mmAsBytes *FoldableReaderMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the FoldableReaderMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to FoldableReaderMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished FoldableReaderMock.AsBytes invocations
-func (mmAsBytes *FoldableReaderMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of FoldableReaderMock.AsBytes invocations
-func (mmAsBytes *FoldableReaderMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *FoldableReaderMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *FoldableReaderMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to FoldableReaderMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to FoldableReaderMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to FoldableReaderMock.AsBytes")
 	}
 }
 
@@ -1084,8 +933,6 @@ func (m *FoldableReaderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockFixedByteSizeInspect()
@@ -1117,7 +964,6 @@ func (m *FoldableReaderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockFixedByteSizeDone() &&
 		m.MinimockFoldToUint64Done() &&

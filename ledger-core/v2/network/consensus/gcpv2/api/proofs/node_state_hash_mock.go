@@ -23,12 +23,6 @@ type NodeStateHashMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mNodeStateHashMockAsByteString
 
-	funcAsBytes          func() (ba1 []byte)
-	inspectFuncAsBytes   func()
-	afterAsBytesCounter  uint64
-	beforeAsBytesCounter uint64
-	AsBytesMock          mNodeStateHashMockAsBytes
-
 	funcCopyOfDigest          func() (d1 cryptkit.Digest)
 	inspectFuncCopyOfDigest   func()
 	afterCopyOfDigestCounter  uint64
@@ -86,8 +80,6 @@ func NewNodeStateHashMock(t minimock.Tester) *NodeStateHashMock {
 	}
 
 	m.AsByteStringMock = mNodeStateHashMockAsByteString{mock: m}
-
-	m.AsBytesMock = mNodeStateHashMockAsBytes{mock: m}
 
 	m.CopyOfDigestMock = mNodeStateHashMockCopyOfDigest{mock: m}
 
@@ -252,149 +244,6 @@ func (m *NodeStateHashMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to NodeStateHashMock.AsByteString")
-	}
-}
-
-type mNodeStateHashMockAsBytes struct {
-	mock               *NodeStateHashMock
-	defaultExpectation *NodeStateHashMockAsBytesExpectation
-	expectations       []*NodeStateHashMockAsBytesExpectation
-}
-
-// NodeStateHashMockAsBytesExpectation specifies expectation struct of the NodeStateHash.AsBytes
-type NodeStateHashMockAsBytesExpectation struct {
-	mock *NodeStateHashMock
-
-	results *NodeStateHashMockAsBytesResults
-	Counter uint64
-}
-
-// NodeStateHashMockAsBytesResults contains results of the NodeStateHash.AsBytes
-type NodeStateHashMockAsBytesResults struct {
-	ba1 []byte
-}
-
-// Expect sets up expected params for NodeStateHash.AsBytes
-func (mmAsBytes *mNodeStateHashMockAsBytes) Expect() *mNodeStateHashMockAsBytes {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("NodeStateHashMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &NodeStateHashMockAsBytesExpectation{}
-	}
-
-	return mmAsBytes
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeStateHash.AsBytes
-func (mmAsBytes *mNodeStateHashMockAsBytes) Inspect(f func()) *mNodeStateHashMockAsBytes {
-	if mmAsBytes.mock.inspectFuncAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("Inspect function is already set for NodeStateHashMock.AsBytes")
-	}
-
-	mmAsBytes.mock.inspectFuncAsBytes = f
-
-	return mmAsBytes
-}
-
-// Return sets up results that will be returned by NodeStateHash.AsBytes
-func (mmAsBytes *mNodeStateHashMockAsBytes) Return(ba1 []byte) *NodeStateHashMock {
-	if mmAsBytes.mock.funcAsBytes != nil {
-		mmAsBytes.mock.t.Fatalf("NodeStateHashMock.AsBytes mock is already set by Set")
-	}
-
-	if mmAsBytes.defaultExpectation == nil {
-		mmAsBytes.defaultExpectation = &NodeStateHashMockAsBytesExpectation{mock: mmAsBytes.mock}
-	}
-	mmAsBytes.defaultExpectation.results = &NodeStateHashMockAsBytesResults{ba1}
-	return mmAsBytes.mock
-}
-
-//Set uses given function f to mock the NodeStateHash.AsBytes method
-func (mmAsBytes *mNodeStateHashMockAsBytes) Set(f func() (ba1 []byte)) *NodeStateHashMock {
-	if mmAsBytes.defaultExpectation != nil {
-		mmAsBytes.mock.t.Fatalf("Default expectation is already set for the NodeStateHash.AsBytes method")
-	}
-
-	if len(mmAsBytes.expectations) > 0 {
-		mmAsBytes.mock.t.Fatalf("Some expectations are already set for the NodeStateHash.AsBytes method")
-	}
-
-	mmAsBytes.mock.funcAsBytes = f
-	return mmAsBytes.mock
-}
-
-// AsBytes implements NodeStateHash
-func (mmAsBytes *NodeStateHashMock) AsBytes() (ba1 []byte) {
-	mm_atomic.AddUint64(&mmAsBytes.beforeAsBytesCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsBytes.afterAsBytesCounter, 1)
-
-	if mmAsBytes.inspectFuncAsBytes != nil {
-		mmAsBytes.inspectFuncAsBytes()
-	}
-
-	if mmAsBytes.AsBytesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsBytes.AsBytesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsBytes.AsBytesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsBytes.t.Fatal("No results are set for the NodeStateHashMock.AsBytes")
-		}
-		return (*mm_results).ba1
-	}
-	if mmAsBytes.funcAsBytes != nil {
-		return mmAsBytes.funcAsBytes()
-	}
-	mmAsBytes.t.Fatalf("Unexpected call to NodeStateHashMock.AsBytes.")
-	return
-}
-
-// AsBytesAfterCounter returns a count of finished NodeStateHashMock.AsBytes invocations
-func (mmAsBytes *NodeStateHashMock) AsBytesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.afterAsBytesCounter)
-}
-
-// AsBytesBeforeCounter returns a count of NodeStateHashMock.AsBytes invocations
-func (mmAsBytes *NodeStateHashMock) AsBytesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsBytes.beforeAsBytesCounter)
-}
-
-// MinimockAsBytesDone returns true if the count of the AsBytes invocations corresponds
-// the number of defined expectations
-func (m *NodeStateHashMock) MinimockAsBytesDone() bool {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsBytesInspect logs each unmet expectation
-func (m *NodeStateHashMock) MinimockAsBytesInspect() {
-	for _, e := range m.AsBytesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeStateHashMock.AsBytes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsBytesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashMock.AsBytes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsBytes != nil && mm_atomic.LoadUint64(&m.afterAsBytesCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashMock.AsBytes")
 	}
 }
 
@@ -1836,8 +1685,6 @@ func (m *NodeStateHashMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockAsBytesInspect()
-
 		m.MinimockCopyOfDigestInspect()
 
 		m.MinimockCopyToInspect()
@@ -1877,7 +1724,6 @@ func (m *NodeStateHashMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockAsBytesDone() &&
 		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
