@@ -13,6 +13,7 @@ env:
   GOTEST: 'gotestsum --'
 jobs:
   tests-on-windows:
+    if: "false"
     name: windows-checks # don't change, this name is used in repository restricts!
     runs-on: windows-latest
     env: # we have to specify fake BUILD_DATE and BUILD_TIME here because git-date-time.sh doesn't work on Windows

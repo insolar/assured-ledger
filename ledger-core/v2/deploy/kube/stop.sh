@@ -2,28 +2,13 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 KUBECTL=${KUBECTL:-"kubectl"}
 USE_MANIFESTS=${USE_MANIFESTS:-"local"}
-ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
-LOG_DIR="$ARTIFACTS_DIR/logs"
 set -x
 
 stop_network() {
   $KUBECTL delete -k "$DIR/$USE_MANIFESTS/"
 }
 
-save_logs_to_files() {
-  LOG_DIR="$ARTIFACTS_DIR/logs"
-  rm -rf "$LOG_DIR"
-  mkdir -p "$LOG_DIR"
-  $KUBECTL -n insolar logs virtual-0 >"$LOG_DIR/virtual-0"
-  $KUBECTL -n insolar logs virtual-1 >"$LOG_DIR/virtual-1"
-  $KUBECTL -n insolar logs virtual-2 >"$LOG_DIR/virtual-2"
-  $KUBECTL -n insolar logs virtual-3 >"$LOG_DIR/virtual-3"
-  $KUBECTL -n insolar logs virtual-4 >"$LOG_DIR/virtual-4"
-}
-
 echo "Stopping insolar"
-save_logs_to_files
-echo "Logs saved to $LOG_DIR"
 stop_network
 echo "Insolar stopped"
 set +x

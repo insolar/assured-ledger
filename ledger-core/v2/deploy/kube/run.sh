@@ -4,7 +4,7 @@ NUM_DISCOVERY_NODES=5
 NUM_DISCOVERY_NODES=${NUM_DISCOVERY_NODES:-5}
 KUBECTL=${KUBECTL:-"kubectl"}
 USE_MANIFESTS=${USE_MANIFESTS:-"local"}
-INSOLAR_IMAGE=${INSOLAR_IMAGE:-"ci/assured-ledger:latest"}
+INSOLAR_IMAGE=${INSOLAR_IMAGE:-"insolar/assured-ledger:latest"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
 set -x
 check_dependencies() {

@@ -13,6 +13,7 @@ env:
   GOTEST: 'gotestsum --'
 jobs:
   tests-on-linux:
+    if: "false"
     name: checks # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
@@ -147,6 +148,9 @@ jobs:
         working-directory: ${{env.V2_PATH}}
       - name: run tests
         run: make test_func_kubernetes_ci
+        working-directory: ${{env.V2_PATH}}
+      - name: collect artifacts
+        run: make kube_collect_artifacts
         working-directory: ${{env.V2_PATH}}
       - name: stop insolar net
         run: make kube_stop_net

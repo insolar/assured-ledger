@@ -39,6 +39,10 @@ kube_start_net: ## run insolar net in local kubernetes cluster
 kube_stop_net: ## stop insolar net in local kubernetes cluster
 	./deploy/kube/stop.sh
 
+.PHONY: kube_collect_artifacts
+kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
+	./deploy/kube/collect_artifacts.sh
+
 .PHONY: test_func_kubernetes
 test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will be running after tests!
 	make kube_start_net

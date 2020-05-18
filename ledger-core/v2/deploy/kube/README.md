@@ -16,7 +16,12 @@ make kube_start_net
 ```
 make kube_stop_net
 ```
-Node Logs will be saved in /tmp/insolar/logs
+
+## Collect logs
+```
+make kube_collect_artifacts
+```
+Node logs will be saved in /tmp/insolar/logs
 
 ## Rebuild images
 If you want to change application code, you need to rebuild images and restart network
