@@ -97,9 +97,14 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
 
-	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
-		_ = svc.SendRole(goCtx, &s.requestPayload, insolar.DynamicRoleVirtualExecutor, obj, pulseNumber)
-	}).Send()
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &s.requestPayload, insolar.DynamicRoleVirtualExecutor, obj, pulseNumber)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Sleep().ThenJump(s.stepProcessResult)
 }
