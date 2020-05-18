@@ -363,6 +363,7 @@ type MigrationContext interface {
 	WakeUp() StateUpdate
 }
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.StateConditionalBuilder -o ./ -s _mock.go -g
 type StateConditionalBuilder interface {
 	ConditionalBuilder
 	// Returns information about the condition being already satisfied

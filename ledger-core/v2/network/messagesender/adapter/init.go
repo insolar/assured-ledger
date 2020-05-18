@@ -12,11 +12,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 )
 
+type CallFunc func(ctx context.Context, svc messagesender.Service)
+type AsyncCallFunc func(ctx context.Context, svc messagesender.Service) smachine.AsyncResultFunc
+
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter.MessageSender -o ./ -s _mock.go -g
 type MessageSender interface {
-	PrepareSync(ctx smachine.ExecutionContext, fn func(ctx context.Context, svc messagesender.Service)) smachine.SyncCallRequester
-	PrepareAsync(ctx smachine.ExecutionContext, fn func(ctx context.Context, svc messagesender.Service) smachine.AsyncResultFunc) smachine.AsyncCallRequester
-	PrepareNotify(ctx smachine.ExecutionContext, fn func(ctx context.Context, svc messagesender.Service)) smachine.NotifyRequester
+	PrepareSync(ctx smachine.ExecutionContext, fn CallFunc) smachine.SyncCallRequester
+	PrepareAsync(ctx smachine.ExecutionContext, fn AsyncCallFunc) smachine.AsyncCallRequester
+	PrepareNotify(ctx smachine.ExecutionContext, fn CallFunc) smachine.NotifyRequester
 }
 
 type ParallelMessageSender struct {
@@ -24,29 +27,20 @@ type ParallelMessageSender struct {
 	exec smachine.ExecutionAdapter
 }
 
-func (a *ParallelMessageSender) PrepareSync(
-	ctx smachine.ExecutionContext,
-	fn func(ctx context.Context, svc messagesender.Service),
-) smachine.SyncCallRequester {
+func (a *ParallelMessageSender) PrepareSync(ctx smachine.ExecutionContext, fn CallFunc) smachine.SyncCallRequester {
 	return a.exec.PrepareSync(ctx, func(ctx context.Context, _ interface{}) smachine.AsyncResultFunc {
 		fn(ctx, a.svc)
 		return nil
 	})
 }
 
-func (a *ParallelMessageSender) PrepareAsync(
-	ctx smachine.ExecutionContext,
-	fn func(ctx context.Context, svc messagesender.Service) smachine.AsyncResultFunc,
-) smachine.AsyncCallRequester {
+func (a *ParallelMessageSender) PrepareAsync(ctx smachine.ExecutionContext, fn AsyncCallFunc) smachine.AsyncCallRequester {
 	return a.exec.PrepareAsync(ctx, func(ctx context.Context, _ interface{}) smachine.AsyncResultFunc {
 		return fn(ctx, a.svc)
 	})
 }
 
-func (a *ParallelMessageSender) PrepareNotify(
-	ctx smachine.ExecutionContext,
-	fn func(ctx context.Context, svc messagesender.Service),
-) smachine.NotifyRequester {
+func (a *ParallelMessageSender) PrepareNotify(ctx smachine.ExecutionContext, fn CallFunc) smachine.NotifyRequester {
 	return a.exec.PrepareNotify(ctx, func(ctx context.Context, _ interface{}) {
 		fn(ctx, a.svc)
 	})

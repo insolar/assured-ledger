@@ -10,6 +10,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -32,7 +33,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		catalog         = object.NewCatalogMock(mc)
+		catalog         = object.NewCatalogWrapperMock(mc)
 		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
@@ -40,8 +41,10 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 
 		callFlags payload.CallRequestFlags
 	)
-
 	defer mc.Finish()
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	catalog.AddObject(smGlobalRef, smObjectAccessor)
 
 	callFlags.SetTolerance(payload.CallTolerable)
 	callFlags.SetState(payload.CallDirty)
@@ -56,7 +59,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 			CallOutgoing:        smObjectID,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
-		objectCatalog: catalog,
+		objectCatalog: catalog.Mock(),
 		pulseSlot:     &pulseSlot,
 	}
 
@@ -68,25 +71,43 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		stepChecker.AddStep(exec.stepUpdatePendingCounters)
 		stepChecker.AddStep(exec.stepWaitObjectReady)
 	}
+	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
 
-	execCtx := smachine.NewExecutionContextMock(mc).
-		GetContextMock.Return(ctx).
-		JumpMock.Set(testutils.CheckWrapper(stepChecker, t)).
-		UseSharedMock.Set(CallSharedDataAccessor)
+	{ // initialization
+		initCtx := smachine.NewInitializationContextMock(mc).
+			GetContextMock.Return(ctx).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
 
-	execCtx.SetDefaultMigrationMock.Return()
+		smExecute.Init(initCtx)
+	}
 
-	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef).Return(smObjectAccessor)
+	{ // getObject
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(CallSharedDataAccessor).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
 
-	smExecute.Init(execCtx)
-	smExecute.stepGetObject(execCtx)
+		smExecute.stepGetObject(execCtx)
+	}
 
 	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
 
-	smExecute.stepUpdateKnownRequests(execCtx)
-	smExecute.stepUpdatePendingCounters(execCtx)
+	{ // updateCounters after
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(CallSharedDataAccessor).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smExecute.stepUpdateKnownRequests(execCtx)
+	}
+
+	{ // updateCounters after
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(CallSharedDataAccessor).
+			SetDefaultMigrationMock.Return().
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smExecute.stepUpdatePendingCounters(execCtx)
+	}
 
 	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
@@ -99,7 +120,7 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		catalog         = object.NewCatalogMock(mc)
+		catalog         = object.NewCatalogWrapperMock(mc)
 		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
@@ -107,8 +128,10 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 
 		callFlags payload.CallRequestFlags
 	)
-
 	defer mc.Finish()
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	catalog.AddObject(smGlobalRef, smObjectAccessor)
 
 	callFlags.SetTolerance(payload.CallTolerable)
 	callFlags.SetState(payload.CallDirty)
@@ -125,31 +148,57 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 			Callee:              callee,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
-		objectCatalog: catalog,
+		objectCatalog: catalog.Mock(),
 		pulseSlot:     &pulseSlot,
 	}
 
-	execCtx := smachine.NewExecutionContextMock(mc).
-		GetContextMock.Return(ctx).
-		JumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
-		return smachine.StateUpdate{}
-	}).UseSharedMock.Set(CallSharedDataAccessor)
+	stepChecker := testutils.NewSMStepChecker()
+	{
+		exec := SMExecute{}
+		stepChecker.AddStep(exec.stepCheckRequest)
+		stepChecker.AddStep(exec.stepUpdateKnownRequests)
+		stepChecker.AddStep(exec.stepUpdatePendingCounters)
+	}
+	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
 
-	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef).Return(smObjectAccessor)
+	{ // initialization
+		initCtx := smachine.NewInitializationContextMock(mc).
+			GetContextMock.Return(ctx).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
 
-	smExecute.Init(execCtx)
-	smExecute.stepGetObject(execCtx)
+		smExecute.Init(initCtx)
+	}
+
+	{ // get object
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(CallSharedDataAccessor).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smExecute.stepGetObject(execCtx)
+	}
 
 	assert.Empty(t, smObject.KnownRequests)
-	smExecute.stepUpdateKnownRequests(execCtx)
-	assert.Len(t, smObject.KnownRequests, 1)
 
+	{ // update known requests successful
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(CallSharedDataAccessor).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smExecute.stepUpdateKnownRequests(execCtx)
+	}
+
+	assert.Len(t, smObject.KnownRequests, 1)
 	outgoing := reference.NewRecordOf(callee, smObjectID)
 	_, ok := smObject.KnownRequests[outgoing]
 	assert.True(t, ok)
 
-	assert.Panics(t, func() {
-		smExecute.stepUpdateKnownRequests(execCtx)
-	}, "panic with not implemented deduplication algorithm should be here")
+	{ // update known requests panics
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(CallSharedDataAccessor)
+
+		checkerFunc := func() {
+			smExecute.stepUpdateKnownRequests(execCtx)
+		}
+		assert.Panics(t, checkerFunc, "panic with not implemented deduplication algorithm should be here")
+	}
 }
