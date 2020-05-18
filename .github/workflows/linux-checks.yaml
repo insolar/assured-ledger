@@ -82,7 +82,8 @@ jobs:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
-      GOPATH: /home/runner/work/assured-ledger/go
+      GOPATH: /home/runner/work/
+      V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core/v2
       INSOLAR_IMAGE: ci:5000/assured-ledger
       USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
@@ -93,8 +94,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
-#        with:
-#          path: go/src/github.com/insolar/assured-ledger
       - name: Set up go ${{env.GO_VERSION}}
         uses: actions/setup-go@v1
         with:
@@ -111,12 +110,6 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/bin/kubeval
       - name: add workspace/bin to path
         run: echo "::add-path::$GITHUB_WORKSPACE/bin"
-#      - name: yamllint
-#        uses: docker://yellowmegaman/container-yamllint:1.17.0
-#        with:
-#          args: -d yamllint deploy/kube
-#      - name: kubeval check
-#        run: find deploy/kube/*.yaml -maxdepth 0 -type d -exec sh -c 'echo "$0"; kubectl kustomize "$0" | kubeval --exit-on-error --strict' {} \;
       - name: check resources
         run: |
           sudo lscpu
@@ -124,7 +117,8 @@ jobs:
       - name: fire up k3s
         run: |
           touch /tmp/k3s.yaml
-          docker run -d --name=k3s --net=host --privileged --tmpfs /run --tmpfs /var/run -e "K3S_TOKEN=197813248412582" -p 6443:6443 -v "$PWD"/registries.yaml:/etc/rancher/k3s/registries.yaml -v /tmp/k3s.yaml:/etc/rancher/k3s/k3s.yaml rancher/k3s:$K3S_TAG server
+          docker run -d --name=k3s --net=host --privileged --tmpfs /run --tmpfs /var/run -e "K3S_TOKEN=197813248412582" -p 6443:6443 -v "$PWD"/deploy/kube/ci/registries.yaml:/etc/rancher/k3s/registries.yaml -v /tmp/k3s.yaml:/etc/rancher/k3s/k3s.yaml rancher/k3s:$K3S_TAG server
+        working-directory: ${{env.V2_PATH}}
       - name: launch registry
         run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - name: wait for k3s
@@ -135,12 +129,13 @@ jobs:
           ${{env.KUBECTL}} describe no
           docker ps
       - name: apply ingress
-        run:  ${{env.KUBECTL}} apply -f ledger-core/v2/deploy/ingress-nginx.yaml
+        run:  ${{env.KUBECTL}} apply -f deploy/ingress-nginx.yaml
+        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: |
           pwd
-          cd $GITHUB_WORKSPACE/ledger-core/v2
           make docker-build
+        working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
           docker tag insolar/assured-ledger:latest localhost:5000/assured-ledger:latest
@@ -148,7 +143,23 @@ jobs:
           docker push localhost:5000/assured-ledger:latest
       - name: wait for ingress
         run:  until ${{env.KUBECTL}} get pods -n ingress-nginx | grep controller | grep Running; do echo "ingress is not up yet"; sleep 1; done
-      - name: run tests
+      - name: run insolar net
         run: |
-          cd $GITHUB_WORKSPACE/ledger-core/v2
-          make test_func_kubernetes_ci
+          go mod download
+          make vendor install-build-tools kube_start_net
+        working-directory: ${{env.V2_PATH}}
+      - name: run tests
+        run: make test_func_kubernetes_ci
+        working-directory: ${{env.V2_PATH}}
+      - name: stop insolar net
+        run: make kube_stop_net
+        working-directory: ${{env.V2_PATH}}
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar --warning=no-file-changed -cvzf ${{env.V2_PATH}}/kube-nodes-output.tgz /tmp/insolar/logs/* || true
+      - name: Upload logs to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: kube-nodes-output
+          path: ${{env.V2_PATH}}/kube-nodes-output.tgz
