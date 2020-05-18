@@ -46,6 +46,8 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
+	SawRequests map[reference.Global]struct{}
+
 	ActiveImmutablePendingCount    uint8
 	ActiveMutablePendingCount      uint8
 	PotentialImmutablePendingCount uint8
@@ -101,7 +103,7 @@ type SharedState struct {
 func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
-			Info: Info{Reference: objectReference},
+			Info: Info{Reference: objectReference, SawRequests: make(map[reference.Global]struct{})},
 		},
 	}
 }
