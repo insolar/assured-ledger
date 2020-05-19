@@ -12,11 +12,12 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/opentracing/opentracing-go"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 )
 
 type methodInstrumenterKey struct{}
@@ -33,11 +34,11 @@ type MethodInstrumenter struct {
 }
 
 func NewMethodInstrument(methodName string) (context.Context, *MethodInstrumenter) {
-	traceID := utils.RandTraceID()
+	traceID := trace.RandID()
 	ctx, _ := inslogger.WithTraceField(context.Background(), traceID)
-	ctx, span := instracer.StartSpanWithSpanID(ctx, methodName, instracer.MakeUintSpan([]byte(utils.RandTraceID())))
+	ctx, span := instracer.StartSpanWithSpanID(ctx, methodName, instracer.MakeUintSpan([]byte(trace.RandID())))
 
-	utils.RandTraceID()
+	trace.RandID()
 
 	ctx = insmetrics.InsertTag(ctx, tagMethod, methodName)
 	stats.Record(ctx, incomingRequests.M(1))

@@ -10,10 +10,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/hash"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/sign"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy/internal/hash"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy/internal/sign"
 )
 
 func TestEcdsaMarshalUnmarshal(t *testing.T) {

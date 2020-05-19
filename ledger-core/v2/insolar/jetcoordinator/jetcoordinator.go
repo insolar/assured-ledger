@@ -15,10 +15,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
 )
 
 // Coordinator is responsible for all jet interactions
@@ -139,10 +138,21 @@ func (jc *Coordinator) virtualsForObject(
 
 	return getRefs(
 		jc.PlatformCryptographyScheme,
-		utils.CircleXOR(ent[:], objID.IdentityHashBytes()),
+		CircleXOR(ent[:], objID.IdentityHashBytes()),
 		candidates,
 		count,
 	)
+}
+
+// CircleXOR performs XOR for 'value' and 'src'. The result is returned as new byte slice.
+// If 'value' is smaller than 'dst', XOR starts from the beginning of 'src'.
+func CircleXOR(value, src []byte) []byte {
+	result := make([]byte, len(value))
+	srcLen := len(src)
+	for i := range result {
+		result[i] = value[i] ^ src[i%srcLen]
+	}
+	return result
 }
 
 func (jc *Coordinator) entropy(ctx context.Context, pulse insolar.PulseNumber) (insolar.Entropy, error) {
