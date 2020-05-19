@@ -94,63 +94,16 @@ func (s *SMVDelegatedRequestFinished) awaitObjectReady(ctx smachine.ExecutionCon
 }
 
 func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	objectRef := s.Payload.Callee
-
-	var objectDescriptor *descriptor.Object
-
-	if s.Payload.LatestState != nil {
-		state := s.Payload.LatestState
-		desc := descriptor.NewObject(
-			objectRef,
-			state.Reference,
-			state.Prototype,
-			state.State,
-			state.Parent,
-		)
-		objectDescriptor = &desc
-	}
-
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
 			ctx.Log().Trace(stateIsNotReadyErrorMsg{
-				Reference: objectRef.String(),
+				Reference: s.Payload.Callee.String(),
 			})
 			return false
 		}
 
-		// Update object state.
-		if objectDescriptor != nil {
-			state.SetDescriptor(*objectDescriptor)
-		}
-
-		switch s.Payload.CallFlags.GetTolerance() {
-		case payload.CallIntolerable:
-			if state.ActiveImmutablePendingCount > 0 {
-				state.ActiveImmutablePendingCount--
-			} else {
-				ctx.Log().Warn(unExpectedVDelegateRequestFinished{
-					Reference: objectRef.String(),
-					ordered:   false,
-				})
-			}
-		case payload.CallTolerable:
-			if state.ActiveMutablePendingCount > 0 {
-				state.ActiveMutablePendingCount--
-
-				if state.ActiveMutablePendingCount == 0 {
-					// If we do not have pending ordered, release sync object.
-					if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-						ctx.Log().Trace("AwaitPendingOrdered BargeIn receive false")
-					}
-				}
-			} else {
-				ctx.Log().Warn(unExpectedVDelegateRequestFinished{
-					Reference: objectRef.String(),
-					ordered:   true,
-				})
-			}
-		}
+		s.updateSharedState(ctx, state)
 
 		return false
 	}
@@ -164,4 +117,63 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	}
 
 	return ctx.Stop()
+}
+
+func (s *SMVDelegatedRequestFinished) updateSharedState(
+	ctx smachine.ExecutionContext,
+	state *object.SharedState,
+) {
+	objectRef := s.Payload.Callee
+
+	// Update object state.
+	if s.hasLatestState() {
+		state.SetDescriptor(s.latestState())
+	}
+
+	switch s.Payload.CallFlags.GetTolerance() {
+	case payload.CallIntolerable:
+		if state.ActiveImmutablePendingCount > 0 {
+			state.ActiveImmutablePendingCount--
+		} else {
+			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+				Reference: objectRef.String(),
+				ordered:   false,
+			})
+		}
+	case payload.CallTolerable:
+		if state.ActiveMutablePendingCount > 0 {
+			state.ActiveMutablePendingCount--
+
+			if state.ActiveMutablePendingCount == 0 {
+				// If we do not have pending ordered, release sync object.
+				if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
+					ctx.Log().Trace("AwaitPendingOrdered BargeIn receive false")
+				}
+			}
+		} else {
+			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+				Reference: objectRef.String(),
+				ordered:   true,
+			})
+		}
+	}
+}
+
+func (s *SMVDelegatedRequestFinished) hasLatestState() bool {
+	return s.Payload.LatestState != nil
+}
+
+func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
+	state := s.Payload.LatestState
+	if state == nil {
+		panic(throw.IllegalState())
+	}
+
+	return descriptor.NewObject(
+		s.Payload.Callee,
+		state.Reference,
+		state.Prototype,
+		state.State,
+		state.Parent,
+	)
 }
