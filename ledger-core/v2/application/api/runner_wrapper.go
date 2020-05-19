@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/component-manager"
 )
 
+//nolint
 type APIRunner interface {
 	IsAPIRunner() bool
 }

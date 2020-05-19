@@ -28,12 +28,11 @@ func (v ShortNodeID) Equal(other ShortNodeID) bool { return v == other }
 // GlobuleID is the ID of the globe
 type GlobuleID uint32
 
-type State uint8
-
 // Power is node power
 type Power uint8
 
-//go:generate stringer -type=NodeState
+//go:generate stringer -type=State
+type State uint8
 const (
 	// Undefined node started but is not connected to network yet
 	Undefined State = iota

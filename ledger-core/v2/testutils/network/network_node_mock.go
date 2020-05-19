@@ -35,7 +35,7 @@ type NetworkNodeMock struct {
 	beforeGetPowerCounter uint64
 	GetPowerMock          mNetworkNodeMockGetPower
 
-	funcGetState          func() (n1 mm_node.State)
+	funcGetState          func() (s1 mm_node.State)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
@@ -553,7 +553,7 @@ type NetworkNodeMockGetStateExpectation struct {
 
 // NetworkNodeMockGetStateResults contains results of the NetworkNode.GetState
 type NetworkNodeMockGetStateResults struct {
-	n1 mm_node.State
+	s1 mm_node.State
 }
 
 // Expect sets up expected params for NetworkNode.GetState
@@ -581,7 +581,7 @@ func (mmGetState *mNetworkNodeMockGetState) Inspect(f func()) *mNetworkNodeMockG
 }
 
 // Return sets up results that will be returned by NetworkNode.GetState
-func (mmGetState *mNetworkNodeMockGetState) Return(n1 mm_node.State) *NetworkNodeMock {
+func (mmGetState *mNetworkNodeMockGetState) Return(s1 mm_node.State) *NetworkNodeMock {
 	if mmGetState.mock.funcGetState != nil {
 		mmGetState.mock.t.Fatalf("NetworkNodeMock.GetState mock is already set by Set")
 	}
@@ -589,12 +589,12 @@ func (mmGetState *mNetworkNodeMockGetState) Return(n1 mm_node.State) *NetworkNod
 	if mmGetState.defaultExpectation == nil {
 		mmGetState.defaultExpectation = &NetworkNodeMockGetStateExpectation{mock: mmGetState.mock}
 	}
-	mmGetState.defaultExpectation.results = &NetworkNodeMockGetStateResults{n1}
+	mmGetState.defaultExpectation.results = &NetworkNodeMockGetStateResults{s1}
 	return mmGetState.mock
 }
 
 //Set uses given function f to mock the NetworkNode.GetState method
-func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 mm_node.State)) *NetworkNodeMock {
+func (mmGetState *mNetworkNodeMockGetState) Set(f func() (s1 mm_node.State)) *NetworkNodeMock {
 	if mmGetState.defaultExpectation != nil {
 		mmGetState.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetState method")
 	}
@@ -608,7 +608,7 @@ func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 mm_node.State)) *Ne
 }
 
 // GetState implements node.NetworkNode
-func (mmGetState *NetworkNodeMock) GetState() (n1 mm_node.State) {
+func (mmGetState *NetworkNodeMock) GetState() (s1 mm_node.State) {
 	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
 
@@ -623,7 +623,7 @@ func (mmGetState *NetworkNodeMock) GetState() (n1 mm_node.State) {
 		if mm_results == nil {
 			mmGetState.t.Fatal("No results are set for the NetworkNodeMock.GetState")
 		}
-		return (*mm_results).n1
+		return (*mm_results).s1
 	}
 	if mmGetState.funcGetState != nil {
 		return mmGetState.funcGetState()
