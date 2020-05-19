@@ -55,7 +55,7 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 		ref             string
 		count                = 10 // Number of concurrent requests per node.
 		amount          uint = 100
-		expectedBalance      = startBalance + amount*uint(count*len(nodesPorts))
+		expectedBalance      = startBalance + amount*uint(count*len(defaultPorts))
 		outChan              = make(chan error)
 	)
 
@@ -70,7 +70,7 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 	t.Log("2.Concurrent requests to /add_amount and /get_balance")
 	{
 		for i := 0; i < count; i++ {
-			for _, port := range nodesPorts {
+			for _, port := range defaultPorts {
 				go func(port string) {
 					getBalanceURL := getURL(walletGetBalancePath, "", port)
 					_, resultErr := getWalletBalance(getBalanceURL, ref)
@@ -87,7 +87,7 @@ func TestGetUpdateBalanceConcurrently(t *testing.T) {
 			}
 		}
 
-		for i := 0; i < count*len(nodesPorts)*2; i++ {
+		for i := 0; i < count*len(defaultPorts)*2; i++ {
 			assert.NoError(t, <-outChan)
 		}
 		close(outChan)
