@@ -4,11 +4,8 @@ go 1.14
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
-	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/ThreeDotsLabs/watermill v1.0.2
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/fatih/color v1.7.0 // indirect
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/getkin/kin-openapi v0.2.1-0.20191211203508-0d9caf80ada6
@@ -19,7 +16,6 @@ require (
 	github.com/google/gops v0.3.6
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/grpc-gateway v1.9.6
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/insolar/component-manager v0.2.1-0.20191028200619-751a91771d2f
 	github.com/insolar/gls v0.0.0-20200427111849-9a08a622625d
 	github.com/insolar/insconfig v0.0.0-20200228110347-69b2648d7227
@@ -34,7 +30,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/onrik/gomerkle v1.0.0
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/pelletier/go-toml v1.4.0 // indirect
+	github.com/ory/go-acc v0.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
@@ -42,7 +38,6 @@ require (
 	github.com/prometheus/procfs v0.0.4 // indirect
 	github.com/rs/zerolog v1.15.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5
@@ -53,13 +48,13 @@ require (
 	github.com/uber/jaeger-client-go v2.19.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
-	go.opencensus.io v0.22.0
+	go.opencensus.io v0.22.1
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd
 	golang.org/x/tools v0.0.0-20200312153518-5e2df02acb1e
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
-	google.golang.org/grpc v1.21.0
+	google.golang.org/grpc v1.22.0
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools/gotestsum v0.4.1
 )

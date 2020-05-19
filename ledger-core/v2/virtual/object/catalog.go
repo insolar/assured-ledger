@@ -19,7 +19,7 @@ type Catalog interface {
 	Get(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor
 	TryGet(ctx smachine.ExecutionContext, objectReference reference.Global) (SharedStateAccessor, bool)
 	Create(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor
-	GetOrCreate(ctx smachine.ExecutionContext, objectReference reference.Global, reason InitReason) SharedStateAccessor
+	GetOrCreate(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor
 }
 
 func NewLocalCatalog() *LocalCatalog {
@@ -66,14 +66,14 @@ func (p LocalCatalog) Create(ctx smachine.ExecutionContext, objectReference refe
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		ctx.SetTracerID(formatSMTraceID(objectReference))
 
-		return NewStateMachineObject(objectReference, InitReasonCTConstructor)
+		return NewStateMachineObject(objectReference)
 	})
 
 	accessor, _ := p.TryGet(ctx, objectReference)
 	return accessor
 }
 
-func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference reference.Global, reason InitReason) SharedStateAccessor {
+func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor {
 	if v, ok := p.TryGet(ctx, objectReference); ok {
 		return v
 	}
@@ -81,7 +81,7 @@ func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		ctx.SetTracerID(formatSMTraceID(objectReference))
 
-		return NewStateMachineObject(objectReference, reason)
+		return NewStateMachineObject(objectReference)
 	})
 
 	accessor, _ := p.TryGet(ctx, objectReference)

@@ -20,7 +20,6 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
@@ -30,6 +29,7 @@ const (
 	Unknown State = iota
 	Missing
 	Inactive
+	Empty
 	HasState
 )
 
@@ -98,21 +98,11 @@ type SharedState struct {
 	Info
 }
 
-// StackRelation shows relevance of 2 stacks
-type InitReason int8
-
-const (
-	InitReasonCTConstructor InitReason = iota
-	InitReasonCTMethod
-	InitReasonVStateReport
-)
-
-func NewStateMachineObject(objectReference reference.Global, reason InitReason) *SMObject {
+func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{Reference: objectReference},
 		},
-		initReason: reason,
 	}
 }
 
@@ -122,11 +112,9 @@ type SMObject struct {
 	SharedState
 
 	readyToWorkCtl    smsync.BoolConditionalLink
-	initReason        InitReason
 	migrateTransition smachine.StateFunc
 
 	waitGetStateUntil time.Time
-	stateWasRequested bool
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -167,17 +155,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	ctx.SetDefaultMigration(sm.migrateDuringExecution)
 
-	switch sm.initReason {
-	case InitReasonCTConstructor:
-		return ctx.Jump(sm.stepReadyToWork)
-	case InitReasonVStateReport:
-		sm.stateWasRequested = true
-		fallthrough
-	case InitReasonCTMethod:
-		return ctx.Jump(sm.stepWaitState)
-	default:
-		panic(throw.IllegalValue())
-	}
+	return ctx.Jump(sm.stepGetState)
 }
 
 func (sm *SMObject) initWaitGetStateUntil() {
@@ -188,9 +166,19 @@ func (sm *SMObject) initWaitGetStateUntil() {
 	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
 }
 
-// we get CallMethod but we have no object data
-// we need to ask previous executor
-func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMObject) stepGetState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.IsReady() {
+		return ctx.Jump(sm.stepGotState)
+	}
+
+	if !time.Now().After(sm.waitGetStateUntil) {
+		return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
+	}
+
+	return ctx.Jump(sm.stepSendStateRequest)
+}
+
+func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	flags := payload.StateRequestContentFlags(0)
 	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
 		payload.RequestMutableQueue, payload.RequestImmutableQueue)
@@ -211,23 +199,22 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	sm.stateWasRequested = true
 	return ctx.Jump(sm.stepWaitState)
 }
 
 func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.IsReady() {
-		if sm.ActiveMutablePendingCount > 0 {
-			sm.createWaitPendingOrderedSM(ctx)
-		}
-		return ctx.Jump(sm.stepReadyToWork)
+		return ctx.Jump(sm.stepGotState)
 	}
 
-	if !sm.stateWasRequested && time.Now().After(sm.waitGetStateUntil) {
-		return ctx.Jump(sm.stepGetObjectState)
-	}
+	return ctx.Sleep().ThenRepeat()
+}
 
-	return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
+func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.ActiveMutablePendingCount > 0 {
+		sm.createWaitPendingOrderedSM(ctx)
+	}
+	return ctx.Jump(sm.stepReadyToWork)
 }
 
 func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
