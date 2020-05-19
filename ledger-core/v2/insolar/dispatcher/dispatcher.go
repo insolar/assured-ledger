@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher.Dispatcher -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher.Dispatcher -o ./ -s _mock.go -g
 type Dispatcher interface {
 	BeginPulse(ctx context.Context, pulse insolar.Pulse)
 	ClosePulse(ctx context.Context, pulse insolar.Pulse)
