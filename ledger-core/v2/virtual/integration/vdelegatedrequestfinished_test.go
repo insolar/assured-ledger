@@ -29,6 +29,14 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
+	//Test steps for checks sequence.
+	const (
+		stateReportSend           = "stateReportSend"
+		callRequestSend           = "callRequestSend"
+		delegateRequestFinishSend = "delegateRequestFinishSend"
+		callResultReceive         = "callResultReceive"
+	)
+
 	testBalance := uint32(100)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.Reference()
@@ -70,13 +78,14 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 
 	df := payload.VDelegatedRequestFinished{
 		Polymorph: uint32(payload.TypeVDelegatedRequestFinished),
+		CallFlags: callFlags,
 		Callee:    objectRef,
 	}
 
 	requestIsDone := make(chan string, 0)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		defer func() { requestIsDone <- "callResultReceive" }()
+		defer func() { requestIsDone <- callResultReceive }()
 
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
 		require.NoError(t, err)
@@ -101,13 +110,13 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	require.NoError(t, err)
 
 	server.SendMessage(ctx, vStateReportMsg)
-	aclSeq = append(aclSeq, "stateReportSend")
+	aclSeq = append(aclSeq, stateReportSend)
 
 	server.SendMessage(ctx, vCallRequestMsg)
-	aclSeq = append(aclSeq, "callRequestSend")
+	aclSeq = append(aclSeq, callRequestSend)
 
 	server.SendMessage(ctx, vDelegateRequestFinishedMsg)
-	aclSeq = append(aclSeq, "delegateRequestFinishSend")
+	aclSeq = append(aclSeq, delegateRequestFinishSend)
 
 	select {
 	case res := <-requestIsDone:
@@ -117,7 +126,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 		require.Failf(t, "", "timeout")
 	}
 
-	expSeq := []string{"stateReportSend", "callRequestSend", "delegateRequestFinishSend", "callResultReceive"}
+	expSeq := []string{stateReportSend, callRequestSend, delegateRequestFinishSend, callResultReceive}
 	require.True(t, reflect.DeepEqual(expSeq, aclSeq))
 }
 

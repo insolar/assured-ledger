@@ -82,11 +82,18 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 			state.SetDescriptor(*objectDescriptor)
 		}
 
-		state.ActiveMutablePendingCount--
+		switch s.Payload.CallFlags.GetTolerance() {
+		case payload.CallIntolerable:
+			state.ActiveImmutablePendingCount--
+		case payload.CallTolerable:
+			state.ActiveMutablePendingCount--
+		}
 
 		if state.ActiveMutablePendingCount == 0 {
 			// If we do not have pending ordered, release sync object.
-			ctx.CallBargeIn(state.AwaitPendingOrdered)
+			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
+				ctx.Log().Trace("AwaitPendingOrdered BargeIn receive false")
+			}
 		}
 
 		return true

@@ -411,12 +411,18 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 }
 
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
 	var lastState *payload.ObjectState = nil
 	if !s.execution.Unordered {
+		prototype, err := s.execution.ObjectDescriptor.Prototype()
+		if err != nil {
+			panic(throw.W(err, "failed to get prototype from descriptor", nil))
+		}
+
 		lastState = &payload.ObjectState{
 			Reference: s.executionNewState.Result.ObjectStateID,
 			State:     s.executionNewState.Result.Memory,
+			Parent:    s.executionNewState.Result.ParentReference,
+			Prototype: prototype,
 		}
 	}
 
