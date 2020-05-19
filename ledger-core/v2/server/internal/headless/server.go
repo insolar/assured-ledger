@@ -13,8 +13,8 @@ import (
 	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
@@ -54,7 +54,7 @@ func (s *Server) Serve() {
 	nodeRole := certManager.GetCertificate().GetRole().String()
 	nodeRef := certManager.GetCertificate().GetNodeRef().String()
 
-	traceID := utils.RandTraceID() + "_main"
+	traceID := trace.RandID() + "_main"
 	ctx, logger := inslogger.InitNodeLogger(ctx, cfg.Log, nodeRef, nodeRole)
 	global.InitTicker()
 
