@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/insolar/insconfig"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 const InsolarEnvPrefix = "insolar"
@@ -35,7 +35,6 @@ type NetworkConfig struct {
 
 type CommonAppConfig struct {
 	CommonConfig
-	Bus Bus
 }
 
 type VirtualNodeConfig struct {
@@ -69,8 +68,6 @@ type Configuration struct {
 	CertificatePath     string
 	Tracer              Tracer
 	Introspection       Introspection
-	Exporter            Exporter
-	Bus                 Bus
 }
 
 // PulsarConfiguration contains configuration params for the pulsar node
@@ -104,8 +101,6 @@ func NewConfiguration() Configuration {
 		CertificatePath:     "",
 		Tracer:              NewTracer(),
 		Introspection:       NewIntrospection(),
-		Exporter:            NewExporter(),
-		Bus:                 NewBus(),
 	}
 
 	return cfg

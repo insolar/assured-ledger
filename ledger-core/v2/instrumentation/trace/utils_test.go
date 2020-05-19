@@ -3,12 +3,15 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package appfoundation
+package trace
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/reference"
+import (
+	"testing"
 
-type SagaAcceptInfo struct {
-	Amount     string
-	FromMember reference.Global
-	Request    reference.Global
+	"github.com/stretchr/testify/require"
+)
+
+func TestRandTraceID(t *testing.T) {
+	traceID := RandID()
+	require.NotEmpty(t, traceID)
 }

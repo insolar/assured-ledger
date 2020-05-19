@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package utils
+package trace
 
 import (
 	"context"
@@ -16,8 +16,8 @@ import (
 
 type traceIDKey struct{}
 
-// TraceID returns traceid provided by WithTraceField and ContextWithTrace helpers.
-func TraceID(ctx context.Context) string {
+// ID returns traceid provided by WithTraceField and ContextWithTrace helpers.
+func ID(ctx context.Context) string {
 	val := ctx.Value(traceIDKey{})
 	if val == nil {
 		return ""
@@ -25,16 +25,16 @@ func TraceID(ctx context.Context) string {
 	return val.(string)
 }
 
-func SetInsTraceID(ctx context.Context, traceid string) (context.Context, error) {
-	if TraceID(ctx) != "" {
+func SetID(ctx context.Context, traceid string) (context.Context, error) {
+	if ID(ctx) != "" {
 		return context.WithValue(ctx, traceIDKey{}, traceid),
-			errors.Errorf("TraceID already set: old: %s new: %s", TraceID(ctx), traceid)
+			errors.Errorf("TraceID already set: old: %s new: %s", ID(ctx), traceid)
 	}
 	return context.WithValue(ctx, traceIDKey{}, traceid), nil
 }
 
-// RandTraceID returns random traceID in uuid format.
-func RandTraceID() string {
+// RandID returns random traceID in uuid format.
+func RandID() string {
 	traceID, err := uuid.NewV4()
 	if err != nil {
 		return "createRandomTraceIDFailed:" + err.Error()
@@ -42,15 +42,4 @@ func RandTraceID() string {
 	// We use custom serialization to be able to pass this trace to jaeger TraceID
 	hi, low := binary.LittleEndian.Uint64(traceID[:8]), binary.LittleEndian.Uint64(traceID[8:])
 	return fmt.Sprintf("%016x%016x", hi, low)
-}
-
-// CircleXOR performs XOR for 'value' and 'src'. The result is returned as new byte slice.
-// If 'value' is smaller than 'dst', XOR starts from the beginning of 'src'.
-func CircleXOR(value, src []byte) []byte {
-	result := make([]byte, len(value))
-	srcLen := len(src)
-	for i := range result {
-		result[i] = value[i] ^ src[i%srcLen]
-	}
-	return result
 }

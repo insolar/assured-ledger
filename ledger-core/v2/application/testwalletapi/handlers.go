@@ -20,8 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
@@ -68,7 +68,7 @@ const (
 func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
-		traceID = utils.RandTraceID()
+		traceID = trace.RandID()
 		logger  = inslogger.FromContext(ctx)
 	)
 
@@ -125,7 +125,7 @@ const badRequestErrorPattern = "%s. " + traceIDField + ": %s"
 func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
-		traceID = utils.RandTraceID()
+		traceID = trace.RandID()
 		logger  = inslogger.FromContext(ctx)
 	)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Transfer"})
@@ -215,7 +215,7 @@ func (g *GetBalanceParams) isValid() bool {
 func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
-		traceID = utils.RandTraceID()
+		traceID = trace.RandID()
 		logger  = inslogger.FromContext(ctx)
 	)
 
@@ -301,7 +301,7 @@ func (a *AddAmountParams) isValid() bool {
 func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
-		traceID = utils.RandTraceID()
+		traceID = trace.RandID()
 		logger  = inslogger.FromContext(ctx)
 	)
 

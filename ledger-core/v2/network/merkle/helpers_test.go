@@ -9,10 +9,11 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 )
 
 func (t *merkleHelperSuite) TestMerkleHelperPulseHash() {
