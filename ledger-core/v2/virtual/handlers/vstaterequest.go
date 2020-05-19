@@ -139,7 +139,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 	case smachine.Passed:
 		// go further
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	if stateNotReady {

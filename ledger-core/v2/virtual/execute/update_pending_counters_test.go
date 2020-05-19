@@ -94,7 +94,7 @@ func (s *FakeSM) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachi
 		ctx.Log().Fatal("failed to get object state: already dead")
 	case smachine.Passed:
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 	return ctx.Stop()
 }
