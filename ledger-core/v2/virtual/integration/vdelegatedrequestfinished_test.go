@@ -91,19 +91,13 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 
 	aclSeq := make([]string, 0)
 
-	srBytes, err := sr.Marshal()
-	require.NoError(t, err)
-	vStateReportMsg, err := wrapMsg(pulseNumber, srBytes)
+	vStateReportMsg, err := wrapMsg(pulseNumber, &sr)
 	require.NoError(t, err)
 
-	crBytes, err := cr.Marshal()
-	require.NoError(t, err)
-	vCallRequestMsg, err := wrapMsg(pulseNumber, crBytes)
+	vCallRequestMsg, err := wrapMsg(pulseNumber, &cr)
 	require.NoError(t, err)
 
-	drfBytes, err := df.Marshal()
-	require.NoError(t, err)
-	vDelegateRequestFinishedMsg, err := wrapMsg(pulseNumber, drfBytes)
+	vDelegateRequestFinishedMsg, err := wrapMsg(pulseNumber, &df)
 	require.NoError(t, err)
 
 	server.SendMessage(ctx, vStateReportMsg)
@@ -127,7 +121,12 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	require.True(t, reflect.DeepEqual(expSeq, aclSeq))
 }
 
-func wrapMsg(pulseNumber insolar.PulseNumber, bytes []byte) (*message.Message, error) {
+func wrapMsg(pulseNumber insolar.PulseNumber, request payload.Marshaler) (*message.Message, error) {
+	bytes, err := request.Marshal()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal request")
+	}
+
 	msg, err := payload.NewMessage(&payload.Meta{
 		Polymorph:  uint32(payload.TypeMeta),
 		Payload:    bytes,
