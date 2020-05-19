@@ -1,6 +1,11 @@
 # Kuberenetes deploy manifests
 
 ## Run functional tests
+Run once "apply ingress", it will be listening 443/80 ports on your host
+```
+make kube_apply_ingress
+```
+then run tests:
 ```
 make test_func_kubernetes
 ```
@@ -22,6 +27,11 @@ make kube_stop_net
 make kube_collect_artifacts
 ```
 Node logs will be saved in /tmp/insolar/logs
+
+## Drop ingress
+```
+make kube_drop_ingress
+```
 
 ## Rebuild images
 If you want to change application code, you need to rebuild images and restart network
