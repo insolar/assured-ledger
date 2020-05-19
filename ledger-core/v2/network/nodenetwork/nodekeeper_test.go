@@ -31,7 +31,7 @@ func TestNewNodeNetwork(t *testing.T) {
 	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return nil })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.Reference(); return ref })
-	certMock.GetDiscoveryNodesMock.Set(func() []insolar.DiscoveryNode { return nil })
+	certMock.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode { return nil })
 	_, err := NewNodeNetwork(cfg, certMock)
 	assert.Error(t, err)
 	cfg.Address = "127.0.0.1:3355"
@@ -39,7 +39,7 @@ func TestNewNodeNetwork(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func newNodeKeeper(t *testing.T, service cryptography.CryptographyService) network.NodeKeeper {
+func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeeper {
 	cfg := configuration.Transport{Address: "127.0.0.1:3355"}
 	certMock := testutils.NewCertificateMock(t)
 	keyProcessor := platformpolicy.NewKeyProcessor()
@@ -53,7 +53,7 @@ func newNodeKeeper(t *testing.T, service cryptography.CryptographyService) netwo
 	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return pk })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.Reference(); return ref })
-	certMock.GetDiscoveryNodesMock.Set(func() []insolar.DiscoveryNode { return nil })
+	certMock.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode { return nil })
 	nw, err := NewNodeNetwork(cfg, certMock)
 	require.NoError(t, err)
 	nw.(*nodekeeper).SnapshotStorage = storage.NewMemoryStorage()

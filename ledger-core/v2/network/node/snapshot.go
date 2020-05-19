@@ -31,7 +31,7 @@ const (
 
 type Snapshot struct {
 	pulse insolar.PulseNumber
-	state insolar.NetworkState
+	state node2.NetworkState
 
 	nodeList [ListLength][]node2.NetworkNode
 }
@@ -76,7 +76,7 @@ func NewSnapshot(number insolar.PulseNumber, nodes []node2.NetworkNode) *Snapsho
 	return &Snapshot{
 		pulse: number,
 		// TODO: pass actual state
-		state:    insolar.NoNetworkState,
+		state:    node2.NoNetworkState,
 		nodeList: splitNodes(nodes),
 	}
 }
@@ -161,7 +161,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 
 	keyProc := platformpolicy.NewKeyProcessor()
 	s.pulse = insolar.PulseNumber(ss.PulseNumber)
-	s.state = insolar.NetworkState(ss.State)
+	s.state = node2.NetworkState(ss.State)
 
 	for t, nodes := range ss.Nodes {
 		nodeList := make([]node2.NetworkNode, len(nodes.List))

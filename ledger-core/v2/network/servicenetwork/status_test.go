@@ -27,8 +27,8 @@ func TestGetNetworkStatus(t *testing.T) {
 	sn := &ServiceNetwork{}
 	gwer := testutils.NewGatewayerMock(t)
 	gw := testutils.NewGatewayMock(t)
-	ins := insolar.NetworkState(1)
-	gw.GetStateMock.Set(func() insolar.NetworkState { return ins })
+	ins := node.NetworkState(1)
+	gw.GetStateMock.Set(func() node.NetworkState { return ins })
 	gwer.GatewayMock.Set(func() network.Gateway { return gw })
 	sn.Gatewayer = gwer
 

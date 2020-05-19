@@ -19,7 +19,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -178,8 +177,8 @@ func (cert *Certificate) fillExtraFields(keyProcessor cryptography.KeyProcessor)
 }
 
 // GetDiscoveryNodes return bootstrap nodes array
-func (cert *Certificate) GetDiscoveryNodes() []insolar.DiscoveryNode {
-	result := make([]insolar.DiscoveryNode, 0)
+func (cert *Certificate) GetDiscoveryNodes() []node.DiscoveryNode {
+	result := make([]node.DiscoveryNode, 0)
 	for i := 0; i < len(cert.BootstrapNodes); i++ {
 		// we get node by pointer, so ranged for loop does not suite
 		result = append(result, &cert.BootstrapNodes[i])

@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
@@ -32,10 +33,10 @@ type Pulsar struct {
 	EntropyGenerator entropygenerator.EntropyGenerator
 
 	Certificate                certificate.Certificate
-	CryptographyService        cryptography.CryptographyService
+	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyProcessor               cryptography.KeyProcessor
-	PulseDistributor           insolar.PulseDistributor
+	PulseDistributor           node.PulseDistributor
 
 	lastPNMutex sync.RWMutex
 	lastPN      insolar.PulseNumber
@@ -44,10 +45,10 @@ type Pulsar struct {
 // NewPulsar creates a new pulse with using of custom GeneratedEntropy Generator
 func NewPulsar(
 	configuration configuration.Pulsar,
-	cryptographyService cryptography.CryptographyService,
+	cryptographyService cryptography.Service,
 	scheme cryptography.PlatformCryptographyScheme,
 	keyProcessor cryptography.KeyProcessor,
-	pulseDistributor insolar.PulseDistributor,
+	pulseDistributor node.PulseDistributor,
 	entropyGenerator entropygenerator.EntropyGenerator,
 ) *Pulsar {
 
@@ -190,7 +191,7 @@ if err != nil {
 currentPulsar.StateSwitcher.SwitchToState(ctx, Failed, err)
 return
 }
-signature, err := currentPulsar.CryptographyService.Sign(hash)
+signature, err := currentPulsar.Service.Sign(hash)
 if err != nil {
 currentPulsar.StateSwitcher.SwitchToState(ctx, Failed, err)
 return

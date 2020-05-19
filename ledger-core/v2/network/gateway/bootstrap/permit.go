@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
@@ -41,7 +41,7 @@ func CreatePermit(authorityNodeRef reference.Global, reconnectHost *host.Host, j
 }
 
 // ValidatePermit validate granted permit and verifies signature of Authority Node
-func ValidatePermit(permit *packet.Permit, cert insolar.Certificate, verifier cryptography.CryptographyService) error {
+func ValidatePermit(permit *packet.Permit, cert node.Certificate, verifier cryptography.Service) error {
 	discovery := network.FindDiscoveryByRef(cert, permit.Payload.AuthorityNodeRef)
 	if discovery == nil {
 		return errors.New("failed to find a discovery node from reference in permit")

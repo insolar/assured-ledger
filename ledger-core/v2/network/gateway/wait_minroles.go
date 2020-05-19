@@ -31,7 +31,7 @@ func (g *WaitMinRoles) Run(ctx context.Context, pulse insolar.Pulse) {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.minrolesComplete:
-		g.Gatewayer.SwitchState(ctx, insolar.WaitPulsar, newPulse)
+		g.Gatewayer.SwitchState(ctx, node2.WaitPulsar, newPulse)
 	}
 }
 
@@ -45,8 +45,8 @@ func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber insolar.Puls
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *WaitMinRoles) GetState() insolar.NetworkState {
-	return insolar.WaitMinRoles
+func (g *WaitMinRoles) GetState() node2.NetworkState {
+	return node2.WaitMinRoles
 }
 
 func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.Report) {

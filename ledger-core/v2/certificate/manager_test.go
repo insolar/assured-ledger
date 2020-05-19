@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
@@ -31,7 +30,7 @@ func TestNewManagerReadCertificate(t *testing.T) {
 	require.NotNil(t, cert)
 }
 
-func newDiscovery() (*BootstrapNode, cryptography.CryptographyService) {
+func newDiscovery() (*BootstrapNode, cryptography.Service) {
 	kp := platformpolicy.NewKeyProcessor()
 	key, _ := kp.GeneratePrivateKey()
 	cs := platformpolicy.NewKeyBoundCryptographyService(key)
@@ -73,16 +72,16 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 
 	otherDiscovery, otherDiscoveryCS := newDiscovery()
 
-	valid, err := VerifyAuthorizationCertificate(otherDiscoveryCS, []insolar.DiscoveryNode{discovery}, cert2)
+	valid, err := VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{discovery}, cert2)
 	require.NoError(t, err)
 	require.True(t, valid)
 
 	// bad cases
-	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []insolar.DiscoveryNode{discovery, otherDiscovery}, cert2)
+	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{discovery, otherDiscovery}, cert2)
 	require.NoError(t, err)
 	require.False(t, valid)
 
-	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []insolar.DiscoveryNode{otherDiscovery}, cert2)
+	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{otherDiscovery}, cert2)
 	require.NoError(t, err)
 	require.False(t, valid)
 }

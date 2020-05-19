@@ -9,7 +9,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/v2/network"

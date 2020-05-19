@@ -31,7 +31,7 @@ func (g *WaitPulsar) Run(ctx context.Context, pulse insolar.Pulse) {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.pulseArrived:
-		g.Gatewayer.SwitchState(ctx, insolar.CompleteNetworkState, newPulse)
+		g.Gatewayer.SwitchState(ctx, node2.CompleteNetworkState, newPulse)
 	}
 }
 
@@ -49,8 +49,8 @@ func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber insolar.PulseN
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *WaitPulsar) GetState() insolar.NetworkState {
-	return insolar.WaitPulsar
+func (g *WaitPulsar) GetState() node2.NetworkState {
+	return node2.WaitPulsar
 }
 
 func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Report) {

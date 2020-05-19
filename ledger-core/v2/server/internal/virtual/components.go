@@ -21,9 +21,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jetcoordinator"
 	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -38,7 +38,7 @@ import (
 )
 
 type bootstrapComponents struct {
-	CryptographyService        cryptography.CryptographyService
+	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
 	KeyProcessor               cryptography.KeyProcessor
@@ -68,7 +68,7 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 func initCertificateManager(
 	ctx context.Context,
 	cfg configuration.Configuration,
-	cryptographyService cryptography.CryptographyService,
+	cryptographyService cryptography.Service,
 	keyProcessor cryptography.KeyProcessor,
 ) *certificate.CertificateManager {
 	var certManager *certificate.CertificateManager
@@ -87,11 +87,11 @@ func initCertificateManager(
 func initComponents(
 	ctx context.Context,
 	cfg configuration.Configuration,
-	cryptographyService cryptography.CryptographyService,
+	cryptographyService cryptography.Service,
 	pcs cryptography.PlatformCryptographyScheme,
 	keyStore cryptography.KeyStore,
 	keyProcessor cryptography.KeyProcessor,
-	certManager insolar.CertificateManager,
+	certManager node.CertificateManager,
 
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)

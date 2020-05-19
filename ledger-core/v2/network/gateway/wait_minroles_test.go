@@ -49,7 +49,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 		return waitMinRoles
 	})
 
-	assert.Equal(t, insolar.WaitMinRoles, waitMinRoles.GetState())
+	assert.Equal(t, node2.WaitMinRoles, waitMinRoles.GetState())
 	waitMinRoles.Gatewayer = gatewayer
 	waitMinRoles.bootstrapETA = time.Millisecond
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
@@ -63,8 +63,8 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse) {
-		assert.Equal(t, insolar.WaitPulsar, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse insolar.Pulse) {
+		assert.Equal(t, node2.WaitPulsar, state)
 	})
 
 	ref := gen.Reference()

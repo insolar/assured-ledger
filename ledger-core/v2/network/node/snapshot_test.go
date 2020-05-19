@@ -49,7 +49,7 @@ func TestSnapshotEncodeDecode(t *testing.T) {
 
 	s := Snapshot{}
 	s.pulse = 22
-	s.state = insolar.CompleteNetworkState
+	s.state = node2.CompleteNetworkState
 	s.nodeList[ListLeaving] = []node2.NetworkNode{n1, n2}
 	s.nodeList[ListJoiner] = []node2.NetworkNode{n2}
 

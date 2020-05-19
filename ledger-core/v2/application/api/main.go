@@ -18,26 +18,26 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
 // Runner implements Component for API
 type Runner struct {
-	CertificateManager insolar.CertificateManager
+	CertificateManager node.CertificateManager
 	// nolint
 	NodeNetwork         network.NodeNetwork
-	CertificateGetter   insolar.CertificateGetter
+	CertificateGetter   node.CertificateGetter
 	PulseAccessor       pulse.Accessor
 	JetCoordinator      jet.Coordinator
-	NetworkStatus       insolar.NetworkStatus
-	AvailabilityChecker insolar.AvailabilityChecker
+	NetworkStatus       node.NetworkStatus
+	AvailabilityChecker AvailabilityChecker
 
 	handler       http.Handler
 	server        *http.Server
@@ -77,14 +77,14 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 
 // NewRunner is C-tor for API Runner
 func NewRunner(cfg *configuration.APIRunner,
-	certificateManager insolar.CertificateManager,
+	certificateManager node.CertificateManager,
 	// nolint
 	nodeNetwork network.NodeNetwork,
-	certificateGetter insolar.CertificateGetter,
+	certificateGetter node.CertificateGetter,
 	pulseAccessor pulse.Accessor,
 	jetCoordinator jet.Coordinator,
-	networkStatus insolar.NetworkStatus,
-	availabilityChecker insolar.AvailabilityChecker,
+	networkStatus node.NetworkStatus,
+	availabilityChecker AvailabilityChecker,
 ) (*Runner, error) {
 
 	err := checkConfig(cfg)

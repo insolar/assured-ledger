@@ -60,14 +60,14 @@ func (g *NoNetwork) Run(ctx context.Context, pulse insolar.Pulse) {
 		g.backoff = 0
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-		g.Gatewayer.SwitchState(ctx, insolar.WaitConsensus, pulse)
+		g.Gatewayer.SwitchState(ctx, node.WaitConsensus, pulse)
 		return
 	}
 
 	time.Sleep(g.pause())
-	g.Gatewayer.SwitchState(ctx, insolar.JoinerBootstrap, pulse)
+	g.Gatewayer.SwitchState(ctx, node.JoinerBootstrap, pulse)
 }
 
-func (g *NoNetwork) GetState() insolar.NetworkState {
-	return insolar.NoNetworkState
+func (g *NoNetwork) GetState() node.NetworkState {
+	return node.NoNetworkState
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
@@ -61,7 +62,7 @@ func (ph handlerThatPanics) HandleDatagram(ctx context.Context, address string, 
 }
 
 // NewDistributor creates a new distributor object of pulses
-func NewDistributor(conf configuration.PulseDistributor) (insolar.PulseDistributor, error) {
+func NewDistributor(conf configuration.PulseDistributor) (node.PulseDistributor, error) {
 	futureManager := future.NewManager()
 
 	result := &distributor{

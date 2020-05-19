@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2"
@@ -66,7 +67,7 @@ func verify(s interface{}) {
 type Dep struct {
 	KeyProcessor       cryptography.KeyProcessor
 	Scheme             cryptography.PlatformCryptographyScheme
-	CertificateManager insolar.CertificateManager
+	CertificateManager node.CertificateManager
 	KeyStore           cryptography.KeyStore
 
 	NodeKeeper        network.NodeKeeper

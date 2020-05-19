@@ -34,7 +34,7 @@ func TestNewCertificate_BadCert(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to parse certificate json")
 }
 
-func checkKeys(cert *Certificate, cs cryptography.CryptographyService, t *testing.T) {
+func checkKeys(cert *Certificate, cs cryptography.Service, t *testing.T) {
 	kp := platformpolicy.NewKeyProcessor()
 
 	pubKey, err := cs.GetPublicKey()

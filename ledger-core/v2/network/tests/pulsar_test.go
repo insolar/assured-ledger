@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
@@ -46,7 +47,7 @@ func NewTestPulsar(requestsTimeoutMs, pulseDelta int32) (TestPulsar, error) {
 }
 
 type testPulsar struct {
-	distributor insolar.PulseDistributor
+	distributor node.PulseDistributor
 	generator   entropygenerator.EntropyGenerator
 	cm          *component.Manager
 

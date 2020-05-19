@@ -18,7 +18,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
@@ -96,7 +95,7 @@ func generateNonConflictingID(sortedSlice []node2.ShortNodeID, conflictingID nod
 }
 
 // ExcludeOrigin returns DiscoveryNode slice without Origin
-func ExcludeOrigin(discoveryNodes []insolar.DiscoveryNode, origin reference.Global) []insolar.DiscoveryNode {
+func ExcludeOrigin(discoveryNodes []node2.DiscoveryNode, origin reference.Global) []node2.DiscoveryNode {
 	for i, discoveryNode := range discoveryNodes {
 		if origin.Equal(discoveryNode.GetNodeRef()) {
 			return append(discoveryNodes[:i], discoveryNodes[i+1:]...)
@@ -106,7 +105,7 @@ func ExcludeOrigin(discoveryNodes []insolar.DiscoveryNode, origin reference.Glob
 }
 
 // FindDiscoveryByRef tries to find discovery node in Certificate by reference
-func FindDiscoveryByRef(cert insolar.Certificate, ref reference.Global) insolar.DiscoveryNode {
+func FindDiscoveryByRef(cert node2.Certificate, ref reference.Global) node2.DiscoveryNode {
 	bNodes := cert.GetDiscoveryNodes()
 	for _, discoveryNode := range bNodes {
 		if ref.Equal(discoveryNode.GetNodeRef()) {
@@ -116,15 +115,15 @@ func FindDiscoveryByRef(cert insolar.Certificate, ref reference.Global) insolar.
 	return nil
 }
 
-func OriginIsDiscovery(cert insolar.Certificate) bool {
+func OriginIsDiscovery(cert node2.Certificate) bool {
 	return IsDiscovery(cert.GetNodeRef(), cert)
 }
 
-func IsDiscovery(nodeID reference.Global, cert insolar.Certificate) bool {
+func IsDiscovery(nodeID reference.Global, cert node2.Certificate) bool {
 	return FindDiscoveryByRef(cert, nodeID) != nil
 }
 
-func JoinAssistant(cert insolar.Certificate) insolar.DiscoveryNode {
+func JoinAssistant(cert node2.Certificate) node2.DiscoveryNode {
 	bNodes := cert.GetDiscoveryNodes()
 	if len(bNodes) == 0 {
 		return nil
@@ -138,7 +137,7 @@ func JoinAssistant(cert insolar.Certificate) insolar.DiscoveryNode {
 	return bNodes[0]
 }
 
-func IsJoinAssistant(nodeID reference.Global, cert insolar.Certificate) bool {
+func IsJoinAssistant(nodeID reference.Global, cert node2.Certificate) bool {
 	assist := JoinAssistant(cert)
 	if assist == nil {
 		return false
@@ -146,7 +145,7 @@ func IsJoinAssistant(nodeID reference.Global, cert insolar.Certificate) bool {
 	return nodeID.Equal(assist.GetNodeRef())
 }
 
-func OriginIsJoinAssistant(cert insolar.Certificate) bool {
+func OriginIsJoinAssistant(cert node2.Certificate) bool {
 	return IsJoinAssistant(cert.GetNodeRef(), cert)
 }
 
@@ -167,7 +166,7 @@ func IsConnectionClosed(err error) bool {
 }
 
 // FindDiscoveriesInNodeList returns only discovery nodes from active node list
-func FindDiscoveriesInNodeList(nodes []node2.NetworkNode, cert insolar.Certificate) []node2.NetworkNode {
+func FindDiscoveriesInNodeList(nodes []node2.NetworkNode, cert node2.Certificate) []node2.NetworkNode {
 	discovery := cert.GetDiscoveryNodes()
 	result := make([]node2.NetworkNode, 0)
 

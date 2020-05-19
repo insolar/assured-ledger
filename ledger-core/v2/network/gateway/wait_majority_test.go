@@ -44,7 +44,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	b.NodeKeeper = nodeKeeper
 
 	waitMajority := newWaitMajority(b)
-	assert.Equal(t, insolar.WaitMajority, waitMajority.GetState())
+	assert.Equal(t, node2.WaitMajority, waitMajority.GetState())
 	gatewayer := mock.NewGatewayerMock(mc)
 	gatewayer.GatewayMock.Set(func() network.Gateway {
 		return waitMajority
@@ -62,8 +62,8 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse) {
-		assert.Equal(t, insolar.WaitMinRoles, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse insolar.Pulse) {
+		assert.Equal(t, node2.WaitMinRoles, state)
 	})
 
 	ref := gen.Reference()

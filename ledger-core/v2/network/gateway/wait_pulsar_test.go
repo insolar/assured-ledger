@@ -49,7 +49,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	waitPulsar := newWaitPulsar(createBase(mc))
-	assert.Equal(t, insolar.WaitPulsar, waitPulsar.GetState())
+	assert.Equal(t, node2.WaitPulsar, waitPulsar.GetState())
 	gatewayer := mock.NewGatewayerMock(mc)
 	waitPulsar.Gatewayer = gatewayer
 	gatewayer.GatewayMock.Set(func() network.Gateway {
@@ -68,8 +68,8 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse) {
-		assert.Equal(t, insolar.CompleteNetworkState, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse insolar.Pulse) {
+		assert.Equal(t, node2.CompleteNetworkState, state)
 	})
 
 	pulseAccessor := mock.NewPulseAccessorMock(mc)

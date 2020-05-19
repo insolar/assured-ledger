@@ -38,7 +38,7 @@ type calculatorSuite struct {
 
 	pulse          *insolar.Pulse
 	originProvider network.OriginProvider
-	service        cryptography.CryptographyService
+	service        cryptography.Service
 
 	calculator Calculator
 }

@@ -48,8 +48,8 @@ func (g *Complete) Run(ctx context.Context, pulse insolar.Pulse) {
 	g.HostNetwork.RegisterRequestHandler(types.SignCert, g.signCertHandler)
 }
 
-func (g *Complete) GetState() insolar.NetworkState {
-	return insolar.CompleteNetworkState
+func (g *Complete) GetState() node2.NetworkState {
+	return node2.CompleteNetworkState
 }
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
@@ -60,7 +60,7 @@ func (g *Complete) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
 }
 
 // GetCert method generates cert by requesting signs from discovery nodes
-func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (insolar.Certificate, error) {
+func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (node2.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ GetCert ] Couldn't get node info")
@@ -83,7 +83,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 }
 
 // requestCertSign method requests sign from single discovery node
-func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
+func (g *Complete) requestCertSign(ctx context.Context, discoveryNode node2.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
 	currentNodeCert := g.CertificateManager.GetCertificate()
 
 	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {

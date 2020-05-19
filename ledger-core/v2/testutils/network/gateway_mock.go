@@ -9,7 +9,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -49,14 +48,14 @@ type GatewayMock struct {
 	beforeFailStateCounter uint64
 	FailStateMock          mGatewayMockFailState
 
-	funcGetState          func() (n1 insolar.NetworkState)
+	funcGetState          func() (n1 node.NetworkState)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
 	GetStateMock          mGatewayMockGetState
 
-	funcNewGateway          func(ctx context.Context, n1 insolar.NetworkState) (g1 mm_network.Gateway)
-	inspectFuncNewGateway   func(ctx context.Context, n1 insolar.NetworkState)
+	funcNewGateway          func(ctx context.Context, n1 node.NetworkState) (g1 mm_network.Gateway)
+	inspectFuncNewGateway   func(ctx context.Context, n1 node.NetworkState)
 	afterNewGatewayCounter  uint64
 	beforeNewGatewayCounter uint64
 	NewGatewayMock          mGatewayMockNewGateway
@@ -1019,7 +1018,7 @@ type GatewayMockGetStateExpectation struct {
 
 // GatewayMockGetStateResults contains results of the Gateway.GetState
 type GatewayMockGetStateResults struct {
-	n1 insolar.NetworkState
+	n1 node.NetworkState
 }
 
 // Expect sets up expected params for Gateway.GetState
@@ -1047,7 +1046,7 @@ func (mmGetState *mGatewayMockGetState) Inspect(f func()) *mGatewayMockGetState 
 }
 
 // Return sets up results that will be returned by Gateway.GetState
-func (mmGetState *mGatewayMockGetState) Return(n1 insolar.NetworkState) *GatewayMock {
+func (mmGetState *mGatewayMockGetState) Return(n1 node.NetworkState) *GatewayMock {
 	if mmGetState.mock.funcGetState != nil {
 		mmGetState.mock.t.Fatalf("GatewayMock.GetState mock is already set by Set")
 	}
@@ -1060,7 +1059,7 @@ func (mmGetState *mGatewayMockGetState) Return(n1 insolar.NetworkState) *Gateway
 }
 
 //Set uses given function f to mock the Gateway.GetState method
-func (mmGetState *mGatewayMockGetState) Set(f func() (n1 insolar.NetworkState)) *GatewayMock {
+func (mmGetState *mGatewayMockGetState) Set(f func() (n1 node.NetworkState)) *GatewayMock {
 	if mmGetState.defaultExpectation != nil {
 		mmGetState.mock.t.Fatalf("Default expectation is already set for the Gateway.GetState method")
 	}
@@ -1074,7 +1073,7 @@ func (mmGetState *mGatewayMockGetState) Set(f func() (n1 insolar.NetworkState)) 
 }
 
 // GetState implements network.Gateway
-func (mmGetState *GatewayMock) GetState() (n1 insolar.NetworkState) {
+func (mmGetState *GatewayMock) GetState() (n1 node.NetworkState) {
 	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
 
@@ -1166,7 +1165,7 @@ type GatewayMockNewGatewayExpectation struct {
 // GatewayMockNewGatewayParams contains parameters of the Gateway.NewGateway
 type GatewayMockNewGatewayParams struct {
 	ctx context.Context
-	n1  insolar.NetworkState
+	n1  node.NetworkState
 }
 
 // GatewayMockNewGatewayResults contains results of the Gateway.NewGateway
@@ -1175,7 +1174,7 @@ type GatewayMockNewGatewayResults struct {
 }
 
 // Expect sets up expected params for Gateway.NewGateway
-func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 insolar.NetworkState) *mGatewayMockNewGateway {
+func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 node.NetworkState) *mGatewayMockNewGateway {
 	if mmNewGateway.mock.funcNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("GatewayMock.NewGateway mock is already set by Set")
 	}
@@ -1195,7 +1194,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 insol
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.NewGateway
-func (mmNewGateway *mGatewayMockNewGateway) Inspect(f func(ctx context.Context, n1 insolar.NetworkState)) *mGatewayMockNewGateway {
+func (mmNewGateway *mGatewayMockNewGateway) Inspect(f func(ctx context.Context, n1 node.NetworkState)) *mGatewayMockNewGateway {
 	if mmNewGateway.mock.inspectFuncNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("Inspect function is already set for GatewayMock.NewGateway")
 	}
@@ -1219,7 +1218,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Return(g1 mm_network.Gateway) *Gatew
 }
 
 //Set uses given function f to mock the Gateway.NewGateway method
-func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 insolar.NetworkState) (g1 mm_network.Gateway)) *GatewayMock {
+func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 node.NetworkState) (g1 mm_network.Gateway)) *GatewayMock {
 	if mmNewGateway.defaultExpectation != nil {
 		mmNewGateway.mock.t.Fatalf("Default expectation is already set for the Gateway.NewGateway method")
 	}
@@ -1234,7 +1233,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 i
 
 // When sets expectation for the Gateway.NewGateway which will trigger the result defined by the following
 // Then helper
-func (mmNewGateway *mGatewayMockNewGateway) When(ctx context.Context, n1 insolar.NetworkState) *GatewayMockNewGatewayExpectation {
+func (mmNewGateway *mGatewayMockNewGateway) When(ctx context.Context, n1 node.NetworkState) *GatewayMockNewGatewayExpectation {
 	if mmNewGateway.mock.funcNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("GatewayMock.NewGateway mock is already set by Set")
 	}
@@ -1254,7 +1253,7 @@ func (e *GatewayMockNewGatewayExpectation) Then(g1 mm_network.Gateway) *GatewayM
 }
 
 // NewGateway implements network.Gateway
-func (mmNewGateway *GatewayMock) NewGateway(ctx context.Context, n1 insolar.NetworkState) (g1 mm_network.Gateway) {
+func (mmNewGateway *GatewayMock) NewGateway(ctx context.Context, n1 node.NetworkState) (g1 mm_network.Gateway) {
 	mm_atomic.AddUint64(&mmNewGateway.beforeNewGatewayCounter, 1)
 	defer mm_atomic.AddUint64(&mmNewGateway.afterNewGatewayCounter, 1)
 

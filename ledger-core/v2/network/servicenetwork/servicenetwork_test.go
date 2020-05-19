@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -235,7 +236,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	ctx := context.Background()
 	defer serviceNetwork.Stop(ctx)
 
-	cm.Inject(serviceNetwork, nk, certManager, testutils.NewCryptographyServiceMock(t), pulse.NewAccessorMock(t),
+	cm.Inject(serviceNetwork, nk, certManager, cryptography.NewServiceMock(t), pulse.NewAccessorMock(t),
 		testutils.NewTerminationHandlerMock(t), testutils.NewPulseManagerMock(t), &PublisherMock{}, &stater{},
 		testutils.NewPlatformCryptographyScheme(), testutils.NewKeyProcessorMock(t))
 	err = serviceNetwork.Init(ctx)

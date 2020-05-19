@@ -68,7 +68,7 @@ func (authCert *AuthorizationCertificate) SignNodePart(key crypto.PrivateKey) ([
 }
 
 // Deserialize deserializes data to AuthorizationCertificate interface
-func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (insolar.AuthorizationCertificate, error) {
+func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (node.AuthorizationCertificate, error) {
 	cert := &AuthorizationCertificate{}
 	err := insolar.Deserialize(data, cert)
 
@@ -88,7 +88,7 @@ func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (insolar.Author
 }
 
 // Serialize serializes AuthorizationCertificate interface
-func Serialize(authCert insolar.AuthorizationCertificate) ([]byte, error) {
+func Serialize(authCert node.AuthorizationCertificate) ([]byte, error) {
 	data, err := insolar.Serialize(authCert)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ AuthorizationCertificate::Serialize ]")

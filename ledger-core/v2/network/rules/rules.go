@@ -10,14 +10,13 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
 // CheckMajorityRule returns error if MajorityRule check not passed, also returns active discovery nodes count
-func CheckMajorityRule(cert insolar.Certificate, nodes []node.NetworkNode) (int, error) {
+func CheckMajorityRule(cert node.Certificate, nodes []node.NetworkNode) (int, error) {
 	majorityRule := cert.GetMajorityRule()
 	discoveriesInList := network.FindDiscoveriesInNodeList(nodes, cert)
 	activeDiscoveryNodesLen := len(discoveriesInList)
@@ -43,7 +42,7 @@ func CheckMajorityRule(cert insolar.Certificate, nodes []node.NetworkNode) (int,
 }
 
 // CheckMinRole returns true if MinRole check passed
-func CheckMinRole(cert insolar.Certificate, nodes []node.NetworkNode) error {
+func CheckMinRole(cert node.Certificate, nodes []node.NetworkNode) error {
 	var virtualCount, heavyCount, lightCount uint
 	for _, n := range nodes {
 		switch n.Role() {

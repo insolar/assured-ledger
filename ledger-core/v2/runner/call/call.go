@@ -17,7 +17,7 @@ type ID uint64
 // shouldn't be used in core components.
 type LogicContext struct {
 	ID   ID
-	Mode insolar.CallMode // either "execution" or "validation"
+	Mode Mode // either "execution" or "validation"
 
 	Request reference.Global // reference of incoming request record
 
@@ -56,3 +56,23 @@ func (t ContractCallType) String() string {
 		return "Unknown"
 	}
 }
+
+// Mode indicates whether we execute or validate
+type Mode int
+
+const (
+	Execute Mode = iota
+	Validate
+)
+
+func (m Mode) String() string {
+	switch m {
+	case Execute:
+		return "execute"
+	case Validate:
+		return "validate"
+	default:
+		return "unknown"
+	}
+}
+

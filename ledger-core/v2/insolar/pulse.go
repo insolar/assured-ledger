@@ -9,8 +9,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"strconv"
 
 	"github.com/pkg/errors"
 
@@ -56,30 +54,12 @@ func (entropy Entropy) Equal(other Entropy) bool {
 // If PulseNumber <65536 it is a relative PulseNumber
 type PulseNumber = pulse.Number
 
-func NewPulseNumberFromStr(pn string) (PulseNumber, error) {
-	i, err := strconv.ParseUint(pn, 10, 32)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to parse pulse number")
-	}
-	return PulseNumber(i), nil
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseManager -o ../testutils -s _mock.go -g
 
 // PulseManager provides Ledger's methods related to Pulse.
 type PulseManager interface {
 	// Set set's new pulse and closes current jet drop. If dry is true, nothing will be saved to storage.
 	Set(ctx context.Context, pulse Pulse) error
-}
-
-// PulseRange represents range of pulses.
-type PulseRange struct {
-	Begin PulseNumber
-	End   PulseNumber
-}
-
-func (pr *PulseRange) String() string {
-	return fmt.Sprintf("[%v:%v]", pr.Begin, pr.End)
 }
 
 // Pulse is base data structure for a pulse.

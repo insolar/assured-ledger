@@ -30,7 +30,7 @@ import (
 )
 
 // NewNodeNetwork create active node component
-func NewNodeNetwork(configuration configuration.Transport, certificate insolar.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
+func NewNodeNetwork(configuration configuration.Transport, certificate node2.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
 	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create origin node")
@@ -42,7 +42,7 @@ func NewNodeNetwork(configuration configuration.Transport, certificate insolar.C
 	return nodeKeeper, nil
 }
 
-func createOrigin(configuration configuration.Transport, certificate insolar.Certificate) (node2.NetworkNode, error) {
+func createOrigin(configuration configuration.Transport, certificate node2.Certificate) (node2.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to resolve public address")

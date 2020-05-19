@@ -6,7 +6,6 @@
 package rpctypes
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -50,7 +49,7 @@ type DownCallConstructorResp struct {
 
 // UpBaseReq  is a base type for all insgorund -> logicrunner requests
 type UpBaseReq struct {
-	Mode            insolar.CallMode
+	Mode            call.Mode
 	Callee          reference.Global
 	CalleePrototype reference.Global
 	Request         reference.Global

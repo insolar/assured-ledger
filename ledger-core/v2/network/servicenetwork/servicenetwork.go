@@ -36,7 +36,7 @@ type ServiceNetwork struct {
 	cm  *component.Manager
 
 	// dependencies
-	CertificateManager insolar.CertificateManager `inject:""`
+	CertificateManager node.CertificateManager `inject:""`
 
 	// watermill support interfaces
 	Pub message.Publisher `inject:""`
@@ -77,7 +77,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
-	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, insolar.NoNetworkState))
+	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, node.NoNetworkState))
 
 	table := &routing.Table{}
 
@@ -151,6 +151,6 @@ func (n *ServiceNetwork) GetAccessor(p insolar.PulseNumber) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
-func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (insolar.Certificate, error) {
+func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (node.Certificate, error) {
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }

@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
 func TestNodeService_GetSeed(t *testing.T) {
@@ -29,7 +28,7 @@ func TestNodeService_GetSeed(t *testing.T) {
 
 	availableFlag := false
 	mc := minimock.NewController(t)
-	checker := testutils.NewAvailabilityCheckerMock(mc)
+	checker := NewAvailabilityCheckerMock(mc)
 	checker = checker.IsAvailableMock.Set(func(ctx context.Context) (b1 bool) {
 		return availableFlag
 	})

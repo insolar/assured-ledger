@@ -11,26 +11,26 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
 
 // CertificateManager is a component for working with current node certificate
 type CertificateManager struct { // nolint:golint
-	certificate insolar.Certificate
+	certificate node.Certificate
 }
 
 // NewCertificateManager returns new CertificateManager instance
-func NewCertificateManager(cert insolar.Certificate) *CertificateManager {
+func NewCertificateManager(cert node.Certificate) *CertificateManager {
 	return &CertificateManager{certificate: cert}
 }
 
 // GetCertificate returns current node certificate
-func (m *CertificateManager) GetCertificate() insolar.Certificate {
+func (m *CertificateManager) GetCertificate() node.Certificate {
 	return m.certificate
 }
 
 // VerifyAuthorizationCertificate verifies certificate from some node
-func VerifyAuthorizationCertificate(cs cryptography.CryptographyService, discoveryNodes []insolar.DiscoveryNode, authCert insolar.AuthorizationCertificate) (bool, error) {
+func VerifyAuthorizationCertificate(cs cryptography.Service, discoveryNodes []node.DiscoveryNode, authCert node.AuthorizationCertificate) (bool, error) {
 	if len(discoveryNodes) != len(authCert.GetDiscoverySigns()) {
 		return false, nil
 	}
@@ -46,7 +46,7 @@ func VerifyAuthorizationCertificate(cs cryptography.CryptographyService, discove
 }
 
 // NewUnsignedCertificate creates new unsigned certificate by copying
-func NewUnsignedCertificate(baseCert insolar.Certificate, pKey string, role string, ref string) (insolar.Certificate, error) {
+func NewUnsignedCertificate(baseCert node.Certificate, pKey string, role string, ref string) (node.Certificate, error) {
 	cert := baseCert.(*Certificate)
 	newCert := Certificate{
 		MajorityRule: cert.MajorityRule,

@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -393,14 +392,14 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	switch s.executionNewState.Result.Type() {
-	case insolar.RequestSideEffectNone:
-	case insolar.RequestSideEffectActivate:
+	case requestresult.SideEffectNone:
+	case requestresult.SideEffectActivate:
 		_, prototype, memory = executionNewState.Activate()
 		action = s.setNewState(prototype, memory)
-	case insolar.RequestSideEffectAmend:
+	case requestresult.SideEffectAmend:
 		_, prototype, memory = executionNewState.Amend()
 		action = s.setNewState(prototype, memory)
-	case insolar.RequestSideEffectDeactivate:
+	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())

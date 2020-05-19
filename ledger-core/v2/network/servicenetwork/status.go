@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
 
 var startTime time.Time
 
-func (n *ServiceNetwork) GetNetworkStatus() insolar.StatusReply {
-	var reply insolar.StatusReply
+func (n *ServiceNetwork) GetNetworkStatus() node.StatusReply {
+	var reply node.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
 	np, err := n.PulseAccessor.GetLatestPulse(context.Background())

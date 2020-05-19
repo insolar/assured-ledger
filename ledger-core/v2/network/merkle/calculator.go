@@ -24,7 +24,7 @@ type calculator struct {
 	Stater                     stater                                  `inject:""`
 	OriginProvider             network.OriginProvider                  `inject:""` // nolint
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
-	CryptographyService        cryptography.CryptographyService        `inject:""`
+	CryptographyService        cryptography.Service                    `inject:""`
 
 	merkleHelper *merkleHelper
 }

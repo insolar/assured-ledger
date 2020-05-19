@@ -149,19 +149,19 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse)
+	SwitchState(ctx context.Context, state node.NetworkState, pulse insolar.Pulse)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gateway -o ../testutils/network -s _mock.go -g
 
 // Gateway responds for whole network state
 type Gateway interface {
-	NewGateway(context.Context, insolar.NetworkState) Gateway
+	NewGateway(context.Context, node.NetworkState) Gateway
 
 	BeforeRun(ctx context.Context, pulse insolar.Pulse)
 	Run(ctx context.Context, pulse insolar.Pulse)
 
-	GetState() insolar.NetworkState
+	GetState() node.NetworkState
 
 	OnPulseFromConsensus(context.Context, insolar.Pulse)
 	OnConsensusFinished(ctx context.Context, report Report)
@@ -178,10 +178,10 @@ type Gateway interface {
 
 type Auther interface {
 	// GetCert returns certificate object by node reference, using discovery nodes for signing
-	GetCert(context.Context, reference.Global) (insolar.Certificate, error)
+	GetCert(context.Context, reference.Global) (node.Certificate, error)
 	// ValidateCert checks certificate signature
 	// TODO make this cert.validate()
-	ValidateCert(context.Context, insolar.AuthorizationCertificate) (bool, error)
+	ValidateCert(context.Context, node.AuthorizationCertificate) (bool, error)
 }
 
 // Bootstrapper interface used to change behavior of handlers in different network states

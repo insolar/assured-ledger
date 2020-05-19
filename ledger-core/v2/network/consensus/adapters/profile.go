@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
@@ -95,7 +94,7 @@ type StaticProfile struct {
 	signature cryptkit.SignedDigestHolder
 }
 
-func NewStaticProfile(networkNode node2.NetworkNode, certificate insolar.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
+func NewStaticProfile(networkNode node2.NetworkNode, certificate node2.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
 
 	specialRole := member.SpecialRoleNone
 	if network.IsDiscovery(networkNode.ID(), certificate) {
@@ -230,7 +229,7 @@ func (p *Outbound) AsByteString() longbits.ByteString {
 	return longbits.ByteString(p.addr.String())
 }
 
-func NewStaticProfileList(nodes []node2.NetworkNode, certificate insolar.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {
+func NewStaticProfileList(nodes []node2.NetworkNode, certificate node2.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {
 	intros := make([]profiles.StaticProfile, len(nodes))
 	for i, n := range nodes {
 		intros[i] = NewStaticProfile(n, certificate, keyProcessor)

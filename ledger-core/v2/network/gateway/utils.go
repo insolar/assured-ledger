@@ -93,7 +93,7 @@ func getAnnounceSignature(
 	return digest, sign, nil
 }
 
-func getKeyStore(cryptographyService cryptography.CryptographyService) cryptography.KeyStore {
+func getKeyStore(cryptographyService cryptography.Service) cryptography.KeyStore {
 	// TODO: hacked
 	return cryptographyService.(*platformpolicy.NodeCryptographyService).KeyStore
 }

@@ -160,7 +160,7 @@ func (s *consensusSuite) Setup() {
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, insolar.CompleteNetworkState, *insolar.GenesisPulse)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState, *insolar.GenesisPulse)
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
 	}
@@ -325,7 +325,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
 	var nodes []node2.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
-		require.Equal(s.t, insolar.CompleteNetworkState.String(),
+		require.Equal(s.t, node2.CompleteNetworkState.String(),
 			n.serviceNetwork.Gatewayer.Gateway().GetState().String(),
 			"Node not in CompleteNetworkState",
 		)
@@ -412,7 +412,7 @@ type networkNode struct {
 	id                  reference.Global
 	role                node2.StaticRole
 	privateKey          crypto.PrivateKey
-	cryptographyService cryptography.CryptographyService
+	cryptographyService cryptography.Service
 	host                string
 	ctx                 context.Context
 
@@ -477,7 +477,7 @@ func (n *networkNode) GetWorkingNodes() []node2.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
 }
 
-func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManager, cryptography.CryptographyService) {
+func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManager, cryptography.Service) {
 	pubKey, err := node.cryptographyService.GetPublicKey()
 	require.NoError(s.t, err)
 

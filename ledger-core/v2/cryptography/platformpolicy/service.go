@@ -49,11 +49,11 @@ func (cs *NodeCryptographyService) Verify(publicKey crypto.PublicKey, signature 
 	return cs.PlatformCryptographyScheme.DataVerifier(publicKey, cs.PlatformCryptographyScheme.IntegrityHasher()).Verify(signature, payload)
 }
 
-func NewCryptographyService() cryptography.CryptographyService {
+func NewCryptographyService() cryptography.Service {
 	return &NodeCryptographyService{}
 }
 
-func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) cryptography.CryptographyService {
+func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) cryptography.Service {
 	platformCryptographyScheme := NewPlatformCryptographyScheme()
 	keyStore := keystore.NewInplaceKeyStore(privateKey)
 	keyProcessor := NewKeyProcessor()
@@ -66,7 +66,7 @@ func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) cryptography.C
 	return cryptographyService
 }
 
-func NewStorageBoundCryptographyService(path string) (cryptography.CryptographyService, error) {
+func NewStorageBoundCryptographyService(path string) (cryptography.Service, error) {
 	platformCryptographyScheme := NewPlatformCryptographyScheme()
 	keyStore, err := keystore.NewKeyStore(path)
 	if err != nil {

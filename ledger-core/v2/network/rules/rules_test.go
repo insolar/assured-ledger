@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
@@ -47,7 +46,7 @@ func TestRules_CheckMajorityRule(t *testing.T) {
 	discNodesCount := 5
 	netNodes, discoveryNodes := getDiscoveryNodes(discNodesCount)
 	cert := testutils.NewCertificateMock(t)
-	cert.GetDiscoveryNodesMock.Set(func() (r []insolar.DiscoveryNode) {
+	cert.GetDiscoveryNodesMock.Set(func() (r []node2.DiscoveryNode) {
 		return discoveryNodes
 	})
 	cert.GetMajorityRuleMock.Set(func() (r int) {
@@ -64,9 +63,9 @@ func TestRules_CheckMajorityRule(t *testing.T) {
 	require.Equal(t, len(netNodes), count)
 }
 
-func getDiscoveryNodes(count int) ([]node2.NetworkNode, []insolar.DiscoveryNode) {
+func getDiscoveryNodes(count int) ([]node2.NetworkNode, []node2.DiscoveryNode) {
 	netNodes := make([]node2.NetworkNode, count)
-	discoveryNodes := make([]insolar.DiscoveryNode, count)
+	discoveryNodes := make([]node2.DiscoveryNode, count)
 	for i := 0; i < count; i++ {
 		n := newNode(gen.Reference(), i)
 		d := certificate.NewBootstrapNode(nil, "", n.Address(), n.ID().String(), n.Role().String())

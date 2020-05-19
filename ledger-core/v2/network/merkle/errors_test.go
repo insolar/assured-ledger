@@ -33,7 +33,7 @@ type calculatorErrorSuite struct {
 
 	pulse          *insolar.Pulse
 	originProvider network.OriginProvider
-	service        cryptography.CryptographyService
+	service        cryptography.Service
 
 	calculator Calculator
 }
@@ -127,7 +127,7 @@ func TestCalculatorError(t *testing.T) {
 	key, _ := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NotNil(t, key)
 
-	service := testutils.NewCryptographyServiceMock(t)
+	service := cryptography.NewServiceMock(t)
 	service.SignMock.Set(func(p []byte) (r *cryptography.Signature, r1 error) {
 		return nil, errors.New("Sign error")
 	})

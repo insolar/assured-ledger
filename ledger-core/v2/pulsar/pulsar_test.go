@@ -31,7 +31,7 @@ func TestPulsar_Send(t *testing.T) {
 	})
 
 	pcs := platformpolicy.NewPlatformCryptographyScheme()
-	crypto := testutils.NewCryptographyServiceMock(t)
+	crypto := cryptography.NewServiceMock(t)
 	crypto.SignMock.Return(&cryptography.Signature{}, nil)
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()

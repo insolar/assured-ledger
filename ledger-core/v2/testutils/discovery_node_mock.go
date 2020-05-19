@@ -8,12 +8,11 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	mm_node "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-// DiscoveryNodeMock implements insolar.DiscoveryNode
+// DiscoveryNodeMock implements node.DiscoveryNode
 type DiscoveryNodeMock struct {
 	t minimock.Tester
 
@@ -35,14 +34,14 @@ type DiscoveryNodeMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mDiscoveryNodeMockGetPublicKey
 
-	funcGetRole          func() (s1 node.StaticRole)
+	funcGetRole          func() (s1 mm_node.StaticRole)
 	inspectFuncGetRole   func()
 	afterGetRoleCounter  uint64
 	beforeGetRoleCounter uint64
 	GetRoleMock          mDiscoveryNodeMockGetRole
 }
 
-// NewDiscoveryNodeMock returns a mock for insolar.DiscoveryNode
+// NewDiscoveryNodeMock returns a mock for node.DiscoveryNode
 func NewDiscoveryNodeMock(t minimock.Tester) *DiscoveryNodeMock {
 	m := &DiscoveryNodeMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -130,7 +129,7 @@ func (mmGetHost *mDiscoveryNodeMockGetHost) Set(f func() (s1 string)) *Discovery
 	return mmGetHost.mock
 }
 
-// GetHost implements insolar.DiscoveryNode
+// GetHost implements node.DiscoveryNode
 func (mmGetHost *DiscoveryNodeMock) GetHost() (s1 string) {
 	mm_atomic.AddUint64(&mmGetHost.beforeGetHostCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetHost.afterGetHostCounter, 1)
@@ -273,7 +272,7 @@ func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Set(f func() (g1 reference.Glo
 	return mmGetNodeRef.mock
 }
 
-// GetNodeRef implements insolar.DiscoveryNode
+// GetNodeRef implements node.DiscoveryNode
 func (mmGetNodeRef *DiscoveryNodeMock) GetNodeRef() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetNodeRef.beforeGetNodeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeRef.afterGetNodeRefCounter, 1)
@@ -416,7 +415,7 @@ func (mmGetPublicKey *mDiscoveryNodeMockGetPublicKey) Set(f func() (p1 crypto.Pu
 	return mmGetPublicKey.mock
 }
 
-// GetPublicKey implements insolar.DiscoveryNode
+// GetPublicKey implements node.DiscoveryNode
 func (mmGetPublicKey *DiscoveryNodeMock) GetPublicKey() (p1 crypto.PublicKey) {
 	mm_atomic.AddUint64(&mmGetPublicKey.beforeGetPublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPublicKey.afterGetPublicKeyCounter, 1)
@@ -505,7 +504,7 @@ type DiscoveryNodeMockGetRoleExpectation struct {
 
 // DiscoveryNodeMockGetRoleResults contains results of the DiscoveryNode.GetRole
 type DiscoveryNodeMockGetRoleResults struct {
-	s1 node.StaticRole
+	s1 mm_node.StaticRole
 }
 
 // Expect sets up expected params for DiscoveryNode.GetRole
@@ -533,7 +532,7 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Inspect(f func()) *mDiscoveryNodeMoc
 }
 
 // Return sets up results that will be returned by DiscoveryNode.GetRole
-func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 node.StaticRole) *DiscoveryNodeMock {
+func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 mm_node.StaticRole) *DiscoveryNodeMock {
 	if mmGetRole.mock.funcGetRole != nil {
 		mmGetRole.mock.t.Fatalf("DiscoveryNodeMock.GetRole mock is already set by Set")
 	}
@@ -546,7 +545,7 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 node.StaticRole) *Discover
 }
 
 //Set uses given function f to mock the DiscoveryNode.GetRole method
-func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 node.StaticRole)) *DiscoveryNodeMock {
+func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 mm_node.StaticRole)) *DiscoveryNodeMock {
 	if mmGetRole.defaultExpectation != nil {
 		mmGetRole.mock.t.Fatalf("Default expectation is already set for the DiscoveryNode.GetRole method")
 	}
@@ -559,8 +558,8 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 node.StaticRole)) *
 	return mmGetRole.mock
 }
 
-// GetRole implements insolar.DiscoveryNode
-func (mmGetRole *DiscoveryNodeMock) GetRole() (s1 node.StaticRole) {
+// GetRole implements node.DiscoveryNode
+func (mmGetRole *DiscoveryNodeMock) GetRole() (s1 mm_node.StaticRole) {
 	mm_atomic.AddUint64(&mmGetRole.beforeGetRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRole.afterGetRoleCounter, 1)
 

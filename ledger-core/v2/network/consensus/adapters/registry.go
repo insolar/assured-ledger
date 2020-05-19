@@ -8,6 +8,7 @@ package adapters
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
@@ -58,11 +59,11 @@ func (mr *MandateRegistry) GetPrimingCloudHash() proofs.CloudStateHash {
 type OfflinePopulation struct {
 	// TODO: should't use nodekeeper here.
 	nodeKeeper   network.NodeKeeper
-	manager      insolar.CertificateManager
+	manager      node.CertificateManager
 	keyProcessor cryptography.KeyProcessor
 }
 
-func NewOfflinePopulation(nodeKeeper network.NodeKeeper, manager insolar.CertificateManager, keyProcessor cryptography.KeyProcessor) *OfflinePopulation {
+func NewOfflinePopulation(nodeKeeper network.NodeKeeper, manager node.CertificateManager, keyProcessor cryptography.KeyProcessor) *OfflinePopulation {
 	return &OfflinePopulation{
 		nodeKeeper:   nodeKeeper,
 		manager:      manager,

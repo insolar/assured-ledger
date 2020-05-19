@@ -49,8 +49,8 @@ func (w mockResponseWriter) WriteHeader(statusCode int) {
 	w.header["status"] = []string{strconv.Itoa(statusCode)}
 }
 
-func randomNodeList(t *testing.T, size int) []insolar.DiscoveryNode {
-	list := make([]insolar.DiscoveryNode, size)
+func randomNodeList(t *testing.T, size int) []node.DiscoveryNode {
+	list := make([]node.DiscoveryNode, size)
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
 		r := gen.Reference()
@@ -62,11 +62,11 @@ func randomNodeList(t *testing.T, size int) []insolar.DiscoveryNode {
 	return list
 }
 
-func mockCertManager(t *testing.T, nodeList []insolar.DiscoveryNode) *testutils.CertificateManagerMock {
+func mockCertManager(t *testing.T, nodeList []node.DiscoveryNode) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
-	cm.GetCertificateMock.Set(func() insolar.Certificate {
+	cm.GetCertificateMock.Set(func() node.Certificate {
 		c := testutils.NewCertificateMock(t)
-		c.GetDiscoveryNodesMock.Set(func() []insolar.DiscoveryNode {
+		c.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode {
 			return nodeList
 		})
 		return c
@@ -74,9 +74,9 @@ func mockCertManager(t *testing.T, nodeList []insolar.DiscoveryNode) *testutils.
 	return cm
 }
 
-func mockNodeNetwork(t *testing.T, nodeList []insolar.DiscoveryNode) *network.NodeNetworkMock {
+func mockNodeNetwork(t *testing.T, nodeList []node.DiscoveryNode) *network.NodeNetworkMock {
 	nn := network.NewNodeNetworkMock(t)
-	nodeMap := make(map[reference.Global]insolar.DiscoveryNode)
+	nodeMap := make(map[reference.Global]node.DiscoveryNode)
 	for _, node := range nodeList {
 		nodeMap[node.GetNodeRef()] = node
 	}

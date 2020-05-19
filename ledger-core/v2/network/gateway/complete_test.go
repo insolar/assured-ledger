@@ -28,8 +28,8 @@ import (
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
-func mockCryptographyService(t *testing.T, ok bool) cryptography.CryptographyService {
-	cs := testutils.NewCryptographyServiceMock(t)
+func mockCryptographyService(t *testing.T, ok bool) cryptography.Service {
+	cs := cryptography.NewServiceMock(t)
 	cs.SignMock.Set(func(data []byte) (*cryptography.Signature, error) {
 		if ok {
 			sig := cryptography.SignatureFromBytes([]byte("test_sig"))
@@ -42,7 +42,7 @@ func mockCryptographyService(t *testing.T, ok bool) cryptography.CryptographySer
 
 func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discoveryNodeRef reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
-	cm.GetCertificateMock.Set(func() insolar.Certificate {
+	cm.GetCertificateMock.Set(func() node.Certificate {
 		return &certificate.Certificate{
 			AuthorizationCertificate: certificate.AuthorizationCertificate{
 				PublicKey: "test_public_key",
@@ -107,7 +107,7 @@ func TestComplete_GetCert(t *testing.T) {
 		PulseManager:        pm,
 		PulseAccessor:       pa,
 	})
-	ge = ge.NewGateway(context.Background(), insolar.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
 	ctx := context.Background()
 
 	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
@@ -158,7 +158,7 @@ func TestComplete_handler(t *testing.T) {
 		PulseAccessor:       pa,
 	})
 
-	ge = ge.NewGateway(context.Background(), insolar.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
 	ctx := context.Background()
 	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
 

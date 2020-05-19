@@ -109,7 +109,7 @@ type calculatorHashesSuite struct {
 
 	pulse          *insolar.Pulse
 	originProvider network.OriginProvider
-	service        cryptography.CryptographyService
+	service        cryptography.Service
 
 	calculator Calculator
 }
@@ -120,7 +120,7 @@ func TestCalculatorHashes(t *testing.T) {
 	key, _ := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NotNil(t, key)
 
-	service := testutils.NewCryptographyServiceMock(t)
+	service := cryptography.NewServiceMock(t)
 	service.SignMock.Set(func(p []byte) (r *cryptography.Signature, r1 error) {
 		signature := cryptography.SignatureFromBytes([]byte("signature"))
 		return &signature, nil

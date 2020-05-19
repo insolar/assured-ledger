@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
@@ -61,7 +60,7 @@ func TestCorrectShortIDCollision(t *testing.T) {
 	require.Equal(t, node2.ShortNodeID(2), regenerateShortID(nodes, node2.ShortNodeID(1<<32-2)))
 }
 
-var _ insolar.DiscoveryNode = testNode{}
+var _ node2.DiscoveryNode = testNode{}
 
 type testNode struct {
 	ref reference.Global
@@ -97,32 +96,32 @@ func TestExcludeOrigin(t *testing.T) {
 	first := testNode{gen.Reference()}
 	second := testNode{gen.Reference()}
 
-	discoveryNodes := []insolar.DiscoveryNode{first, originNode, second}
+	discoveryNodes := []node2.DiscoveryNode{first, originNode, second}
 	result := ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{first, second}
+	discoveryNodes = []node2.DiscoveryNode{first, second}
 	result = ExcludeOrigin(discoveryNodes, origin)
 	assert.Equal(t, discoveryNodes, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{first, originNode}
+	discoveryNodes = []node2.DiscoveryNode{first, originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{originNode, first}
+	discoveryNodes = []node2.DiscoveryNode{originNode, first}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{originNode}
+	discoveryNodes = []node2.DiscoveryNode{originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
 	assert.Empty(t, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{originNode, first, second}
+	discoveryNodes = []node2.DiscoveryNode{originNode, first, second}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{first, second, originNode}
+	discoveryNodes = []node2.DiscoveryNode{first, second, originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
 
 }

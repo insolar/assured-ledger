@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 
 	"github.com/stretchr/testify/require"
 
@@ -47,7 +48,7 @@ func TestSwitch(t *testing.T) {
 	gatewayer.GatewayMock.Set(func() (g1 network.Gateway) {
 		return ge
 	})
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse insolar.Pulse) {
 		ge = ge.NewGateway(ctx, state)
 	})
 	gilreleased := false
@@ -56,8 +57,8 @@ func TestSwitch(t *testing.T) {
 	require.False(t, gilreleased)
 	cref := gen.Reference()
 
-	for _, state := range []insolar.NetworkState{insolar.NoNetworkState,
-		insolar.JoinerBootstrap, insolar.CompleteNetworkState} {
+	for _, state := range []node.NetworkState{node.NoNetworkState,
+		node.JoinerBootstrap, node.CompleteNetworkState} {
 		ge = ge.NewGateway(ctx, state)
 		require.Equal(t, state, ge.GetState())
 		ge.Run(ctx, *insolar.EphemeralPulse)
@@ -90,7 +91,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 
 	// ge := newNoNetwork(gatewayer, pm,
 	//	nodekeeper, CR,
-	//	testutils.NewCryptographyServiceMock(t),
+	//	testutils.NewServiceMock(t),
 	//	testnet.NewHostNetworkMock(t),
 	//	CM)
 
@@ -100,7 +101,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	ge.Run(ctx, *insolar.EphemeralPulse)
 
 	gatewayer.GatewayMock.Set(func() (r network.Gateway) { return ge })
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse insolar.Pulse) {
 		ge = ge.NewGateway(ctx, state)
 	})
 	gilreleased := false
@@ -123,7 +124,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	// 	}, nil, nil
 	// })
 
-	CM.GetCertificateMock.Set(func() (r insolar.Certificate) { return &certificate.Certificate{} })
+	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &certificate.Certificate{} })
 	cert, err := ge.Auther().GetCert(ctx, cref)
 
 	require.NoError(t, err)
