@@ -28,8 +28,8 @@ type CatalogMock struct {
 	beforeGetCounter uint64
 	GetMock          mCatalogMockGet
 
-	funcGetOrCreate          func(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason) (s1 SharedStateAccessor)
-	inspectFuncGetOrCreate   func(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason)
+	funcGetOrCreate          func(e1 smachine.ExecutionContext, objectReference reference.Global) (s1 SharedStateAccessor)
+	inspectFuncGetOrCreate   func(e1 smachine.ExecutionContext, objectReference reference.Global)
 	afterGetOrCreateCounter  uint64
 	beforeGetOrCreateCounter uint64
 	GetOrCreateMock          mCatalogMockGetOrCreate
@@ -516,7 +516,6 @@ type CatalogMockGetOrCreateExpectation struct {
 type CatalogMockGetOrCreateParams struct {
 	e1              smachine.ExecutionContext
 	objectReference reference.Global
-	reason          InitReason
 }
 
 // CatalogMockGetOrCreateResults contains results of the Catalog.GetOrCreate
@@ -525,7 +524,7 @@ type CatalogMockGetOrCreateResults struct {
 }
 
 // Expect sets up expected params for Catalog.GetOrCreate
-func (mmGetOrCreate *mCatalogMockGetOrCreate) Expect(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason) *mCatalogMockGetOrCreate {
+func (mmGetOrCreate *mCatalogMockGetOrCreate) Expect(e1 smachine.ExecutionContext, objectReference reference.Global) *mCatalogMockGetOrCreate {
 	if mmGetOrCreate.mock.funcGetOrCreate != nil {
 		mmGetOrCreate.mock.t.Fatalf("CatalogMock.GetOrCreate mock is already set by Set")
 	}
@@ -534,7 +533,7 @@ func (mmGetOrCreate *mCatalogMockGetOrCreate) Expect(e1 smachine.ExecutionContex
 		mmGetOrCreate.defaultExpectation = &CatalogMockGetOrCreateExpectation{}
 	}
 
-	mmGetOrCreate.defaultExpectation.params = &CatalogMockGetOrCreateParams{e1, objectReference, reason}
+	mmGetOrCreate.defaultExpectation.params = &CatalogMockGetOrCreateParams{e1, objectReference}
 	for _, e := range mmGetOrCreate.expectations {
 		if minimock.Equal(e.params, mmGetOrCreate.defaultExpectation.params) {
 			mmGetOrCreate.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetOrCreate.defaultExpectation.params)
@@ -545,7 +544,7 @@ func (mmGetOrCreate *mCatalogMockGetOrCreate) Expect(e1 smachine.ExecutionContex
 }
 
 // Inspect accepts an inspector function that has same arguments as the Catalog.GetOrCreate
-func (mmGetOrCreate *mCatalogMockGetOrCreate) Inspect(f func(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason)) *mCatalogMockGetOrCreate {
+func (mmGetOrCreate *mCatalogMockGetOrCreate) Inspect(f func(e1 smachine.ExecutionContext, objectReference reference.Global)) *mCatalogMockGetOrCreate {
 	if mmGetOrCreate.mock.inspectFuncGetOrCreate != nil {
 		mmGetOrCreate.mock.t.Fatalf("Inspect function is already set for CatalogMock.GetOrCreate")
 	}
@@ -569,7 +568,7 @@ func (mmGetOrCreate *mCatalogMockGetOrCreate) Return(s1 SharedStateAccessor) *Ca
 }
 
 //Set uses given function f to mock the Catalog.GetOrCreate method
-func (mmGetOrCreate *mCatalogMockGetOrCreate) Set(f func(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason) (s1 SharedStateAccessor)) *CatalogMock {
+func (mmGetOrCreate *mCatalogMockGetOrCreate) Set(f func(e1 smachine.ExecutionContext, objectReference reference.Global) (s1 SharedStateAccessor)) *CatalogMock {
 	if mmGetOrCreate.defaultExpectation != nil {
 		mmGetOrCreate.mock.t.Fatalf("Default expectation is already set for the Catalog.GetOrCreate method")
 	}
@@ -584,14 +583,14 @@ func (mmGetOrCreate *mCatalogMockGetOrCreate) Set(f func(e1 smachine.ExecutionCo
 
 // When sets expectation for the Catalog.GetOrCreate which will trigger the result defined by the following
 // Then helper
-func (mmGetOrCreate *mCatalogMockGetOrCreate) When(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason) *CatalogMockGetOrCreateExpectation {
+func (mmGetOrCreate *mCatalogMockGetOrCreate) When(e1 smachine.ExecutionContext, objectReference reference.Global) *CatalogMockGetOrCreateExpectation {
 	if mmGetOrCreate.mock.funcGetOrCreate != nil {
 		mmGetOrCreate.mock.t.Fatalf("CatalogMock.GetOrCreate mock is already set by Set")
 	}
 
 	expectation := &CatalogMockGetOrCreateExpectation{
 		mock:   mmGetOrCreate.mock,
-		params: &CatalogMockGetOrCreateParams{e1, objectReference, reason},
+		params: &CatalogMockGetOrCreateParams{e1, objectReference},
 	}
 	mmGetOrCreate.expectations = append(mmGetOrCreate.expectations, expectation)
 	return expectation
@@ -604,15 +603,15 @@ func (e *CatalogMockGetOrCreateExpectation) Then(s1 SharedStateAccessor) *Catalo
 }
 
 // GetOrCreate implements Catalog
-func (mmGetOrCreate *CatalogMock) GetOrCreate(e1 smachine.ExecutionContext, objectReference reference.Global, reason InitReason) (s1 SharedStateAccessor) {
+func (mmGetOrCreate *CatalogMock) GetOrCreate(e1 smachine.ExecutionContext, objectReference reference.Global) (s1 SharedStateAccessor) {
 	mm_atomic.AddUint64(&mmGetOrCreate.beforeGetOrCreateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetOrCreate.afterGetOrCreateCounter, 1)
 
 	if mmGetOrCreate.inspectFuncGetOrCreate != nil {
-		mmGetOrCreate.inspectFuncGetOrCreate(e1, objectReference, reason)
+		mmGetOrCreate.inspectFuncGetOrCreate(e1, objectReference)
 	}
 
-	mm_params := &CatalogMockGetOrCreateParams{e1, objectReference, reason}
+	mm_params := &CatalogMockGetOrCreateParams{e1, objectReference}
 
 	// Record call args
 	mmGetOrCreate.GetOrCreateMock.mutex.Lock()
@@ -629,7 +628,7 @@ func (mmGetOrCreate *CatalogMock) GetOrCreate(e1 smachine.ExecutionContext, obje
 	if mmGetOrCreate.GetOrCreateMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmGetOrCreate.GetOrCreateMock.defaultExpectation.Counter, 1)
 		mm_want := mmGetOrCreate.GetOrCreateMock.defaultExpectation.params
-		mm_got := CatalogMockGetOrCreateParams{e1, objectReference, reason}
+		mm_got := CatalogMockGetOrCreateParams{e1, objectReference}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmGetOrCreate.t.Errorf("CatalogMock.GetOrCreate got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -641,9 +640,9 @@ func (mmGetOrCreate *CatalogMock) GetOrCreate(e1 smachine.ExecutionContext, obje
 		return (*mm_results).s1
 	}
 	if mmGetOrCreate.funcGetOrCreate != nil {
-		return mmGetOrCreate.funcGetOrCreate(e1, objectReference, reason)
+		return mmGetOrCreate.funcGetOrCreate(e1, objectReference)
 	}
-	mmGetOrCreate.t.Fatalf("Unexpected call to CatalogMock.GetOrCreate. %v %v %v", e1, objectReference, reason)
+	mmGetOrCreate.t.Fatalf("Unexpected call to CatalogMock.GetOrCreate. %v %v", e1, objectReference)
 	return
 }
 
