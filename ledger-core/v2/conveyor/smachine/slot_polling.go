@@ -78,7 +78,7 @@ func (p *PollingQueue) growPollingSlots() {
 	cp := make([]*poll, sLen, sLen+sizeInc)
 	if p.seqTail != 0 {
 		copy(cp, p.polls[p.seqTail:])
-		copy(cp[p.seqTail:], p.polls[:p.seqTail])
+		copy(cp[sLen - int(p.seqTail):], p.polls[:p.seqTail])
 		p.seqTail = 0
 	} else {
 		copy(cp, p.polls)
