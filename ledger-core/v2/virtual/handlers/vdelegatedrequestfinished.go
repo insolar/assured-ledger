@@ -111,7 +111,9 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 
 		switch s.Payload.CallFlags.GetTolerance() {
 		case payload.CallIntolerable:
-			state.ActiveImmutablePendingCount--
+			if state.ActiveImmutablePendingCount > 0 {
+				state.ActiveImmutablePendingCount--
+			}
 		case payload.CallTolerable:
 			if state.ActiveMutablePendingCount > 0 {
 				state.ActiveMutablePendingCount--
