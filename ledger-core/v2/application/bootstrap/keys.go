@@ -15,9 +15,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/secrets"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
 func keysToNodeInfo(kp *secrets.KeyPair) nodeInfo {

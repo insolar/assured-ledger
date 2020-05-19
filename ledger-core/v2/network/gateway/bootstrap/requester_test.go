@@ -15,7 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 

@@ -20,7 +20,7 @@ func TestConfiguration_Load_Default(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := NewConfiguration()
-	//fmt.Println(ToString(cfg))
+	// fmt.Println(ToString(cfg))
 	require.Equal(t, cfg, *holder.Configuration)
 }
 

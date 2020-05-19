@@ -19,9 +19,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
 type ringBuffer struct {
