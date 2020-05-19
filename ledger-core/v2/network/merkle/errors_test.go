@@ -17,10 +17,10 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"

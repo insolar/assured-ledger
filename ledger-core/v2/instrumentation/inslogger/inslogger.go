@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
@@ -122,7 +122,7 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 }
 
 func TraceID(ctx context.Context) string {
-	return utils.TraceID(ctx)
+	return trace.ID(ctx)
 }
 
 // FromContext returns logger from context.
@@ -179,7 +179,7 @@ func WithFields(ctx context.Context, fields map[string]interface{}) (context.Con
 
 // WithTraceField returns context with logger initialized with provided traceid value and logger itself.
 func WithTraceField(ctx context.Context, traceid string) (context.Context, log.Logger) {
-	ctx, err := utils.SetInsTraceID(ctx, traceid)
+	ctx, err := trace.SetID(ctx, traceid)
 	if err != nil {
 		getLogger(ctx).WithField("backtrace", string(debug.Stack())).Error(err)
 	}

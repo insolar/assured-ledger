@@ -17,11 +17,10 @@ import (
 	"go.opencensus.io/tag"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
-	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow"
 	flowPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/internal/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/internal/thread"
+	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	insPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -95,23 +94,23 @@ func (d *dispatcher) getHandleByPulse(ctx context.Context, msgPulseNumber insola
 func (d *dispatcher) Process(msg *message.Message) error {
 	processStart := time.Now()
 	ctx := context.Background()
-	ctx = inslogger.ContextWithTrace(ctx, msg.Metadata.Get(meta.TraceID))
+	ctx = inslogger.ContextWithTrace(ctx, msg.Metadata.Get(busMeta.TraceID))
 
 	for k, v := range msg.Metadata {
-		if k == meta.SpanData || k == meta.TraceID {
+		if k == busMeta.SpanData || k == busMeta.TraceID {
 			continue
 		}
 		ctx, _ = inslogger.WithField(ctx, k, v)
 	}
 	logger := inslogger.FromContext(ctx)
 
-	pn, err := insolar.NewPulseNumberFromStr(msg.Metadata.Get(meta.Pulse))
+	pn, err := insolar.NewPulseNumberFromStr(msg.Metadata.Get(busMeta.Pulse))
 	if err != nil {
 		logger.Error("failed to handle message: ", err)
 		return nil
 	}
 	ctx = flowPulse.ContextWith(ctx, pn)
-	parentSpan := instracer.MustDeserialize([]byte(msg.Metadata.Get(meta.SpanData)))
+	parentSpan := instracer.MustDeserialize([]byte(msg.Metadata.Get(busMeta.SpanData)))
 	ctx = instracer.WithParentSpan(ctx, parentSpan)
 
 	msgType := messagePayloadTypeName(msg)

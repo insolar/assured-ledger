@@ -9,10 +9,11 @@ import (
 	"context"
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/keystore/internal/privatekey"
 	"github.com/insolar/component-manager"
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore/internal/privatekey"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type keyStore struct {

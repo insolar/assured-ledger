@@ -59,9 +59,5 @@ tracer:
   samplingrules: {}
 introspection:
   addr: ""
-exporter:
-  addr: :5678
-bus:
-  replytimeout: 15s
 testwalletapi:
   address:
