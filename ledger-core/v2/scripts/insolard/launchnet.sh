@@ -274,6 +274,7 @@ usage()
     echo -e "\t-b - do bootstrap only and exit, show bootstrap logs"
     echo -e "\t-l - clear all and exit"
     echo -e "\t-C - generate configs only"
+    echo -e "\t-p - start without pulsar"
     echo -e "\t-w - start without pulse watcher"
     echo -e "\t-g headless - start launchnet in headless mode"
 }
