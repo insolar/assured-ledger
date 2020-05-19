@@ -9,9 +9,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
@@ -168,7 +168,7 @@ func (c *DynamicPopulationBuilder) GetLocalProfile() profiles.Updatable {
 	return c.FindProfile(c.census.population.GetLocalProfile().GetNodeID())
 }
 
-func (c *DynamicPopulationBuilder) FindProfile(nodeID insolar.ShortNodeID) profiles.Updatable {
+func (c *DynamicPopulationBuilder) FindProfile(nodeID node.ShortNodeID) profiles.Updatable {
 	c.census.mutex.RLock()
 	defer c.census.mutex.RUnlock()
 
@@ -185,7 +185,7 @@ func (c *DynamicPopulationBuilder) AddProfile(intro profiles.StaticProfile) prof
 	return c.census.population.AddProfile(intro)
 }
 
-func (c *DynamicPopulationBuilder) RemoveProfile(nodeID insolar.ShortNodeID) {
+func (c *DynamicPopulationBuilder) RemoveProfile(nodeID node.ShortNodeID) {
 	c.census.mutex.Lock()
 	defer c.census.mutex.Unlock()
 

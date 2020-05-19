@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // DefaultTTL is default time period for deleting expired seeds
@@ -20,7 +20,7 @@ const DefaultCleanPeriod = 5 * time.Second
 
 type storedSeed struct {
 	ts    time.Time
-	pulse insolar.PulseNumber
+	pulse pulse.Number
 }
 
 // SeedManager manages working with seed pool
@@ -70,7 +70,7 @@ func (sm *SeedManager) Stop() {
 }
 
 // Add adds seed to pool
-func (sm *SeedManager) Add(seed Seed, pulse insolar.PulseNumber) {
+func (sm *SeedManager) Add(seed Seed, pulse pulse.Number) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
@@ -86,7 +86,7 @@ func (sm *SeedManager) isExpired(ts time.Time) bool {
 }
 
 // Pop deletes and returns seed from the pool
-func (sm *SeedManager) Pop(seed Seed) (insolar.PulseNumber, bool) {
+func (sm *SeedManager) Pop(seed Seed) (pulse.Number, bool) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 	stored, ok := sm.seedPool[seed]

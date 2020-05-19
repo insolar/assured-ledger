@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 const TestCert = "testdata/cert.json"
@@ -35,7 +34,7 @@ func TestNewCertificate_BadCert(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to parse certificate json")
 }
 
-func checkKeys(cert *Certificate, cs insolar.CryptographyService, t *testing.T) {
+func checkKeys(cert *Certificate, cs cryptography.Service, t *testing.T) {
 	kp := platformpolicy.NewKeyProcessor()
 
 	pubKey, err := cs.GetPublicKey()
@@ -48,7 +47,7 @@ func checkKeys(cert *Certificate, cs insolar.CryptographyService, t *testing.T) 
 }
 
 func TestReadCertificate(t *testing.T) {
-	cs, _ := cryptography.NewStorageBoundCryptographyService(TestKeys)
+	cs, _ := platformpolicy.NewStorageBoundCryptographyService(TestKeys)
 	kp := platformpolicy.NewKeyProcessor()
 	pk, _ := cs.GetPublicKey()
 
@@ -100,7 +99,7 @@ func TestReadCertificate(t *testing.T) {
 }
 
 func TestReadCertificate_BadBootstrapPublicKey(t *testing.T) {
-	cs, _ := cryptography.NewStorageBoundCryptographyService(TestKeys)
+	cs, _ := platformpolicy.NewStorageBoundCryptographyService(TestKeys)
 	kp := platformpolicy.NewKeyProcessor()
 	pk, _ := cs.GetPublicKey()
 
@@ -116,7 +115,7 @@ func TestReadPrivateKey_BadJson(t *testing.T) {
 }
 
 func TestReadPrivateKey_BadKeyPair(t *testing.T) {
-	cs, _ := cryptography.NewStorageBoundCryptographyService(TestDifferentKeys)
+	cs, _ := platformpolicy.NewStorageBoundCryptographyService(TestDifferentKeys)
 	kp := platformpolicy.NewKeyProcessor()
 	pk, _ := cs.GetPublicKey()
 

@@ -20,10 +20,8 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
@@ -148,7 +146,7 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) (*co
 		panic(err)
 	}
 	cryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
-	cryptographyService := cryptography.NewCryptographyService()
+	cryptographyService := platformpolicy.NewCryptographyService()
 	keyProcessor := platformpolicy.NewKeyProcessor()
 
 	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor)
@@ -190,7 +188,7 @@ func runPulsar(ctx context.Context, server *pulsar.Pulsar, cfg configuration.Pul
 	pulseTicker := time.NewTicker(time.Duration(cfg.PulseTime) * time.Millisecond)
 	go func() {
 		for range pulseTicker.C {
-			err := server.Send(ctx, server.LastPN()+insolar.PulseNumber(cfg.NumberDelta))
+			err := server.Send(ctx, server.LastPN()+pulse.Number(cfg.NumberDelta))
 			if err != nil {
 				panic(err)
 			}

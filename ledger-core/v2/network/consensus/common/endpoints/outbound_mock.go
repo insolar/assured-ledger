@@ -8,7 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
 
@@ -46,7 +46,7 @@ type OutboundMock struct {
 	beforeGetNameAddressCounter uint64
 	GetNameAddressMock          mOutboundMockGetNameAddress
 
-	funcGetRelayID          func() (s1 insolar.ShortNodeID)
+	funcGetRelayID          func() (s1 node.ShortNodeID)
 	inspectFuncGetRelayID   func()
 	afterGetRelayIDCounter  uint64
 	beforeGetRelayIDCounter uint64
@@ -879,7 +879,7 @@ type OutboundMockGetRelayIDExpectation struct {
 
 // OutboundMockGetRelayIDResults contains results of the Outbound.GetRelayID
 type OutboundMockGetRelayIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for Outbound.GetRelayID
@@ -907,7 +907,7 @@ func (mmGetRelayID *mOutboundMockGetRelayID) Inspect(f func()) *mOutboundMockGet
 }
 
 // Return sets up results that will be returned by Outbound.GetRelayID
-func (mmGetRelayID *mOutboundMockGetRelayID) Return(s1 insolar.ShortNodeID) *OutboundMock {
+func (mmGetRelayID *mOutboundMockGetRelayID) Return(s1 node.ShortNodeID) *OutboundMock {
 	if mmGetRelayID.mock.funcGetRelayID != nil {
 		mmGetRelayID.mock.t.Fatalf("OutboundMock.GetRelayID mock is already set by Set")
 	}
@@ -920,7 +920,7 @@ func (mmGetRelayID *mOutboundMockGetRelayID) Return(s1 insolar.ShortNodeID) *Out
 }
 
 //Set uses given function f to mock the Outbound.GetRelayID method
-func (mmGetRelayID *mOutboundMockGetRelayID) Set(f func() (s1 insolar.ShortNodeID)) *OutboundMock {
+func (mmGetRelayID *mOutboundMockGetRelayID) Set(f func() (s1 node.ShortNodeID)) *OutboundMock {
 	if mmGetRelayID.defaultExpectation != nil {
 		mmGetRelayID.mock.t.Fatalf("Default expectation is already set for the Outbound.GetRelayID method")
 	}
@@ -934,7 +934,7 @@ func (mmGetRelayID *mOutboundMockGetRelayID) Set(f func() (s1 insolar.ShortNodeI
 }
 
 // GetRelayID implements Outbound
-func (mmGetRelayID *OutboundMock) GetRelayID() (s1 insolar.ShortNodeID) {
+func (mmGetRelayID *OutboundMock) GetRelayID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetRelayID.beforeGetRelayIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRelayID.afterGetRelayIDCounter, 1)
 

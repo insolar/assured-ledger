@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -80,16 +80,16 @@ func (r *EmuPulsarNetPacket) FixedByteSize() int {
 	panic("implement me")
 }
 
-func (r *EmuPulsarNetPacket) GetSourceID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (r *EmuPulsarNetPacket) GetSourceID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
-func (r *EmuPulsarNetPacket) GetReceiverID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (r *EmuPulsarNetPacket) GetReceiverID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
-func (r *EmuPulsarNetPacket) GetTargetID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (r *EmuPulsarNetPacket) GetTargetID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
 func (r *EmuPulsarNetPacket) OriginalPulsarPacket() {
@@ -132,8 +132,8 @@ func (r *EmuPulsarNetPacket) String() string {
 // var _ cryptkit.SignedEvidenceHolder = &basePacket{}
 
 type basePacket struct {
-	src           insolar.ShortNodeID
-	tgt           insolar.ShortNodeID
+	src           node.ShortNodeID
+	tgt           node.ShortNodeID
 	isAlternative bool
 	nodeCount     uint16
 	mp            profiles.MembershipProfile
@@ -211,9 +211,9 @@ func (r *basePacket) GetLeaveReason() uint32 {
 	return r.leaveReason
 }
 
-func (r *basePacket) GetJoinerID() insolar.ShortNodeID {
+func (r *basePacket) GetJoinerID() node.ShortNodeID {
 	if r.joiner == nil {
-		return insolar.AbsentShortNodeID
+		return node.AbsentShortNodeID
 	}
 	return r.joiner.GetBriefIntroduction().GetStaticNodeID()
 }
@@ -226,7 +226,7 @@ func (r *basePacket) GetAnnouncementSignature() proofs.MemberAnnouncementSignatu
 	return r.mp.AnnounceSignature
 }
 
-func (r *basePacket) GetNodeID() insolar.ShortNodeID {
+func (r *basePacket) GetNodeID() node.ShortNodeID {
 	return r.tgt
 }
 
@@ -248,15 +248,15 @@ func (r *basePacket) GetEvidence() cryptkit.SignedData {
 	return cryptkit.NewSignedData(&v, d, s)
 }
 
-func (r *basePacket) GetSourceID() insolar.ShortNodeID {
+func (r *basePacket) GetSourceID() node.ShortNodeID {
 	return r.src
 }
 
-func (r *basePacket) GetReceiverID() insolar.ShortNodeID {
+func (r *basePacket) GetReceiverID() node.ShortNodeID {
 	return r.tgt
 }
 
-func (r *basePacket) GetTargetID() insolar.ShortNodeID {
+func (r *basePacket) GetTargetID() node.ShortNodeID {
 	return r.tgt
 }
 

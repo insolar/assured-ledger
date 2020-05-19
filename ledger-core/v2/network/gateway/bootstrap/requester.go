@@ -13,11 +13,13 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -29,9 +31,9 @@ import (
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
 type Requester interface {
-	Authorize(context.Context, insolar.Certificate) (*packet.Permit, error)
-	Bootstrap(context.Context, *packet.Permit, adapters.Candidate, *insolar.Pulse) (*packet.BootstrapResponse, error)
-	UpdateSchedule(context.Context, *packet.Permit, insolar.PulseNumber) (*packet.UpdateScheduleResponse, error)
+	Authorize(context.Context, node.Certificate) (*packet.Permit, error)
+	Bootstrap(context.Context, *packet.Permit, adapters.Candidate, *pulsestor.Pulse) (*packet.BootstrapResponse, error)
+	UpdateSchedule(context.Context, *packet.Permit, pulse.Number) (*packet.UpdateScheduleResponse, error)
 	Reconnect(context.Context, *host.Host, *packet.Permit) (*packet.ReconnectResponse, error)
 }
 
@@ -40,14 +42,14 @@ func NewRequester(options *network.Options) Requester {
 }
 
 type requester struct {
-	HostNetwork         network.HostNetwork         `inject:""`
-	OriginProvider      network.OriginProvider      `inject:""` // nolint:staticcheck
-	CryptographyService insolar.CryptographyService `inject:""`
+	HostNetwork         network.HostNetwork    `inject:""`
+	OriginProvider      network.OriginProvider `inject:""` // nolint:staticcheck
+	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options
 }
 
-func (ac *requester) Authorize(ctx context.Context, cert insolar.Certificate) (*packet.Permit, error) {
+func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*packet.Permit, error) {
 	logger := inslogger.FromContext(ctx)
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
@@ -100,7 +102,7 @@ func (ac *requester) Authorize(ctx context.Context, cert insolar.Certificate) (*
 	return nil, errors.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorize(ctx context.Context, host *host.Host, cert insolar.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
+func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
 	inslogger.FromContext(ctx).Infof("Authorizing on host: %s", host.String())
 
 	ctx, span := instracer.StartSpan(ctx, "AuthorizationController.Authorize")
@@ -170,11 +172,11 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 	return response.GetResponse().GetAuthorize(), nil
 }
 
-func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate, p *insolar.Pulse) (*packet.BootstrapResponse, error) {
+func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate, p *pulsestor.Pulse) (*packet.BootstrapResponse, error) {
 
 	req := &packet.BootstrapRequest{
 		CandidateProfile: candidate.Profile(),
-		Pulse:            *pulse.ToProto(p),
+		Pulse:            *pulsestor.ToProto(p),
 		Permit:           permit,
 	}
 
@@ -197,7 +199,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	case packet.UpdateShortID:
 		return respData, errors.New("Bootstrap got UpdateShortID")
 	case packet.UpdateSchedule:
-		// ac.UpdateSchedule(ctx, permit, p.PulseNumber)
+		// ac.UpdateSchedule(ctx, permit, p.Number)
 		// panic("call bootstrap again")
 		return respData, errors.New("Bootstrap got UpdateSchedule")
 	case packet.Reject:
@@ -209,7 +211,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 
 }
 
-func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, pulse insolar.PulseNumber) (*packet.UpdateScheduleResponse, error) {
+func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, pulse pulse.Number) (*packet.UpdateScheduleResponse, error) {
 
 	req := &packet.UpdateScheduleRequest{
 		LastNodePulse: pulse,

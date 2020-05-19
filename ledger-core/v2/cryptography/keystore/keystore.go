@@ -12,8 +12,8 @@ import (
 	"github.com/insolar/component-manager"
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore/internal/privatekey"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type keyStore struct {
@@ -35,7 +35,7 @@ func (ks *keyStore) Start(ctx context.Context) error {
 }
 
 type cachedKeyStore struct {
-	keyStore insolar.KeyStore
+	keyStore cryptography.KeyStore
 
 	privateKey crypto.PrivateKey
 }
@@ -72,7 +72,7 @@ func (ks *cachedKeyStore) Start(ctx context.Context) error {
 	return nil
 }
 
-func NewKeyStore(path string) (insolar.KeyStore, error) {
+func NewKeyStore(path string) (cryptography.KeyStore, error) {
 	keyStore := &keyStore{
 		file: path,
 	}
@@ -103,6 +103,6 @@ func (ipks *inPlaceKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ipks.privateKey, nil
 }
 
-func NewInplaceKeyStore(privateKey crypto.PrivateKey) insolar.KeyStore {
+func NewInplaceKeyStore(privateKey crypto.PrivateKey) cryptography.KeyStore {
 	return &inPlaceKeyStore{privateKey: privateKey}
 }

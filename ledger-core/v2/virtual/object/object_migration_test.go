@@ -14,8 +14,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
@@ -46,8 +46,8 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	smObject.pulseSlot = &pulseSlot
 	messageService := messagesender.NewServiceMock(mc).
 		SendRoleMock.Set(
-		func(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object reference.Global,
-			pn insolar.PulseNumber, opts ...messagesender.SendOption) (err error) {
+		func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global,
+			pn pulse.Number, opts ...messagesender.SendOption) (err error) {
 			_, ok := msg.(*payload.VStateReport)
 			require.True(t, ok)
 			msgVStateReportCount++

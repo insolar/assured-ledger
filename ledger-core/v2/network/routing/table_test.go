@@ -11,20 +11,23 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 )
 
-func newNode(ref reference.Global, id int) insolar.NetworkNode {
+func newNode(ref reference.Global, id int) node2.NetworkNode {
 	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := node.NewNode(ref, insolar.StaticRoleUnknown, nil, address, "")
-	result.(node.MutableNode).SetShortID(insolar.ShortNodeID(id))
+	result := node.NewNode(ref, node2.StaticRoleUnknown, nil, address, "")
+	result.(node.MutableNode).SetShortID(node2.ShortNodeID(id))
 	return result
 }
 
@@ -32,16 +35,16 @@ func TestTable_Resolve(t *testing.T) {
 	table := Table{}
 
 	refs := gen.UniqueReferences(2)
-	pulse := insolar.GenesisPulse
+	puls := pulsestor.GenesisPulse
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
-	nodeKeeperMock.GetAccessorMock.Set(func(p1 insolar.PulseNumber) network.Accessor {
+	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
 		n := newNode(refs[0], 123)
-		return node.NewAccessor(node.NewSnapshot(pulse.PulseNumber, []insolar.NetworkNode{n}))
+		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []node2.NetworkNode{n}))
 	})
 
 	pulseAccessorMock := mock.NewPulseAccessorMock(t)
-	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 insolar.Pulse, err error) {
-		return *pulse, nil
+	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 pulsestor.Pulse, err error) {
+		return *puls, nil
 	})
 
 	table.PulseAccessor = pulseAccessorMock

@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
@@ -27,7 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
-func wrapVCallRequest(pulseNumber insolar.PulseNumber, pl payload.VCallRequest) (*message.Message, error) {
+func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*message.Message, error) {
 	plBytes, err := pl.Marshal()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal VCallRequest")

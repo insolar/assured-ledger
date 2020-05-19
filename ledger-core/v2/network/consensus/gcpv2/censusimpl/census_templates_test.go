@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -44,7 +44,7 @@ func TestGetVersionedRegistries(t *testing.T) {
 
 func TestNewPrimingCensusForJoiner(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	pks := cryptkit.NewPublicKeyStoreMock(t)
 	sp.GetPublicKeyStoreMock.Set(func() cryptkit.PublicKeyStore { return pks })
 	registries := census.NewVersionedRegistriesMock(t)
@@ -62,8 +62,8 @@ func TestNewPrimingCensusForJoiner(t *testing.T) {
 
 func TestNewPrimingCensus(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(0)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return *(&nodeID) })
+	nodeID := node.ShortNodeID(0)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return *(&nodeID) })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleNeutral })
 	pks := cryptkit.NewPublicKeyStoreMock(t)
 	sp.GetPublicKeyStoreMock.Set(func() cryptkit.PublicKeyStore { return pks })
@@ -225,7 +225,7 @@ func TestPCTCreateBuilder(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(65537)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}},
 		slots: []updatableSlot{{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}}
 
@@ -471,7 +471,7 @@ func TestECTCreateBuilder(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}},
 		slots: []updatableSlot{{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}}
 

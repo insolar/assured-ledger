@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
-// This SM is responsible for pulling in old pulse.Data for events with very old PulseNumber before firing the event.
+// This SM is responsible for pulling in old pulse.Data for events with very old Number before firing the event.
 // Otherwise, the event will not be able to get its pulse.Data from a cache.
 func newAntiqueEventSM(pn pulse.Number, ps *PulseSlot, createFn smachine.CreateFunc) smachine.StateMachine {
 	return &antiqueEventSM{wrapEventSM: wrapEventSM{pn: pn, ps: ps, createFn: createFn}}

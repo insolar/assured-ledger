@@ -13,12 +13,12 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/misbehavior"
@@ -158,7 +158,7 @@ func (c *Phase2PacketDispatcher) DispatchMemberPacket(ctx context.Context, reade
 	return nil
 }
 
-func (c *Phase2PacketDispatcher) TriggerUnknownMember(ctx context.Context, memberID insolar.ShortNodeID,
+func (c *Phase2PacketDispatcher) TriggerUnknownMember(ctx context.Context, memberID node.ShortNodeID,
 	packet transport.MemberPacketReader, from endpoints.Inbound) (bool, error) {
 
 	p2 := packet.AsPhase2Packet()

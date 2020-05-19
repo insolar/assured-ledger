@@ -12,8 +12,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/gojuno/minimock/v3"
@@ -77,10 +78,10 @@ func (s *LeaveTestSuite) TestLeaveNow() {
 }
 
 func (s *LeaveTestSuite) TestLeaveEta() {
-	mockPulseNumber := insolar.PulseNumber(2000000000)
-	testPulse := &insolar.Pulse{PulseNumber: mockPulseNumber}
+	mockPulseNumber := pulse.Number(2000000000)
+	testPulse := &pulsestor.Pulse{PulseNumber: mockPulseNumber}
 	pulseDelta := testPulse.NextPulseNumber - testPulse.PulseNumber
-	leaveAfter := insolar.PulseNumber(5)
+	leaveAfter := pulse.Number(5)
 
 	s.pulseAccessor.GetLatestPulseMock.Return(*testPulse, nil)
 	s.leaver.LeaveMock.Expect(s.ctx, mockPulseNumber+leaveAfter*pulseDelta)

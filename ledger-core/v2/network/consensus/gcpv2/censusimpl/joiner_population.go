@@ -6,7 +6,7 @@
 package censusimpl
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -77,7 +77,7 @@ func (c *OneJoinerPopulation) copyTo(p copyFromPopulation) {
 	p.makeCopyOf(v, &v[0])
 }
 
-func (c *OneJoinerPopulation) FindProfile(nodeID insolar.ShortNodeID) profiles.ActiveNode {
+func (c *OneJoinerPopulation) FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode {
 	if c.localNode.GetNodeID() != nodeID {
 		return nil
 	}

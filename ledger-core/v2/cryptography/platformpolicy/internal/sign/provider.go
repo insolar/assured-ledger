@@ -8,7 +8,7 @@ package sign
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 type ecdsaProvider struct {
@@ -18,7 +18,7 @@ func NewECDSAProvider() AlgorithmProvider {
 	return &ecdsaProvider{}
 }
 
-func (p *ecdsaProvider) DataSigner(privateKey crypto.PrivateKey, hasher insolar.Hasher) insolar.Signer {
+func (p *ecdsaProvider) DataSigner(privateKey crypto.PrivateKey, hasher cryptography.Hasher) cryptography.Signer {
 	return &ecdsaDataSignerWrapper{
 		ecdsaDigestSignerWrapper: ecdsaDigestSignerWrapper{
 			privateKey: MustConvertPrivateKeyToEcdsa(privateKey),
@@ -26,13 +26,13 @@ func (p *ecdsaProvider) DataSigner(privateKey crypto.PrivateKey, hasher insolar.
 		hasher: hasher,
 	}
 }
-func (p *ecdsaProvider) DigestSigner(privateKey crypto.PrivateKey) insolar.Signer {
+func (p *ecdsaProvider) DigestSigner(privateKey crypto.PrivateKey) cryptography.Signer {
 	return &ecdsaDigestSignerWrapper{
 		privateKey: MustConvertPrivateKeyToEcdsa(privateKey),
 	}
 }
 
-func (p *ecdsaProvider) DataVerifier(publicKey crypto.PublicKey, hasher insolar.Hasher) insolar.Verifier {
+func (p *ecdsaProvider) DataVerifier(publicKey crypto.PublicKey, hasher cryptography.Hasher) cryptography.Verifier {
 	return &ecdsaDataVerifyWrapper{
 		ecdsaDigestVerifyWrapper: ecdsaDigestVerifyWrapper{
 			publicKey: MustConvertPublicKeyToEcdsa(publicKey),
@@ -41,7 +41,7 @@ func (p *ecdsaProvider) DataVerifier(publicKey crypto.PublicKey, hasher insolar.
 	}
 }
 
-func (p *ecdsaProvider) DigestVerifier(publicKey crypto.PublicKey) insolar.Verifier {
+func (p *ecdsaProvider) DigestVerifier(publicKey crypto.PublicKey) cryptography.Verifier {
 	return &ecdsaDigestVerifyWrapper{
 		publicKey: MustConvertPublicKeyToEcdsa(publicKey),
 	}

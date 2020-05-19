@@ -12,6 +12,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
@@ -21,7 +24,6 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
@@ -50,7 +52,7 @@ func (t *calculatorHashesSuite) TestGetGlobuleHash() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  ph,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): pp,
 		},
 		PrevCloudHash: prevCloudHash,
@@ -78,7 +80,7 @@ func (t *calculatorHashesSuite) TestGetCloudHash() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  ph,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): pp,
 		},
 		PrevCloudHash: prevCloudHash,
@@ -105,9 +107,9 @@ func (t *calculatorHashesSuite) TestGetCloudHash() {
 type calculatorHashesSuite struct {
 	suite.Suite
 
-	pulse          *insolar.Pulse
+	pulse          *pulsestor.Pulse
 	originProvider network.OriginProvider
-	service        insolar.CryptographyService
+	service        cryptography.Service
 
 	calculator Calculator
 }
@@ -118,9 +120,9 @@ func TestCalculatorHashes(t *testing.T) {
 	key, _ := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NotNil(t, key)
 
-	service := testutils.NewCryptographyServiceMock(t)
-	service.SignMock.Set(func(p []byte) (r *insolar.Signature, r1 error) {
-		signature := insolar.SignatureFromBytes([]byte("signature"))
+	service := cryptography.NewServiceMock(t)
+	service.SignMock.Set(func(p []byte) (r *cryptography.Signature, r1 error) {
+		signature := cryptography.SignatureFromBytes([]byte("signature"))
 		return &signature, nil
 	})
 	service.GetPublicKeyMock.Set(func() (r crypto.PublicKey, r1 error) {
@@ -134,7 +136,7 @@ func TestCalculatorHashes(t *testing.T) {
 	}
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
 	op := network2.NewOriginProviderMock(t)
-	op.GetOriginMock.Set(func() insolar.NetworkNode {
+	op.GetOriginMock.Set(func() node.NetworkNode {
 		return createOrigin()
 	})
 
@@ -151,9 +153,9 @@ func TestCalculatorHashes(t *testing.T) {
 	err := cm.Init(context.Background())
 	require.NoError(t, err)
 
-	pulse := &insolar.Pulse{
-		PulseNumber:     insolar.PulseNumber(1337),
-		NextPulseNumber: insolar.PulseNumber(1347),
+	pulse := &pulsestor.Pulse{
+		PulseNumber:     1337,
+		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),
 	}
 

@@ -6,7 +6,7 @@
 package nodeset
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -64,7 +64,7 @@ func (p *AnnouncementSequenceCalc) FinishSequence() cryptkit.DigestHolder {
 	return p.digester.FinishSequence().AsDigestHolder()
 }
 
-func NewStateAndRankSequenceCalc(digestFactory transport.ConsensusDigestFactory, nodeID insolar.ShortNodeID, roleCountHint int) StateAndRankSequenceCalc {
+func NewStateAndRankSequenceCalc(digestFactory transport.ConsensusDigestFactory, nodeID node.ShortNodeID, roleCountHint int) StateAndRankSequenceCalc {
 	return StateAndRankSequenceCalc{digestFactory: digestFactory, nodeID: nodeID,
 		entries: make([]memberEntry, 0, roleCountHint), cursor: member.RankCursor{Role: ^member.PrimaryRole(0)}}
 }
@@ -73,7 +73,7 @@ type StateAndRankSequenceCalc struct {
 	digestFactory transport.ConsensusDigestFactory
 	digester      transport.StateDigester
 
-	nodeID       insolar.ShortNodeID
+	nodeID       node.ShortNodeID
 	nodeFullRank member.FullRank
 
 	cursor              member.RankCursor

@@ -11,7 +11,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
@@ -42,12 +43,12 @@ func (g *NoNetwork) pause() time.Duration {
 	return sleep
 }
 
-func (g *NoNetwork) Run(ctx context.Context, pulse insolar.Pulse) {
+func (g *NoNetwork) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())
 
-	g.NodeKeeper.SetInitialSnapshot([]insolar.NetworkNode{origin})
+	g.NodeKeeper.SetInitialSnapshot([]node.NetworkNode{origin})
 
 	if len(discoveryNodes) == 0 {
 		inslogger.FromContext(ctx).Warn("No discovery nodes found in certificate")
@@ -59,14 +60,14 @@ func (g *NoNetwork) Run(ctx context.Context, pulse insolar.Pulse) {
 		g.backoff = 0
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-		g.Gatewayer.SwitchState(ctx, insolar.WaitConsensus, pulse)
+		g.Gatewayer.SwitchState(ctx, node.WaitConsensus, pulse)
 		return
 	}
 
 	time.Sleep(g.pause())
-	g.Gatewayer.SwitchState(ctx, insolar.JoinerBootstrap, pulse)
+	g.Gatewayer.SwitchState(ctx, node.JoinerBootstrap, pulse)
 }
 
-func (g *NoNetwork) GetState() insolar.NetworkState {
-	return insolar.NoNetworkState
+func (g *NoNetwork) GetState() node.NetworkState {
+	return node.NoNetworkState
 }

@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -22,10 +24,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -78,7 +79,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	nodeRef := gen.Reference()
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return nodeRef
@@ -87,7 +88,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	})
 	pubMock := &PublisherMock{}
 	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*insolar.GenesisPulse, nil)
+	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
 	serviceNetwork.PulseAccessor = pulseMock
 	serviceNetwork.NodeKeeper = nodeN
 	serviceNetwork.Pub = pubMock
@@ -112,7 +113,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	serviceNetwork.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.Reference()
@@ -124,7 +125,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 		return nil, errors.New("test error")
 	})
 	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*insolar.GenesisPulse, nil)
+	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
 	serviceNetwork.PulseAccessor = pulseMock
 	serviceNetwork.RPC = rpc
 	serviceNetwork.NodeKeeper = nodeN
@@ -149,7 +150,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	serviceNetwork.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.Reference()
@@ -161,7 +162,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 		return nil, nil
 	})
 	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*insolar.GenesisPulse, nil)
+	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
 	serviceNetwork.PulseAccessor = pulseMock
 	serviceNetwork.RPC = rpc
 	serviceNetwork.NodeKeeper = nodeN
@@ -184,7 +185,7 @@ func TestSendMessageHandler(t *testing.T) {
 	cfg := configuration.NewConfiguration()
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.Reference()
@@ -196,7 +197,7 @@ func TestSendMessageHandler(t *testing.T) {
 		return ack, nil
 	})
 	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*insolar.GenesisPulse, nil)
+	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
 	serviceNetwork.PulseAccessor = pulseMock
 	serviceNetwork.RPC = rpc
 	serviceNetwork.NodeKeeper = nodeN
@@ -225,7 +226,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")
 	cm := component.NewManager(nil)
 	origin := gen.Reference()
-	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, insolar.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
+	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
 	cert := &certificate.Certificate{}
 	cert.Reference = origin.String()
 	certManager := certificate.NewCertificateManager(cert)
@@ -234,8 +235,8 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	ctx := context.Background()
 	defer serviceNetwork.Stop(ctx)
 
-	cm.Inject(serviceNetwork, nk, certManager, testutils.NewCryptographyServiceMock(t), pulse.NewAccessorMock(t),
-		testutils.NewTerminationHandlerMock(t), testutils.NewPulseManagerMock(t), &PublisherMock{}, &stater{},
+	cm.Inject(serviceNetwork, nk, certManager, cryptography.NewServiceMock(t), pulsestor.NewAccessorMock(t),
+		testutils.NewTerminationHandlerMock(t), pulsestor.NewManagerMock(t), &PublisherMock{}, &stater{},
 		testutils.NewPlatformCryptographyScheme(), testutils.NewKeyProcessorMock(t))
 	err = serviceNetwork.Init(ctx)
 	require.NoError(t, err)

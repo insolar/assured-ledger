@@ -8,10 +8,10 @@ package adapters
 import (
 	"crypto/ecdsa"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -22,12 +22,12 @@ import (
 
 type ECDSASignatureVerifierFactory struct {
 	digester *Sha3512Digester
-	scheme   insolar.PlatformCryptographyScheme
+	scheme   cryptography.PlatformCryptographyScheme
 }
 
 func NewECDSASignatureVerifierFactory(
 	digester *Sha3512Digester,
-	scheme insolar.PlatformCryptographyScheme,
+	scheme cryptography.PlatformCryptographyScheme,
 ) *ECDSASignatureVerifierFactory {
 	return &ECDSASignatureVerifierFactory{
 		digester: digester,
@@ -48,10 +48,10 @@ func (vf *ECDSASignatureVerifierFactory) CreateSignatureVerifierWithPKS(pks cryp
 type TransportCryptographyFactory struct {
 	verifierFactory *ECDSASignatureVerifierFactory
 	digestFactory   *ConsensusDigestFactory
-	scheme          insolar.PlatformCryptographyScheme
+	scheme          cryptography.PlatformCryptographyScheme
 }
 
-func NewTransportCryptographyFactory(scheme insolar.PlatformCryptographyScheme) *TransportCryptographyFactory {
+func NewTransportCryptographyFactory(scheme cryptography.PlatformCryptographyScheme) *TransportCryptographyFactory {
 	return &TransportCryptographyFactory{
 		verifierFactory: NewECDSASignatureVerifierFactory(
 			NewSha3512Digester(scheme),
@@ -130,7 +130,7 @@ func (tf *TransportFactory) GetCryptographyFactory() transport.CryptographyAssis
 }
 
 type keyStoreFactory struct {
-	keyProcessor insolar.KeyProcessor
+	keyProcessor cryptography.KeyProcessor
 }
 
 func (p *keyStoreFactory) CreatePublicKeyStore(keyHolder cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
@@ -141,19 +141,19 @@ func (p *keyStoreFactory) CreatePublicKeyStore(keyHolder cryptkit.SignatureKeyHo
 	return NewECDSAPublicKeyStore(pk.(*ecdsa.PublicKey))
 }
 
-func NewNodeProfileFactory(keyProcessor insolar.KeyProcessor) profiles.Factory {
+func NewNodeProfileFactory(keyProcessor cryptography.KeyProcessor) profiles.Factory {
 	return profiles.NewSimpleProfileIntroFactory(&keyStoreFactory{keyProcessor})
 }
 
 type ConsensusDigestFactory struct {
-	scheme insolar.PlatformCryptographyScheme
+	scheme cryptography.PlatformCryptographyScheme
 }
 
 func (cdf *ConsensusDigestFactory) CreatePairDigester() cryptkit.PairDigester {
 	panic("implement me") // TODO implement CreatePairDigester
 }
 
-func NewConsensusDigestFactory(scheme insolar.PlatformCryptographyScheme) *ConsensusDigestFactory {
+func NewConsensusDigestFactory(scheme cryptography.PlatformCryptographyScheme) *ConsensusDigestFactory {
 	return &ConsensusDigestFactory{
 		scheme: scheme,
 	}

@@ -11,13 +11,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 
 	"github.com/stretchr/testify/assert"
 
@@ -36,8 +34,8 @@ func TestRequester_Authorize(t *testing.T) {
 
 	options := network.ConfigureOptions(configuration.NewConfiguration())
 
-	cs := testutils.NewCryptographyServiceMock(t)
-	sig := insolar.SignatureFromBytes([]byte("lalal"))
+	cs := cryptography.NewServiceMock(t)
+	sig := cryptography.SignatureFromBytes([]byte("lalal"))
 	cs.SignMock.Return(&sig, nil)
 
 	r := NewRequester(options)
@@ -61,7 +59,7 @@ func TestRequester_Bootstrap(t *testing.T) {
 	// inject HostNetwork
 	r.(*requester).HostNetwork = hn
 
-	resp, err := r.Bootstrap(context.Background(), p, candidateProfile, insolar.GenesisPulse)
+	resp, err := r.Bootstrap(context.Background(), p, candidateProfile, pulsestor.GenesisPulse)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 }

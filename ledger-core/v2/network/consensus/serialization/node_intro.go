@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
@@ -36,7 +36,7 @@ type NodeBriefIntro struct {
 		This field MUST be excluded from the packet, but considered for signature calculation.
 		Value of this field equals SourceID or AnnounceID.
 	*/
-	ShortID insolar.ShortNodeID `insolar-transport:"ignore=send"` // ByteSize = 0
+	ShortID node.ShortNodeID `insolar-transport:"ignore=send"` // ByteSize = 0
 
 	PrimaryRoleAndFlags uint8 `insolar-transport:"[0:5]=header:PrimaryRole;[6:7]=header:AddrMode"` // AddrMode =0 reserved, =1 Relay, =2 IPv4 =3 IPv6
 	SpecialRoles        member.SpecialRole
@@ -152,7 +152,7 @@ type NodeExtendedIntro struct {
 	ProofLen     uint8
 	NodeRefProof []longbits.Bits512
 
-	DiscoveryIssuerNodeID insolar.ShortNodeID
+	DiscoveryIssuerNodeID node.ShortNodeID
 	IssuerSignature       longbits.Bits512
 }
 

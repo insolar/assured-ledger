@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 
@@ -28,17 +28,17 @@ import (
 }*/
 
 func TestRemoveJoinCandidate(t *testing.T) {
-	require.False(t, (&SequentialCandidateFeeder{}).RemoveJoinCandidate(false, insolar.ShortNodeID(0)))
+	require.False(t, (&SequentialCandidateFeeder{}).RemoveJoinCandidate(false, node.ShortNodeID(0)))
 
 	s := &SequentialCandidateFeeder{buf: make([]profiles.CandidateProfile, 1)}
 	c := profiles.NewCandidateProfileMock(t)
 
 	s.buf[0] = c
-	c.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return insolar.ShortNodeID(1) })
-	require.False(t, s.RemoveJoinCandidate(false, insolar.ShortNodeID(2)))
+	c.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return node.ShortNodeID(1) })
+	require.False(t, s.RemoveJoinCandidate(false, node.ShortNodeID(2)))
 
-	c.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return insolar.ShortNodeID(1) })
-	require.True(t, s.RemoveJoinCandidate(false, insolar.ShortNodeID(1)))
+	c.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return node.ShortNodeID(1) })
+	require.True(t, s.RemoveJoinCandidate(false, node.ShortNodeID(1)))
 
 	require.Equal(t, []profiles.CandidateProfile(nil), s.buf)
 
@@ -46,7 +46,7 @@ func TestRemoveJoinCandidate(t *testing.T) {
 	s.buf[0] = c
 	c2 := profiles.NewCandidateProfileMock(t)
 	s.buf[1] = c2
-	require.True(t, s.RemoveJoinCandidate(false, insolar.ShortNodeID(1)))
+	require.True(t, s.RemoveJoinCandidate(false, node.ShortNodeID(1)))
 
 	require.Equal(t, 1, len(s.buf))
 

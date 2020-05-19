@@ -14,11 +14,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
@@ -46,8 +46,8 @@ type Server struct {
 	PublisherMock      *mock.PublisherMock
 	JetCoordinatorMock *jet.CoordinatorMock
 	pulseGenerator     *mimic.PulseGenerator
-	pulseStorage       *pulse.StorageMem
-	pulseManager       insolar.PulseManager
+	pulseStorage       *pulsestor.StorageMem
+	pulseManager       pulsestor.Manager
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -66,23 +66,23 @@ func NewServer(t *testing.T) *Server {
 	// Pulse-related components
 	var (
 		PulseManager *pulsemanager.PulseManager
-		Pulses       *pulse.StorageMem
+		Pulses       *pulsestor.StorageMem
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
 			IDMock.Return(gen.Reference()).
-			ShortIDMock.Return(insolar.ShortNodeID(0)).
-			RoleMock.Return(insolar.StaticRoleVirtual).
+			ShortIDMock.Return(node.ShortNodeID(0)).
+			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(insolar.NodeReady).
+			GetStateMock.Return(node.Ready).
 			GetPowerMock.Return(1)
-		networkNodeList := []insolar.NetworkNode{networkNodeMock}
+		networkNodeList := []node.NetworkNode{networkNodeMock}
 
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-		nodeSetter := node.NewModifierMock(t).SetMock.Return(nil)
+		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
-		Pulses = pulse.NewStorageMem()
+		Pulses = pulsestor.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
 		PulseManager.NodeSetter = nodeSetter
@@ -132,7 +132,7 @@ func NewServer(t *testing.T) *Server {
 	return &s
 }
 
-func (s *Server) GetPulse() insolar.Pulse {
+func (s *Server) GetPulse() pulsestor.Pulse {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 

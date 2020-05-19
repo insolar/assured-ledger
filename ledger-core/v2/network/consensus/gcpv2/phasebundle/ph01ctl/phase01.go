@@ -12,11 +12,11 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/announce"
 
@@ -63,7 +63,7 @@ func (c *packetPhase1Dispatcher) DispatchMemberPacket(ctx context.Context, packe
 	return err
 }
 
-func (c *packetPhase1Dispatcher) TriggerUnknownMember(ctx context.Context, memberID insolar.ShortNodeID,
+func (c *packetPhase1Dispatcher) TriggerUnknownMember(ctx context.Context, memberID node.ShortNodeID,
 	packet transport.MemberPacketReader, from endpoints.Inbound) (bool, error) {
 
 	p1 := packet.AsPhase1Packet()
@@ -264,7 +264,7 @@ func (c *Phase01Controller) workerSendPhase1ToFixed(ctx context.Context, startIn
 		})
 }
 
-func prepareTarget(ctx context.Context, target *population.NodeAppearance, from insolar.ShortNodeID,
+func prepareTarget(ctx context.Context, target *population.NodeAppearance, from node.ShortNodeID,
 	sendOptions transport.PacketSendOptions) (transport.TargetProfile, transport.PacketSendOptions) {
 
 	if !target.SetPacketSent(phases.PacketPhase1) {
