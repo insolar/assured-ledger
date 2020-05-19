@@ -42,6 +42,7 @@ var TestRPCUrlPublic = HOST + PublicPort + "/api/rpc"
 var disableLaunchnet = false
 var testRPCUrlVar = "INSOLAR_FUNC_RPC_URL"
 var testRPCUrlPublicVar = "INSOLAR_FUNC_RPC_URL_PUBLIC"
+var TestWalletHost = "INSOLAR_FUNC_TESTWALLET_HOST"
 var keysPathVar = "INSOLAR_FUNC_KEYS_PATH"
 
 var cmd *exec.Cmd

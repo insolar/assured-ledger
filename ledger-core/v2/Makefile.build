@@ -19,6 +19,9 @@ GOINSTALL ?= go install
 build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD) $(PULSEWATCHER) \
 		$(TESTPULSARD) $(BENCHMARK) $(APIREQUESTER) $(KEEPERD) ## build all binaries
 
+.PHONY: build-short
+build-short: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(PULSARD) $(PULSEWATCHER) ## build binaries only for kubernetes deploy
+
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
