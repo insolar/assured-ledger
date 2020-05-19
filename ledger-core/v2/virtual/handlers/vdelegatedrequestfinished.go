@@ -21,6 +21,7 @@ type SMVDelegatedRequestFinished struct {
 	Payload *payload.VDelegatedRequestFinished
 
 	objectSharedState object.SharedStateAccessor
+	objectReadyToWork smachine.SyncLink
 
 	// dependencies
 	objectCatalog object.Catalog
@@ -67,10 +68,8 @@ func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) s
 func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee)
 
-	var semaphoreReadyToWork smachine.SyncLink
-
 	action := func(state *object.SharedState) {
-		semaphoreReadyToWork = state.ReadyToWork
+		s.objectReadyToWork = state.ReadyToWork
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -83,7 +82,11 @@ func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContex
 		panic(throw.NotImplemented())
 	}
 
-	if ctx.AcquireForThisStep(semaphoreReadyToWork).IsNotPassed() {
+	return ctx.Jump(s.awaitObjectReady)
+}
+
+func (s *SMVDelegatedRequestFinished) awaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if ctx.AcquireForThisStep(s.objectReadyToWork).IsNotPassed() {
 		return ctx.Sleep().ThenRepeat()
 	}
 
@@ -149,7 +152,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 			}
 		}
 
-		return true
+		return false
 	}
 
 	switch s.objectSharedState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
