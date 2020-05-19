@@ -58,7 +58,7 @@ message RPCRequest {
 }
 
 message PulseRequest {
-    pulse.PulseProto Pulse = 1;
+    pulsestor.PulseProto Pulse = 1;
 }
 
 message UpdateScheduleRequest {
@@ -73,7 +73,7 @@ message ReconnectRequest {
 
 message BootstrapRequest {
     candidate.Profile CandidateProfile = 2 [(gogoproto.nullable) = false];
-    pulse.PulseProto Pulse = 3 [(gogoproto.nullable) = false];
+    pulsestor.PulseProto Pulse = 3 [(gogoproto.nullable) = false];
     Permit Permit = 4;
 }
 
@@ -120,7 +120,7 @@ message PermitPayload {
 message BootstrapResponse {
     BootstrapResponseCode Code = 1;
     uint32 ETASeconds = 2;
-    pulse.PulseProto Pulse = 3 [(gogoproto.nullable) = false];
+    pulsestor.PulseProto Pulse = 3 [(gogoproto.nullable) = false];
 }
 
 message BasicResponse {
@@ -141,7 +141,7 @@ message AuthorizeResponse {
     string Error = 3;
     Permit Permit = 4;
     uint32 DiscoveryCount = 5;
-    pulse.PulseProto Pulse = 6;
+    pulsestor.PulseProto Pulse = 6;
 }
 
 message SignCertResponse {
