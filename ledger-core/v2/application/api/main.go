@@ -19,7 +19,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
@@ -34,7 +34,7 @@ type Runner struct {
 	// nolint
 	NodeNetwork         network.NodeNetwork
 	CertificateGetter   node.CertificateGetter
-	PulseAccessor       pulse.Accessor
+	PulseAccessor       pulsestor.Accessor
 	JetCoordinator      jet.Coordinator
 	NetworkStatus       node.NetworkStatus
 	AvailabilityChecker AvailabilityChecker
@@ -81,7 +81,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	// nolint
 	nodeNetwork network.NodeNetwork,
 	certificateGetter node.CertificateGetter,
-	pulseAccessor pulse.Accessor,
+	pulseAccessor pulsestor.Accessor,
 	jetCoordinator jet.Coordinator,
 	networkStatus node.NetworkStatus,
 	availabilityChecker AvailabilityChecker,

@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -36,7 +36,7 @@ func createOrigin() node2.NetworkNode {
 type calculatorSuite struct {
 	suite.Suite
 
-	pulse          *pulse.Pulse
+	pulse          *pulsestor.Pulse
 	originProvider network.OriginProvider
 	service        cryptography.Service
 
@@ -156,7 +156,7 @@ func TestCalculator(t *testing.T) {
 	err := cm.Init(context.Background())
 	require.NoError(t, err)
 
-	pulse := &pulse.Pulse{
+	pulse := &pulsestor.Pulse{
 		PulseNumber:     1337,
 		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),

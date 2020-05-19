@@ -9,23 +9,23 @@ import (
 	"context"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 func newWaitPulsar(b *Base) *WaitPulsar {
-	return &WaitPulsar{b, make(chan pulse.Pulse, 1)}
+	return &WaitPulsar{b, make(chan pulsestor.Pulse, 1)}
 }
 
 type WaitPulsar struct {
 	*Base
-	pulseArrived chan pulse.Pulse
+	pulseArrived chan pulsestor.Pulse
 }
 
-func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Pulse) {
+func (g *WaitPulsar) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	g.switchOnRealPulse(pulse)
 
 	select {
@@ -36,7 +36,7 @@ func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Pulse) {
 	}
 }
 
-func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse2.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -58,7 +58,7 @@ func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Rep
 	g.switchOnRealPulse(EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
 }
 
-func (g *WaitPulsar) switchOnRealPulse(pulseObject pulse.Pulse) {
+func (g *WaitPulsar) switchOnRealPulse(pulseObject pulsestor.Pulse) {
 	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.EpochPulseNumber.IsTimeEpoch() {
 		g.pulseArrived <- pulseObject
 		close(g.pulseArrived)

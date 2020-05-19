@@ -10,6 +10,7 @@ import (
 )
 
 // APIRunner holds configuration for api
+//nolint
 type APIRunner struct {
 	Address string
 	RPC     string

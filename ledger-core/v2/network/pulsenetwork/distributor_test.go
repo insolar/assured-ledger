@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork"
@@ -96,7 +96,7 @@ func TestDistributor_Distribute(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	d.Distribute(ctx, pulse2.Pulse{PulseNumber: PULSENUMBER})
-	d.Distribute(ctx, pulse2.Pulse{PulseNumber: PULSENUMBER})
-	d.Distribute(ctx, pulse2.Pulse{PulseNumber: PULSENUMBER})
+	d.Distribute(ctx, pulsestor.Pulse{PulseNumber: PULSENUMBER})
+	d.Distribute(ctx, pulsestor.Pulse{PulseNumber: PULSENUMBER})
+	d.Distribute(ctx, pulsestor.Pulse{PulseNumber: PULSENUMBER})
 }

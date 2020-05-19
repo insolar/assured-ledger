@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -22,7 +22,7 @@ import (
 
 const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
 
-func NewPulse(pulseData pulse.Data) pulse2.Pulse {
+func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
 	var prev pulse.Number
 	if !pulseData.IsFirstPulse() {
 		prev = pulseData.PrevPulseNumber()
@@ -30,12 +30,12 @@ func NewPulse(pulseData pulse.Data) pulse2.Pulse {
 		prev = pulseData.PulseNumber
 	}
 
-	entropy := pulse2.Entropy{}
+	entropy := pulsestor.Entropy{}
 	bs := pulseData.PulseEntropy.AsBytes()
 	copy(entropy[:], bs)
 	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
 
-	return pulse2.Pulse{
+	return pulsestor.Pulse{
 		PulseNumber:      pulseData.PulseNumber,
 		NextPulseNumber:  pulseData.NextPulseNumber(),
 		PrevPulseNumber:  prev,
@@ -45,7 +45,7 @@ func NewPulse(pulseData pulse.Data) pulse2.Pulse {
 	}
 }
 
-func NewPulseData(p pulse2.Pulse) pulse.Data {
+func NewPulseData(p pulsestor.Pulse) pulse.Data {
 	data := pulse.NewPulsarData(
 		p.PulseNumber,
 		uint16(p.NextPulseNumber-p.PulseNumber),

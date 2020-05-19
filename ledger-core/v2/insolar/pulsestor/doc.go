@@ -4,4 +4,4 @@
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 // Package Pulse contains Pulse storage.
-package pulse
+package pulsestor

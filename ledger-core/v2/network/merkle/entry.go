@@ -9,13 +9,13 @@ import (
 	"sort"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 
 	"github.com/pkg/errors"
 )
 
 type PulseEntry struct {
-	Pulse *pulse.Pulse
+	Pulse *pulsestor.Pulse
 }
 
 func (pe *PulseEntry) hash(helper *merkleHelper) []byte {

@@ -16,14 +16,14 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
 type TestWalletServer struct {
 	server   *http.Server
 	feeder   conveyor.EventInputer
-	accessor pulse.Accessor
+	accessor pulsestor.Accessor
 	mux      *http.ServeMux
 
 	jsonCodec jsoniter.API
@@ -37,7 +37,7 @@ const (
 	transfer   = "Transfer"   // Transfer money between wallets
 )
 
-func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulse.Accessor) *TestWalletServer {
+func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulsestor.Accessor) *TestWalletServer {
 	return &TestWalletServer{
 		server:    &http.Server{Addr: api.Address},
 		mux:       http.NewServeMux(),

@@ -9,7 +9,7 @@ import (
 	"context"
 	"sync"
 
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
@@ -19,14 +19,14 @@ const entriesCount = 10
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		entries:         make([]pulse2.Pulse, 0),
+		entries:         make([]pulsestor.Pulse, 0),
 		snapshotEntries: make(map[pulse.Number]*node.Snapshot),
 	}
 }
 
 type MemoryStorage struct {
 	lock            sync.RWMutex
-	entries         []pulse2.Pulse
+	entries         []pulsestor.Pulse
 	snapshotEntries map[pulse.Number]*node.Snapshot
 }
 
@@ -43,7 +43,7 @@ func (m *MemoryStorage) truncate(count int) {
 	}
 }
 
-func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulse2.Pulse) error {
+func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulsestor.Pulse) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -52,7 +52,7 @@ func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulse2.Pulse) err
 	return nil
 }
 
-func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (pulse2.Pulse, error) {
+func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (pulsestor.Pulse, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -62,15 +62,15 @@ func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (puls
 		}
 	}
 
-	return *pulse2.GenesisPulse, ErrNotFound
+	return *pulsestor.GenesisPulse, ErrNotFound
 }
 
-func (m *MemoryStorage) GetLatestPulse(ctx context.Context) (pulse2.Pulse, error) {
+func (m *MemoryStorage) GetLatestPulse(ctx context.Context) (pulsestor.Pulse, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
 	if len(m.entries) == 0 {
-		return *pulse2.GenesisPulse, ErrNotFound
+		return *pulsestor.GenesisPulse, ErrNotFound
 	}
 	return m.entries[len(m.entries)-1], nil
 }

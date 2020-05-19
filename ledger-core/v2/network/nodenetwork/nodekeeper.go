@@ -36,7 +36,7 @@ func NewNodeNetwork(configuration configuration.Transport, certificate node2.Cer
 	}
 	nodeKeeper := NewNodeKeeper(origin)
 	if !network.OriginIsDiscovery(certificate) {
-		origin.(node.MutableNode).SetState(node2.NodeJoining)
+		origin.(node.MutableNode).SetState(node2.Joining)
 	}
 	return nodeKeeper, nil
 }
@@ -122,7 +122,7 @@ func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []nod
 	nk.syncNodes = nodes
 }
 
-func (nk *nodekeeper) updateOrigin(power node2.Power, state node2.NodeState) {
+func (nk *nodekeeper) updateOrigin(power node2.Power, state node2.State) {
 	nk.origin.(node.MutableNode).SetPower(power)
 	nk.origin.(node.MutableNode).SetState(state)
 }

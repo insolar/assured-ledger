@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -54,7 +54,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	waitMinRoles.bootstrapETA = time.Millisecond
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
 
-	waitMinRoles.Run(context.Background(), *pulse2.EphemeralPulse)
+	waitMinRoles.Run(context.Background(), *pulsestor.EphemeralPulse)
 }
 
 func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
@@ -63,7 +63,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse pulse2.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse pulsestor.Pulse) {
 		assert.Equal(t, node2.WaitPulsar, state)
 	})
 
@@ -90,8 +90,8 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	cert := &certificate.Certificate{MajorityRule: 1, BootstrapNodes: []certificate.BootstrapNode{discoveryNode}}
 	cert.MinRoles.LightMaterial = 1
 	pulseAccessor := mock.NewPulseAccessorMock(mc)
-	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulse2.Pulse, err error) {
-		p := *pulse2.GenesisPulse
+	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
+		p := *pulsestor.GenesisPulse
 		p.PulseNumber += 10
 		return p, nil
 	})
@@ -104,7 +104,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	waitMinRoles.bootstrapETA = time.Second * 2
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
 
-	go waitMinRoles.Run(context.Background(), *pulse2.EphemeralPulse)
+	go waitMinRoles.Run(context.Background(), *pulsestor.EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitMinRoles.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

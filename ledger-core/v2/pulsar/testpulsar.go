@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -40,7 +40,7 @@ func (p *TestPulsar) SendPulse(ctx context.Context) error {
 	timeNow := time.Now()
 	pulseNumber := pulse.OfTime(timeNow)
 
-	pls := pulse2.Pulse{
+	pls := pulsestor.Pulse{
 		PulseNumber:      pulseNumber,
 		Entropy:          p.generator.GenerateEntropy(),
 		NextPulseNumber:  pulseNumber + pulse.Number(p.configuration.NumberDelta),
@@ -63,7 +63,7 @@ func (p *TestPulsar) SendPulse(ctx context.Context) error {
 	return nil
 }
 
-func getPSC(pulse pulse2.Pulse) (map[string]pulse2.SenderConfirmation, error) {
+func getPSC(pulse pulsestor.Pulse) (map[string]pulsestor.SenderConfirmation, error) {
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()
 	if err != nil {
@@ -73,8 +73,8 @@ func getPSC(pulse pulse2.Pulse) (map[string]pulse2.SenderConfirmation, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]pulse2.SenderConfirmation)
-	psc := pulse2.SenderConfirmation{
+	result := make(map[string]pulsestor.SenderConfirmation)
+	psc := pulsestor.SenderConfirmation{
 		PulseNumber:     pulse.PulseNumber,
 		ChosenPublicKey: string(pem),
 		Entropy:         pulse.Entropy,

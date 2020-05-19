@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
-	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"

@@ -23,15 +23,15 @@ func TestNode_Version(t *testing.T) {
 
 func TestNode_GetState(t *testing.T) {
 	n := NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "127.0.0.1", "123")
-	assert.Equal(t, node2.NodeReady, n.GetState())
-	n.(MutableNode).SetState(node2.NodeUndefined)
-	assert.Equal(t, node2.NodeUndefined, n.GetState())
+	assert.Equal(t, node2.Ready, n.GetState())
+	n.(MutableNode).SetState(node2.Undefined)
+	assert.Equal(t, node2.Undefined, n.GetState())
 	n.(MutableNode).ChangeState()
-	assert.Equal(t, node2.NodeJoining, n.GetState())
+	assert.Equal(t, node2.Joining, n.GetState())
 	n.(MutableNode).ChangeState()
-	assert.Equal(t, node2.NodeReady, n.GetState())
+	assert.Equal(t, node2.Ready, n.GetState())
 	n.(MutableNode).ChangeState()
-	assert.Equal(t, node2.NodeReady, n.GetState())
+	assert.Equal(t, node2.Ready, n.GetState())
 }
 
 func TestNode_GetGlobuleID(t *testing.T) {
@@ -41,9 +41,9 @@ func TestNode_GetGlobuleID(t *testing.T) {
 
 func TestNode_LeavingETA(t *testing.T) {
 	n := NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "127.0.0.1", "123")
-	assert.Equal(t, node2.NodeReady, n.GetState())
+	assert.Equal(t, node2.Ready, n.GetState())
 	n.(MutableNode).SetLeavingETA(25)
-	assert.Equal(t, node2.NodeLeaving, n.GetState())
+	assert.Equal(t, node2.Leaving, n.GetState())
 	assert.EqualValues(t, 25, n.LeavingETA())
 }
 

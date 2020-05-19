@@ -256,7 +256,7 @@ func NewNetworkNode(profile profiles.ActiveNode) node2.NetworkNode {
 	mutableNode := networkNode.(node.MutableNode)
 
 	mutableNode.SetShortID(profile.GetNodeID())
-	mutableNode.SetState(node2.NodeReady)
+	mutableNode.SetState(node2.Ready)
 
 	mutableNode.SetPower(node2.Power(profile.GetDeclaredPower()))
 	if profile.GetOpMode().IsPowerless() {

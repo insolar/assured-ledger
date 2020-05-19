@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -25,7 +25,7 @@ type StateGetter interface {
 }
 
 type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse pulse2.Pulse)
+	ChangePulse(ctx context.Context, newPulse pulsestor.Pulse)
 }
 
 type StateUpdater interface {

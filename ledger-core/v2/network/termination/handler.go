@@ -11,7 +11,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
@@ -30,12 +30,12 @@ func NewHandler(l node.Leaver) *Handler {
 }
 
 // TODO take ETA by role of node
-func (t *Handler) Leave(ctx context.Context, leaveAfterPulses pulse2.Number) {
+func (t *Handler) Leave(ctx context.Context, leaveAfterPulses pulse.Number) {
 	doneChan := t.leave(ctx, leaveAfterPulses)
 	<-doneChan
 }
 
-func (t *Handler) leave(ctx context.Context, leaveAfterPulses pulse2.Number) chan struct{} {
+func (t *Handler) leave(ctx context.Context, leaveAfterPulses pulse.Number) chan struct{} {
 	t.Lock()
 	defer t.Unlock()
 

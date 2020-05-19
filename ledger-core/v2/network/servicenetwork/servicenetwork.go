@@ -26,7 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/termination"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -118,7 +118,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 	return nil
 }
 
-func (n *ServiceNetwork) Leave(ctx context.Context, eta pulse2.Number) {
+func (n *ServiceNetwork) Leave(ctx context.Context, eta pulse.Number) {
 	logger := inslogger.FromContext(ctx)
 	logger.Info("Gracefully stopping service network")
 
@@ -147,7 +147,7 @@ func (n *ServiceNetwork) GetOrigin() node.NetworkNode {
 	return n.NodeKeeper.GetOrigin()
 }
 
-func (n *ServiceNetwork) GetAccessor(p pulse2.Number) network.Accessor {
+func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 

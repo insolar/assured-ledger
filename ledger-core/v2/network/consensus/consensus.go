@@ -12,7 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2"
@@ -174,7 +174,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	candidateFeeder := coreapi.NewSequentialCandidateFeeder(candidateQueueSize)
 
 	var ephemeralFeeder api.EphemeralControlFeeder
-	if c.dep.EphemeralController.EphemeralMode(c.dep.NodeKeeper.GetAccessor(pulse.GenesisPulse.PulseNumber).GetActiveNodes()) {
+	if c.dep.EphemeralController.EphemeralMode(c.dep.NodeKeeper.GetAccessor(pulsestor.GenesisPulse.PulseNumber).GetActiveNodes()) {
 		ephemeralFeeder = adapters.NewEphemeralControlFeeder(c.dep.EphemeralController)
 	}
 
@@ -204,7 +204,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 func (c *Installer) createCensus(mode Mode) *censusimpl.PrimingCensusTemplate {
 	certificate := c.dep.CertificateManager.GetCertificate()
 	origin := c.dep.NodeKeeper.GetOrigin()
-	knownNodes := c.dep.NodeKeeper.GetAccessor(pulse.GenesisPulse.PulseNumber).GetActiveNodes()
+	knownNodes := c.dep.NodeKeeper.GetAccessor(pulsestor.GenesisPulse.PulseNumber).GetActiveNodes()
 
 	node := adapters.NewStaticProfile(origin, certificate, c.dep.KeyProcessor)
 	nodes := adapters.NewStaticProfileList(knownNodes, certificate, c.dep.KeyProcessor)

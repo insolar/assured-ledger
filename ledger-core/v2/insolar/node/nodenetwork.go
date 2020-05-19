@@ -28,22 +28,21 @@ func (v ShortNodeID) Equal(other ShortNodeID) bool { return v == other }
 // GlobuleID is the ID of the globe
 type GlobuleID uint32
 
-// NodeState is the state of the node
-type NodeState uint8
+type State uint8
 
 // Power is node power
 type Power uint8
 
 //go:generate stringer -type=NodeState
 const (
-	// NodeUndefined node started but is not connected to network yet
-	NodeUndefined NodeState = iota
-	// NodeJoining node is in first pulse of discovery bootstrap or is joining to a bootstrapped network
-	NodeJoining
-	// NodeReady node is connected to network
-	NodeReady
-	// NodeLeaving node is about to leave network
-	NodeLeaving
+	// Undefined node started but is not connected to network yet
+	Undefined State = iota
+	// Joining node is in first pulse of discovery bootstrap or is joining to a bootstrapped network
+	Joining
+	// Ready node is connected to network
+	Ready
+	// Leaving node is about to leave network
+	Leaving
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.NetworkNode -o ../../testutils/network -s _mock.go -g
@@ -66,7 +65,7 @@ type NetworkNode interface {
 	// LeavingETA is pulse number, after which node leave
 	LeavingETA() pulse.Number
 	// GetState get state of the node
-	GetState() NodeState
+	GetState() State
 	// GetPower get power of node
 	GetPower() Power
 }

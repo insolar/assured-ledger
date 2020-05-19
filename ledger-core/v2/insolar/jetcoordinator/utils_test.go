@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -97,7 +97,7 @@ var refresults []reference.Global
 func benchSelectByEntropyWrapped(b *testing.B, valuescount int, count int) {
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
 
-	var e pulse.Entropy
+	var e pulsestor.Entropy
 	copy(e[:], randslice(64))
 
 	values := make([]node.Node, 0, valuescount)

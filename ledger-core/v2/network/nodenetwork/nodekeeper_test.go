@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -65,5 +65,5 @@ func TestNewNodeKeeper(t *testing.T) {
 	origin := nk.GetOrigin()
 	assert.NotNil(t, origin)
 	nk.SetInitialSnapshot([]node.NetworkNode{origin})
-	assert.NotNil(t, nk.GetAccessor(pulse.GenesisPulse.PulseNumber))
+	assert.NotNil(t, nk.GetAccessor(pulsestor.GenesisPulse.PulseNumber))
 }

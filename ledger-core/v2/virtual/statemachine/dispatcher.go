@@ -10,13 +10,12 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
@@ -53,7 +52,7 @@ type logClosePulseMessage struct {
 	PreviousPulse pulse.Number
 }
 
-func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulse2.Pulse) {
+func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsestor.Pulse) {
 	var (
 		pulseData  = adapters.NewPulseData(pulseObject)
 		pulseRange pulse.Range
@@ -84,7 +83,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulse2.
 	}
 }
 
-func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulse2.Pulse) {
+func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulsestor.Pulse) {
 	inslogger.FromContext(ctx).Errorm(logClosePulseMessage{
 		PreviousPulse: c.previousPulse,
 	})
@@ -122,7 +121,7 @@ type errUnknownPayload struct {
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
 	pl, err := payload.Unmarshal(msg.Payload)
 	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal payload.Meta")
+		return throw.W(err, "failed to unmarshal payload.Meta")
 	}
 	plMeta, ok := pl.(*payload.Meta)
 	if !ok {

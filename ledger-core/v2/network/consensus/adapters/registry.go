@@ -8,7 +8,7 @@ package adapters
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
@@ -72,7 +72,7 @@ func NewOfflinePopulation(nodeKeeper network.NodeKeeper, manager node.Certificat
 }
 
 func (op *OfflinePopulation) FindRegisteredProfile(identity endpoints.Inbound) profiles.Host {
-	node := op.nodeKeeper.GetAccessor(pulse2.GenesisPulse.PulseNumber).GetActiveNodeByAddr(identity.GetNameAddress().String())
+	node := op.nodeKeeper.GetAccessor(pulsestor.GenesisPulse.PulseNumber).GetActiveNodeByAddr(identity.GetNameAddress().String())
 	if node == nil {
 		return nil
 	}

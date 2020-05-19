@@ -12,7 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -35,7 +35,7 @@ func TestTable_Resolve(t *testing.T) {
 	table := Table{}
 
 	refs := gen.UniqueReferences(2)
-	puls := pulse2.GenesisPulse
+	puls := pulsestor.GenesisPulse
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
 		n := newNode(refs[0], 123)
@@ -43,7 +43,7 @@ func TestTable_Resolve(t *testing.T) {
 	})
 
 	pulseAccessorMock := mock.NewPulseAccessorMock(t)
-	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 pulse2.Pulse, err error) {
+	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 pulsestor.Pulse, err error) {
 		return *puls, nil
 	})
 

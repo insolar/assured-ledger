@@ -18,15 +18,15 @@ import (
 func TestAccessor(t *testing.T) {
 	t.Skip("FIXME")
 
-	node := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.NodeReady, "127.0.0.1:0", "")
+	node := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.Ready, "127.0.0.1:0", "")
 
-	node2 := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.NodeJoining, "127.0.0.1:0", "")
+	node2 := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.Joining, "127.0.0.1:0", "")
 	node2.SetShortID(11)
 
-	node3 := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.NodeLeaving, "127.0.0.1:0", "")
+	node3 := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.Leaving, "127.0.0.1:0", "")
 	node3.SetShortID(10)
 
-	node4 := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.NodeUndefined, "127.0.0.1:0", "")
+	node4 := newMutableNode(gen.Reference(), node5.StaticRoleVirtual, nil, node5.Undefined, "127.0.0.1:0", "")
 
 	snapshot := NewSnapshot(pulse.MinTimePulse, []node5.NetworkNode{node, node2, node3, node4})
 	accessor := NewAccessor(snapshot)

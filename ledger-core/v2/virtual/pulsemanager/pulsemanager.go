@@ -14,11 +14,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -26,8 +26,8 @@ import (
 type PulseManager struct {
 	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
 	NodeSetter    nodestorage.Modifier `inject:""`
-	PulseAccessor pulse.Accessor       `inject:""`
-	PulseAppender pulse.Appender       `inject:""`
+	PulseAccessor pulsestor.Accessor   `inject:""`
+	PulseAppender pulsestor.Appender   `inject:""`
 	dispatchers   []dispatcher.Dispatcher
 
 	// setLock locks Set method call.
@@ -52,12 +52,12 @@ func (m *PulseManager) AddDispatcher(d ...dispatcher.Dispatcher) {
 
 type messageNewPulse struct {
 	*log.Msg `txt:"received pulse"`
-	OldPulse pulse2.Number
-	NewPulse pulse2.Number
+	OldPulse pulse.Number
+	NewPulse pulse.Number
 }
 
 // Set set's new pulse.
-func (m *PulseManager) Set(ctx context.Context, newPulse pulse.Pulse) error {
+func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error {
 	m.setLock.Lock()
 	defer m.setLock.Unlock()
 	if m.stopped {
@@ -65,8 +65,8 @@ func (m *PulseManager) Set(ctx context.Context, newPulse pulse.Pulse) error {
 	}
 
 	storagePulse, err := m.PulseAccessor.Latest(ctx)
-	if err == pulse.ErrNotFound {
-		storagePulse = *pulse.GenesisPulse
+	if err == pulsestor.ErrNotFound {
+		storagePulse = *pulsestor.GenesisPulse
 	} else if err != nil {
 		return errors.Wrap(err, "call of GetLatestPulseNumber failed")
 	}

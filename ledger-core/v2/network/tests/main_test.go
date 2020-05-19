@@ -229,7 +229,7 @@ func flushNodeKeeper(keeper network.NodeKeeper) {
 	// keeper.SetIsBootstrapped(false)
 	// keeper.SetCloudHash(nil)
 	keeper.SetInitialSnapshot([]node2.NetworkNode{})
-	keeper.GetOrigin().(node.MutableNode).SetState(node2.NodeReady)
+	keeper.GetOrigin().(node.MutableNode).SetState(node2.Ready)
 }
 
 func TestDiscoveryRestart(t *testing.T) {

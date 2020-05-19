@@ -35,7 +35,7 @@ type NetworkNodeMock struct {
 	beforeGetPowerCounter uint64
 	GetPowerMock          mNetworkNodeMockGetPower
 
-	funcGetState          func() (n1 mm_node.NodeState)
+	funcGetState          func() (n1 mm_node.State)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
@@ -553,7 +553,7 @@ type NetworkNodeMockGetStateExpectation struct {
 
 // NetworkNodeMockGetStateResults contains results of the NetworkNode.GetState
 type NetworkNodeMockGetStateResults struct {
-	n1 mm_node.NodeState
+	n1 mm_node.State
 }
 
 // Expect sets up expected params for NetworkNode.GetState
@@ -581,7 +581,7 @@ func (mmGetState *mNetworkNodeMockGetState) Inspect(f func()) *mNetworkNodeMockG
 }
 
 // Return sets up results that will be returned by NetworkNode.GetState
-func (mmGetState *mNetworkNodeMockGetState) Return(n1 mm_node.NodeState) *NetworkNodeMock {
+func (mmGetState *mNetworkNodeMockGetState) Return(n1 mm_node.State) *NetworkNodeMock {
 	if mmGetState.mock.funcGetState != nil {
 		mmGetState.mock.t.Fatalf("NetworkNodeMock.GetState mock is already set by Set")
 	}
@@ -594,7 +594,7 @@ func (mmGetState *mNetworkNodeMockGetState) Return(n1 mm_node.NodeState) *Networ
 }
 
 //Set uses given function f to mock the NetworkNode.GetState method
-func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 mm_node.NodeState)) *NetworkNodeMock {
+func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 mm_node.State)) *NetworkNodeMock {
 	if mmGetState.defaultExpectation != nil {
 		mmGetState.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetState method")
 	}
@@ -608,7 +608,7 @@ func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 mm_node.NodeState))
 }
 
 // GetState implements node.NetworkNode
-func (mmGetState *NetworkNodeMock) GetState() (n1 mm_node.NodeState) {
+func (mmGetState *NetworkNodeMock) GetState() (n1 mm_node.State) {
 	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
 

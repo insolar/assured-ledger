@@ -100,14 +100,14 @@ func splitNodes(nodes []node.NetworkNode) [ListLength][]node.NetworkNode {
 
 func nodeStateToListType(nd node.NetworkNode) ListType {
 	switch nd.GetState() {
-	case node.NodeReady:
+	case node.Ready:
 		if nd.GetPower() > 0 {
 			return ListWorking
 		}
 		return ListIdle
-	case node.NodeJoining:
+	case node.Joining:
 		return ListJoiner
-	case node.NodeUndefined, node.NodeLeaving:
+	case node.Undefined, node.Leaving:
 		return ListLeaving
 	}
 	// special case for no match
@@ -173,7 +173,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 			}
 
 			ref := reference.GlobalFromBytes(n.NodeID)
-			nodeList[i] = newMutableNode(ref, node.StaticRole(n.NodeRole), pk, node.NodeState(n.State), n.NodeAddress, n.NodeVersion)
+			nodeList[i] = newMutableNode(ref, node.StaticRole(n.NodeRole), pk, node.State(n.State), n.NodeAddress, n.NodeVersion)
 		}
 		s.nodeList[t] = nodeList
 	}

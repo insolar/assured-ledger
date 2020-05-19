@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-type NodeMeta interface {
+type Meta interface {
 	GetNodeRef() reference.Global
 	GetPublicKey() crypto.PublicKey
 }
@@ -31,7 +31,7 @@ type Certificate interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.DiscoveryNode -o ../../testutils -s _mock.go -g
 
 type DiscoveryNode interface {
-	NodeMeta
+	Meta
 
 	GetRole() StaticRole
 	GetHost() string
@@ -39,7 +39,7 @@ type DiscoveryNode interface {
 
 // AuthorizationCertificate interface provides methods to manage info about node from it certificate
 type AuthorizationCertificate interface {
-	NodeMeta
+	Meta
 
 	GetRole() StaticRole
 	SerializeNodePart() []byte

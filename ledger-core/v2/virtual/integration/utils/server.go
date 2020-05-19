@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
@@ -46,8 +46,8 @@ type Server struct {
 	PublisherMock      *mock.PublisherMock
 	JetCoordinatorMock *jet.CoordinatorMock
 	pulseGenerator     *mimic.PulseGenerator
-	pulseStorage       *pulse.StorageMem
-	pulseManager       pulse.Manager
+	pulseStorage       *pulsestor.StorageMem
+	pulseManager       pulsestor.Manager
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -66,7 +66,7 @@ func NewServer(t *testing.T) *Server {
 	// Pulse-related components
 	var (
 		PulseManager *pulsemanager.PulseManager
-		Pulses       *pulse.StorageMem
+		Pulses       *pulsestor.StorageMem
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
@@ -74,7 +74,7 @@ func NewServer(t *testing.T) *Server {
 			ShortIDMock.Return(node.ShortNodeID(0)).
 			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(node.NodeReady).
+			GetStateMock.Return(node.Ready).
 			GetPowerMock.Return(1)
 		networkNodeList := []node.NetworkNode{networkNodeMock}
 
@@ -82,7 +82,7 @@ func NewServer(t *testing.T) *Server {
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
 		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
-		Pulses = pulse.NewStorageMem()
+		Pulses = pulsestor.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
 		PulseManager.NodeSetter = nodeSetter
@@ -132,7 +132,7 @@ func NewServer(t *testing.T) *Server {
 	return &s
 }
 
-func (s *Server) GetPulse() pulse.Pulse {
+func (s *Server) GetPulse() pulsestor.Pulse {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 

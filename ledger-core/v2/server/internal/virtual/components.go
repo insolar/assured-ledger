@@ -25,7 +25,7 @@ import (
 	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
@@ -117,7 +117,7 @@ func initComponents(
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
 	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
-	pulses := pulse.NewStorageMem()
+	pulses := pulsestor.NewStorageMem()
 
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 

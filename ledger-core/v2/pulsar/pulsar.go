@@ -16,11 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 )
@@ -40,7 +40,7 @@ type Pulsar struct {
 	PulseDistributor           node.PulseDistributor
 
 	lastPNMutex sync.RWMutex
-	lastPN      pulse2.Number
+	lastPN      pulse.Number
 }
 
 // NewPulsar creates a new pulse with using of custom GeneratedEntropy Generator
@@ -77,7 +77,7 @@ func NewPulsar(
 	return pulsar
 }
 
-func (p *Pulsar) Send(ctx context.Context, pulseNumber pulse2.Number) error {
+func (p *Pulsar) Send(ctx context.Context, pulseNumber pulse.Number) error {
 	logger := inslogger.FromContext(ctx)
 	logger.Infof("before sending new pulseNumber: %v", pulseNumber)
 
@@ -87,18 +87,18 @@ func (p *Pulsar) Send(ctx context.Context, pulseNumber pulse2.Number) error {
 		return err
 	}
 
-	pulseForSending := pulse.Pulse{
+	pulseForSending := pulsestor.Pulse{
 		PulseNumber:      pulseNumber,
 		Entropy:          entropy,
-		NextPulseNumber:  pulseNumber + pulse2.Number(p.Config.NumberDelta),
+		NextPulseNumber:  pulseNumber + pulse.Number(p.Config.NumberDelta),
 		PrevPulseNumber:  p.lastPN,
 		EpochPulseNumber: pulseNumber.AsEpoch(),
 		OriginID:         [16]byte{206, 41, 229, 190, 7, 240, 162, 155, 121, 245, 207, 56, 161, 67, 189, 0},
 		PulseTimestamp:   time.Now().UnixNano(),
-		Signs:            map[string]pulse.SenderConfirmation{},
+		Signs:            map[string]pulsestor.SenderConfirmation{},
 	}
 
-	payload := PulseSenderConfirmationPayload{SenderConfirmation: pulse.SenderConfirmation{
+	payload := PulseSenderConfirmationPayload{SenderConfirmation: pulsestor.SenderConfirmation{
 		ChosenPublicKey: p.PublicKeyRaw,
 		Entropy:         entropy,
 		PulseNumber:     pulseNumber,
@@ -113,7 +113,7 @@ func (p *Pulsar) Send(ctx context.Context, pulseNumber pulse2.Number) error {
 		return err
 	}
 
-	pulseForSending.Signs[p.PublicKeyRaw] = pulse.SenderConfirmation{
+	pulseForSending.Signs[p.PublicKeyRaw] = pulsestor.SenderConfirmation{
 		ChosenPublicKey: p.PublicKeyRaw,
 		Signature:       signature.Bytes(),
 		Entropy:         entropy,
@@ -135,19 +135,19 @@ func (p *Pulsar) Send(ctx context.Context, pulseNumber pulse2.Number) error {
 	return nil
 }
 
-func (p *Pulsar) LastPN() pulse2.Number {
+func (p *Pulsar) LastPN() pulse.Number {
 	p.lastPNMutex.RLock()
 	defer p.lastPNMutex.RUnlock()
 
 	return p.lastPN
 }
 
-func (p *Pulsar) generateNewEntropyAndSign() (pulse.Entropy, []byte, error) {
+func (p *Pulsar) generateNewEntropyAndSign() (pulsestor.Entropy, []byte, error) {
 	e := p.EntropyGenerator.GenerateEntropy()
 
 	sign, err := p.CryptographyService.Sign(e[:])
 	if err != nil {
-		return pulse.Entropy{}, nil, err
+		return pulsestor.Entropy{}, nil, err
 	}
 
 	return e, sign.Bytes(), nil
@@ -155,7 +155,7 @@ func (p *Pulsar) generateNewEntropyAndSign() (pulse.Entropy, []byte, error) {
 
 // PulseSenderConfirmationPayload is a struct with info about pulse's confirmations
 type PulseSenderConfirmationPayload struct {
-	pulse.SenderConfirmation
+	pulsestor.SenderConfirmation
 }
 
 // Hash calculates hash of payload

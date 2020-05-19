@@ -43,8 +43,8 @@ func TestSnapshotEncodeDecode(t *testing.T) {
 	p2, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
 
-	n1 := newMutableNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), node2.NodeReady, "127.0.0.1:22", "ver2")
-	n2 := newMutableNode(gen.Reference(), node2.StaticRoleHeavyMaterial, ks.ExtractPublicKey(p2), node2.NodeLeaving, "127.0.0.1:33", "ver5")
+	n1 := newMutableNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), node2.Ready, "127.0.0.1:22", "ver2")
+	n2 := newMutableNode(gen.Reference(), node2.StaticRoleHeavyMaterial, ks.ExtractPublicKey(p2), node2.Leaving, "127.0.0.1:33", "ver5")
 
 	s := Snapshot{}
 	s.pulse = 22
@@ -72,14 +72,14 @@ func TestSnapshot_Copy(t *testing.T) {
 	snapshot := NewSnapshot(pulse.MinTimePulse, nil)
 	mutator := NewMutator(snapshot)
 	ref1 := gen.Reference()
-	node1 := newMutableNode(ref1, node2.StaticRoleVirtual, nil, node2.NodeReady, "127.0.0.1:0", "")
+	node1 := newMutableNode(ref1, node2.StaticRoleVirtual, nil, node2.Ready, "127.0.0.1:0", "")
 	mutator.AddWorkingNode(node1)
 
 	snapshot2 := snapshot.Copy()
 	accessor := NewAccessor(snapshot2)
 
 	ref2 := gen.Reference()
-	node2 := newMutableNode(ref2, node2.StaticRoleLightMaterial, nil, node2.NodeReady, "127.0.0.1:0", "")
+	node2 := newMutableNode(ref2, node2.StaticRoleLightMaterial, nil, node2.Ready, "127.0.0.1:0", "")
 	mutator.AddWorkingNode(node2)
 
 	// mutator and accessor observe different copies of snapshot and don't affect each other
@@ -104,7 +104,7 @@ func TestSnapshot_Equal(t *testing.T) {
 
 	genNodeCopy := func(reference reference.Global) node2.NetworkNode {
 		return newMutableNode(reference, node2.StaticRoleLightMaterial,
-			nil, node2.NodeReady, "127.0.0.1:0", "")
+			nil, node2.Ready, "127.0.0.1:0", "")
 	}
 
 	refs := gen.UniqueReferences(2)

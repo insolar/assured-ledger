@@ -9,8 +9,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -22,7 +22,7 @@ type StatusReply struct {
 	// Nodes from active list
 	Nodes []NetworkNode
 	// Pulse from network pulse storage
-	Pulse     pulse.Pulse
+	Pulse     pulsestor.Pulse
 	Version   string
 	Timestamp time.Time
 	// node start timestamp for uptime duration
@@ -37,7 +37,7 @@ type NetworkStatus interface {
 
 type Leaver interface {
 	// Leave notify other nodes that this node want to leave and doesn't want to receive new tasks
-	Leave(ctx context.Context, ETA pulse2.Number)
+	Leave(ctx context.Context, ETA pulse.Number)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.CertificateGetter -o ../../testutils -s _mock.go -g
@@ -52,7 +52,7 @@ type CertificateGetter interface {
 // PulseDistributor is interface for pulse distribution.
 type PulseDistributor interface {
 	// Distribute distributes a pulse across the network.
-	Distribute(context.Context, pulse.Pulse)
+	Distribute(context.Context, pulsestor.Pulse)
 }
 
 // NetworkState type for bootstrapping process

@@ -9,7 +9,8 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
@@ -17,13 +18,13 @@ import (
 type PulseAccessorMock struct {
 	t minimock.Tester
 
-	funcGetLatestPulse          func(ctx context.Context) (p1 pulse2.Pulse, err error)
+	funcGetLatestPulse          func(ctx context.Context) (p1 pulsestor.Pulse, err error)
 	inspectFuncGetLatestPulse   func(ctx context.Context)
 	afterGetLatestPulseCounter  uint64
 	beforeGetLatestPulseCounter uint64
 	GetLatestPulseMock          mPulseAccessorMockGetLatestPulse
 
-	funcGetPulse          func(ctx context.Context, n1 pulse.Number) (p1 pulse2.Pulse, err error)
+	funcGetPulse          func(ctx context.Context, n1 pulse.Number) (p1 pulsestor.Pulse, err error)
 	inspectFuncGetPulse   func(ctx context.Context, n1 pulse.Number)
 	afterGetPulseCounter  uint64
 	beforeGetPulseCounter uint64
@@ -70,7 +71,7 @@ type PulseAccessorMockGetLatestPulseParams struct {
 
 // PulseAccessorMockGetLatestPulseResults contains results of the PulseAccessor.GetLatestPulse
 type PulseAccessorMockGetLatestPulseResults struct {
-	p1  pulse2.Pulse
+	p1  pulsestor.Pulse
 	err error
 }
 
@@ -106,7 +107,7 @@ func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) Inspect(f func(ctx con
 }
 
 // Return sets up results that will be returned by PulseAccessor.GetLatestPulse
-func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) Return(p1 pulse2.Pulse, err error) *PulseAccessorMock {
+func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) Return(p1 pulsestor.Pulse, err error) *PulseAccessorMock {
 	if mmGetLatestPulse.mock.funcGetLatestPulse != nil {
 		mmGetLatestPulse.mock.t.Fatalf("PulseAccessorMock.GetLatestPulse mock is already set by Set")
 	}
@@ -119,7 +120,7 @@ func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) Return(p1 pulse2.Pulse
 }
 
 //Set uses given function f to mock the PulseAccessor.GetLatestPulse method
-func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) Set(f func(ctx context.Context) (p1 pulse2.Pulse, err error)) *PulseAccessorMock {
+func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) Set(f func(ctx context.Context) (p1 pulsestor.Pulse, err error)) *PulseAccessorMock {
 	if mmGetLatestPulse.defaultExpectation != nil {
 		mmGetLatestPulse.mock.t.Fatalf("Default expectation is already set for the PulseAccessor.GetLatestPulse method")
 	}
@@ -148,13 +149,13 @@ func (mmGetLatestPulse *mPulseAccessorMockGetLatestPulse) When(ctx context.Conte
 }
 
 // Then sets up PulseAccessor.GetLatestPulse return parameters for the expectation previously defined by the When method
-func (e *PulseAccessorMockGetLatestPulseExpectation) Then(p1 pulse2.Pulse, err error) *PulseAccessorMock {
+func (e *PulseAccessorMockGetLatestPulseExpectation) Then(p1 pulsestor.Pulse, err error) *PulseAccessorMock {
 	e.results = &PulseAccessorMockGetLatestPulseResults{p1, err}
 	return e.mock
 }
 
 // GetLatestPulse implements storage.PulseAccessor
-func (mmGetLatestPulse *PulseAccessorMock) GetLatestPulse(ctx context.Context) (p1 pulse2.Pulse, err error) {
+func (mmGetLatestPulse *PulseAccessorMock) GetLatestPulse(ctx context.Context) (p1 pulsestor.Pulse, err error) {
 	mm_atomic.AddUint64(&mmGetLatestPulse.beforeGetLatestPulseCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetLatestPulse.afterGetLatestPulseCounter, 1)
 
@@ -287,7 +288,7 @@ type PulseAccessorMockGetPulseParams struct {
 
 // PulseAccessorMockGetPulseResults contains results of the PulseAccessor.GetPulse
 type PulseAccessorMockGetPulseResults struct {
-	p1  pulse2.Pulse
+	p1  pulsestor.Pulse
 	err error
 }
 
@@ -323,7 +324,7 @@ func (mmGetPulse *mPulseAccessorMockGetPulse) Inspect(f func(ctx context.Context
 }
 
 // Return sets up results that will be returned by PulseAccessor.GetPulse
-func (mmGetPulse *mPulseAccessorMockGetPulse) Return(p1 pulse2.Pulse, err error) *PulseAccessorMock {
+func (mmGetPulse *mPulseAccessorMockGetPulse) Return(p1 pulsestor.Pulse, err error) *PulseAccessorMock {
 	if mmGetPulse.mock.funcGetPulse != nil {
 		mmGetPulse.mock.t.Fatalf("PulseAccessorMock.GetPulse mock is already set by Set")
 	}
@@ -336,7 +337,7 @@ func (mmGetPulse *mPulseAccessorMockGetPulse) Return(p1 pulse2.Pulse, err error)
 }
 
 //Set uses given function f to mock the PulseAccessor.GetPulse method
-func (mmGetPulse *mPulseAccessorMockGetPulse) Set(f func(ctx context.Context, n1 pulse.Number) (p1 pulse2.Pulse, err error)) *PulseAccessorMock {
+func (mmGetPulse *mPulseAccessorMockGetPulse) Set(f func(ctx context.Context, n1 pulse.Number) (p1 pulsestor.Pulse, err error)) *PulseAccessorMock {
 	if mmGetPulse.defaultExpectation != nil {
 		mmGetPulse.mock.t.Fatalf("Default expectation is already set for the PulseAccessor.GetPulse method")
 	}
@@ -365,13 +366,13 @@ func (mmGetPulse *mPulseAccessorMockGetPulse) When(ctx context.Context, n1 pulse
 }
 
 // Then sets up PulseAccessor.GetPulse return parameters for the expectation previously defined by the When method
-func (e *PulseAccessorMockGetPulseExpectation) Then(p1 pulse2.Pulse, err error) *PulseAccessorMock {
+func (e *PulseAccessorMockGetPulseExpectation) Then(p1 pulsestor.Pulse, err error) *PulseAccessorMock {
 	e.results = &PulseAccessorMockGetPulseResults{p1, err}
 	return e.mock
 }
 
 // GetPulse implements storage.PulseAccessor
-func (mmGetPulse *PulseAccessorMock) GetPulse(ctx context.Context, n1 pulse.Number) (p1 pulse2.Pulse, err error) {
+func (mmGetPulse *PulseAccessorMock) GetPulse(ctx context.Context, n1 pulse.Number) (p1 pulsestor.Pulse, err error) {
 	mm_atomic.AddUint64(&mmGetPulse.beforeGetPulseCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPulse.afterGetPulseCounter, 1)
 

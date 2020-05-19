@@ -14,9 +14,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
@@ -41,7 +41,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(ctx context.Context, pulse pulse.Pulse) {
+func (g *Complete) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -53,7 +53,7 @@ func (g *Complete) GetState() node2.NetworkState {
 	return node2.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse pulse.Pulse) {
+func (g *Complete) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {
 	err := g.PulseManager.Set(ctx, pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
@@ -142,7 +142,7 @@ func (g *Complete) EphemeralMode(nodes []node2.NetworkNode) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse2.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -156,7 +156,7 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse2.Number, n
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulse.Pulse) {
+func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulsestor.Pulse) {
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
 	// OnPulseFromConsensus should be fast, but Manager.Set() takes unpredictable time

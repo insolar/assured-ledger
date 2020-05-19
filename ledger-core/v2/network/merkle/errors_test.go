@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -30,7 +30,7 @@ import (
 type calculatorErrorSuite struct {
 	suite.Suite
 
-	pulse          *pulse.Pulse
+	pulse          *pulsestor.Pulse
 	originProvider network.OriginProvider
 	service        cryptography.Service
 
@@ -135,7 +135,7 @@ func TestCalculatorError(t *testing.T) {
 	})
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
 
-	ps := pulse.NewStorageMem()
+	ps := pulsestor.NewStorageMem()
 
 	op := network2.NewOriginProviderMock(t)
 	op.GetOriginMock.Set(func() node.NetworkNode {
@@ -160,7 +160,7 @@ func TestCalculatorError(t *testing.T) {
 	err := cm.Init(context.Background())
 	require.NoError(t, err)
 
-	pulseObject := &pulse.Pulse{
+	pulseObject := &pulsestor.Pulse{
 		PulseNumber:     1337,
 		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),

@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 )
 
@@ -24,7 +24,7 @@ func TestNewMemorySnapshotStorage(t *testing.T) {
 	p1, err := ks.GeneratePrivateKey()
 	n := node.NewNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
 
-	pulse := pulse2.Pulse{PulseNumber: 15}
+	pulse := pulsestor.Pulse{PulseNumber: 15}
 	snap := node.NewSnapshot(pulse.PulseNumber, []node2.NetworkNode{n})
 
 	err = ss.Append(pulse.PulseNumber, snap)

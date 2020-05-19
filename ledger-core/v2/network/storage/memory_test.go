@@ -14,15 +14,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 func TestMemoryStorage(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStorage()
-	startPulse := *pulse.GenesisPulse
+	startPulse := *pulsestor.GenesisPulse
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
@@ -32,7 +32,7 @@ func TestMemoryStorage(t *testing.T) {
 
 	for i := 0; i < entriesCount+2; i++ {
 		p := startPulse
-		p.PulseNumber += pulse2.Number(i)
+		p.PulseNumber += pulse.Number(i)
 
 		snap := node.NewSnapshot(p.PulseNumber, nodes)
 		err = s.Append(p.PulseNumber, snap)
@@ -56,7 +56,7 @@ func TestMemoryStorage(t *testing.T) {
 
 	p2, err := s.GetPulse(ctx, startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Equal(t, p2, *pulse.GenesisPulse)
+	assert.Equal(t, p2, *pulsestor.GenesisPulse)
 
 	snap2, err := s.ForPulseNumber(startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())

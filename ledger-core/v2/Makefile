@@ -77,10 +77,10 @@ generate-proto-options:
 .PHONY: generate-protobuf
 generate-protobuf: ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ network/node/internal/node/node.proto
-	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node.proto
+	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node/node.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.r0.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.proto
-	protoc -I./vendor -I./ --gogoslick_out=./ insolar/pulsestorage/pulse.proto
+	protoc -I./vendor -I./ --gogoslick_out=./ insolar/pulsestor/pulse.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src network/hostnetwork/packet/packet.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src network/consensus/adapters/candidate/profile.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ network/servicenetwork/watermillmessage.proto

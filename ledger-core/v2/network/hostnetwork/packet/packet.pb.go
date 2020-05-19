@@ -16,7 +16,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/proto"
 
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters/candidate"
 	github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host "github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
@@ -531,7 +531,7 @@ func (m *RPCRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_RPCRequest proto.InternalMessageInfo
 
 type PulseRequest struct {
-	Pulse *pulse2.PulseProto `protobuf:"bytes,1,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
+	Pulse *pulsestor.PulseProto `protobuf:"bytes,1,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
 }
 
 func (m *PulseRequest) Reset()      { *m = PulseRequest{} }
@@ -641,9 +641,9 @@ func (m *ReconnectRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_ReconnectRequest proto.InternalMessageInfo
 
 type BootstrapRequest struct {
-	CandidateProfile candidate.Profile `protobuf:"bytes,2,opt,name=CandidateProfile,proto3" json:"CandidateProfile"`
-	Pulse            pulse2.PulseProto  `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
-	Permit           *Permit           `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
+	CandidateProfile candidate.Profile    `protobuf:"bytes,2,opt,name=CandidateProfile,proto3" json:"CandidateProfile"`
+	Pulse            pulsestor.PulseProto `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
+	Permit           *Permit              `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
 func (m *BootstrapRequest) Reset()      { *m = BootstrapRequest{} }
@@ -905,7 +905,7 @@ var xxx_messageInfo_PermitPayload proto.InternalMessageInfo
 type BootstrapResponse struct {
 	Code       BootstrapResponseCode `protobuf:"varint,1,opt,name=Code,proto3,enum=packet.BootstrapResponseCode" json:"Code,omitempty"`
 	ETASeconds uint32                `protobuf:"varint,2,opt,name=ETASeconds,proto3" json:"ETASeconds,omitempty"`
-	Pulse      pulse2.PulseProto      `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
+	Pulse      pulsestor.PulseProto  `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
 }
 
 func (m *BootstrapResponse) Reset()      { *m = BootstrapResponse{} }
@@ -983,7 +983,7 @@ type AuthorizeResponse struct {
 	Error          string                `protobuf:"bytes,3,opt,name=Error,proto3" json:"Error,omitempty"`
 	Permit         *Permit               `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
 	DiscoveryCount uint32                `protobuf:"varint,5,opt,name=DiscoveryCount,proto3" json:"DiscoveryCount,omitempty"`
-	Pulse          *pulse2.PulseProto     `protobuf:"bytes,6,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
+	Pulse          *pulsestor.PulseProto `protobuf:"bytes,6,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
 }
 
 func (m *AuthorizeResponse) Reset()      { *m = AuthorizeResponse{} }
@@ -6067,7 +6067,7 @@ func (m *PulseRequest) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Pulse == nil {
-				m.Pulse = &pulse2.PulseProto{}
+				m.Pulse = &pulsestor.PulseProto{}
 			}
 			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -7655,7 +7655,7 @@ func (m *AuthorizeResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Pulse == nil {
-				m.Pulse = &pulse2.PulseProto{}
+				m.Pulse = &pulsestor.PulseProto{}
 			}
 			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err

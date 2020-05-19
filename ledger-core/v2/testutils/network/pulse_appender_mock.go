@@ -9,15 +9,16 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 )
 
 // PulseAppenderMock implements storage.PulseAppender
 type PulseAppenderMock struct {
 	t minimock.Tester
 
-	funcAppendPulse          func(ctx context.Context, pulse pulse2.Pulse) (err error)
-	inspectFuncAppendPulse   func(ctx context.Context, pulse pulse2.Pulse)
+	funcAppendPulse          func(ctx context.Context, pulse pulsestor.Pulse) (err error)
+	inspectFuncAppendPulse   func(ctx context.Context, pulse pulsestor.Pulse)
 	afterAppendPulseCounter  uint64
 	beforeAppendPulseCounter uint64
 	AppendPulseMock          mPulseAppenderMockAppendPulse
@@ -56,7 +57,7 @@ type PulseAppenderMockAppendPulseExpectation struct {
 // PulseAppenderMockAppendPulseParams contains parameters of the PulseAppender.AppendPulse
 type PulseAppenderMockAppendPulseParams struct {
 	ctx   context.Context
-	pulse pulse2.Pulse
+	pulse pulsestor.Pulse
 }
 
 // PulseAppenderMockAppendPulseResults contains results of the PulseAppender.AppendPulse
@@ -65,7 +66,7 @@ type PulseAppenderMockAppendPulseResults struct {
 }
 
 // Expect sets up expected params for PulseAppender.AppendPulse
-func (mmAppendPulse *mPulseAppenderMockAppendPulse) Expect(ctx context.Context, pulse pulse2.Pulse) *mPulseAppenderMockAppendPulse {
+func (mmAppendPulse *mPulseAppenderMockAppendPulse) Expect(ctx context.Context, pulse pulsestor.Pulse) *mPulseAppenderMockAppendPulse {
 	if mmAppendPulse.mock.funcAppendPulse != nil {
 		mmAppendPulse.mock.t.Fatalf("PulseAppenderMock.AppendPulse mock is already set by Set")
 	}
@@ -85,7 +86,7 @@ func (mmAppendPulse *mPulseAppenderMockAppendPulse) Expect(ctx context.Context, 
 }
 
 // Inspect accepts an inspector function that has same arguments as the PulseAppender.AppendPulse
-func (mmAppendPulse *mPulseAppenderMockAppendPulse) Inspect(f func(ctx context.Context, pulse pulse2.Pulse)) *mPulseAppenderMockAppendPulse {
+func (mmAppendPulse *mPulseAppenderMockAppendPulse) Inspect(f func(ctx context.Context, pulse pulsestor.Pulse)) *mPulseAppenderMockAppendPulse {
 	if mmAppendPulse.mock.inspectFuncAppendPulse != nil {
 		mmAppendPulse.mock.t.Fatalf("Inspect function is already set for PulseAppenderMock.AppendPulse")
 	}
@@ -109,7 +110,7 @@ func (mmAppendPulse *mPulseAppenderMockAppendPulse) Return(err error) *PulseAppe
 }
 
 //Set uses given function f to mock the PulseAppender.AppendPulse method
-func (mmAppendPulse *mPulseAppenderMockAppendPulse) Set(f func(ctx context.Context, pulse pulse2.Pulse) (err error)) *PulseAppenderMock {
+func (mmAppendPulse *mPulseAppenderMockAppendPulse) Set(f func(ctx context.Context, pulse pulsestor.Pulse) (err error)) *PulseAppenderMock {
 	if mmAppendPulse.defaultExpectation != nil {
 		mmAppendPulse.mock.t.Fatalf("Default expectation is already set for the PulseAppender.AppendPulse method")
 	}
@@ -124,7 +125,7 @@ func (mmAppendPulse *mPulseAppenderMockAppendPulse) Set(f func(ctx context.Conte
 
 // When sets expectation for the PulseAppender.AppendPulse which will trigger the result defined by the following
 // Then helper
-func (mmAppendPulse *mPulseAppenderMockAppendPulse) When(ctx context.Context, pulse pulse2.Pulse) *PulseAppenderMockAppendPulseExpectation {
+func (mmAppendPulse *mPulseAppenderMockAppendPulse) When(ctx context.Context, pulse pulsestor.Pulse) *PulseAppenderMockAppendPulseExpectation {
 	if mmAppendPulse.mock.funcAppendPulse != nil {
 		mmAppendPulse.mock.t.Fatalf("PulseAppenderMock.AppendPulse mock is already set by Set")
 	}
@@ -144,7 +145,7 @@ func (e *PulseAppenderMockAppendPulseExpectation) Then(err error) *PulseAppender
 }
 
 // AppendPulse implements storage.PulseAppender
-func (mmAppendPulse *PulseAppenderMock) AppendPulse(ctx context.Context, pulse pulse2.Pulse) (err error) {
+func (mmAppendPulse *PulseAppenderMock) AppendPulse(ctx context.Context, pulse pulsestor.Pulse) (err error) {
 	mm_atomic.AddUint64(&mmAppendPulse.beforeAppendPulseCounter, 1)
 	defer mm_atomic.AddUint64(&mmAppendPulse.afterAppendPulseCounter, 1)
 

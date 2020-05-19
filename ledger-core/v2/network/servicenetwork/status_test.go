@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 
@@ -34,8 +34,8 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	pa := testutils.NewPulseAccessorMock(t)
 	ppn := pulse.Number(2)
-	puls := pulse2.Pulse{PulseNumber: 2}
-	pa.GetLatestPulseMock.Set(func(context.Context) (pulse2.Pulse, error) { return puls, nil })
+	puls := pulsestor.Pulse{PulseNumber: 2}
+	pa.GetLatestPulseMock.Set(func(context.Context) (pulsestor.Pulse, error) { return puls, nil })
 	sn.PulseAccessor = pa
 
 	nk := testutils.NewNodeKeeperMock(t)
@@ -70,7 +70,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Equal(t, version.Version, ns.Version)
 
-	pa.GetLatestPulseMock.Set(func(context.Context) (pulse2.Pulse, error) { return puls, errors.New("test") })
+	pa.GetLatestPulseMock.Set(func(context.Context) (pulsestor.Pulse, error) { return puls, errors.New("test") })
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
@@ -82,7 +82,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, pulse2.GenesisPulse.PulseNumber, ns.Pulse.PulseNumber)
+	require.Equal(t, pulsestor.GenesisPulse.PulseNumber, ns.Pulse.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 }

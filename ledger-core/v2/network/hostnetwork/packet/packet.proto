@@ -3,7 +3,7 @@ syntax = "proto3";
 package packet;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse/pulse.proto";
+import "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor/pulse.proto";
 import "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters/candidate/profile.proto";
 
 option (gogoproto.goproto_getters_all) = false;

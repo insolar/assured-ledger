@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -34,7 +34,7 @@ func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
 	waitConsensus.bootstrapETA = time.Millisecond
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 
-	waitConsensus.Run(context.Background(), *pulse.EphemeralPulse)
+	waitConsensus.Run(context.Background(), *pulsestor.EphemeralPulse)
 }
 
 func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
@@ -43,7 +43,7 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulse.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
 		assert.Equal(t, node.WaitMajority, state)
 	})
 
@@ -51,13 +51,13 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	assert.Equal(t, node.WaitConsensus, waitConsensus.GetState())
 	waitConsensus.Gatewayer = gatewayer
 	accessorMock := mock.NewPulseAccessorMock(mc)
-	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 pulse2.Number) (p2 pulse.Pulse, err error) {
-		return *pulse.EphemeralPulse, nil
+	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
+		return *pulsestor.EphemeralPulse, nil
 	})
 	waitConsensus.PulseAccessor = accessorMock
 	waitConsensus.bootstrapETA = time.Second
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 	waitConsensus.OnConsensusFinished(context.Background(), network.Report{})
 
-	waitConsensus.Run(context.Background(), *pulse.EphemeralPulse)
+	waitConsensus.Run(context.Background(), *pulsestor.EphemeralPulse)
 }

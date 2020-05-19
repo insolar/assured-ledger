@@ -14,7 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
@@ -107,7 +107,7 @@ func (t *calculatorHashesSuite) TestGetCloudHash() {
 type calculatorHashesSuite struct {
 	suite.Suite
 
-	pulse          *pulse2.Pulse
+	pulse          *pulsestor.Pulse
 	originProvider network.OriginProvider
 	service        cryptography.Service
 
@@ -153,7 +153,7 @@ func TestCalculatorHashes(t *testing.T) {
 	err := cm.Init(context.Background())
 	require.NoError(t, err)
 
-	pulse := &pulse2.Pulse{
+	pulse := &pulsestor.Pulse{
 		PulseNumber:     1337,
 		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),
