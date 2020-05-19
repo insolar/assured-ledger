@@ -19,6 +19,8 @@ type SMVDelegatedRequestFinished struct {
 	Meta    *payload.Meta
 	Payload *payload.VDelegatedRequestFinished
 
+	objectSharedState object.SharedStateAccessor
+
 	// dependencies
 	objectCatalog object.Catalog
 }
@@ -47,6 +49,32 @@ func (s *SMVDelegatedRequestFinished) GetStateMachineDeclaration() smachine.Stat
 }
 
 func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	return ctx.Jump(s.stepGetObject)
+}
+
+func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee)
+
+	var semaphoreReadyToWork smachine.SyncLink
+
+	action := func(state *object.SharedState) {
+		semaphoreReadyToWork = state.ReadyToWork
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
+	if ctx.AcquireForThisStep(semaphoreReadyToWork).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
 	return ctx.Jump(s.stepProcess)
 }
 
@@ -67,11 +95,10 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		objectDescriptor = &desc
 	}
 
-	sharedObjectState := s.objectCatalog.Get(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
-			ctx.Log().Trace(stateAlreadyExistsErrorMsg{
+			ctx.Log().Trace(stateIsNotReadyErrorMsg{
 				Reference: objectRef.String(),
 			})
 			return false
@@ -86,25 +113,27 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		case payload.CallIntolerable:
 			state.ActiveImmutablePendingCount--
 		case payload.CallTolerable:
-			state.ActiveMutablePendingCount--
-		}
+			if state.ActiveMutablePendingCount > 0 {
+				state.ActiveMutablePendingCount--
 
-		if state.ActiveMutablePendingCount == 0 {
-			// If we do not have pending ordered, release sync object.
-			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-				ctx.Log().Trace("AwaitPendingOrdered BargeIn receive false")
+				if state.ActiveMutablePendingCount == 0 {
+					// If we do not have pending ordered, release sync object.
+					if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
+						ctx.Log().Trace("AwaitPendingOrdered BargeIn receive false")
+					}
+				}
 			}
 		}
 
 		return true
 	}
 
-	switch sharedObjectState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
+	switch s.objectSharedState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
 	case smachine.Passed:
 	case smachine.NotPassed:
-		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	return ctx.Stop()
