@@ -8,7 +8,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+
 	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -52,7 +54,7 @@ type CertificateMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mCertificateMockGetPublicKey
 
-	funcGetRole          func() (s1 mm_insolar.StaticRole)
+	funcGetRole          func() (s1 node.StaticRole)
 	inspectFuncGetRole   func()
 	afterGetRoleCounter  uint64
 	beforeGetRoleCounter uint64
@@ -967,7 +969,7 @@ type CertificateMockGetRoleExpectation struct {
 
 // CertificateMockGetRoleResults contains results of the Certificate.GetRole
 type CertificateMockGetRoleResults struct {
-	s1 mm_insolar.StaticRole
+	s1 node.StaticRole
 }
 
 // Expect sets up expected params for Certificate.GetRole
@@ -995,7 +997,7 @@ func (mmGetRole *mCertificateMockGetRole) Inspect(f func()) *mCertificateMockGet
 }
 
 // Return sets up results that will be returned by Certificate.GetRole
-func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_insolar.StaticRole) *CertificateMock {
+func (mmGetRole *mCertificateMockGetRole) Return(s1 node.StaticRole) *CertificateMock {
 	if mmGetRole.mock.funcGetRole != nil {
 		mmGetRole.mock.t.Fatalf("CertificateMock.GetRole mock is already set by Set")
 	}
@@ -1008,7 +1010,7 @@ func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_insolar.StaticRole) *Cert
 }
 
 //Set uses given function f to mock the Certificate.GetRole method
-func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_insolar.StaticRole)) *CertificateMock {
+func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 node.StaticRole)) *CertificateMock {
 	if mmGetRole.defaultExpectation != nil {
 		mmGetRole.mock.t.Fatalf("Default expectation is already set for the Certificate.GetRole method")
 	}
@@ -1022,7 +1024,7 @@ func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_insolar.StaticRole
 }
 
 // GetRole implements insolar.Certificate
-func (mmGetRole *CertificateMock) GetRole() (s1 mm_insolar.StaticRole) {
+func (mmGetRole *CertificateMock) GetRole() (s1 node.StaticRole) {
 	mm_atomic.AddUint64(&mmGetRole.beforeGetRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRole.afterGetRoleCounter, 1)
 

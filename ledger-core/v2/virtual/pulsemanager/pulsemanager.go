@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
@@ -23,10 +24,10 @@ import (
 
 // PulseManager implements insolar.PulseManager.
 type PulseManager struct {
-	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
-	NodeSetter    node.Modifier       `inject:""`
-	PulseAccessor pulse.Accessor      `inject:""`
-	PulseAppender pulse.Appender      `inject:""`
+	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
+	NodeSetter    nodestorage.Modifier `inject:""`
+	PulseAccessor pulse.Accessor       `inject:""`
+	PulseAppender pulse.Appender       `inject:""`
 	dispatchers   []dispatcher.Dispatcher
 
 	// setLock locks Set method call.
@@ -79,9 +80,9 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 			logger.Errorf("received zero nodes for pulse %d", newPulse.PulseNumber)
 			return nil
 		}
-		toSet := make([]insolar.Node, 0, len(fromNetwork))
+		toSet := make([]node.Node, 0, len(fromNetwork))
 		for _, n := range fromNetwork {
-			toSet = append(toSet, insolar.Node{ID: n.ID(), Role: n.Role()})
+			toSet = append(toSet, node.Node{ID: n.ID(), Role: n.Role()})
 		}
 		err := m.NodeSetter.Set(newPulse.PulseNumber, toSet)
 		if err != nil {

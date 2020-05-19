@@ -11,6 +11,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -37,7 +38,7 @@ func TestRequester_Authorize(t *testing.T) {
 	options := network.ConfigureOptions(configuration.NewConfiguration())
 
 	cs := testutils.NewCryptographyServiceMock(t)
-	sig := insolar.SignatureFromBytes([]byte("lalal"))
+	sig := cryptography.SignatureFromBytes([]byte("lalal"))
 	cs.SignMock.Return(&sig, nil)
 
 	r := NewRequester(options)

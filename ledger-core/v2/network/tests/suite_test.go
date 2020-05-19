@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
@@ -124,9 +125,9 @@ func (s *consensusSuite) Setup() {
 	suiteLogger.Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
-		role := insolar.StaticRoleVirtual
+		role := node2.StaticRoleVirtual
 		if i == 0 {
-			role = insolar.StaticRoleHeavyMaterial
+			role = node2.StaticRoleHeavyMaterial
 		}
 		s.bootstrapNodes = append(s.bootstrapNodes, s.newNetworkNodeWithRole(fmt.Sprintf("bootstrap_%d", i), role))
 	}
@@ -143,7 +144,7 @@ func (s *consensusSuite) Setup() {
 	suiteLogger.Info("Setup bootstrap nodes")
 	s.SetupNodesNetwork(s.bootstrapNodes)
 	if UseFakeBootstrap {
-		bnodes := make([]insolar.NetworkNode, 0)
+		bnodes := make([]node2.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
 			o := n.serviceNetwork.NodeKeeper.GetOrigin()
 			dig, sig := o.(node.MutableNode).GetSignature()
@@ -321,7 +322,7 @@ func (s *consensusSuite) waitForConsensus(consensusCount int) insolar.PulseNumbe
 }
 
 func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
-	var nodes []insolar.NetworkNode
+	var nodes []node2.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
 		require.Equal(s.t, insolar.CompleteNetworkState.String(),
@@ -409,9 +410,9 @@ func (s *testSuite) GracefulStop(node *networkNode) {
 
 type networkNode struct {
 	id                  reference.Global
-	role                insolar.StaticRole
+	role                node2.StaticRole
 	privateKey          crypto.PrivateKey
-	cryptographyService insolar.CryptographyService
+	cryptographyService cryptography.CryptographyService
 	host                string
 	ctx                 context.Context
 
@@ -422,7 +423,7 @@ type networkNode struct {
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
-	return s.newNetworkNodeWithRole(name, insolar.StaticRoleVirtual)
+	return s.newNetworkNodeWithRole(name, node2.StaticRoleVirtual)
 }
 func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 	testNode := s.newNetworkNode(name)
@@ -433,7 +434,7 @@ func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 }
 
 // newNetworkNode returns networkNode initialized only with id, host address and key pair
-func (s *testSuite) newNetworkNodeWithRole(name string, role insolar.StaticRole) *networkNode {
+func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *networkNode {
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(s.t, err)
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
@@ -442,7 +443,7 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role insolar.StaticRole)
 		id:                  gen.Reference(),
 		role:                role,
 		privateKey:          key,
-		cryptographyService: cryptography.NewKeyBoundCryptographyService(key),
+		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),
 		host:                address,
 		consensusResult:     make(chan insolar.PulseNumber, 1),
 	}
@@ -460,7 +461,7 @@ func incrementTestPort() int {
 	return int(result)
 }
 
-func (n *networkNode) GetActiveNodes() []insolar.NetworkNode {
+func (n *networkNode) GetActiveNodes() []node2.NetworkNode {
 	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
 	if err != nil {
 		panic(err)
@@ -468,7 +469,7 @@ func (n *networkNode) GetActiveNodes() []insolar.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNodes()
 }
 
-func (n *networkNode) GetWorkingNodes() []insolar.NetworkNode {
+func (n *networkNode) GetWorkingNodes() []node2.NetworkNode {
 	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
 	if err != nil {
 		panic(err)
@@ -476,7 +477,7 @@ func (n *networkNode) GetWorkingNodes() []insolar.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
 }
 
-func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManager, insolar.CryptographyService) {
+func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManager, cryptography.CryptographyService) {
 	pubKey, err := node.cryptographyService.GetPublicKey()
 	require.NoError(s.t, err)
 

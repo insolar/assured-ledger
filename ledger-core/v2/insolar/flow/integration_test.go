@@ -27,7 +27,7 @@ import (
 
 type mockReply struct{}
 
-func (r *mockReply) Type() insolar.ReplyType {
+func (r *mockReply) Type() byte {
 	return 88
 }
 

@@ -9,13 +9,13 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 // SelectByEntropy selects value from list based on provided crypto scheme and entropy data.
 // Beware: requires sorted values for deterministic selection!
 func SelectByEntropy(
-	scheme insolar.PlatformCryptographyScheme,
+	scheme cryptography.PlatformCryptographyScheme,
 	entropy []byte,
 	values []interface{},
 	count int,

@@ -7,14 +7,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
 
 // OriginProviderMock implements network.OriginProvider
 type OriginProviderMock struct {
 	t minimock.Tester
 
-	funcGetOrigin          func() (n1 insolar.NetworkNode)
+	funcGetOrigin          func() (n1 node.NetworkNode)
 	inspectFuncGetOrigin   func()
 	afterGetOriginCounter  uint64
 	beforeGetOriginCounter uint64
@@ -49,7 +50,7 @@ type OriginProviderMockGetOriginExpectation struct {
 
 // OriginProviderMockGetOriginResults contains results of the OriginProvider.GetOrigin
 type OriginProviderMockGetOriginResults struct {
-	n1 insolar.NetworkNode
+	n1 node.NetworkNode
 }
 
 // Expect sets up expected params for OriginProvider.GetOrigin
@@ -77,7 +78,7 @@ func (mmGetOrigin *mOriginProviderMockGetOrigin) Inspect(f func()) *mOriginProvi
 }
 
 // Return sets up results that will be returned by OriginProvider.GetOrigin
-func (mmGetOrigin *mOriginProviderMockGetOrigin) Return(n1 insolar.NetworkNode) *OriginProviderMock {
+func (mmGetOrigin *mOriginProviderMockGetOrigin) Return(n1 node.NetworkNode) *OriginProviderMock {
 	if mmGetOrigin.mock.funcGetOrigin != nil {
 		mmGetOrigin.mock.t.Fatalf("OriginProviderMock.GetOrigin mock is already set by Set")
 	}
@@ -90,7 +91,7 @@ func (mmGetOrigin *mOriginProviderMockGetOrigin) Return(n1 insolar.NetworkNode) 
 }
 
 //Set uses given function f to mock the OriginProvider.GetOrigin method
-func (mmGetOrigin *mOriginProviderMockGetOrigin) Set(f func() (n1 insolar.NetworkNode)) *OriginProviderMock {
+func (mmGetOrigin *mOriginProviderMockGetOrigin) Set(f func() (n1 node.NetworkNode)) *OriginProviderMock {
 	if mmGetOrigin.defaultExpectation != nil {
 		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the OriginProvider.GetOrigin method")
 	}
@@ -104,7 +105,7 @@ func (mmGetOrigin *mOriginProviderMockGetOrigin) Set(f func() (n1 insolar.Networ
 }
 
 // GetOrigin implements network.OriginProvider
-func (mmGetOrigin *OriginProviderMock) GetOrigin() (n1 insolar.NetworkNode) {
+func (mmGetOrigin *OriginProviderMock) GetOrigin() (n1 node.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
 

@@ -9,7 +9,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
 
 const reserved = 0xDEADBEEF
@@ -21,11 +23,11 @@ func uInt32ToBytes(n uint32) []byte {
 }
 
 type merkleHelper struct {
-	scheme     insolar.PlatformCryptographyScheme
-	leafHasher insolar.Hasher
+	scheme     cryptography.PlatformCryptographyScheme
+	leafHasher cryptography.Hasher
 }
 
-func newMerkleHelper(scheme insolar.PlatformCryptographyScheme) *merkleHelper {
+func newMerkleHelper(scheme cryptography.PlatformCryptographyScheme) *merkleHelper {
 	return &merkleHelper{
 		scheme:     scheme,
 		leafHasher: scheme.IntegrityHasher(),
@@ -69,7 +71,7 @@ func (mh *merkleHelper) bucketEntryHash(entryIndex uint32, nodeHash []byte) []by
 	return mh.doubleSliceHash(entryIndexHash, nodeHash)
 }
 
-func (mh *merkleHelper) bucketInfoHash(role insolar.StaticRole, nodeCount uint32) []byte {
+func (mh *merkleHelper) bucketInfoHash(role node.StaticRole, nodeCount uint32) []byte {
 	roleHash := mh.leafHasher.Hash(uInt32ToBytes(uint32(role)))
 	nodeCountHash := mh.leafHasher.Hash(uInt32ToBytes(nodeCount))
 	return mh.doubleSliceHash(roleHash, nodeCountHash)

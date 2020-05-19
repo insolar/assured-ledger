@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
@@ -40,7 +41,7 @@ func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 }
 
 // CheckShortIDCollision returns true if nodes contains node with such ShortID
-func CheckShortIDCollision(nodes []insolar.NetworkNode, id insolar.ShortNodeID) bool {
+func CheckShortIDCollision(nodes []node2.NetworkNode, id node2.ShortNodeID) bool {
 	for _, n := range nodes {
 		if id == n.ShortID() {
 			return true
@@ -51,16 +52,16 @@ func CheckShortIDCollision(nodes []insolar.NetworkNode, id insolar.ShortNodeID) 
 }
 
 // GenerateUniqueShortID correct ShortID of the node so it does not conflict with existing active node list
-func GenerateUniqueShortID(nodes []insolar.NetworkNode, nodeID reference.Global) insolar.ShortNodeID {
-	shortID := insolar.ShortNodeID(node.GenerateUintShortID(nodeID))
+func GenerateUniqueShortID(nodes []node2.NetworkNode, nodeID reference.Global) node2.ShortNodeID {
+	shortID := node2.ShortNodeID(node.GenerateUintShortID(nodeID))
 	if !CheckShortIDCollision(nodes, shortID) {
 		return shortID
 	}
 	return regenerateShortID(nodes, shortID)
 }
 
-func regenerateShortID(nodes []insolar.NetworkNode, shortID insolar.ShortNodeID) insolar.ShortNodeID {
-	shortIDs := make([]insolar.ShortNodeID, len(nodes))
+func regenerateShortID(nodes []node2.NetworkNode, shortID node2.ShortNodeID) node2.ShortNodeID {
+	shortIDs := make([]node2.ShortNodeID, len(nodes))
 	for i, activeNode := range nodes {
 		shortIDs[i] = activeNode.ShortID()
 	}
@@ -70,7 +71,7 @@ func regenerateShortID(nodes []insolar.NetworkNode, shortID insolar.ShortNodeID)
 	return generateNonConflictingID(shortIDs, shortID)
 }
 
-func generateNonConflictingID(sortedSlice []insolar.ShortNodeID, conflictingID insolar.ShortNodeID) insolar.ShortNodeID {
+func generateNonConflictingID(sortedSlice []node2.ShortNodeID, conflictingID node2.ShortNodeID) node2.ShortNodeID {
 	index := sort.Search(len(sortedSlice), func(i int) bool {
 		return sortedSlice[i] >= conflictingID
 	})
@@ -166,9 +167,9 @@ func IsConnectionClosed(err error) bool {
 }
 
 // FindDiscoveriesInNodeList returns only discovery nodes from active node list
-func FindDiscoveriesInNodeList(nodes []insolar.NetworkNode, cert insolar.Certificate) []insolar.NetworkNode {
+func FindDiscoveriesInNodeList(nodes []node2.NetworkNode, cert insolar.Certificate) []node2.NetworkNode {
 	discovery := cert.GetDiscoveryNodes()
-	result := make([]insolar.NetworkNode, 0)
+	result := make([]node2.NetworkNode, 0)
 
 	for _, d := range discovery {
 		for _, n := range nodes {

@@ -9,16 +9,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type StatusReply struct {
 	NetworkState    NetworkState
-	Origin          NetworkNode
+	Origin          node.NetworkNode
 	ActiveListSize  int
 	WorkingListSize int
 	// Nodes from active list
-	Nodes []NetworkNode
+	Nodes []node.NetworkNode
 	// Pulse from network pulse storage
 	Pulse     Pulse
 	Version   string

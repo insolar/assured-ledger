@@ -8,7 +8,9 @@ package certificate
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -41,8 +43,8 @@ func (authCert *AuthorizationCertificate) GetNodeRef() reference.Global {
 }
 
 // GetRole returns role from node certificate
-func (authCert *AuthorizationCertificate) GetRole() insolar.StaticRole {
-	return insolar.GetStaticRoleFromString(authCert.Role)
+func (authCert *AuthorizationCertificate) GetRole() node.StaticRole {
+	return node.GetStaticRoleFromString(authCert.Role)
 }
 
 // GetDiscoverySigns return map of discovery nodes signs
@@ -66,7 +68,7 @@ func (authCert *AuthorizationCertificate) SignNodePart(key crypto.PrivateKey) ([
 }
 
 // Deserialize deserializes data to AuthorizationCertificate interface
-func Deserialize(data []byte, keyProc insolar.KeyProcessor) (insolar.AuthorizationCertificate, error) {
+func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (insolar.AuthorizationCertificate, error) {
 	cert := &AuthorizationCertificate{}
 	err := insolar.Deserialize(data, cert)
 

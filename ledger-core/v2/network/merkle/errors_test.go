@@ -17,8 +17,10 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
@@ -31,7 +33,7 @@ type calculatorErrorSuite struct {
 
 	pulse          *insolar.Pulse
 	originProvider network.OriginProvider
-	service        insolar.CryptographyService
+	service        cryptography.CryptographyService
 
 	calculator Calculator
 }
@@ -77,7 +79,7 @@ func (t *calculatorErrorSuite) TestGetGlobuleProofSignError() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  nil,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): {},
 		},
 		PrevCloudHash: prevCloudHash,
@@ -126,7 +128,7 @@ func TestCalculatorError(t *testing.T) {
 	require.NotNil(t, key)
 
 	service := testutils.NewCryptographyServiceMock(t)
-	service.SignMock.Set(func(p []byte) (r *insolar.Signature, r1 error) {
+	service.SignMock.Set(func(p []byte) (r *cryptography.Signature, r1 error) {
 		return nil, errors.New("Sign error")
 	})
 	service.GetPublicKeyMock.Set(func() (r crypto.PublicKey, r1 error) {
@@ -137,7 +139,7 @@ func TestCalculatorError(t *testing.T) {
 	ps := pulse.NewStorageMem()
 
 	op := network2.NewOriginProviderMock(t)
-	op.GetOriginMock.Set(func() insolar.NetworkNode {
+	op.GetOriginMock.Set(func() node.NetworkNode {
 		return createOrigin()
 	})
 

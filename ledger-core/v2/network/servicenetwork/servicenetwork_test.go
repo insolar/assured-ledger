@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -78,7 +79,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	nodeRef := gen.Reference()
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return nodeRef
@@ -112,7 +113,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	serviceNetwork.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.Reference()
@@ -149,7 +150,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	serviceNetwork.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.Reference()
@@ -184,7 +185,7 @@ func TestSendMessageHandler(t *testing.T) {
 	cfg := configuration.NewConfiguration()
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r insolar.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.Reference()
@@ -225,7 +226,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")
 	cm := component.NewManager(nil)
 	origin := gen.Reference()
-	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, insolar.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
+	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
 	cert := &certificate.Certificate{}
 	cert.Reference = origin.String()
 	certManager := certificate.NewCertificateManager(cert)

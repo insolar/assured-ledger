@@ -60,9 +60,19 @@ func TestNewDispatcher(t *testing.T) {
 
 type replyMock int
 
-func (replyMock) Type() insolar.ReplyType {
-	return insolar.ReplyType(42)
+func (replyMock) Type() ReplyType {
+	return ReplyType(42)
 }
+
+// ReplyType is an enum type of message reply.
+type ReplyType byte
+
+// Reply for an `Message`
+type Reply interface {
+	// Type returns message type.
+	Type() ReplyType
+}
+
 
 func TestDispatcher_Process(t *testing.T) {
 	t.Parallel()
@@ -71,7 +81,7 @@ func TestDispatcher_Process(t *testing.T) {
 		controller: thread.NewController(),
 	}
 	reply := replyMock(42)
-	replyChan := make(chan insolar.Reply, 1)
+	replyChan := make(chan Reply, 1)
 	d.handles.present = func(msg *message.Message) flow.Handle {
 		return func(ctx context.Context, f flow.Flow) error {
 			replyChan <- reply
@@ -150,7 +160,7 @@ func TestDispatcher_Process_CallFutureDispatcher(t *testing.T) {
 	}
 
 	reply := replyMock(42)
-	replyChan := make(chan insolar.Reply, 1)
+	replyChan := make(chan Reply, 1)
 	d.handles.future = func(msg *message.Message) flow.Handle {
 		return func(ctx context.Context, f flow.Flow) error {
 			replyChan <- reply

@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -190,7 +189,7 @@ func getPSC(pulse insolar.Pulse) (map[string]insolar.PulseSenderConfirmation, er
 	if err != nil {
 		return nil, err
 	}
-	service := cryptography.NewKeyBoundCryptographyService(key)
+	service := platformpolicy.NewKeyBoundCryptographyService(key)
 	sign, err := service.Sign(hash)
 	if err != nil {
 		return nil, err

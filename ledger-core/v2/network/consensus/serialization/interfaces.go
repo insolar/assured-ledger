@@ -10,7 +10,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -22,7 +22,7 @@ var (
 type PacketHeaderAccessor interface {
 	GetProtocolType() ProtocolType
 	GetPacketType() phases.PacketType
-	GetSourceID() insolar.ShortNodeID
+	GetSourceID() node.ShortNodeID
 	HasFlag(flag Flag) bool
 	GetFlagRangeInt(from, to uint8) uint8
 	IsRelayRestricted() bool
@@ -55,10 +55,10 @@ type PacketContext interface {
 
 	InContext(ctx FieldContext) bool
 	SetInContext(ctx FieldContext)
-	GetNeighbourNodeID() insolar.ShortNodeID
-	SetNeighbourNodeID(nodeID insolar.ShortNodeID)
-	GetAnnouncedJoinerNodeID() insolar.ShortNodeID
-	SetAnnouncedJoinerNodeID(nodeID insolar.ShortNodeID)
+	GetNeighbourNodeID() node.ShortNodeID
+	SetNeighbourNodeID(nodeID node.ShortNodeID)
+	GetAnnouncedJoinerNodeID() node.ShortNodeID
+	SetAnnouncedJoinerNodeID(nodeID node.ShortNodeID)
 }
 
 type SerializeContext interface {

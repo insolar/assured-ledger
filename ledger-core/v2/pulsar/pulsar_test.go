@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
@@ -31,7 +32,7 @@ func TestPulsar_Send(t *testing.T) {
 
 	pcs := platformpolicy.NewPlatformCryptographyScheme()
 	crypto := testutils.NewCryptographyServiceMock(t)
-	crypto.SignMock.Return(&insolar.Signature{}, nil)
+	crypto.SignMock.Return(&cryptography.Signature{}, nil)
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()
 	require.NoError(t, err)

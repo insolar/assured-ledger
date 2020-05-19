@@ -8,38 +8,38 @@ package node
 import (
 	"sort"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type Accessor struct {
 	snapshot  *Snapshot
-	refIndex  map[reference.Global]insolar.NetworkNode
-	sidIndex  map[insolar.ShortNodeID]insolar.NetworkNode
-	addrIndex map[string]insolar.NetworkNode
+	refIndex  map[reference.Global]node2.NetworkNode
+	sidIndex  map[node2.ShortNodeID]node2.NetworkNode
+	addrIndex map[string]node2.NetworkNode
 	// should be removed in future
-	active []insolar.NetworkNode
+	active []node2.NetworkNode
 }
 
-func (a *Accessor) GetActiveNodeByShortID(shortID insolar.ShortNodeID) insolar.NetworkNode {
+func (a *Accessor) GetActiveNodeByShortID(shortID node2.ShortNodeID) node2.NetworkNode {
 	return a.sidIndex[shortID]
 }
 
-func (a *Accessor) GetActiveNodeByAddr(address string) insolar.NetworkNode {
+func (a *Accessor) GetActiveNodeByAddr(address string) node2.NetworkNode {
 	return a.addrIndex[address]
 }
 
-func (a *Accessor) GetActiveNodes() []insolar.NetworkNode {
-	result := make([]insolar.NetworkNode, len(a.active))
+func (a *Accessor) GetActiveNodes() []node2.NetworkNode {
+	result := make([]node2.NetworkNode, len(a.active))
 	copy(result, a.active)
 	return result
 }
 
-func (a *Accessor) GetActiveNode(ref reference.Global) insolar.NetworkNode {
+func (a *Accessor) GetActiveNode(ref reference.Global) node2.NetworkNode {
 	return a.refIndex[ref]
 }
 
-func (a *Accessor) GetWorkingNode(ref reference.Global) insolar.NetworkNode {
+func (a *Accessor) GetWorkingNode(ref reference.Global) node2.NetworkNode {
 	node := a.GetActiveNode(ref)
 	if node == nil || node.GetPower() == 0 {
 		return nil
@@ -47,9 +47,9 @@ func (a *Accessor) GetWorkingNode(ref reference.Global) insolar.NetworkNode {
 	return node
 }
 
-func (a *Accessor) GetWorkingNodes() []insolar.NetworkNode {
+func (a *Accessor) GetWorkingNodes() []node2.NetworkNode {
 	workingList := a.snapshot.nodeList[ListWorking]
-	result := make([]insolar.NetworkNode, len(workingList))
+	result := make([]node2.NetworkNode, len(workingList))
 	copy(result, workingList)
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].ID().Compare(result[j].ID()) < 0
@@ -57,7 +57,7 @@ func (a *Accessor) GetWorkingNodes() []insolar.NetworkNode {
 	return result
 }
 
-func GetSnapshotActiveNodes(snapshot *Snapshot) []insolar.NetworkNode {
+func GetSnapshotActiveNodes(snapshot *Snapshot) []node2.NetworkNode {
 	joining := snapshot.nodeList[ListJoiner]
 	idle := snapshot.nodeList[ListIdle]
 	working := snapshot.nodeList[ListWorking]
@@ -68,7 +68,7 @@ func GetSnapshotActiveNodes(snapshot *Snapshot) []insolar.NetworkNode {
 	workingCount := len(working)
 	leavingCount := len(leaving)
 
-	result := make([]insolar.NetworkNode, joinersCount+idlersCount+workingCount+leavingCount)
+	result := make([]node2.NetworkNode, joinersCount+idlersCount+workingCount+leavingCount)
 
 	copy(result[:joinersCount], joining)
 	copy(result[joinersCount:joinersCount+idlersCount], idle)
@@ -78,7 +78,7 @@ func GetSnapshotActiveNodes(snapshot *Snapshot) []insolar.NetworkNode {
 	return result
 }
 
-func (a *Accessor) addToIndex(node insolar.NetworkNode) {
+func (a *Accessor) addToIndex(node node2.NetworkNode) {
 	a.refIndex[node.ID()] = node
 	a.sidIndex[node.ShortID()] = node
 	a.addrIndex[node.Address()] = node
@@ -91,9 +91,9 @@ func (a *Accessor) addToIndex(node insolar.NetworkNode) {
 func NewAccessor(snapshot *Snapshot) *Accessor {
 	result := &Accessor{
 		snapshot:  snapshot,
-		refIndex:  make(map[reference.Global]insolar.NetworkNode),
-		sidIndex:  make(map[insolar.ShortNodeID]insolar.NetworkNode),
-		addrIndex: make(map[string]insolar.NetworkNode),
+		refIndex:  make(map[reference.Global]node2.NetworkNode),
+		sidIndex:  make(map[node2.ShortNodeID]node2.NetworkNode),
+		addrIndex: make(map[string]node2.NetworkNode),
 	}
 	result.active = GetSnapshotActiveNodes(snapshot)
 	for _, node := range result.active {

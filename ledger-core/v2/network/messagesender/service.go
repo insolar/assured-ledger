@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -45,7 +46,7 @@ func WithSyncBody() SendOption {
 
 type Service interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error
+	SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error
 	SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error
 }
 
@@ -63,7 +64,7 @@ func NewDefaultService(pub message.Publisher, coordinator jet.Coordinator, pulse
 	}
 }
 
-func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error {
+func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")

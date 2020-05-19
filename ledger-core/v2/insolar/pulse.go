@@ -8,7 +8,6 @@ package insolar
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -56,11 +55,6 @@ func (entropy Entropy) Equal(other Entropy) bool {
 // Valid Absolute PulseNumber must be >65536.
 // If PulseNumber <65536 it is a relative PulseNumber
 type PulseNumber = pulse.Number
-
-// NewPulseNumber creates pulse number from bytes.
-func NewPulseNumber(buf []byte) PulseNumber {
-	return PulseNumber(binary.BigEndian.Uint32(buf))
-}
 
 func NewPulseNumberFromStr(pn string) (PulseNumber, error) {
 	i, err := strconv.ParseUint(pn, 10, 32)

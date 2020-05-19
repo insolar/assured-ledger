@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package cryptography
+package platformpolicy
 
 import (
 	"crypto"
@@ -11,15 +11,14 @@ import (
 	"github.com/insolar/component-manager"
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type NodeCryptographyService struct {
-	KeyStore                   insolar.KeyStore                   `inject:""`
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme `inject:""`
-	KeyProcessor               insolar.KeyProcessor               `inject:""`
+	KeyStore                   cryptography.KeyStore                   `inject:""`
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
+	KeyProcessor               cryptography.KeyProcessor               `inject:""`
 }
 
 func (cs *NodeCryptographyService) GetPublicKey() (crypto.PublicKey, error) {
@@ -31,7 +30,7 @@ func (cs *NodeCryptographyService) GetPublicKey() (crypto.PublicKey, error) {
 	return cs.KeyProcessor.ExtractPublicKey(privateKey), nil
 }
 
-func (cs *NodeCryptographyService) Sign(payload []byte) (*insolar.Signature, error) {
+func (cs *NodeCryptographyService) Sign(payload []byte) (*cryptography.Signature, error) {
 	privateKey, err := cs.KeyStore.GetPrivateKey("")
 	if err != nil {
 		return nil, errors.Wrap(err, "[ Sign ] Failed to get private privateKey")
@@ -46,18 +45,18 @@ func (cs *NodeCryptographyService) Sign(payload []byte) (*insolar.Signature, err
 	return signature, nil
 }
 
-func (cs *NodeCryptographyService) Verify(publicKey crypto.PublicKey, signature insolar.Signature, payload []byte) bool {
+func (cs *NodeCryptographyService) Verify(publicKey crypto.PublicKey, signature cryptography.Signature, payload []byte) bool {
 	return cs.PlatformCryptographyScheme.DataVerifier(publicKey, cs.PlatformCryptographyScheme.IntegrityHasher()).Verify(signature, payload)
 }
 
-func NewCryptographyService() insolar.CryptographyService {
+func NewCryptographyService() cryptography.CryptographyService {
 	return &NodeCryptographyService{}
 }
 
-func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) insolar.CryptographyService {
-	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) cryptography.CryptographyService {
+	platformCryptographyScheme := NewPlatformCryptographyScheme()
 	keyStore := keystore.NewInplaceKeyStore(privateKey)
-	keyProcessor := platformpolicy.NewKeyProcessor()
+	keyProcessor := NewKeyProcessor()
 	cryptographyService := NewCryptographyService()
 
 	cm := component.NewManager(nil)
@@ -67,13 +66,13 @@ func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) insolar.Crypto
 	return cryptographyService
 }
 
-func NewStorageBoundCryptographyService(path string) (insolar.CryptographyService, error) {
-	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+func NewStorageBoundCryptographyService(path string) (cryptography.CryptographyService, error) {
+	platformCryptographyScheme := NewPlatformCryptographyScheme()
 	keyStore, err := keystore.NewKeyStore(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ NewStorageBoundCryptographyService ] Failed to create KeyStore")
 	}
-	keyProcessor := platformpolicy.NewKeyProcessor()
+	keyProcessor := NewKeyProcessor()
 	cryptographyService := NewCryptographyService()
 
 	cm := component.NewManager(nil)

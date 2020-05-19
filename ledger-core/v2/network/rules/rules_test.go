@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -22,12 +23,12 @@ import (
 
 func TestRules_CheckMinRole(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
-	nodes := []insolar.NetworkNode{
-		node.NewNode(gen.Reference(), insolar.StaticRoleHeavyMaterial, nil, "", ""),
-		node.NewNode(gen.Reference(), insolar.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.Reference(), insolar.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.Reference(), insolar.StaticRoleVirtual, nil, "", ""),
-		node.NewNode(gen.Reference(), insolar.StaticRoleVirtual, nil, "", ""),
+	nodes := []node2.NetworkNode{
+		node.NewNode(gen.Reference(), node2.StaticRoleHeavyMaterial, nil, "", ""),
+		node.NewNode(gen.Reference(), node2.StaticRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.Reference(), node2.StaticRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "", ""),
+		node.NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "", ""),
 	}
 	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
 		return 1, 0, 0
@@ -63,8 +64,8 @@ func TestRules_CheckMajorityRule(t *testing.T) {
 	require.Equal(t, len(netNodes), count)
 }
 
-func getDiscoveryNodes(count int) ([]insolar.NetworkNode, []insolar.DiscoveryNode) {
-	netNodes := make([]insolar.NetworkNode, count)
+func getDiscoveryNodes(count int) ([]node2.NetworkNode, []insolar.DiscoveryNode) {
+	netNodes := make([]node2.NetworkNode, count)
 	discoveryNodes := make([]insolar.DiscoveryNode, count)
 	for i := 0; i < count; i++ {
 		n := newNode(gen.Reference(), i)
@@ -75,7 +76,7 @@ func getDiscoveryNodes(count int) ([]insolar.NetworkNode, []insolar.DiscoveryNod
 	return netNodes, discoveryNodes
 }
 
-func newNode(ref reference.Global, i int) insolar.NetworkNode {
-	return node.NewNode(ref, insolar.AllStaticRoles[i%len(insolar.AllStaticRoles)], nil,
+func newNode(ref reference.Global, i int) node2.NetworkNode {
+	return node.NewNode(ref, node2.AllStaticRoles[i%len(node2.AllStaticRoles)], nil,
 		"127.0.0.1:"+strconv.Itoa(30000+i), "")
 }

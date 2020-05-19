@@ -3,12 +3,14 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insolar
+package rpctypes
 
 import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 // Arguments is a dedicated type for arguments, that represented as binary cbored blob
@@ -28,7 +30,7 @@ func (args *Arguments) MarshalJSON() ([]byte, error) {
 
 func convertArgs(args []byte, result *[]interface{}) error {
 	var value interface{}
-	err := Deserialize(args, &value)
+	err := insolar.Deserialize(args, &value)
 	if err != nil {
 		return errors.Wrap(err, "Can't deserialize record")
 	}
@@ -56,13 +58,4 @@ func convertArgs(args []byte, result *[]interface{}) error {
 	*result = append(*result, inner)
 
 	return nil
-}
-
-// ReplyType is an enum type of message reply.
-type ReplyType byte
-
-// Reply for an `Message`
-type Reply interface {
-	// Type returns message type.
-	Type() ReplyType
 }

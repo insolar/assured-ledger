@@ -4,18 +4,20 @@
 package candidate
 
 import (
-	bytes "bytes"
-	fmt "fmt"
+	"bytes"
+	"fmt"
+	"io"
+	"math"
+	math_bits "math/bits"
+	"reflect"
+	"strings"
+
 	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/gogo/protobuf/proto"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	io "io"
-	math "math"
-	math_bits "math/bits"
-	reflect "reflect"
-	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -32,7 +34,7 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type Profile struct {
 	Address     string                                                                                          `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
 	Ref         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global                               `protobuf:"bytes,2,opt,name=Ref,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Ref"`
-	ShortID     github_com_insolar_assured_ledger_ledger_core_v2_insolar.ShortNodeID                            `protobuf:"varint,3,opt,name=ShortID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ShortNodeID" json:"ShortID"`
+	ShortID     node.ShortNodeID                                                                                `protobuf:"varint,3,opt,name=ShortID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.ShortNodeID" json:"ShortID"`
 	PrimaryRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.PrimaryRole `protobuf:"varint,4,opt,name=PrimaryRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.PrimaryRole" json:"PrimaryRole"`
 	SpecialRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.SpecialRole `protobuf:"varint,5,opt,name=SpecialRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.SpecialRole" json:"SpecialRole"`
 	Digest      []byte                                                                                          `protobuf:"bytes,6,opt,name=Digest,proto3" json:"Digest,omitempty"`
@@ -443,7 +445,7 @@ func (m *Profile) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ShortID |= github_com_insolar_assured_ledger_ledger_core_v2_insolar.ShortNodeID(b&0x7F) << shift
+				m.ShortID |= node.ShortNodeID(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

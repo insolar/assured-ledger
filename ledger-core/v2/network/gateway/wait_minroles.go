@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
@@ -34,7 +35,7 @@ func (g *WaitMinRoles) Run(ctx context.Context, pulse insolar.Pulse) {
 	}
 }
 
-func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {

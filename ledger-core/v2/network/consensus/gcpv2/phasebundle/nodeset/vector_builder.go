@@ -6,7 +6,7 @@
 package nodeset
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
@@ -128,7 +128,7 @@ func (p *VectorBuilder) BuildAllGlobulaAnnouncementHashes() (proofs.GlobulaAnnou
 }
 
 // TODO reuse BuildGlobulaStateHashWithFilter
-func (p *VectorBuilder) buildGlobulaStateHash(trusted bool, nodeID insolar.ShortNodeID) statevector.CalcStateWithRank {
+func (p *VectorBuilder) buildGlobulaStateHash(trusted bool, nodeID node.ShortNodeID) statevector.CalcStateWithRank {
 
 	calc := NewStateAndRankSequenceCalc(p.digestFactory, nodeID,
 		1+p.entryScanner.GetSortedCount()>>1)
@@ -175,7 +175,7 @@ func (p *VectorBuilder) BuildGlobulaAnnouncementHashes(buildTrusted, buildDoubte
 	return defaultTrusted, defaultDoubted
 }
 
-func (p *VectorBuilder) BuildGlobulaStateHashesAndRanks(buildTrusted, buildDoubted bool, nodeID insolar.ShortNodeID,
+func (p *VectorBuilder) BuildGlobulaStateHashesAndRanks(buildTrusted, buildDoubted bool, nodeID node.ShortNodeID,
 	defaultTrusted, defaultDoubted statevector.CalcStateWithRank) (trustedHash, doubtedHash statevector.CalcStateWithRank) {
 
 	if buildTrusted {
@@ -187,7 +187,7 @@ func (p *VectorBuilder) BuildGlobulaStateHashesAndRanks(buildTrusted, buildDoubt
 	return defaultTrusted, defaultDoubted
 }
 
-func (p *VectorBuilder) BuildGlobulaStateHashWithFilter(nodeID insolar.ShortNodeID, apply EntryApplyFunc,
+func (p *VectorBuilder) BuildGlobulaStateHashWithFilter(nodeID node.ShortNodeID, apply EntryApplyFunc,
 	filter EntryFilterFunc) statevector.CalcStateWithRank {
 
 	calc := NewStateAndRankSequenceCalc(p.digestFactory, nodeID,

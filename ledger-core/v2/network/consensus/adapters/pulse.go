@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -98,16 +99,16 @@ func (p *PulsePacketParser) IsRelayForbidden() bool {
 	return true
 }
 
-func (p *PulsePacketParser) GetSourceID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (p *PulsePacketParser) GetSourceID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
-func (p *PulsePacketParser) GetReceiverID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (p *PulsePacketParser) GetReceiverID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
-func (p *PulsePacketParser) GetTargetID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (p *PulsePacketParser) GetTargetID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
 func (p *PulsePacketParser) GetPacketType() phases.PacketType {

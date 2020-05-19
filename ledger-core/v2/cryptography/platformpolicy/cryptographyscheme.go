@@ -8,9 +8,9 @@ package platformpolicy
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/hash"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/sign"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type platformCryptographyScheme struct {
@@ -34,31 +34,31 @@ func (pcs *platformCryptographyScheme) IntegrityHashSize() int {
 	return pcs.hashProvider.Hash512bits().Size()
 }
 
-func (pcs *platformCryptographyScheme) ReferenceHasher() insolar.Hasher {
+func (pcs *platformCryptographyScheme) ReferenceHasher() cryptography.Hasher {
 	return pcs.hashProvider.Hash224bits()
 }
 
-func (pcs *platformCryptographyScheme) IntegrityHasher() insolar.Hasher {
+func (pcs *platformCryptographyScheme) IntegrityHasher() cryptography.Hasher {
 	return pcs.hashProvider.Hash512bits()
 }
 
-func (pcs *platformCryptographyScheme) DataSigner(privateKey crypto.PrivateKey, hasher insolar.Hasher) insolar.Signer {
+func (pcs *platformCryptographyScheme) DataSigner(privateKey crypto.PrivateKey, hasher cryptography.Hasher) cryptography.Signer {
 	return pcs.signProvider.DataSigner(privateKey, hasher)
 }
 
-func (pcs *platformCryptographyScheme) DigestSigner(privateKey crypto.PrivateKey) insolar.Signer {
+func (pcs *platformCryptographyScheme) DigestSigner(privateKey crypto.PrivateKey) cryptography.Signer {
 	return pcs.signProvider.DigestSigner(privateKey)
 }
 
-func (pcs *platformCryptographyScheme) DataVerifier(publicKey crypto.PublicKey, hasher insolar.Hasher) insolar.Verifier {
+func (pcs *platformCryptographyScheme) DataVerifier(publicKey crypto.PublicKey, hasher cryptography.Hasher) cryptography.Verifier {
 	return pcs.signProvider.DataVerifier(publicKey, hasher)
 }
 
-func (pcs *platformCryptographyScheme) DigestVerifier(publicKey crypto.PublicKey) insolar.Verifier {
+func (pcs *platformCryptographyScheme) DigestVerifier(publicKey crypto.PublicKey) cryptography.Verifier {
 	return pcs.signProvider.DigestVerifier(publicKey)
 }
 
-func NewPlatformCryptographyScheme() insolar.PlatformCryptographyScheme {
+func NewPlatformCryptographyScheme() cryptography.PlatformCryptographyScheme {
 	return &platformCryptographyScheme{
 		hashProvider: hash.NewSHA3Provider(),
 		signProvider: sign.NewECDSAProvider(),

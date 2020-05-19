@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package node_test
+package nodestorage_test
 
 import (
 	"testing"
@@ -11,34 +11,34 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 )
 
 func TestNode(t *testing.T) {
 	var (
-		virtuals  []insolar.Node
-		materials []insolar.Node
-		all       []insolar.Node
+		virtuals  []node.Node
+		materials []node.Node
+		all       []node.Node
 	)
 	{
-		f := fuzz.New().Funcs(func(e *insolar.Node, c fuzz.Continue) {
+		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
 			e.ID = gen.Reference()
-			e.Role = insolar.StaticRoleVirtual
+			e.Role = node.StaticRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
-		f := fuzz.New().Funcs(func(e *insolar.Node, c fuzz.Continue) {
+		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
 			e.ID = gen.Reference()
-			e.Role = insolar.StaticRoleLightMaterial
+			e.Role = node.StaticRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
 	}
 	all = append(virtuals, materials...)
 	pulse := gen.PulseNumber()
-	storage := node.NewStorage()
+	storage := nodestorage.NewStorage()
 
 	// Saves nodes.
 	{
@@ -53,7 +53,7 @@ func TestNode(t *testing.T) {
 	}
 	// Returns in role nodes.
 	{
-		result, err := storage.InRole(pulse, insolar.StaticRoleVirtual)
+		result, err := storage.InRole(pulse, node.StaticRoleVirtual)
 		assert.NoError(t, err)
 		assert.Equal(t, virtuals, result)
 	}
@@ -61,7 +61,7 @@ func TestNode(t *testing.T) {
 	{
 		storage.DeleteForPN(pulse)
 		result, err := storage.All(pulse)
-		assert.Equal(t, node.ErrNoNodes, err)
+		assert.Equal(t, nodestorage.ErrNoNodes, err)
 		assert.Nil(t, result)
 	}
 }

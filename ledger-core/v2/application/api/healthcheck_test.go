@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -81,7 +82,7 @@ func mockNodeNetwork(t *testing.T, nodeList []insolar.DiscoveryNode) *network.No
 	}
 
 	accessorMock := network.NewAccessorMock(t)
-	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) insolar.NetworkNode {
+	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) node.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return network.NewNetworkNodeMock(t)
 		}

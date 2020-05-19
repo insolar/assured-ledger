@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -51,7 +51,7 @@ func TestNewHostN_Error(t *testing.T) {
 
 func TestNewHostNS(t *testing.T) {
 	ref := gen.Reference()
-	shortID := insolar.ShortNodeID(123)
+	shortID := node.ShortNodeID(123)
 
 	actualHost, _ := NewHostNS("127.0.0.1:31337", ref, shortID)
 	expectedHost, _ := NewHostNS("127.0.0.1:31337", ref, shortID)
@@ -63,7 +63,7 @@ func TestNewHostNS(t *testing.T) {
 }
 
 func TestNewHostNS_Error(t *testing.T) {
-	_, err := NewHostNS("invalid_addr", gen.Reference(), insolar.ShortNodeID(123))
+	_, err := NewHostNS("invalid_addr", gen.Reference(), node.ShortNodeID(123))
 
 	require.Error(t, err)
 }
@@ -127,7 +127,7 @@ func marshalUnmarshalHost(t *testing.T, h *Host) *Host {
 
 func TestHost_Marshal(t *testing.T) {
 	ref := gen.Reference()
-	sid := insolar.ShortNodeID(137)
+	sid := node.ShortNodeID(137)
 	h := Host{}
 	h.NodeID = ref
 	h.ShortID = sid
@@ -141,7 +141,7 @@ func TestHost_Marshal(t *testing.T) {
 
 func TestHost_Marshal2(t *testing.T) {
 	ref := gen.Reference()
-	sid := insolar.ShortNodeID(138)
+	sid := node.ShortNodeID(138)
 	ip := []byte{10, 11, 0, 56}
 	port := 5432
 	zone := "what is it for?"

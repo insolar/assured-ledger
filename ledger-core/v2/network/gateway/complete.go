@@ -12,6 +12,8 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -114,7 +116,7 @@ func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (s
 	panic("deprecated")
 }
 
-func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*insolar.Signature, error) {
+func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*cryptography.Signature, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ SignCert ] Couldn't extract response")
@@ -135,11 +137,11 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.SignCertResponse{Sign: sign.Bytes()}), nil
 }
 
-func (g *Complete) EphemeralMode(nodes []insolar.NetworkNode) bool {
+func (g *Complete) EphemeralMode(nodes []node2.NetworkNode) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (g *Complete) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {

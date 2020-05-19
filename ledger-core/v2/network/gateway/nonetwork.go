@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
@@ -47,7 +48,7 @@ func (g *NoNetwork) Run(ctx context.Context, pulse insolar.Pulse) {
 	origin := g.NodeKeeper.GetOrigin()
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())
 
-	g.NodeKeeper.SetInitialSnapshot([]insolar.NetworkNode{origin})
+	g.NodeKeeper.SetInitialSnapshot([]node.NetworkNode{origin})
 
 	if len(discoveryNodes) == 0 {
 		inslogger.FromContext(ctx).Warn("No discovery nodes found in certificate")

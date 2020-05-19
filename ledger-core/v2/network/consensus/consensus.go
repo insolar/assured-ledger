@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
@@ -63,10 +64,10 @@ func verify(s interface{}) {
 }
 
 type Dep struct {
-	KeyProcessor       insolar.KeyProcessor
-	Scheme             insolar.PlatformCryptographyScheme
+	KeyProcessor       cryptography.KeyProcessor
+	Scheme             cryptography.PlatformCryptographyScheme
 	CertificateManager insolar.CertificateManager
-	KeyStore           insolar.KeyStore
+	KeyStore           cryptography.KeyStore
 
 	NodeKeeper        network.NodeKeeper
 	DatagramTransport transport.DatagramTransport

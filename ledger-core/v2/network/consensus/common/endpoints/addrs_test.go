@@ -8,9 +8,8 @@ package endpoints
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 
 	"github.com/stretchr/testify/require"
 )
@@ -86,7 +85,7 @@ func TestNewHostIdentityFromHolder(t *testing.T) {
 }
 
 func TestShortNodeIDAsByteString(t *testing.T) {
-	require.NotEmpty(t, ShortNodeIDAsByteString(insolar.ShortNodeID(123)))
+	require.NotEmpty(t, ShortNodeIDAsByteString(node.ShortNodeID(123)))
 }
 
 func TestAsByteString(t *testing.T) {
@@ -150,10 +149,10 @@ func TestEqualOutboundEndpoints(t *testing.T) {
 
 	et1 = RelayEndpoint
 	et2 = et1
-	rID1 := insolar.ShortNodeID(1)
-	rID2 := insolar.ShortNodeID(2)
-	ob1.GetRelayIDMock.Set(func() insolar.ShortNodeID { return *(&rID1) })
-	ob2.GetRelayIDMock.Set(func() insolar.ShortNodeID { return *(&rID2) })
+	rID1 := node.ShortNodeID(1)
+	rID2 := node.ShortNodeID(2)
+	ob1.GetRelayIDMock.Set(func() node.ShortNodeID { return *(&rID1) })
+	ob2.GetRelayIDMock.Set(func() node.ShortNodeID { return *(&rID2) })
 	require.False(t, EqualOutboundEndpoints(ob1, ob2))
 
 	rID2 = rID1

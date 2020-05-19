@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
@@ -89,7 +90,7 @@ type Future interface {
 //Deprecated: network internal usage only
 type OriginProvider interface {
 	// GetOrigin get origin node information(self).
-	GetOrigin() insolar.NetworkNode
+	GetOrigin() node.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeNetwork -o ../testutils/network -s _mock.go -g
@@ -109,9 +110,9 @@ type NodeKeeper interface {
 	NodeNetwork
 
 	// SetInitialSnapshot set initial snapshot for nodekeeper
-	SetInitialSnapshot(nodes []insolar.NetworkNode)
+	SetInitialSnapshot(nodes []node.NetworkNode)
 	// Sync move unsync -> sync
-	Sync(context.Context, insolar.PulseNumber, []insolar.NetworkNode)
+	Sync(context.Context, insolar.PulseNumber, []node.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
 	MoveSyncToActive(context.Context, insolar.PulseNumber)
 }
@@ -129,18 +130,18 @@ type RoutingTable interface {
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
 	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetWorkingNode(ref reference.Global) insolar.NetworkNode
+	GetWorkingNode(ref reference.Global) node.NetworkNode
 	// GetWorkingNodes returns sorted list of all working nodes.
-	GetWorkingNodes() []insolar.NetworkNode
+	GetWorkingNodes() []node.NetworkNode
 
 	// GetActiveNode returns active node.
-	GetActiveNode(ref reference.Global) insolar.NetworkNode
+	GetActiveNode(ref reference.Global) node.NetworkNode
 	// GetActiveNodes returns unsorted list of all active nodes.
-	GetActiveNodes() []insolar.NetworkNode
+	GetActiveNodes() []node.NetworkNode
 	// GetActiveNodeByShortID get active node by short ID. Returns nil if node is not found.
-	GetActiveNodeByShortID(shortID insolar.ShortNodeID) insolar.NetworkNode
+	GetActiveNodeByShortID(shortID node.ShortNodeID) node.NetworkNode
 	// GetActiveNodeByAddr get active node by addr. Returns nil if node is not found.
-	GetActiveNodeByAddr(address string) insolar.NetworkNode
+	GetActiveNodeByAddr(address string) node.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gatewayer -o ../testutils/network -s _mock.go -g
@@ -165,12 +166,12 @@ type Gateway interface {
 	OnPulseFromConsensus(context.Context, insolar.Pulse)
 	OnConsensusFinished(ctx context.Context, report Report)
 
-	UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node.NetworkNode, cloudStateHash []byte)
 
 	Auther() Auther
 	Bootstrapper() Bootstrapper
 
-	EphemeralMode(nodes []insolar.NetworkNode) bool
+	EphemeralMode(nodes []node.NetworkNode) bool
 
 	FailState(ctx context.Context, reason string)
 }

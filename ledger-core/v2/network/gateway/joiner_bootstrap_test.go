@@ -7,10 +7,13 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
@@ -18,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/stretchr/testify/assert"
 )
 
 type fixture struct {
@@ -49,6 +51,8 @@ func createFixture(t *testing.T) fixture {
 	}
 }
 
+var ErrUnknown = errors.New("unknown error")
+
 func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	f := createFixture(t)
 	defer f.mc.Finish()
@@ -59,7 +63,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	})
 
 	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 insolar.Certificate) (pp1 *packet.Permit, err error) {
-		return nil, insolar.ErrUnknown
+		return nil, ErrUnknown
 	})
 
 	assert.Equal(t, insolar.JoinerBootstrap, f.joinerBootstrap.GetState())
@@ -80,7 +84,7 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 	})
 
 	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) (bp1 *packet.BootstrapResponse, err error) {
-		return nil, insolar.ErrUnknown
+		return nil, ErrUnknown
 	})
 
 	f.joinerBootstrap.Run(context.Background(), *insolar.EphemeralPulse)

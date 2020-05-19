@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
@@ -50,7 +52,7 @@ func (t *calculatorHashesSuite) TestGetGlobuleHash() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  ph,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): pp,
 		},
 		PrevCloudHash: prevCloudHash,
@@ -78,7 +80,7 @@ func (t *calculatorHashesSuite) TestGetCloudHash() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  ph,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): pp,
 		},
 		PrevCloudHash: prevCloudHash,
@@ -107,7 +109,7 @@ type calculatorHashesSuite struct {
 
 	pulse          *insolar.Pulse
 	originProvider network.OriginProvider
-	service        insolar.CryptographyService
+	service        cryptography.CryptographyService
 
 	calculator Calculator
 }
@@ -119,8 +121,8 @@ func TestCalculatorHashes(t *testing.T) {
 	require.NotNil(t, key)
 
 	service := testutils.NewCryptographyServiceMock(t)
-	service.SignMock.Set(func(p []byte) (r *insolar.Signature, r1 error) {
-		signature := insolar.SignatureFromBytes([]byte("signature"))
+	service.SignMock.Set(func(p []byte) (r *cryptography.Signature, r1 error) {
+		signature := cryptography.SignatureFromBytes([]byte("signature"))
 		return &signature, nil
 	})
 	service.GetPublicKeyMock.Set(func() (r crypto.PublicKey, r1 error) {
@@ -134,7 +136,7 @@ func TestCalculatorHashes(t *testing.T) {
 	}
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
 	op := network2.NewOriginProviderMock(t)
-	op.GetOriginMock.Set(func() insolar.NetworkNode {
+	op.GetOriginMock.Set(func() node.NetworkNode {
 		return createOrigin()
 	})
 

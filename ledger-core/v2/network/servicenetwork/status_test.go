@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 
 	"github.com/stretchr/testify/require"
@@ -40,17 +41,17 @@ func TestGetNetworkStatus(t *testing.T) {
 	nk := testutils.NewNodeKeeperMock(t)
 	a := testutils.NewAccessorMock(t)
 	activeLen := 1
-	active := make([]insolar.NetworkNode, activeLen)
-	a.GetActiveNodesMock.Set(func() []insolar.NetworkNode { return active })
+	active := make([]node.NetworkNode, activeLen)
+	a.GetActiveNodesMock.Set(func() []node.NetworkNode { return active })
 
 	workingLen := 2
-	working := make([]insolar.NetworkNode, workingLen)
-	a.GetWorkingNodesMock.Set(func() []insolar.NetworkNode { return working })
+	working := make([]node.NetworkNode, workingLen)
+	a.GetWorkingNodesMock.Set(func() []node.NetworkNode { return working })
 
 	nk.GetAccessorMock.Set(func(insolar.PulseNumber) network.Accessor { return a })
 
 	nn := testutils.NewNetworkNodeMock(t)
-	nk.GetOriginMock.Set(func() insolar.NetworkNode { return nn })
+	nk.GetOriginMock.Set(func() node.NetworkNode { return nn })
 
 	sn.NodeKeeper = nk
 

@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
@@ -30,10 +30,10 @@ import (
 )
 
 type bootstrapComponents struct {
-	CryptographyService        insolar.CryptographyService
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme
-	KeyStore                   insolar.KeyStore
-	KeyProcessor               insolar.KeyProcessor
+	CryptographyService        cryptography.CryptographyService
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
+	KeyStore                   cryptography.KeyStore
+	KeyProcessor               cryptography.KeyProcessor
 }
 
 type headlessLR struct{}
@@ -53,7 +53,7 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
 	keyProcessor := platformpolicy.NewKeyProcessor()
 
-	cryptographyService := cryptography.NewCryptographyService()
+	cryptographyService := platformpolicy.NewCryptographyService()
 	earlyComponents.Register(platformCryptographyScheme, keyStore)
 	earlyComponents.Inject(cryptographyService, keyProcessor)
 
@@ -68,8 +68,8 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 func initCertificateManager(
 	ctx context.Context,
 	cfg configuration.Configuration,
-	cryptographyService insolar.CryptographyService,
-	keyProcessor insolar.KeyProcessor,
+	cryptographyService cryptography.CryptographyService,
+	keyProcessor cryptography.KeyProcessor,
 ) *certificate.CertificateManager {
 	var certManager *certificate.CertificateManager
 	var err error
@@ -87,10 +87,10 @@ func initCertificateManager(
 func initComponents(
 	ctx context.Context,
 	cfg configuration.Configuration,
-	cryptographyService insolar.CryptographyService,
-	pcs insolar.PlatformCryptographyScheme,
-	keyStore insolar.KeyStore,
-	keyProcessor insolar.KeyProcessor,
+	cryptographyService cryptography.CryptographyService,
+	pcs cryptography.PlatformCryptographyScheme,
+	keyStore cryptography.KeyStore,
+	keyProcessor cryptography.KeyProcessor,
 	certManager insolar.CertificateManager,
 
 ) *component.Manager {
@@ -136,7 +136,7 @@ func initComponents(
 	components := []interface{}{
 		publisher,
 		pulses,
-		node.NewStorage(),
+		nodestorage.NewStorage(),
 	}
 	components = append(components, []interface{}{
 		metricsComp,

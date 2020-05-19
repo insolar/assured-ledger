@@ -19,6 +19,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
@@ -35,9 +36,9 @@ import (
 )
 
 type distributor struct {
-	Factory  transport.Factory                  `inject:""`
-	Scheme   insolar.PlatformCryptographyScheme `inject:""`
-	KeyStore insolar.KeyStore                   `inject:""`
+	Factory  transport.Factory                       `inject:""`
+	Scheme   cryptography.PlatformCryptographyScheme `inject:""`
+	KeyStore cryptography.KeyStore                   `inject:""`
 
 	digester    cryptkit.DataDigester
 	signer      cryptkit.DigestSigner

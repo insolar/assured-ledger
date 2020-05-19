@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -21,5 +22,5 @@ type Coordinator interface {
 	Me() reference.Global
 
 	// QueryRole returns node refs responsible for role bound operations for given object and pulse.
-	QueryRole(ctx context.Context, role insolar.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) ([]reference.Global, error)
+	QueryRole(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse insolar.PulseNumber) ([]reference.Global, error)
 }

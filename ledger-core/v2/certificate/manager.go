@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
@@ -29,14 +30,14 @@ func (m *CertificateManager) GetCertificate() insolar.Certificate {
 }
 
 // VerifyAuthorizationCertificate verifies certificate from some node
-func VerifyAuthorizationCertificate(cs insolar.CryptographyService, discoveryNodes []insolar.DiscoveryNode, authCert insolar.AuthorizationCertificate) (bool, error) {
+func VerifyAuthorizationCertificate(cs cryptography.CryptographyService, discoveryNodes []insolar.DiscoveryNode, authCert insolar.AuthorizationCertificate) (bool, error) {
 	if len(discoveryNodes) != len(authCert.GetDiscoverySigns()) {
 		return false, nil
 	}
 	data := authCert.SerializeNodePart()
 	for _, node := range discoveryNodes {
 		sign := authCert.GetDiscoverySigns()[node.GetNodeRef()]
-		ok := cs.Verify(node.GetPublicKey(), insolar.SignatureFromBytes(sign), data)
+		ok := cs.Verify(node.GetPublicKey(), cryptography.SignatureFromBytes(sign), data)
 		if !ok {
 			return false, nil
 		}
@@ -69,7 +70,7 @@ func NewUnsignedCertificate(baseCert insolar.Certificate, pKey string, role stri
 }
 
 // NewManagerReadCertificate constructor creates new CertificateManager component
-func NewManagerReadCertificate(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcessor, certPath string) (*CertificateManager, error) {
+func NewManagerReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*CertificateManager, error) {
 	cert, err := ReadCertificate(publicKey, keyProcessor, certPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ NewManagerReadCertificate ] failed to read certificate:")

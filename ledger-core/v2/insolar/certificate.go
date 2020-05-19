@@ -8,6 +8,7 @@ package insolar
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -33,7 +34,7 @@ type Certificate interface {
 type DiscoveryNode interface {
 	NodeMeta
 
-	GetRole() StaticRole
+	GetRole() node.StaticRole
 	GetHost() string
 }
 
@@ -41,7 +42,7 @@ type DiscoveryNode interface {
 type AuthorizationCertificate interface {
 	NodeMeta
 
-	GetRole() StaticRole
+	GetRole() node.StaticRole
 	SerializeNodePart() []byte
 	GetDiscoverySigns() map[reference.Global][]byte
 }

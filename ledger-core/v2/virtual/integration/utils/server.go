@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -71,16 +72,16 @@ func NewServer(t *testing.T) *Server {
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
 			IDMock.Return(gen.Reference()).
-			ShortIDMock.Return(insolar.ShortNodeID(0)).
-			RoleMock.Return(insolar.StaticRoleVirtual).
+			ShortIDMock.Return(node.ShortNodeID(0)).
+			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(insolar.NodeReady).
+			GetStateMock.Return(node.NodeReady).
 			GetPowerMock.Return(1)
-		networkNodeList := []insolar.NetworkNode{networkNodeMock}
+		networkNodeList := []node.NetworkNode{networkNodeMock}
 
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-		nodeSetter := node.NewModifierMock(t).SetMock.Return(nil)
+		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
 		Pulses = pulse.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()

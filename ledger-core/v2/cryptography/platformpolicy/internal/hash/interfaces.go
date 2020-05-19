@@ -6,11 +6,11 @@
 package hash
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 type AlgorithmProvider interface {
-	Hash224bits() insolar.Hasher
-	Hash256bits() insolar.Hasher
-	Hash512bits() insolar.Hasher
+	Hash224bits() cryptography.Hasher
+	Hash256bits() cryptography.Hasher
+	Hash512bits() cryptography.Hasher
 }

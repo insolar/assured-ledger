@@ -8,7 +8,7 @@ package censusimpl
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -79,7 +79,7 @@ func (c *NodeProfileSlot) CanIntroduceJoiner() bool {
 	return c.mode.CanIntroduceJoiner(c.index.IsJoiner())
 }
 
-func (c *NodeProfileSlot) GetNodeID() insolar.ShortNodeID {
+func (c *NodeProfileSlot) GetNodeID() node.ShortNodeID {
 	return c.GetStaticNodeID()
 }
 

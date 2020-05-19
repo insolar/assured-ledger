@@ -13,6 +13,7 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
@@ -40,9 +41,9 @@ func NewRequester(options *network.Options) Requester {
 }
 
 type requester struct {
-	HostNetwork         network.HostNetwork         `inject:""`
-	OriginProvider      network.OriginProvider      `inject:""` // nolint:staticcheck
-	CryptographyService insolar.CryptographyService `inject:""`
+	HostNetwork         network.HostNetwork              `inject:""`
+	OriginProvider      network.OriginProvider           `inject:""` // nolint:staticcheck
+	CryptographyService cryptography.CryptographyService `inject:""`
 
 	options *network.Options
 }

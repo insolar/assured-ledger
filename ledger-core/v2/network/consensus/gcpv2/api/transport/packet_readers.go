@@ -6,7 +6,7 @@
 package transport
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -22,9 +22,9 @@ type PacketParser interface {
 	/* Should return Unknown when it is not possible to identify it for a packet */
 	GetPulseNumber() pulse.Number
 
-	GetSourceID() insolar.ShortNodeID
-	GetReceiverID() insolar.ShortNodeID
-	GetTargetID() insolar.ShortNodeID
+	GetSourceID() node.ShortNodeID
+	GetReceiverID() node.ShortNodeID
+	GetTargetID() node.ShortNodeID
 	IsRelayForbidden() bool
 
 	GetPacketSignature() cryptkit.SignedDigest
@@ -112,7 +112,7 @@ type Phase3PacketReader interface {
 }
 
 type MembershipAnnouncementReader interface {
-	GetNodeID() insolar.ShortNodeID
+	GetNodeID() node.ShortNodeID
 	GetNodeRank() member.Rank
 	GetRequestedPower() member.Power
 	GetNodeStateHashEvidence() proofs.NodeStateHashEvidence
@@ -126,14 +126,14 @@ type MembershipAnnouncementReader interface {
 		If GetJoinerID() == 0 then there is no joiner announced by the member
 		If this reader is part of Neighbourhood then nonzero GetJoinerID() will be equal to GetNodeID()
 	*/
-	GetJoinerID() insolar.ShortNodeID
+	GetJoinerID() node.ShortNodeID
 
 	/* Can be nil when this reader is part of Neighbourhood - then joiner data is in the sender's announcement */
 	GetJoinerAnnouncement() JoinerAnnouncementReader
 }
 
 type JoinerAnnouncementReader interface {
-	GetJoinerIntroducedByID() insolar.ShortNodeID
+	GetJoinerIntroducedByID() node.ShortNodeID
 	GetBriefIntroduction() BriefIntroductionReader
 
 	HasFullIntro() bool

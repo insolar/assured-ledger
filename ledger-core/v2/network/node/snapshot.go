@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	protonode "github.com/insolar/assured-ledger/ledger-core/v2/network/node/internal/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -32,7 +33,7 @@ type Snapshot struct {
 	pulse insolar.PulseNumber
 	state insolar.NetworkState
 
-	nodeList [ListLength][]insolar.NetworkNode
+	nodeList [ListLength][]node2.NetworkNode
 }
 
 func (s *Snapshot) GetPulse() insolar.PulseNumber {
@@ -45,7 +46,7 @@ func (s *Snapshot) Copy() *Snapshot {
 		state: s.state,
 	}
 	for i := 0; i < int(ListLength); i++ {
-		result.nodeList[i] = make([]insolar.NetworkNode, len(s.nodeList[i]))
+		result.nodeList[i] = make([]node2.NetworkNode, len(s.nodeList[i]))
 		copy(result.nodeList[i], s.nodeList[i])
 	}
 	return result
@@ -71,7 +72,7 @@ func (s *Snapshot) Equal(s2 *Snapshot) bool {
 }
 
 // NewSnapshot create new snapshot for pulse.
-func NewSnapshot(number insolar.PulseNumber, nodes []insolar.NetworkNode) *Snapshot {
+func NewSnapshot(number insolar.PulseNumber, nodes []node2.NetworkNode) *Snapshot {
 	return &Snapshot{
 		pulse: number,
 		// TODO: pass actual state
@@ -82,10 +83,10 @@ func NewSnapshot(number insolar.PulseNumber, nodes []insolar.NetworkNode) *Snaps
 
 // splitNodes temporary method to create snapshot lists. Will be replaced by special function that will take in count
 // previous snapshot and approved claims.
-func splitNodes(nodes []insolar.NetworkNode) [ListLength][]insolar.NetworkNode {
-	var result [ListLength][]insolar.NetworkNode
+func splitNodes(nodes []node2.NetworkNode) [ListLength][]node2.NetworkNode {
+	var result [ListLength][]node2.NetworkNode
 	for i := 0; i < int(ListLength); i++ {
-		result[i] = make([]insolar.NetworkNode, 0)
+		result[i] = make([]node2.NetworkNode, 0)
 	}
 	for _, node := range nodes {
 		listType := nodeStateToListType(node)
@@ -97,16 +98,16 @@ func splitNodes(nodes []insolar.NetworkNode) [ListLength][]insolar.NetworkNode {
 	return result
 }
 
-func nodeStateToListType(node insolar.NetworkNode) ListType {
+func nodeStateToListType(node node2.NetworkNode) ListType {
 	switch node.GetState() {
-	case insolar.NodeReady:
+	case node2.NodeReady:
 		if node.GetPower() > 0 {
 			return ListWorking
 		}
 		return ListIdle
-	case insolar.NodeJoining:
+	case node2.NodeJoining:
 		return ListJoiner
-	case insolar.NodeUndefined, insolar.NodeLeaving:
+	case node2.NodeUndefined, node2.NodeLeaving:
 		return ListLeaving
 	}
 	// special case for no match
@@ -163,7 +164,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 	s.state = insolar.NetworkState(ss.State)
 
 	for t, nodes := range ss.Nodes {
-		nodeList := make([]insolar.NetworkNode, len(nodes.List))
+		nodeList := make([]node2.NetworkNode, len(nodes.List))
 		for i, n := range nodes.List {
 
 			pk, err := keyProc.ImportPublicKeyBinary(n.NodePublicKey)
@@ -172,7 +173,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 			}
 
 			ref := reference.GlobalFromBytes(n.NodeID)
-			nodeList[i] = newMutableNode(ref, insolar.StaticRole(n.NodeRole), pk, insolar.NodeState(n.State), n.NodeAddress, n.NodeVersion)
+			nodeList[i] = newMutableNode(ref, node2.StaticRole(n.NodeRole), pk, node2.NodeState(n.State), n.NodeAddress, n.NodeVersion)
 		}
 		s.nodeList[t] = nodeList
 	}
@@ -180,7 +181,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 	return nil
 }
 
-func Select(nodes []insolar.NetworkNode, typ ListType) []insolar.NetworkNode {
+func Select(nodes []node2.NetworkNode, typ ListType) []node2.NetworkNode {
 	lists := splitNodes(nodes)
 	return lists[typ]
 }

@@ -24,13 +24,13 @@ type DownCallMethodReq struct {
 	Code      reference.Global
 	Data      []byte
 	Method    string
-	Arguments insolar.Arguments
+	Arguments Arguments
 }
 
 // DownCallMethodResp is response from CallMethod RPC in the runner
 type DownCallMethodResp struct {
 	Data []byte
-	Ret  insolar.Arguments
+	Ret  Arguments
 }
 
 // DownCallConstructorReq is a set of arguments for CallConstructor RPC
@@ -39,13 +39,13 @@ type DownCallConstructorReq struct {
 	Context   *call.LogicContext
 	Code      reference.Global
 	Name      string
-	Arguments insolar.Arguments
+	Arguments Arguments
 }
 
 // DownCallConstructorResp is response from CallConstructor RPC in the runner
 type DownCallConstructorResp struct {
 	Data []byte
-	Ret  insolar.Arguments
+	Ret  Arguments
 }
 
 // UpBaseReq  is a base type for all insgorund -> logicrunner requests
@@ -80,13 +80,13 @@ type UpCallMethodReq struct {
 	Saga      bool
 	Object    reference.Global
 	Method    string
-	Arguments insolar.Arguments
+	Arguments Arguments
 	Prototype reference.Global
 }
 
 // UpCallMethodResp is response from Send RPC in goplugin
 type UpCallMethodResp struct {
-	Result insolar.Arguments
+	Result Arguments
 }
 
 // UpCallConstructorReq is a set of arguments for CallConstructor RPC in goplugin
@@ -100,7 +100,7 @@ type UpCallConstructorReq struct {
 
 // UpCallConstructorResp is a set of arguments for CallConstructor RPC in goplugin
 type UpCallConstructorResp struct {
-	Result insolar.Arguments
+	Result Arguments
 }
 
 // UpDeactivateObjectReq is a set of arguments for DeactivateObject RPC in goplugin

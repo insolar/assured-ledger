@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
@@ -23,12 +25,12 @@ import (
 )
 
 type StaticProfileExtension struct {
-	shortID   insolar.ShortNodeID
+	shortID   node2.ShortNodeID
 	ref       reference.Global
 	signature cryptkit.SignatureHolder
 }
 
-func NewStaticProfileExtension(networkNode insolar.NetworkNode) *StaticProfileExtension {
+func NewStaticProfileExtension(networkNode node2.NetworkNode) *StaticProfileExtension {
 	_, signature := networkNode.(node.MutableNode).GetSignature()
 
 	return newStaticProfileExtension(
@@ -41,7 +43,7 @@ func NewStaticProfileExtension(networkNode insolar.NetworkNode) *StaticProfileEx
 	)
 }
 
-func newStaticProfileExtension(shortID insolar.ShortNodeID, ref reference.Global, signature cryptkit.SignatureHolder) *StaticProfileExtension {
+func newStaticProfileExtension(shortID node2.ShortNodeID, ref reference.Global, signature cryptkit.SignatureHolder) *StaticProfileExtension {
 	return &StaticProfileExtension{
 		shortID:   shortID,
 		ref:       ref,
@@ -53,7 +55,7 @@ func (ni *StaticProfileExtension) GetPowerLevels() member.PowerSet {
 	return member.PowerSet{0, 0, 0, 0xff}
 }
 
-func (ni *StaticProfileExtension) GetIntroducedNodeID() insolar.ShortNodeID {
+func (ni *StaticProfileExtension) GetIntroducedNodeID() node2.ShortNodeID {
 	return ni.shortID
 }
 
@@ -69,7 +71,7 @@ func (ni *StaticProfileExtension) GetIssuedAtTime() time.Time {
 	return time.Unix(int64(pulse.NewFirstEphemeralData().Timestamp), 0)
 }
 
-func (ni *StaticProfileExtension) GetIssuerID() insolar.ShortNodeID {
+func (ni *StaticProfileExtension) GetIssuerID() node2.ShortNodeID {
 	return ni.shortID
 }
 
@@ -82,7 +84,7 @@ func (ni *StaticProfileExtension) GetReference() reference.Global {
 }
 
 type StaticProfile struct {
-	shortID     insolar.ShortNodeID
+	shortID     node2.ShortNodeID
 	primaryRole member.PrimaryRole
 	specialRole member.SpecialRole
 	intro       profiles.StaticProfileExtension
@@ -93,7 +95,7 @@ type StaticProfile struct {
 	signature cryptkit.SignedDigestHolder
 }
 
-func NewStaticProfile(networkNode insolar.NetworkNode, certificate insolar.Certificate, keyProcessor insolar.KeyProcessor) *StaticProfile {
+func NewStaticProfile(networkNode node2.NetworkNode, certificate insolar.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
 
 	specialRole := member.SpecialRoleNone
 	if network.IsDiscovery(networkNode.ID(), certificate) {
@@ -120,7 +122,7 @@ func NewStaticProfile(networkNode insolar.NetworkNode, certificate insolar.Certi
 }
 
 func newStaticProfile(
-	shortID insolar.ShortNodeID,
+	shortID node2.ShortNodeID,
 	primaryRole member.PrimaryRole,
 	specialRole member.SpecialRole,
 	intro profiles.StaticProfileExtension,
@@ -175,7 +177,7 @@ func (sp *StaticProfile) IsAcceptableHost(from endpoints.Inbound) bool {
 	return address.Equals(from.GetNameAddress())
 }
 
-func (sp *StaticProfile) GetStaticNodeID() insolar.ShortNodeID {
+func (sp *StaticProfile) GetStaticNodeID() node2.ShortNodeID {
 	return sp.shortID
 }
 
@@ -212,7 +214,7 @@ func (p *Outbound) GetEndpointType() endpoints.NodeEndpointType {
 	return endpoints.IPEndpoint
 }
 
-func (*Outbound) GetRelayID() insolar.ShortNodeID {
+func (*Outbound) GetRelayID() node2.ShortNodeID {
 	return 0
 }
 
@@ -228,7 +230,7 @@ func (p *Outbound) AsByteString() longbits.ByteString {
 	return longbits.ByteString(p.addr.String())
 }
 
-func NewStaticProfileList(nodes []insolar.NetworkNode, certificate insolar.Certificate, keyProcessor insolar.KeyProcessor) []profiles.StaticProfile {
+func NewStaticProfileList(nodes []node2.NetworkNode, certificate insolar.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {
 	intros := make([]profiles.StaticProfile, len(nodes))
 	for i, n := range nodes {
 		intros[i] = NewStaticProfile(n, certificate, keyProcessor)
@@ -239,7 +241,7 @@ func NewStaticProfileList(nodes []insolar.NetworkNode, certificate insolar.Certi
 	return intros
 }
 
-func NewNetworkNode(profile profiles.ActiveNode) insolar.NetworkNode {
+func NewNetworkNode(profile profiles.ActiveNode) node2.NetworkNode {
 	nip := profile.GetStatic()
 	store := nip.GetPublicKeyStore()
 	introduction := nip.GetExtension()
@@ -255,9 +257,9 @@ func NewNetworkNode(profile profiles.ActiveNode) insolar.NetworkNode {
 	mutableNode := networkNode.(node.MutableNode)
 
 	mutableNode.SetShortID(profile.GetNodeID())
-	mutableNode.SetState(insolar.NodeReady)
+	mutableNode.SetState(node2.NodeReady)
 
-	mutableNode.SetPower(insolar.Power(profile.GetDeclaredPower()))
+	mutableNode.SetPower(node2.Power(profile.GetDeclaredPower()))
 	if profile.GetOpMode().IsPowerless() {
 		mutableNode.SetPower(0)
 	}
@@ -265,14 +267,14 @@ func NewNetworkNode(profile profiles.ActiveNode) insolar.NetworkNode {
 	sd := nip.GetBriefIntroSignedDigest()
 	mutableNode.SetSignature(
 		longbits.AsBytes(sd.GetDigestHolder()),
-		insolar.SignatureFromBytes(longbits.AsBytes(sd.GetSignatureHolder())),
+		cryptography.SignatureFromBytes(longbits.AsBytes(sd.GetSignatureHolder())),
 	)
 
 	return networkNode
 }
 
-func NewNetworkNodeList(profiles []profiles.ActiveNode) []insolar.NetworkNode {
-	networkNodes := make([]insolar.NetworkNode, len(profiles))
+func NewNetworkNodeList(profiles []profiles.ActiveNode) []node2.NetworkNode {
+	networkNodes := make([]node2.NetworkNode, len(profiles))
 	for i, p := range profiles {
 		networkNodes[i] = NewNetworkNode(p)
 	}

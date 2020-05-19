@@ -13,6 +13,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
@@ -31,9 +32,9 @@ type Pulsar struct {
 	EntropyGenerator entropygenerator.EntropyGenerator
 
 	Certificate                certificate.Certificate
-	CryptographyService        insolar.CryptographyService
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme
-	KeyProcessor               insolar.KeyProcessor
+	CryptographyService        cryptography.CryptographyService
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
+	KeyProcessor               cryptography.KeyProcessor
 	PulseDistributor           insolar.PulseDistributor
 
 	lastPNMutex sync.RWMutex
@@ -43,9 +44,9 @@ type Pulsar struct {
 // NewPulsar creates a new pulse with using of custom GeneratedEntropy Generator
 func NewPulsar(
 	configuration configuration.Pulsar,
-	cryptographyService insolar.CryptographyService,
-	scheme insolar.PlatformCryptographyScheme,
-	keyProcessor insolar.KeyProcessor,
+	cryptographyService cryptography.CryptographyService,
+	scheme cryptography.PlatformCryptographyScheme,
+	keyProcessor cryptography.KeyProcessor,
 	pulseDistributor insolar.PulseDistributor,
 	entropyGenerator entropygenerator.EntropyGenerator,
 ) *Pulsar {
@@ -156,7 +157,7 @@ type PulseSenderConfirmationPayload struct {
 }
 
 // Hash calculates hash of payload
-func (ps *PulseSenderConfirmationPayload) Hash(hashProvider insolar.Hasher) ([]byte, error) {
+func (ps *PulseSenderConfirmationPayload) Hash(hashProvider cryptography.Hasher) ([]byte, error) {
 	_, err := hashProvider.Write(ps.PulseNumber.Bytes())
 	if err != nil {
 		return nil, err

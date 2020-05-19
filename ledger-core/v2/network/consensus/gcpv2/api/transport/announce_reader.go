@@ -6,12 +6,12 @@
 package transport
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
-func NewBriefJoinerAnnouncement(np profiles.StaticProfile, announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {
+func NewBriefJoinerAnnouncement(np profiles.StaticProfile, announcerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {
 
 	return &JoinerAnnouncement{
 		privStaticProfile: np,
@@ -30,7 +30,7 @@ func NewBriefJoinerAnnouncementByFull(fp JoinerAnnouncementReader) JoinerAnnounc
 	}
 }
 
-func NewFullJoinerAnnouncement(np profiles.StaticProfile, announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {
+func NewFullJoinerAnnouncement(np profiles.StaticProfile, announcerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {
 
 	if np.GetExtension() == nil {
 		panic("illegal value")
@@ -38,7 +38,7 @@ func NewFullJoinerAnnouncement(np profiles.StaticProfile, announcerID insolar.Sh
 	return NewAnyJoinerAnnouncement(np, announcerID, joinerSecret)
 }
 
-func NewAnyJoinerAnnouncement(np profiles.StaticProfile, announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {
+func NewAnyJoinerAnnouncement(np profiles.StaticProfile, announcerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) *JoinerAnnouncement {
 	return &JoinerAnnouncement{
 		privStaticProfile: np,
 		announcerID:       announcerID,
@@ -54,12 +54,12 @@ type privStaticProfile profiles.StaticProfile
 type JoinerAnnouncement struct {
 	privStaticProfile
 	disableFull     bool
-	announcerID     insolar.ShortNodeID
+	announcerID     node.ShortNodeID
 	joinerSecret    cryptkit.DigestHolder
 	joinerSignature cryptkit.SignatureHolder
 }
 
-func (p *JoinerAnnouncement) GetJoinerIntroducedByID() insolar.ShortNodeID {
+func (p *JoinerAnnouncement) GetJoinerIntroducedByID() node.ShortNodeID {
 	return p.announcerID
 }
 
@@ -89,10 +89,10 @@ func (p *JoinerAnnouncement) GetDecryptedSecret() cryptkit.DigestHolder {
 type fullIntroduction struct {
 	profiles.BriefCandidateProfile
 	profiles.StaticProfileExtension
-	announcerID insolar.ShortNodeID
+	announcerID node.ShortNodeID
 }
 
-func (p *fullIntroduction) GetJoinerIntroducedByID() insolar.ShortNodeID {
+func (p *fullIntroduction) GetJoinerIntroducedByID() node.ShortNodeID {
 	return p.announcerID
 }
 

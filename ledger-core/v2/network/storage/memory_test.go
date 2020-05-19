@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 )
 
@@ -25,8 +26,8 @@ func TestMemoryStorage(t *testing.T) {
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
-	n := node.NewNode(gen.Reference(), insolar.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
-	nodes := []insolar.NetworkNode{n}
+	n := node.NewNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	nodes := []node2.NetworkNode{n}
 
 	for i := 0; i < entriesCount+2; i++ {
 		p := startPulse

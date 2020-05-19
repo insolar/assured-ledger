@@ -15,8 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
@@ -26,11 +28,11 @@ import (
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
-func mockCryptographyService(t *testing.T, ok bool) insolar.CryptographyService {
+func mockCryptographyService(t *testing.T, ok bool) cryptography.CryptographyService {
 	cs := testutils.NewCryptographyServiceMock(t)
-	cs.SignMock.Set(func(data []byte) (*insolar.Signature, error) {
+	cs.SignMock.Set(func(data []byte) (*cryptography.Signature, error) {
 		if ok {
-			sig := insolar.SignatureFromBytes([]byte("test_sig"))
+			sig := cryptography.SignatureFromBytes([]byte("test_sig"))
 			return &sig, nil
 		}
 		return nil, errors.New("test_error")
@@ -65,10 +67,10 @@ func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discover
 func mockReply(t *testing.T) []byte {
 	res := struct {
 		PublicKey string
-		Role      insolar.StaticRole
+		Role      node.StaticRole
 	}{
 		PublicKey: "test_node_public_key",
-		Role:      insolar.StaticRoleVirtual,
+		Role:      node.StaticRoleVirtual,
 	}
 	node, err := foundation.MarshalMethodResult(res, nil)
 	require.NoError(t, err)

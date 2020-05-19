@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
@@ -142,7 +143,7 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
 
-func (n *ServiceNetwork) GetOrigin() insolar.NetworkNode {
+func (n *ServiceNetwork) GetOrigin() node.NetworkNode {
 	return n.NodeKeeper.GetOrigin()
 }
 

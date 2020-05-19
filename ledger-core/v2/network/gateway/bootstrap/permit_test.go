@@ -17,15 +17,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
-func createCryptographyService(t *testing.T) insolar.CryptographyService {
+func createCryptographyService(t *testing.T) cryptography.CryptographyService {
 	keyProcessor := platformpolicy.NewKeyProcessor()
 	privateKey, err := keyProcessor.GeneratePrivateKey()
 	require.NoError(t, err)
-	return cryptography.NewKeyBoundCryptographyService(privateKey)
+	return platformpolicy.NewKeyBoundCryptographyService(privateKey)
 }
 
 func TestCreateAndVerifyPermit(t *testing.T) {
@@ -43,7 +44,7 @@ func TestCreateAndVerifyPermit(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
 	cert.GetDiscoveryNodesMock.Set(func() (r []insolar.DiscoveryNode) {
 		pk, _ := cryptographyService.GetPublicKey()
-		node := certificate.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), insolar.StaticRoleVirtual.String())
+		node := certificate.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), node2.StaticRoleVirtual.String())
 		return []insolar.DiscoveryNode{node}
 	})
 

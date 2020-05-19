@@ -15,8 +15,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -43,19 +45,19 @@ type Base struct {
 	component.Initer
 
 	Self                network.Gateway
-	Gatewayer           network.Gatewayer                  `inject:""`
-	NodeKeeper          network.NodeKeeper                 `inject:""`
-	CryptographyService insolar.CryptographyService        `inject:""`
-	CryptographyScheme  insolar.PlatformCryptographyScheme `inject:""`
-	CertificateManager  insolar.CertificateManager         `inject:""`
-	HostNetwork         network.HostNetwork                `inject:""`
-	PulseAccessor       storage.PulseAccessor              `inject:""`
-	PulseAppender       storage.PulseAppender              `inject:""`
-	PulseManager        insolar.PulseManager               `inject:""`
-	BootstrapRequester  bootstrap.Requester                `inject:""`
-	KeyProcessor        insolar.KeyProcessor               `inject:""`
-	Aborter             network.Aborter                    `inject:""`
-	TransportFactory    transport.Factory                  `inject:""`
+	Gatewayer           network.Gatewayer                       `inject:""`
+	NodeKeeper          network.NodeKeeper                      `inject:""`
+	CryptographyService cryptography.CryptographyService        `inject:""`
+	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
+	CertificateManager  insolar.CertificateManager              `inject:""`
+	HostNetwork         network.HostNetwork                     `inject:""`
+	PulseAccessor       storage.PulseAccessor                   `inject:""`
+	PulseAppender       storage.PulseAppender                   `inject:""`
+	PulseManager        insolar.PulseManager                    `inject:""`
+	BootstrapRequester  bootstrap.Requester                     `inject:""`
+	KeyProcessor        cryptography.KeyProcessor               `inject:""`
+	Aborter             network.Aborter                         `inject:""`
+	TransportFactory    transport.Factory                       `inject:""`
 
 	// nolint
 	OriginProvider network.OriginProvider `inject:""`
@@ -188,7 +190,7 @@ func (g *Base) createOriginCandidate() error {
 		return err
 	}
 	mutableOrigin.SetSignature(digest, *sign)
-	g.NodeKeeper.SetInitialSnapshot([]insolar.NetworkNode{origin})
+	g.NodeKeeper.SetInitialSnapshot([]node2.NetworkNode{origin})
 
 	staticProfile := adapters.NewStaticProfile(origin, g.CertificateManager.GetCertificate(), g.KeyProcessor)
 	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
@@ -231,7 +233,7 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu insolar.Pulse) {
 }
 
 // UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (g *Base) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	g.NodeKeeper.Sync(ctx, pulseNumber, nodes)
 }
 
@@ -455,7 +457,7 @@ func (g *Base) OnConsensusFinished(ctx context.Context, report network.Report) {
 	inslogger.FromContext(ctx).Infof("OnConsensusFinished for pulse %d", report.PulseNumber)
 }
 
-func (g *Base) EphemeralMode(nodes []insolar.NetworkNode) bool {
+func (g *Base) EphemeralMode(nodes []node2.NetworkNode) bool {
 	_, majorityErr := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes)
 	minRoleErr := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes)
 

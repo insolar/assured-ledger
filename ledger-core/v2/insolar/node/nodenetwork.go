@@ -3,11 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insolar
+package node
 
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -63,7 +64,7 @@ type NetworkNode interface {
 	// Version of node software
 	Version() string
 	// LeavingETA is pulse number, after which node leave
-	LeavingETA() PulseNumber
+	LeavingETA() pulse.Number
 	// GetState get state of the node
 	GetState() NodeState
 	// GetPower get power of node

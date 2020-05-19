@@ -11,14 +11,16 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
@@ -29,8 +31,8 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 	nodeKeeper.GetAccessorMock.Set(func(p1 insolar.PulseNumber) (a1 network.Accessor) {
 		accessor := mock.NewAccessorMock(mc)
-		accessor.GetWorkingNodesMock.Set(func() (na1 []insolar.NetworkNode) {
-			return []insolar.NetworkNode{}
+		accessor.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {
+			return []node2.NetworkNode{}
 		})
 		return accessor
 	})
@@ -67,13 +69,13 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	ref := gen.Reference()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 	accessor1 := mock.NewAccessorMock(mc)
-	accessor1.GetWorkingNodesMock.Set(func() (na1 []insolar.NetworkNode) {
-		return []insolar.NetworkNode{}
+	accessor1.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {
+		return []node2.NetworkNode{}
 	})
 	accessor2 := mock.NewAccessorMock(mc)
-	accessor2.GetWorkingNodesMock.Set(func() (na1 []insolar.NetworkNode) {
-		n := node.NewNode(ref, insolar.StaticRoleHeavyMaterial, nil, "127.0.0.1:123", "")
-		return []insolar.NetworkNode{n}
+	accessor2.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {
+		n := node.NewNode(ref, node2.StaticRoleHeavyMaterial, nil, "127.0.0.1:123", "")
+		return []node2.NetworkNode{n}
 	})
 	nodeKeeper.GetAccessorMock.Set(func(p insolar.PulseNumber) (a1 network.Accessor) {
 		if p == pulse.MinTimePulse {

@@ -12,8 +12,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
@@ -22,12 +24,12 @@ import (
 
 // Coordinator is responsible for all jet interactions
 type Coordinator struct {
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme `inject:""`
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
 	PulseAccessor   insolarPulse.Accessor   `inject:""`
 	PulseCalculator insolarPulse.Calculator `inject:""`
 
-	Nodes node.Accessor `inject:""`
+	Nodes nodestorage.Accessor `inject:""`
 
 	lightChainLimit int
 	originRef       reference.Global
@@ -51,11 +53,11 @@ func (jc *Coordinator) Me() reference.Global {
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
 func (jc *Coordinator) QueryRole(
 	ctx context.Context,
-	role insolar.DynamicRole,
+	role node.DynamicRole,
 	objID reference.Local,
 	pulseNumber insolar.PulseNumber,
 ) ([]reference.Global, error) {
-	if role == insolar.DynamicRoleVirtualExecutor {
+	if role == node.DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pulseNumber)
 		if err != nil {
 			return nil, errors.Wrapf(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
@@ -120,8 +122,8 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.Pulse
 func (jc *Coordinator) virtualsForObject(
 	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber, count int,
 ) ([]reference.Global, error) {
-	candidates, err := jc.Nodes.InRole(pulse, insolar.StaticRoleVirtual)
-	if err == node.ErrNoNodes {
+	candidates, err := jc.Nodes.InRole(pulse, node.StaticRoleVirtual)
+	if err == nodestorage.ErrNoNodes {
 		return nil, err
 	}
 	if err != nil {
@@ -174,9 +176,9 @@ func (jc *Coordinator) entropy(ctx context.Context, pulse insolar.PulseNumber) (
 }
 
 func getRefs(
-	scheme insolar.PlatformCryptographyScheme,
+	scheme cryptography.PlatformCryptographyScheme,
 	e []byte,
-	values []insolar.Node,
+	values []node.Node,
 	count int,
 ) ([]reference.Global, error) {
 	sort.SliceStable(values, func(i, j int) bool {

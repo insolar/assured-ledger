@@ -9,7 +9,8 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 // CryptographyServiceMock implements insolar.CryptographyService
@@ -22,14 +23,14 @@ type CryptographyServiceMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mCryptographyServiceMockGetPublicKey
 
-	funcSign          func(ba1 []byte) (sp1 *mm_insolar.Signature, err error)
+	funcSign          func(ba1 []byte) (sp1 *cryptography.Signature, err error)
 	inspectFuncSign   func(ba1 []byte)
 	afterSignCounter  uint64
 	beforeSignCounter uint64
 	SignMock          mCryptographyServiceMockSign
 
-	funcVerify          func(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte) (b1 bool)
-	inspectFuncVerify   func(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte)
+	funcVerify          func(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte) (b1 bool)
+	inspectFuncVerify   func(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte)
 	afterVerifyCounter  uint64
 	beforeVerifyCounter uint64
 	VerifyMock          mCryptographyServiceMockVerify
@@ -221,7 +222,7 @@ type CryptographyServiceMockSignParams struct {
 
 // CryptographyServiceMockSignResults contains results of the CryptographyService.Sign
 type CryptographyServiceMockSignResults struct {
-	sp1 *mm_insolar.Signature
+	sp1 *cryptography.Signature
 	err error
 }
 
@@ -257,7 +258,7 @@ func (mmSign *mCryptographyServiceMockSign) Inspect(f func(ba1 []byte)) *mCrypto
 }
 
 // Return sets up results that will be returned by CryptographyService.Sign
-func (mmSign *mCryptographyServiceMockSign) Return(sp1 *mm_insolar.Signature, err error) *CryptographyServiceMock {
+func (mmSign *mCryptographyServiceMockSign) Return(sp1 *cryptography.Signature, err error) *CryptographyServiceMock {
 	if mmSign.mock.funcSign != nil {
 		mmSign.mock.t.Fatalf("CryptographyServiceMock.Sign mock is already set by Set")
 	}
@@ -270,7 +271,7 @@ func (mmSign *mCryptographyServiceMockSign) Return(sp1 *mm_insolar.Signature, er
 }
 
 //Set uses given function f to mock the CryptographyService.Sign method
-func (mmSign *mCryptographyServiceMockSign) Set(f func(ba1 []byte) (sp1 *mm_insolar.Signature, err error)) *CryptographyServiceMock {
+func (mmSign *mCryptographyServiceMockSign) Set(f func(ba1 []byte) (sp1 *cryptography.Signature, err error)) *CryptographyServiceMock {
 	if mmSign.defaultExpectation != nil {
 		mmSign.mock.t.Fatalf("Default expectation is already set for the CryptographyService.Sign method")
 	}
@@ -299,13 +300,13 @@ func (mmSign *mCryptographyServiceMockSign) When(ba1 []byte) *CryptographyServic
 }
 
 // Then sets up CryptographyService.Sign return parameters for the expectation previously defined by the When method
-func (e *CryptographyServiceMockSignExpectation) Then(sp1 *mm_insolar.Signature, err error) *CryptographyServiceMock {
+func (e *CryptographyServiceMockSignExpectation) Then(sp1 *cryptography.Signature, err error) *CryptographyServiceMock {
 	e.results = &CryptographyServiceMockSignResults{sp1, err}
 	return e.mock
 }
 
 // Sign implements insolar.CryptographyService
-func (mmSign *CryptographyServiceMock) Sign(ba1 []byte) (sp1 *mm_insolar.Signature, err error) {
+func (mmSign *CryptographyServiceMock) Sign(ba1 []byte) (sp1 *cryptography.Signature, err error) {
 	mm_atomic.AddUint64(&mmSign.beforeSignCounter, 1)
 	defer mm_atomic.AddUint64(&mmSign.afterSignCounter, 1)
 
@@ -433,7 +434,7 @@ type CryptographyServiceMockVerifyExpectation struct {
 // CryptographyServiceMockVerifyParams contains parameters of the CryptographyService.Verify
 type CryptographyServiceMockVerifyParams struct {
 	p1  crypto.PublicKey
-	s1  mm_insolar.Signature
+	s1  cryptography.Signature
 	ba1 []byte
 }
 
@@ -443,7 +444,7 @@ type CryptographyServiceMockVerifyResults struct {
 }
 
 // Expect sets up expected params for CryptographyService.Verify
-func (mmVerify *mCryptographyServiceMockVerify) Expect(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte) *mCryptographyServiceMockVerify {
+func (mmVerify *mCryptographyServiceMockVerify) Expect(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte) *mCryptographyServiceMockVerify {
 	if mmVerify.mock.funcVerify != nil {
 		mmVerify.mock.t.Fatalf("CryptographyServiceMock.Verify mock is already set by Set")
 	}
@@ -463,7 +464,7 @@ func (mmVerify *mCryptographyServiceMockVerify) Expect(p1 crypto.PublicKey, s1 m
 }
 
 // Inspect accepts an inspector function that has same arguments as the CryptographyService.Verify
-func (mmVerify *mCryptographyServiceMockVerify) Inspect(f func(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte)) *mCryptographyServiceMockVerify {
+func (mmVerify *mCryptographyServiceMockVerify) Inspect(f func(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte)) *mCryptographyServiceMockVerify {
 	if mmVerify.mock.inspectFuncVerify != nil {
 		mmVerify.mock.t.Fatalf("Inspect function is already set for CryptographyServiceMock.Verify")
 	}
@@ -487,7 +488,7 @@ func (mmVerify *mCryptographyServiceMockVerify) Return(b1 bool) *CryptographySer
 }
 
 //Set uses given function f to mock the CryptographyService.Verify method
-func (mmVerify *mCryptographyServiceMockVerify) Set(f func(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte) (b1 bool)) *CryptographyServiceMock {
+func (mmVerify *mCryptographyServiceMockVerify) Set(f func(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte) (b1 bool)) *CryptographyServiceMock {
 	if mmVerify.defaultExpectation != nil {
 		mmVerify.mock.t.Fatalf("Default expectation is already set for the CryptographyService.Verify method")
 	}
@@ -502,7 +503,7 @@ func (mmVerify *mCryptographyServiceMockVerify) Set(f func(p1 crypto.PublicKey, 
 
 // When sets expectation for the CryptographyService.Verify which will trigger the result defined by the following
 // Then helper
-func (mmVerify *mCryptographyServiceMockVerify) When(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte) *CryptographyServiceMockVerifyExpectation {
+func (mmVerify *mCryptographyServiceMockVerify) When(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte) *CryptographyServiceMockVerifyExpectation {
 	if mmVerify.mock.funcVerify != nil {
 		mmVerify.mock.t.Fatalf("CryptographyServiceMock.Verify mock is already set by Set")
 	}
@@ -522,7 +523,7 @@ func (e *CryptographyServiceMockVerifyExpectation) Then(b1 bool) *CryptographySe
 }
 
 // Verify implements insolar.CryptographyService
-func (mmVerify *CryptographyServiceMock) Verify(p1 crypto.PublicKey, s1 mm_insolar.Signature, ba1 []byte) (b1 bool) {
+func (mmVerify *CryptographyServiceMock) Verify(p1 crypto.PublicKey, s1 cryptography.Signature, ba1 []byte) (b1 bool) {
 	mm_atomic.AddUint64(&mmVerify.beforeVerifyCounter, 1)
 	defer mm_atomic.AddUint64(&mmVerify.afterVerifyCounter, 1)
 

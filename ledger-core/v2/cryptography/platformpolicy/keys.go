@@ -16,15 +16,15 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/sign"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type keyProcessor struct {
 	curve elliptic.Curve
 }
 
-func NewKeyProcessor() insolar.KeyProcessor {
+func NewKeyProcessor() cryptography.KeyProcessor {
 	return &keyProcessor{
 		curve: elliptic.P256(),
 	}
