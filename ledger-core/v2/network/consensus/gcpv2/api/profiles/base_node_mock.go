@@ -7,7 +7,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -16,7 +16,7 @@ import (
 type BaseNodeMock struct {
 	t minimock.Tester
 
-	funcGetNodeID          func() (s1 insolar.ShortNodeID)
+	funcGetNodeID          func() (s1 node.ShortNodeID)
 	inspectFuncGetNodeID   func()
 	afterGetNodeIDCounter  uint64
 	beforeGetNodeIDCounter uint64
@@ -75,7 +75,7 @@ type BaseNodeMockGetNodeIDExpectation struct {
 
 // BaseNodeMockGetNodeIDResults contains results of the BaseNode.GetNodeID
 type BaseNodeMockGetNodeIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for BaseNode.GetNodeID
@@ -103,7 +103,7 @@ func (mmGetNodeID *mBaseNodeMockGetNodeID) Inspect(f func()) *mBaseNodeMockGetNo
 }
 
 // Return sets up results that will be returned by BaseNode.GetNodeID
-func (mmGetNodeID *mBaseNodeMockGetNodeID) Return(s1 insolar.ShortNodeID) *BaseNodeMock {
+func (mmGetNodeID *mBaseNodeMockGetNodeID) Return(s1 node.ShortNodeID) *BaseNodeMock {
 	if mmGetNodeID.mock.funcGetNodeID != nil {
 		mmGetNodeID.mock.t.Fatalf("BaseNodeMock.GetNodeID mock is already set by Set")
 	}
@@ -116,7 +116,7 @@ func (mmGetNodeID *mBaseNodeMockGetNodeID) Return(s1 insolar.ShortNodeID) *BaseN
 }
 
 //Set uses given function f to mock the BaseNode.GetNodeID method
-func (mmGetNodeID *mBaseNodeMockGetNodeID) Set(f func() (s1 insolar.ShortNodeID)) *BaseNodeMock {
+func (mmGetNodeID *mBaseNodeMockGetNodeID) Set(f func() (s1 node.ShortNodeID)) *BaseNodeMock {
 	if mmGetNodeID.defaultExpectation != nil {
 		mmGetNodeID.mock.t.Fatalf("Default expectation is already set for the BaseNode.GetNodeID method")
 	}
@@ -130,7 +130,7 @@ func (mmGetNodeID *mBaseNodeMockGetNodeID) Set(f func() (s1 insolar.ShortNodeID)
 }
 
 // GetNodeID implements BaseNode
-func (mmGetNodeID *BaseNodeMock) GetNodeID() (s1 insolar.ShortNodeID) {
+func (mmGetNodeID *BaseNodeMock) GetNodeID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetNodeID.beforeGetNodeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeID.afterGetNodeIDCounter, 1)
 

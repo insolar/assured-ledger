@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -50,7 +50,7 @@ func NewStaticProfileByExt(v BriefCandidateProfile, ext CandidateProfileExtensio
 
 type FixedStaticProfile struct {
 	endpoints        []endpoints.Outbound
-	nodeID           insolar.ShortNodeID
+	nodeID           node.ShortNodeID
 	primaryRole      member.PrimaryRole
 	specialRoles     member.SpecialRole
 	startPower       member.Power
@@ -64,7 +64,7 @@ type FixedStaticProfile struct {
 
 	issuedAtPulse   pulse.Number // =0 when a node was connected during zeronet
 	issuedAtTime    time.Time
-	issuerID        insolar.ShortNodeID
+	issuerID        node.ShortNodeID
 	issuerSignature cryptkit.SignatureHolder
 }
 
@@ -99,7 +99,7 @@ func (p *FixedStaticProfile) GetIssuedAtTime() time.Time {
 	return p.issuedAtTime
 }
 
-func (p *FixedStaticProfile) GetIssuerID() insolar.ShortNodeID {
+func (p *FixedStaticProfile) GetIssuerID() node.ShortNodeID {
 	p.ensureFull()
 	return p.issuerID
 }
@@ -114,7 +114,7 @@ func (p *FixedStaticProfile) GetReference() reference.Global {
 	return p.nodeRef
 }
 
-func (p *FixedStaticProfile) GetIntroducedNodeID() insolar.ShortNodeID {
+func (p *FixedStaticProfile) GetIntroducedNodeID() node.ShortNodeID {
 	p.ensureFull()
 	return p.nodeID
 }
@@ -136,7 +136,7 @@ func (p *FixedStaticProfile) IsAcceptableHost(from endpoints.Inbound) bool {
 	return false
 }
 
-func (p *FixedStaticProfile) GetStaticNodeID() insolar.ShortNodeID {
+func (p *FixedStaticProfile) GetStaticNodeID() node.ShortNodeID {
 	return p.nodeID
 }
 

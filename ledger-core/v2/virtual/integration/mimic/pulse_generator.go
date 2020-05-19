@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -22,7 +22,7 @@ type PulseGenerator struct {
 
 const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
 
-func NewPulseData(p insolar.Pulse) pulse.Data {
+func NewPulseData(p pulsestor.Pulse) pulse.Data {
 	data := pulse.NewPulsarData(
 		p.PulseNumber,
 		uint16(p.NextPulseNumber-p.PulseNumber),
@@ -34,20 +34,20 @@ func NewPulseData(p insolar.Pulse) pulse.Data {
 	return data
 }
 
-func NewPulse(pulseData pulse.Data) insolar.Pulse {
-	var prev insolar.PulseNumber
+func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
+	var prev pulse.Number
 	if !pulseData.IsFirstPulse() {
 		prev = pulseData.PrevPulseNumber()
 	} else {
 		prev = pulseData.PulseNumber
 	}
 
-	entropy := insolar.Entropy{}
+	entropy := pulsestor.Entropy{}
 	bs := pulseData.PulseEntropy.AsBytes()
 	copy(entropy[:], bs)
 	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
 
-	return insolar.Pulse{
+	return pulsestor.Pulse{
 		PulseNumber:      pulseData.PulseNumber,
 		NextPulseNumber:  pulseData.NextPulseNumber(),
 		PrevPulseNumber:  prev,
@@ -59,7 +59,7 @@ func NewPulse(pulseData pulse.Data) insolar.Pulse {
 
 func NewPulseGenerator(delta uint16) *PulseGenerator {
 	g := &PulseGenerator{delta: delta}
-	g.appendPulse(NewPulseData(*insolar.GenesisPulse))
+	g.appendPulse(NewPulseData(*pulsestor.GenesisPulse))
 	return g
 }
 
@@ -67,7 +67,7 @@ func (g PulseGenerator) GetLastPulse() pulse.Data {
 	return g.pulseList[len(g.pulseList)-1]
 }
 
-func (g PulseGenerator) GetLastPulseAsPulse() insolar.Pulse {
+func (g PulseGenerator) GetLastPulseAsPulse() pulsestor.Pulse {
 	return NewPulse(g.pulseList[len(g.pulseList)-1])
 }
 

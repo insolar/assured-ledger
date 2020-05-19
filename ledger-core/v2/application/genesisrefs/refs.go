@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -22,7 +21,7 @@ const (
 
 // deprecated
 // Generate reference from hash code.
-func GenerateProtoReferenceFromCode(pulse insolar.PulseNumber, code []byte) reference.Global {
+func GenerateProtoReferenceFromCode(pulse pulse.Number, code []byte) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := reference.BytesToLocalHash(hasher.Hash(code))
 	id := reference.NewRecordID(pulse, codeHash)

@@ -12,7 +12,11 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
@@ -24,7 +28,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
@@ -38,7 +41,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(ctx context.Context, pulse insolar.Pulse) {
+func (g *Complete) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -46,11 +49,11 @@ func (g *Complete) Run(ctx context.Context, pulse insolar.Pulse) {
 	g.HostNetwork.RegisterRequestHandler(types.SignCert, g.signCertHandler)
 }
 
-func (g *Complete) GetState() insolar.NetworkState {
-	return insolar.CompleteNetworkState
+func (g *Complete) GetState() node2.NetworkState {
+	return node2.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
+func (g *Complete) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {
 	err := g.PulseManager.Set(ctx, pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
@@ -58,7 +61,7 @@ func (g *Complete) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
 }
 
 // GetCert method generates cert by requesting signs from discovery nodes
-func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (insolar.Certificate, error) {
+func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (node2.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ GetCert ] Couldn't get node info")
@@ -81,7 +84,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 }
 
 // requestCertSign method requests sign from single discovery node
-func (g *Complete) requestCertSign(ctx context.Context, discoveryNode insolar.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
+func (g *Complete) requestCertSign(ctx context.Context, discoveryNode node2.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
 	currentNodeCert := g.CertificateManager.GetCertificate()
 
 	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
@@ -114,7 +117,7 @@ func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (s
 	panic("deprecated")
 }
 
-func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*insolar.Signature, error) {
+func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*cryptography.Signature, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "[ SignCert ] Couldn't extract response")
@@ -135,11 +138,11 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.SignCertResponse{Sign: sign.Bytes()}), nil
 }
 
-func (g *Complete) EphemeralMode(nodes []insolar.NetworkNode) bool {
+func (g *Complete) EphemeralMode(nodes []node2.NetworkNode) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -153,10 +156,10 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber insolar.PulseNum
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse insolar.Pulse) {
+func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulsestor.Pulse) {
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
-	// OnPulseFromConsensus should be fast, but PulseManager.Set() takes unpredictable time
+	// OnPulseFromConsensus should be fast, but Manager.Set() takes unpredictable time
 	go func() {
 		done := make(chan struct{})
 		defer close(done)
@@ -166,7 +169,7 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse insolar.Pulse
 
 		logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
 		ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
-		span.SetTag("pulse.PulseNumber", int64(pulse.PulseNumber))
+		span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 		defer span.Finish()
 
 		err := g.PulseManager.Set(ctx, pulse)

@@ -8,20 +8,21 @@ package storage
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/storage.PulseAccessor -o ../../testutils/network -s _mock.go -g
 
 // PulseAccessor provides methods for accessing pulses.
 type PulseAccessor interface {
-	GetPulse(context.Context, insolar.PulseNumber) (insolar.Pulse, error)
-	GetLatestPulse(ctx context.Context) (insolar.Pulse, error)
+	GetPulse(context.Context, pulse.Number) (pulsestor.Pulse, error)
+	GetLatestPulse(ctx context.Context) (pulsestor.Pulse, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/storage.PulseAppender -o ../../testutils/network -s _mock.go -g
 
 // PulseAppender provides method for appending pulses to storage.
 type PulseAppender interface {
-	AppendPulse(ctx context.Context, pulse insolar.Pulse) error
+	AppendPulse(ctx context.Context, pulse pulsestor.Pulse) error
 }

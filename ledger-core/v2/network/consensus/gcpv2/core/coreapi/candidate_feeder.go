@@ -9,9 +9,9 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 )
@@ -36,7 +36,7 @@ func (p *SequentialCandidateFeeder) PickNextJoinCandidate() (profiles.CandidateP
 	return p.buf[0], nil
 }
 
-func (p *SequentialCandidateFeeder) RemoveJoinCandidate(candidateAdded bool, nodeID insolar.ShortNodeID) bool {
+func (p *SequentialCandidateFeeder) RemoveJoinCandidate(candidateAdded bool, nodeID node.ShortNodeID) bool {
 	p.mx.Lock()
 	defer p.mx.Unlock()
 

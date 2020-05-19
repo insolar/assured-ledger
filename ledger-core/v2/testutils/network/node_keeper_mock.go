@@ -9,40 +9,41 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // NodeKeeperMock implements network.NodeKeeper
 type NodeKeeperMock struct {
 	t minimock.Tester
 
-	funcGetAccessor          func(p1 insolar.PulseNumber) (a1 mm_network.Accessor)
-	inspectFuncGetAccessor   func(p1 insolar.PulseNumber)
+	funcGetAccessor          func(n1 pulse.Number) (a1 mm_network.Accessor)
+	inspectFuncGetAccessor   func(n1 pulse.Number)
 	afterGetAccessorCounter  uint64
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeKeeperMockGetAccessor
 
-	funcGetOrigin          func() (n1 insolar.NetworkNode)
+	funcGetOrigin          func() (n1 node.NetworkNode)
 	inspectFuncGetOrigin   func()
 	afterGetOriginCounter  uint64
 	beforeGetOriginCounter uint64
 	GetOriginMock          mNodeKeeperMockGetOrigin
 
-	funcMoveSyncToActive          func(ctx context.Context, p1 insolar.PulseNumber)
-	inspectFuncMoveSyncToActive   func(ctx context.Context, p1 insolar.PulseNumber)
+	funcMoveSyncToActive          func(ctx context.Context, n1 pulse.Number)
+	inspectFuncMoveSyncToActive   func(ctx context.Context, n1 pulse.Number)
 	afterMoveSyncToActiveCounter  uint64
 	beforeMoveSyncToActiveCounter uint64
 	MoveSyncToActiveMock          mNodeKeeperMockMoveSyncToActive
 
-	funcSetInitialSnapshot          func(nodes []insolar.NetworkNode)
-	inspectFuncSetInitialSnapshot   func(nodes []insolar.NetworkNode)
+	funcSetInitialSnapshot          func(nodes []node.NetworkNode)
+	inspectFuncSetInitialSnapshot   func(nodes []node.NetworkNode)
 	afterSetInitialSnapshotCounter  uint64
 	beforeSetInitialSnapshotCounter uint64
 	SetInitialSnapshotMock          mNodeKeeperMockSetInitialSnapshot
 
-	funcSync          func(ctx context.Context, p1 insolar.PulseNumber, na1 []insolar.NetworkNode)
-	inspectFuncSync   func(ctx context.Context, p1 insolar.PulseNumber, na1 []insolar.NetworkNode)
+	funcSync          func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)
+	inspectFuncSync   func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)
 	afterSyncCounter  uint64
 	beforeSyncCounter uint64
 	SyncMock          mNodeKeeperMockSync
@@ -91,7 +92,7 @@ type NodeKeeperMockGetAccessorExpectation struct {
 
 // NodeKeeperMockGetAccessorParams contains parameters of the NodeKeeper.GetAccessor
 type NodeKeeperMockGetAccessorParams struct {
-	p1 insolar.PulseNumber
+	n1 pulse.Number
 }
 
 // NodeKeeperMockGetAccessorResults contains results of the NodeKeeper.GetAccessor
@@ -100,7 +101,7 @@ type NodeKeeperMockGetAccessorResults struct {
 }
 
 // Expect sets up expected params for NodeKeeper.GetAccessor
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Expect(p1 insolar.PulseNumber) *mNodeKeeperMockGetAccessor {
+func (mmGetAccessor *mNodeKeeperMockGetAccessor) Expect(n1 pulse.Number) *mNodeKeeperMockGetAccessor {
 	if mmGetAccessor.mock.funcGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("NodeKeeperMock.GetAccessor mock is already set by Set")
 	}
@@ -109,7 +110,7 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) Expect(p1 insolar.PulseNumber) 
 		mmGetAccessor.defaultExpectation = &NodeKeeperMockGetAccessorExpectation{}
 	}
 
-	mmGetAccessor.defaultExpectation.params = &NodeKeeperMockGetAccessorParams{p1}
+	mmGetAccessor.defaultExpectation.params = &NodeKeeperMockGetAccessorParams{n1}
 	for _, e := range mmGetAccessor.expectations {
 		if minimock.Equal(e.params, mmGetAccessor.defaultExpectation.params) {
 			mmGetAccessor.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetAccessor.defaultExpectation.params)
@@ -120,7 +121,7 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) Expect(p1 insolar.PulseNumber) 
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetAccessor
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Inspect(f func(p1 insolar.PulseNumber)) *mNodeKeeperMockGetAccessor {
+func (mmGetAccessor *mNodeKeeperMockGetAccessor) Inspect(f func(n1 pulse.Number)) *mNodeKeeperMockGetAccessor {
 	if mmGetAccessor.mock.inspectFuncGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetAccessor")
 	}
@@ -144,7 +145,7 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) Return(a1 mm_network.Accessor) 
 }
 
 //Set uses given function f to mock the NodeKeeper.GetAccessor method
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Set(f func(p1 insolar.PulseNumber) (a1 mm_network.Accessor)) *NodeKeeperMock {
+func (mmGetAccessor *mNodeKeeperMockGetAccessor) Set(f func(n1 pulse.Number) (a1 mm_network.Accessor)) *NodeKeeperMock {
 	if mmGetAccessor.defaultExpectation != nil {
 		mmGetAccessor.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetAccessor method")
 	}
@@ -159,14 +160,14 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) Set(f func(p1 insolar.PulseNumb
 
 // When sets expectation for the NodeKeeper.GetAccessor which will trigger the result defined by the following
 // Then helper
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) When(p1 insolar.PulseNumber) *NodeKeeperMockGetAccessorExpectation {
+func (mmGetAccessor *mNodeKeeperMockGetAccessor) When(n1 pulse.Number) *NodeKeeperMockGetAccessorExpectation {
 	if mmGetAccessor.mock.funcGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("NodeKeeperMock.GetAccessor mock is already set by Set")
 	}
 
 	expectation := &NodeKeeperMockGetAccessorExpectation{
 		mock:   mmGetAccessor.mock,
-		params: &NodeKeeperMockGetAccessorParams{p1},
+		params: &NodeKeeperMockGetAccessorParams{n1},
 	}
 	mmGetAccessor.expectations = append(mmGetAccessor.expectations, expectation)
 	return expectation
@@ -179,15 +180,15 @@ func (e *NodeKeeperMockGetAccessorExpectation) Then(a1 mm_network.Accessor) *Nod
 }
 
 // GetAccessor implements network.NodeKeeper
-func (mmGetAccessor *NodeKeeperMock) GetAccessor(p1 insolar.PulseNumber) (a1 mm_network.Accessor) {
+func (mmGetAccessor *NodeKeeperMock) GetAccessor(n1 pulse.Number) (a1 mm_network.Accessor) {
 	mm_atomic.AddUint64(&mmGetAccessor.beforeGetAccessorCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetAccessor.afterGetAccessorCounter, 1)
 
 	if mmGetAccessor.inspectFuncGetAccessor != nil {
-		mmGetAccessor.inspectFuncGetAccessor(p1)
+		mmGetAccessor.inspectFuncGetAccessor(n1)
 	}
 
-	mm_params := &NodeKeeperMockGetAccessorParams{p1}
+	mm_params := &NodeKeeperMockGetAccessorParams{n1}
 
 	// Record call args
 	mmGetAccessor.GetAccessorMock.mutex.Lock()
@@ -204,7 +205,7 @@ func (mmGetAccessor *NodeKeeperMock) GetAccessor(p1 insolar.PulseNumber) (a1 mm_
 	if mmGetAccessor.GetAccessorMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmGetAccessor.GetAccessorMock.defaultExpectation.Counter, 1)
 		mm_want := mmGetAccessor.GetAccessorMock.defaultExpectation.params
-		mm_got := NodeKeeperMockGetAccessorParams{p1}
+		mm_got := NodeKeeperMockGetAccessorParams{n1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmGetAccessor.t.Errorf("NodeKeeperMock.GetAccessor got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -216,9 +217,9 @@ func (mmGetAccessor *NodeKeeperMock) GetAccessor(p1 insolar.PulseNumber) (a1 mm_
 		return (*mm_results).a1
 	}
 	if mmGetAccessor.funcGetAccessor != nil {
-		return mmGetAccessor.funcGetAccessor(p1)
+		return mmGetAccessor.funcGetAccessor(n1)
 	}
-	mmGetAccessor.t.Fatalf("Unexpected call to NodeKeeperMock.GetAccessor. %v", p1)
+	mmGetAccessor.t.Fatalf("Unexpected call to NodeKeeperMock.GetAccessor. %v", n1)
 	return
 }
 
@@ -303,7 +304,7 @@ type NodeKeeperMockGetOriginExpectation struct {
 
 // NodeKeeperMockGetOriginResults contains results of the NodeKeeper.GetOrigin
 type NodeKeeperMockGetOriginResults struct {
-	n1 insolar.NetworkNode
+	n1 node.NetworkNode
 }
 
 // Expect sets up expected params for NodeKeeper.GetOrigin
@@ -331,7 +332,7 @@ func (mmGetOrigin *mNodeKeeperMockGetOrigin) Inspect(f func()) *mNodeKeeperMockG
 }
 
 // Return sets up results that will be returned by NodeKeeper.GetOrigin
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 insolar.NetworkNode) *NodeKeeperMock {
+func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 node.NetworkNode) *NodeKeeperMock {
 	if mmGetOrigin.mock.funcGetOrigin != nil {
 		mmGetOrigin.mock.t.Fatalf("NodeKeeperMock.GetOrigin mock is already set by Set")
 	}
@@ -344,7 +345,7 @@ func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 insolar.NetworkNode) *Nod
 }
 
 //Set uses given function f to mock the NodeKeeper.GetOrigin method
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 insolar.NetworkNode)) *NodeKeeperMock {
+func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 node.NetworkNode)) *NodeKeeperMock {
 	if mmGetOrigin.defaultExpectation != nil {
 		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetOrigin method")
 	}
@@ -358,7 +359,7 @@ func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 insolar.NetworkNod
 }
 
 // GetOrigin implements network.NodeKeeper
-func (mmGetOrigin *NodeKeeperMock) GetOrigin() (n1 insolar.NetworkNode) {
+func (mmGetOrigin *NodeKeeperMock) GetOrigin() (n1 node.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
 
@@ -450,11 +451,11 @@ type NodeKeeperMockMoveSyncToActiveExpectation struct {
 // NodeKeeperMockMoveSyncToActiveParams contains parameters of the NodeKeeper.MoveSyncToActive
 type NodeKeeperMockMoveSyncToActiveParams struct {
 	ctx context.Context
-	p1  insolar.PulseNumber
+	n1  pulse.Number
 }
 
 // Expect sets up expected params for NodeKeeper.MoveSyncToActive
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Expect(ctx context.Context, p1 insolar.PulseNumber) *mNodeKeeperMockMoveSyncToActive {
+func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Expect(ctx context.Context, n1 pulse.Number) *mNodeKeeperMockMoveSyncToActive {
 	if mmMoveSyncToActive.mock.funcMoveSyncToActive != nil {
 		mmMoveSyncToActive.mock.t.Fatalf("NodeKeeperMock.MoveSyncToActive mock is already set by Set")
 	}
@@ -463,7 +464,7 @@ func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Expect(ctx context.Co
 		mmMoveSyncToActive.defaultExpectation = &NodeKeeperMockMoveSyncToActiveExpectation{}
 	}
 
-	mmMoveSyncToActive.defaultExpectation.params = &NodeKeeperMockMoveSyncToActiveParams{ctx, p1}
+	mmMoveSyncToActive.defaultExpectation.params = &NodeKeeperMockMoveSyncToActiveParams{ctx, n1}
 	for _, e := range mmMoveSyncToActive.expectations {
 		if minimock.Equal(e.params, mmMoveSyncToActive.defaultExpectation.params) {
 			mmMoveSyncToActive.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmMoveSyncToActive.defaultExpectation.params)
@@ -474,7 +475,7 @@ func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Expect(ctx context.Co
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.MoveSyncToActive
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Inspect(f func(ctx context.Context, p1 insolar.PulseNumber)) *mNodeKeeperMockMoveSyncToActive {
+func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Inspect(f func(ctx context.Context, n1 pulse.Number)) *mNodeKeeperMockMoveSyncToActive {
 	if mmMoveSyncToActive.mock.inspectFuncMoveSyncToActive != nil {
 		mmMoveSyncToActive.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.MoveSyncToActive")
 	}
@@ -498,7 +499,7 @@ func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Return() *NodeKeeperM
 }
 
 //Set uses given function f to mock the NodeKeeper.MoveSyncToActive method
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Set(f func(ctx context.Context, p1 insolar.PulseNumber)) *NodeKeeperMock {
+func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Set(f func(ctx context.Context, n1 pulse.Number)) *NodeKeeperMock {
 	if mmMoveSyncToActive.defaultExpectation != nil {
 		mmMoveSyncToActive.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.MoveSyncToActive method")
 	}
@@ -512,15 +513,15 @@ func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Set(f func(ctx contex
 }
 
 // MoveSyncToActive implements network.NodeKeeper
-func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActive(ctx context.Context, p1 insolar.PulseNumber) {
+func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActive(ctx context.Context, n1 pulse.Number) {
 	mm_atomic.AddUint64(&mmMoveSyncToActive.beforeMoveSyncToActiveCounter, 1)
 	defer mm_atomic.AddUint64(&mmMoveSyncToActive.afterMoveSyncToActiveCounter, 1)
 
 	if mmMoveSyncToActive.inspectFuncMoveSyncToActive != nil {
-		mmMoveSyncToActive.inspectFuncMoveSyncToActive(ctx, p1)
+		mmMoveSyncToActive.inspectFuncMoveSyncToActive(ctx, n1)
 	}
 
-	mm_params := &NodeKeeperMockMoveSyncToActiveParams{ctx, p1}
+	mm_params := &NodeKeeperMockMoveSyncToActiveParams{ctx, n1}
 
 	// Record call args
 	mmMoveSyncToActive.MoveSyncToActiveMock.mutex.Lock()
@@ -537,7 +538,7 @@ func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActive(ctx context.Context, 
 	if mmMoveSyncToActive.MoveSyncToActiveMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmMoveSyncToActive.MoveSyncToActiveMock.defaultExpectation.Counter, 1)
 		mm_want := mmMoveSyncToActive.MoveSyncToActiveMock.defaultExpectation.params
-		mm_got := NodeKeeperMockMoveSyncToActiveParams{ctx, p1}
+		mm_got := NodeKeeperMockMoveSyncToActiveParams{ctx, n1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmMoveSyncToActive.t.Errorf("NodeKeeperMock.MoveSyncToActive got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -546,10 +547,10 @@ func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActive(ctx context.Context, 
 
 	}
 	if mmMoveSyncToActive.funcMoveSyncToActive != nil {
-		mmMoveSyncToActive.funcMoveSyncToActive(ctx, p1)
+		mmMoveSyncToActive.funcMoveSyncToActive(ctx, n1)
 		return
 	}
-	mmMoveSyncToActive.t.Fatalf("Unexpected call to NodeKeeperMock.MoveSyncToActive. %v %v", ctx, p1)
+	mmMoveSyncToActive.t.Fatalf("Unexpected call to NodeKeeperMock.MoveSyncToActive. %v %v", ctx, n1)
 
 }
 
@@ -637,11 +638,11 @@ type NodeKeeperMockSetInitialSnapshotExpectation struct {
 
 // NodeKeeperMockSetInitialSnapshotParams contains parameters of the NodeKeeper.SetInitialSnapshot
 type NodeKeeperMockSetInitialSnapshotParams struct {
-	nodes []insolar.NetworkNode
+	nodes []node.NetworkNode
 }
 
 // Expect sets up expected params for NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []insolar.NetworkNode) *mNodeKeeperMockSetInitialSnapshot {
+func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []node.NetworkNode) *mNodeKeeperMockSetInitialSnapshot {
 	if mmSetInitialSnapshot.mock.funcSetInitialSnapshot != nil {
 		mmSetInitialSnapshot.mock.t.Fatalf("NodeKeeperMock.SetInitialSnapshot mock is already set by Set")
 	}
@@ -661,7 +662,7 @@ func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []in
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Inspect(f func(nodes []insolar.NetworkNode)) *mNodeKeeperMockSetInitialSnapshot {
+func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Inspect(f func(nodes []node.NetworkNode)) *mNodeKeeperMockSetInitialSnapshot {
 	if mmSetInitialSnapshot.mock.inspectFuncSetInitialSnapshot != nil {
 		mmSetInitialSnapshot.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.SetInitialSnapshot")
 	}
@@ -685,7 +686,7 @@ func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Return() *NodeKee
 }
 
 //Set uses given function f to mock the NodeKeeper.SetInitialSnapshot method
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes []insolar.NetworkNode)) *NodeKeeperMock {
+func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes []node.NetworkNode)) *NodeKeeperMock {
 	if mmSetInitialSnapshot.defaultExpectation != nil {
 		mmSetInitialSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.SetInitialSnapshot method")
 	}
@@ -699,7 +700,7 @@ func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes 
 }
 
 // SetInitialSnapshot implements network.NodeKeeper
-func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshot(nodes []insolar.NetworkNode) {
+func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshot(nodes []node.NetworkNode) {
 	mm_atomic.AddUint64(&mmSetInitialSnapshot.beforeSetInitialSnapshotCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetInitialSnapshot.afterSetInitialSnapshotCounter, 1)
 
@@ -825,12 +826,12 @@ type NodeKeeperMockSyncExpectation struct {
 // NodeKeeperMockSyncParams contains parameters of the NodeKeeper.Sync
 type NodeKeeperMockSyncParams struct {
 	ctx context.Context
-	p1  insolar.PulseNumber
-	na1 []insolar.NetworkNode
+	n1  pulse.Number
+	na1 []node.NetworkNode
 }
 
 // Expect sets up expected params for NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, p1 insolar.PulseNumber, na1 []insolar.NetworkNode) *mNodeKeeperMockSync {
+func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode) *mNodeKeeperMockSync {
 	if mmSync.mock.funcSync != nil {
 		mmSync.mock.t.Fatalf("NodeKeeperMock.Sync mock is already set by Set")
 	}
@@ -839,7 +840,7 @@ func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, p1 insolar.PulseN
 		mmSync.defaultExpectation = &NodeKeeperMockSyncExpectation{}
 	}
 
-	mmSync.defaultExpectation.params = &NodeKeeperMockSyncParams{ctx, p1, na1}
+	mmSync.defaultExpectation.params = &NodeKeeperMockSyncParams{ctx, n1, na1}
 	for _, e := range mmSync.expectations {
 		if minimock.Equal(e.params, mmSync.defaultExpectation.params) {
 			mmSync.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSync.defaultExpectation.params)
@@ -850,7 +851,7 @@ func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, p1 insolar.PulseN
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Inspect(f func(ctx context.Context, p1 insolar.PulseNumber, na1 []insolar.NetworkNode)) *mNodeKeeperMockSync {
+func (mmSync *mNodeKeeperMockSync) Inspect(f func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)) *mNodeKeeperMockSync {
 	if mmSync.mock.inspectFuncSync != nil {
 		mmSync.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.Sync")
 	}
@@ -874,7 +875,7 @@ func (mmSync *mNodeKeeperMockSync) Return() *NodeKeeperMock {
 }
 
 //Set uses given function f to mock the NodeKeeper.Sync method
-func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, p1 insolar.PulseNumber, na1 []insolar.NetworkNode)) *NodeKeeperMock {
+func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)) *NodeKeeperMock {
 	if mmSync.defaultExpectation != nil {
 		mmSync.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.Sync method")
 	}
@@ -888,15 +889,15 @@ func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, p1 insolar.Pu
 }
 
 // Sync implements network.NodeKeeper
-func (mmSync *NodeKeeperMock) Sync(ctx context.Context, p1 insolar.PulseNumber, na1 []insolar.NetworkNode) {
+func (mmSync *NodeKeeperMock) Sync(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode) {
 	mm_atomic.AddUint64(&mmSync.beforeSyncCounter, 1)
 	defer mm_atomic.AddUint64(&mmSync.afterSyncCounter, 1)
 
 	if mmSync.inspectFuncSync != nil {
-		mmSync.inspectFuncSync(ctx, p1, na1)
+		mmSync.inspectFuncSync(ctx, n1, na1)
 	}
 
-	mm_params := &NodeKeeperMockSyncParams{ctx, p1, na1}
+	mm_params := &NodeKeeperMockSyncParams{ctx, n1, na1}
 
 	// Record call args
 	mmSync.SyncMock.mutex.Lock()
@@ -913,7 +914,7 @@ func (mmSync *NodeKeeperMock) Sync(ctx context.Context, p1 insolar.PulseNumber, 
 	if mmSync.SyncMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSync.SyncMock.defaultExpectation.Counter, 1)
 		mm_want := mmSync.SyncMock.defaultExpectation.params
-		mm_got := NodeKeeperMockSyncParams{ctx, p1, na1}
+		mm_got := NodeKeeperMockSyncParams{ctx, n1, na1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSync.t.Errorf("NodeKeeperMock.Sync got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -922,10 +923,10 @@ func (mmSync *NodeKeeperMock) Sync(ctx context.Context, p1 insolar.PulseNumber, 
 
 	}
 	if mmSync.funcSync != nil {
-		mmSync.funcSync(ctx, p1, na1)
+		mmSync.funcSync(ctx, n1, na1)
 		return
 	}
-	mmSync.t.Fatalf("Unexpected call to NodeKeeperMock.Sync. %v %v %v", ctx, p1, na1)
+	mmSync.t.Fatalf("Unexpected call to NodeKeeperMock.Sync. %v %v %v", ctx, n1, na1)
 
 }
 

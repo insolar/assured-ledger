@@ -7,7 +7,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -34,7 +34,7 @@ type ActiveNodeMock struct {
 	beforeGetIndexCounter uint64
 	GetIndexMock          mActiveNodeMockGetIndex
 
-	funcGetNodeID          func() (s1 insolar.ShortNodeID)
+	funcGetNodeID          func() (s1 node.ShortNodeID)
 	inspectFuncGetNodeID   func()
 	afterGetNodeIDCounter  uint64
 	beforeGetNodeIDCounter uint64
@@ -568,7 +568,7 @@ type ActiveNodeMockGetNodeIDExpectation struct {
 
 // ActiveNodeMockGetNodeIDResults contains results of the ActiveNode.GetNodeID
 type ActiveNodeMockGetNodeIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for ActiveNode.GetNodeID
@@ -596,7 +596,7 @@ func (mmGetNodeID *mActiveNodeMockGetNodeID) Inspect(f func()) *mActiveNodeMockG
 }
 
 // Return sets up results that will be returned by ActiveNode.GetNodeID
-func (mmGetNodeID *mActiveNodeMockGetNodeID) Return(s1 insolar.ShortNodeID) *ActiveNodeMock {
+func (mmGetNodeID *mActiveNodeMockGetNodeID) Return(s1 node.ShortNodeID) *ActiveNodeMock {
 	if mmGetNodeID.mock.funcGetNodeID != nil {
 		mmGetNodeID.mock.t.Fatalf("ActiveNodeMock.GetNodeID mock is already set by Set")
 	}
@@ -609,7 +609,7 @@ func (mmGetNodeID *mActiveNodeMockGetNodeID) Return(s1 insolar.ShortNodeID) *Act
 }
 
 //Set uses given function f to mock the ActiveNode.GetNodeID method
-func (mmGetNodeID *mActiveNodeMockGetNodeID) Set(f func() (s1 insolar.ShortNodeID)) *ActiveNodeMock {
+func (mmGetNodeID *mActiveNodeMockGetNodeID) Set(f func() (s1 node.ShortNodeID)) *ActiveNodeMock {
 	if mmGetNodeID.defaultExpectation != nil {
 		mmGetNodeID.mock.t.Fatalf("Default expectation is already set for the ActiveNode.GetNodeID method")
 	}
@@ -623,7 +623,7 @@ func (mmGetNodeID *mActiveNodeMockGetNodeID) Set(f func() (s1 insolar.ShortNodeI
 }
 
 // GetNodeID implements ActiveNode
-func (mmGetNodeID *ActiveNodeMock) GetNodeID() (s1 insolar.ShortNodeID) {
+func (mmGetNodeID *ActiveNodeMock) GetNodeID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetNodeID.beforeGetNodeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeID.afterGetNodeIDCounter, 1)
 

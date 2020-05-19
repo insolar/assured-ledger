@@ -12,8 +12,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
@@ -349,7 +349,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-			err := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, object, pulseNumber)
+			err := svc.SendRole(goCtx, msg, node.DynamicRoleVirtualExecutor, object, pulseNumber)
 			return func(ctx smachine.AsyncResultContext) {
 				if err != nil {
 					ctx.Log().Error("failed to send message", err)
@@ -392,14 +392,14 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	switch s.executionNewState.Result.Type() {
-	case insolar.RequestSideEffectNone:
-	case insolar.RequestSideEffectActivate:
+	case requestresult.SideEffectNone:
+	case requestresult.SideEffectActivate:
 		_, prototype, memory = executionNewState.Activate()
 		action = s.setNewState(prototype, memory)
-	case insolar.RequestSideEffectAmend:
+	case requestresult.SideEffectAmend:
 		_, prototype, memory = executionNewState.Amend()
 		action = s.setNewState(prototype, memory)
-	case insolar.RequestSideEffectDeactivate:
+	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
@@ -454,7 +454,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)

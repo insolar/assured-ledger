@@ -10,7 +10,7 @@ import (
 	"crypto/ecdsa"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -54,7 +54,7 @@ func (c *LocalNodeConfiguration) GetNodeCountHint() int {
 	return 10 // should provide some rough estimate of a size of a network to be joined
 }
 
-func NewLocalNodeConfiguration(ctx context.Context, keyStore insolar.KeyStore) *LocalNodeConfiguration {
+func NewLocalNodeConfiguration(ctx context.Context, keyStore cryptography.KeyStore) *LocalNodeConfiguration {
 	privateKey, err := keyStore.GetPrivateKey("")
 	if err != nil {
 		panic(err)

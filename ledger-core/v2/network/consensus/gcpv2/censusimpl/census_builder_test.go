@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -23,7 +23,7 @@ func TestNewLocalCensusBuilder(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}},
 		slots: []updatableSlot{{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}}
@@ -104,7 +104,7 @@ func TestBuild(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleNeutral })
 	spe := profiles.NewStaticProfileExtensionMock(t)
 	sp.GetExtensionMock.Set(func() profiles.StaticProfileExtension { return spe })
@@ -121,7 +121,7 @@ func TestBuildAndMakeExpected(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleNeutral })
 	spe := profiles.NewStaticProfileExtensionMock(t)
 	sp.GetExtensionMock.Set(func() profiles.StaticProfileExtension { return spe })
@@ -139,7 +139,7 @@ func TestBuildAndMakeBrokenExpected(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleNeutral })
 	spe := profiles.NewStaticProfileExtensionMock(t)
 	sp.GetExtensionMock.Set(func() profiles.StaticProfileExtension { return spe })
@@ -179,7 +179,7 @@ func TestDPBRemoveOthers(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 
@@ -195,7 +195,7 @@ func TestDPBGetUnorderedProfiles(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 
@@ -212,7 +212,7 @@ func TestDPBGetCount(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 
@@ -225,7 +225,7 @@ func TestDPBGetLocalProfile(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 	dpb := DynamicPopulationBuilder{census: lcb}
@@ -236,7 +236,7 @@ func TestDPBFindProfile(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 	dpb := DynamicPopulationBuilder{census: lcb}
@@ -249,13 +249,13 @@ func TestDPBAddProfile(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp1 := profiles.NewStaticProfileMock(t)
-	sp1.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp1.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp1}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 	dpb := DynamicPopulationBuilder{census: lcb}
 
 	sp2 := profiles.NewStaticProfileMock(t)
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	sp2.GetStartPowerMock.Set(func() member.Power { return 0 })
 	lcb.state = census.SealedCensus
 	require.Panics(t, func() { dpb.AddProfile(sp2) })
@@ -271,14 +271,14 @@ func TestDPBRemoveProfile(t *testing.T) {
 	chronicles := &localChronicles{}
 	pn := pulse.Number(1)
 	sp1 := profiles.NewStaticProfileMock(t)
-	sp1.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp1.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	population := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp1}}}
 	lcb := newLocalCensusBuilder(context.Background(), chronicles, pn, population)
 	dpb := DynamicPopulationBuilder{census: lcb}
 
 	sp2 := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	nodeID := node.ShortNodeID(1)
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	sp2.GetStartPowerMock.Set(func() member.Power { return 0 })
 	lcb.state = census.DraftCensus
 	dpb.AddProfile(sp2)

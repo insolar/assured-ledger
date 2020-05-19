@@ -8,7 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -50,7 +50,7 @@ type FullIntroductionReaderMock struct {
 	beforeGetIssuedAtTimeCounter uint64
 	GetIssuedAtTimeMock          mFullIntroductionReaderMockGetIssuedAtTime
 
-	funcGetIssuerID          func() (s1 insolar.ShortNodeID)
+	funcGetIssuerID          func() (s1 node.ShortNodeID)
 	inspectFuncGetIssuerID   func()
 	afterGetIssuerIDCounter  uint64
 	beforeGetIssuerIDCounter uint64
@@ -98,7 +98,7 @@ type FullIntroductionReaderMock struct {
 	beforeGetStartPowerCounter uint64
 	GetStartPowerMock          mFullIntroductionReaderMockGetStartPower
 
-	funcGetStaticNodeID          func() (s1 insolar.ShortNodeID)
+	funcGetStaticNodeID          func() (s1 node.ShortNodeID)
 	inspectFuncGetStaticNodeID   func()
 	afterGetStaticNodeIDCounter  uint64
 	beforeGetStaticNodeIDCounter uint64
@@ -874,7 +874,7 @@ type FullIntroductionReaderMockGetIssuerIDExpectation struct {
 
 // FullIntroductionReaderMockGetIssuerIDResults contains results of the FullIntroductionReader.GetIssuerID
 type FullIntroductionReaderMockGetIssuerIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for FullIntroductionReader.GetIssuerID
@@ -902,7 +902,7 @@ func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Inspect(f func()) *
 }
 
 // Return sets up results that will be returned by FullIntroductionReader.GetIssuerID
-func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Return(s1 insolar.ShortNodeID) *FullIntroductionReaderMock {
+func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Return(s1 node.ShortNodeID) *FullIntroductionReaderMock {
 	if mmGetIssuerID.mock.funcGetIssuerID != nil {
 		mmGetIssuerID.mock.t.Fatalf("FullIntroductionReaderMock.GetIssuerID mock is already set by Set")
 	}
@@ -915,7 +915,7 @@ func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Return(s1 insolar.S
 }
 
 //Set uses given function f to mock the FullIntroductionReader.GetIssuerID method
-func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Set(f func() (s1 insolar.ShortNodeID)) *FullIntroductionReaderMock {
+func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Set(f func() (s1 node.ShortNodeID)) *FullIntroductionReaderMock {
 	if mmGetIssuerID.defaultExpectation != nil {
 		mmGetIssuerID.mock.t.Fatalf("Default expectation is already set for the FullIntroductionReader.GetIssuerID method")
 	}
@@ -929,7 +929,7 @@ func (mmGetIssuerID *mFullIntroductionReaderMockGetIssuerID) Set(f func() (s1 in
 }
 
 // GetIssuerID implements FullIntroductionReader
-func (mmGetIssuerID *FullIntroductionReaderMock) GetIssuerID() (s1 insolar.ShortNodeID) {
+func (mmGetIssuerID *FullIntroductionReaderMock) GetIssuerID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetIssuerID.beforeGetIssuerIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetIssuerID.afterGetIssuerIDCounter, 1)
 
@@ -2018,7 +2018,7 @@ type FullIntroductionReaderMockGetStaticNodeIDExpectation struct {
 
 // FullIntroductionReaderMockGetStaticNodeIDResults contains results of the FullIntroductionReader.GetStaticNodeID
 type FullIntroductionReaderMockGetStaticNodeIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for FullIntroductionReader.GetStaticNodeID
@@ -2046,7 +2046,7 @@ func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Inspect(f f
 }
 
 // Return sets up results that will be returned by FullIntroductionReader.GetStaticNodeID
-func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Return(s1 insolar.ShortNodeID) *FullIntroductionReaderMock {
+func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Return(s1 node.ShortNodeID) *FullIntroductionReaderMock {
 	if mmGetStaticNodeID.mock.funcGetStaticNodeID != nil {
 		mmGetStaticNodeID.mock.t.Fatalf("FullIntroductionReaderMock.GetStaticNodeID mock is already set by Set")
 	}
@@ -2059,7 +2059,7 @@ func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Return(s1 i
 }
 
 //Set uses given function f to mock the FullIntroductionReader.GetStaticNodeID method
-func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Set(f func() (s1 insolar.ShortNodeID)) *FullIntroductionReaderMock {
+func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Set(f func() (s1 node.ShortNodeID)) *FullIntroductionReaderMock {
 	if mmGetStaticNodeID.defaultExpectation != nil {
 		mmGetStaticNodeID.mock.t.Fatalf("Default expectation is already set for the FullIntroductionReader.GetStaticNodeID method")
 	}
@@ -2073,7 +2073,7 @@ func (mmGetStaticNodeID *mFullIntroductionReaderMockGetStaticNodeID) Set(f func(
 }
 
 // GetStaticNodeID implements FullIntroductionReader
-func (mmGetStaticNodeID *FullIntroductionReaderMock) GetStaticNodeID() (s1 insolar.ShortNodeID) {
+func (mmGetStaticNodeID *FullIntroductionReaderMock) GetStaticNodeID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetStaticNodeID.beforeGetStaticNodeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetStaticNodeID.afterGetStaticNodeIDCounter, 1)
 

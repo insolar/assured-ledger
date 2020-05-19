@@ -8,7 +8,7 @@ package hash
 import (
 	"golang.org/x/crypto/sha3"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 type sha3Provider struct{}
@@ -17,7 +17,7 @@ func NewSHA3Provider() AlgorithmProvider {
 	return &sha3Provider{}
 }
 
-func (*sha3Provider) Hash224bits() insolar.Hasher {
+func (*sha3Provider) Hash224bits() cryptography.Hasher {
 	return &hashWrapper{
 		hash: sha3.New224(),
 		sumFunc: func(b []byte) []byte {
@@ -27,7 +27,7 @@ func (*sha3Provider) Hash224bits() insolar.Hasher {
 	}
 }
 
-func (*sha3Provider) Hash256bits() insolar.Hasher {
+func (*sha3Provider) Hash256bits() cryptography.Hasher {
 	return &hashWrapper{
 		hash: sha3.New256(),
 		sumFunc: func(b []byte) []byte {
@@ -37,7 +37,7 @@ func (*sha3Provider) Hash256bits() insolar.Hasher {
 	}
 }
 
-func (*sha3Provider) Hash512bits() insolar.Hasher {
+func (*sha3Provider) Hash512bits() cryptography.Hasher {
 	return &hashWrapper{
 		hash: sha3.New512(),
 		sumFunc: func(b []byte) []byte {

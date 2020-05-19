@@ -8,7 +8,7 @@ package census
 import (
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -22,7 +22,7 @@ type OfflinePopulation interface {
 }
 
 type OnlinePopulation interface {
-	FindProfile(nodeID insolar.ShortNodeID) profiles.ActiveNode
+	FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode
 	/* indicates that this population was built without issues */
 	IsValid() bool
 	IsClean() bool
@@ -108,7 +108,7 @@ func appendByBit(b *strings.Builder, v *RecoverableErrorTypes, s string) {
 
 type EvictedPopulation interface {
 	/* when the relevant online population is !IsValid() then not all nodes can be accessed by nodeID */
-	FindProfile(nodeID insolar.ShortNodeID) profiles.EvictedNode
+	FindProfile(nodeID node.ShortNodeID) profiles.EvictedNode
 	GetCount() int
 	/* slice will never contain nil. when the relevant online population is !IsValid() then it will also include erroneous nodes */
 	GetProfiles() []profiles.EvictedNode
@@ -121,9 +121,9 @@ type PopulationBuilder interface {
 	GetCount() int
 	// SetCapacity
 	AddProfile(intro profiles.StaticProfile) profiles.Updatable
-	RemoveProfile(nodeID insolar.ShortNodeID)
+	RemoveProfile(nodeID node.ShortNodeID)
 	GetUnorderedProfiles() []profiles.Updatable
-	FindProfile(nodeID insolar.ShortNodeID) profiles.Updatable
+	FindProfile(nodeID node.ShortNodeID) profiles.Updatable
 	GetLocalProfile() profiles.Updatable
 	RemoveOthers()
 }
@@ -154,9 +154,9 @@ type RolePopulation interface {
 
 		When population is empty or invalid, then (nil, nil) is returned.
 	*/
-	GetAssignmentByCount(metric uint64, excludeID insolar.ShortNodeID) (assigned, excluded profiles.ActiveNode)
+	GetAssignmentByCount(metric uint64, excludeID node.ShortNodeID) (assigned, excluded profiles.ActiveNode)
 	/*
 		Similar to GetAssignmentByCount, but it does weighed distribution across non-zero power members based on member's power.
 	*/
-	GetAssignmentByPower(metric uint64, excludeID insolar.ShortNodeID) (assigned, excluded profiles.ActiveNode)
+	GetAssignmentByPower(metric uint64, excludeID node.ShortNodeID) (assigned, excluded profiles.ActiveNode)
 }

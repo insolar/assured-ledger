@@ -11,8 +11,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
@@ -98,7 +98,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &s.requestPayload, insolar.DynamicRoleVirtualExecutor, obj, pulseNumber)
+		err := svc.SendRole(goCtx, &s.requestPayload, node.DynamicRoleVirtualExecutor, obj, pulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)

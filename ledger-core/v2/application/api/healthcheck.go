@@ -10,21 +10,21 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
 // HealthChecker allows to check network status of a node.
 type HealthChecker struct {
-	CertificateManager insolar.CertificateManager
+	CertificateManager node.CertificateManager
 	NodeNetwork        network.NodeNetwork
-	PulseAccessor      pulse.Accessor
+	PulseAccessor      pulsestor.Accessor
 }
 
 // NewHealthChecker creates new HealthChecker.
-func NewHealthChecker(cm insolar.CertificateManager, nn network.NodeNetwork, pa pulse.Accessor) *HealthChecker { // nolint: staticcheck
+func NewHealthChecker(cm node.CertificateManager, nn network.NodeNetwork, pa pulsestor.Accessor) *HealthChecker { // nolint: staticcheck
 	return &HealthChecker{CertificateManager: cm, NodeNetwork: nn, PulseAccessor: pa}
 }
 

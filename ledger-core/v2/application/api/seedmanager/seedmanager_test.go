@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 func TestSeedFromBytes_BadInputSize(t *testing.T) {
@@ -48,9 +48,9 @@ func TestSeedManager_Add(t *testing.T) {
 	sm := NewSpecified(time.Duration(1*time.Minute), DefaultCleanPeriod)
 	seed := getSeed(t)
 	sm.Add(seed, 5)
-	pulse, exists := sm.Pop(seed)
+	puls, exists := sm.Pop(seed)
 	require.True(t, exists)
-	require.Equal(t, insolar.PulseNumber(5), pulse)
+	require.Equal(t, pulse.Number(5), puls)
 	sm.Stop()
 }
 

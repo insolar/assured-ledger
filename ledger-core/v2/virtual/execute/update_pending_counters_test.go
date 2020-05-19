@@ -20,11 +20,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messagesenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
-	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
@@ -117,7 +117,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	}
 
 	// create VCallRequest
-	pd := pulse2.NewFirstPulsarData(10, longbits.Bits256{})
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	caller := reference.Global{}
 	prototype := gen.Reference()
 
@@ -222,7 +222,7 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	jetCoordinatorMock := jet.NewCoordinatorMock(t).
 		MeMock.Return(gen.Reference()).
 		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
-	pulses := pulse.NewStorageMem()
+	pulses := pulsestor.NewStorageMem()
 
 	messageSender := messagesender.NewDefaultService(publisherMock, jetCoordinatorMock, pulses)
 	var messageSenderAdapter messagesenderAdapter.MessageSender = messagesenderAdapter.CreateMessageSendService(ctx, messageSender)
