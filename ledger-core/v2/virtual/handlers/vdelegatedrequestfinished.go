@@ -77,22 +77,16 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 			return false
 		}
 
-		state.ActiveMutablePendingCount--
-
-		if state.ActiveMutablePendingCount < 0 {
-			//TODO how to handle?
-		}
-
-		if state.ActiveMutablePendingCount == 0 {
-			// If we do not have pending ordered, release sync object.
-			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-				//TODO how to handle?
-			}
-		}
-
 		// Update object state.
 		if objectDescriptor != nil {
 			state.SetDescriptor(*objectDescriptor)
+		}
+
+		state.ActiveMutablePendingCount--
+
+		if state.ActiveMutablePendingCount == 0 {
+			// If we do not have pending ordered, release sync object.
+			ctx.CallBargeIn(state.AwaitPendingOrdered)
 		}
 
 		return true
