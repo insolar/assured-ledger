@@ -14,7 +14,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
@@ -26,7 +28,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
@@ -40,7 +41,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(ctx context.Context, pulse insolar.Pulse) {
+func (g *Complete) Run(ctx context.Context, pulse pulse.Pulse) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -52,7 +53,7 @@ func (g *Complete) GetState() node2.NetworkState {
 	return node2.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
+func (g *Complete) BeforeRun(ctx context.Context, pulse pulse.Pulse) {
 	err := g.PulseManager.Set(ctx, pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
@@ -141,7 +142,7 @@ func (g *Complete) EphemeralMode(nodes []node2.NetworkNode) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse2.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -155,10 +156,10 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber insolar.PulseNum
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse insolar.Pulse) {
+func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulse.Pulse) {
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
-	// OnPulseFromConsensus should be fast, but PulseManager.Set() takes unpredictable time
+	// OnPulseFromConsensus should be fast, but Manager.Set() takes unpredictable time
 	go func() {
 		done := make(chan struct{})
 		defer close(done)
@@ -168,7 +169,7 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse insolar.Pulse
 
 		logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
 		ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
-		span.SetTag("pulse.PulseNumber", int64(pulse.PulseNumber))
+		span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 		defer span.Finish()
 
 		err := g.PulseManager.Set(ctx, pulse)

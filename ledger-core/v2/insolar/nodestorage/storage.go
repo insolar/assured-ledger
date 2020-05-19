@@ -8,24 +8,24 @@ package nodestorage
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.Accessor -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage.Accessor -o ./ -s _mock.go -g
 
 // Accessor provides info about active nodes.
 type Accessor interface {
-	All(pulse insolar.PulseNumber) ([]node.Node, error)
-	InRole(pulse insolar.PulseNumber, role node.StaticRole) ([]node.Node, error)
+	All(pulse pulse.Number) ([]node.Node, error)
+	InRole(pulse pulse.Number, role node.StaticRole) ([]node.Node, error)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.Modifier -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage.Modifier -o ./ -s _mock.go -g
 
 // Modifier provides methods for setting active nodes.
 type Modifier interface {
-	Set(pulse insolar.PulseNumber, nodes []node.Node) error
-	DeleteForPN(pulse insolar.PulseNumber)
+	Set(pulse pulse.Number, nodes []node.Node) error
+	DeleteForPN(pulse pulse.Number)
 }
 
 // Storage is an in-memory active node storage for each pulse. It's required to calculate node roles
@@ -33,17 +33,17 @@ type Modifier interface {
 // It should only contain previous N pulses. It should be stored on disk.
 type Storage struct {
 	lock  sync.RWMutex
-	nodes map[insolar.PulseNumber][]node.Node
+	nodes map[pulse.Number][]node.Node
 }
 
 // NewStorage create new instance of Storage
 func NewStorage() *Storage {
 	// return new(nodeStorage)
-	return &Storage{nodes: map[insolar.PulseNumber][]node.Node{}}
+	return &Storage{nodes: map[pulse.Number][]node.Node{}}
 }
 
 // Set saves active nodes for pulse in memory.
-func (a *Storage) Set(pulse insolar.PulseNumber, nodes []node.Node) error {
+func (a *Storage) Set(pulse pulse.Number, nodes []node.Node) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -61,7 +61,7 @@ func (a *Storage) Set(pulse insolar.PulseNumber, nodes []node.Node) error {
 }
 
 // All return active nodes for specified pulse.
-func (a *Storage) All(pulse insolar.PulseNumber) ([]node.Node, error) {
+func (a *Storage) All(pulse pulse.Number) ([]node.Node, error) {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 
@@ -75,7 +75,7 @@ func (a *Storage) All(pulse insolar.PulseNumber) ([]node.Node, error) {
 }
 
 // InRole return active nodes for specified pulse and role.
-func (a *Storage) InRole(pulse insolar.PulseNumber, role node.StaticRole) ([]node.Node, error) {
+func (a *Storage) InRole(pulse pulse.Number, role node.StaticRole) ([]node.Node, error) {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 
@@ -94,7 +94,7 @@ func (a *Storage) InRole(pulse insolar.PulseNumber, role node.StaticRole) ([]nod
 }
 
 // DeleteForPN erases nodes for specified pulse.
-func (a *Storage) DeleteForPN(pulse insolar.PulseNumber) {
+func (a *Storage) DeleteForPN(pulse pulse.Number) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 

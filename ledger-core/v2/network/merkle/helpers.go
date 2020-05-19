@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 )
 
 const reserved = 0xDEADBEEF
@@ -50,7 +50,7 @@ func (mh *merkleHelper) doubleSliceHash(slice1, slice2 []byte) []byte {
 	return hasher.Sum(nil)
 }
 
-func (mh *merkleHelper) pulseHash(pulse *insolar.Pulse) []byte {
+func (mh *merkleHelper) pulseHash(pulse *pulse.Pulse) []byte {
 	pulseNumberHash := mh.leafHasher.Hash(pulse.PulseNumber.Bytes())
 	entropyHash := mh.leafHasher.Hash(pulse.Entropy[:])
 

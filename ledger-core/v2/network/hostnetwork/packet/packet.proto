@@ -62,7 +62,7 @@ message PulseRequest {
 }
 
 message UpdateScheduleRequest {
-    uint32 LastNodePulse = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber", (gogoproto.nullable) = false];
+    uint32 LastNodePulse = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
     Permit Permit = 2;
 }
 

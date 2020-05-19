@@ -19,7 +19,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -31,7 +30,7 @@ import (
 type calculatorErrorSuite struct {
 	suite.Suite
 
-	pulse          *insolar.Pulse
+	pulse          *pulse.Pulse
 	originProvider network.OriginProvider
 	service        cryptography.Service
 
@@ -161,9 +160,9 @@ func TestCalculatorError(t *testing.T) {
 	err := cm.Init(context.Background())
 	require.NoError(t, err)
 
-	pulseObject := &insolar.Pulse{
-		PulseNumber:     insolar.PulseNumber(1337),
-		NextPulseNumber: insolar.PulseNumber(1347),
+	pulseObject := &pulse.Pulse{
+		PulseNumber:     1337,
+		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),
 	}
 

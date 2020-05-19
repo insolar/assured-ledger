@@ -8,13 +8,12 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
-	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	mm_node "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-// NetworkNodeMock implements insolar.NetworkNode
+// NetworkNodeMock implements node.NetworkNode
 type NetworkNodeMock struct {
 	t minimock.Tester
 
@@ -24,19 +23,19 @@ type NetworkNodeMock struct {
 	beforeAddressCounter uint64
 	AddressMock          mNetworkNodeMockAddress
 
-	funcGetGlobuleID          func() (g1 node.GlobuleID)
+	funcGetGlobuleID          func() (g1 mm_node.GlobuleID)
 	inspectFuncGetGlobuleID   func()
 	afterGetGlobuleIDCounter  uint64
 	beforeGetGlobuleIDCounter uint64
 	GetGlobuleIDMock          mNetworkNodeMockGetGlobuleID
 
-	funcGetPower          func() (p1 node.Power)
+	funcGetPower          func() (p1 mm_node.Power)
 	inspectFuncGetPower   func()
 	afterGetPowerCounter  uint64
 	beforeGetPowerCounter uint64
 	GetPowerMock          mNetworkNodeMockGetPower
 
-	funcGetState          func() (n1 node.NodeState)
+	funcGetState          func() (n1 mm_node.NodeState)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
@@ -48,7 +47,7 @@ type NetworkNodeMock struct {
 	beforeIDCounter uint64
 	IDMock          mNetworkNodeMockID
 
-	funcLeavingETA          func() (p1 mm_insolar.PulseNumber)
+	funcLeavingETA          func() (n1 pulse.Number)
 	inspectFuncLeavingETA   func()
 	afterLeavingETACounter  uint64
 	beforeLeavingETACounter uint64
@@ -60,13 +59,13 @@ type NetworkNodeMock struct {
 	beforePublicKeyCounter uint64
 	PublicKeyMock          mNetworkNodeMockPublicKey
 
-	funcRole          func() (s1 node.StaticRole)
+	funcRole          func() (s1 mm_node.StaticRole)
 	inspectFuncRole   func()
 	afterRoleCounter  uint64
 	beforeRoleCounter uint64
 	RoleMock          mNetworkNodeMockRole
 
-	funcShortID          func() (s1 node.ShortNodeID)
+	funcShortID          func() (s1 mm_node.ShortNodeID)
 	inspectFuncShortID   func()
 	afterShortIDCounter  uint64
 	beforeShortIDCounter uint64
@@ -79,7 +78,7 @@ type NetworkNodeMock struct {
 	VersionMock          mNetworkNodeMockVersion
 }
 
-// NewNetworkNodeMock returns a mock for insolar.NetworkNode
+// NewNetworkNodeMock returns a mock for node.NetworkNode
 func NewNetworkNodeMock(t minimock.Tester) *NetworkNodeMock {
 	m := &NetworkNodeMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -179,7 +178,7 @@ func (mmAddress *mNetworkNodeMockAddress) Set(f func() (s1 string)) *NetworkNode
 	return mmAddress.mock
 }
 
-// Address implements insolar.NetworkNode
+// Address implements node.NetworkNode
 func (mmAddress *NetworkNodeMock) Address() (s1 string) {
 	mm_atomic.AddUint64(&mmAddress.beforeAddressCounter, 1)
 	defer mm_atomic.AddUint64(&mmAddress.afterAddressCounter, 1)
@@ -268,7 +267,7 @@ type NetworkNodeMockGetGlobuleIDExpectation struct {
 
 // NetworkNodeMockGetGlobuleIDResults contains results of the NetworkNode.GetGlobuleID
 type NetworkNodeMockGetGlobuleIDResults struct {
-	g1 node.GlobuleID
+	g1 mm_node.GlobuleID
 }
 
 // Expect sets up expected params for NetworkNode.GetGlobuleID
@@ -296,7 +295,7 @@ func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Inspect(f func()) *mNetworkN
 }
 
 // Return sets up results that will be returned by NetworkNode.GetGlobuleID
-func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Return(g1 node.GlobuleID) *NetworkNodeMock {
+func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Return(g1 mm_node.GlobuleID) *NetworkNodeMock {
 	if mmGetGlobuleID.mock.funcGetGlobuleID != nil {
 		mmGetGlobuleID.mock.t.Fatalf("NetworkNodeMock.GetGlobuleID mock is already set by Set")
 	}
@@ -309,7 +308,7 @@ func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Return(g1 node.GlobuleID) *N
 }
 
 //Set uses given function f to mock the NetworkNode.GetGlobuleID method
-func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Set(f func() (g1 node.GlobuleID)) *NetworkNodeMock {
+func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Set(f func() (g1 mm_node.GlobuleID)) *NetworkNodeMock {
 	if mmGetGlobuleID.defaultExpectation != nil {
 		mmGetGlobuleID.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetGlobuleID method")
 	}
@@ -322,8 +321,8 @@ func (mmGetGlobuleID *mNetworkNodeMockGetGlobuleID) Set(f func() (g1 node.Globul
 	return mmGetGlobuleID.mock
 }
 
-// GetGlobuleID implements insolar.NetworkNode
-func (mmGetGlobuleID *NetworkNodeMock) GetGlobuleID() (g1 node.GlobuleID) {
+// GetGlobuleID implements node.NetworkNode
+func (mmGetGlobuleID *NetworkNodeMock) GetGlobuleID() (g1 mm_node.GlobuleID) {
 	mm_atomic.AddUint64(&mmGetGlobuleID.beforeGetGlobuleIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetGlobuleID.afterGetGlobuleIDCounter, 1)
 
@@ -411,7 +410,7 @@ type NetworkNodeMockGetPowerExpectation struct {
 
 // NetworkNodeMockGetPowerResults contains results of the NetworkNode.GetPower
 type NetworkNodeMockGetPowerResults struct {
-	p1 node.Power
+	p1 mm_node.Power
 }
 
 // Expect sets up expected params for NetworkNode.GetPower
@@ -439,7 +438,7 @@ func (mmGetPower *mNetworkNodeMockGetPower) Inspect(f func()) *mNetworkNodeMockG
 }
 
 // Return sets up results that will be returned by NetworkNode.GetPower
-func (mmGetPower *mNetworkNodeMockGetPower) Return(p1 node.Power) *NetworkNodeMock {
+func (mmGetPower *mNetworkNodeMockGetPower) Return(p1 mm_node.Power) *NetworkNodeMock {
 	if mmGetPower.mock.funcGetPower != nil {
 		mmGetPower.mock.t.Fatalf("NetworkNodeMock.GetPower mock is already set by Set")
 	}
@@ -452,7 +451,7 @@ func (mmGetPower *mNetworkNodeMockGetPower) Return(p1 node.Power) *NetworkNodeMo
 }
 
 //Set uses given function f to mock the NetworkNode.GetPower method
-func (mmGetPower *mNetworkNodeMockGetPower) Set(f func() (p1 node.Power)) *NetworkNodeMock {
+func (mmGetPower *mNetworkNodeMockGetPower) Set(f func() (p1 mm_node.Power)) *NetworkNodeMock {
 	if mmGetPower.defaultExpectation != nil {
 		mmGetPower.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetPower method")
 	}
@@ -465,8 +464,8 @@ func (mmGetPower *mNetworkNodeMockGetPower) Set(f func() (p1 node.Power)) *Netwo
 	return mmGetPower.mock
 }
 
-// GetPower implements insolar.NetworkNode
-func (mmGetPower *NetworkNodeMock) GetPower() (p1 node.Power) {
+// GetPower implements node.NetworkNode
+func (mmGetPower *NetworkNodeMock) GetPower() (p1 mm_node.Power) {
 	mm_atomic.AddUint64(&mmGetPower.beforeGetPowerCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPower.afterGetPowerCounter, 1)
 
@@ -554,7 +553,7 @@ type NetworkNodeMockGetStateExpectation struct {
 
 // NetworkNodeMockGetStateResults contains results of the NetworkNode.GetState
 type NetworkNodeMockGetStateResults struct {
-	n1 node.NodeState
+	n1 mm_node.NodeState
 }
 
 // Expect sets up expected params for NetworkNode.GetState
@@ -582,7 +581,7 @@ func (mmGetState *mNetworkNodeMockGetState) Inspect(f func()) *mNetworkNodeMockG
 }
 
 // Return sets up results that will be returned by NetworkNode.GetState
-func (mmGetState *mNetworkNodeMockGetState) Return(n1 node.NodeState) *NetworkNodeMock {
+func (mmGetState *mNetworkNodeMockGetState) Return(n1 mm_node.NodeState) *NetworkNodeMock {
 	if mmGetState.mock.funcGetState != nil {
 		mmGetState.mock.t.Fatalf("NetworkNodeMock.GetState mock is already set by Set")
 	}
@@ -595,7 +594,7 @@ func (mmGetState *mNetworkNodeMockGetState) Return(n1 node.NodeState) *NetworkNo
 }
 
 //Set uses given function f to mock the NetworkNode.GetState method
-func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 node.NodeState)) *NetworkNodeMock {
+func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 mm_node.NodeState)) *NetworkNodeMock {
 	if mmGetState.defaultExpectation != nil {
 		mmGetState.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetState method")
 	}
@@ -608,8 +607,8 @@ func (mmGetState *mNetworkNodeMockGetState) Set(f func() (n1 node.NodeState)) *N
 	return mmGetState.mock
 }
 
-// GetState implements insolar.NetworkNode
-func (mmGetState *NetworkNodeMock) GetState() (n1 node.NodeState) {
+// GetState implements node.NetworkNode
+func (mmGetState *NetworkNodeMock) GetState() (n1 mm_node.NodeState) {
 	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
 
@@ -751,7 +750,7 @@ func (mmID *mNetworkNodeMockID) Set(f func() (g1 reference.Global)) *NetworkNode
 	return mmID.mock
 }
 
-// ID implements insolar.NetworkNode
+// ID implements node.NetworkNode
 func (mmID *NetworkNodeMock) ID() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmID.beforeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmID.afterIDCounter, 1)
@@ -840,7 +839,7 @@ type NetworkNodeMockLeavingETAExpectation struct {
 
 // NetworkNodeMockLeavingETAResults contains results of the NetworkNode.LeavingETA
 type NetworkNodeMockLeavingETAResults struct {
-	p1 mm_insolar.PulseNumber
+	n1 pulse.Number
 }
 
 // Expect sets up expected params for NetworkNode.LeavingETA
@@ -868,7 +867,7 @@ func (mmLeavingETA *mNetworkNodeMockLeavingETA) Inspect(f func()) *mNetworkNodeM
 }
 
 // Return sets up results that will be returned by NetworkNode.LeavingETA
-func (mmLeavingETA *mNetworkNodeMockLeavingETA) Return(p1 mm_insolar.PulseNumber) *NetworkNodeMock {
+func (mmLeavingETA *mNetworkNodeMockLeavingETA) Return(n1 pulse.Number) *NetworkNodeMock {
 	if mmLeavingETA.mock.funcLeavingETA != nil {
 		mmLeavingETA.mock.t.Fatalf("NetworkNodeMock.LeavingETA mock is already set by Set")
 	}
@@ -876,12 +875,12 @@ func (mmLeavingETA *mNetworkNodeMockLeavingETA) Return(p1 mm_insolar.PulseNumber
 	if mmLeavingETA.defaultExpectation == nil {
 		mmLeavingETA.defaultExpectation = &NetworkNodeMockLeavingETAExpectation{mock: mmLeavingETA.mock}
 	}
-	mmLeavingETA.defaultExpectation.results = &NetworkNodeMockLeavingETAResults{p1}
+	mmLeavingETA.defaultExpectation.results = &NetworkNodeMockLeavingETAResults{n1}
 	return mmLeavingETA.mock
 }
 
 //Set uses given function f to mock the NetworkNode.LeavingETA method
-func (mmLeavingETA *mNetworkNodeMockLeavingETA) Set(f func() (p1 mm_insolar.PulseNumber)) *NetworkNodeMock {
+func (mmLeavingETA *mNetworkNodeMockLeavingETA) Set(f func() (n1 pulse.Number)) *NetworkNodeMock {
 	if mmLeavingETA.defaultExpectation != nil {
 		mmLeavingETA.mock.t.Fatalf("Default expectation is already set for the NetworkNode.LeavingETA method")
 	}
@@ -894,8 +893,8 @@ func (mmLeavingETA *mNetworkNodeMockLeavingETA) Set(f func() (p1 mm_insolar.Puls
 	return mmLeavingETA.mock
 }
 
-// LeavingETA implements insolar.NetworkNode
-func (mmLeavingETA *NetworkNodeMock) LeavingETA() (p1 mm_insolar.PulseNumber) {
+// LeavingETA implements node.NetworkNode
+func (mmLeavingETA *NetworkNodeMock) LeavingETA() (n1 pulse.Number) {
 	mm_atomic.AddUint64(&mmLeavingETA.beforeLeavingETACounter, 1)
 	defer mm_atomic.AddUint64(&mmLeavingETA.afterLeavingETACounter, 1)
 
@@ -910,7 +909,7 @@ func (mmLeavingETA *NetworkNodeMock) LeavingETA() (p1 mm_insolar.PulseNumber) {
 		if mm_results == nil {
 			mmLeavingETA.t.Fatal("No results are set for the NetworkNodeMock.LeavingETA")
 		}
-		return (*mm_results).p1
+		return (*mm_results).n1
 	}
 	if mmLeavingETA.funcLeavingETA != nil {
 		return mmLeavingETA.funcLeavingETA()
@@ -1037,7 +1036,7 @@ func (mmPublicKey *mNetworkNodeMockPublicKey) Set(f func() (p1 crypto.PublicKey)
 	return mmPublicKey.mock
 }
 
-// PublicKey implements insolar.NetworkNode
+// PublicKey implements node.NetworkNode
 func (mmPublicKey *NetworkNodeMock) PublicKey() (p1 crypto.PublicKey) {
 	mm_atomic.AddUint64(&mmPublicKey.beforePublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmPublicKey.afterPublicKeyCounter, 1)
@@ -1126,7 +1125,7 @@ type NetworkNodeMockRoleExpectation struct {
 
 // NetworkNodeMockRoleResults contains results of the NetworkNode.Role
 type NetworkNodeMockRoleResults struct {
-	s1 node.StaticRole
+	s1 mm_node.StaticRole
 }
 
 // Expect sets up expected params for NetworkNode.Role
@@ -1154,7 +1153,7 @@ func (mmRole *mNetworkNodeMockRole) Inspect(f func()) *mNetworkNodeMockRole {
 }
 
 // Return sets up results that will be returned by NetworkNode.Role
-func (mmRole *mNetworkNodeMockRole) Return(s1 node.StaticRole) *NetworkNodeMock {
+func (mmRole *mNetworkNodeMockRole) Return(s1 mm_node.StaticRole) *NetworkNodeMock {
 	if mmRole.mock.funcRole != nil {
 		mmRole.mock.t.Fatalf("NetworkNodeMock.Role mock is already set by Set")
 	}
@@ -1167,7 +1166,7 @@ func (mmRole *mNetworkNodeMockRole) Return(s1 node.StaticRole) *NetworkNodeMock 
 }
 
 //Set uses given function f to mock the NetworkNode.Role method
-func (mmRole *mNetworkNodeMockRole) Set(f func() (s1 node.StaticRole)) *NetworkNodeMock {
+func (mmRole *mNetworkNodeMockRole) Set(f func() (s1 mm_node.StaticRole)) *NetworkNodeMock {
 	if mmRole.defaultExpectation != nil {
 		mmRole.mock.t.Fatalf("Default expectation is already set for the NetworkNode.Role method")
 	}
@@ -1180,8 +1179,8 @@ func (mmRole *mNetworkNodeMockRole) Set(f func() (s1 node.StaticRole)) *NetworkN
 	return mmRole.mock
 }
 
-// Role implements insolar.NetworkNode
-func (mmRole *NetworkNodeMock) Role() (s1 node.StaticRole) {
+// Role implements node.NetworkNode
+func (mmRole *NetworkNodeMock) Role() (s1 mm_node.StaticRole) {
 	mm_atomic.AddUint64(&mmRole.beforeRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmRole.afterRoleCounter, 1)
 
@@ -1269,7 +1268,7 @@ type NetworkNodeMockShortIDExpectation struct {
 
 // NetworkNodeMockShortIDResults contains results of the NetworkNode.ShortID
 type NetworkNodeMockShortIDResults struct {
-	s1 node.ShortNodeID
+	s1 mm_node.ShortNodeID
 }
 
 // Expect sets up expected params for NetworkNode.ShortID
@@ -1297,7 +1296,7 @@ func (mmShortID *mNetworkNodeMockShortID) Inspect(f func()) *mNetworkNodeMockSho
 }
 
 // Return sets up results that will be returned by NetworkNode.ShortID
-func (mmShortID *mNetworkNodeMockShortID) Return(s1 node.ShortNodeID) *NetworkNodeMock {
+func (mmShortID *mNetworkNodeMockShortID) Return(s1 mm_node.ShortNodeID) *NetworkNodeMock {
 	if mmShortID.mock.funcShortID != nil {
 		mmShortID.mock.t.Fatalf("NetworkNodeMock.ShortID mock is already set by Set")
 	}
@@ -1310,7 +1309,7 @@ func (mmShortID *mNetworkNodeMockShortID) Return(s1 node.ShortNodeID) *NetworkNo
 }
 
 //Set uses given function f to mock the NetworkNode.ShortID method
-func (mmShortID *mNetworkNodeMockShortID) Set(f func() (s1 node.ShortNodeID)) *NetworkNodeMock {
+func (mmShortID *mNetworkNodeMockShortID) Set(f func() (s1 mm_node.ShortNodeID)) *NetworkNodeMock {
 	if mmShortID.defaultExpectation != nil {
 		mmShortID.mock.t.Fatalf("Default expectation is already set for the NetworkNode.ShortID method")
 	}
@@ -1323,8 +1322,8 @@ func (mmShortID *mNetworkNodeMockShortID) Set(f func() (s1 node.ShortNodeID)) *N
 	return mmShortID.mock
 }
 
-// ShortID implements insolar.NetworkNode
-func (mmShortID *NetworkNodeMock) ShortID() (s1 node.ShortNodeID) {
+// ShortID implements node.NetworkNode
+func (mmShortID *NetworkNodeMock) ShortID() (s1 mm_node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmShortID.beforeShortIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmShortID.afterShortIDCounter, 1)
 
@@ -1466,7 +1465,7 @@ func (mmVersion *mNetworkNodeMockVersion) Set(f func() (s1 string)) *NetworkNode
 	return mmVersion.mock
 }
 
-// Version implements insolar.NetworkNode
+// Version implements node.NetworkNode
 func (mmVersion *NetworkNodeMock) Version() (s1 string) {
 	mm_atomic.AddUint64(&mmVersion.beforeVersionCounter, 1)
 	defer mm_atomic.AddUint64(&mmVersion.afterVersionCounter, 1)

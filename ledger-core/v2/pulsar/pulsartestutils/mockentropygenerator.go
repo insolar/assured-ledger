@@ -6,7 +6,7 @@
 package pulsartestutils
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 )
 
 // MockEntropy for pulsar's tests
@@ -17,6 +17,6 @@ type MockEntropyGenerator struct {
 }
 
 // GenerateEntropy returns mocked entropy
-func (MockEntropyGenerator) GenerateEntropy() insolar.Entropy {
+func (MockEntropyGenerator) GenerateEntropy() pulse.Entropy {
 	return MockEntropy
 }

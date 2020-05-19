@@ -14,12 +14,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
@@ -59,7 +59,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Millisecond
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	waitPulsar.Run(context.Background(), *insolar.EphemeralPulse)
+	waitPulsar.Run(context.Background(), *pulse2.EphemeralPulse)
 }
 
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
@@ -68,13 +68,13 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse insolar.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse pulse2.Pulse) {
 		assert.Equal(t, node2.CompleteNetworkState, state)
 	})
 
 	pulseAccessor := mock.NewPulseAccessorMock(mc)
-	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 insolar.PulseNumber) (p2 insolar.Pulse, err error) {
-		p := *insolar.GenesisPulse
+	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulse2.Pulse, err error) {
+		p := *pulse2.GenesisPulse
 		p.PulseNumber += 10
 		return p, nil
 	})
@@ -86,7 +86,7 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Second * 2
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	go waitPulsar.Run(context.Background(), *insolar.EphemeralPulse)
+	go waitPulsar.Run(context.Background(), *pulse2.EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitPulsar.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

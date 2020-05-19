@@ -8,23 +8,24 @@ package gateway
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 func newWaitMinRoles(b *Base) *WaitMinRoles {
-	return &WaitMinRoles{b, make(chan insolar.Pulse, 1)}
+	return &WaitMinRoles{b, make(chan pulse.Pulse, 1)}
 }
 
 type WaitMinRoles struct {
 	*Base
-	minrolesComplete chan insolar.Pulse
+	minrolesComplete chan pulse.Pulse
 }
 
-func (g *WaitMinRoles) Run(ctx context.Context, pulse insolar.Pulse) {
+func (g *WaitMinRoles) Run(ctx context.Context, pulse pulse.Pulse) {
 	g.switchOnMinRoles(ctx, pulse)
 
 	select {
@@ -35,7 +36,7 @@ func (g *WaitMinRoles) Run(ctx context.Context, pulse insolar.Pulse) {
 	}
 }
 
-func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse2.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -53,7 +54,7 @@ func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.R
 	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
 }
 
-func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse insolar.Pulse) {
+func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulse.Pulse) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

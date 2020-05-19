@@ -39,7 +39,7 @@ type PlatformCryptographyScheme interface {
 	DigestVerifier(crypto.PublicKey) Verifier
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.KeyProcessor -o ../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/cryptography.KeyProcessor -o ../testutils -s _mock.go -g
 type KeyProcessor interface {
 	GeneratePrivateKey() (crypto.PrivateKey, error)
 	ExtractPublicKey(crypto.PrivateKey) crypto.PublicKey

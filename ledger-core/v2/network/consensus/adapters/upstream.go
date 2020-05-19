@@ -9,8 +9,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -25,11 +25,11 @@ type StateGetter interface {
 }
 
 type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse insolar.Pulse)
+	ChangePulse(ctx context.Context, newPulse pulse2.Pulse)
 }
 
 type StateUpdater interface {
-	UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
 }
 
 type UpstreamController struct {

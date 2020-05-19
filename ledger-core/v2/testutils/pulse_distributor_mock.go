@@ -9,15 +9,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 )
 
 // PulseDistributorMock implements node.PulseDistributor
 type PulseDistributorMock struct {
 	t minimock.Tester
 
-	funcDistribute          func(ctx context.Context, p1 insolar.Pulse)
-	inspectFuncDistribute   func(ctx context.Context, p1 insolar.Pulse)
+	funcDistribute          func(ctx context.Context, p1 pulse.Pulse)
+	inspectFuncDistribute   func(ctx context.Context, p1 pulse.Pulse)
 	afterDistributeCounter  uint64
 	beforeDistributeCounter uint64
 	DistributeMock          mPulseDistributorMockDistribute
@@ -56,11 +56,11 @@ type PulseDistributorMockDistributeExpectation struct {
 // PulseDistributorMockDistributeParams contains parameters of the PulseDistributor.Distribute
 type PulseDistributorMockDistributeParams struct {
 	ctx context.Context
-	p1  insolar.Pulse
+	p1  pulse.Pulse
 }
 
 // Expect sets up expected params for PulseDistributor.Distribute
-func (mmDistribute *mPulseDistributorMockDistribute) Expect(ctx context.Context, p1 insolar.Pulse) *mPulseDistributorMockDistribute {
+func (mmDistribute *mPulseDistributorMockDistribute) Expect(ctx context.Context, p1 pulse.Pulse) *mPulseDistributorMockDistribute {
 	if mmDistribute.mock.funcDistribute != nil {
 		mmDistribute.mock.t.Fatalf("PulseDistributorMock.Distribute mock is already set by Set")
 	}
@@ -80,7 +80,7 @@ func (mmDistribute *mPulseDistributorMockDistribute) Expect(ctx context.Context,
 }
 
 // Inspect accepts an inspector function that has same arguments as the PulseDistributor.Distribute
-func (mmDistribute *mPulseDistributorMockDistribute) Inspect(f func(ctx context.Context, p1 insolar.Pulse)) *mPulseDistributorMockDistribute {
+func (mmDistribute *mPulseDistributorMockDistribute) Inspect(f func(ctx context.Context, p1 pulse.Pulse)) *mPulseDistributorMockDistribute {
 	if mmDistribute.mock.inspectFuncDistribute != nil {
 		mmDistribute.mock.t.Fatalf("Inspect function is already set for PulseDistributorMock.Distribute")
 	}
@@ -104,7 +104,7 @@ func (mmDistribute *mPulseDistributorMockDistribute) Return() *PulseDistributorM
 }
 
 //Set uses given function f to mock the PulseDistributor.Distribute method
-func (mmDistribute *mPulseDistributorMockDistribute) Set(f func(ctx context.Context, p1 insolar.Pulse)) *PulseDistributorMock {
+func (mmDistribute *mPulseDistributorMockDistribute) Set(f func(ctx context.Context, p1 pulse.Pulse)) *PulseDistributorMock {
 	if mmDistribute.defaultExpectation != nil {
 		mmDistribute.mock.t.Fatalf("Default expectation is already set for the PulseDistributor.Distribute method")
 	}
@@ -118,7 +118,7 @@ func (mmDistribute *mPulseDistributorMockDistribute) Set(f func(ctx context.Cont
 }
 
 // Distribute implements node.PulseDistributor
-func (mmDistribute *PulseDistributorMock) Distribute(ctx context.Context, p1 insolar.Pulse) {
+func (mmDistribute *PulseDistributorMock) Distribute(ctx context.Context, p1 pulse.Pulse) {
 	mm_atomic.AddUint64(&mmDistribute.beforeDistributeCounter, 1)
 	defer mm_atomic.AddUint64(&mmDistribute.afterDistributeCounter, 1)
 

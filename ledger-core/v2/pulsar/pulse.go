@@ -6,16 +6,17 @@
 package pulsar
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // NewPulse creates a new pulse with using of custom GeneratedEntropy Generator
-func NewPulse(numberDelta uint32, previousPulseNumber insolar.PulseNumber, entropyGenerator entropygenerator.EntropyGenerator) *insolar.Pulse {
-	previousPulseNumber += insolar.PulseNumber(numberDelta)
-	return &insolar.Pulse{
+func NewPulse(numberDelta uint32, previousPulseNumber pulse.Number, entropyGenerator entropygenerator.EntropyGenerator) *pulse2.Pulse {
+	previousPulseNumber += pulse.Number(numberDelta)
+	return &pulse2.Pulse{
 		PulseNumber:     previousPulseNumber,
-		NextPulseNumber: previousPulseNumber + insolar.PulseNumber(numberDelta),
+		NextPulseNumber: previousPulseNumber + pulse.Number(numberDelta),
 		Entropy:         entropyGenerator.GenerateEntropy(),
 	}
 }

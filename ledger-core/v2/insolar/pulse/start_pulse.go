@@ -10,24 +10,24 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 type StartPulse interface {
-	SetStartPulse(context.Context, insolar.Pulse)
-	PulseNumber() (insolar.PulseNumber, error)
+	SetStartPulse(context.Context, Pulse)
+	PulseNumber() (pulse.Number, error)
 }
 
 type startPulse struct {
 	sync.RWMutex
-	pulse *insolar.Pulse
+	pulse *Pulse
 }
 
 func NewStartPulse() StartPulse {
 	return &startPulse{}
 }
 
-func (sp *startPulse) SetStartPulse(ctx context.Context, pulse insolar.Pulse) {
+func (sp *startPulse) SetStartPulse(ctx context.Context, pulse Pulse) {
 	sp.Lock()
 	defer sp.Unlock()
 
@@ -36,7 +36,7 @@ func (sp *startPulse) SetStartPulse(ctx context.Context, pulse insolar.Pulse) {
 	}
 }
 
-func (sp *startPulse) PulseNumber() (insolar.PulseNumber, error) {
+func (sp *startPulse) PulseNumber() (pulse.Number, error) {
 	sp.RLock()
 	defer sp.RUnlock()
 

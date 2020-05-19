@@ -6,7 +6,7 @@
 package application
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -17,7 +17,7 @@ var GenesisRecord = genesisBinary(reference.LocalHash{0xAC})
 
 // ID returns genesis record id.
 func (r genesisBinary) ID() reference.Local {
-	return reference.NewRecordID(insolar.GenesisPulse.PulseNumber, reference.LocalHash(r))
+	return reference.NewRecordID(pulse.GenesisPulse.PulseNumber, reference.LocalHash(r))
 }
 
 // Ref returns genesis record reference.

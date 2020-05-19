@@ -24,7 +24,6 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -100,7 +99,7 @@ func (nk *nodekeeper) SetInitialSnapshot(nodes []node2.NetworkNode) {
 	nk.MoveSyncToActive(ctx, pulse.MinTimePulse)
 }
 
-func (nk *nodekeeper) GetAccessor(pn insolar.PulseNumber) network.Accessor {
+func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	s, err := nk.SnapshotStorage.ForPulseNumber(pn)
 	if err != nil {
 		panic("GetAccessor(): " + err.Error())
@@ -115,7 +114,7 @@ func (nk *nodekeeper) GetOrigin() node2.NetworkNode {
 	return nk.origin
 }
 
-func (nk *nodekeeper) Sync(ctx context.Context, number insolar.PulseNumber, nodes []node2.NetworkNode) {
+func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []node2.NetworkNode) {
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 
@@ -128,7 +127,7 @@ func (nk *nodekeeper) updateOrigin(power node2.Power, state node2.NodeState) {
 	nk.origin.(node.MutableNode).SetState(state)
 }
 
-func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number insolar.PulseNumber) {
+func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number pulse.Number) {
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 

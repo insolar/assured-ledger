@@ -9,15 +9,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // ShifterMock implements Shifter
 type ShifterMock struct {
 	t minimock.Tester
 
-	funcShift          func(ctx context.Context, pn insolar.PulseNumber) (err error)
-	inspectFuncShift   func(ctx context.Context, pn insolar.PulseNumber)
+	funcShift          func(ctx context.Context, pn pulse.Number) (err error)
+	inspectFuncShift   func(ctx context.Context, pn pulse.Number)
 	afterShiftCounter  uint64
 	beforeShiftCounter uint64
 	ShiftMock          mShifterMockShift
@@ -56,7 +56,7 @@ type ShifterMockShiftExpectation struct {
 // ShifterMockShiftParams contains parameters of the Shifter.Shift
 type ShifterMockShiftParams struct {
 	ctx context.Context
-	pn  insolar.PulseNumber
+	pn  pulse.Number
 }
 
 // ShifterMockShiftResults contains results of the Shifter.Shift
@@ -65,7 +65,7 @@ type ShifterMockShiftResults struct {
 }
 
 // Expect sets up expected params for Shifter.Shift
-func (mmShift *mShifterMockShift) Expect(ctx context.Context, pn insolar.PulseNumber) *mShifterMockShift {
+func (mmShift *mShifterMockShift) Expect(ctx context.Context, pn pulse.Number) *mShifterMockShift {
 	if mmShift.mock.funcShift != nil {
 		mmShift.mock.t.Fatalf("ShifterMock.Shift mock is already set by Set")
 	}
@@ -85,7 +85,7 @@ func (mmShift *mShifterMockShift) Expect(ctx context.Context, pn insolar.PulseNu
 }
 
 // Inspect accepts an inspector function that has same arguments as the Shifter.Shift
-func (mmShift *mShifterMockShift) Inspect(f func(ctx context.Context, pn insolar.PulseNumber)) *mShifterMockShift {
+func (mmShift *mShifterMockShift) Inspect(f func(ctx context.Context, pn pulse.Number)) *mShifterMockShift {
 	if mmShift.mock.inspectFuncShift != nil {
 		mmShift.mock.t.Fatalf("Inspect function is already set for ShifterMock.Shift")
 	}
@@ -109,7 +109,7 @@ func (mmShift *mShifterMockShift) Return(err error) *ShifterMock {
 }
 
 //Set uses given function f to mock the Shifter.Shift method
-func (mmShift *mShifterMockShift) Set(f func(ctx context.Context, pn insolar.PulseNumber) (err error)) *ShifterMock {
+func (mmShift *mShifterMockShift) Set(f func(ctx context.Context, pn pulse.Number) (err error)) *ShifterMock {
 	if mmShift.defaultExpectation != nil {
 		mmShift.mock.t.Fatalf("Default expectation is already set for the Shifter.Shift method")
 	}
@@ -124,7 +124,7 @@ func (mmShift *mShifterMockShift) Set(f func(ctx context.Context, pn insolar.Pul
 
 // When sets expectation for the Shifter.Shift which will trigger the result defined by the following
 // Then helper
-func (mmShift *mShifterMockShift) When(ctx context.Context, pn insolar.PulseNumber) *ShifterMockShiftExpectation {
+func (mmShift *mShifterMockShift) When(ctx context.Context, pn pulse.Number) *ShifterMockShiftExpectation {
 	if mmShift.mock.funcShift != nil {
 		mmShift.mock.t.Fatalf("ShifterMock.Shift mock is already set by Set")
 	}
@@ -144,7 +144,7 @@ func (e *ShifterMockShiftExpectation) Then(err error) *ShifterMock {
 }
 
 // Shift implements Shifter
-func (mmShift *ShifterMock) Shift(ctx context.Context, pn insolar.PulseNumber) (err error) {
+func (mmShift *ShifterMock) Shift(ctx context.Context, pn pulse.Number) (err error) {
 	mm_atomic.AddUint64(&mmShift.beforeShiftCounter, 1)
 	defer mm_atomic.AddUint64(&mmShift.afterShiftCounter, 1)
 

@@ -9,8 +9,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
 
@@ -22,7 +22,7 @@ func (n *ServiceNetwork) GetNetworkStatus() node.StatusReply {
 
 	np, err := n.PulseAccessor.GetLatestPulse(context.Background())
 	if err != nil {
-		np = *insolar.GenesisPulse
+		np = *pulse.GenesisPulse
 	}
 	reply.Pulse = np
 

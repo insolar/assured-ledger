@@ -12,8 +12,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
@@ -21,18 +21,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
-func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) insolar.Pulse {
-	pulse, err := accessor.GetLatestPulse(ctx)
+func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) pulse.Pulse {
+	puls, err := accessor.GetLatestPulse(ctx)
 	if err != nil {
-		pulse = *insolar.EphemeralPulse
+		puls = *pulse.EphemeralPulse
 	}
 
-	return pulse
+	return puls
 }
 
-func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber insolar.PulseNumber) insolar.Pulse {
+func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber pulse2.Number) pulse.Pulse {
 	pulse, err := accessor.GetPulse(ctx, pulseNumber)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("Failed to fetch pulse: %d", pulseNumber)
@@ -108,10 +109,10 @@ func (p consensusProxy) State() []byte {
 	return nshBytes
 }
 
-func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse insolar.Pulse) {
+func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse pulse.Pulse) {
 	p.Gatewayer.Gateway().(adapters.PulseChanger).ChangePulse(ctx, newPulse)
 }
 
-func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node.NetworkNode, cloudStateHash []byte) {
+func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse2.Number, nodes []node.NetworkNode, cloudStateHash []byte) {
 	p.Gatewayer.Gateway().(adapters.StateUpdater).UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }

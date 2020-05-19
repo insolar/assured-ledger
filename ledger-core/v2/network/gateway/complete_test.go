@@ -16,9 +16,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
@@ -77,8 +77,8 @@ func mockReply(t *testing.T) []byte {
 	return node
 }
 
-func mockPulseManager(t *testing.T) insolar.PulseManager {
-	pm := testutils.NewPulseManagerMock(t)
+func mockPulseManager(t *testing.T) pulse.Manager {
+	pm := pulse.NewManagerMock(t)
 	return pm
 }
 
@@ -110,7 +110,7 @@ func TestComplete_GetCert(t *testing.T) {
 	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
 	ctx := context.Background()
 
-	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
+	pa.GetLatestPulseMock.Expect(ctx).Return(*pulse.GenesisPulse, nil)
 
 	result, err := ge.Auther().GetCert(ctx, nodeRef)
 	require.NoError(t, err)
@@ -160,7 +160,7 @@ func TestComplete_handler(t *testing.T) {
 
 	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
 	ctx := context.Background()
-	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
+	pa.GetLatestPulseMock.Expect(ctx).Return(*pulse.GenesisPulse, nil)
 
 	p := packet.NewReceivedPacket(packet.NewPacket(nil, nil, types.SignCert, 1), nil)
 	p.SetRequest(&packet.SignCertRequest{NodeRef: nodeRef})

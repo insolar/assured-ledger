@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -48,7 +47,7 @@ type Server struct {
 	JetCoordinatorMock *jet.CoordinatorMock
 	pulseGenerator     *mimic.PulseGenerator
 	pulseStorage       *pulse.StorageMem
-	pulseManager       insolar.PulseManager
+	pulseManager       pulse.Manager
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -133,7 +132,7 @@ func NewServer(t *testing.T) *Server {
 	return &s
 }
 
-func (s *Server) GetPulse() insolar.Pulse {
+func (s *Server) GetPulse() pulse.Pulse {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 

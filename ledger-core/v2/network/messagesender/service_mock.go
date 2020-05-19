@@ -9,9 +9,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -19,8 +19,8 @@ import (
 type ServiceMock struct {
 	t minimock.Tester
 
-	funcSendRole          func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) (err error)
-	inspectFuncSendRole   func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption)
+	funcSendRole          func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) (err error)
+	inspectFuncSendRole   func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption)
 	afterSendRoleCounter  uint64
 	beforeSendRoleCounter uint64
 	SendRoleMock          mServiceMockSendRole
@@ -71,7 +71,7 @@ type ServiceMockSendRoleParams struct {
 	msg    payload.Marshaler
 	role   node.DynamicRole
 	object reference.Global
-	pn     insolar.PulseNumber
+	pn     pulse2.Number
 	opts   []SendOption
 }
 
@@ -81,7 +81,7 @@ type ServiceMockSendRoleResults struct {
 }
 
 // Expect sets up expected params for Service.SendRole
-func (mmSendRole *mServiceMockSendRole) Expect(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) *mServiceMockSendRole {
+func (mmSendRole *mServiceMockSendRole) Expect(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) *mServiceMockSendRole {
 	if mmSendRole.mock.funcSendRole != nil {
 		mmSendRole.mock.t.Fatalf("ServiceMock.SendRole mock is already set by Set")
 	}
@@ -101,7 +101,7 @@ func (mmSendRole *mServiceMockSendRole) Expect(ctx context.Context, msg payload.
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.SendRole
-func (mmSendRole *mServiceMockSendRole) Inspect(f func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption)) *mServiceMockSendRole {
+func (mmSendRole *mServiceMockSendRole) Inspect(f func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption)) *mServiceMockSendRole {
 	if mmSendRole.mock.inspectFuncSendRole != nil {
 		mmSendRole.mock.t.Fatalf("Inspect function is already set for ServiceMock.SendRole")
 	}
@@ -125,7 +125,7 @@ func (mmSendRole *mServiceMockSendRole) Return(err error) *ServiceMock {
 }
 
 //Set uses given function f to mock the Service.SendRole method
-func (mmSendRole *mServiceMockSendRole) Set(f func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) (err error)) *ServiceMock {
+func (mmSendRole *mServiceMockSendRole) Set(f func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) (err error)) *ServiceMock {
 	if mmSendRole.defaultExpectation != nil {
 		mmSendRole.mock.t.Fatalf("Default expectation is already set for the Service.SendRole method")
 	}
@@ -140,7 +140,7 @@ func (mmSendRole *mServiceMockSendRole) Set(f func(ctx context.Context, msg payl
 
 // When sets expectation for the Service.SendRole which will trigger the result defined by the following
 // Then helper
-func (mmSendRole *mServiceMockSendRole) When(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) *ServiceMockSendRoleExpectation {
+func (mmSendRole *mServiceMockSendRole) When(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) *ServiceMockSendRoleExpectation {
 	if mmSendRole.mock.funcSendRole != nil {
 		mmSendRole.mock.t.Fatalf("ServiceMock.SendRole mock is already set by Set")
 	}
@@ -160,7 +160,7 @@ func (e *ServiceMockSendRoleExpectation) Then(err error) *ServiceMock {
 }
 
 // SendRole implements Service
-func (mmSendRole *ServiceMock) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) (err error) {
+func (mmSendRole *ServiceMock) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) (err error) {
 	mm_atomic.AddUint64(&mmSendRole.beforeSendRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmSendRole.afterSendRoleCounter, 1)
 

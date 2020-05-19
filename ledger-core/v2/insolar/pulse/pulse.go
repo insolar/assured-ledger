@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insolar
+package pulse
 
 import (
 	"bytes"
@@ -48,40 +48,35 @@ func (entropy Entropy) Equal(other Entropy) bool {
 	return entropy.Compare(other) == 0
 }
 
-// PulseNumber is a sequential number of Pulse.
-// Upper 2 bits are reserved for use in references (scope), must be zero otherwise.
-// Valid Absolute PulseNumber must be >65536.
-// If PulseNumber <65536 it is a relative PulseNumber
-type PulseNumber = pulse.Number
+//go:generate protoc -I$GOPATH/src -I./ --gogoslick_out=./ pulse.proto
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse.Manager -s _mock.go -g
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseManager -o ../testutils -s _mock.go -g
-
-// PulseManager provides Ledger's methods related to Pulse.
-type PulseManager interface {
+// Manager provides Ledger's methods related to Pulse.
+type Manager interface {
 	// Set set's new pulse and closes current jet drop. If dry is true, nothing will be saved to storage.
 	Set(ctx context.Context, pulse Pulse) error
 }
 
 // Pulse is base data structure for a pulse.
 type Pulse struct {
-	PulseNumber     PulseNumber
-	PrevPulseNumber PulseNumber
-	NextPulseNumber PulseNumber
+	PulseNumber     pulse.Number
+	PrevPulseNumber pulse.Number
+	NextPulseNumber pulse.Number
 
 	PulseTimestamp   int64
 	EpochPulseNumber pulse.Epoch
 	OriginID         [OriginIDSize]byte
 
 	Entropy Entropy
-	Signs   map[string]PulseSenderConfirmation
+	Signs   map[string]SenderConfirmation
 }
 
-// PulseSenderConfirmation contains confirmations of the pulse from other pulsars
+// SenderConfirmation contains confirmations of the pulse from other pulsars
 // Because the system is using BFT for consensus between pulsars, because of it
 // All pulsar send to the chosen pulsar their confirmations
 // Every node in the network can verify the signatures
-type PulseSenderConfirmation struct {
-	PulseNumber     PulseNumber
+type SenderConfirmation struct {
+	PulseNumber     pulse.Number
 	ChosenPublicKey string
 	Entropy         Entropy
 	Signature       []byte

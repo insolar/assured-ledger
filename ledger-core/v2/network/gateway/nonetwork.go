@@ -11,8 +11,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
@@ -43,7 +43,7 @@ func (g *NoNetwork) pause() time.Duration {
 	return sleep
 }
 
-func (g *NoNetwork) Run(ctx context.Context, pulse insolar.Pulse) {
+func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Pulse) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())

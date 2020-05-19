@@ -19,8 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
@@ -111,13 +111,13 @@ func (tp *testPulsar) Continue() {
 
 func (tp *testPulsar) distribute(ctx context.Context) {
 	timeNow := time.Now()
-	pulseNumber := insolar.PulseNumber(pulse.OfTime(timeNow))
+	pulseNumber := pulse2.Number(pulse.OfTime(timeNow))
 
-	pls := insolar.Pulse{
+	pls := pulse2.Pulse{
 		PulseNumber:      pulseNumber,
 		Entropy:          tp.generator.GenerateEntropy(),
-		NextPulseNumber:  pulseNumber + insolar.PulseNumber(tp.pulseDelta),
-		PrevPulseNumber:  pulseNumber - insolar.PulseNumber(tp.pulseDelta),
+		NextPulseNumber:  pulseNumber + pulse2.Number(tp.pulseDelta),
+		PrevPulseNumber:  pulseNumber - pulse2.Number(tp.pulseDelta),
 		EpochPulseNumber: pulseNumber.AsEpoch(),
 		OriginID:         [16]byte{206, 41, 229, 190, 7, 240, 162, 155, 121, 245, 207, 56, 161, 67, 189, 0},
 	}
@@ -131,7 +131,7 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(time.Duration(tp.pulseDelta) * time.Second):
-			go func(pulse insolar.Pulse) {
+			go func(pulse pulse2.Pulse) {
 				tp.activityMutex.Lock()
 				defer tp.activityMutex.Unlock()
 
@@ -147,12 +147,12 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 	}
 }
 
-func (tp *testPulsar) incrementPulse(pulse insolar.Pulse) insolar.Pulse {
-	newPulseNumber := pulse.PulseNumber + insolar.PulseNumber(tp.pulseDelta)
-	newPulse := insolar.Pulse{
+func (tp *testPulsar) incrementPulse(pulse pulse2.Pulse) pulse2.Pulse {
+	newPulseNumber := pulse.PulseNumber + pulse2.Number(tp.pulseDelta)
+	newPulse := pulse2.Pulse{
 		PulseNumber:      newPulseNumber,
 		Entropy:          tp.generator.GenerateEntropy(),
-		NextPulseNumber:  newPulseNumber + insolar.PulseNumber(tp.pulseDelta),
+		NextPulseNumber:  newPulseNumber + pulse2.Number(tp.pulseDelta),
 		PrevPulseNumber:  pulse.PulseNumber,
 		EpochPulseNumber: pulse.EpochPulseNumber,
 		OriginID:         pulse.OriginID,
@@ -167,7 +167,7 @@ func (tp *testPulsar) incrementPulse(pulse insolar.Pulse) insolar.Pulse {
 	return newPulse
 }
 
-func getPSC(pulse insolar.Pulse) (map[string]insolar.PulseSenderConfirmation, error) {
+func getPSC(pulse pulse2.Pulse) (map[string]pulse2.SenderConfirmation, error) {
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()
 	if err != nil {
@@ -177,14 +177,14 @@ func getPSC(pulse insolar.Pulse) (map[string]insolar.PulseSenderConfirmation, er
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]insolar.PulseSenderConfirmation)
-	psc := insolar.PulseSenderConfirmation{
+	result := make(map[string]pulse2.SenderConfirmation)
+	psc := pulse2.SenderConfirmation{
 		PulseNumber:     pulse.PulseNumber,
 		ChosenPublicKey: string(pem),
 		Entropy:         pulse.Entropy,
 	}
 
-	payload := pulsar.PulseSenderConfirmationPayload{PulseSenderConfirmation: psc}
+	payload := pulsar.PulseSenderConfirmationPayload{SenderConfirmation: psc}
 	hasher := platformpolicy.NewPlatformCryptographyScheme().IntegrityHasher()
 	hash, err := payload.Hash(hasher)
 	if err != nil {

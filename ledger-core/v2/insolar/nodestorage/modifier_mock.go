@@ -8,23 +8,22 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // ModifierMock implements Modifier
 type ModifierMock struct {
 	t minimock.Tester
 
-	funcDeleteForPN          func(pulse insolar.PulseNumber)
-	inspectFuncDeleteForPN   func(pulse insolar.PulseNumber)
+	funcDeleteForPN          func(pulse pulse.Number)
+	inspectFuncDeleteForPN   func(pulse pulse.Number)
 	afterDeleteForPNCounter  uint64
 	beforeDeleteForPNCounter uint64
 	DeleteForPNMock          mModifierMockDeleteForPN
 
-	funcSet          func(pulse insolar.PulseNumber, nodes []node.Node) (err error)
-	inspectFuncSet   func(pulse insolar.PulseNumber, nodes []node.Node)
+	funcSet          func(pulse pulse.Number, nodes []node.Node) (err error)
+	inspectFuncSet   func(pulse pulse.Number, nodes []node.Node)
 	afterSetCounter  uint64
 	beforeSetCounter uint64
 	SetMock          mModifierMockSet
@@ -65,11 +64,11 @@ type ModifierMockDeleteForPNExpectation struct {
 
 // ModifierMockDeleteForPNParams contains parameters of the Modifier.DeleteForPN
 type ModifierMockDeleteForPNParams struct {
-	pulse insolar.PulseNumber
+	pulse pulse.Number
 }
 
 // Expect sets up expected params for Modifier.DeleteForPN
-func (mmDeleteForPN *mModifierMockDeleteForPN) Expect(pulse insolar.PulseNumber) *mModifierMockDeleteForPN {
+func (mmDeleteForPN *mModifierMockDeleteForPN) Expect(pulse pulse.Number) *mModifierMockDeleteForPN {
 	if mmDeleteForPN.mock.funcDeleteForPN != nil {
 		mmDeleteForPN.mock.t.Fatalf("ModifierMock.DeleteForPN mock is already set by Set")
 	}
@@ -89,7 +88,7 @@ func (mmDeleteForPN *mModifierMockDeleteForPN) Expect(pulse insolar.PulseNumber)
 }
 
 // Inspect accepts an inspector function that has same arguments as the Modifier.DeleteForPN
-func (mmDeleteForPN *mModifierMockDeleteForPN) Inspect(f func(pulse insolar.PulseNumber)) *mModifierMockDeleteForPN {
+func (mmDeleteForPN *mModifierMockDeleteForPN) Inspect(f func(pulse pulse.Number)) *mModifierMockDeleteForPN {
 	if mmDeleteForPN.mock.inspectFuncDeleteForPN != nil {
 		mmDeleteForPN.mock.t.Fatalf("Inspect function is already set for ModifierMock.DeleteForPN")
 	}
@@ -113,7 +112,7 @@ func (mmDeleteForPN *mModifierMockDeleteForPN) Return() *ModifierMock {
 }
 
 //Set uses given function f to mock the Modifier.DeleteForPN method
-func (mmDeleteForPN *mModifierMockDeleteForPN) Set(f func(pulse insolar.PulseNumber)) *ModifierMock {
+func (mmDeleteForPN *mModifierMockDeleteForPN) Set(f func(pulse pulse.Number)) *ModifierMock {
 	if mmDeleteForPN.defaultExpectation != nil {
 		mmDeleteForPN.mock.t.Fatalf("Default expectation is already set for the Modifier.DeleteForPN method")
 	}
@@ -127,7 +126,7 @@ func (mmDeleteForPN *mModifierMockDeleteForPN) Set(f func(pulse insolar.PulseNum
 }
 
 // DeleteForPN implements Modifier
-func (mmDeleteForPN *ModifierMock) DeleteForPN(pulse insolar.PulseNumber) {
+func (mmDeleteForPN *ModifierMock) DeleteForPN(pulse pulse.Number) {
 	mm_atomic.AddUint64(&mmDeleteForPN.beforeDeleteForPNCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeleteForPN.afterDeleteForPNCounter, 1)
 
@@ -252,7 +251,7 @@ type ModifierMockSetExpectation struct {
 
 // ModifierMockSetParams contains parameters of the Modifier.Set
 type ModifierMockSetParams struct {
-	pulse insolar.PulseNumber
+	pulse pulse.Number
 	nodes []node.Node
 }
 
@@ -262,7 +261,7 @@ type ModifierMockSetResults struct {
 }
 
 // Expect sets up expected params for Modifier.Set
-func (mmSet *mModifierMockSet) Expect(pulse insolar.PulseNumber, nodes []node.Node) *mModifierMockSet {
+func (mmSet *mModifierMockSet) Expect(pulse pulse.Number, nodes []node.Node) *mModifierMockSet {
 	if mmSet.mock.funcSet != nil {
 		mmSet.mock.t.Fatalf("ModifierMock.Set mock is already set by Set")
 	}
@@ -282,7 +281,7 @@ func (mmSet *mModifierMockSet) Expect(pulse insolar.PulseNumber, nodes []node.No
 }
 
 // Inspect accepts an inspector function that has same arguments as the Modifier.Set
-func (mmSet *mModifierMockSet) Inspect(f func(pulse insolar.PulseNumber, nodes []node.Node)) *mModifierMockSet {
+func (mmSet *mModifierMockSet) Inspect(f func(pulse pulse.Number, nodes []node.Node)) *mModifierMockSet {
 	if mmSet.mock.inspectFuncSet != nil {
 		mmSet.mock.t.Fatalf("Inspect function is already set for ModifierMock.Set")
 	}
@@ -306,7 +305,7 @@ func (mmSet *mModifierMockSet) Return(err error) *ModifierMock {
 }
 
 //Set uses given function f to mock the Modifier.Set method
-func (mmSet *mModifierMockSet) Set(f func(pulse insolar.PulseNumber, nodes []node.Node) (err error)) *ModifierMock {
+func (mmSet *mModifierMockSet) Set(f func(pulse pulse.Number, nodes []node.Node) (err error)) *ModifierMock {
 	if mmSet.defaultExpectation != nil {
 		mmSet.mock.t.Fatalf("Default expectation is already set for the Modifier.Set method")
 	}
@@ -321,7 +320,7 @@ func (mmSet *mModifierMockSet) Set(f func(pulse insolar.PulseNumber, nodes []nod
 
 // When sets expectation for the Modifier.Set which will trigger the result defined by the following
 // Then helper
-func (mmSet *mModifierMockSet) When(pulse insolar.PulseNumber, nodes []node.Node) *ModifierMockSetExpectation {
+func (mmSet *mModifierMockSet) When(pulse pulse.Number, nodes []node.Node) *ModifierMockSetExpectation {
 	if mmSet.mock.funcSet != nil {
 		mmSet.mock.t.Fatalf("ModifierMock.Set mock is already set by Set")
 	}
@@ -341,7 +340,7 @@ func (e *ModifierMockSetExpectation) Then(err error) *ModifierMock {
 }
 
 // Set implements Modifier
-func (mmSet *ModifierMock) Set(pulse insolar.PulseNumber, nodes []node.Node) (err error) {
+func (mmSet *ModifierMock) Set(pulse pulse.Number, nodes []node.Node) (err error) {
 	mm_atomic.AddUint64(&mmSet.beforeSetCounter, 1)
 	defer mm_atomic.AddUint64(&mmSet.afterSetCounter, 1)
 

@@ -12,22 +12,22 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type MutableNode interface {
-	node2.NetworkNode
+	node.NetworkNode
 
-	SetShortID(shortID node2.ShortNodeID)
-	SetState(state node2.NodeState)
+	SetShortID(shortID node.ShortNodeID)
+	SetState(state node.NodeState)
 	GetSignature() ([]byte, cryptography.Signature)
 	SetSignature(digest []byte, signature cryptography.Signature)
 	ChangeState()
-	SetLeavingETA(number insolar.PulseNumber)
+	SetLeavingETA(number pulse.Number)
 	SetVersion(version string)
-	SetPower(power node2.Power)
+	SetPower(power node.Power)
 	SetAddress(address string)
 }
 
@@ -36,10 +36,10 @@ func GenerateUintShortID(ref reference.Global) uint32 {
 	return crc32.ChecksumIEEE(ref.AsBytes())
 }
 
-type node struct {
+type nodeInfo struct {
 	NodeID        reference.Global
 	NodeShortID   uint32
-	NodeRole      node2.StaticRole
+	NodeRole      node.StaticRole
 	NodePublicKey crypto.PublicKey
 	NodePower     uint32
 
@@ -53,25 +53,25 @@ type node struct {
 	state          uint32
 }
 
-func (n *node) SetVersion(version string) {
+func (n *nodeInfo) SetVersion(version string) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
 	n.NodeVersion = version
 }
 
-func (n *node) SetState(state node2.NodeState) {
+func (n *nodeInfo) SetState(state node.NodeState) {
 	atomic.StoreUint32(&n.state, uint32(state))
 }
 
-func (n *node) GetState() node2.NodeState {
-	return node2.NodeState(atomic.LoadUint32(&n.state))
+func (n *nodeInfo) GetState() node.NodeState {
+	return node.NodeState(atomic.LoadUint32(&n.state))
 }
 
-func (n *node) ChangeState() {
+func (n *nodeInfo) ChangeState() {
 	// we don't expect concurrent changes, so do not CAS
 	currentState := atomic.LoadUint32(&n.state)
-	if currentState >= uint32(node2.NodeReady) {
+	if currentState >= uint32(node.NodeReady) {
 		return
 	}
 	atomic.StoreUint32(&n.state, currentState+1)
@@ -79,12 +79,12 @@ func (n *node) ChangeState() {
 
 func newMutableNode(
 	id reference.Global,
-	role node2.StaticRole,
+	role node.StaticRole,
 	publicKey crypto.PublicKey,
-	state node2.NodeState,
+	state node.NodeState,
 	address, version string) MutableNode {
 
-	return &node{
+	return &nodeInfo{
 		NodeID:        id,
 		NodeShortID:   GenerateUintShortID(id),
 		NodeRole:      role,
@@ -97,62 +97,62 @@ func newMutableNode(
 
 func NewNode(
 	id reference.Global,
-	role node2.StaticRole,
+	role node.StaticRole,
 	publicKey crypto.PublicKey,
-	address, version string) node2.NetworkNode {
-	return newMutableNode(id, role, publicKey, node2.NodeReady, address, version)
+	address, version string) node.NetworkNode {
+	return newMutableNode(id, role, publicKey, node.NodeReady, address, version)
 }
 
-func (n *node) ID() reference.Global {
+func (n *nodeInfo) ID() reference.Global {
 	return n.NodeID
 }
 
-func (n *node) ShortID() node2.ShortNodeID {
-	return node2.ShortNodeID(atomic.LoadUint32(&n.NodeShortID))
+func (n *nodeInfo) ShortID() node.ShortNodeID {
+	return node.ShortNodeID(atomic.LoadUint32(&n.NodeShortID))
 }
 
-func (n *node) Role() node2.StaticRole {
+func (n *nodeInfo) Role() node.StaticRole {
 	return n.NodeRole
 }
 
-func (n *node) PublicKey() crypto.PublicKey {
+func (n *nodeInfo) PublicKey() crypto.PublicKey {
 	return n.NodePublicKey
 }
 
-func (n *node) Address() string {
+func (n *nodeInfo) Address() string {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
 	return n.NodeAddress
 }
 
-func (n *node) GetGlobuleID() node2.GlobuleID {
+func (n *nodeInfo) GetGlobuleID() node.GlobuleID {
 	return 0
 }
 
-func (n *node) GetPower() node2.Power {
-	return node2.Power(atomic.LoadUint32(&n.NodePower))
+func (n *nodeInfo) GetPower() node.Power {
+	return node.Power(atomic.LoadUint32(&n.NodePower))
 }
 
-func (n *node) SetPower(power node2.Power) {
+func (n *nodeInfo) SetPower(power node.Power) {
 	atomic.StoreUint32(&n.NodePower, uint32(power))
 }
 
-func (n *node) Version() string {
+func (n *nodeInfo) Version() string {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
 	return n.NodeVersion
 }
 
-func (n *node) GetSignature() ([]byte, cryptography.Signature) {
+func (n *nodeInfo) GetSignature() ([]byte, cryptography.Signature) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
 	return n.digest, n.signature
 }
 
-func (n *node) SetSignature(digest []byte, signature cryptography.Signature) {
+func (n *nodeInfo) SetSignature(digest []byte, signature cryptography.Signature) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
@@ -160,20 +160,20 @@ func (n *node) SetSignature(digest []byte, signature cryptography.Signature) {
 	n.digest = digest
 }
 
-func (n *node) SetShortID(id node2.ShortNodeID) {
+func (n *nodeInfo) SetShortID(id node.ShortNodeID) {
 	atomic.StoreUint32(&n.NodeShortID, uint32(id))
 }
 
-func (n *node) LeavingETA() insolar.PulseNumber {
-	return insolar.PulseNumber(atomic.LoadUint32(&n.NodeLeavingETA))
+func (n *nodeInfo) LeavingETA() pulse.Number {
+	return pulse.Number(atomic.LoadUint32(&n.NodeLeavingETA))
 }
 
-func (n *node) SetLeavingETA(number insolar.PulseNumber) {
-	n.SetState(node2.NodeLeaving)
+func (n *nodeInfo) SetLeavingETA(number pulse.Number) {
+	n.SetState(node.NodeLeaving)
 	atomic.StoreUint32(&n.NodeLeavingETA, uint32(number))
 }
 
-func (n *node) SetAddress(address string) {
+func (n *nodeInfo) SetAddress(address string) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 

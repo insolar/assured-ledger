@@ -10,12 +10,12 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher.Dispatcher -o ./ -s _mock.go -g
 type Dispatcher interface {
-	BeginPulse(ctx context.Context, pulse insolar.Pulse)
-	ClosePulse(ctx context.Context, pulse insolar.Pulse)
+	BeginPulse(ctx context.Context, pulse pulse.Pulse)
+	ClosePulse(ctx context.Context, pulse pulse.Pulse)
 	Process(msg *message.Message) error
 }

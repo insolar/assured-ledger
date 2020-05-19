@@ -10,21 +10,21 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 )
 
 // DispatcherMock implements Dispatcher
 type DispatcherMock struct {
 	t minimock.Tester
 
-	funcBeginPulse          func(ctx context.Context, pulse insolar.Pulse)
-	inspectFuncBeginPulse   func(ctx context.Context, pulse insolar.Pulse)
+	funcBeginPulse          func(ctx context.Context, pulse pulse.Pulse)
+	inspectFuncBeginPulse   func(ctx context.Context, pulse pulse.Pulse)
 	afterBeginPulseCounter  uint64
 	beforeBeginPulseCounter uint64
 	BeginPulseMock          mDispatcherMockBeginPulse
 
-	funcClosePulse          func(ctx context.Context, pulse insolar.Pulse)
-	inspectFuncClosePulse   func(ctx context.Context, pulse insolar.Pulse)
+	funcClosePulse          func(ctx context.Context, pulse pulse.Pulse)
+	inspectFuncClosePulse   func(ctx context.Context, pulse pulse.Pulse)
 	afterClosePulseCounter  uint64
 	beforeClosePulseCounter uint64
 	ClosePulseMock          mDispatcherMockClosePulse
@@ -75,11 +75,11 @@ type DispatcherMockBeginPulseExpectation struct {
 // DispatcherMockBeginPulseParams contains parameters of the Dispatcher.BeginPulse
 type DispatcherMockBeginPulseParams struct {
 	ctx   context.Context
-	pulse insolar.Pulse
+	pulse pulse.Pulse
 }
 
 // Expect sets up expected params for Dispatcher.BeginPulse
-func (mmBeginPulse *mDispatcherMockBeginPulse) Expect(ctx context.Context, pulse insolar.Pulse) *mDispatcherMockBeginPulse {
+func (mmBeginPulse *mDispatcherMockBeginPulse) Expect(ctx context.Context, pulse pulse.Pulse) *mDispatcherMockBeginPulse {
 	if mmBeginPulse.mock.funcBeginPulse != nil {
 		mmBeginPulse.mock.t.Fatalf("DispatcherMock.BeginPulse mock is already set by Set")
 	}
@@ -99,7 +99,7 @@ func (mmBeginPulse *mDispatcherMockBeginPulse) Expect(ctx context.Context, pulse
 }
 
 // Inspect accepts an inspector function that has same arguments as the Dispatcher.BeginPulse
-func (mmBeginPulse *mDispatcherMockBeginPulse) Inspect(f func(ctx context.Context, pulse insolar.Pulse)) *mDispatcherMockBeginPulse {
+func (mmBeginPulse *mDispatcherMockBeginPulse) Inspect(f func(ctx context.Context, pulse pulse.Pulse)) *mDispatcherMockBeginPulse {
 	if mmBeginPulse.mock.inspectFuncBeginPulse != nil {
 		mmBeginPulse.mock.t.Fatalf("Inspect function is already set for DispatcherMock.BeginPulse")
 	}
@@ -123,7 +123,7 @@ func (mmBeginPulse *mDispatcherMockBeginPulse) Return() *DispatcherMock {
 }
 
 //Set uses given function f to mock the Dispatcher.BeginPulse method
-func (mmBeginPulse *mDispatcherMockBeginPulse) Set(f func(ctx context.Context, pulse insolar.Pulse)) *DispatcherMock {
+func (mmBeginPulse *mDispatcherMockBeginPulse) Set(f func(ctx context.Context, pulse pulse.Pulse)) *DispatcherMock {
 	if mmBeginPulse.defaultExpectation != nil {
 		mmBeginPulse.mock.t.Fatalf("Default expectation is already set for the Dispatcher.BeginPulse method")
 	}
@@ -137,7 +137,7 @@ func (mmBeginPulse *mDispatcherMockBeginPulse) Set(f func(ctx context.Context, p
 }
 
 // BeginPulse implements Dispatcher
-func (mmBeginPulse *DispatcherMock) BeginPulse(ctx context.Context, pulse insolar.Pulse) {
+func (mmBeginPulse *DispatcherMock) BeginPulse(ctx context.Context, pulse pulse.Pulse) {
 	mm_atomic.AddUint64(&mmBeginPulse.beforeBeginPulseCounter, 1)
 	defer mm_atomic.AddUint64(&mmBeginPulse.afterBeginPulseCounter, 1)
 
@@ -263,11 +263,11 @@ type DispatcherMockClosePulseExpectation struct {
 // DispatcherMockClosePulseParams contains parameters of the Dispatcher.ClosePulse
 type DispatcherMockClosePulseParams struct {
 	ctx   context.Context
-	pulse insolar.Pulse
+	pulse pulse.Pulse
 }
 
 // Expect sets up expected params for Dispatcher.ClosePulse
-func (mmClosePulse *mDispatcherMockClosePulse) Expect(ctx context.Context, pulse insolar.Pulse) *mDispatcherMockClosePulse {
+func (mmClosePulse *mDispatcherMockClosePulse) Expect(ctx context.Context, pulse pulse.Pulse) *mDispatcherMockClosePulse {
 	if mmClosePulse.mock.funcClosePulse != nil {
 		mmClosePulse.mock.t.Fatalf("DispatcherMock.ClosePulse mock is already set by Set")
 	}
@@ -287,7 +287,7 @@ func (mmClosePulse *mDispatcherMockClosePulse) Expect(ctx context.Context, pulse
 }
 
 // Inspect accepts an inspector function that has same arguments as the Dispatcher.ClosePulse
-func (mmClosePulse *mDispatcherMockClosePulse) Inspect(f func(ctx context.Context, pulse insolar.Pulse)) *mDispatcherMockClosePulse {
+func (mmClosePulse *mDispatcherMockClosePulse) Inspect(f func(ctx context.Context, pulse pulse.Pulse)) *mDispatcherMockClosePulse {
 	if mmClosePulse.mock.inspectFuncClosePulse != nil {
 		mmClosePulse.mock.t.Fatalf("Inspect function is already set for DispatcherMock.ClosePulse")
 	}
@@ -311,7 +311,7 @@ func (mmClosePulse *mDispatcherMockClosePulse) Return() *DispatcherMock {
 }
 
 //Set uses given function f to mock the Dispatcher.ClosePulse method
-func (mmClosePulse *mDispatcherMockClosePulse) Set(f func(ctx context.Context, pulse insolar.Pulse)) *DispatcherMock {
+func (mmClosePulse *mDispatcherMockClosePulse) Set(f func(ctx context.Context, pulse pulse.Pulse)) *DispatcherMock {
 	if mmClosePulse.defaultExpectation != nil {
 		mmClosePulse.mock.t.Fatalf("Default expectation is already set for the Dispatcher.ClosePulse method")
 	}
@@ -325,7 +325,7 @@ func (mmClosePulse *mDispatcherMockClosePulse) Set(f func(ctx context.Context, p
 }
 
 // ClosePulse implements Dispatcher
-func (mmClosePulse *DispatcherMock) ClosePulse(ctx context.Context, pulse insolar.Pulse) {
+func (mmClosePulse *DispatcherMock) ClosePulse(ctx context.Context, pulse pulse.Pulse) {
 	mm_atomic.AddUint64(&mmClosePulse.beforeClosePulseCounter, 1)
 	defer mm_atomic.AddUint64(&mmClosePulse.afterClosePulseCounter, 1)
 

@@ -6,7 +6,7 @@
 package call
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -29,8 +29,8 @@ type LogicContext struct {
 	Caller          reference.Global // Contract that made the call
 	CallerPrototype reference.Global // Prototype (base class) of the caller
 
-	TraceID   string        // trace mark for Jaeger and friends
-	Pulse     insolar.Pulse // pre-fetched pulse for call context
+	TraceID   string      // trace mark for Jaeger and friends
+	Pulse     pulse.Pulse // pre-fetched pulse for call context
 	Unordered bool
 }
 

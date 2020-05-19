@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
@@ -39,7 +38,7 @@ type bootstrapComponents struct {
 
 type headlessLR struct{}
 
-func (h *headlessLR) OnPulse(context.Context, insolar.Pulse, insolar.Pulse) error {
+func (h *headlessLR) OnPulse(context.Context, pulse.Pulse, pulse.Pulse) error {
 	return nil
 }
 

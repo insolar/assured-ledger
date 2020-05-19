@@ -14,9 +14,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
@@ -89,7 +89,7 @@ func mockNodeNetwork(t *testing.T, nodeList []node.DiscoveryNode) *network.NodeN
 		return nil
 	})
 
-	nn.GetAccessorMock.Set(func(p1 insolar.PulseNumber) network2.Accessor {
+	nn.GetAccessorMock.Set(func(p1 pulse2.Number) network2.Accessor {
 		return accessorMock
 	})
 
@@ -98,8 +98,8 @@ func mockNodeNetwork(t *testing.T, nodeList []node.DiscoveryNode) *network.NodeN
 
 func mockPulseAccessor(t *testing.T) *pulse.AccessorMock {
 	pa := pulse.NewAccessorMock(t)
-	pa.LatestMock.Set(func(context.Context) (insolar.Pulse, error) {
-		return *insolar.GenesisPulse, nil
+	pa.LatestMock.Set(func(context.Context) (pulse.Pulse, error) {
+		return *pulse.GenesisPulse, nil
 	})
 	return pa
 }

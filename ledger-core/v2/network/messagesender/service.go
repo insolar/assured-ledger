@@ -10,7 +10,6 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -18,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 	"github.com/pkg/errors"
@@ -46,7 +46,7 @@ func WithSyncBody() SendOption {
 
 type Service interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error
+	SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) error
 	SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error
 }
 
@@ -64,7 +64,7 @@ func NewDefaultService(pub message.Publisher, coordinator jet.Coordinator, pulse
 	}
 }
 
-func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn insolar.PulseNumber, opts ...SendOption) error {
+func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse2.Number, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {
 		return errors.Wrap(err, "Can't create watermill message")
@@ -84,7 +84,7 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler,
 		return errors.Wrap(err, "Can't create watermill message")
 	}
 
-	var pn insolar.PulseNumber
+	var pn pulse2.Number
 	latestPulse, err := dm.pulses.Latest(context.Background())
 	if err == nil {
 		pn = latestPulse.PulseNumber
@@ -100,7 +100,7 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler,
 const TopicOutgoing = "TopicOutgoing"
 
 func (dm *DefaultService) sendTarget(
-	ctx context.Context, msg *message.Message, target reference.Global, pulse insolar.PulseNumber,
+	ctx context.Context, msg *message.Message, target reference.Global, pulse pulse2.Number,
 ) error {
 
 	ctx, logger := inslogger.WithField(ctx, "sending_uuid", msg.UUID)
@@ -136,7 +136,7 @@ func (dm *DefaultService) wrapMeta(
 	msg *message.Message,
 	receiver reference.Global,
 	originHash payload.MessageHash,
-	pulse insolar.PulseNumber,
+	pulse pulse2.Number,
 ) (payload.Meta, *message.Message, error) {
 	msg = msg.Copy()
 

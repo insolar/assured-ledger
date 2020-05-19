@@ -11,31 +11,31 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // StorageMem is a memory storage implementation. It saves pulses to memory and allows removal.
 type StorageMem struct {
 	lock    sync.RWMutex
-	storage map[insolar.PulseNumber]*memNode
+	storage map[pulse.Number]*memNode
 	head    *memNode
 	tail    *memNode
 }
 
 type memNode struct {
-	pulse      insolar.Pulse
+	pulse      Pulse
 	prev, next *memNode
 }
 
 // NewStorageMem creates new memory storage instance.
 func NewStorageMem() *StorageMem {
 	return &StorageMem{
-		storage: make(map[insolar.PulseNumber]*memNode),
+		storage: make(map[pulse.Number]*memNode),
 	}
 }
 
 // ForPulseNumber returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
-func (s *StorageMem) ForPulseNumber(ctx context.Context, pn insolar.PulseNumber) (pulse insolar.Pulse, err error) {
+func (s *StorageMem) ForPulseNumber(ctx context.Context, pn pulse.Number) (pulse Pulse, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -49,7 +49,7 @@ func (s *StorageMem) ForPulseNumber(ctx context.Context, pn insolar.PulseNumber)
 }
 
 // Latest returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
-func (s *StorageMem) Latest(ctx context.Context) (pulse insolar.Pulse, err error) {
+func (s *StorageMem) Latest(ctx context.Context) (pulse Pulse, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -63,7 +63,7 @@ func (s *StorageMem) Latest(ctx context.Context) (pulse insolar.Pulse, err error
 
 // Append appends provided a pulse to current storage. Pulse number should be greater than currently saved for preserving
 // pulse consistency. If provided Pulse does not meet the requirements, ErrBadPulse will be returned.
-func (s *StorageMem) Append(ctx context.Context, pulse insolar.Pulse) error {
+func (s *StorageMem) Append(ctx context.Context, pulse Pulse) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -100,7 +100,7 @@ func (s *StorageMem) Append(ctx context.Context, pulse insolar.Pulse) error {
 }
 
 // Shift removes oldest pulse from storage. If the storage is empty, an error will be returned.
-func (s *StorageMem) Shift(ctx context.Context, pn insolar.PulseNumber) (err error) {
+func (s *StorageMem) Shift(ctx context.Context, pn pulse.Number) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -127,7 +127,7 @@ func (s *StorageMem) Shift(ctx context.Context, pn insolar.PulseNumber) (err err
 
 // Forwards calculates steps pulses forwards from provided Pulse. If calculated pulse does not exist, ErrNotFound will
 // be returned.
-func (s *StorageMem) Forwards(ctx context.Context, pn insolar.PulseNumber, steps int) (pulse insolar.Pulse, err error) {
+func (s *StorageMem) Forwards(ctx context.Context, pn pulse.Number, steps int) (pulse Pulse, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -151,7 +151,7 @@ func (s *StorageMem) Forwards(ctx context.Context, pn insolar.PulseNumber, steps
 
 // Backwards calculates steps pulses backwards from provided pulse. If calculated pulse does not exist, ErrNotFound will
 // be returned.
-func (s *StorageMem) Backwards(ctx context.Context, pn insolar.PulseNumber, steps int) (pulse insolar.Pulse, err error) {
+func (s *StorageMem) Backwards(ctx context.Context, pn pulse.Number, steps int) (pulse Pulse, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 

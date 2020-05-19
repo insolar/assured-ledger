@@ -20,9 +20,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
@@ -36,6 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 var (
@@ -400,7 +401,7 @@ type pulseChanger struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse insolar.Pulse) {
+func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse pulse.Pulse) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
 	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
 }
@@ -409,7 +410,7 @@ type stateUpdater struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse2.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
 	su.nodeKeeper.Sync(ctx, pulseNumber, nodes)

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -101,7 +100,7 @@ func TestSnapshot_Equal(t *testing.T) {
 	snapshot2 := NewSnapshot(11, nil)
 	assert.False(t, snapshot.Equal(snapshot2))
 
-	snapshot2.pulse = insolar.PulseNumber(10)
+	snapshot2.pulse = pulse.Number(10)
 
 	genNodeCopy := func(reference reference.Global) node2.NetworkNode {
 		return newMutableNode(reference, node2.StaticRoleLightMaterial,

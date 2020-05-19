@@ -4,17 +4,19 @@
 package payload
 
 import (
-	bytes "bytes"
-	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_assured_ledger_ledger_core_v2_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	io "io"
-	math "math"
+	"bytes"
+	"fmt"
+	"io"
+	"math"
 	math_bits "math/bits"
-	reflect "reflect"
-	strings "strings"
+	"reflect"
+	"strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	"github.com/gogo/protobuf/proto"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -29,13 +31,13 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Meta struct {
-	Polymorph  uint32                                                               `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Payload    []byte                                                               `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload,omitempty"`
-	Sender     github_com_insolar_assured_ledger_ledger_core_v2_reference.Global    `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Sender"`
-	Receiver   github_com_insolar_assured_ledger_ledger_core_v2_reference.Global    `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Receiver"`
-	Pulse      github_com_insolar_assured_ledger_ledger_core_v2_insolar.PulseNumber `protobuf:"bytes,23,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber" json:"Pulse"`
-	ID         []byte                                                               `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID,omitempty"`
-	OriginHash MessageHash                                                          `protobuf:"bytes,25,opt,name=OriginHash,proto3,customtype=MessageHash" json:"OriginHash"`
+	Polymorph  uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	Payload    []byte                                                            `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	Sender     github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Sender"`
+	Receiver   github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Receiver"`
+	Pulse      pulse.Number                                                      `protobuf:"bytes,23,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar.Number" json:"Pulse"`
+	ID         []byte                                                            `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID,omitempty"`
+	OriginHash MessageHash                                                       `protobuf:"bytes,25,opt,name=OriginHash,proto3,customtype=MessageHash" json:"OriginHash"`
 }
 
 func (m *Meta) Reset()      { *m = Meta{} }

@@ -19,7 +19,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 )
 
@@ -36,14 +35,14 @@ func TestNodeService_GetSeed(t *testing.T) {
 	// 0 = false, 1 = pulse.ErrNotFound, 2 = another error
 	pulseError := 0
 	accessor := mockPulseAccessor(t)
-	accessor = accessor.LatestMock.Set(func(ctx context.Context) (p1 insolar.Pulse, err error) {
+	accessor = accessor.LatestMock.Set(func(ctx context.Context) (p1 pulse.Pulse, err error) {
 		switch pulseError {
 		case 1:
-			return insolar.Pulse{}, pulse.ErrNotFound
+			return pulse.Pulse{}, pulse.ErrNotFound
 		case 2:
-			return insolar.Pulse{}, errors.New("fake error")
+			return pulse.Pulse{}, errors.New("fake error")
 		default:
-			return *insolar.GenesisPulse, nil
+			return *pulse.GenesisPulse, nil
 		}
 	})
 

@@ -13,12 +13,12 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -55,7 +55,7 @@ func (jc *Coordinator) QueryRole(
 	ctx context.Context,
 	role node.DynamicRole,
 	objID reference.Local,
-	pulseNumber insolar.PulseNumber,
+	pulseNumber pulse.Number,
 ) ([]reference.Global, error) {
 	if role == node.DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pulseNumber)
@@ -71,7 +71,7 @@ func (jc *Coordinator) QueryRole(
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
 func (jc *Coordinator) VirtualExecutorForObject(
-	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber,
+	ctx context.Context, objID reference.Local, pulse pulse.Number,
 ) (reference.Global, error) {
 	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualExecutorCount)
 	if err != nil {
@@ -82,9 +82,9 @@ func (jc *Coordinator) VirtualExecutorForObject(
 
 // IsBeyondLimit calculates if target pulse is behind clean-up limit
 // or if currentPN|targetPN didn't found in in-memory pulse-storage.
-func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.PulseNumber) (bool, error) {
+func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number) (bool, error) {
 	// Genesis case. When there is no any data on a lme
-	if targetPN <= insolar.GenesisPulse.PulseNumber {
+	if targetPN <= insolarPulse.GenesisPulse.PulseNumber {
 		return true, nil
 	}
 
@@ -120,7 +120,7 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.Pulse
 }
 
 func (jc *Coordinator) virtualsForObject(
-	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber, count int,
+	ctx context.Context, objID reference.Local, pulse pulse.Number, count int,
 ) ([]reference.Global, error) {
 	candidates, err := jc.Nodes.InRole(pulse, node.StaticRoleVirtual)
 	if err == nodestorage.ErrNoNodes {
@@ -157,10 +157,10 @@ func CircleXOR(value, src []byte) []byte {
 	return result
 }
 
-func (jc *Coordinator) entropy(ctx context.Context, pulse insolar.PulseNumber) (insolar.Entropy, error) {
+func (jc *Coordinator) entropy(ctx context.Context, pulse pulse.Number) (insolarPulse.Entropy, error) {
 	current, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
-		return insolar.Entropy{}, errors.Wrap(err, "failed to get current pulse")
+		return insolarPulse.Entropy{}, errors.Wrap(err, "failed to get current pulse")
 	}
 
 	if current.PulseNumber == pulse {
@@ -169,7 +169,7 @@ func (jc *Coordinator) entropy(ctx context.Context, pulse insolar.PulseNumber) (
 
 	older, err := jc.PulseAccessor.ForPulseNumber(ctx, pulse)
 	if err != nil {
-		return insolar.Entropy{}, errors.Wrapf(err, "failed to fetch pulse data for pulse %v", pulse)
+		return insolarPulse.Entropy{}, errors.Wrapf(err, "failed to fetch pulse data for pulse %v", pulse)
 	}
 
 	return older.Entropy, nil

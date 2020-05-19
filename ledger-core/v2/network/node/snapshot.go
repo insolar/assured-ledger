@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	protonode "github.com/insolar/assured-ledger/ledger-core/v2/network/node/internal/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -30,13 +30,13 @@ const (
 )
 
 type Snapshot struct {
-	pulse insolar.PulseNumber
-	state node2.NetworkState
+	pulse pulse.Number
+	state node.NetworkState
 
-	nodeList [ListLength][]node2.NetworkNode
+	nodeList [ListLength][]node.NetworkNode
 }
 
-func (s *Snapshot) GetPulse() insolar.PulseNumber {
+func (s *Snapshot) GetPulse() pulse.Number {
 	return s.pulse
 }
 
@@ -46,7 +46,7 @@ func (s *Snapshot) Copy() *Snapshot {
 		state: s.state,
 	}
 	for i := 0; i < int(ListLength); i++ {
-		result.nodeList[i] = make([]node2.NetworkNode, len(s.nodeList[i]))
+		result.nodeList[i] = make([]node.NetworkNode, len(s.nodeList[i]))
 		copy(result.nodeList[i], s.nodeList[i])
 	}
 	return result
@@ -72,21 +72,21 @@ func (s *Snapshot) Equal(s2 *Snapshot) bool {
 }
 
 // NewSnapshot create new snapshot for pulse.
-func NewSnapshot(number insolar.PulseNumber, nodes []node2.NetworkNode) *Snapshot {
+func NewSnapshot(number pulse.Number, nodes []node.NetworkNode) *Snapshot {
 	return &Snapshot{
 		pulse: number,
 		// TODO: pass actual state
-		state:    node2.NoNetworkState,
+		state:    node.NoNetworkState,
 		nodeList: splitNodes(nodes),
 	}
 }
 
 // splitNodes temporary method to create snapshot lists. Will be replaced by special function that will take in count
 // previous snapshot and approved claims.
-func splitNodes(nodes []node2.NetworkNode) [ListLength][]node2.NetworkNode {
-	var result [ListLength][]node2.NetworkNode
+func splitNodes(nodes []node.NetworkNode) [ListLength][]node.NetworkNode {
+	var result [ListLength][]node.NetworkNode
 	for i := 0; i < int(ListLength); i++ {
-		result[i] = make([]node2.NetworkNode, 0)
+		result[i] = make([]node.NetworkNode, 0)
 	}
 	for _, node := range nodes {
 		listType := nodeStateToListType(node)
@@ -98,16 +98,16 @@ func splitNodes(nodes []node2.NetworkNode) [ListLength][]node2.NetworkNode {
 	return result
 }
 
-func nodeStateToListType(node node2.NetworkNode) ListType {
-	switch node.GetState() {
-	case node2.NodeReady:
-		if node.GetPower() > 0 {
+func nodeStateToListType(nd node.NetworkNode) ListType {
+	switch nd.GetState() {
+	case node.NodeReady:
+		if nd.GetPower() > 0 {
 			return ListWorking
 		}
 		return ListIdle
-	case node2.NodeJoining:
+	case node.NodeJoining:
 		return ListJoiner
-	case node2.NodeUndefined, node2.NodeLeaving:
+	case node.NodeUndefined, node.NodeLeaving:
 		return ListLeaving
 	}
 	// special case for no match
@@ -160,11 +160,11 @@ func (s *Snapshot) Decode(buff []byte) error {
 	}
 
 	keyProc := platformpolicy.NewKeyProcessor()
-	s.pulse = insolar.PulseNumber(ss.PulseNumber)
-	s.state = node2.NetworkState(ss.State)
+	s.pulse = pulse.Number(ss.PulseNumber)
+	s.state = node.NetworkState(ss.State)
 
 	for t, nodes := range ss.Nodes {
-		nodeList := make([]node2.NetworkNode, len(nodes.List))
+		nodeList := make([]node.NetworkNode, len(nodes.List))
 		for i, n := range nodes.List {
 
 			pk, err := keyProc.ImportPublicKeyBinary(n.NodePublicKey)
@@ -173,7 +173,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 			}
 
 			ref := reference.GlobalFromBytes(n.NodeID)
-			nodeList[i] = newMutableNode(ref, node2.StaticRole(n.NodeRole), pk, node2.NodeState(n.State), n.NodeAddress, n.NodeVersion)
+			nodeList[i] = newMutableNode(ref, node.StaticRole(n.NodeRole), pk, node.NodeState(n.State), n.NodeAddress, n.NodeVersion)
 		}
 		s.nodeList[t] = nodeList
 	}
@@ -181,7 +181,7 @@ func (s *Snapshot) Decode(buff []byte) error {
 	return nil
 }
 
-func Select(nodes []node2.NetworkNode, typ ListType) []node2.NetworkNode {
+func Select(nodes []node.NetworkNode, typ ListType) []node.NetworkNode {
 	lists := splitNodes(nodes)
 	return lists[typ]
 }

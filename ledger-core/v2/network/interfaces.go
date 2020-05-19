@@ -11,17 +11,18 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type Report struct {
-	PulseNumber     insolar.PulseNumber
+	PulseNumber     pulse.Number
 	MemberPower     member.Power
 	MemberMode      member.OpMode
 	IsJoiner        bool
@@ -100,7 +101,7 @@ type NodeNetwork interface {
 	OriginProvider
 
 	// GetAccessor get accessor to the internal snapshot for the current pulse
-	GetAccessor(insolar.PulseNumber) Accessor
+	GetAccessor(pulse.Number) Accessor
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeKeeper -o ../testutils/network -s _mock.go -g
@@ -112,9 +113,9 @@ type NodeKeeper interface {
 	// SetInitialSnapshot set initial snapshot for nodekeeper
 	SetInitialSnapshot(nodes []node.NetworkNode)
 	// Sync move unsync -> sync
-	Sync(context.Context, insolar.PulseNumber, []node.NetworkNode)
+	Sync(context.Context, pulse.Number, []node.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
-	MoveSyncToActive(context.Context, insolar.PulseNumber)
+	MoveSyncToActive(context.Context, pulse.Number)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.RoutingTable -o ../testutils/network -s _mock.go -g
@@ -149,7 +150,7 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(ctx context.Context, state node.NetworkState, pulse insolar.Pulse)
+	SwitchState(ctx context.Context, state node.NetworkState, pulse pulse2.Pulse)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gateway -o ../testutils/network -s _mock.go -g
@@ -158,15 +159,15 @@ type Gatewayer interface {
 type Gateway interface {
 	NewGateway(context.Context, node.NetworkState) Gateway
 
-	BeforeRun(ctx context.Context, pulse insolar.Pulse)
-	Run(ctx context.Context, pulse insolar.Pulse)
+	BeforeRun(ctx context.Context, pulse pulse2.Pulse)
+	Run(ctx context.Context, pulse pulse2.Pulse)
 
 	GetState() node.NetworkState
 
-	OnPulseFromConsensus(context.Context, insolar.Pulse)
+	OnPulseFromConsensus(context.Context, pulse2.Pulse)
 	OnConsensusFinished(ctx context.Context, report Report)
 
-	UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []node.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
 
 	Auther() Auther
 	Bootstrapper() Bootstrapper
@@ -205,7 +206,7 @@ type Aborter interface {
 // TerminationHandler handles such node events as graceful stop, abort, etc.
 type TerminationHandler interface {
 	// Leave locks until network accept leaving claim
-	Leave(context.Context, insolar.PulseNumber)
+	Leave(context.Context, pulse.Number)
 	OnLeaveApproved(context.Context)
 	// Terminating is an accessor
 	Terminating() bool

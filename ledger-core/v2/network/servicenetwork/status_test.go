@@ -12,11 +12,11 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 
@@ -33,9 +33,9 @@ func TestGetNetworkStatus(t *testing.T) {
 	sn.Gatewayer = gwer
 
 	pa := testutils.NewPulseAccessorMock(t)
-	ppn := insolar.PulseNumber(2)
-	pulse := insolar.Pulse{PulseNumber: 2}
-	pa.GetLatestPulseMock.Set(func(context.Context) (insolar.Pulse, error) { return pulse, nil })
+	ppn := pulse.Number(2)
+	puls := pulse2.Pulse{PulseNumber: 2}
+	pa.GetLatestPulseMock.Set(func(context.Context) (pulse2.Pulse, error) { return puls, nil })
 	sn.PulseAccessor = pa
 
 	nk := testutils.NewNodeKeeperMock(t)
@@ -48,7 +48,7 @@ func TestGetNetworkStatus(t *testing.T) {
 	working := make([]node.NetworkNode, workingLen)
 	a.GetWorkingNodesMock.Set(func() []node.NetworkNode { return working })
 
-	nk.GetAccessorMock.Set(func(insolar.PulseNumber) network.Accessor { return a })
+	nk.GetAccessorMock.Set(func(pulse.Number) network.Accessor { return a })
 
 	nn := testutils.NewNetworkNodeMock(t)
 	nk.GetOriginMock.Set(func() node.NetworkNode { return nn })
@@ -70,7 +70,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Equal(t, version.Version, ns.Version)
 
-	pa.GetLatestPulseMock.Set(func(context.Context) (insolar.Pulse, error) { return pulse, errors.New("test") })
+	pa.GetLatestPulseMock.Set(func(context.Context) (pulse2.Pulse, error) { return puls, errors.New("test") })
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
@@ -82,7 +82,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, insolar.GenesisPulse.PulseNumber, ns.Pulse.PulseNumber)
+	require.Equal(t, pulse2.GenesisPulse.PulseNumber, ns.Pulse.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 }

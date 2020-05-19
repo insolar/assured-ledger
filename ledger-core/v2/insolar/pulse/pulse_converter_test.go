@@ -8,33 +8,32 @@ package pulse
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func generatePsc() *insolar.PulseSenderConfirmation {
-	return &insolar.PulseSenderConfirmation{
+func generatePsc() *SenderConfirmation {
+	return &SenderConfirmation{
 		PulseNumber:     32,
 		ChosenPublicKey: "124",
-		Entropy:         insolar.Entropy{123},
+		Entropy:         Entropy{123},
 		Signature:       []byte("456"),
 	}
 }
 
 func TestPulseToProto(t *testing.T) {
 	psc := generatePsc()
-	signs := map[string]insolar.PulseSenderConfirmation{}
+	signs := map[string]SenderConfirmation{}
 	signs["112"] = *psc
-	p := insolar.Pulse{
+	p := Pulse{
 		PulseNumber:      32,
 		PrevPulseNumber:  22,
 		NextPulseNumber:  42,
 		PulseTimestamp:   111112,
 		EpochPulseNumber: pulse.EphemeralPulseEpoch,
 		OriginID:         [16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 7, 6, 5, 4, 3, 2, 1},
-		Entropy:          insolar.Entropy{123},
+		Entropy:          Entropy{123},
 		Signs:            signs,
 	}
 

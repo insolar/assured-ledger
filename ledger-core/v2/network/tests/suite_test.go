@@ -22,6 +22,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
@@ -42,7 +43,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
@@ -156,11 +156,11 @@ func (s *consensusSuite) Setup() {
 		for _, n := range s.bootstrapNodes {
 			n.serviceNetwork.BaseGateway.ConsensusMode = consensus.ReadyNetwork
 			n.serviceNetwork.NodeKeeper.SetInitialSnapshot(bnodes)
-			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, *insolar.GenesisPulse)
+			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, *pulse.GenesisPulse)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState, *insolar.GenesisPulse)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState, *pulse.GenesisPulse)
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
 	}
@@ -301,8 +301,8 @@ func (s *consensusSuite) waitForNodeLeave(ref reference.Global, pulsesCount int)
 	return false
 }
 
-func (s *consensusSuite) waitForConsensus(consensusCount int) insolar.PulseNumber {
-	var p insolar.PulseNumber
+func (s *consensusSuite) waitForConsensus(consensusCount int) pulse.Number {
+	var p pulse.Number
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
 			select {
@@ -321,7 +321,7 @@ func (s *consensusSuite) waitForConsensus(consensusCount int) insolar.PulseNumbe
 	return p
 }
 
-func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
+func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 	var nodes []node2.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
@@ -340,8 +340,8 @@ func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
 	}
 }
 
-func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) insolar.PulseNumber {
-	var p insolar.PulseNumber
+func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) pulse.Number {
+	var p pulse.Number
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
 			if n.id.Equal(exception) {
@@ -366,7 +366,7 @@ func (s *testSuite) getNodesCount() int {
 	return len(s.bootstrapNodes) // + len(s.networkNodes)
 }
 
-func (s *testSuite) isNodeInActiveLists(ref reference.Global, p insolar.PulseNumber) bool {
+func (s *testSuite) isNodeInActiveLists(ref reference.Global, p pulse.Number) bool {
 	for _, n := range s.bootstrapNodes {
 		a := n.serviceNetwork.NodeKeeper.GetAccessor(p)
 		if a.GetActiveNode(ref) == nil {
@@ -419,7 +419,7 @@ type networkNode struct {
 	componentManager   *component.Manager
 	serviceNetwork     *servicenetwork.ServiceNetwork
 	terminationHandler *testutils.TerminationHandlerMock
-	consensusResult    chan insolar.PulseNumber
+	consensusResult    chan pulse.Number
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
@@ -445,7 +445,7 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *
 		privateKey:          key,
 		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),
 		host:                address,
-		consensusResult:     make(chan insolar.PulseNumber, 1),
+		consensusResult:     make(chan pulse.Number, 1),
 	}
 
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
@@ -560,8 +560,8 @@ func (s *testSuite) preInitNode(node *networkNode) {
 		node.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 	}
 
-	pulseManager := testutils.NewPulseManagerMock(s.t)
-	pulseManager.SetMock.Set(func(ctx context.Context, pulse insolar.Pulse) (err error) {
+	pulseManager := pulse.NewManagerMock(s.t)
+	pulseManager.SetMock.Set(func(ctx context.Context, pulse pulse.Pulse) (err error) {
 		return nil
 	})
 	node.componentManager.Inject(

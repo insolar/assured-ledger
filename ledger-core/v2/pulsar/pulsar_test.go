@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -25,7 +25,7 @@ func TestPulsar_Send(t *testing.T) {
 	distMock := testutils.NewPulseDistributorMock(t)
 	var pn pulse.Number = pulse.MinTimePulse
 
-	distMock.DistributeMock.Set(func(ctx context.Context, p1 insolar.Pulse) {
+	distMock.DistributeMock.Set(func(ctx context.Context, p1 pulse2.Pulse) {
 		require.Equal(t, pn, p1.PulseNumber)
 		require.NotNil(t, p1.Entropy)
 	})

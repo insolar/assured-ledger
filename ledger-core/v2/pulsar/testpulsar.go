@@ -11,8 +11,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -40,11 +40,11 @@ func (p *TestPulsar) SendPulse(ctx context.Context) error {
 	timeNow := time.Now()
 	pulseNumber := pulse.OfTime(timeNow)
 
-	pls := insolar.Pulse{
+	pls := pulse2.Pulse{
 		PulseNumber:      pulseNumber,
 		Entropy:          p.generator.GenerateEntropy(),
-		NextPulseNumber:  pulseNumber + insolar.PulseNumber(p.configuration.NumberDelta),
-		PrevPulseNumber:  pulseNumber - insolar.PulseNumber(p.configuration.NumberDelta),
+		NextPulseNumber:  pulseNumber + pulse.Number(p.configuration.NumberDelta),
+		PrevPulseNumber:  pulseNumber - pulse.Number(p.configuration.NumberDelta),
 		EpochPulseNumber: pulseNumber.AsEpoch(),
 		OriginID:         [16]byte{206, 41, 229, 190, 7, 240, 162, 155, 121, 245, 207, 56, 161, 67, 189, 0},
 	}
@@ -63,7 +63,7 @@ func (p *TestPulsar) SendPulse(ctx context.Context) error {
 	return nil
 }
 
-func getPSC(pulse insolar.Pulse) (map[string]insolar.PulseSenderConfirmation, error) {
+func getPSC(pulse pulse2.Pulse) (map[string]pulse2.SenderConfirmation, error) {
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()
 	if err != nil {
@@ -73,14 +73,14 @@ func getPSC(pulse insolar.Pulse) (map[string]insolar.PulseSenderConfirmation, er
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]insolar.PulseSenderConfirmation)
-	psc := insolar.PulseSenderConfirmation{
+	result := make(map[string]pulse2.SenderConfirmation)
+	psc := pulse2.SenderConfirmation{
 		PulseNumber:     pulse.PulseNumber,
 		ChosenPublicKey: string(pem),
 		Entropy:         pulse.Entropy,
 	}
 
-	payload := PulseSenderConfirmationPayload{PulseSenderConfirmation: psc}
+	payload := PulseSenderConfirmationPayload{SenderConfirmation: psc}
 	hasher := platformpolicy.NewPlatformCryptographyScheme().IntegrityHasher()
 	hash, err := payload.Hash(hasher)
 	if err != nil {

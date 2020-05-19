@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -65,5 +65,5 @@ func TestNewNodeKeeper(t *testing.T) {
 	origin := nk.GetOrigin()
 	assert.NotNil(t, origin)
 	nk.SetInitialSnapshot([]node.NetworkNode{origin})
-	assert.NotNil(t, nk.GetAccessor(insolar.GenesisPulse.PulseNumber))
+	assert.NotNil(t, nk.GetAccessor(pulse.GenesisPulse.PulseNumber))
 }

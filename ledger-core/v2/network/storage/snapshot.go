@@ -6,14 +6,14 @@
 package storage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/storage.SnapshotStorage -o ../../testutils/network -s _mock.go -g
 
 // SnapshotStorage provides methods for accessing Snapshot.
 type SnapshotStorage interface {
-	ForPulseNumber(insolar.PulseNumber) (*node.Snapshot, error)
-	Append(pulse insolar.PulseNumber, snapshot *node.Snapshot) error
+	ForPulseNumber(pulse.Number) (*node.Snapshot, error)
+	Append(pulse pulse.Number, snapshot *node.Snapshot) error
 }

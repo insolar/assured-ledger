@@ -9,15 +9,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // LeaverMock implements node.Leaver
 type LeaverMock struct {
 	t minimock.Tester
 
-	funcLeave          func(ctx context.Context, ETA insolar.PulseNumber)
-	inspectFuncLeave   func(ctx context.Context, ETA insolar.PulseNumber)
+	funcLeave          func(ctx context.Context, ETA pulse2.Number)
+	inspectFuncLeave   func(ctx context.Context, ETA pulse2.Number)
 	afterLeaveCounter  uint64
 	beforeLeaveCounter uint64
 	LeaveMock          mLeaverMockLeave
@@ -56,11 +56,11 @@ type LeaverMockLeaveExpectation struct {
 // LeaverMockLeaveParams contains parameters of the Leaver.Leave
 type LeaverMockLeaveParams struct {
 	ctx context.Context
-	ETA insolar.PulseNumber
+	ETA pulse2.Number
 }
 
 // Expect sets up expected params for Leaver.Leave
-func (mmLeave *mLeaverMockLeave) Expect(ctx context.Context, ETA insolar.PulseNumber) *mLeaverMockLeave {
+func (mmLeave *mLeaverMockLeave) Expect(ctx context.Context, ETA pulse2.Number) *mLeaverMockLeave {
 	if mmLeave.mock.funcLeave != nil {
 		mmLeave.mock.t.Fatalf("LeaverMock.Leave mock is already set by Set")
 	}
@@ -80,7 +80,7 @@ func (mmLeave *mLeaverMockLeave) Expect(ctx context.Context, ETA insolar.PulseNu
 }
 
 // Inspect accepts an inspector function that has same arguments as the Leaver.Leave
-func (mmLeave *mLeaverMockLeave) Inspect(f func(ctx context.Context, ETA insolar.PulseNumber)) *mLeaverMockLeave {
+func (mmLeave *mLeaverMockLeave) Inspect(f func(ctx context.Context, ETA pulse2.Number)) *mLeaverMockLeave {
 	if mmLeave.mock.inspectFuncLeave != nil {
 		mmLeave.mock.t.Fatalf("Inspect function is already set for LeaverMock.Leave")
 	}
@@ -104,7 +104,7 @@ func (mmLeave *mLeaverMockLeave) Return() *LeaverMock {
 }
 
 //Set uses given function f to mock the Leaver.Leave method
-func (mmLeave *mLeaverMockLeave) Set(f func(ctx context.Context, ETA insolar.PulseNumber)) *LeaverMock {
+func (mmLeave *mLeaverMockLeave) Set(f func(ctx context.Context, ETA pulse2.Number)) *LeaverMock {
 	if mmLeave.defaultExpectation != nil {
 		mmLeave.mock.t.Fatalf("Default expectation is already set for the Leaver.Leave method")
 	}
@@ -118,7 +118,7 @@ func (mmLeave *mLeaverMockLeave) Set(f func(ctx context.Context, ETA insolar.Pul
 }
 
 // Leave implements node.Leaver
-func (mmLeave *LeaverMock) Leave(ctx context.Context, ETA insolar.PulseNumber) {
+func (mmLeave *LeaverMock) Leave(ctx context.Context, ETA pulse2.Number) {
 	mm_atomic.AddUint64(&mmLeave.beforeLeaveCounter, 1)
 	defer mm_atomic.AddUint64(&mmLeave.afterLeaveCounter, 1)
 

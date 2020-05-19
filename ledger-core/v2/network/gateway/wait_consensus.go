@@ -8,22 +8,22 @@ package gateway
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 )
 
 func newWaitConsensus(b *Base) *WaitConsensus {
-	return &WaitConsensus{b, make(chan insolar.Pulse, 1)}
+	return &WaitConsensus{b, make(chan pulse.Pulse, 1)}
 }
 
 type WaitConsensus struct {
 	*Base
 
-	consensusFinished chan insolar.Pulse
+	consensusFinished chan pulse.Pulse
 }
 
-func (g *WaitConsensus) Run(ctx context.Context, pulse insolar.Pulse) {
+func (g *WaitConsensus) Run(ctx context.Context, pulse pulse.Pulse) {
 	select {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)

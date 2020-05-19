@@ -9,15 +9,14 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 // AppenderMock implements Appender
 type AppenderMock struct {
 	t minimock.Tester
 
-	funcAppend          func(ctx context.Context, pulse insolar.Pulse) (err error)
-	inspectFuncAppend   func(ctx context.Context, pulse insolar.Pulse)
+	funcAppend          func(ctx context.Context, pulse Pulse) (err error)
+	inspectFuncAppend   func(ctx context.Context, pulse Pulse)
 	afterAppendCounter  uint64
 	beforeAppendCounter uint64
 	AppendMock          mAppenderMockAppend
@@ -56,7 +55,7 @@ type AppenderMockAppendExpectation struct {
 // AppenderMockAppendParams contains parameters of the Appender.Append
 type AppenderMockAppendParams struct {
 	ctx   context.Context
-	pulse insolar.Pulse
+	pulse Pulse
 }
 
 // AppenderMockAppendResults contains results of the Appender.Append
@@ -65,7 +64,7 @@ type AppenderMockAppendResults struct {
 }
 
 // Expect sets up expected params for Appender.Append
-func (mmAppend *mAppenderMockAppend) Expect(ctx context.Context, pulse insolar.Pulse) *mAppenderMockAppend {
+func (mmAppend *mAppenderMockAppend) Expect(ctx context.Context, pulse Pulse) *mAppenderMockAppend {
 	if mmAppend.mock.funcAppend != nil {
 		mmAppend.mock.t.Fatalf("AppenderMock.Append mock is already set by Set")
 	}
@@ -85,7 +84,7 @@ func (mmAppend *mAppenderMockAppend) Expect(ctx context.Context, pulse insolar.P
 }
 
 // Inspect accepts an inspector function that has same arguments as the Appender.Append
-func (mmAppend *mAppenderMockAppend) Inspect(f func(ctx context.Context, pulse insolar.Pulse)) *mAppenderMockAppend {
+func (mmAppend *mAppenderMockAppend) Inspect(f func(ctx context.Context, pulse Pulse)) *mAppenderMockAppend {
 	if mmAppend.mock.inspectFuncAppend != nil {
 		mmAppend.mock.t.Fatalf("Inspect function is already set for AppenderMock.Append")
 	}
@@ -109,7 +108,7 @@ func (mmAppend *mAppenderMockAppend) Return(err error) *AppenderMock {
 }
 
 //Set uses given function f to mock the Appender.Append method
-func (mmAppend *mAppenderMockAppend) Set(f func(ctx context.Context, pulse insolar.Pulse) (err error)) *AppenderMock {
+func (mmAppend *mAppenderMockAppend) Set(f func(ctx context.Context, pulse Pulse) (err error)) *AppenderMock {
 	if mmAppend.defaultExpectation != nil {
 		mmAppend.mock.t.Fatalf("Default expectation is already set for the Appender.Append method")
 	}
@@ -124,7 +123,7 @@ func (mmAppend *mAppenderMockAppend) Set(f func(ctx context.Context, pulse insol
 
 // When sets expectation for the Appender.Append which will trigger the result defined by the following
 // Then helper
-func (mmAppend *mAppenderMockAppend) When(ctx context.Context, pulse insolar.Pulse) *AppenderMockAppendExpectation {
+func (mmAppend *mAppenderMockAppend) When(ctx context.Context, pulse Pulse) *AppenderMockAppendExpectation {
 	if mmAppend.mock.funcAppend != nil {
 		mmAppend.mock.t.Fatalf("AppenderMock.Append mock is already set by Set")
 	}
@@ -144,7 +143,7 @@ func (e *AppenderMockAppendExpectation) Then(err error) *AppenderMock {
 }
 
 // Append implements Appender
-func (mmAppend *AppenderMock) Append(ctx context.Context, pulse insolar.Pulse) (err error) {
+func (mmAppend *AppenderMock) Append(ctx context.Context, pulse Pulse) (err error) {
 	mm_atomic.AddUint64(&mmAppend.beforeAppendCounter, 1)
 	defer mm_atomic.AddUint64(&mmAppend.afterAppendCounter, 1)
 

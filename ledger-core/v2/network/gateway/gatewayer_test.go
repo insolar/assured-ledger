@@ -13,8 +13,8 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
@@ -35,15 +35,15 @@ func TestNewGatewayer(t *testing.T) {
 		return gw
 	})
 
-	gw.BeforeRunMock.Set(func(ctx context.Context, pulse insolar.Pulse) {
+	gw.BeforeRunMock.Set(func(ctx context.Context, pulse pulse.Pulse) {
 	})
 
-	gw.RunMock.Set(func(ctx context.Context, pulse insolar.Pulse) {
+	gw.RunMock.Set(func(ctx context.Context, pulse pulse.Pulse) {
 	})
 
 	gatewayer := NewGatewayer(gw)
 	assert.Equal(t, gw, gatewayer.Gateway())
 	assert.Equal(t, node.NoNetworkState, gatewayer.Gateway().GetState())
 
-	gatewayer.SwitchState(context.Background(), node.WaitConsensus, *insolar.GenesisPulse)
+	gatewayer.SwitchState(context.Background(), node.WaitConsensus, *pulse.GenesisPulse)
 }

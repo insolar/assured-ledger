@@ -6,19 +6,18 @@
 package pulse
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
-func FromProto(p *PulseProto) *insolar.Pulse {
-	result := &insolar.Pulse{
+func FromProto(p *PulseProto) *Pulse {
+	result := &Pulse{
 		PulseNumber:      p.PulseNumber,
 		PrevPulseNumber:  p.PrevPulseNumber,
 		NextPulseNumber:  p.NextPulseNumber,
 		PulseTimestamp:   p.PulseTimestamp,
 		EpochPulseNumber: pulse.Epoch(p.EpochPulseNumber),
 		Entropy:          p.Entropy,
-		Signs:            map[string]insolar.PulseSenderConfirmation{},
+		Signs:            map[string]SenderConfirmation{},
 	}
 	copy(result.OriginID[:], p.OriginID)
 	for _, sign := range p.Signs {
@@ -28,7 +27,7 @@ func FromProto(p *PulseProto) *insolar.Pulse {
 	return result
 }
 
-func ToProto(p *insolar.Pulse) *PulseProto {
+func ToProto(p *Pulse) *PulseProto {
 	result := &PulseProto{
 		PulseNumber:      p.PulseNumber,
 		PrevPulseNumber:  p.PrevPulseNumber,
@@ -44,7 +43,7 @@ func ToProto(p *insolar.Pulse) *PulseProto {
 	return result
 }
 
-func SenderConfirmationToProto(publicKey string, p insolar.PulseSenderConfirmation) *PulseSenderConfirmationProto {
+func SenderConfirmationToProto(publicKey string, p SenderConfirmation) *PulseSenderConfirmationProto {
 	return &PulseSenderConfirmationProto{
 		PublicKey:       publicKey,
 		PulseNumber:     p.PulseNumber,
@@ -54,8 +53,8 @@ func SenderConfirmationToProto(publicKey string, p insolar.PulseSenderConfirmati
 	}
 }
 
-func SenderConfirmationFromProto(p *PulseSenderConfirmationProto) (string, insolar.PulseSenderConfirmation) {
-	return p.PublicKey, insolar.PulseSenderConfirmation{
+func SenderConfirmationFromProto(p *PulseSenderConfirmationProto) (string, SenderConfirmation) {
+	return p.PublicKey, SenderConfirmation{
 		PulseNumber:     p.PulseNumber,
 		ChosenPublicKey: p.ChosenPublicKey,
 		Entropy:         p.Entropy,

@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -59,7 +59,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse insolar.Pulse) {
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulse.Pulse) {
 		assert.Equal(t, node.NoNetworkState, state)
 	})
 
@@ -68,7 +68,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	})
 
 	assert.Equal(t, node.JoinerBootstrap, f.joinerBootstrap.GetState())
-	f.joinerBootstrap.Run(context.Background(), *insolar.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), *pulse.EphemeralPulse)
 }
 
 func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
@@ -76,7 +76,7 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse insolar.Pulse) {
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulse.Pulse) {
 		assert.Equal(t, node.NoNetworkState, state)
 	})
 
@@ -84,11 +84,11 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 		return &packet.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulse.Pulse) (bp1 *packet.BootstrapResponse, err error) {
 		return nil, ErrUnknown
 	})
 
-	f.joinerBootstrap.Run(context.Background(), *insolar.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), *pulse.EphemeralPulse)
 }
 
 func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
@@ -96,8 +96,8 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse insolar.Pulse) {
-		assert.Equal(t, insolar.PulseNumber(123), pulse.PulseNumber)
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulse.Pulse) {
+		assert.Equal(t, pulse2.Number(123), pulse.PulseNumber)
 		assert.Equal(t, node.WaitConsensus, state)
 	})
 
@@ -105,7 +105,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		return &packet.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulse.Pulse) (bp1 *packet.BootstrapResponse, err error) {
 		p := pulse.PulseProto{PulseNumber: 123}
 		return &packet.BootstrapResponse{
 			ETASeconds: 90,
@@ -113,7 +113,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		}, nil
 	})
 
-	f.joinerBootstrap.Run(context.Background(), *insolar.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), *pulse.EphemeralPulse)
 
 	assert.Equal(t, true, f.joinerBootstrap.bootstrapTimer.Stop())
 	assert.Equal(t, time.Duration(0), f.joinerBootstrap.backoff)

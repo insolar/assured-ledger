@@ -12,14 +12,15 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 )
 
@@ -34,16 +35,16 @@ func TestTable_Resolve(t *testing.T) {
 	table := Table{}
 
 	refs := gen.UniqueReferences(2)
-	pulse := insolar.GenesisPulse
+	puls := pulse2.GenesisPulse
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
-	nodeKeeperMock.GetAccessorMock.Set(func(p1 insolar.PulseNumber) network.Accessor {
+	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
 		n := newNode(refs[0], 123)
-		return node.NewAccessor(node.NewSnapshot(pulse.PulseNumber, []node2.NetworkNode{n}))
+		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []node2.NetworkNode{n}))
 	})
 
 	pulseAccessorMock := mock.NewPulseAccessorMock(t)
-	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 insolar.Pulse, err error) {
-		return *pulse, nil
+	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 pulse2.Pulse, err error) {
+		return *puls, nil
 	})
 
 	table.PulseAccessor = pulseAccessorMock

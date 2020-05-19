@@ -9,21 +9,21 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // CalculatorMock implements Calculator
 type CalculatorMock struct {
 	t minimock.Tester
 
-	funcBackwards          func(ctx context.Context, pn insolar.PulseNumber, steps int) (p1 insolar.Pulse, err error)
-	inspectFuncBackwards   func(ctx context.Context, pn insolar.PulseNumber, steps int)
+	funcBackwards          func(ctx context.Context, pn pulse.Number, steps int) (p1 Pulse, err error)
+	inspectFuncBackwards   func(ctx context.Context, pn pulse.Number, steps int)
 	afterBackwardsCounter  uint64
 	beforeBackwardsCounter uint64
 	BackwardsMock          mCalculatorMockBackwards
 
-	funcForwards          func(ctx context.Context, pn insolar.PulseNumber, steps int) (p1 insolar.Pulse, err error)
-	inspectFuncForwards   func(ctx context.Context, pn insolar.PulseNumber, steps int)
+	funcForwards          func(ctx context.Context, pn pulse.Number, steps int) (p1 Pulse, err error)
+	inspectFuncForwards   func(ctx context.Context, pn pulse.Number, steps int)
 	afterForwardsCounter  uint64
 	beforeForwardsCounter uint64
 	ForwardsMock          mCalculatorMockForwards
@@ -65,18 +65,18 @@ type CalculatorMockBackwardsExpectation struct {
 // CalculatorMockBackwardsParams contains parameters of the Calculator.Backwards
 type CalculatorMockBackwardsParams struct {
 	ctx   context.Context
-	pn    insolar.PulseNumber
+	pn    pulse.Number
 	steps int
 }
 
 // CalculatorMockBackwardsResults contains results of the Calculator.Backwards
 type CalculatorMockBackwardsResults struct {
-	p1  insolar.Pulse
+	p1  Pulse
 	err error
 }
 
 // Expect sets up expected params for Calculator.Backwards
-func (mmBackwards *mCalculatorMockBackwards) Expect(ctx context.Context, pn insolar.PulseNumber, steps int) *mCalculatorMockBackwards {
+func (mmBackwards *mCalculatorMockBackwards) Expect(ctx context.Context, pn pulse.Number, steps int) *mCalculatorMockBackwards {
 	if mmBackwards.mock.funcBackwards != nil {
 		mmBackwards.mock.t.Fatalf("CalculatorMock.Backwards mock is already set by Set")
 	}
@@ -96,7 +96,7 @@ func (mmBackwards *mCalculatorMockBackwards) Expect(ctx context.Context, pn inso
 }
 
 // Inspect accepts an inspector function that has same arguments as the Calculator.Backwards
-func (mmBackwards *mCalculatorMockBackwards) Inspect(f func(ctx context.Context, pn insolar.PulseNumber, steps int)) *mCalculatorMockBackwards {
+func (mmBackwards *mCalculatorMockBackwards) Inspect(f func(ctx context.Context, pn pulse.Number, steps int)) *mCalculatorMockBackwards {
 	if mmBackwards.mock.inspectFuncBackwards != nil {
 		mmBackwards.mock.t.Fatalf("Inspect function is already set for CalculatorMock.Backwards")
 	}
@@ -107,7 +107,7 @@ func (mmBackwards *mCalculatorMockBackwards) Inspect(f func(ctx context.Context,
 }
 
 // Return sets up results that will be returned by Calculator.Backwards
-func (mmBackwards *mCalculatorMockBackwards) Return(p1 insolar.Pulse, err error) *CalculatorMock {
+func (mmBackwards *mCalculatorMockBackwards) Return(p1 Pulse, err error) *CalculatorMock {
 	if mmBackwards.mock.funcBackwards != nil {
 		mmBackwards.mock.t.Fatalf("CalculatorMock.Backwards mock is already set by Set")
 	}
@@ -120,7 +120,7 @@ func (mmBackwards *mCalculatorMockBackwards) Return(p1 insolar.Pulse, err error)
 }
 
 //Set uses given function f to mock the Calculator.Backwards method
-func (mmBackwards *mCalculatorMockBackwards) Set(f func(ctx context.Context, pn insolar.PulseNumber, steps int) (p1 insolar.Pulse, err error)) *CalculatorMock {
+func (mmBackwards *mCalculatorMockBackwards) Set(f func(ctx context.Context, pn pulse.Number, steps int) (p1 Pulse, err error)) *CalculatorMock {
 	if mmBackwards.defaultExpectation != nil {
 		mmBackwards.mock.t.Fatalf("Default expectation is already set for the Calculator.Backwards method")
 	}
@@ -135,7 +135,7 @@ func (mmBackwards *mCalculatorMockBackwards) Set(f func(ctx context.Context, pn 
 
 // When sets expectation for the Calculator.Backwards which will trigger the result defined by the following
 // Then helper
-func (mmBackwards *mCalculatorMockBackwards) When(ctx context.Context, pn insolar.PulseNumber, steps int) *CalculatorMockBackwardsExpectation {
+func (mmBackwards *mCalculatorMockBackwards) When(ctx context.Context, pn pulse.Number, steps int) *CalculatorMockBackwardsExpectation {
 	if mmBackwards.mock.funcBackwards != nil {
 		mmBackwards.mock.t.Fatalf("CalculatorMock.Backwards mock is already set by Set")
 	}
@@ -149,13 +149,13 @@ func (mmBackwards *mCalculatorMockBackwards) When(ctx context.Context, pn insola
 }
 
 // Then sets up Calculator.Backwards return parameters for the expectation previously defined by the When method
-func (e *CalculatorMockBackwardsExpectation) Then(p1 insolar.Pulse, err error) *CalculatorMock {
+func (e *CalculatorMockBackwardsExpectation) Then(p1 Pulse, err error) *CalculatorMock {
 	e.results = &CalculatorMockBackwardsResults{p1, err}
 	return e.mock
 }
 
 // Backwards implements Calculator
-func (mmBackwards *CalculatorMock) Backwards(ctx context.Context, pn insolar.PulseNumber, steps int) (p1 insolar.Pulse, err error) {
+func (mmBackwards *CalculatorMock) Backwards(ctx context.Context, pn pulse.Number, steps int) (p1 Pulse, err error) {
 	mm_atomic.AddUint64(&mmBackwards.beforeBackwardsCounter, 1)
 	defer mm_atomic.AddUint64(&mmBackwards.afterBackwardsCounter, 1)
 
@@ -283,18 +283,18 @@ type CalculatorMockForwardsExpectation struct {
 // CalculatorMockForwardsParams contains parameters of the Calculator.Forwards
 type CalculatorMockForwardsParams struct {
 	ctx   context.Context
-	pn    insolar.PulseNumber
+	pn    pulse.Number
 	steps int
 }
 
 // CalculatorMockForwardsResults contains results of the Calculator.Forwards
 type CalculatorMockForwardsResults struct {
-	p1  insolar.Pulse
+	p1  Pulse
 	err error
 }
 
 // Expect sets up expected params for Calculator.Forwards
-func (mmForwards *mCalculatorMockForwards) Expect(ctx context.Context, pn insolar.PulseNumber, steps int) *mCalculatorMockForwards {
+func (mmForwards *mCalculatorMockForwards) Expect(ctx context.Context, pn pulse.Number, steps int) *mCalculatorMockForwards {
 	if mmForwards.mock.funcForwards != nil {
 		mmForwards.mock.t.Fatalf("CalculatorMock.Forwards mock is already set by Set")
 	}
@@ -314,7 +314,7 @@ func (mmForwards *mCalculatorMockForwards) Expect(ctx context.Context, pn insola
 }
 
 // Inspect accepts an inspector function that has same arguments as the Calculator.Forwards
-func (mmForwards *mCalculatorMockForwards) Inspect(f func(ctx context.Context, pn insolar.PulseNumber, steps int)) *mCalculatorMockForwards {
+func (mmForwards *mCalculatorMockForwards) Inspect(f func(ctx context.Context, pn pulse.Number, steps int)) *mCalculatorMockForwards {
 	if mmForwards.mock.inspectFuncForwards != nil {
 		mmForwards.mock.t.Fatalf("Inspect function is already set for CalculatorMock.Forwards")
 	}
@@ -325,7 +325,7 @@ func (mmForwards *mCalculatorMockForwards) Inspect(f func(ctx context.Context, p
 }
 
 // Return sets up results that will be returned by Calculator.Forwards
-func (mmForwards *mCalculatorMockForwards) Return(p1 insolar.Pulse, err error) *CalculatorMock {
+func (mmForwards *mCalculatorMockForwards) Return(p1 Pulse, err error) *CalculatorMock {
 	if mmForwards.mock.funcForwards != nil {
 		mmForwards.mock.t.Fatalf("CalculatorMock.Forwards mock is already set by Set")
 	}
@@ -338,7 +338,7 @@ func (mmForwards *mCalculatorMockForwards) Return(p1 insolar.Pulse, err error) *
 }
 
 //Set uses given function f to mock the Calculator.Forwards method
-func (mmForwards *mCalculatorMockForwards) Set(f func(ctx context.Context, pn insolar.PulseNumber, steps int) (p1 insolar.Pulse, err error)) *CalculatorMock {
+func (mmForwards *mCalculatorMockForwards) Set(f func(ctx context.Context, pn pulse.Number, steps int) (p1 Pulse, err error)) *CalculatorMock {
 	if mmForwards.defaultExpectation != nil {
 		mmForwards.mock.t.Fatalf("Default expectation is already set for the Calculator.Forwards method")
 	}
@@ -353,7 +353,7 @@ func (mmForwards *mCalculatorMockForwards) Set(f func(ctx context.Context, pn in
 
 // When sets expectation for the Calculator.Forwards which will trigger the result defined by the following
 // Then helper
-func (mmForwards *mCalculatorMockForwards) When(ctx context.Context, pn insolar.PulseNumber, steps int) *CalculatorMockForwardsExpectation {
+func (mmForwards *mCalculatorMockForwards) When(ctx context.Context, pn pulse.Number, steps int) *CalculatorMockForwardsExpectation {
 	if mmForwards.mock.funcForwards != nil {
 		mmForwards.mock.t.Fatalf("CalculatorMock.Forwards mock is already set by Set")
 	}
@@ -367,13 +367,13 @@ func (mmForwards *mCalculatorMockForwards) When(ctx context.Context, pn insolar.
 }
 
 // Then sets up Calculator.Forwards return parameters for the expectation previously defined by the When method
-func (e *CalculatorMockForwardsExpectation) Then(p1 insolar.Pulse, err error) *CalculatorMock {
+func (e *CalculatorMockForwardsExpectation) Then(p1 Pulse, err error) *CalculatorMock {
 	e.results = &CalculatorMockForwardsResults{p1, err}
 	return e.mock
 }
 
 // Forwards implements Calculator
-func (mmForwards *CalculatorMock) Forwards(ctx context.Context, pn insolar.PulseNumber, steps int) (p1 insolar.Pulse, err error) {
+func (mmForwards *CalculatorMock) Forwards(ctx context.Context, pn pulse.Number, steps int) (p1 Pulse, err error) {
 	mm_atomic.AddUint64(&mmForwards.beforeForwardsCounter, 1)
 	defer mm_atomic.AddUint64(&mmForwards.afterForwardsCounter, 1)
 

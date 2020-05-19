@@ -12,15 +12,15 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 )
 
 func (t *merkleHelperSuite) TestMerkleHelperPulseHash() {
-	pulse := &insolar.Pulse{
-		PulseNumber:     insolar.PulseNumber(1337),
-		NextPulseNumber: insolar.PulseNumber(1347),
+	pulse := &pulse2.Pulse{
+		PulseNumber:     1337,
+		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),
 	}
 

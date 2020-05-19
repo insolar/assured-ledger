@@ -8,14 +8,14 @@ package merkle
 import (
 	"sort"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
 
 	"github.com/pkg/errors"
 )
 
 type PulseEntry struct {
-	Pulse *insolar.Pulse
+	Pulse *pulse.Pulse
 }
 
 func (pe *PulseEntry) hash(helper *merkleHelper) []byte {

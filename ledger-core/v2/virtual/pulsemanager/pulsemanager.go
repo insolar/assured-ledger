@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
@@ -19,10 +18,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	pulse2 "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-// PulseManager implements insolar.PulseManager.
+// Manager implements insolar.Manager.
 type PulseManager struct {
 	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
 	NodeSetter    nodestorage.Modifier `inject:""`
@@ -36,7 +36,7 @@ type PulseManager struct {
 	stopped bool
 }
 
-// NewPulseManager creates PulseManager instance.
+// NewPulseManager creates Manager instance.
 func NewPulseManager() *PulseManager {
 	return &PulseManager{}
 }
@@ -52,21 +52,21 @@ func (m *PulseManager) AddDispatcher(d ...dispatcher.Dispatcher) {
 
 type messageNewPulse struct {
 	*log.Msg `txt:"received pulse"`
-	OldPulse insolar.PulseNumber
-	NewPulse insolar.PulseNumber
+	OldPulse pulse2.Number
+	NewPulse pulse2.Number
 }
 
 // Set set's new pulse.
-func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
+func (m *PulseManager) Set(ctx context.Context, newPulse pulse.Pulse) error {
 	m.setLock.Lock()
 	defer m.setLock.Unlock()
 	if m.stopped {
-		return errors.New("can't call Set method on PulseManager after stop")
+		return errors.New("can't call Set method on Manager after stop")
 	}
 
 	storagePulse, err := m.PulseAccessor.Latest(ctx)
 	if err == pulse.ErrNotFound {
-		storagePulse = *insolar.GenesisPulse
+		storagePulse = *pulse.GenesisPulse
 	} else if err != nil {
 		return errors.Wrap(err, "call of GetLatestPulseNumber failed")
 	}
@@ -110,7 +110,7 @@ func (m *PulseManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops PulseManager.
+// Stop stops Manager.
 func (m *PulseManager) Stop(ctx context.Context) error {
 	// There should not to be any Set call after Stop call
 	m.setLock.Lock()
