@@ -14,12 +14,13 @@ import (
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
@@ -52,9 +53,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 		},
 	}
 
-	var callFlags payload.CallRequestFlags
-
-	callFlags.SetTolerance(payload.CallTolerable)
+	callFlags := payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 
 	cr := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
@@ -125,7 +124,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Message, error) {
 	bytes, err := request.Marshal()
 	if err != nil {
-		return nil, errors.W(err, "failed to marshal request")
+		return nil, throw.W(err, "failed to marshal request")
 	}
 
 	msg, err := payload.NewMessage(&payload.Meta{
@@ -138,7 +137,7 @@ func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Mess
 		OriginHash: payload.MessageHash{},
 	})
 	if err != nil {
-		return nil, errors.W(err, "failed to create new message")
+		return nil, throw.W(err, "failed to create new message")
 	}
 
 	return msg, nil

@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -69,19 +70,25 @@ func (i *Info) GetState() State {
 	return i.objectState
 }
 
-func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
-	if isOrdered {
-		i.PotentialMutablePendingCount++
-	} else {
+func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
+	switch isolation.Interference {
+	case contract.CallIntolerable:
 		i.PotentialImmutablePendingCount++
+	case contract.CallTolerable:
+		i.PotentialMutablePendingCount++
+	default:
+		panic(throw.Unsupported())
 	}
 }
 
-func (i *Info) DecrementPotentialPendingCounter(isOrdered bool) {
-	if isOrdered {
-		i.PotentialMutablePendingCount--
-	} else {
+func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolation) {
+	switch isolation.Interference {
+	case contract.CallIntolerable:
 		i.PotentialImmutablePendingCount--
+	case contract.CallTolerable:
+		i.PotentialMutablePendingCount--
+	default:
+		panic(throw.Unsupported())
 	}
 }
 

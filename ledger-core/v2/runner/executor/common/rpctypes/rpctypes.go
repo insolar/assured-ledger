@@ -6,7 +6,7 @@
 package rpctypes
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
@@ -74,13 +74,13 @@ type UpGetCodeResp struct {
 // UpCallMethodReq is a set of arguments for Send RPC in goplugin
 type UpCallMethodReq struct {
 	UpBaseReq
-	Tolerance payload.ToleranceFlag
-	Isolation payload.StateFlag
-	Saga      bool
-	Object    reference.Global
-	Method    string
-	Arguments Arguments
-	Prototype reference.Global
+	Interference contract.InterferenceFlag
+	Isolation    contract.StateFlag
+	Saga         bool
+	Object       reference.Global
+	Method       string
+	Arguments    Arguments
+	Prototype    reference.Global
 }
 
 // UpCallMethodResp is response from Send RPC in goplugin

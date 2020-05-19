@@ -9,6 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 )
@@ -28,6 +29,12 @@ type ExecutorMock struct {
 	afterCallMethodCounter  uint64
 	beforeCallMethodCounter uint64
 	CallMethodMock          mExecutorMockCallMethod
+
+	funcClassifyMethod          func(ctx context.Context, codeRef reference.Global, method string) (m1 contract.MethodIsolation, err error)
+	inspectFuncClassifyMethod   func(ctx context.Context, codeRef reference.Global, method string)
+	afterClassifyMethodCounter  uint64
+	beforeClassifyMethodCounter uint64
+	ClassifyMethodMock          mExecutorMockClassifyMethod
 }
 
 // NewExecutorMock returns a mock for Executor
@@ -42,6 +49,9 @@ func NewExecutorMock(t minimock.Tester) *ExecutorMock {
 
 	m.CallMethodMock = mExecutorMockCallMethod{mock: m}
 	m.CallMethodMock.callArgs = []*ExecutorMockCallMethodParams{}
+
+	m.ClassifyMethodMock = mExecutorMockClassifyMethod{mock: m}
+	m.ClassifyMethodMock.callArgs = []*ExecutorMockClassifyMethodParams{}
 
 	return m
 }
@@ -489,12 +499,232 @@ func (m *ExecutorMock) MinimockCallMethodInspect() {
 	}
 }
 
+type mExecutorMockClassifyMethod struct {
+	mock               *ExecutorMock
+	defaultExpectation *ExecutorMockClassifyMethodExpectation
+	expectations       []*ExecutorMockClassifyMethodExpectation
+
+	callArgs []*ExecutorMockClassifyMethodParams
+	mutex    sync.RWMutex
+}
+
+// ExecutorMockClassifyMethodExpectation specifies expectation struct of the Executor.ClassifyMethod
+type ExecutorMockClassifyMethodExpectation struct {
+	mock    *ExecutorMock
+	params  *ExecutorMockClassifyMethodParams
+	results *ExecutorMockClassifyMethodResults
+	Counter uint64
+}
+
+// ExecutorMockClassifyMethodParams contains parameters of the Executor.ClassifyMethod
+type ExecutorMockClassifyMethodParams struct {
+	ctx     context.Context
+	codeRef reference.Global
+	method  string
+}
+
+// ExecutorMockClassifyMethodResults contains results of the Executor.ClassifyMethod
+type ExecutorMockClassifyMethodResults struct {
+	m1  contract.MethodIsolation
+	err error
+}
+
+// Expect sets up expected params for Executor.ClassifyMethod
+func (mmClassifyMethod *mExecutorMockClassifyMethod) Expect(ctx context.Context, codeRef reference.Global, method string) *mExecutorMockClassifyMethod {
+	if mmClassifyMethod.mock.funcClassifyMethod != nil {
+		mmClassifyMethod.mock.t.Fatalf("ExecutorMock.ClassifyMethod mock is already set by Set")
+	}
+
+	if mmClassifyMethod.defaultExpectation == nil {
+		mmClassifyMethod.defaultExpectation = &ExecutorMockClassifyMethodExpectation{}
+	}
+
+	mmClassifyMethod.defaultExpectation.params = &ExecutorMockClassifyMethodParams{ctx, codeRef, method}
+	for _, e := range mmClassifyMethod.expectations {
+		if minimock.Equal(e.params, mmClassifyMethod.defaultExpectation.params) {
+			mmClassifyMethod.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmClassifyMethod.defaultExpectation.params)
+		}
+	}
+
+	return mmClassifyMethod
+}
+
+// Inspect accepts an inspector function that has same arguments as the Executor.ClassifyMethod
+func (mmClassifyMethod *mExecutorMockClassifyMethod) Inspect(f func(ctx context.Context, codeRef reference.Global, method string)) *mExecutorMockClassifyMethod {
+	if mmClassifyMethod.mock.inspectFuncClassifyMethod != nil {
+		mmClassifyMethod.mock.t.Fatalf("Inspect function is already set for ExecutorMock.ClassifyMethod")
+	}
+
+	mmClassifyMethod.mock.inspectFuncClassifyMethod = f
+
+	return mmClassifyMethod
+}
+
+// Return sets up results that will be returned by Executor.ClassifyMethod
+func (mmClassifyMethod *mExecutorMockClassifyMethod) Return(m1 contract.MethodIsolation, err error) *ExecutorMock {
+	if mmClassifyMethod.mock.funcClassifyMethod != nil {
+		mmClassifyMethod.mock.t.Fatalf("ExecutorMock.ClassifyMethod mock is already set by Set")
+	}
+
+	if mmClassifyMethod.defaultExpectation == nil {
+		mmClassifyMethod.defaultExpectation = &ExecutorMockClassifyMethodExpectation{mock: mmClassifyMethod.mock}
+	}
+	mmClassifyMethod.defaultExpectation.results = &ExecutorMockClassifyMethodResults{m1, err}
+	return mmClassifyMethod.mock
+}
+
+//Set uses given function f to mock the Executor.ClassifyMethod method
+func (mmClassifyMethod *mExecutorMockClassifyMethod) Set(f func(ctx context.Context, codeRef reference.Global, method string) (m1 contract.MethodIsolation, err error)) *ExecutorMock {
+	if mmClassifyMethod.defaultExpectation != nil {
+		mmClassifyMethod.mock.t.Fatalf("Default expectation is already set for the Executor.ClassifyMethod method")
+	}
+
+	if len(mmClassifyMethod.expectations) > 0 {
+		mmClassifyMethod.mock.t.Fatalf("Some expectations are already set for the Executor.ClassifyMethod method")
+	}
+
+	mmClassifyMethod.mock.funcClassifyMethod = f
+	return mmClassifyMethod.mock
+}
+
+// When sets expectation for the Executor.ClassifyMethod which will trigger the result defined by the following
+// Then helper
+func (mmClassifyMethod *mExecutorMockClassifyMethod) When(ctx context.Context, codeRef reference.Global, method string) *ExecutorMockClassifyMethodExpectation {
+	if mmClassifyMethod.mock.funcClassifyMethod != nil {
+		mmClassifyMethod.mock.t.Fatalf("ExecutorMock.ClassifyMethod mock is already set by Set")
+	}
+
+	expectation := &ExecutorMockClassifyMethodExpectation{
+		mock:   mmClassifyMethod.mock,
+		params: &ExecutorMockClassifyMethodParams{ctx, codeRef, method},
+	}
+	mmClassifyMethod.expectations = append(mmClassifyMethod.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Executor.ClassifyMethod return parameters for the expectation previously defined by the When method
+func (e *ExecutorMockClassifyMethodExpectation) Then(m1 contract.MethodIsolation, err error) *ExecutorMock {
+	e.results = &ExecutorMockClassifyMethodResults{m1, err}
+	return e.mock
+}
+
+// ClassifyMethod implements Executor
+func (mmClassifyMethod *ExecutorMock) ClassifyMethod(ctx context.Context, codeRef reference.Global, method string) (m1 contract.MethodIsolation, err error) {
+	mm_atomic.AddUint64(&mmClassifyMethod.beforeClassifyMethodCounter, 1)
+	defer mm_atomic.AddUint64(&mmClassifyMethod.afterClassifyMethodCounter, 1)
+
+	if mmClassifyMethod.inspectFuncClassifyMethod != nil {
+		mmClassifyMethod.inspectFuncClassifyMethod(ctx, codeRef, method)
+	}
+
+	mm_params := &ExecutorMockClassifyMethodParams{ctx, codeRef, method}
+
+	// Record call args
+	mmClassifyMethod.ClassifyMethodMock.mutex.Lock()
+	mmClassifyMethod.ClassifyMethodMock.callArgs = append(mmClassifyMethod.ClassifyMethodMock.callArgs, mm_params)
+	mmClassifyMethod.ClassifyMethodMock.mutex.Unlock()
+
+	for _, e := range mmClassifyMethod.ClassifyMethodMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmClassifyMethod.ClassifyMethodMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmClassifyMethod.ClassifyMethodMock.defaultExpectation.Counter, 1)
+		mm_want := mmClassifyMethod.ClassifyMethodMock.defaultExpectation.params
+		mm_got := ExecutorMockClassifyMethodParams{ctx, codeRef, method}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmClassifyMethod.t.Errorf("ExecutorMock.ClassifyMethod got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmClassifyMethod.ClassifyMethodMock.defaultExpectation.results
+		if mm_results == nil {
+			mmClassifyMethod.t.Fatal("No results are set for the ExecutorMock.ClassifyMethod")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmClassifyMethod.funcClassifyMethod != nil {
+		return mmClassifyMethod.funcClassifyMethod(ctx, codeRef, method)
+	}
+	mmClassifyMethod.t.Fatalf("Unexpected call to ExecutorMock.ClassifyMethod. %v %v %v", ctx, codeRef, method)
+	return
+}
+
+// ClassifyMethodAfterCounter returns a count of finished ExecutorMock.ClassifyMethod invocations
+func (mmClassifyMethod *ExecutorMock) ClassifyMethodAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClassifyMethod.afterClassifyMethodCounter)
+}
+
+// ClassifyMethodBeforeCounter returns a count of ExecutorMock.ClassifyMethod invocations
+func (mmClassifyMethod *ExecutorMock) ClassifyMethodBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClassifyMethod.beforeClassifyMethodCounter)
+}
+
+// Calls returns a list of arguments used in each call to ExecutorMock.ClassifyMethod.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmClassifyMethod *mExecutorMockClassifyMethod) Calls() []*ExecutorMockClassifyMethodParams {
+	mmClassifyMethod.mutex.RLock()
+
+	argCopy := make([]*ExecutorMockClassifyMethodParams, len(mmClassifyMethod.callArgs))
+	copy(argCopy, mmClassifyMethod.callArgs)
+
+	mmClassifyMethod.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockClassifyMethodDone returns true if the count of the ClassifyMethod invocations corresponds
+// the number of defined expectations
+func (m *ExecutorMock) MinimockClassifyMethodDone() bool {
+	for _, e := range m.ClassifyMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ClassifyMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterClassifyMethodCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcClassifyMethod != nil && mm_atomic.LoadUint64(&m.afterClassifyMethodCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockClassifyMethodInspect logs each unmet expectation
+func (m *ExecutorMock) MinimockClassifyMethodInspect() {
+	for _, e := range m.ClassifyMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ExecutorMock.ClassifyMethod with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ClassifyMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterClassifyMethodCounter) < 1 {
+		if m.ClassifyMethodMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ExecutorMock.ClassifyMethod")
+		} else {
+			m.t.Errorf("Expected call to ExecutorMock.ClassifyMethod with params: %#v", *m.ClassifyMethodMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcClassifyMethod != nil && mm_atomic.LoadUint64(&m.afterClassifyMethodCounter) < 1 {
+		m.t.Error("Expected call to ExecutorMock.ClassifyMethod")
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *ExecutorMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockCallConstructorInspect()
 
 		m.MinimockCallMethodInspect()
+
+		m.MinimockClassifyMethodInspect()
 		m.t.FailNow()
 	}
 }
@@ -519,5 +749,6 @@ func (m *ExecutorMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCallConstructorDone() &&
-		m.MinimockCallMethodDone()
+		m.MinimockCallMethodDone() &&
+		m.MinimockClassifyMethodDone()
 }

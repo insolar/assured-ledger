@@ -18,6 +18,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -52,10 +53,12 @@ func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*messa
 }
 
 func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype reference.Global, object reference.Local) error {
+	isolation := contract.ConstructorIsolation()
+
 	pl := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           0,
+		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
 		Callee:              reference.Global{},
@@ -122,7 +125,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTMethod,
-			CallFlags:           0,
+			CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
@@ -176,6 +179,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
+	executorMock.ClassifyMethodMock.Return(contract.MethodIsolation{
+		Interference: contract.CallIntolerable,
+		State:        contract.CallValidated,
+	}, nil)
 	executorMock.CallMethodMock.Set(func(
 		ctx context.Context, callContext *call.LogicContext, code reference.Global,
 		data []byte, method string, args []byte,
@@ -225,7 +232,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 		for i := 0; i < 2; i++ {
 			flags := payload.CallRequestFlags(0)
-			flags.SetTolerance(payload.CallIntolerable)
+			flags.SetInterference(contract.CallIntolerable)
 			pl := payload.VCallRequest{
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
@@ -281,7 +288,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTMethod,
-			CallFlags:           0,
+			CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
