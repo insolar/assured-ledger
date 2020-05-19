@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
