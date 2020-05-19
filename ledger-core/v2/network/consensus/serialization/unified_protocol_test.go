@@ -17,8 +17,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
 var digester = func() cryptkit.DataDigester {

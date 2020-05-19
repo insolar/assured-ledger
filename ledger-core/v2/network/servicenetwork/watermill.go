@@ -12,8 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
-	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/bus/meta"
+	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -25,8 +24,8 @@ var ack = []byte{1}
 
 // SendMessageHandler async sends message with confirmation of delivery.
 func (n *ServiceNetwork) SendMessageHandler(msg *message.Message) error {
-	ctx := inslogger.ContextWithTrace(context.Background(), msg.Metadata.Get(meta.TraceID))
-	parentSpan, err := instracer.Deserialize([]byte(msg.Metadata.Get(meta.SpanData)))
+	ctx := inslogger.ContextWithTrace(context.Background(), msg.Metadata.Get(busMeta.TraceID))
+	parentSpan, err := instracer.Deserialize([]byte(msg.Metadata.Get(busMeta.SpanData)))
 	if err == nil {
 		ctx = instracer.WithParentSpan(ctx, parentSpan)
 	} else {
@@ -42,7 +41,7 @@ func (n *ServiceNetwork) SendMessageHandler(msg *message.Message) error {
 }
 
 func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) error {
-	receiver := msg.Metadata.Get(meta.Receiver)
+	receiver := msg.Metadata.Get(busMeta.Receiver)
 	if receiver == "" {
 		return errors.New("failed to send message: Receiver in message metadata is not set")
 	}
@@ -87,7 +86,7 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 	}
 	logger = inslogger.FromContext(ctx)
 	if inslogger.TraceID(ctx) != msg.Metadata.Get(busMeta.TraceID) {
-		logger.Errorf("traceID from context (%s) is different from traceID from message Metadata (%s)", inslogger.TraceID(ctx), msg.Metadata.Get(meta.TraceID))
+		logger.Errorf("traceID from context (%s) is different from traceID from message Metadata (%s)", inslogger.TraceID(ctx), msg.Metadata.Get(busMeta.TraceID))
 	}
 	// TODO: check pulse here
 
