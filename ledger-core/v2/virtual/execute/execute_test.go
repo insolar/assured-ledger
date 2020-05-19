@@ -35,7 +35,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		catalog         = object.NewCatalogMock(mc)
 		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
-		smObject        = object.NewStateMachineObject(smGlobalRef, object.InitReasonCTConstructor)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags payload.CallRequestFlags
@@ -63,6 +63,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	stepChecker := testutils.NewSMStepChecker()
 	{
 		exec := SMExecute{}
+		stepChecker.AddStep(exec.stepCheckRequest)
 		stepChecker.AddStep(exec.stepUpdatePendingCounters)
 		stepChecker.AddStep(exec.stepWaitObjectReady)
 	}
@@ -75,9 +76,10 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	execCtx.SetDefaultMigrationMock.Return()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef, object.InitReasonCTConstructor).Return(smObjectAccessor)
+	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef).Return(smObjectAccessor)
 
 	smExecute.Init(execCtx)
+	smExecute.stepGetObject(execCtx)
 
 	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
