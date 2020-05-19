@@ -91,23 +91,9 @@ func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContex
 }
 
 func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	objectRef := s.Payload.Callee
-
-	var objectDescriptor *descriptor.Object
-
-	if s.Payload.LatestState != nil {
-		state := s.Payload.LatestState
-		desc := descriptor.NewObject(
-			objectRef,
-			state.Reference,
-			state.Prototype,
-			state.State,
-			state.Parent,
-		)
-		objectDescriptor = &desc
-	}
-
 	setStateFunc := func(data interface{}) (wakeup bool) {
+		objectRef := s.Payload.Callee
+
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
 			ctx.Log().Trace(stateIsNotReadyErrorMsg{
@@ -117,8 +103,8 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		}
 
 		// Update object state.
-		if objectDescriptor != nil {
-			state.SetDescriptor(*objectDescriptor)
+		if s.hasLatestState() {
+			state.SetDescriptor(s.latestState())
 		}
 
 		switch s.Payload.CallFlags.GetTolerance() {
@@ -161,4 +147,23 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	}
 
 	return ctx.Stop()
+}
+
+func (s *SMVDelegatedRequestFinished) hasLatestState() bool {
+	return s.Payload.LatestState != nil
+}
+
+func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
+	state := s.Payload.LatestState
+	if state == nil {
+		panic(throw.IllegalState())
+	}
+
+	return descriptor.NewObject(
+		s.Payload.Callee,
+		state.Reference,
+		state.Prototype,
+		state.State,
+		state.Parent,
+	)
 }
