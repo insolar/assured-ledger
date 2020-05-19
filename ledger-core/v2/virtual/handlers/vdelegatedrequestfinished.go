@@ -8,6 +8,7 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -23,6 +24,17 @@ type SMVDelegatedRequestFinished struct {
 
 	// dependencies
 	objectCatalog object.Catalog
+}
+
+type stateIsNotReadyErrorMsg struct {
+	*log.Msg  `txt:"State is not ready"`
+	Reference string
+}
+
+type unExpectedVDelegateRequestFinished struct {
+	*log.Msg  `txt:"Unexpected VDelegateRequestFinished"`
+	Reference string
+	ordered   bool
 }
 
 var dSMVDelegatedRequestFinishedInstance smachine.StateMachineDeclaration = &dSMVDelegatedRequestFinished{}
@@ -113,6 +125,11 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		case payload.CallIntolerable:
 			if state.ActiveImmutablePendingCount > 0 {
 				state.ActiveImmutablePendingCount--
+			} else {
+				ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+					Reference: objectRef.String(),
+					ordered:   false,
+				})
 			}
 		case payload.CallTolerable:
 			if state.ActiveMutablePendingCount > 0 {
@@ -124,6 +141,11 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 						ctx.Log().Trace("AwaitPendingOrdered BargeIn receive false")
 					}
 				}
+			} else {
+				ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+					Reference: objectRef.String(),
+					ordered:   true,
+				})
 			}
 		}
 

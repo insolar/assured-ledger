@@ -61,11 +61,6 @@ type stateAlreadyExistsErrorMsg struct {
 	GotState  string
 }
 
-type stateIsNotReadyErrorMsg struct {
-	*log.Msg  `txt:"State is not ready"`
-	Reference string
-}
-
 func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	objectRef := s.Payload.Lifeline
 	sharedObjectState, ok := s.objectCatalog.TryGet(ctx, objectRef)
