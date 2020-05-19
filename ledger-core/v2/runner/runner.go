@@ -30,6 +30,10 @@ type Service interface {
 	ExecutionAbort(run *RunState)
 }
 
+type UnmanagedService interface {
+	ExecutionClassify(execution execution.Context) interface{}
+}
+
 type DefaultService struct {
 	Cache descriptor.Cache
 
@@ -294,6 +298,10 @@ func (r *DefaultService) runContinue(run *executionEventSink, resumeFn func()) {
 }
 
 func (r *DefaultService) runAbort(_ *executionEventSink, _ func()) {
+	panic(throw.NotImplemented())
+}
+
+func (r *DefaultService) ExecutionClassify(_ execution.Context) interface{} {
 	panic(throw.NotImplemented())
 }
 

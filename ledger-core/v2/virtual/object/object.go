@@ -202,9 +202,14 @@ func (sm *SMObject) stepGetObjectState(ctx smachine.ExecutionContext) smachine.S
 	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	ref := sm.Reference
 
-	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
-		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
-	}).Send()
+	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send state", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	sm.stateWasRequested = true
 	return ctx.Jump(sm.stepWaitState)
@@ -271,12 +276,14 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 		},
 	}
 
-	sm.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
+	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
-		if err != nil {
-			panic(err)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send state", err)
+			}
 		}
-	}).Send()
+	}).WithoutAutoWakeUp().Start()
 	return ctx.Jump(sm.migrateTransition)
 }
 

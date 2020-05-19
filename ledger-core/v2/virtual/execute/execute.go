@@ -334,12 +334,16 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
 
-		return s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
+		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 			err := svc.SendRole(goCtx, msg, insolar.DynamicRoleVirtualExecutor, object, pulseNumber)
-			if err != nil {
-				panic(err)
+			return func(ctx smachine.AsyncResultContext) {
+				if err != nil {
+					ctx.Log().Error("failed to send message", err)
+				}
 			}
-		}).DelayedSend().Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
+		}).WithoutAutoWakeUp().Start()
+
+		return ctx.Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
 	}
 
 	return ctx.Jump(s.stepExecuteContinue)
@@ -429,9 +433,14 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		LatestState:        lastState,
 	}
 
-	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
-		_ = svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
-	}).Send()
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.CurrentPulseNumber())
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Jump(s.stepSendCallResult)
 }
@@ -492,9 +501,14 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}
 	target := s.Meta.Sender
 
-	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
-		_ = svc.SendTarget(goCtx, &msg, target)
-	}).Send()
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendTarget(goCtx, &msg, target)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Stop()
 }

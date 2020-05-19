@@ -73,6 +73,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		ScanCountLimit:    100000,
 		SlotMachineLogger: virtualStateMachine.ConveyorLoggerFactory{},
 		SlotAliasRegistry: &conveyor.GlobalAliases{},
+		LogAdapterCalls:   true,
 	}
 
 	defaultHandlers := DefaultHandlersFactory

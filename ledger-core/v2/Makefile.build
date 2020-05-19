@@ -16,7 +16,7 @@ GOBUILD ?= go build
 GOINSTALL ?= go install
 
 .PHONY: build
-build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD) \
+build: $(BIN_DIR) $(INSOLARD) $(INSOLAR) $(INSGOCC) $(PULSARD) $(PULSEWATCHER) \
 		$(TESTPULSARD) $(BENCHMARK) $(APIREQUESTER) $(KEEPERD) ## build all binaries
 
 $(BIN_DIR):
