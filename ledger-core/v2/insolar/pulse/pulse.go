@@ -48,7 +48,7 @@ func (entropy Entropy) Equal(other Entropy) bool {
 	return entropy.Compare(other) == 0
 }
 
-//go:generate protoc -I$GOPATH/src -I./ --gogoslick_out=./ pulse.proto
+// go:generate protoc -I$GOPATH/src -I./ --gogoslick_out=./ pulse.proto
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse.Manager -s _mock.go -g
 
 // Manager provides Ledger's methods related to Pulse.
