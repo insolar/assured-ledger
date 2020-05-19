@@ -12,6 +12,7 @@ import (
 	_ "github.com/gogo/protobuf/protoc-gen-gogoslick"
 	_ "github.com/gojuno/minimock/v3/cmd/minimock"
 	_ "github.com/golang/protobuf/protoc-gen-go"
+	_ "github.com/ory/go-acc"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "golang.org/x/tools/cmd/stringer"
 	_ "gotest.tools/gotestsum"
