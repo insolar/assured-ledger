@@ -65,10 +65,8 @@ jobs:
           name: nodes-output
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/nodes-output.tgz
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          file: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
-          name: coverage-report
+        run: bash <(curl -s https://codecov.io/bash) -f ./coverage.out -y ./.codecov.yml -n coverage-report
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Add coverage.html to artifacts
         uses: actions/upload-artifact@v1
         with:
