@@ -23,48 +23,82 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
 
-func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
+func TestSMObject_migrate_Fail_If_State_Is_Empty_And_No_Counters(t *testing.T) {
 	var (
-		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		mc = minimock.NewController(t)
 
-		pd                   = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot            = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID           = gen.IDWithPulse(pd.PulseNumber)
-		smGlobalRef          = reference.NewSelf(smObjectID)
-		smObject             = NewStateMachineObject(smGlobalRef)
-		msgVStateReportCount = 0
-		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
+		smObject        = newSMObjectWithPulseAndDescriptor()
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
-	defer mc.Finish()
 
 	stepChecker := testutils.NewSMStepChecker()
 	{
 		exec := SMObject{}
 		stepChecker.AddStep(exec.stepGetState)
-		stepChecker.AddStep(exec.stepSendVStateReport)
-		stepChecker.AddStep(exec.stepWaitIndefinitely)
 	}
-	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
 
 	smObject.SharedState.SetState(Empty)
-	smObject.pulseSlot = &pulseSlot
+
+	{ // check Init set migration and Jmp to stepGetState
+		compareDefaultMigration := func(fn smachine.MigrateFunc) {
+			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+		}
+		initCtx := smachine.NewInitializationContextMock(mc).
+			ShareMock.Return(sharedStateData).
+			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			JumpMock.Set(stepChecker.CheckJumpW(t)).
+			SetDefaultMigrationMock.Set(compareDefaultMigration)
+
+		smObject.Init(initCtx)
+	}
+
+	{ // check migration will panic if state is Empty and no pending counters set
+		migrationCtx := smachine.NewMigrationContextMock(mc).
+			AffectedStepMock.Return(smachine.SlotStep{Transition: smObject.stepWaitIndefinitely})
+
+		require.Panics(t, func() { smObject.migrate(migrationCtx) })
+	}
+
+	{ // finish test
+		require.NoError(t, stepChecker.CheckDone())
+		mc.Finish()
+	}
+}
+
+func TestSMObject_SendVStateUnavailable_After_Migration_If_State_Missing(t *testing.T) {
+	var (
+		mc = minimock.NewController(t)
+
+		smObject             = newSMObjectWithPulseAndDescriptor()
+		msgVStateUnavailable = 0
+		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
+	)
+
+	stepChecker := testutils.NewSMStepChecker()
+	{
+		exec := SMObject{}
+		stepChecker.AddStep(exec.stepGetState)
+		stepChecker.AddStep(exec.stepSendVStateUnavailable)
+		stepChecker.AddStep(exec.stepWaitIndefinitely)
+	}
+
+	smObject.SharedState.SetState(Missing)
+	smObject.IncrementPotentialPendingCounter(true)
 
 	messageService := testutils.NewMessageServiceMock(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
-		_, ok := msg.(*payload.VStateReport)
+		_, ok := msg.(*payload.VStateUnavailable)
 		require.True(t, ok)
-		msgVStateReportCount++
+		msgVStateUnavailable++
 	}
 	messageService.SendRole.SetCheckMessage(checkMessageFn)
-	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(ctx)
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
 
 	smObject.messageSender = messageSender.Mock()
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 
 	{ // check migration is set
 		compareDefaultMigration := func(fn smachine.MigrateFunc) {
-			require.True(t, testutils.CmpStateFuncs(smObject.migrateDuringExecution, fn))
+			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
 		}
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
@@ -79,14 +113,143 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 		migrationCtx := smachine.NewMigrationContextMock(mc).
 			AffectedStepMock.Return(smachine.SlotStep{Transition: smObject.stepWaitIndefinitely}).
 			JumpMock.Set(stepChecker.CheckJumpW(t))
-		smObject.migrateDuringExecution(migrationCtx)
+
+		smObject.migrate(migrationCtx)
 	}
 
 	{ // check execution of step after migration
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t))
-		smObject.stepSendVStateReport(execCtx)
+
+		smObject.stepSendVStateUnavailable(execCtx)
+		require.Equal(t, 1, msgVStateUnavailable)
 	}
 
-	require.Equal(t, 1, msgVStateReportCount)
+	{ // finish test
+		require.NoError(t, stepChecker.CheckDone())
+		mc.Finish()
+	}
+}
+
+func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
+	var (
+		mc = minimock.NewController(t)
+
+		smObject             = newSMObjectWithPulseAndDescriptor()
+		msgVStateReportCount = 0
+		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
+	)
+
+	stepChecker := testutils.NewSMStepChecker()
+	{
+		exec := SMObject{}
+		stepChecker.AddStep(exec.stepGetState)
+		stepChecker.AddStep(exec.stepSendVStateReport)
+		stepChecker.AddStep(exec.stepWaitIndefinitely)
+	}
+
+	smObject.SharedState.SetState(Empty)
+	smObject.IncrementPotentialPendingCounter(true)
+
+	messageService := testutils.NewMessageServiceMock(mc)
+	checkMessageFn := func(msg payload.Marshaler) {
+		_, ok := msg.(*payload.VStateReport)
+		require.True(t, ok)
+		msgVStateReportCount++
+	}
+	messageService.SendRole.SetCheckMessage(checkMessageFn)
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
+
+	smObject.messageSender = messageSender.Mock()
+
+	{ // check migration is set
+		compareDefaultMigration := func(fn smachine.MigrateFunc) {
+			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+		}
+		initCtx := smachine.NewInitializationContextMock(mc).
+			ShareMock.Return(sharedStateData).
+			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			SetDefaultMigrationMock.Set(compareDefaultMigration).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smObject.Init(initCtx)
+	}
+
+	{ // check migration is successful
+		migrationCtx := smachine.NewMigrationContextMock(mc).
+			AffectedStepMock.Return(smachine.SlotStep{Transition: smObject.stepWaitIndefinitely}).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smObject.migrate(migrationCtx)
+	}
+
+	{ // check execution of step after migration
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smObject.stepSendVStateReport(execCtx)
+		require.Equal(t, 1, msgVStateReportCount)
+	}
+
+	{ // finish test
+		require.NoError(t, stepChecker.CheckDone())
+		mc.Finish()
+	}
+}
+
+func TestSMObject_Send_Nothing_After_Migration_If_State_Unknown(t *testing.T) {
+	var (
+		mc = minimock.NewController(t)
+
+		smObject        = newSMObjectWithPulseAndDescriptor()
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+	)
+
+	stepChecker := testutils.NewSMStepChecker()
+	{
+		exec := SMObject{}
+		stepChecker.AddStep(exec.stepGetState)
+	}
+
+	{ // check migration is set
+		compareDefaultMigration := func(fn smachine.MigrateFunc) {
+			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+		}
+		initCtx := smachine.NewInitializationContextMock(mc).
+			ShareMock.Return(sharedStateData).
+			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			SetDefaultMigrationMock.Set(compareDefaultMigration).
+			JumpMock.Set(stepChecker.CheckJumpW(t))
+
+		smObject.Init(initCtx)
+	}
+
+	{ // check migration is successful
+		migrationCtx := smachine.NewMigrationContextMock(mc).
+			AffectedStepMock.Return(smachine.SlotStep{Transition: smObject.stepWaitIndefinitely}).
+			LogMock.Return(smachine.Logger{}).
+			StayMock.Return(smachine.StateUpdate{})
+
+		smObject.migrate(migrationCtx)
+	}
+
+	{ // finish test
+		require.NoError(t, stepChecker.CheckDone())
+		mc.Finish()
+	}
+}
+
+func newSMObjectWithPulseAndDescriptor() *SMObject {
+	var (
+		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID  = gen.IDWithPulse(pd.PulseNumber)
+		smGlobalRef = reference.NewSelf(smObjectID)
+		smObject    = NewStateMachineObject(smGlobalRef)
+	)
+
+	smObject.pulseSlot = &pulseSlot
+	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+
+	return smObject
 }
