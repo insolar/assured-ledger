@@ -16,10 +16,6 @@ import (
 )
 
 func init() {
-	if !ConsoleWriterDefaults.Enable {
-		return
-	}
-
 	if _, ok := logoutput.BareStdErr.Writer.(*os.File); !ok {
 		// avoid cases of unexpected use
 		panic(throw.IllegalState())

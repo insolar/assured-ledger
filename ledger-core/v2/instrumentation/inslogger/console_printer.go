@@ -14,7 +14,6 @@ import (
 )
 
 var ConsoleWriterDefaults = ConsoleWriterConfig{
-	Enable: false,
 	NoColor: true,
 	TimeFormat: TimestampFormat,
 	FormatCaller: formatCaller,
