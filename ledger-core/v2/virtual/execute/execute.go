@@ -153,7 +153,12 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 
 func (s *SMExecute) stepUpdateSawRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	action := func(state *object.SharedState) {
-		state.SawRequests[s.execution.Outgoing] = struct{}{}
+		if _, ok := state.SawRequests[s.execution.Outgoing]; ok {
+			// found duplicate request, todo: deduplication algorithm
+			panic(throw.NotImplemented())
+		} else {
+			state.SawRequests[s.execution.Outgoing] = struct{}{}
+		}
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
