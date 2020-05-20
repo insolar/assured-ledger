@@ -75,8 +75,7 @@ generate-proto-options:
 	protoc -I./vendor -I./ --gogofaster_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:./ insproto/ins.proto
 
 .PHONY: generate-protobuf
-generate-protobuf: ## generate protobuf structs
-	protoc -I./vendor -I./ --gogoslick_out=./ network/node/internal/node/node.proto
+generate-protobuf: protoc-gen-ins ## generate protobuf structs
 	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node/node.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.r0.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.proto

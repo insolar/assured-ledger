@@ -8,7 +8,6 @@ package node
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -34,38 +33,6 @@ func (m *Mutator) AddWorkingNode(n node2.NetworkNode) {
 	listType := nodeStateToListType(mutableNode)
 	m.snapshot.nodeList[listType] = append(m.snapshot.nodeList[listType], n)
 	m.active = append(m.active, n)
-}
-
-func TestSnapshotEncodeDecode(t *testing.T) {
-
-	ks := platformpolicy.NewKeyProcessor()
-	p1, err := ks.GeneratePrivateKey()
-	p2, err := ks.GeneratePrivateKey()
-	assert.NoError(t, err)
-
-	n1 := newMutableNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), node2.Ready, "127.0.0.1:22", "ver2")
-	n2 := newMutableNode(gen.Reference(), node2.StaticRoleHeavyMaterial, ks.ExtractPublicKey(p2), node2.Leaving, "127.0.0.1:33", "ver5")
-
-	s := Snapshot{}
-	s.pulse = 22
-	s.state = node2.CompleteNetworkState
-	s.nodeList[ListLeaving] = []node2.NetworkNode{n1, n2}
-	s.nodeList[ListJoiner] = []node2.NetworkNode{n2}
-
-	buff, err := s.Encode()
-	assert.NoError(t, err)
-	assert.NotEmptyf(t, buff, "should not be empty")
-
-	s2 := Snapshot{}
-	err = s2.Decode(buff)
-	assert.NoError(t, err)
-	assert.True(t, s.Equal(&s2))
-}
-
-func TestSnapshot_Decode(t *testing.T) {
-	buff := []byte("hohoho i'm so broken")
-	s := Snapshot{}
-	assert.Error(t, s.Decode(buff))
 }
 
 func TestSnapshot_Copy(t *testing.T) {
