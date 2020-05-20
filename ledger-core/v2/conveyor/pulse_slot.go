@@ -25,7 +25,10 @@ const (
 func NewPresentPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot {
 	return PulseSlot{
 		pulseManager: pulseManager,
-		pulseData:    &presentPulseDataHolder{pr: pr},
+		pulseData: &presentPulseDataHolder{
+			pr: pr,
+			at: time.Unix(int64(pr.RightBoundData().Timestamp), 0),
+		},
 	}
 }
 
