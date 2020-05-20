@@ -1,1 +1,2 @@
 nodescount: 5
+manifestspath: ./../scripts/deploy/kube/local/
