@@ -8,11 +8,10 @@ package censusimpl
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 
@@ -21,7 +20,7 @@ import (
 
 func TestNewJoinerPopulation(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	pks := cryptkit.NewPublicKeyStoreMock(t)
 	sp.GetPublicKeyStoreMock.Set(func() cryptkit.PublicKeyStore { return pks })
 	vf := cryptkit.NewSignatureVerifierFactoryMock(t)
@@ -78,7 +77,7 @@ func TestOJPGetWorkingRoles(t *testing.T) {
 
 func TestOJPCopyTo(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	index := member.JoinerIndex
 	ojp := OneJoinerPopulation{localNode: updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp, index: index}}}
 	population := &DynamicPopulation{}
@@ -91,8 +90,8 @@ func TestOJPCopyTo(t *testing.T) {
 
 func TestOJPFindProfile(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(0)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(0)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	ojp := OneJoinerPopulation{localNode: updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}
 
 	require.Nil(t, ojp.FindProfile(1))

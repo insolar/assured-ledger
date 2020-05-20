@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"testing"
 
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -21,23 +23,22 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
-func createOrigin() insolar.NetworkNode {
+func createOrigin() node2.NetworkNode {
 	ref, _ := reference.GlobalFromString("insolar:1MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI")
-	return node.NewNode(ref, insolar.StaticRoleVirtual, nil, "127.0.0.1:5432", "")
+	return node.NewNode(ref, node2.StaticRoleVirtual, nil, "127.0.0.1:5432", "")
 }
 
 type calculatorSuite struct {
 	suite.Suite
 
-	pulse          *insolar.Pulse
+	pulse          *pulsestor.Pulse
 	originProvider network.OriginProvider
-	service        insolar.CryptographyService
+	service        cryptography.Service
 
 	calculator Calculator
 }
@@ -66,7 +67,7 @@ func (t *calculatorSuite) TestGetGlobuleProof() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  ph,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node2.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): pp,
 		},
 		PrevCloudHash: prevCloudHash,
@@ -96,7 +97,7 @@ func (t *calculatorSuite) TestGetCloudProof() {
 	globuleEntry := &GlobuleEntry{
 		PulseEntry: pulseEntry,
 		PulseHash:  ph,
-		ProofSet: map[insolar.NetworkNode]*PulseProof{
+		ProofSet: map[node2.NetworkNode]*PulseProof{
 			t.originProvider.GetOrigin(): pp,
 		},
 		PrevCloudHash: prevCloudHash,
@@ -130,10 +131,10 @@ func TestCalculator(t *testing.T) {
 	key, _ := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NotNil(t, key)
 
-	service := cryptography.NewKeyBoundCryptographyService(key)
+	service := platformpolicy.NewKeyBoundCryptographyService(key)
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
 	op := network2.NewOriginProviderMock(t)
-	op.GetOriginMock.Set(func() insolar.NetworkNode {
+	op.GetOriginMock.Set(func() node2.NetworkNode {
 		return createOrigin()
 	})
 
@@ -155,9 +156,9 @@ func TestCalculator(t *testing.T) {
 	err := cm.Init(context.Background())
 	require.NoError(t, err)
 
-	pulse := &insolar.Pulse{
-		PulseNumber:     insolar.PulseNumber(1337),
-		NextPulseNumber: insolar.PulseNumber(1347),
+	pulse := &pulsestor.Pulse{
+		PulseNumber:     1337,
+		NextPulseNumber: 1347,
 		Entropy:         pulsartestutils.MockEntropyGenerator{}.GenerateEntropy(),
 	}
 

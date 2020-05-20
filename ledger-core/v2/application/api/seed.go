@@ -18,7 +18,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/instrumenter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
@@ -99,7 +99,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 
 	err := s.getSeed(ctx, r, args, reply)
 	if err != nil {
-		if strings.Contains(err.Error(), pulse.ErrNotFound.Error()) {
+		if strings.Contains(err.Error(), pulsestor.ErrNotFound.Error()) {
 			logger.Warn("[ NodeService.getSeed ] failed to execute: ", err.Error())
 
 			instr.SetError(errors.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)

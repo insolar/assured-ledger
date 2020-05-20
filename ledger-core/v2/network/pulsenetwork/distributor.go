@@ -19,7 +19,9 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
@@ -35,9 +37,9 @@ import (
 )
 
 type distributor struct {
-	Factory  transport.Factory                  `inject:""`
-	Scheme   insolar.PlatformCryptographyScheme `inject:""`
-	KeyStore insolar.KeyStore                   `inject:""`
+	Factory  transport.Factory                       `inject:""`
+	Scheme   cryptography.PlatformCryptographyScheme `inject:""`
+	KeyStore cryptography.KeyStore                   `inject:""`
 
 	digester    cryptkit.DataDigester
 	signer      cryptkit.DigestSigner
@@ -60,7 +62,7 @@ func (ph handlerThatPanics) HandleDatagram(ctx context.Context, address string, 
 }
 
 // NewDistributor creates a new distributor object of pulses
-func NewDistributor(conf configuration.PulseDistributor) (insolar.PulseDistributor, error) {
+func NewDistributor(conf configuration.PulseDistributor) (node.PulseDistributor, error) {
 	futureManager := future.NewManager()
 
 	result := &distributor{
@@ -120,7 +122,7 @@ func (d *distributor) Stop(ctx context.Context) error {
 }
 
 // Distribute starts a fire-and-forget process of pulse distribution to bootstrap hosts
-func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
+func (d *distributor) Distribute(ctx context.Context, puls pulsestor.Pulse) {
 	logger := inslogger.FromContext(ctx)
 	defer func() {
 		if r := recover(); r != nil {
@@ -130,12 +132,12 @@ func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
 
 	pulseCtx := inslogger.SetLogger(context.Background(), logger)
 
-	traceID := strconv.FormatUint(uint64(pulse.PulseNumber), 10) + "_pulse"
+	traceID := strconv.FormatUint(uint64(puls.PulseNumber), 10) + "_pulse"
 	pulseCtx, logger = inslogger.WithTraceField(pulseCtx, traceID)
 
 	pulseCtx, span := instracer.StartSpan(pulseCtx, "Pulsar.Distribute")
 	span.LogFields(
-		log.Int64("pulse.PulseNumber", int64(pulse.PulseNumber)),
+		log.Int64("pulse.Number", int64(puls.PulseNumber)),
 	)
 	defer span.Finish()
 
@@ -144,7 +146,7 @@ func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
 
 	distributed := int32(0)
 	for _, nodeAddr := range d.bootstrapHosts {
-		go func(ctx context.Context, pulse insolar.Pulse, nodeAddr string) {
+		go func(ctx context.Context, pulse pulsestor.Pulse, nodeAddr string) {
 			defer wg.Done()
 
 			err := d.sendPulseToHost(ctx, &pulse, nodeAddr)
@@ -156,7 +158,7 @@ func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
 
 			atomic.AddInt32(&distributed, 1)
 			logger.Infof("Successfully sent pulse %d to node %s", pulse.PulseNumber, nodeAddr)
-		}(pulseCtx, pulse, nodeAddr)
+		}(pulseCtx, puls, nodeAddr)
 	}
 	wg.Wait()
 
@@ -172,7 +174,7 @@ func (d *distributor) Distribute(ctx context.Context, pulse insolar.Pulse) {
 // 	return types.RequestID(d.idGenerator.Generate())
 // }
 
-func (d *distributor) sendPulseToHost(ctx context.Context, p *insolar.Pulse, host string) error {
+func (d *distributor) sendPulseToHost(ctx context.Context, p *pulsestor.Pulse, host string) error {
 	logger := inslogger.FromContext(ctx)
 	defer func() {
 		if x := recover(); x != nil {

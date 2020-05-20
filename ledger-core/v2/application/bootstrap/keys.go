@@ -15,9 +15,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/secrets"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
 func keysToNodeInfo(kp *secrets.KeyPair) nodeInfo {
@@ -41,6 +41,7 @@ func createKeysInDir(
 	keyFilenameFormat string,
 	nodes []Node,
 	reuse bool,
+	properNames bool,
 ) ([]nodeInfo, error) {
 	amount := len(nodes)
 
@@ -87,6 +88,10 @@ func createKeysInDir(
 		}, "", "    ")
 		if err != nil {
 			return nil, errors.Wrap(err, "[ createKeysInDir ] couldn't marshal keys")
+		}
+
+		if properNames {
+			keyname = n.CertName
 		}
 
 		inslogger.FromContext(ctx).Info("Genesis write key " + filepath.Join(dir, keyname))

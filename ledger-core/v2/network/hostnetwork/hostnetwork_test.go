@@ -19,8 +19,8 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
@@ -42,10 +42,10 @@ func init() {
 type MockResolver struct {
 	mu       sync.RWMutex
 	mapping  map[reference.Global]*host.Host
-	smapping map[insolar.ShortNodeID]*host.Host
+	smapping map[node.ShortNodeID]*host.Host
 }
 
-func (m *MockResolver) ResolveConsensus(id insolar.ShortNodeID) (*host.Host, error) {
+func (m *MockResolver) ResolveConsensus(id node.ShortNodeID) (*host.Host, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -99,7 +99,7 @@ func (m *MockResolver) addMappingHost(h *host.Host) {
 func newMockResolver() *MockResolver {
 	return &MockResolver{
 		mapping:  make(map[reference.Global]*host.Host),
-		smapping: make(map[insolar.ShortNodeID]*host.Host),
+		smapping: make(map[node.ShortNodeID]*host.Host),
 	}
 }
 

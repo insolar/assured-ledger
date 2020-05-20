@@ -8,7 +8,7 @@ package packetdispatch
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -18,7 +18,7 @@ import (
 )
 
 type MemberPacketReceiver interface {
-	GetNodeID() insolar.ShortNodeID
+	GetNodeID() node.ShortNodeID
 	CanReceivePacket(pt phases.PacketType) bool
 	VerifyPacketAuthenticity(packetSignature cryptkit.SignedDigest, from endpoints.Inbound, strictFrom bool) error
 	SetPacketReceived(pt phases.PacketType) bool

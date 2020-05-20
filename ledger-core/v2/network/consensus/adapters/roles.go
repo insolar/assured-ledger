@@ -6,36 +6,36 @@
 package adapters
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 )
 
-func StaticRoleToPrimaryRole(staticRole insolar.StaticRole) member.PrimaryRole {
+func StaticRoleToPrimaryRole(staticRole node.StaticRole) member.PrimaryRole {
 	switch staticRole {
-	case insolar.StaticRoleVirtual:
+	case node.StaticRoleVirtual:
 		return member.PrimaryRoleVirtual
-	case insolar.StaticRoleLightMaterial:
+	case node.StaticRoleLightMaterial:
 		return member.PrimaryRoleLightMaterial
-	case insolar.StaticRoleHeavyMaterial:
+	case node.StaticRoleHeavyMaterial:
 		return member.PrimaryRoleHeavyMaterial
-	case insolar.StaticRoleUnknown:
+	case node.StaticRoleUnknown:
 		fallthrough
 	default:
 		return member.PrimaryRoleNeutral
 	}
 }
 
-func PrimaryRoleToStaticRole(primaryRole member.PrimaryRole) insolar.StaticRole {
+func PrimaryRoleToStaticRole(primaryRole member.PrimaryRole) node.StaticRole {
 	switch primaryRole {
 	case member.PrimaryRoleVirtual:
-		return insolar.StaticRoleVirtual
+		return node.StaticRoleVirtual
 	case member.PrimaryRoleLightMaterial:
-		return insolar.StaticRoleLightMaterial
+		return node.StaticRoleLightMaterial
 	case member.PrimaryRoleHeavyMaterial:
-		return insolar.StaticRoleHeavyMaterial
+		return node.StaticRoleHeavyMaterial
 	case member.PrimaryRoleNeutral:
 		fallthrough
 	default:
-		return insolar.StaticRoleUnknown
+		return node.StaticRoleUnknown
 	}
 }

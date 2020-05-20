@@ -39,7 +39,7 @@ func TestWalletAddAmountConcurrently(t *testing.T) {
 	outChan := make(chan error)
 
 	for i := 0; i < count; i++ {
-		for _, port := range nodesPorts {
+		for _, port := range defaultPorts {
 			go func(port string) {
 				addAmountURL := getURL(walletAddAmountPath, "", port)
 				resultErr := addAmountToWallet(addAmountURL, walletRef, 100)
@@ -49,7 +49,7 @@ func TestWalletAddAmountConcurrently(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < count*len(nodesPorts); i++ {
+	for i := 0; i < count*len(defaultPorts); i++ {
 		assert.NoError(t, <-outChan)
 	}
 	close(outChan)

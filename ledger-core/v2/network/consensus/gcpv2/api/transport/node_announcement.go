@@ -8,7 +8,7 @@ package transport
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
@@ -32,7 +32,7 @@ var _ MembershipAnnouncementReader = &NodeAnnouncementProfile{}
 type NodeAnnouncementProfile struct {
 	static    profiles.StaticProfile
 	ma        profiles.MembershipAnnouncement
-	nodeID    insolar.ShortNodeID
+	nodeID    node.ShortNodeID
 	pn        pulse.Number
 	nodeCount uint16
 	joiner    *JoinerAnnouncement
@@ -50,7 +50,7 @@ func (c *NodeAnnouncementProfile) GetLeaveReason() uint32 {
 	return c.ma.LeaveReason
 }
 
-func (c *NodeAnnouncementProfile) GetJoinerID() insolar.ShortNodeID {
+func (c *NodeAnnouncementProfile) GetJoinerID() node.ShortNodeID {
 	return c.ma.JoinerID
 }
 
@@ -73,7 +73,7 @@ func (c *NodeAnnouncementProfile) GetAnnouncementSignature() proofs.MemberAnnoun
 	return c.ma.Membership.AnnounceSignature
 }
 
-func (c *NodeAnnouncementProfile) GetNodeID() insolar.ShortNodeID {
+func (c *NodeAnnouncementProfile) GetNodeID() node.ShortNodeID {
 	return c.nodeID
 }
 

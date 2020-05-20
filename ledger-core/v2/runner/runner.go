@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -123,7 +122,7 @@ func generateCallContext(
 	request := execution.Request
 	res := &call.LogicContext{
 		ID:   id,
-		Mode: insolar.ExecuteCallMode,
+		Mode: call.Execute,
 
 		// Callee:    reference.Global{}, // is assigned below
 		Prototype: protoDesc.HeadRef(),

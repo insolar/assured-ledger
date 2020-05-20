@@ -8,13 +8,12 @@ package censusimpl
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 
@@ -30,8 +29,8 @@ func TestNewManyNodePopulation(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
 	pks := cryptkit.NewPublicKeyStoreMock(t)
 	sp.GetPublicKeyStoreMock.Set(func() cryptkit.PublicKeyStore { return pks })
-	nodeID := insolar.ShortNodeID(2)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(2)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleNeutral })
 	require.Panics(t, func() { NewManyNodePopulation([]profiles.StaticProfile{sp}, 0, nil) })
 
@@ -51,7 +50,7 @@ func TestMNPString(t *testing.T) {
 	us := updatableSlot{}
 	mnp.local = &us
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	us.StaticProfile = sp
 	require.NotEmpty(t, mnp.String())
 
@@ -184,8 +183,8 @@ func TestMNPGetWorkingRoles(t *testing.T) {
 
 func TestMNPCopyTo(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(0)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(0)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	mnp := &ManyNodePopulation{local: &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}},
 		slots: []updatableSlot{{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}}}
 	population := &DynamicPopulation{}
@@ -200,22 +199,22 @@ func TestPanicOnRecoverable(t *testing.T) {
 func TestMakeCopyOfMapAndSeparateEvicts(t *testing.T) {
 	mnp := ManyNodePopulation{}
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(0)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return *(&nodeID) })
+	nodeID := node.ShortNodeID(0)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return *(&nodeID) })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleNeutral })
 	spe := profiles.NewStaticProfileExtensionMock(t)
 	sp.GetExtensionMock.Set(func() profiles.StaticProfileExtension { return spe })
 	local := &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}
 	require.Panics(t, func() { mnp.makeCopyOfMapAndSeparateEvicts(nil, local, nil) })
 
-	slots := make(map[insolar.ShortNodeID]*updatableSlot)
+	slots := make(map[node.ShortNodeID]*updatableSlot)
 	slots[nodeID] = &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp}}
 	require.Panics(t, func() { mnp.makeCopyOfMapAndSeparateEvicts(slots, local, nil) })
 
 	delete(slots, nodeID)
 	nodeID = 1
 	slots[nodeID] = &updatableSlot{NodeProfileSlot: NodeProfileSlot{StaticProfile: sp, mode: member.ModeEvictedGracefully}}
-	mnp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot)
+	mnp.slotByID = make(map[node.ShortNodeID]*updatableSlot)
 	mnp.slotByID[nodeID] = slots[nodeID]
 	mnp.assignedSlotCount = 1
 	require.Len(t, mnp.makeCopyOfMapAndSeparateEvicts(slots, local, nil), 1)
@@ -223,13 +222,13 @@ func TestMakeCopyOfMapAndSeparateEvicts(t *testing.T) {
 
 func TestFilterAndFillInSlots(t *testing.T) {
 	mnp := ManyNodePopulation{}
-	slots := make(map[insolar.ShortNodeID]*updatableSlot, member.MaxNodeIndex+1)
-	for i := insolar.ShortNodeID(0); i <= member.MaxNodeIndex; i++ {
+	slots := make(map[node.ShortNodeID]*updatableSlot, member.MaxNodeIndex+1)
+	for i := node.ShortNodeID(0); i <= member.MaxNodeIndex; i++ {
 		slots[i] = nil
 	}
 	require.Panics(t, func() { mnp._filterAndFillInSlots(slots, panicOnRecoverable) })
 
-	slots = make(map[insolar.ShortNodeID]*updatableSlot)
+	slots = make(map[node.ShortNodeID]*updatableSlot)
 	slots[1] = nil
 	require.Panics(t, func() { mnp._filterAndFillInSlots(slots, panicOnRecoverable) })
 
@@ -238,8 +237,8 @@ func TestFilterAndFillInSlots(t *testing.T) {
 
 	delete(slots, 1)
 	sp := profiles.NewStaticProfileMock(t)
-	slots[insolar.AbsentShortNodeID] = &updatableSlot{}
-	slots[insolar.AbsentShortNodeID].StaticProfile = sp
+	slots[node.AbsentShortNodeID] = &updatableSlot{}
+	slots[node.AbsentShortNodeID].StaticProfile = sp
 	require.Panics(t, func() { mnp._filterAndFillInSlots(slots, panicOnRecoverable) })
 
 	delete(slots, 0)
@@ -291,7 +290,7 @@ func doNothingOnRecoverable(census.RecoverableErrorTypes, string, ...interface{}
 
 func TestFillInRoleStatsAndMap(t *testing.T) {
 	mnp := ManyNodePopulation{}
-	localID := insolar.ShortNodeID(0)
+	localID := node.ShortNodeID(0)
 	slotCount := 2
 	compactIndex := false
 	checkUniqueID := false
@@ -305,7 +304,7 @@ func TestFillInRoleStatsAndMap(t *testing.T) {
 	mnp = ManyNodePopulation{}
 	mnp.slots = make([]updatableSlot, 1)
 	mnp.slots[0] = updatableSlot{}
-	mnp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, slotCount)
+	mnp.slotByID = make(map[node.ShortNodeID]*updatableSlot, slotCount)
 	mnp.slotByID[localID] = &mnp.slots[0]
 	slotCount = 0
 	mnp._fillInRoleStatsAndMap(localID, slotCount, compactIndex, checkUniqueID, fail)
@@ -320,8 +319,8 @@ func TestFillInRoleStatsAndMap(t *testing.T) {
 
 	sp := profiles.NewStaticProfileMock(t)
 	mnp.slots[0].StaticProfile = sp
-	nodeID := insolar.ShortNodeID(0)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return *(&nodeID) })
+	nodeID := node.ShortNodeID(0)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return *(&nodeID) })
 	role := member.PrimaryRoleNeutral
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return *(&role) })
 	mnp._fillInRoleStatsAndMap(localID, slotCount, compactIndex, checkUniqueID, fail)
@@ -356,7 +355,7 @@ func TestFillInRoleStatsAndMap(t *testing.T) {
 	mnp.slots[0].StaticProfile = sp
 	sp2 := profiles.NewStaticProfileMock(t)
 	mnp.slots[1].StaticProfile = sp2
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	role2 := member.PrimaryRoleHeavyMaterial
 	sp2.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return *(&role2) })
 	mnp.slots[1].power = 1
@@ -366,11 +365,11 @@ func TestFillInRoleStatsAndMap(t *testing.T) {
 
 func TestAdjustSlotsAndCopyEvicts(t *testing.T) {
 	mnp := ManyNodePopulation{}
-	localID := insolar.ShortNodeID(1)
+	localID := node.ShortNodeID(1)
 	us := &updatableSlot{}
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(0)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return *(&nodeID) })
+	nodeID := node.ShortNodeID(0)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return *(&nodeID) })
 	us.StaticProfile = sp
 	evicts := []*updatableSlot{us}
 	require.Len(t, mnp._adjustSlotsAndCopyEvicts(localID, evicts), len(evicts))
@@ -402,17 +401,17 @@ func TestAdjustSlotsAndCopyEvicts(t *testing.T) {
 
 func TestMakeOfProfiles(t *testing.T) {
 	sp1 := profiles.NewStaticProfileMock(t)
-	nodeID1 := insolar.AbsentShortNodeID
-	sp1.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return *(&nodeID1) })
+	nodeID1 := node.AbsentShortNodeID
+	sp1.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return *(&nodeID1) })
 	sp2 := profiles.NewStaticProfileMock(t)
-	nodeID2 := insolar.ShortNodeID(2)
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return *(&nodeID2) })
+	nodeID2 := node.ShortNodeID(2)
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return *(&nodeID2) })
 	nodes := []profiles.StaticProfile{sp1, sp2}
 	mnp := ManyNodePopulation{}
 	svf := cryptkit.NewSignatureVerifierFactoryMock(t)
 	sv := cryptkit.NewSignatureVerifierMock(t)
 	svf.CreateSignatureVerifierWithPKSMock.Set(func(cryptkit.PublicKeyStore) cryptkit.SignatureVerifier { return sv })
-	localNodeID := insolar.AbsentShortNodeID
+	localNodeID := node.AbsentShortNodeID
 	require.Panics(t, func() { mnp.makeOfProfiles(nodes, localNodeID, svf) })
 
 	require.Panics(t, func() { mnp.makeOfProfiles(nil, localNodeID, svf) })
@@ -436,9 +435,9 @@ func TestMakeOfProfiles(t *testing.T) {
 func TestMNPFindProfile(t *testing.T) {
 	mnp := ManyNodePopulation{}
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
-	mnp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot)
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
+	mnp.slotByID = make(map[node.ShortNodeID]*updatableSlot)
 	us := &updatableSlot{}
 	us.StaticProfile = sp
 	mnp.slotByID[nodeID] = us
@@ -478,8 +477,8 @@ func TestNewDynamicPopulationCopySelf(t *testing.T) {
 	mnp := &ManyNodePopulation{}
 	us := updatableSlot{}
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	us.StaticProfile = sp
 	mnp.local = &us
 	dp := NewDynamicPopulationCopySelf(mnp)
@@ -490,8 +489,8 @@ func TestMakeCopyOf(t *testing.T) {
 	slots := make([]updatableSlot, 1)
 	us := &updatableSlot{}
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	us.StaticProfile = sp
 	dp := DynamicPopulation{}
 	dp.makeCopyOf(slots, us)
@@ -500,8 +499,8 @@ func TestMakeCopyOf(t *testing.T) {
 
 func TestDPFindProfile(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 1)
-	nodeID := insolar.ShortNodeID(1)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
+	nodeID := node.ShortNodeID(1)
 	us := &updatableSlot{}
 	dp.slotByID[nodeID] = us
 	require.NotNil(t, dp.FindProfile(nodeID))
@@ -511,8 +510,8 @@ func TestDPFindProfile(t *testing.T) {
 
 func TestFindUpdatableProfile(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 1)
-	nodeID := insolar.ShortNodeID(1)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
+	nodeID := node.ShortNodeID(1)
 	us := &updatableSlot{}
 	dp.slotByID[nodeID] = us
 	require.NotNil(t, dp.FindUpdatableProfile(nodeID))
@@ -522,7 +521,7 @@ func TestFindUpdatableProfile(t *testing.T) {
 
 func TestGetCount(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 2)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 2)
 	us := &updatableSlot{}
 	dp.slotByID[1] = us
 	dp.slotByID[2] = us
@@ -535,7 +534,7 @@ func testLessFunc(c profiles.ActiveNode, o profiles.ActiveNode) bool {
 
 func TestDPGetProfiles(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 1)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
 	us := &updatableSlot{}
 	dp.slotByID[1] = us
 	dp.slotByID[2] = us
@@ -548,7 +547,7 @@ func TestDPGetProfiles(t *testing.T) {
 
 func TestDPGetUnorderedProfiles(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 2)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 2)
 	us := &updatableSlot{}
 	dp.slotByID[1] = us
 	dp.slotByID[2] = us
@@ -557,7 +556,7 @@ func TestDPGetUnorderedProfiles(t *testing.T) {
 
 func TestGetUnorderedSlots(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 2)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 2)
 	us := &updatableSlot{}
 	dp.slotByID[1] = us
 	dp.slotByID[2] = us
@@ -573,11 +572,11 @@ func TestDPGetLocalProfile(t *testing.T) {
 
 func TestCopyAndSeparate(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 1)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
 	us := updatableSlot{}
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	sp.GetPrimaryRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleHeavyMaterial })
 	spe := profiles.NewStaticProfileExtensionMock(t)
 	sp.GetExtensionMock.Set(func() profiles.StaticProfileExtension { return spe })
@@ -606,10 +605,10 @@ func TestCopyAndSeparate(t *testing.T) {
 
 func TestDPAddProfile(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 1)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	dp.AddProfile(sp)
 	require.NotNil(t, dp.slotByID[nodeID])
 
@@ -618,10 +617,10 @@ func TestDPAddProfile(t *testing.T) {
 
 func TestDPRemoveProfile(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 1)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	dp.AddProfile(sp)
 	require.NotNil(t, dp.slotByID[nodeID])
 
@@ -631,14 +630,14 @@ func TestDPRemoveProfile(t *testing.T) {
 
 func TestRemoveOthers(t *testing.T) {
 	dp := DynamicPopulation{}
-	dp.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, 2)
+	dp.slotByID = make(map[node.ShortNodeID]*updatableSlot, 2)
 	sp1 := profiles.NewStaticProfileMock(t)
-	nodeID1 := insolar.ShortNodeID(1)
-	sp1.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID1 })
+	nodeID1 := node.ShortNodeID(1)
+	sp1.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID1 })
 	dp.AddProfile(sp1)
 	sp2 := profiles.NewStaticProfileMock(t)
-	nodeID2 := insolar.ShortNodeID(2)
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID2 })
+	nodeID2 := node.ShortNodeID(2)
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID2 })
 	dp.AddProfile(sp2)
 	dp.local = dp.slotByID[2]
 	require.Len(t, dp.slotByID, 2)
@@ -794,7 +793,7 @@ func TestRRGetProfiles(t *testing.T) {
 func TestGetAssignmentByPower(t *testing.T) {
 	rr := roleRecord{}
 	metric := uint64(1)
-	excludeID := insolar.ShortNodeID(1)
+	excludeID := node.ShortNodeID(1)
 	assigned, excluded := rr.GetAssignmentByPower(metric, excludeID)
 	require.Nil(t, assigned)
 
@@ -816,7 +815,7 @@ func TestGetAssignmentByPower(t *testing.T) {
 	rr.container.slots = make([]updatableSlot, rr.roleCount)
 	us := updatableSlot{}
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	us.StaticProfile = sp
 	rr.container.slots[0] = us
 
@@ -849,7 +848,7 @@ func TestGetAssignmentByPower(t *testing.T) {
 	excludeID = 0
 	rr.powerPositions[2] = unitizedPowerPosition{powerUnit: 2, powerStartsAt: 1, indexStartsAt: 1, unitCount: 1}
 	sp2 := profiles.NewStaticProfileMock(t)
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	rr.container.slots[1].StaticProfile = sp2
 	assigned, excluded = rr.GetAssignmentByPower(metric, excludeID)
 	require.NotNil(t, assigned)
@@ -860,7 +859,7 @@ func TestGetAssignmentByPower(t *testing.T) {
 func TestGetAssignmentByCount(t *testing.T) {
 	rr := roleRecord{}
 	metric := uint64(1)
-	excludeID := insolar.ShortNodeID(1)
+	excludeID := node.ShortNodeID(1)
 	assigned, excluded := rr.GetAssignmentByCount(metric, excludeID)
 	require.Nil(t, assigned)
 
@@ -876,7 +875,7 @@ func TestGetAssignmentByCount(t *testing.T) {
 	rr.container.slots = make([]updatableSlot, rr.roleCount)
 	us := updatableSlot{}
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 0 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 0 })
 	us.StaticProfile = sp
 	rr.container.slots[0] = us
 
@@ -893,7 +892,7 @@ func TestGetAssignmentByCount(t *testing.T) {
 
 	rr.container.slots = append(rr.container.slots, updatableSlot{})
 	sp2 := profiles.NewStaticProfileMock(t)
-	sp2.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	sp2.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	rr.container.slots[1].StaticProfile = sp2
 	rr.roleCount = 2
 	rr.powerPositions = make([]unitizedPowerPosition, 3)
@@ -912,7 +911,7 @@ func TestGetAssignmentByCount(t *testing.T) {
 
 	metric = 9
 	rr.powerPositions[2] = unitizedPowerPosition{}
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	require.Panics(t, func() { rr.GetAssignmentByCount(metric, excludeID) })
 }
 

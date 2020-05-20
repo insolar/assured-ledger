@@ -11,7 +11,6 @@ import (
 
 	fuzz "github.com/google/gofuzz"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -42,12 +41,12 @@ func ID() reference.Local {
 	return generateUniqueID(PulseNumber())
 }
 
-func UniqueIDWithPulse(pn insolar.PulseNumber) reference.Local {
+func UniqueIDWithPulse(pn pulse.Number) reference.Local {
 	return generateUniqueID(pn)
 }
 
 // IDWithPulse generates random id with provided pulse.
-func IDWithPulse(pn insolar.PulseNumber) reference.Local {
+func IDWithPulse(pn pulse.Number) reference.Local {
 	hash := make([]byte, reference.LocalBinaryHashSize)
 
 	fuzz.New().

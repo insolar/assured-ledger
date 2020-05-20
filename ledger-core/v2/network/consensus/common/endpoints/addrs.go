@@ -8,7 +8,7 @@ package endpoints
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -36,7 +36,7 @@ func (addr Name) String() string {
 
 type Outbound interface {
 	GetEndpointType() NodeEndpointType
-	GetRelayID() insolar.ShortNodeID
+	GetRelayID() node.ShortNodeID
 	GetNameAddress() Name
 	GetIPAddress() IPAddress
 	AsByteString() longbits.ByteString
@@ -111,7 +111,7 @@ type InboundConnection struct {
 	Cert cryptkit.CertificateHolder
 }
 
-func ShortNodeIDAsByteString(nodeID insolar.ShortNodeID) string {
+func ShortNodeIDAsByteString(nodeID node.ShortNodeID) string {
 	return fmt.Sprintf("node:%s",
 		string([]byte{byte(nodeID), byte(nodeID >> 8), byte(nodeID >> 16), byte(nodeID >> 24)}))
 }

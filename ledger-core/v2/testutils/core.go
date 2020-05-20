@@ -17,7 +17,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 const letterBytes = "abcdef0123456789"
@@ -95,27 +95,27 @@ func (m *hasherMock) Hash(val []byte) []byte {
 	return m.h.Sum(nil)
 }
 
-func (m *cryptographySchemeMock) ReferenceHasher() insolar.Hasher {
+func (m *cryptographySchemeMock) ReferenceHasher() cryptography.Hasher {
 	return &hasherMock{h: sha3.New512()}
 }
 
-func (m *cryptographySchemeMock) IntegrityHasher() insolar.Hasher {
+func (m *cryptographySchemeMock) IntegrityHasher() cryptography.Hasher {
 	return &hasherMock{h: sha3.New512()}
 }
 
-func (m *cryptographySchemeMock) DataSigner(privateKey crypto.PrivateKey, hasher insolar.Hasher) insolar.Signer {
+func (m *cryptographySchemeMock) DataSigner(privateKey crypto.PrivateKey, hasher cryptography.Hasher) cryptography.Signer {
 	panic("not implemented")
 }
 
-func (m *cryptographySchemeMock) DigestSigner(privateKey crypto.PrivateKey) insolar.Signer {
+func (m *cryptographySchemeMock) DigestSigner(privateKey crypto.PrivateKey) cryptography.Signer {
 	panic("not implemented")
 }
 
-func (m *cryptographySchemeMock) DataVerifier(publicKey crypto.PublicKey, hasher insolar.Hasher) insolar.Verifier {
+func (m *cryptographySchemeMock) DataVerifier(publicKey crypto.PublicKey, hasher cryptography.Hasher) cryptography.Verifier {
 	panic("not implemented")
 }
 
-func (m *cryptographySchemeMock) DigestVerifier(publicKey crypto.PublicKey) insolar.Verifier {
+func (m *cryptographySchemeMock) DigestVerifier(publicKey crypto.PublicKey) cryptography.Verifier {
 	panic("not implemented")
 }
 
@@ -135,7 +135,7 @@ func (m *cryptographySchemeMock) IntegrityHashSize() int {
 	panic("not implemented")
 }
 
-func NewPlatformCryptographyScheme() insolar.PlatformCryptographyScheme {
+func NewPlatformCryptographyScheme() cryptography.PlatformCryptographyScheme {
 	return &cryptographySchemeMock{}
 }
 

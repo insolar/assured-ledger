@@ -14,8 +14,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -121,7 +121,7 @@ func TestECDSADigestSigner_SignDigest(t *testing.T) {
 
 	signatureBytes := longbits.AsBytes(signature)
 
-	require.True(t, verifier.Verify(insolar.SignatureFromBytes(signatureBytes), digestBytes))
+	require.True(t, verifier.Verify(cryptography.SignatureFromBytes(signatureBytes), digestBytes))
 }
 
 func TestECDSADigestSigner_GetSignMethod(t *testing.T) {

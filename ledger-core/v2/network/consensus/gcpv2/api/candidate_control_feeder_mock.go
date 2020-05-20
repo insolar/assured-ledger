@@ -8,7 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -23,8 +23,8 @@ type CandidateControlFeederMock struct {
 	beforePickNextJoinCandidateCounter uint64
 	PickNextJoinCandidateMock          mCandidateControlFeederMockPickNextJoinCandidate
 
-	funcRemoveJoinCandidate          func(candidateAdded bool, nodeID insolar.ShortNodeID) (b1 bool)
-	inspectFuncRemoveJoinCandidate   func(candidateAdded bool, nodeID insolar.ShortNodeID)
+	funcRemoveJoinCandidate          func(candidateAdded bool, nodeID node.ShortNodeID) (b1 bool)
+	inspectFuncRemoveJoinCandidate   func(candidateAdded bool, nodeID node.ShortNodeID)
 	afterRemoveJoinCandidateCounter  uint64
 	beforeRemoveJoinCandidateCounter uint64
 	RemoveJoinCandidateMock          mCandidateControlFeederMockRemoveJoinCandidate
@@ -209,7 +209,7 @@ type CandidateControlFeederMockRemoveJoinCandidateExpectation struct {
 // CandidateControlFeederMockRemoveJoinCandidateParams contains parameters of the CandidateControlFeeder.RemoveJoinCandidate
 type CandidateControlFeederMockRemoveJoinCandidateParams struct {
 	candidateAdded bool
-	nodeID         insolar.ShortNodeID
+	nodeID         node.ShortNodeID
 }
 
 // CandidateControlFeederMockRemoveJoinCandidateResults contains results of the CandidateControlFeeder.RemoveJoinCandidate
@@ -218,7 +218,7 @@ type CandidateControlFeederMockRemoveJoinCandidateResults struct {
 }
 
 // Expect sets up expected params for CandidateControlFeeder.RemoveJoinCandidate
-func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Expect(candidateAdded bool, nodeID insolar.ShortNodeID) *mCandidateControlFeederMockRemoveJoinCandidate {
+func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Expect(candidateAdded bool, nodeID node.ShortNodeID) *mCandidateControlFeederMockRemoveJoinCandidate {
 	if mmRemoveJoinCandidate.mock.funcRemoveJoinCandidate != nil {
 		mmRemoveJoinCandidate.mock.t.Fatalf("CandidateControlFeederMock.RemoveJoinCandidate mock is already set by Set")
 	}
@@ -238,7 +238,7 @@ func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Exp
 }
 
 // Inspect accepts an inspector function that has same arguments as the CandidateControlFeeder.RemoveJoinCandidate
-func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Inspect(f func(candidateAdded bool, nodeID insolar.ShortNodeID)) *mCandidateControlFeederMockRemoveJoinCandidate {
+func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Inspect(f func(candidateAdded bool, nodeID node.ShortNodeID)) *mCandidateControlFeederMockRemoveJoinCandidate {
 	if mmRemoveJoinCandidate.mock.inspectFuncRemoveJoinCandidate != nil {
 		mmRemoveJoinCandidate.mock.t.Fatalf("Inspect function is already set for CandidateControlFeederMock.RemoveJoinCandidate")
 	}
@@ -262,7 +262,7 @@ func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Ret
 }
 
 //Set uses given function f to mock the CandidateControlFeeder.RemoveJoinCandidate method
-func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Set(f func(candidateAdded bool, nodeID insolar.ShortNodeID) (b1 bool)) *CandidateControlFeederMock {
+func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Set(f func(candidateAdded bool, nodeID node.ShortNodeID) (b1 bool)) *CandidateControlFeederMock {
 	if mmRemoveJoinCandidate.defaultExpectation != nil {
 		mmRemoveJoinCandidate.mock.t.Fatalf("Default expectation is already set for the CandidateControlFeeder.RemoveJoinCandidate method")
 	}
@@ -277,7 +277,7 @@ func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) Set
 
 // When sets expectation for the CandidateControlFeeder.RemoveJoinCandidate which will trigger the result defined by the following
 // Then helper
-func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) When(candidateAdded bool, nodeID insolar.ShortNodeID) *CandidateControlFeederMockRemoveJoinCandidateExpectation {
+func (mmRemoveJoinCandidate *mCandidateControlFeederMockRemoveJoinCandidate) When(candidateAdded bool, nodeID node.ShortNodeID) *CandidateControlFeederMockRemoveJoinCandidateExpectation {
 	if mmRemoveJoinCandidate.mock.funcRemoveJoinCandidate != nil {
 		mmRemoveJoinCandidate.mock.t.Fatalf("CandidateControlFeederMock.RemoveJoinCandidate mock is already set by Set")
 	}
@@ -297,7 +297,7 @@ func (e *CandidateControlFeederMockRemoveJoinCandidateExpectation) Then(b1 bool)
 }
 
 // RemoveJoinCandidate implements CandidateControlFeeder
-func (mmRemoveJoinCandidate *CandidateControlFeederMock) RemoveJoinCandidate(candidateAdded bool, nodeID insolar.ShortNodeID) (b1 bool) {
+func (mmRemoveJoinCandidate *CandidateControlFeederMock) RemoveJoinCandidate(candidateAdded bool, nodeID node.ShortNodeID) (b1 bool) {
 	mm_atomic.AddUint64(&mmRemoveJoinCandidate.beforeRemoveJoinCandidateCounter, 1)
 	defer mm_atomic.AddUint64(&mmRemoveJoinCandidate.afterRemoveJoinCandidateCounter, 1)
 

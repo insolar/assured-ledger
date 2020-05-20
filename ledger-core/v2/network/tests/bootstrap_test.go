@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 
@@ -31,9 +31,9 @@ func (s *bootstrapSuite) Setup() {
 	inslogger.FromContext(s.ctx).Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
-		role := insolar.StaticRoleVirtual
+		role := node.StaticRoleVirtual
 		if i == 0 {
-			role = insolar.StaticRoleHeavyMaterial
+			role = node.StaticRoleHeavyMaterial
 		}
 
 		s.bootstrapNodes = append(s.bootstrapNodes, s.newNetworkNodeWithRole(fmt.Sprintf("bootstrap_%d", i), role))

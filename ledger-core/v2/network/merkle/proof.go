@@ -6,14 +6,15 @@
 package merkle
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
 
 type BaseProof struct {
-	Signature insolar.Signature
+	Signature cryptography.Signature
 }
 
-func (bp *BaseProof) signature() insolar.Signature {
+func (bp *BaseProof) signature() cryptography.Signature {
 	return bp.Signature
 }
 
@@ -31,7 +32,7 @@ type GlobuleProof struct {
 	BaseProof
 
 	PrevCloudHash []byte
-	GlobuleID     insolar.GlobuleID
+	GlobuleID     node.GlobuleID
 	NodeCount     uint32
 	NodeRoot      []byte
 }

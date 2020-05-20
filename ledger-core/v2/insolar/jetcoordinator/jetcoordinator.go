@@ -12,23 +12,24 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/utils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
+	insolarPulse "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
 )
 
 // Coordinator is responsible for all jet interactions
 type Coordinator struct {
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme `inject:""`
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
 	PulseAccessor   insolarPulse.Accessor   `inject:""`
 	PulseCalculator insolarPulse.Calculator `inject:""`
 
-	Nodes node.Accessor `inject:""`
+	Nodes nodestorage.Accessor `inject:""`
 
 	lightChainLimit int
 	originRef       reference.Global
@@ -52,11 +53,11 @@ func (jc *Coordinator) Me() reference.Global {
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
 func (jc *Coordinator) QueryRole(
 	ctx context.Context,
-	role insolar.DynamicRole,
+	role node.DynamicRole,
 	objID reference.Local,
-	pulseNumber insolar.PulseNumber,
+	pulseNumber pulse.Number,
 ) ([]reference.Global, error) {
-	if role == insolar.DynamicRoleVirtualExecutor {
+	if role == node.DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pulseNumber)
 		if err != nil {
 			return nil, errors.Wrapf(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
@@ -70,7 +71,7 @@ func (jc *Coordinator) QueryRole(
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
 func (jc *Coordinator) VirtualExecutorForObject(
-	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber,
+	ctx context.Context, objID reference.Local, pulse pulse.Number,
 ) (reference.Global, error) {
 	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualExecutorCount)
 	if err != nil {
@@ -81,9 +82,9 @@ func (jc *Coordinator) VirtualExecutorForObject(
 
 // IsBeyondLimit calculates if target pulse is behind clean-up limit
 // or if currentPN|targetPN didn't found in in-memory pulse-storage.
-func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.PulseNumber) (bool, error) {
+func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number) (bool, error) {
 	// Genesis case. When there is no any data on a lme
-	if targetPN <= insolar.GenesisPulse.PulseNumber {
+	if targetPN <= insolarPulse.GenesisPulse.PulseNumber {
 		return true, nil
 	}
 
@@ -119,10 +120,10 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN insolar.Pulse
 }
 
 func (jc *Coordinator) virtualsForObject(
-	ctx context.Context, objID reference.Local, pulse insolar.PulseNumber, count int,
+	ctx context.Context, objID reference.Local, pulse pulse.Number, count int,
 ) ([]reference.Global, error) {
-	candidates, err := jc.Nodes.InRole(pulse, insolar.StaticRoleVirtual)
-	if err == node.ErrNoNodes {
+	candidates, err := jc.Nodes.InRole(pulse, node.StaticRoleVirtual)
+	if err == nodestorage.ErrNoNodes {
 		return nil, err
 	}
 	if err != nil {
@@ -139,16 +140,27 @@ func (jc *Coordinator) virtualsForObject(
 
 	return getRefs(
 		jc.PlatformCryptographyScheme,
-		utils.CircleXOR(ent[:], objID.IdentityHashBytes()),
+		CircleXOR(ent[:], objID.IdentityHashBytes()),
 		candidates,
 		count,
 	)
 }
 
-func (jc *Coordinator) entropy(ctx context.Context, pulse insolar.PulseNumber) (insolar.Entropy, error) {
+// CircleXOR performs XOR for 'value' and 'src'. The result is returned as new byte slice.
+// If 'value' is smaller than 'dst', XOR starts from the beginning of 'src'.
+func CircleXOR(value, src []byte) []byte {
+	result := make([]byte, len(value))
+	srcLen := len(src)
+	for i := range result {
+		result[i] = value[i] ^ src[i%srcLen]
+	}
+	return result
+}
+
+func (jc *Coordinator) entropy(ctx context.Context, pulse pulse.Number) (insolarPulse.Entropy, error) {
 	current, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
-		return insolar.Entropy{}, errors.Wrap(err, "failed to get current pulse")
+		return insolarPulse.Entropy{}, errors.Wrap(err, "failed to get current pulse")
 	}
 
 	if current.PulseNumber == pulse {
@@ -157,16 +169,16 @@ func (jc *Coordinator) entropy(ctx context.Context, pulse insolar.PulseNumber) (
 
 	older, err := jc.PulseAccessor.ForPulseNumber(ctx, pulse)
 	if err != nil {
-		return insolar.Entropy{}, errors.Wrapf(err, "failed to fetch pulse data for pulse %v", pulse)
+		return insolarPulse.Entropy{}, errors.Wrapf(err, "failed to fetch pulse data for pulse %v", pulse)
 	}
 
 	return older.Entropy, nil
 }
 
 func getRefs(
-	scheme insolar.PlatformCryptographyScheme,
+	scheme cryptography.PlatformCryptographyScheme,
 	e []byte,
-	values []insolar.Node,
+	values []node.Node,
 	count int,
 ) ([]reference.Global, error) {
 	sort.SliceStable(values, func(i, j int) bool {

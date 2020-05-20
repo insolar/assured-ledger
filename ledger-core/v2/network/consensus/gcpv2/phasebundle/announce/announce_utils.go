@@ -9,11 +9,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/purgatory"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
@@ -51,7 +51,7 @@ func ValidateIntrosOnMember(reader transport.ExtendedIntroReader, brief transpor
 	return nil
 }
 
-func ApplyUnknownAnnouncement(ctx context.Context, announcerID insolar.ShortNodeID,
+func ApplyUnknownAnnouncement(ctx context.Context, announcerID node.ShortNodeID,
 	reader transport.AnnouncementPacketReader, briefReader transport.BriefIntroductionReader,
 	_ /* full is required */ bool, realm *core.FullRealm) (bool, error) {
 
@@ -131,7 +131,7 @@ func ApplyMemberAnnouncement(ctx context.Context, reader transport.AnnouncementP
 		}
 		ma = profiles.NewJoinerAnnouncement(profile, announcerID)
 	} else {
-		var joinerID insolar.ShortNodeID
+		var joinerID node.ShortNodeID
 		ma, joinerID = AnnouncementFromReaderNotForJoiner(n.GetNodeID(), na, announcerID, realm.GetProfileFactory())
 
 		if !joinerID.IsAbsent() && joinerID != ma.JoinerID {
@@ -167,8 +167,8 @@ func ApplyMemberAnnouncement(ctx context.Context, reader transport.AnnouncementP
 	return modified, ma.Joiner.JoinerProfile, err
 }
 
-func AnnouncementFromReaderNotForJoiner(senderID insolar.ShortNodeID, ma transport.MembershipAnnouncementReader,
-	announcerID insolar.ShortNodeID, pf profiles.Factory) (profiles.MemberAnnouncement, insolar.ShortNodeID) {
+func AnnouncementFromReaderNotForJoiner(senderID node.ShortNodeID, ma transport.MembershipAnnouncementReader,
+	announcerID node.ShortNodeID, pf profiles.Factory) (profiles.MemberAnnouncement, node.ShortNodeID) {
 
 	nr := ma.GetNodeRank()
 
@@ -177,9 +177,9 @@ func AnnouncementFromReaderNotForJoiner(senderID insolar.ShortNodeID, ma transpo
 
 	switch {
 	case ma.IsLeaving():
-		return profiles.NewMemberAnnouncementWithLeave(senderID, mp, ma.GetLeaveReason(), announcerID), insolar.AbsentShortNodeID
+		return profiles.NewMemberAnnouncementWithLeave(senderID, mp, ma.GetLeaveReason(), announcerID), node.AbsentShortNodeID
 	case ma.GetJoinerID().IsAbsent():
-		return profiles.NewMemberAnnouncement(senderID, mp, announcerID), insolar.AbsentShortNodeID
+		return profiles.NewMemberAnnouncement(senderID, mp, announcerID), node.AbsentShortNodeID
 	}
 
 	jar := ma.GetJoinerAnnouncement()

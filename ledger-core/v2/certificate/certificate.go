@@ -17,9 +17,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -66,8 +67,8 @@ func (bn *BootstrapNode) GetHost() string {
 }
 
 // GetRole returns role of bootstrap node
-func (bn *BootstrapNode) GetRole() insolar.StaticRole {
-	return insolar.GetStaticRoleFromString(bn.NodeRole)
+func (bn *BootstrapNode) GetRole() node.StaticRole {
+	return node.GetStaticRoleFromString(bn.NodeRole)
 }
 
 // NodeSign returns signed information about some node
@@ -93,7 +94,7 @@ type Certificate struct {
 	pulsarPublicKey []crypto.PublicKey
 }
 
-func newCertificate(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcessor, data []byte) (*Certificate, error) {
+func newCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, data []byte) (*Certificate, error) {
 	cert := Certificate{}
 	err := json.Unmarshal(data, &cert)
 	if err != nil {
@@ -148,7 +149,7 @@ func (cert *Certificate) SignNetworkPart(key crypto.PrivateKey) ([]byte, error) 
 	return sign.Bytes(), nil
 }
 
-func (cert *Certificate) fillExtraFields(keyProcessor insolar.KeyProcessor) error {
+func (cert *Certificate) fillExtraFields(keyProcessor cryptography.KeyProcessor) error {
 	importedNodePubKey, err := keyProcessor.ImportPublicKeyPEM([]byte(cert.PublicKey))
 	if err != nil {
 		return errors.Wrapf(err, "[ fillExtraFields ] Bad PublicKey: %s", cert.PublicKey)
@@ -176,8 +177,8 @@ func (cert *Certificate) fillExtraFields(keyProcessor insolar.KeyProcessor) erro
 }
 
 // GetDiscoveryNodes return bootstrap nodes array
-func (cert *Certificate) GetDiscoveryNodes() []insolar.DiscoveryNode {
-	result := make([]insolar.DiscoveryNode, 0)
+func (cert *Certificate) GetDiscoveryNodes() []node.DiscoveryNode {
+	result := make([]node.DiscoveryNode, 0)
 	for i := 0; i < len(cert.BootstrapNodes); i++ {
 		// we get node by pointer, so ranged for loop does not suite
 		result = append(result, &cert.BootstrapNodes[i])
@@ -205,7 +206,7 @@ func (cert *Certificate) Dump() (string, error) {
 }
 
 // ReadCertificate constructor creates new Certificate component
-func ReadCertificate(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcessor, certPath string) (*Certificate, error) {
+func ReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*Certificate, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(certPath))
 	if err != nil {
 		return nil, errors.Wrapf(err, "[ ReadCertificate ] failed to read certificate from: %s", certPath)
@@ -218,7 +219,7 @@ func ReadCertificate(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcess
 }
 
 // ReadCertificateFromReader constructor creates new Certificate component
-func ReadCertificateFromReader(publicKey crypto.PublicKey, keyProcessor insolar.KeyProcessor, reader io.Reader) (*Certificate, error) {
+func ReadCertificateFromReader(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, reader io.Reader) (*Certificate, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, errors.Wrapf(err, "[ ReadCertificateFromReader ] failed to read certificate data")
@@ -231,7 +232,7 @@ func ReadCertificateFromReader(publicKey crypto.PublicKey, keyProcessor insolar.
 }
 
 // SignCert is used for signing certificate by Discovery node
-func SignCert(signer insolar.Signer, pKey, role, registeredNodeRef string) (*insolar.Signature, error) {
+func SignCert(signer cryptography.Signer, pKey, role, registeredNodeRef string) (*cryptography.Signature, error) {
 	data := []byte(pKey + registeredNodeRef + role)
 	sign, err := signer.Sign(data)
 	if err != nil {

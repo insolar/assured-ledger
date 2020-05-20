@@ -6,14 +6,14 @@
 package merkle
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 )
 
 type GlobulaLeaf struct {
 	// ByteSize = 16
 
-	NodeID insolar.ShortNodeID // ByteSize = 4
+	NodeID node.ShortNodeID // ByteSize = 4
 
 	// ByteSize = 4
 	NodeRole   member.PrimaryRole // 8

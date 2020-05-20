@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -193,7 +193,7 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 	ref := sm.Reference
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, ref, prevPulse)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)
@@ -266,7 +266,7 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 	}
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)

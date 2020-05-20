@@ -8,10 +8,10 @@ package core
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/coreapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 )
@@ -39,7 +39,7 @@ func (*PrepPhaseControllerTemplate) StartWorker(ctx context.Context, realm *Prep
 type HostPacketDispatcherTemplate struct {
 }
 
-func (*HostPacketDispatcherTemplate) TriggerUnknownMember(ctx context.Context, memberID insolar.ShortNodeID,
+func (*HostPacketDispatcherTemplate) TriggerUnknownMember(ctx context.Context, memberID node.ShortNodeID,
 	packet transport.MemberPacketReader, from endpoints.Inbound) (bool, error) {
 	return false, nil
 }
@@ -58,7 +58,7 @@ func (*HostPacketDispatcherTemplate) DispatchMemberPacket(ctx context.Context, p
 type MemberPacketDispatcherTemplate struct {
 }
 
-func (*MemberPacketDispatcherTemplate) TriggerUnknownMember(ctx context.Context, memberID insolar.ShortNodeID,
+func (*MemberPacketDispatcherTemplate) TriggerUnknownMember(ctx context.Context, memberID node.ShortNodeID,
 	packet transport.MemberPacketReader, from endpoints.Inbound) (bool, error) {
 	return false, nil
 }
