@@ -148,16 +148,16 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 		}
 	}
 
-	return ctx.Jump(s.stepUpdateSawRequests)
+	return ctx.Jump(s.stepUpdateKnownRequests)
 }
 
-func (s *SMExecute) stepUpdateSawRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	action := func(state *object.SharedState) {
-		if _, ok := state.SawRequests[s.execution.Outgoing]; ok {
+		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
 			// found duplicate request, todo: deduplication algorithm
 			panic(throw.NotImplemented())
 		} else {
-			state.SawRequests[s.execution.Outgoing] = struct{}{}
+			state.KnownRequests[s.execution.Outgoing] = struct{}{}
 		}
 	}
 

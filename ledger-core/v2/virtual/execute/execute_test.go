@@ -64,7 +64,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
-		stepChecker.AddStep(exec.stepUpdateSawRequests)
+		stepChecker.AddStep(exec.stepUpdateKnownRequests)
 		stepChecker.AddStep(exec.stepUpdatePendingCounters)
 		stepChecker.AddStep(exec.stepWaitObjectReady)
 	}
@@ -85,14 +85,14 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
 
-	smExecute.stepUpdateSawRequests(execCtx)
+	smExecute.stepUpdateKnownRequests(execCtx)
 	smExecute.stepUpdatePendingCounters(execCtx)
 
 	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
 }
 
-func TestSMExecute_UpdateSawRequests(t *testing.T) {
+func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 	var (
 		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -141,15 +141,15 @@ func TestSMExecute_UpdateSawRequests(t *testing.T) {
 	smExecute.Init(execCtx)
 	smExecute.stepGetObject(execCtx)
 
-	assert.Empty(t, smObject.SawRequests)
-	smExecute.stepUpdateSawRequests(execCtx)
-	assert.Len(t, smObject.SawRequests, 1)
+	assert.Empty(t, smObject.KnownRequests)
+	smExecute.stepUpdateKnownRequests(execCtx)
+	assert.Len(t, smObject.KnownRequests, 1)
 
 	outgoing := reference.NewRecordOf(callee, smObjectID)
-	_, ok := smObject.SawRequests[outgoing]
+	_, ok := smObject.KnownRequests[outgoing]
 	assert.True(t, ok)
 
 	assert.Panics(t, func() {
-		smExecute.stepUpdateSawRequests(execCtx)
+		smExecute.stepUpdateKnownRequests(execCtx)
 	}, "panic with not implemented deduplication algorithm should be here")
 }
