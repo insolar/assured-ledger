@@ -10,7 +10,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
@@ -129,7 +129,7 @@ const ShortNodeIdOffset = 1000
 
 func NewEmuNodeIntro(id int, s endpoints.Name, pr member.PrimaryRole, sr member.SpecialRole) *EmuNodeIntro {
 	return &EmuNodeIntro{
-		id: insolar.ShortNodeID(ShortNodeIdOffset + id),
+		id: node.ShortNodeID(ShortNodeIdOffset + id),
 		n:  &emuEndpoint{name: s},
 		pr: pr,
 		sr: sr,
@@ -158,7 +158,7 @@ func (p *emuEndpoint) GetEndpointType() endpoints.NodeEndpointType {
 	return endpoints.NameEndpoint
 }
 
-func (*emuEndpoint) GetRelayID() insolar.ShortNodeID {
+func (*emuEndpoint) GetRelayID() node.ShortNodeID {
 	return 0
 }
 
@@ -171,7 +171,7 @@ var baseIssuedAtTime = time.Now()
 
 type EmuNodeIntro struct {
 	n  endpoints.Outbound
-	id insolar.ShortNodeID
+	id node.ShortNodeID
 	pr member.PrimaryRole
 	sr member.SpecialRole
 }
@@ -201,7 +201,7 @@ func (c *EmuNodeIntro) GetExtraEndpoints() []endpoints.Outbound {
 	return nil
 }
 
-func (c *EmuNodeIntro) GetIssuerID() insolar.ShortNodeID {
+func (c *EmuNodeIntro) GetIssuerID() node.ShortNodeID {
 	return 0
 }
 
@@ -259,11 +259,11 @@ func (c *EmuNodeIntro) IsAcceptableHost(from endpoints.Inbound) bool {
 	return addr.Equals(from.GetNameAddress())
 }
 
-func (c *EmuNodeIntro) GetStaticNodeID() insolar.ShortNodeID {
+func (c *EmuNodeIntro) GetStaticNodeID() node.ShortNodeID {
 	return c.id
 }
 
-func (c *EmuNodeIntro) GetIntroducedNodeID() insolar.ShortNodeID {
+func (c *EmuNodeIntro) GetIntroducedNodeID() node.ShortNodeID {
 	return c.id
 }
 

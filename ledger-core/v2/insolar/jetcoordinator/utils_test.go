@@ -12,11 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/utils/entropy"
 )
 
 // In reality compares no sort vs with sort + in/out conversions of array of empty interfaces
@@ -96,12 +97,12 @@ var refresults []reference.Global
 func benchSelectByEntropyWrapped(b *testing.B, valuescount int, count int) {
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
 
-	var e insolar.Entropy
+	var e pulsestor.Entropy
 	copy(e[:], randslice(64))
 
-	values := make([]insolar.Node, 0, valuescount)
+	values := make([]node.Node, 0, valuescount)
 	for i := 0; i < valuescount; i++ {
-		values = append(values, insolar.Node{ID: gen.Reference()})
+		values = append(values, node.Node{ID: gen.Reference()})
 	}
 
 	b.ResetTimer()

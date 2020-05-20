@@ -8,19 +8,19 @@ package censusimpl
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 )
 
 func TestNPSGetNodeID(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	nodeID := insolar.ShortNodeID(1)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return nodeID })
+	nodeID := node.ShortNodeID(1)
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return nodeID })
 	nps := NodeProfileSlot{StaticProfile: sp}
 	require.Equal(t, nodeID, nps.GetNodeID())
 }
@@ -189,7 +189,7 @@ func TestHasFullProfile(t *testing.T) {
 
 func TestNPSString(t *testing.T) {
 	sp := profiles.NewStaticProfileMock(t)
-	sp.GetStaticNodeIDMock.Set(func() insolar.ShortNodeID { return 1 })
+	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
 	nps := NodeProfileSlot{StaticProfile: sp, index: 1}
 	require.NotEmpty(t, nps.String())
 

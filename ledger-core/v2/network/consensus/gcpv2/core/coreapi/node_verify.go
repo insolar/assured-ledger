@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
@@ -34,7 +34,7 @@ func VerifyPacketAuthenticityBy(packetSignature cryptkit.SignedDigest, nr profil
 	return nil
 }
 
-func FindHostProfile(memberID insolar.ShortNodeID, from endpoints.Inbound, initialCensus census.Operational) profiles.Host {
+func FindHostProfile(memberID node.ShortNodeID, from endpoints.Inbound, initialCensus census.Operational) profiles.Host {
 
 	if np := initialCensus.GetOnlinePopulation().FindProfile(memberID); np != nil {
 		return np.GetStatic()
@@ -48,7 +48,7 @@ func FindHostProfile(memberID insolar.ShortNodeID, from endpoints.Inbound, initi
 	return nil
 }
 
-func VerifyPacketRoute(ctx context.Context, packet transport.PacketParser, selfID insolar.ShortNodeID, from endpoints.Inbound) (bool, error) {
+func VerifyPacketRoute(ctx context.Context, packet transport.PacketParser, selfID node.ShortNodeID, from endpoints.Inbound) (bool, error) {
 
 	sid := packet.GetSourceID()
 	if sid.IsAbsent() {

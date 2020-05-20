@@ -13,8 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -24,14 +25,14 @@ func TestPulsar_Send(t *testing.T) {
 	distMock := testutils.NewPulseDistributorMock(t)
 	var pn pulse.Number = pulse.MinTimePulse
 
-	distMock.DistributeMock.Set(func(ctx context.Context, p1 insolar.Pulse) {
+	distMock.DistributeMock.Set(func(ctx context.Context, p1 pulsestor.Pulse) {
 		require.Equal(t, pn, p1.PulseNumber)
 		require.NotNil(t, p1.Entropy)
 	})
 
 	pcs := platformpolicy.NewPlatformCryptographyScheme()
-	crypto := testutils.NewCryptographyServiceMock(t)
-	crypto.SignMock.Return(&insolar.Signature{}, nil)
+	crypto := cryptography.NewServiceMock(t)
+	crypto.SignMock.Return(&cryptography.Signature{}, nil)
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()
 	require.NoError(t, err)

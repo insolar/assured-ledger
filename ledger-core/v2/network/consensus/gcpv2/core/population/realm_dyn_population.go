@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/power"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 )
 
@@ -66,7 +66,7 @@ type DynamicRealmPopulation struct {
 
 	nodeIndex    []*NodeAppearance
 	nodeShuffle  []*NodeAppearance // excluding self
-	dynamicNodes map[insolar.ShortNodeID]*NodeAppearance
+	dynamicNodes map[node.ShortNodeID]*NodeAppearance
 	reservations int
 	// voters int
 }
@@ -101,7 +101,7 @@ func (p *DynamicRealmPopulation) SealIndexed(indexedCountLimit int) bool {
 
 func (p *DynamicRealmPopulation) initPopulation(population census.OnlinePopulation, nodeCountHint int) {
 
-	p.dynamicNodes = make(map[insolar.ShortNodeID]*NodeAppearance, nodeCountHint)
+	p.dynamicNodes = make(map[node.ShortNodeID]*NodeAppearance, nodeCountHint)
 	p.nodeIndex = make([]*NodeAppearance, 0, nodeCountHint)
 	p.nodeShuffle = make([]*NodeAppearance, 0, nodeCountHint)
 
@@ -180,14 +180,14 @@ func (p *DynamicRealmPopulation) GetJoinersCount() int {
 	return p.joinerCount
 }
 
-func (p *DynamicRealmPopulation) GetNodeAppearance(id insolar.ShortNodeID) *NodeAppearance {
+func (p *DynamicRealmPopulation) GetNodeAppearance(id node.ShortNodeID) *NodeAppearance {
 	p.rw.RLock()
 	defer p.rw.RUnlock()
 
 	return p.dynamicNodes[id]
 }
 
-func (p *DynamicRealmPopulation) GetActiveNodeAppearance(id insolar.ShortNodeID) *NodeAppearance {
+func (p *DynamicRealmPopulation) GetActiveNodeAppearance(id node.ShortNodeID) *NodeAppearance {
 	na := p.GetNodeAppearance(id)
 	if na == nil || na.GetProfile().IsJoiner() {
 		return nil
@@ -195,7 +195,7 @@ func (p *DynamicRealmPopulation) GetActiveNodeAppearance(id insolar.ShortNodeID)
 	return na
 }
 
-func (p *DynamicRealmPopulation) GetJoinerNodeAppearance(id insolar.ShortNodeID) *NodeAppearance {
+func (p *DynamicRealmPopulation) GetJoinerNodeAppearance(id node.ShortNodeID) *NodeAppearance {
 	na := p.GetNodeAppearance(id)
 	if na == nil || !na.GetProfile().IsJoiner() {
 		return nil
@@ -301,7 +301,7 @@ func (p *DynamicRealmPopulation) AddToDynamics(ctx context.Context, na *NodeAppe
 	return nna, nil
 }
 
-func (p *DynamicRealmPopulation) AddReservation(id insolar.ShortNodeID) (bool, *NodeAppearance) {
+func (p *DynamicRealmPopulation) AddReservation(id node.ShortNodeID) (bool, *NodeAppearance) {
 
 	p.rw.Lock()
 	defer p.rw.Unlock()
@@ -316,7 +316,7 @@ func (p *DynamicRealmPopulation) AddReservation(id insolar.ShortNodeID) (bool, *
 	return true, nil
 }
 
-func (p *DynamicRealmPopulation) FindReservation(id insolar.ShortNodeID) (bool, *NodeAppearance) {
+func (p *DynamicRealmPopulation) FindReservation(id node.ShortNodeID) (bool, *NodeAppearance) {
 
 	p.rw.RLock()
 	defer p.rw.RUnlock()
@@ -385,7 +385,7 @@ func (p *DynamicRealmPopulation) _addToDynamics(ctx context.Context, n *NodeAppe
 	return true, n
 }
 
-func (p *DynamicRealmPopulation) _addNodeToMap(id insolar.ShortNodeID, n *NodeAppearance) {
+func (p *DynamicRealmPopulation) _addNodeToMap(id node.ShortNodeID, n *NodeAppearance) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 	p.dynamicNodes[id] = n

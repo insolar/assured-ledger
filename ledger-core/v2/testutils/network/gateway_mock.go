@@ -9,8 +9,10 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // GatewayMock implements network.Gateway
@@ -23,8 +25,8 @@ type GatewayMock struct {
 	beforeAutherCounter uint64
 	AutherMock          mGatewayMockAuther
 
-	funcBeforeRun          func(ctx context.Context, pulse insolar.Pulse)
-	inspectFuncBeforeRun   func(ctx context.Context, pulse insolar.Pulse)
+	funcBeforeRun          func(ctx context.Context, pulse pulsestor.Pulse)
+	inspectFuncBeforeRun   func(ctx context.Context, pulse pulsestor.Pulse)
 	afterBeforeRunCounter  uint64
 	beforeBeforeRunCounter uint64
 	BeforeRunMock          mGatewayMockBeforeRun
@@ -35,8 +37,8 @@ type GatewayMock struct {
 	beforeBootstrapperCounter uint64
 	BootstrapperMock          mGatewayMockBootstrapper
 
-	funcEphemeralMode          func(nodes []insolar.NetworkNode) (b1 bool)
-	inspectFuncEphemeralMode   func(nodes []insolar.NetworkNode)
+	funcEphemeralMode          func(nodes []node.NetworkNode) (b1 bool)
+	inspectFuncEphemeralMode   func(nodes []node.NetworkNode)
 	afterEphemeralModeCounter  uint64
 	beforeEphemeralModeCounter uint64
 	EphemeralModeMock          mGatewayMockEphemeralMode
@@ -47,14 +49,14 @@ type GatewayMock struct {
 	beforeFailStateCounter uint64
 	FailStateMock          mGatewayMockFailState
 
-	funcGetState          func() (n1 insolar.NetworkState)
+	funcGetState          func() (n1 node.NetworkState)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
 	GetStateMock          mGatewayMockGetState
 
-	funcNewGateway          func(ctx context.Context, n1 insolar.NetworkState) (g1 mm_network.Gateway)
-	inspectFuncNewGateway   func(ctx context.Context, n1 insolar.NetworkState)
+	funcNewGateway          func(ctx context.Context, n1 node.NetworkState) (g1 mm_network.Gateway)
+	inspectFuncNewGateway   func(ctx context.Context, n1 node.NetworkState)
 	afterNewGatewayCounter  uint64
 	beforeNewGatewayCounter uint64
 	NewGatewayMock          mGatewayMockNewGateway
@@ -65,20 +67,20 @@ type GatewayMock struct {
 	beforeOnConsensusFinishedCounter uint64
 	OnConsensusFinishedMock          mGatewayMockOnConsensusFinished
 
-	funcOnPulseFromConsensus          func(ctx context.Context, p1 insolar.Pulse)
-	inspectFuncOnPulseFromConsensus   func(ctx context.Context, p1 insolar.Pulse)
+	funcOnPulseFromConsensus          func(ctx context.Context, p1 pulsestor.Pulse)
+	inspectFuncOnPulseFromConsensus   func(ctx context.Context, p1 pulsestor.Pulse)
 	afterOnPulseFromConsensusCounter  uint64
 	beforeOnPulseFromConsensusCounter uint64
 	OnPulseFromConsensusMock          mGatewayMockOnPulseFromConsensus
 
-	funcRun          func(ctx context.Context, pulse insolar.Pulse)
-	inspectFuncRun   func(ctx context.Context, pulse insolar.Pulse)
+	funcRun          func(ctx context.Context, pulse pulsestor.Pulse)
+	inspectFuncRun   func(ctx context.Context, pulse pulsestor.Pulse)
 	afterRunCounter  uint64
 	beforeRunCounter uint64
 	RunMock          mGatewayMockRun
 
-	funcUpdateState          func(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)
-	inspectFuncUpdateState   func(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)
+	funcUpdateState          func(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
+	inspectFuncUpdateState   func(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
 	afterUpdateStateCounter  uint64
 	beforeUpdateStateCounter uint64
 	UpdateStateMock          mGatewayMockUpdateState
@@ -287,11 +289,11 @@ type GatewayMockBeforeRunExpectation struct {
 // GatewayMockBeforeRunParams contains parameters of the Gateway.BeforeRun
 type GatewayMockBeforeRunParams struct {
 	ctx   context.Context
-	pulse insolar.Pulse
+	pulse pulsestor.Pulse
 }
 
 // Expect sets up expected params for Gateway.BeforeRun
-func (mmBeforeRun *mGatewayMockBeforeRun) Expect(ctx context.Context, pulse insolar.Pulse) *mGatewayMockBeforeRun {
+func (mmBeforeRun *mGatewayMockBeforeRun) Expect(ctx context.Context, pulse pulsestor.Pulse) *mGatewayMockBeforeRun {
 	if mmBeforeRun.mock.funcBeforeRun != nil {
 		mmBeforeRun.mock.t.Fatalf("GatewayMock.BeforeRun mock is already set by Set")
 	}
@@ -311,7 +313,7 @@ func (mmBeforeRun *mGatewayMockBeforeRun) Expect(ctx context.Context, pulse inso
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.BeforeRun
-func (mmBeforeRun *mGatewayMockBeforeRun) Inspect(f func(ctx context.Context, pulse insolar.Pulse)) *mGatewayMockBeforeRun {
+func (mmBeforeRun *mGatewayMockBeforeRun) Inspect(f func(ctx context.Context, pulse pulsestor.Pulse)) *mGatewayMockBeforeRun {
 	if mmBeforeRun.mock.inspectFuncBeforeRun != nil {
 		mmBeforeRun.mock.t.Fatalf("Inspect function is already set for GatewayMock.BeforeRun")
 	}
@@ -335,7 +337,7 @@ func (mmBeforeRun *mGatewayMockBeforeRun) Return() *GatewayMock {
 }
 
 //Set uses given function f to mock the Gateway.BeforeRun method
-func (mmBeforeRun *mGatewayMockBeforeRun) Set(f func(ctx context.Context, pulse insolar.Pulse)) *GatewayMock {
+func (mmBeforeRun *mGatewayMockBeforeRun) Set(f func(ctx context.Context, pulse pulsestor.Pulse)) *GatewayMock {
 	if mmBeforeRun.defaultExpectation != nil {
 		mmBeforeRun.mock.t.Fatalf("Default expectation is already set for the Gateway.BeforeRun method")
 	}
@@ -349,7 +351,7 @@ func (mmBeforeRun *mGatewayMockBeforeRun) Set(f func(ctx context.Context, pulse 
 }
 
 // BeforeRun implements network.Gateway
-func (mmBeforeRun *GatewayMock) BeforeRun(ctx context.Context, pulse insolar.Pulse) {
+func (mmBeforeRun *GatewayMock) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {
 	mm_atomic.AddUint64(&mmBeforeRun.beforeBeforeRunCounter, 1)
 	defer mm_atomic.AddUint64(&mmBeforeRun.afterBeforeRunCounter, 1)
 
@@ -617,7 +619,7 @@ type GatewayMockEphemeralModeExpectation struct {
 
 // GatewayMockEphemeralModeParams contains parameters of the Gateway.EphemeralMode
 type GatewayMockEphemeralModeParams struct {
-	nodes []insolar.NetworkNode
+	nodes []node.NetworkNode
 }
 
 // GatewayMockEphemeralModeResults contains results of the Gateway.EphemeralMode
@@ -626,7 +628,7 @@ type GatewayMockEphemeralModeResults struct {
 }
 
 // Expect sets up expected params for Gateway.EphemeralMode
-func (mmEphemeralMode *mGatewayMockEphemeralMode) Expect(nodes []insolar.NetworkNode) *mGatewayMockEphemeralMode {
+func (mmEphemeralMode *mGatewayMockEphemeralMode) Expect(nodes []node.NetworkNode) *mGatewayMockEphemeralMode {
 	if mmEphemeralMode.mock.funcEphemeralMode != nil {
 		mmEphemeralMode.mock.t.Fatalf("GatewayMock.EphemeralMode mock is already set by Set")
 	}
@@ -646,7 +648,7 @@ func (mmEphemeralMode *mGatewayMockEphemeralMode) Expect(nodes []insolar.Network
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.EphemeralMode
-func (mmEphemeralMode *mGatewayMockEphemeralMode) Inspect(f func(nodes []insolar.NetworkNode)) *mGatewayMockEphemeralMode {
+func (mmEphemeralMode *mGatewayMockEphemeralMode) Inspect(f func(nodes []node.NetworkNode)) *mGatewayMockEphemeralMode {
 	if mmEphemeralMode.mock.inspectFuncEphemeralMode != nil {
 		mmEphemeralMode.mock.t.Fatalf("Inspect function is already set for GatewayMock.EphemeralMode")
 	}
@@ -670,7 +672,7 @@ func (mmEphemeralMode *mGatewayMockEphemeralMode) Return(b1 bool) *GatewayMock {
 }
 
 //Set uses given function f to mock the Gateway.EphemeralMode method
-func (mmEphemeralMode *mGatewayMockEphemeralMode) Set(f func(nodes []insolar.NetworkNode) (b1 bool)) *GatewayMock {
+func (mmEphemeralMode *mGatewayMockEphemeralMode) Set(f func(nodes []node.NetworkNode) (b1 bool)) *GatewayMock {
 	if mmEphemeralMode.defaultExpectation != nil {
 		mmEphemeralMode.mock.t.Fatalf("Default expectation is already set for the Gateway.EphemeralMode method")
 	}
@@ -685,7 +687,7 @@ func (mmEphemeralMode *mGatewayMockEphemeralMode) Set(f func(nodes []insolar.Net
 
 // When sets expectation for the Gateway.EphemeralMode which will trigger the result defined by the following
 // Then helper
-func (mmEphemeralMode *mGatewayMockEphemeralMode) When(nodes []insolar.NetworkNode) *GatewayMockEphemeralModeExpectation {
+func (mmEphemeralMode *mGatewayMockEphemeralMode) When(nodes []node.NetworkNode) *GatewayMockEphemeralModeExpectation {
 	if mmEphemeralMode.mock.funcEphemeralMode != nil {
 		mmEphemeralMode.mock.t.Fatalf("GatewayMock.EphemeralMode mock is already set by Set")
 	}
@@ -705,7 +707,7 @@ func (e *GatewayMockEphemeralModeExpectation) Then(b1 bool) *GatewayMock {
 }
 
 // EphemeralMode implements network.Gateway
-func (mmEphemeralMode *GatewayMock) EphemeralMode(nodes []insolar.NetworkNode) (b1 bool) {
+func (mmEphemeralMode *GatewayMock) EphemeralMode(nodes []node.NetworkNode) (b1 bool) {
 	mm_atomic.AddUint64(&mmEphemeralMode.beforeEphemeralModeCounter, 1)
 	defer mm_atomic.AddUint64(&mmEphemeralMode.afterEphemeralModeCounter, 1)
 
@@ -1017,7 +1019,7 @@ type GatewayMockGetStateExpectation struct {
 
 // GatewayMockGetStateResults contains results of the Gateway.GetState
 type GatewayMockGetStateResults struct {
-	n1 insolar.NetworkState
+	n1 node.NetworkState
 }
 
 // Expect sets up expected params for Gateway.GetState
@@ -1045,7 +1047,7 @@ func (mmGetState *mGatewayMockGetState) Inspect(f func()) *mGatewayMockGetState 
 }
 
 // Return sets up results that will be returned by Gateway.GetState
-func (mmGetState *mGatewayMockGetState) Return(n1 insolar.NetworkState) *GatewayMock {
+func (mmGetState *mGatewayMockGetState) Return(n1 node.NetworkState) *GatewayMock {
 	if mmGetState.mock.funcGetState != nil {
 		mmGetState.mock.t.Fatalf("GatewayMock.GetState mock is already set by Set")
 	}
@@ -1058,7 +1060,7 @@ func (mmGetState *mGatewayMockGetState) Return(n1 insolar.NetworkState) *Gateway
 }
 
 //Set uses given function f to mock the Gateway.GetState method
-func (mmGetState *mGatewayMockGetState) Set(f func() (n1 insolar.NetworkState)) *GatewayMock {
+func (mmGetState *mGatewayMockGetState) Set(f func() (n1 node.NetworkState)) *GatewayMock {
 	if mmGetState.defaultExpectation != nil {
 		mmGetState.mock.t.Fatalf("Default expectation is already set for the Gateway.GetState method")
 	}
@@ -1072,7 +1074,7 @@ func (mmGetState *mGatewayMockGetState) Set(f func() (n1 insolar.NetworkState)) 
 }
 
 // GetState implements network.Gateway
-func (mmGetState *GatewayMock) GetState() (n1 insolar.NetworkState) {
+func (mmGetState *GatewayMock) GetState() (n1 node.NetworkState) {
 	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
 
@@ -1164,7 +1166,7 @@ type GatewayMockNewGatewayExpectation struct {
 // GatewayMockNewGatewayParams contains parameters of the Gateway.NewGateway
 type GatewayMockNewGatewayParams struct {
 	ctx context.Context
-	n1  insolar.NetworkState
+	n1  node.NetworkState
 }
 
 // GatewayMockNewGatewayResults contains results of the Gateway.NewGateway
@@ -1173,7 +1175,7 @@ type GatewayMockNewGatewayResults struct {
 }
 
 // Expect sets up expected params for Gateway.NewGateway
-func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 insolar.NetworkState) *mGatewayMockNewGateway {
+func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 node.NetworkState) *mGatewayMockNewGateway {
 	if mmNewGateway.mock.funcNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("GatewayMock.NewGateway mock is already set by Set")
 	}
@@ -1193,7 +1195,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 insol
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.NewGateway
-func (mmNewGateway *mGatewayMockNewGateway) Inspect(f func(ctx context.Context, n1 insolar.NetworkState)) *mGatewayMockNewGateway {
+func (mmNewGateway *mGatewayMockNewGateway) Inspect(f func(ctx context.Context, n1 node.NetworkState)) *mGatewayMockNewGateway {
 	if mmNewGateway.mock.inspectFuncNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("Inspect function is already set for GatewayMock.NewGateway")
 	}
@@ -1217,7 +1219,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Return(g1 mm_network.Gateway) *Gatew
 }
 
 //Set uses given function f to mock the Gateway.NewGateway method
-func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 insolar.NetworkState) (g1 mm_network.Gateway)) *GatewayMock {
+func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 node.NetworkState) (g1 mm_network.Gateway)) *GatewayMock {
 	if mmNewGateway.defaultExpectation != nil {
 		mmNewGateway.mock.t.Fatalf("Default expectation is already set for the Gateway.NewGateway method")
 	}
@@ -1232,7 +1234,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 i
 
 // When sets expectation for the Gateway.NewGateway which will trigger the result defined by the following
 // Then helper
-func (mmNewGateway *mGatewayMockNewGateway) When(ctx context.Context, n1 insolar.NetworkState) *GatewayMockNewGatewayExpectation {
+func (mmNewGateway *mGatewayMockNewGateway) When(ctx context.Context, n1 node.NetworkState) *GatewayMockNewGatewayExpectation {
 	if mmNewGateway.mock.funcNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("GatewayMock.NewGateway mock is already set by Set")
 	}
@@ -1252,7 +1254,7 @@ func (e *GatewayMockNewGatewayExpectation) Then(g1 mm_network.Gateway) *GatewayM
 }
 
 // NewGateway implements network.Gateway
-func (mmNewGateway *GatewayMock) NewGateway(ctx context.Context, n1 insolar.NetworkState) (g1 mm_network.Gateway) {
+func (mmNewGateway *GatewayMock) NewGateway(ctx context.Context, n1 node.NetworkState) (g1 mm_network.Gateway) {
 	mm_atomic.AddUint64(&mmNewGateway.beforeNewGatewayCounter, 1)
 	defer mm_atomic.AddUint64(&mmNewGateway.afterNewGatewayCounter, 1)
 
@@ -1568,11 +1570,11 @@ type GatewayMockOnPulseFromConsensusExpectation struct {
 // GatewayMockOnPulseFromConsensusParams contains parameters of the Gateway.OnPulseFromConsensus
 type GatewayMockOnPulseFromConsensusParams struct {
 	ctx context.Context
-	p1  insolar.Pulse
+	p1  pulsestor.Pulse
 }
 
 // Expect sets up expected params for Gateway.OnPulseFromConsensus
-func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Expect(ctx context.Context, p1 insolar.Pulse) *mGatewayMockOnPulseFromConsensus {
+func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Expect(ctx context.Context, p1 pulsestor.Pulse) *mGatewayMockOnPulseFromConsensus {
 	if mmOnPulseFromConsensus.mock.funcOnPulseFromConsensus != nil {
 		mmOnPulseFromConsensus.mock.t.Fatalf("GatewayMock.OnPulseFromConsensus mock is already set by Set")
 	}
@@ -1592,7 +1594,7 @@ func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Expect(ctx conte
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.OnPulseFromConsensus
-func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Inspect(f func(ctx context.Context, p1 insolar.Pulse)) *mGatewayMockOnPulseFromConsensus {
+func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Inspect(f func(ctx context.Context, p1 pulsestor.Pulse)) *mGatewayMockOnPulseFromConsensus {
 	if mmOnPulseFromConsensus.mock.inspectFuncOnPulseFromConsensus != nil {
 		mmOnPulseFromConsensus.mock.t.Fatalf("Inspect function is already set for GatewayMock.OnPulseFromConsensus")
 	}
@@ -1616,7 +1618,7 @@ func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Return() *Gatewa
 }
 
 //Set uses given function f to mock the Gateway.OnPulseFromConsensus method
-func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Set(f func(ctx context.Context, p1 insolar.Pulse)) *GatewayMock {
+func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Set(f func(ctx context.Context, p1 pulsestor.Pulse)) *GatewayMock {
 	if mmOnPulseFromConsensus.defaultExpectation != nil {
 		mmOnPulseFromConsensus.mock.t.Fatalf("Default expectation is already set for the Gateway.OnPulseFromConsensus method")
 	}
@@ -1630,7 +1632,7 @@ func (mmOnPulseFromConsensus *mGatewayMockOnPulseFromConsensus) Set(f func(ctx c
 }
 
 // OnPulseFromConsensus implements network.Gateway
-func (mmOnPulseFromConsensus *GatewayMock) OnPulseFromConsensus(ctx context.Context, p1 insolar.Pulse) {
+func (mmOnPulseFromConsensus *GatewayMock) OnPulseFromConsensus(ctx context.Context, p1 pulsestor.Pulse) {
 	mm_atomic.AddUint64(&mmOnPulseFromConsensus.beforeOnPulseFromConsensusCounter, 1)
 	defer mm_atomic.AddUint64(&mmOnPulseFromConsensus.afterOnPulseFromConsensusCounter, 1)
 
@@ -1756,11 +1758,11 @@ type GatewayMockRunExpectation struct {
 // GatewayMockRunParams contains parameters of the Gateway.Run
 type GatewayMockRunParams struct {
 	ctx   context.Context
-	pulse insolar.Pulse
+	pulse pulsestor.Pulse
 }
 
 // Expect sets up expected params for Gateway.Run
-func (mmRun *mGatewayMockRun) Expect(ctx context.Context, pulse insolar.Pulse) *mGatewayMockRun {
+func (mmRun *mGatewayMockRun) Expect(ctx context.Context, pulse pulsestor.Pulse) *mGatewayMockRun {
 	if mmRun.mock.funcRun != nil {
 		mmRun.mock.t.Fatalf("GatewayMock.Run mock is already set by Set")
 	}
@@ -1780,7 +1782,7 @@ func (mmRun *mGatewayMockRun) Expect(ctx context.Context, pulse insolar.Pulse) *
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.Run
-func (mmRun *mGatewayMockRun) Inspect(f func(ctx context.Context, pulse insolar.Pulse)) *mGatewayMockRun {
+func (mmRun *mGatewayMockRun) Inspect(f func(ctx context.Context, pulse pulsestor.Pulse)) *mGatewayMockRun {
 	if mmRun.mock.inspectFuncRun != nil {
 		mmRun.mock.t.Fatalf("Inspect function is already set for GatewayMock.Run")
 	}
@@ -1804,7 +1806,7 @@ func (mmRun *mGatewayMockRun) Return() *GatewayMock {
 }
 
 //Set uses given function f to mock the Gateway.Run method
-func (mmRun *mGatewayMockRun) Set(f func(ctx context.Context, pulse insolar.Pulse)) *GatewayMock {
+func (mmRun *mGatewayMockRun) Set(f func(ctx context.Context, pulse pulsestor.Pulse)) *GatewayMock {
 	if mmRun.defaultExpectation != nil {
 		mmRun.mock.t.Fatalf("Default expectation is already set for the Gateway.Run method")
 	}
@@ -1818,7 +1820,7 @@ func (mmRun *mGatewayMockRun) Set(f func(ctx context.Context, pulse insolar.Puls
 }
 
 // Run implements network.Gateway
-func (mmRun *GatewayMock) Run(ctx context.Context, pulse insolar.Pulse) {
+func (mmRun *GatewayMock) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	mm_atomic.AddUint64(&mmRun.beforeRunCounter, 1)
 	defer mm_atomic.AddUint64(&mmRun.afterRunCounter, 1)
 
@@ -1944,13 +1946,13 @@ type GatewayMockUpdateStateExpectation struct {
 // GatewayMockUpdateStateParams contains parameters of the Gateway.UpdateState
 type GatewayMockUpdateStateParams struct {
 	ctx            context.Context
-	pulseNumber    insolar.PulseNumber
-	nodes          []insolar.NetworkNode
+	pulseNumber    pulse.Number
+	nodes          []node.NetworkNode
 	cloudStateHash []byte
 }
 
 // Expect sets up expected params for Gateway.UpdateState
-func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) *mGatewayMockUpdateState {
+func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte) *mGatewayMockUpdateState {
 	if mmUpdateState.mock.funcUpdateState != nil {
 		mmUpdateState.mock.t.Fatalf("GatewayMock.UpdateState mock is already set by Set")
 	}
@@ -1970,7 +1972,7 @@ func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, pulseN
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.UpdateState
-func (mmUpdateState *mGatewayMockUpdateState) Inspect(f func(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)) *mGatewayMockUpdateState {
+func (mmUpdateState *mGatewayMockUpdateState) Inspect(f func(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)) *mGatewayMockUpdateState {
 	if mmUpdateState.mock.inspectFuncUpdateState != nil {
 		mmUpdateState.mock.t.Fatalf("Inspect function is already set for GatewayMock.UpdateState")
 	}
@@ -1994,7 +1996,7 @@ func (mmUpdateState *mGatewayMockUpdateState) Return() *GatewayMock {
 }
 
 //Set uses given function f to mock the Gateway.UpdateState method
-func (mmUpdateState *mGatewayMockUpdateState) Set(f func(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)) *GatewayMock {
+func (mmUpdateState *mGatewayMockUpdateState) Set(f func(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)) *GatewayMock {
 	if mmUpdateState.defaultExpectation != nil {
 		mmUpdateState.mock.t.Fatalf("Default expectation is already set for the Gateway.UpdateState method")
 	}
@@ -2008,7 +2010,7 @@ func (mmUpdateState *mGatewayMockUpdateState) Set(f func(ctx context.Context, pu
 }
 
 // UpdateState implements network.Gateway
-func (mmUpdateState *GatewayMock) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (mmUpdateState *GatewayMock) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte) {
 	mm_atomic.AddUint64(&mmUpdateState.beforeUpdateStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdateState.afterUpdateStateCounter, 1)
 

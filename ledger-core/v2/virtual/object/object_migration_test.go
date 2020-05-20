@@ -14,9 +14,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -28,31 +29,37 @@ import (
 
 func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	var (
-		mc = minimock.NewController(t)
+		mc  = minimock.NewController(t)
+		ctx = inslogger.TestContext(t)
 
 		pd                   = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot            = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID           = gen.IDWithPulse(pd.PulseNumber)
 		smGlobalRef          = reference.NewSelf(smObjectID)
-		smObject             = NewStateMachineObject(smGlobalRef, InitReasonCTConstructor)
+		smObject             = NewStateMachineObject(smGlobalRef)
 		msgVStateReportCount = 0
 		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 	defer mc.Finish()
+
+	smObject.SharedState.SetState(Empty)
 	smObject.pulseSlot = &pulseSlot
 	messageService := messagesender.NewServiceMock(mc).
 		SendRoleMock.Set(
-		func(ctx context.Context, msg payload.Marshaler, role insolar.DynamicRole, object reference.Global,
-			pn insolar.PulseNumber, opts ...messagesender.SendOption) (err error) {
+		func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global,
+			pn pulse.Number, opts ...messagesender.SendOption) (err error) {
 			_, ok := msg.(*payload.VStateReport)
 			require.True(t, ok)
 			msgVStateReportCount++
 			return nil
 		})
 	messageSender := messageSenderAdapter.NewMessageSenderMock(mc).
-		PrepareNotifyMock.Set(func(e1 smachine.ExecutionContext, fn func(context.Context, messagesender.Service)) (n1 smachine.NotifyRequester) {
-		fn(context.Background(), messageService)
-		return smachine.NewNotifyRequesterMock(mc).SendMock.Return()
+		PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn func(ctx context.Context, svc messagesender.Service) smachine.AsyncResultFunc) (a1 smachine.AsyncCallRequester) {
+		fn(ctx, messageService)
+		mock := smachine.NewAsyncCallRequesterMock(mc)
+		return mock.WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
+			return mock
+		}).StartMock.Return()
 	})
 	smObject.messageSender = messageSender
 	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
@@ -60,7 +67,7 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	stepChecker := testutils.NewSMStepChecker()
 	{
 		exec := SMObject{}
-		stepChecker.AddStep(exec.stepReadyToWork)
+		stepChecker.AddStep(exec.stepGetState)
 		stepChecker.AddStep(exec.stepSendVStateReport)
 		stepChecker.AddStep(exec.stepWaitIndefinitely)
 	}

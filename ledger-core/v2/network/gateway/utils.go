@@ -11,7 +11,9 @@ import (
 	"crypto/rand"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
@@ -19,18 +21,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
-func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) insolar.Pulse {
-	pulse, err := accessor.GetLatestPulse(ctx)
+func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) pulsestor.Pulse {
+	puls, err := accessor.GetLatestPulse(ctx)
 	if err != nil {
-		pulse = *insolar.EphemeralPulse
+		puls = *pulsestor.EphemeralPulse
 	}
 
-	return pulse
+	return puls
 }
 
-func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber insolar.PulseNumber) insolar.Pulse {
+func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber pulse.Number) pulsestor.Pulse {
 	pulse, err := accessor.GetPulse(ctx, pulseNumber)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("Failed to fetch pulse: %d", pulseNumber)
@@ -40,12 +43,12 @@ func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNu
 }
 
 func getAnnounceSignature(
-	node insolar.NetworkNode,
+	node node.NetworkNode,
 	isDiscovery bool,
-	kp insolar.KeyProcessor,
-	keystore insolar.KeyStore,
-	scheme insolar.PlatformCryptographyScheme,
-) ([]byte, *insolar.Signature, error) {
+	kp cryptography.KeyProcessor,
+	keystore cryptography.KeyStore,
+	scheme cryptography.PlatformCryptographyScheme,
+) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
 	brief.ShortID = node.ShortID()
@@ -91,9 +94,9 @@ func getAnnounceSignature(
 	return digest, sign, nil
 }
 
-func getKeyStore(cryptographyService insolar.CryptographyService) insolar.KeyStore {
+func getKeyStore(cryptographyService cryptography.Service) cryptography.KeyStore {
 	// TODO: hacked
-	return cryptographyService.(*cryptography.NodeCryptographyService).KeyStore
+	return cryptographyService.(*platformpolicy.NodeCryptographyService).KeyStore
 }
 
 type consensusProxy struct {
@@ -106,10 +109,10 @@ func (p consensusProxy) State() []byte {
 	return nshBytes
 }
 
-func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse insolar.Pulse) {
+func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse pulsestor.Pulse) {
 	p.Gatewayer.Gateway().(adapters.PulseChanger).ChangePulse(ctx, newPulse)
 }
 
-func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte) {
 	p.Gatewayer.Gateway().(adapters.StateUpdater).UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }

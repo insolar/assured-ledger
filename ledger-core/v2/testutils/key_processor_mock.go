@@ -11,7 +11,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 )
 
-// KeyProcessorMock implements insolar.KeyProcessor
+// KeyProcessorMock implements cryptography.KeyProcessor
 type KeyProcessorMock struct {
 	t minimock.Tester
 
@@ -64,7 +64,7 @@ type KeyProcessorMock struct {
 	ImportPublicKeyPEMMock          mKeyProcessorMockImportPublicKeyPEM
 }
 
-// NewKeyProcessorMock returns a mock for insolar.KeyProcessor
+// NewKeyProcessorMock returns a mock for cryptography.KeyProcessor
 func NewKeyProcessorMock(t minimock.Tester) *KeyProcessorMock {
 	m := &KeyProcessorMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -204,7 +204,7 @@ func (e *KeyProcessorMockExportPrivateKeyPEMExpectation) Then(ba1 []byte, err er
 	return e.mock
 }
 
-// ExportPrivateKeyPEM implements insolar.KeyProcessor
+// ExportPrivateKeyPEM implements cryptography.KeyProcessor
 func (mmExportPrivateKeyPEM *KeyProcessorMock) ExportPrivateKeyPEM(p1 crypto.PrivateKey) (ba1 []byte, err error) {
 	mm_atomic.AddUint64(&mmExportPrivateKeyPEM.beforeExportPrivateKeyPEMCounter, 1)
 	defer mm_atomic.AddUint64(&mmExportPrivateKeyPEM.afterExportPrivateKeyPEMCounter, 1)
@@ -420,7 +420,7 @@ func (e *KeyProcessorMockExportPublicKeyBinaryExpectation) Then(ba1 []byte, err 
 	return e.mock
 }
 
-// ExportPublicKeyBinary implements insolar.KeyProcessor
+// ExportPublicKeyBinary implements cryptography.KeyProcessor
 func (mmExportPublicKeyBinary *KeyProcessorMock) ExportPublicKeyBinary(p1 crypto.PublicKey) (ba1 []byte, err error) {
 	mm_atomic.AddUint64(&mmExportPublicKeyBinary.beforeExportPublicKeyBinaryCounter, 1)
 	defer mm_atomic.AddUint64(&mmExportPublicKeyBinary.afterExportPublicKeyBinaryCounter, 1)
@@ -636,7 +636,7 @@ func (e *KeyProcessorMockExportPublicKeyPEMExpectation) Then(ba1 []byte, err err
 	return e.mock
 }
 
-// ExportPublicKeyPEM implements insolar.KeyProcessor
+// ExportPublicKeyPEM implements cryptography.KeyProcessor
 func (mmExportPublicKeyPEM *KeyProcessorMock) ExportPublicKeyPEM(p1 crypto.PublicKey) (ba1 []byte, err error) {
 	mm_atomic.AddUint64(&mmExportPublicKeyPEM.beforeExportPublicKeyPEMCounter, 1)
 	defer mm_atomic.AddUint64(&mmExportPublicKeyPEM.afterExportPublicKeyPEMCounter, 1)
@@ -851,7 +851,7 @@ func (e *KeyProcessorMockExtractPublicKeyExpectation) Then(p2 crypto.PublicKey) 
 	return e.mock
 }
 
-// ExtractPublicKey implements insolar.KeyProcessor
+// ExtractPublicKey implements cryptography.KeyProcessor
 func (mmExtractPublicKey *KeyProcessorMock) ExtractPublicKey(p1 crypto.PrivateKey) (p2 crypto.PublicKey) {
 	mm_atomic.AddUint64(&mmExtractPublicKey.beforeExtractPublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmExtractPublicKey.afterExtractPublicKeyCounter, 1)
@@ -1031,7 +1031,7 @@ func (mmGeneratePrivateKey *mKeyProcessorMockGeneratePrivateKey) Set(f func() (p
 	return mmGeneratePrivateKey.mock
 }
 
-// GeneratePrivateKey implements insolar.KeyProcessor
+// GeneratePrivateKey implements cryptography.KeyProcessor
 func (mmGeneratePrivateKey *KeyProcessorMock) GeneratePrivateKey() (p1 crypto.PrivateKey, err error) {
 	mm_atomic.AddUint64(&mmGeneratePrivateKey.beforeGeneratePrivateKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGeneratePrivateKey.afterGeneratePrivateKeyCounter, 1)
@@ -1211,7 +1211,7 @@ func (e *KeyProcessorMockImportPrivateKeyPEMExpectation) Then(p1 crypto.PrivateK
 	return e.mock
 }
 
-// ImportPrivateKeyPEM implements insolar.KeyProcessor
+// ImportPrivateKeyPEM implements cryptography.KeyProcessor
 func (mmImportPrivateKeyPEM *KeyProcessorMock) ImportPrivateKeyPEM(ba1 []byte) (p1 crypto.PrivateKey, err error) {
 	mm_atomic.AddUint64(&mmImportPrivateKeyPEM.beforeImportPrivateKeyPEMCounter, 1)
 	defer mm_atomic.AddUint64(&mmImportPrivateKeyPEM.afterImportPrivateKeyPEMCounter, 1)
@@ -1427,7 +1427,7 @@ func (e *KeyProcessorMockImportPublicKeyBinaryExpectation) Then(p1 crypto.Public
 	return e.mock
 }
 
-// ImportPublicKeyBinary implements insolar.KeyProcessor
+// ImportPublicKeyBinary implements cryptography.KeyProcessor
 func (mmImportPublicKeyBinary *KeyProcessorMock) ImportPublicKeyBinary(ba1 []byte) (p1 crypto.PublicKey, err error) {
 	mm_atomic.AddUint64(&mmImportPublicKeyBinary.beforeImportPublicKeyBinaryCounter, 1)
 	defer mm_atomic.AddUint64(&mmImportPublicKeyBinary.afterImportPublicKeyBinaryCounter, 1)
@@ -1643,7 +1643,7 @@ func (e *KeyProcessorMockImportPublicKeyPEMExpectation) Then(p1 crypto.PublicKey
 	return e.mock
 }
 
-// ImportPublicKeyPEM implements insolar.KeyProcessor
+// ImportPublicKeyPEM implements cryptography.KeyProcessor
 func (mmImportPublicKeyPEM *KeyProcessorMock) ImportPublicKeyPEM(ba1 []byte) (p1 crypto.PublicKey, err error) {
 	mm_atomic.AddUint64(&mmImportPublicKeyPEM.beforeImportPublicKeyPEMCounter, 1)
 	defer mm_atomic.AddUint64(&mmImportPublicKeyPEM.afterImportPublicKeyPEMCounter, 1)

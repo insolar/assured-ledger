@@ -73,7 +73,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 
 	deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
 
-	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef, object.InitReasonVStateReport)
+	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if state.IsReady() {
@@ -100,7 +100,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	case smachine.NotPassed:
 		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	return ctx.Stop()

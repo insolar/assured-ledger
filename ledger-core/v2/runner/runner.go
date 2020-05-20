@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -28,6 +27,10 @@ type Service interface {
 	ExecutionStart(execution execution.Context) *RunState
 	ExecutionContinue(run *RunState, outgoingResult []byte)
 	ExecutionAbort(run *RunState)
+}
+
+type UnmanagedService interface {
+	ExecutionClassify(execution execution.Context) interface{}
 }
 
 type DefaultService struct {
@@ -119,7 +122,7 @@ func generateCallContext(
 	request := execution.Request
 	res := &call.LogicContext{
 		ID:   id,
-		Mode: insolar.ExecuteCallMode,
+		Mode: call.Execute,
 
 		// Callee:    reference.Global{}, // is assigned below
 		Prototype: protoDesc.HeadRef(),
@@ -294,6 +297,10 @@ func (r *DefaultService) runContinue(run *executionEventSink, resumeFn func()) {
 }
 
 func (r *DefaultService) runAbort(_ *executionEventSink, _ func()) {
+	panic(throw.NotImplemented())
+}
+
+func (r *DefaultService) ExecutionClassify(_ execution.Context) interface{} {
 	panic(throw.NotImplemented())
 }
 

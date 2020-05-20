@@ -8,7 +8,7 @@ package transport
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
@@ -23,7 +23,7 @@ type Factory interface {
 }
 
 type TargetProfile interface {
-	GetNodeID() insolar.ShortNodeID
+	GetNodeID() node.ShortNodeID
 	GetStatic() profiles.StaticProfile
 	IsJoiner() bool
 	// GetOpMode() member.OpMode

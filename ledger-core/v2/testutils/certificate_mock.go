@@ -8,15 +8,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	mm_node "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-// CertificateMock implements insolar.Certificate
+// CertificateMock implements node.Certificate
 type CertificateMock struct {
 	t minimock.Tester
 
-	funcGetDiscoveryNodes          func() (da1 []mm_insolar.DiscoveryNode)
+	funcGetDiscoveryNodes          func() (da1 []mm_node.DiscoveryNode)
 	inspectFuncGetDiscoveryNodes   func()
 	afterGetDiscoveryNodesCounter  uint64
 	beforeGetDiscoveryNodesCounter uint64
@@ -52,7 +52,7 @@ type CertificateMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mCertificateMockGetPublicKey
 
-	funcGetRole          func() (s1 mm_insolar.StaticRole)
+	funcGetRole          func() (s1 mm_node.StaticRole)
 	inspectFuncGetRole   func()
 	afterGetRoleCounter  uint64
 	beforeGetRoleCounter uint64
@@ -65,7 +65,7 @@ type CertificateMock struct {
 	SerializeNodePartMock          mCertificateMockSerializeNodePart
 }
 
-// NewCertificateMock returns a mock for insolar.Certificate
+// NewCertificateMock returns a mock for node.Certificate
 func NewCertificateMock(t minimock.Tester) *CertificateMock {
 	m := &CertificateMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -107,7 +107,7 @@ type CertificateMockGetDiscoveryNodesExpectation struct {
 
 // CertificateMockGetDiscoveryNodesResults contains results of the Certificate.GetDiscoveryNodes
 type CertificateMockGetDiscoveryNodesResults struct {
-	da1 []mm_insolar.DiscoveryNode
+	da1 []mm_node.DiscoveryNode
 }
 
 // Expect sets up expected params for Certificate.GetDiscoveryNodes
@@ -135,7 +135,7 @@ func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Inspect(f func()) 
 }
 
 // Return sets up results that will be returned by Certificate.GetDiscoveryNodes
-func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Return(da1 []mm_insolar.DiscoveryNode) *CertificateMock {
+func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Return(da1 []mm_node.DiscoveryNode) *CertificateMock {
 	if mmGetDiscoveryNodes.mock.funcGetDiscoveryNodes != nil {
 		mmGetDiscoveryNodes.mock.t.Fatalf("CertificateMock.GetDiscoveryNodes mock is already set by Set")
 	}
@@ -148,7 +148,7 @@ func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Return(da1 []mm_in
 }
 
 //Set uses given function f to mock the Certificate.GetDiscoveryNodes method
-func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Set(f func() (da1 []mm_insolar.DiscoveryNode)) *CertificateMock {
+func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Set(f func() (da1 []mm_node.DiscoveryNode)) *CertificateMock {
 	if mmGetDiscoveryNodes.defaultExpectation != nil {
 		mmGetDiscoveryNodes.mock.t.Fatalf("Default expectation is already set for the Certificate.GetDiscoveryNodes method")
 	}
@@ -161,8 +161,8 @@ func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Set(f func() (da1 
 	return mmGetDiscoveryNodes.mock
 }
 
-// GetDiscoveryNodes implements insolar.Certificate
-func (mmGetDiscoveryNodes *CertificateMock) GetDiscoveryNodes() (da1 []mm_insolar.DiscoveryNode) {
+// GetDiscoveryNodes implements node.Certificate
+func (mmGetDiscoveryNodes *CertificateMock) GetDiscoveryNodes() (da1 []mm_node.DiscoveryNode) {
 	mm_atomic.AddUint64(&mmGetDiscoveryNodes.beforeGetDiscoveryNodesCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetDiscoveryNodes.afterGetDiscoveryNodesCounter, 1)
 
@@ -304,7 +304,7 @@ func (mmGetDiscoverySigns *mCertificateMockGetDiscoverySigns) Set(f func() (m1 m
 	return mmGetDiscoverySigns.mock
 }
 
-// GetDiscoverySigns implements insolar.Certificate
+// GetDiscoverySigns implements node.Certificate
 func (mmGetDiscoverySigns *CertificateMock) GetDiscoverySigns() (m1 map[reference.Global][]byte) {
 	mm_atomic.AddUint64(&mmGetDiscoverySigns.beforeGetDiscoverySignsCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetDiscoverySigns.afterGetDiscoverySignsCounter, 1)
@@ -447,7 +447,7 @@ func (mmGetMajorityRule *mCertificateMockGetMajorityRule) Set(f func() (i1 int))
 	return mmGetMajorityRule.mock
 }
 
-// GetMajorityRule implements insolar.Certificate
+// GetMajorityRule implements node.Certificate
 func (mmGetMajorityRule *CertificateMock) GetMajorityRule() (i1 int) {
 	mm_atomic.AddUint64(&mmGetMajorityRule.beforeGetMajorityRuleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetMajorityRule.afterGetMajorityRuleCounter, 1)
@@ -592,7 +592,7 @@ func (mmGetMinRoles *mCertificateMockGetMinRoles) Set(f func() (virtual uint, he
 	return mmGetMinRoles.mock
 }
 
-// GetMinRoles implements insolar.Certificate
+// GetMinRoles implements node.Certificate
 func (mmGetMinRoles *CertificateMock) GetMinRoles() (virtual uint, heavyMaterial uint, lightMaterial uint) {
 	mm_atomic.AddUint64(&mmGetMinRoles.beforeGetMinRolesCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetMinRoles.afterGetMinRolesCounter, 1)
@@ -735,7 +735,7 @@ func (mmGetNodeRef *mCertificateMockGetNodeRef) Set(f func() (g1 reference.Globa
 	return mmGetNodeRef.mock
 }
 
-// GetNodeRef implements insolar.Certificate
+// GetNodeRef implements node.Certificate
 func (mmGetNodeRef *CertificateMock) GetNodeRef() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetNodeRef.beforeGetNodeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeRef.afterGetNodeRefCounter, 1)
@@ -878,7 +878,7 @@ func (mmGetPublicKey *mCertificateMockGetPublicKey) Set(f func() (p1 crypto.Publ
 	return mmGetPublicKey.mock
 }
 
-// GetPublicKey implements insolar.Certificate
+// GetPublicKey implements node.Certificate
 func (mmGetPublicKey *CertificateMock) GetPublicKey() (p1 crypto.PublicKey) {
 	mm_atomic.AddUint64(&mmGetPublicKey.beforeGetPublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPublicKey.afterGetPublicKeyCounter, 1)
@@ -967,7 +967,7 @@ type CertificateMockGetRoleExpectation struct {
 
 // CertificateMockGetRoleResults contains results of the Certificate.GetRole
 type CertificateMockGetRoleResults struct {
-	s1 mm_insolar.StaticRole
+	s1 mm_node.StaticRole
 }
 
 // Expect sets up expected params for Certificate.GetRole
@@ -995,7 +995,7 @@ func (mmGetRole *mCertificateMockGetRole) Inspect(f func()) *mCertificateMockGet
 }
 
 // Return sets up results that will be returned by Certificate.GetRole
-func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_insolar.StaticRole) *CertificateMock {
+func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_node.StaticRole) *CertificateMock {
 	if mmGetRole.mock.funcGetRole != nil {
 		mmGetRole.mock.t.Fatalf("CertificateMock.GetRole mock is already set by Set")
 	}
@@ -1008,7 +1008,7 @@ func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_insolar.StaticRole) *Cert
 }
 
 //Set uses given function f to mock the Certificate.GetRole method
-func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_insolar.StaticRole)) *CertificateMock {
+func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_node.StaticRole)) *CertificateMock {
 	if mmGetRole.defaultExpectation != nil {
 		mmGetRole.mock.t.Fatalf("Default expectation is already set for the Certificate.GetRole method")
 	}
@@ -1021,8 +1021,8 @@ func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_insolar.StaticRole
 	return mmGetRole.mock
 }
 
-// GetRole implements insolar.Certificate
-func (mmGetRole *CertificateMock) GetRole() (s1 mm_insolar.StaticRole) {
+// GetRole implements node.Certificate
+func (mmGetRole *CertificateMock) GetRole() (s1 mm_node.StaticRole) {
 	mm_atomic.AddUint64(&mmGetRole.beforeGetRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRole.afterGetRoleCounter, 1)
 
@@ -1164,7 +1164,7 @@ func (mmSerializeNodePart *mCertificateMockSerializeNodePart) Set(f func() (ba1 
 	return mmSerializeNodePart.mock
 }
 
-// SerializeNodePart implements insolar.Certificate
+// SerializeNodePart implements node.Certificate
 func (mmSerializeNodePart *CertificateMock) SerializeNodePart() (ba1 []byte) {
 	mm_atomic.AddUint64(&mmSerializeNodePart.beforeSerializeNodePartCounter, 1)
 	defer mm_atomic.AddUint64(&mmSerializeNodePart.afterSerializeNodePartCounter, 1)

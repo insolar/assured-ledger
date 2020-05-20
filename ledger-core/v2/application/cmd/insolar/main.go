@@ -18,10 +18,9 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
 
@@ -361,7 +360,7 @@ func sendRequest(sendURL string, adminURL, rootKeysFile string, paramsPath strin
 	reqCfg, err := requester.ReadRequestParamsFromFile(pPath)
 	check("[ sendRequest ]", err)
 
-	if !insolar.IsObjectReferenceString(userCfg.Caller) && insolar.IsObjectReferenceString(reqCfg.Reference) {
+	if !isObjectReferenceString(userCfg.Caller) && isObjectReferenceString(reqCfg.Reference) {
 		userCfg.Caller = reqCfg.Reference
 	}
 

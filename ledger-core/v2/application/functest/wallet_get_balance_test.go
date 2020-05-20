@@ -45,7 +45,7 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 	outChan := make(chan result)
 
 	for i := 0; i < count; i++ {
-		for _, port := range nodesPorts {
+		for _, port := range defaultPorts {
 			go func(port string) {
 				getBalanceURL := getURL(walletGetBalancePath, "", port)
 				balance, err := getWalletBalance(getBalanceURL, walletRef)
@@ -55,7 +55,7 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < count*len(nodesPorts); i++ {
+	for i := 0; i < count*len(defaultPorts); i++ {
 		res := <-outChan
 		assert.NoError(t, res.err)
 		assert.Equal(t, startBalance, res.balance, "wrong balance amount")

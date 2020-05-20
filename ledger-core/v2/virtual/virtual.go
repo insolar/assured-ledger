@@ -13,7 +13,7 @@ import (
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
+	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -73,6 +73,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		ScanCountLimit:    100000,
 		SlotMachineLogger: virtualStateMachine.ConveyorLoggerFactory{},
 		SlotAliasRegistry: &conveyor.GlobalAliases{},
+		LogAdapterCalls:   true,
 	}
 
 	defaultHandlers := DefaultHandlersFactory

@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -60,7 +60,7 @@ func (r *FullRealm) dispatchPacket(ctx context.Context, packet transport.PacketP
 	pt := packet.GetPacketType()
 
 	var sourceNode packetdispatch.MemberPacketReceiver
-	var sourceID insolar.ShortNodeID
+	var sourceID node.ShortNodeID
 
 	switch {
 	case pt.GetLimitPerSender() == 0 || int(pt) >= len(r.packetDispatchers) || r.packetDispatchers[pt] == nil:
@@ -340,7 +340,7 @@ func (r *FullRealm) GetSelf() *pop.NodeAppearance {
 	return r.self
 }
 
-func (r *FullRealm) GetSelfNodeID() insolar.ShortNodeID {
+func (r *FullRealm) GetSelfNodeID() node.ShortNodeID {
 	return r.self.GetNodeID()
 }
 
@@ -478,12 +478,12 @@ func (r *FullRealm) buildLocalMemberAnnouncementDraft(mp profiles.MembershipProf
 	lp := r.self.GetProfile()
 
 	if lp.IsJoiner() {
-		return profiles.NewJoinerAnnouncement(lp.GetStatic(), insolar.AbsentShortNodeID)
+		return profiles.NewJoinerAnnouncement(lp.GetStatic(), node.AbsentShortNodeID)
 	}
 
 	localID := lp.GetNodeID()
 	if isLeave, leaveReason := r.controlFeeder.GetRequiredGracefulLeave(); isLeave {
-		return profiles.NewMemberAnnouncementWithLeave(localID, mp, leaveReason, insolar.AbsentShortNodeID)
+		return profiles.NewMemberAnnouncementWithLeave(localID, mp, leaveReason, node.AbsentShortNodeID)
 	}
 
 	r.self.CanIntroduceJoiner()
@@ -494,7 +494,7 @@ func (r *FullRealm) buildLocalMemberAnnouncementDraft(mp profiles.MembershipProf
 		}
 	}
 
-	return profiles.NewMemberAnnouncement(localID, mp, insolar.AbsentShortNodeID)
+	return profiles.NewMemberAnnouncement(localID, mp, node.AbsentShortNodeID)
 }
 
 func (r *FullRealm) CreateAnnouncement(n *pop.NodeAppearance, isJoinerProfileRequired bool) *transport.NodeAnnouncementProfile {
@@ -615,7 +615,7 @@ func (r *FullRealm) GetPurgatory() *purgatory.RealmPurgatory {
 	return &r.purgatory
 }
 
-func (r *FullRealm) getMemberReceiver(id insolar.ShortNodeID) packetdispatch.MemberPacketReceiver {
+func (r *FullRealm) getMemberReceiver(id node.ShortNodeID) packetdispatch.MemberPacketReceiver {
 	// Purgatory MUST be checked first to avoid "missing" a node during its transition from the purgatory to normal population
 	pn := r.GetPurgatory().GetPhantomNode(id)
 	if pn != nil {

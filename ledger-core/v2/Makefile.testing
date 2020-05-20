@@ -14,7 +14,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run `test_slow` with generation of coverage file
-	$(GOTEST) -tags slowtest -coverprofile=coverage.tmp.out -covermode=count -count=1 -test.v $(TEST_ARGS) $(PACKAGES)
+	go-acc --covermode=count --output=coverage.tmp.out $(PACKAGES) -- -tags=slowtest -count=1 $(TEST_ARGS)
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -30,5 +30,34 @@ test_func_race: ## run functest 10 times with -race flag
 .PHONY: test_slow
 test_slow: ## run tests with slowtest tag
 	$(GOTEST) -count=1 $(TEST_ARGS) -tags slowtest $(PACKAGES)
+
+.PHONY: kube_start_net
+kube_start_net: ## run insolar net in local kubernetes cluster
+	./scripts/deploy/kube/run.sh
+
+.PHONY: kube_stop_net
+kube_stop_net: ## stop insolar net in local kubernetes cluster
+	./scripts/deploy/kube/stop.sh
+
+.PHONY: kube_collect_artifacts
+kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
+	./scripts/deploy/kube/collect_artifacts.sh
+
+.PHONY: test_func_kubernetes
+test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will be running after tests!
+	make kube_start_net
+	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
+	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
+	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \
+	INSOLAR_FUNC_TESTWALLET_HOST="localhost" \
+	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
+
+.PHONY: test_func_kubernetes_ci
+test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes cluster
+	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
+	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
+	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \
+	INSOLAR_FUNC_TESTWALLET_HOST="localhost" \
+	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
 

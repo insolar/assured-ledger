@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
@@ -21,20 +22,20 @@ import (
 
 const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
 
-func NewPulse(pulseData pulse.Data) insolar.Pulse {
-	var prev insolar.PulseNumber
+func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
+	var prev pulse.Number
 	if !pulseData.IsFirstPulse() {
 		prev = pulseData.PrevPulseNumber()
 	} else {
 		prev = pulseData.PulseNumber
 	}
 
-	entropy := insolar.Entropy{}
+	entropy := pulsestor.Entropy{}
 	bs := pulseData.PulseEntropy.AsBytes()
 	copy(entropy[:], bs)
 	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
 
-	return insolar.Pulse{
+	return pulsestor.Pulse{
 		PulseNumber:      pulseData.PulseNumber,
 		NextPulseNumber:  pulseData.NextPulseNumber(),
 		PrevPulseNumber:  prev,
@@ -44,7 +45,7 @@ func NewPulse(pulseData pulse.Data) insolar.Pulse {
 	}
 }
 
-func NewPulseData(p insolar.Pulse) pulse.Data {
+func NewPulseData(p pulsestor.Pulse) pulse.Data {
 	data := pulse.NewPulsarData(
 		p.PulseNumber,
 		uint16(p.NextPulseNumber-p.PulseNumber),
@@ -98,16 +99,16 @@ func (p *PulsePacketParser) IsRelayForbidden() bool {
 	return true
 }
 
-func (p *PulsePacketParser) GetSourceID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (p *PulsePacketParser) GetSourceID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
-func (p *PulsePacketParser) GetReceiverID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (p *PulsePacketParser) GetReceiverID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
-func (p *PulsePacketParser) GetTargetID() insolar.ShortNodeID {
-	return insolar.AbsentShortNodeID
+func (p *PulsePacketParser) GetTargetID() node.ShortNodeID {
+	return node.AbsentShortNodeID
 }
 
 func (p *PulsePacketParser) GetPacketType() phases.PacketType {

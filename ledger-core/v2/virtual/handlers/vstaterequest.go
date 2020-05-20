@@ -139,7 +139,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 	case smachine.Passed:
 		// go further
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	if stateNotReady {
@@ -167,12 +167,14 @@ func (s *SMVStateRequest) stepReturnStateUnavailable(ctx smachine.ExecutionConte
 
 	target := s.Meta.Sender
 
-	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, msg, target)
-		if err != nil {
-			ctx.Log().Warn(throw.W(err, "failed to send state"))
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
 		}
-	}).Send()
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Stop()
 }
@@ -180,12 +182,14 @@ func (s *SMVStateRequest) stepReturnStateUnavailable(ctx smachine.ExecutionConte
 func (s *SMVStateRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
-	s.messageSender.PrepareNotify(ctx, func(goCtx context.Context, svc messagesender.Service) {
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, s.objectStateReport, target)
-		if err != nil {
-			ctx.Log().Warn(throw.W(err, "failed to send state"))
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
 		}
-	}).Send()
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Stop()
 }

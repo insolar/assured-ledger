@@ -9,11 +9,11 @@ import (
 	"context"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type Handler struct {
@@ -21,21 +21,21 @@ type Handler struct {
 	done        chan struct{}
 	terminating bool
 
-	Leaver        insolar.Leaver
+	Leaver        node.Leaver
 	PulseAccessor storage.PulseAccessor `inject:""`
 }
 
-func NewHandler(l insolar.Leaver) *Handler {
+func NewHandler(l node.Leaver) *Handler {
 	return &Handler{Leaver: l}
 }
 
 // TODO take ETA by role of node
-func (t *Handler) Leave(ctx context.Context, leaveAfterPulses insolar.PulseNumber) {
+func (t *Handler) Leave(ctx context.Context, leaveAfterPulses pulse.Number) {
 	doneChan := t.leave(ctx, leaveAfterPulses)
 	<-doneChan
 }
 
-func (t *Handler) leave(ctx context.Context, leaveAfterPulses insolar.PulseNumber) chan struct{} {
+func (t *Handler) leave(ctx context.Context, leaveAfterPulses pulse.Number) chan struct{} {
 	t.Lock()
 	defer t.Unlock()
 

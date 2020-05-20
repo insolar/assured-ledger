@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 )
 
-const pkgRegexPrefix = "^instrumentation/inslogger/"
+const pkgRegexPrefix = "^.*instrumentation/inslogger/"
 
 // Beware, test results there depends on test file name (caller_test.go)!
 
@@ -43,7 +43,7 @@ func TestExtLog_ZerologCaller(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
-	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 }
 
@@ -65,7 +65,7 @@ func TestExtLog_ZerologCallerWithFunc(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
-	assert.NotContains(t, "github.com/insolar/assured-ledger/ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
 	assert.Equal(t, "TestExtLog_ZerologCallerWithFunc", lf.Func, "log contains func name")
 }
 

@@ -8,7 +8,7 @@ package population
 import (
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/misbehavior"
@@ -127,7 +127,7 @@ func (p *Hook) GetCryptographyAssistant() transport.CryptographyAssistant {
 	return p.config.Assistant
 }
 
-func (p *Hook) GetLocalNodeID() insolar.ShortNodeID {
+func (p *Hook) GetLocalNodeID() node.ShortNodeID {
 	return p.local.GetNodeID()
 }
 

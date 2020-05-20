@@ -16,10 +16,11 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -186,11 +187,11 @@ func (g *certGen) getNodeRefByPublicKey() reference.Global {
 }
 
 type certGen struct {
-	keyProcessor insolar.KeyProcessor
+	keyProcessor cryptography.KeyProcessor
 
 	rootKeysFile string
 	API          string
-	staticRole   insolar.StaticRole
+	staticRole   node.StaticRole
 
 	keysFileOut string
 	certFileOut string
@@ -207,8 +208,8 @@ func genCertificate(
 	certFile string,
 	reuseKeys bool,
 ) {
-	staticRole := insolar.GetStaticRoleFromString(role)
-	if staticRole == insolar.StaticRoleUnknown {
+	staticRole := node.GetStaticRoleFromString(role)
+	if staticRole == node.StaticRoleUnknown {
 		fmt.Println("Invalid role:", role)
 		os.Exit(1)
 	}

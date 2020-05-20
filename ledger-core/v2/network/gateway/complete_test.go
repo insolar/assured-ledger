@@ -15,8 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
@@ -26,11 +28,11 @@ import (
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
-func mockCryptographyService(t *testing.T, ok bool) insolar.CryptographyService {
-	cs := testutils.NewCryptographyServiceMock(t)
-	cs.SignMock.Set(func(data []byte) (*insolar.Signature, error) {
+func mockCryptographyService(t *testing.T, ok bool) cryptography.Service {
+	cs := cryptography.NewServiceMock(t)
+	cs.SignMock.Set(func(data []byte) (*cryptography.Signature, error) {
 		if ok {
-			sig := insolar.SignatureFromBytes([]byte("test_sig"))
+			sig := cryptography.SignatureFromBytes([]byte("test_sig"))
 			return &sig, nil
 		}
 		return nil, errors.New("test_error")
@@ -40,7 +42,7 @@ func mockCryptographyService(t *testing.T, ok bool) insolar.CryptographyService 
 
 func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discoveryNodeRef reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
-	cm.GetCertificateMock.Set(func() insolar.Certificate {
+	cm.GetCertificateMock.Set(func() node.Certificate {
 		return &certificate.Certificate{
 			AuthorizationCertificate: certificate.AuthorizationCertificate{
 				PublicKey: "test_public_key",
@@ -65,18 +67,18 @@ func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discover
 func mockReply(t *testing.T) []byte {
 	res := struct {
 		PublicKey string
-		Role      insolar.StaticRole
+		Role      node.StaticRole
 	}{
 		PublicKey: "test_node_public_key",
-		Role:      insolar.StaticRoleVirtual,
+		Role:      node.StaticRoleVirtual,
 	}
 	node, err := foundation.MarshalMethodResult(res, nil)
 	require.NoError(t, err)
 	return node
 }
 
-func mockPulseManager(t *testing.T) insolar.PulseManager {
-	pm := testutils.NewPulseManagerMock(t)
+func mockPulseManager(t *testing.T) pulsestor.Manager {
+	pm := pulsestor.NewManagerMock(t)
 	return pm
 }
 
@@ -105,10 +107,10 @@ func TestComplete_GetCert(t *testing.T) {
 		PulseManager:        pm,
 		PulseAccessor:       pa,
 	})
-	ge = ge.NewGateway(context.Background(), insolar.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
 	ctx := context.Background()
 
-	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
+	pa.GetLatestPulseMock.Expect(ctx).Return(*pulsestor.GenesisPulse, nil)
 
 	result, err := ge.Auther().GetCert(ctx, nodeRef)
 	require.NoError(t, err)
@@ -156,9 +158,9 @@ func TestComplete_handler(t *testing.T) {
 		PulseAccessor:       pa,
 	})
 
-	ge = ge.NewGateway(context.Background(), insolar.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
 	ctx := context.Background()
-	pa.GetLatestPulseMock.Expect(ctx).Return(*insolar.GenesisPulse, nil)
+	pa.GetLatestPulseMock.Expect(ctx).Return(*pulsestor.GenesisPulse, nil)
 
 	p := packet.NewReceivedPacket(packet.NewPacket(nil, nil, types.SignCert, 1), nil)
 	p.SetRequest(&packet.SignCertRequest{NodeRef: nodeRef})

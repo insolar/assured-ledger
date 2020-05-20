@@ -8,7 +8,7 @@ package merkle
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 type OriginHash []byte
@@ -24,5 +24,5 @@ type Calculator interface {
 
 type Proof interface {
 	hash([]byte, *merkleHelper) []byte
-	signature() insolar.Signature
+	signature() cryptography.Signature
 }

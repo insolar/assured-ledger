@@ -9,6 +9,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/nodeset"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
@@ -30,7 +30,7 @@ type VectorInspectionFactory interface {
 
 type VectorInspection interface {
 	CreateInspector(scanner nodeset.VectorEntryScanner, digestFactory transport.ConsensusDigestFactory,
-		nodeID insolar.ShortNodeID) VectorInspector
+		nodeID node.ShortNodeID) VectorInspector
 }
 
 type VectorInspector interface {
@@ -81,7 +81,7 @@ type vectorInspection struct {
 }
 
 func (p vectorInspection) CreateInspector(scanner nodeset.VectorEntryScanner, digestFactory transport.ConsensusDigestFactory,
-	nodeID insolar.ShortNodeID) VectorInspector {
+	nodeID node.ShortNodeID) VectorInspector {
 
 	r := &vectorInspectorImpl{VectorBuilder: nodeset.NewVectorBuilder(digestFactory, scanner,
 		make(member.StateBitset, scanner.GetIndexedCount())),
@@ -99,7 +99,7 @@ type ignorantVectorInspection struct {
 }
 
 func (p ignorantVectorInspection) CreateInspector(scanner nodeset.VectorEntryScanner, digestFactory transport.ConsensusDigestFactory,
-	nodeID insolar.ShortNodeID) VectorInspector {
+	nodeID node.ShortNodeID) VectorInspector {
 
 	r := &vectorIgnorantInspectorImpl{VectorBuilder: nodeset.NewVectorBuilder(digestFactory, scanner,
 		make(member.StateBitset, scanner.GetIndexedCount())),
@@ -110,7 +110,7 @@ func (p ignorantVectorInspection) CreateInspector(scanner nodeset.VectorEntrySca
 }
 
 type vectorIgnorantInspectorImpl struct {
-	nodeID insolar.ShortNodeID
+	nodeID node.ShortNodeID
 	nodeset.VectorBuilder
 }
 
@@ -221,7 +221,7 @@ func (p *ignoredVector) Inspect(ctx context.Context) {
 }
 
 type vectorInspectorImpl struct {
-	nodeID                        insolar.ShortNodeID
+	nodeID                        node.ShortNodeID
 	disableRanksAndGSH            bool
 	maxPopulationForInlineHashing int
 	Trusted                       statevector.CalcSubVector
@@ -498,7 +498,7 @@ func createNextPopulation(p *nodeset.VectorBuilder, selectionSet nodeset.Consens
 
 	result := make([]profiles.PopulationRank, p.GetEntryScanner().GetSortedCount())
 	newIndex := 0
-	gshRank := p.BuildGlobulaStateHashWithFilter(insolar.AbsentShortNodeID,
+	gshRank := p.BuildGlobulaStateHashWithFilter(node.AbsentShortNodeID,
 		func(nodeData nodeset.VectorEntryData, postponed bool, filter uint32) {
 
 			mode := member.OpMode(filter)

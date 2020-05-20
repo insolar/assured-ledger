@@ -11,14 +11,14 @@ import (
 	"crypto/ecdsa"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 )
 
 var digester = func() cryptkit.DataDigester {
@@ -155,7 +155,7 @@ func TestHeader_GetSourceID(t *testing.T) {
 		SourceID: 123,
 	}
 
-	require.Equal(t, insolar.ShortNodeID(123), h.GetSourceID())
+	require.Equal(t, node.ShortNodeID(123), h.GetSourceID())
 }
 
 func TestHeader_GetProtocolType(t *testing.T) {

@@ -9,15 +9,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // TerminationHandlerMock implements network.TerminationHandler
 type TerminationHandlerMock struct {
 	t minimock.Tester
 
-	funcLeave          func(ctx context.Context, p1 insolar.PulseNumber)
-	inspectFuncLeave   func(ctx context.Context, p1 insolar.PulseNumber)
+	funcLeave          func(ctx context.Context, n1 pulse.Number)
+	inspectFuncLeave   func(ctx context.Context, n1 pulse.Number)
 	afterLeaveCounter  uint64
 	beforeLeaveCounter uint64
 	LeaveMock          mTerminationHandlerMockLeave
@@ -73,11 +73,11 @@ type TerminationHandlerMockLeaveExpectation struct {
 // TerminationHandlerMockLeaveParams contains parameters of the TerminationHandler.Leave
 type TerminationHandlerMockLeaveParams struct {
 	ctx context.Context
-	p1  insolar.PulseNumber
+	n1  pulse.Number
 }
 
 // Expect sets up expected params for TerminationHandler.Leave
-func (mmLeave *mTerminationHandlerMockLeave) Expect(ctx context.Context, p1 insolar.PulseNumber) *mTerminationHandlerMockLeave {
+func (mmLeave *mTerminationHandlerMockLeave) Expect(ctx context.Context, n1 pulse.Number) *mTerminationHandlerMockLeave {
 	if mmLeave.mock.funcLeave != nil {
 		mmLeave.mock.t.Fatalf("TerminationHandlerMock.Leave mock is already set by Set")
 	}
@@ -86,7 +86,7 @@ func (mmLeave *mTerminationHandlerMockLeave) Expect(ctx context.Context, p1 inso
 		mmLeave.defaultExpectation = &TerminationHandlerMockLeaveExpectation{}
 	}
 
-	mmLeave.defaultExpectation.params = &TerminationHandlerMockLeaveParams{ctx, p1}
+	mmLeave.defaultExpectation.params = &TerminationHandlerMockLeaveParams{ctx, n1}
 	for _, e := range mmLeave.expectations {
 		if minimock.Equal(e.params, mmLeave.defaultExpectation.params) {
 			mmLeave.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmLeave.defaultExpectation.params)
@@ -97,7 +97,7 @@ func (mmLeave *mTerminationHandlerMockLeave) Expect(ctx context.Context, p1 inso
 }
 
 // Inspect accepts an inspector function that has same arguments as the TerminationHandler.Leave
-func (mmLeave *mTerminationHandlerMockLeave) Inspect(f func(ctx context.Context, p1 insolar.PulseNumber)) *mTerminationHandlerMockLeave {
+func (mmLeave *mTerminationHandlerMockLeave) Inspect(f func(ctx context.Context, n1 pulse.Number)) *mTerminationHandlerMockLeave {
 	if mmLeave.mock.inspectFuncLeave != nil {
 		mmLeave.mock.t.Fatalf("Inspect function is already set for TerminationHandlerMock.Leave")
 	}
@@ -121,7 +121,7 @@ func (mmLeave *mTerminationHandlerMockLeave) Return() *TerminationHandlerMock {
 }
 
 //Set uses given function f to mock the TerminationHandler.Leave method
-func (mmLeave *mTerminationHandlerMockLeave) Set(f func(ctx context.Context, p1 insolar.PulseNumber)) *TerminationHandlerMock {
+func (mmLeave *mTerminationHandlerMockLeave) Set(f func(ctx context.Context, n1 pulse.Number)) *TerminationHandlerMock {
 	if mmLeave.defaultExpectation != nil {
 		mmLeave.mock.t.Fatalf("Default expectation is already set for the TerminationHandler.Leave method")
 	}
@@ -135,15 +135,15 @@ func (mmLeave *mTerminationHandlerMockLeave) Set(f func(ctx context.Context, p1 
 }
 
 // Leave implements network.TerminationHandler
-func (mmLeave *TerminationHandlerMock) Leave(ctx context.Context, p1 insolar.PulseNumber) {
+func (mmLeave *TerminationHandlerMock) Leave(ctx context.Context, n1 pulse.Number) {
 	mm_atomic.AddUint64(&mmLeave.beforeLeaveCounter, 1)
 	defer mm_atomic.AddUint64(&mmLeave.afterLeaveCounter, 1)
 
 	if mmLeave.inspectFuncLeave != nil {
-		mmLeave.inspectFuncLeave(ctx, p1)
+		mmLeave.inspectFuncLeave(ctx, n1)
 	}
 
-	mm_params := &TerminationHandlerMockLeaveParams{ctx, p1}
+	mm_params := &TerminationHandlerMockLeaveParams{ctx, n1}
 
 	// Record call args
 	mmLeave.LeaveMock.mutex.Lock()
@@ -160,7 +160,7 @@ func (mmLeave *TerminationHandlerMock) Leave(ctx context.Context, p1 insolar.Pul
 	if mmLeave.LeaveMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmLeave.LeaveMock.defaultExpectation.Counter, 1)
 		mm_want := mmLeave.LeaveMock.defaultExpectation.params
-		mm_got := TerminationHandlerMockLeaveParams{ctx, p1}
+		mm_got := TerminationHandlerMockLeaveParams{ctx, n1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmLeave.t.Errorf("TerminationHandlerMock.Leave got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -169,10 +169,10 @@ func (mmLeave *TerminationHandlerMock) Leave(ctx context.Context, p1 insolar.Pul
 
 	}
 	if mmLeave.funcLeave != nil {
-		mmLeave.funcLeave(ctx, p1)
+		mmLeave.funcLeave(ctx, n1)
 		return
 	}
-	mmLeave.t.Fatalf("Unexpected call to TerminationHandlerMock.Leave. %v %v", ctx, p1)
+	mmLeave.t.Fatalf("Unexpected call to TerminationHandlerMock.Leave. %v %v", ctx, n1)
 
 }
 

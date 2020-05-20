@@ -8,17 +8,21 @@ package api
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/component-manager"
 )
 
+//nolint
+type APIRunner interface {
+	IsAPIRunner() bool
+}
+
 type RunnerWrapper struct {
-	API      insolar.APIRunner
-	AdminAPI insolar.APIRunner
+	API      APIRunner
+	AdminAPI APIRunner
 }
 
 // NewWrapper is C-tor for wrapper of API Runner
-func NewWrapper(publicAPI, adminAPI insolar.APIRunner) *RunnerWrapper {
+func NewWrapper(publicAPI, adminAPI APIRunner) *RunnerWrapper {
 	return &RunnerWrapper{
 		API:      publicAPI,
 		AdminAPI: adminAPI,

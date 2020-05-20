@@ -9,7 +9,7 @@ import (
 	"crypto/ecdsa"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -20,10 +20,10 @@ const (
 )
 
 type Sha3512Digester struct {
-	scheme insolar.PlatformCryptographyScheme
+	scheme cryptography.PlatformCryptographyScheme
 }
 
-func NewSha3512Digester(scheme insolar.PlatformCryptographyScheme) *Sha3512Digester {
+func NewSha3512Digester(scheme cryptography.PlatformCryptographyScheme) *Sha3512Digester {
 	return &Sha3512Digester{
 		scheme: scheme,
 	}
@@ -95,11 +95,11 @@ func (ks *ECDSASecretKeyStore) AsPublicKeyStore() cryptkit.PublicKeyStore {
 }
 
 type ECDSADigestSigner struct {
-	scheme     insolar.PlatformCryptographyScheme
+	scheme     cryptography.PlatformCryptographyScheme
 	privateKey *ecdsa.PrivateKey
 }
 
-func NewECDSADigestSigner(privateKey *ecdsa.PrivateKey, scheme insolar.PlatformCryptographyScheme) *ECDSADigestSigner {
+func NewECDSADigestSigner(privateKey *ecdsa.PrivateKey, scheme cryptography.PlatformCryptographyScheme) *ECDSADigestSigner {
 	return &ECDSADigestSigner{
 		scheme:     scheme,
 		privateKey: privateKey,
@@ -128,13 +128,13 @@ func (ds *ECDSADigestSigner) GetSigningMethod() cryptkit.SigningMethod {
 
 type ECDSASignatureVerifier struct {
 	digester  *Sha3512Digester
-	scheme    insolar.PlatformCryptographyScheme
+	scheme    cryptography.PlatformCryptographyScheme
 	publicKey *ecdsa.PublicKey
 }
 
 func NewECDSASignatureVerifier(
 	digester *Sha3512Digester,
-	scheme insolar.PlatformCryptographyScheme,
+	scheme cryptography.PlatformCryptographyScheme,
 	publicKey *ecdsa.PublicKey,
 ) *ECDSASignatureVerifier {
 	return &ECDSASignatureVerifier{
@@ -166,7 +166,7 @@ func (sv *ECDSASignatureVerifier) IsValidDigestSignature(digest cryptkit.DigestH
 	signatureBytes := longbits.AsBytes(signature)
 
 	verifier := sv.scheme.DigestVerifier(sv.publicKey)
-	return verifier.Verify(insolar.SignatureFromBytes(signatureBytes), digestBytes)
+	return verifier.Verify(cryptography.SignatureFromBytes(signatureBytes), digestBytes)
 }
 
 func (sv *ECDSASignatureVerifier) IsValidDataSignature(data io.Reader, signature cryptkit.SignatureHolder) bool {
@@ -184,7 +184,7 @@ type ECDSASignatureKeyHolder struct {
 	publicKey *ecdsa.PublicKey
 }
 
-func NewECDSASignatureKeyHolder(publicKey *ecdsa.PublicKey, processor insolar.KeyProcessor) *ECDSASignatureKeyHolder {
+func NewECDSASignatureKeyHolder(publicKey *ecdsa.PublicKey, processor cryptography.KeyProcessor) *ECDSASignatureKeyHolder {
 	publicKeyBytes, err := processor.ExportPublicKeyBinary(publicKey)
 	if err != nil {
 		panic(err)
@@ -197,7 +197,7 @@ func NewECDSASignatureKeyHolder(publicKey *ecdsa.PublicKey, processor insolar.Ke
 	}
 }
 
-func NewECDSASignatureKeyHolderFromBits(publicKeyBytes longbits.Bits512, processor insolar.KeyProcessor) *ECDSASignatureKeyHolder {
+func NewECDSASignatureKeyHolderFromBits(publicKeyBytes longbits.Bits512, processor cryptography.KeyProcessor) *ECDSASignatureKeyHolder {
 	publicKey, err := processor.ImportPublicKeyBinary(publicKeyBytes.AsBytes())
 	if err != nil {
 		panic(err)

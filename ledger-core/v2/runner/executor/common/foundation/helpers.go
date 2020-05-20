@@ -11,15 +11,15 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 // GetPulseNumber returns current pulse from context.
-func GetPulseNumber() (insolar.PulseNumber, error) {
+func GetPulseNumber() (pulse.Number, error) {
 	req := GetLogicalContext().Request
 	if req.IsEmpty() {
-		return insolar.PulseNumber(0), errors.New("request from LogicCallContext is nil, get pulse is failed")
+		return pulse.Number(0), errors.New("request from LogicCallContext is nil, get pulse is failed")
 	}
 	return req.GetLocal().Pulse(), nil
 }

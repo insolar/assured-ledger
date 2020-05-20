@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-func newTestNode() insolar.NetworkNode {
-	return node.NewNode(gen.Reference(), insolar.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
+func newTestNode() node2.NetworkNode {
+	return node.NewNode(gen.Reference(), node2.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
 }
 
-func newTestNodeWithShortID(id insolar.ShortNodeID) insolar.NetworkNode {
+func newTestNodeWithShortID(id node2.ShortNodeID) node2.NetworkNode {
 	n := newTestNode()
 	n.(node.MutableNode).SetShortID(id)
 	return n
@@ -30,7 +30,7 @@ func newTestNodeWithShortID(id insolar.ShortNodeID) insolar.NetworkNode {
 
 func TestCorrectShortIDCollision(t *testing.T) {
 
-	nodes := []insolar.NetworkNode{
+	nodes := []node2.NetworkNode{
 		newTestNodeWithShortID(0),
 		newTestNodeWithShortID(1),
 		newTestNodeWithShortID(30),
@@ -42,25 +42,25 @@ func TestCorrectShortIDCollision(t *testing.T) {
 		newTestNodeWithShortID(1<<32 - 1),
 	}
 
-	require.False(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(2)))
-	require.False(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(31)))
-	require.False(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(35)))
-	require.False(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(65)))
+	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(2)))
+	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(31)))
+	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(35)))
+	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(65)))
 
-	require.True(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(30)))
-	require.Equal(t, insolar.ShortNodeID(31), regenerateShortID(nodes, insolar.ShortNodeID(30)))
+	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(30)))
+	require.Equal(t, node2.ShortNodeID(31), regenerateShortID(nodes, node2.ShortNodeID(30)))
 
-	require.True(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(32)))
-	require.Equal(t, insolar.ShortNodeID(35), regenerateShortID(nodes, insolar.ShortNodeID(32)))
+	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(32)))
+	require.Equal(t, node2.ShortNodeID(35), regenerateShortID(nodes, node2.ShortNodeID(32)))
 
-	require.True(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(64)))
-	require.Equal(t, insolar.ShortNodeID(65), regenerateShortID(nodes, insolar.ShortNodeID(64)))
+	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(64)))
+	require.Equal(t, node2.ShortNodeID(65), regenerateShortID(nodes, node2.ShortNodeID(64)))
 
-	require.True(t, CheckShortIDCollision(nodes, insolar.ShortNodeID(1<<32-2)))
-	require.Equal(t, insolar.ShortNodeID(2), regenerateShortID(nodes, insolar.ShortNodeID(1<<32-2)))
+	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(1<<32-2)))
+	require.Equal(t, node2.ShortNodeID(2), regenerateShortID(nodes, node2.ShortNodeID(1<<32-2)))
 }
 
-var _ insolar.DiscoveryNode = testNode{}
+var _ node2.DiscoveryNode = testNode{}
 
 type testNode struct {
 	ref reference.Global
@@ -86,8 +86,8 @@ func (t testNode) GetBriefSign() []byte {
 	return nil
 }
 
-func (t testNode) GetRole() insolar.StaticRole {
-	return insolar.StaticRoleVirtual
+func (t testNode) GetRole() node2.StaticRole {
+	return node2.StaticRoleVirtual
 }
 
 func TestExcludeOrigin(t *testing.T) {
@@ -96,32 +96,32 @@ func TestExcludeOrigin(t *testing.T) {
 	first := testNode{gen.Reference()}
 	second := testNode{gen.Reference()}
 
-	discoveryNodes := []insolar.DiscoveryNode{first, originNode, second}
+	discoveryNodes := []node2.DiscoveryNode{first, originNode, second}
 	result := ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{first, second}
+	discoveryNodes = []node2.DiscoveryNode{first, second}
 	result = ExcludeOrigin(discoveryNodes, origin)
 	assert.Equal(t, discoveryNodes, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{first, originNode}
+	discoveryNodes = []node2.DiscoveryNode{first, originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{originNode, first}
+	discoveryNodes = []node2.DiscoveryNode{originNode, first}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{originNode}
+	discoveryNodes = []node2.DiscoveryNode{originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
 	assert.Empty(t, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{originNode, first, second}
+	discoveryNodes = []node2.DiscoveryNode{originNode, first, second}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
 
-	discoveryNodes = []insolar.DiscoveryNode{first, second, originNode}
+	discoveryNodes = []node2.DiscoveryNode{first, second, originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []insolar.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
 
 }

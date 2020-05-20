@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -100,8 +100,8 @@ func (h *Header) DeserializeFrom(_ DeserializeContext, reader io.Reader) error {
 	return read(reader, h)
 }
 
-func (h *Header) GetSourceID() insolar.ShortNodeID {
-	return insolar.ShortNodeID(h.SourceID)
+func (h *Header) GetSourceID() node.ShortNodeID {
+	return node.ShortNodeID(h.SourceID)
 }
 
 func (h *Header) GetPacketType() phases.PacketType {

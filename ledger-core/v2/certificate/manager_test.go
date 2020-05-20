@@ -9,16 +9,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/platformpolicy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
 
 func TestNewManagerReadCertificate(t *testing.T) {
-	cs, _ := cryptography.NewStorageBoundCryptographyService(TestKeys)
+	cs, _ := platformpolicy.NewStorageBoundCryptographyService(TestKeys)
 	kp := platformpolicy.NewKeyProcessor()
 	pk, _ := cs.GetPublicKey()
 
@@ -29,19 +30,19 @@ func TestNewManagerReadCertificate(t *testing.T) {
 	require.NotNil(t, cert)
 }
 
-func newDiscovery() (*BootstrapNode, insolar.CryptographyService) {
+func newDiscovery() (*BootstrapNode, cryptography.Service) {
 	kp := platformpolicy.NewKeyProcessor()
 	key, _ := kp.GeneratePrivateKey()
-	cs := cryptography.NewKeyBoundCryptographyService(key)
+	cs := platformpolicy.NewKeyBoundCryptographyService(key)
 	pk, _ := cs.GetPublicKey()
 	pubKeyBuf, _ := kp.ExportPublicKeyPEM(pk)
 	ref := gen.Reference().String()
-	n := NewBootstrapNode(pk, string(pubKeyBuf), " ", ref, insolar.StaticRoleVirtual.String())
+	n := NewBootstrapNode(pk, string(pubKeyBuf), " ", ref, node.StaticRoleVirtual.String())
 	return n, cs
 }
 
 func TestSignAndVerifyCertificate(t *testing.T) {
-	cs, _ := cryptography.NewStorageBoundCryptographyService(TestKeys)
+	cs, _ := platformpolicy.NewStorageBoundCryptographyService(TestKeys)
 	pubKey, err := cs.GetPublicKey()
 	require.NoError(t, err)
 
@@ -53,7 +54,7 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 	cert := &Certificate{}
 	cert.PublicKey = string(publicKey[:])
 	cert.Reference = gen.Reference().String()
-	cert.Role = insolar.StaticRoleHeavyMaterial.String()
+	cert.Role = node.StaticRoleHeavyMaterial.String()
 	cert.MinRoles.HeavyMaterial = 1
 	cert.MinRoles.Virtual = 4
 
@@ -71,16 +72,16 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 
 	otherDiscovery, otherDiscoveryCS := newDiscovery()
 
-	valid, err := VerifyAuthorizationCertificate(otherDiscoveryCS, []insolar.DiscoveryNode{discovery}, cert2)
+	valid, err := VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{discovery}, cert2)
 	require.NoError(t, err)
 	require.True(t, valid)
 
 	// bad cases
-	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []insolar.DiscoveryNode{discovery, otherDiscovery}, cert2)
+	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{discovery, otherDiscovery}, cert2)
 	require.NoError(t, err)
 	require.False(t, valid)
 
-	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []insolar.DiscoveryNode{otherDiscovery}, cert2)
+	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{otherDiscovery}, cert2)
 	require.NoError(t, err)
 	require.False(t, valid)
 }
