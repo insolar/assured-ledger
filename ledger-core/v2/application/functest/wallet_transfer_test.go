@@ -16,7 +16,7 @@ import (
 
 // Creates wallets, calls /wallet/transfer and checks it's response body, also checks balances after transfer.
 func TestWalletTransfer(t *testing.T) {
-	t.Log("C4856	Проверка балансов кошельков после перевода денег с одного на другой")
+	t.Log("C4856")
 	var transferAmount uint = 100
 
 	walletRefFrom, err := createSimpleWallet()
