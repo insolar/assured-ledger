@@ -6,19 +6,19 @@
 package member
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
 
 type SortingRank struct {
-	nodeID    insolar.ShortNodeID
+	nodeID    node.ShortNodeID
 	powerRole uint16
 }
 
-func NewSortingRank(nodeID insolar.ShortNodeID, role PrimaryRole, pw Power, mode OpMode) SortingRank {
+func NewSortingRank(nodeID node.ShortNodeID, role PrimaryRole, pw Power, mode OpMode) SortingRank {
 	return SortingRank{nodeID, SortingPowerRole(role, pw, mode)}
 }
 
-func (v SortingRank) GetNodeID() insolar.ShortNodeID {
+func (v SortingRank) GetNodeID() node.ShortNodeID {
 	return v.nodeID
 }
 
@@ -46,7 +46,7 @@ func (v SortingRank) Less(o SortingRank) bool {
 }
 
 // NB! Sorting is REVERSED
-func LessByID(vNodeID, oNodeID insolar.ShortNodeID) bool {
+func LessByID(vNodeID, oNodeID node.ShortNodeID) bool {
 	return oNodeID < vNodeID
 }
 

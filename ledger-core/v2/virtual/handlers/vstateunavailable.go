@@ -95,7 +95,7 @@ func (s *SMVStateUnavailable) stepProcess(ctx smachine.ExecutionContext) smachin
 	case smachine.NotPassed:
 		return ctx.WaitShared(sharedObjectState.SharedDataLink).ThenRepeat()
 	default:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	return ctx.Stop()

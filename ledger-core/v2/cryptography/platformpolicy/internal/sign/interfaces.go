@@ -8,12 +8,12 @@ package sign
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 )
 
 type AlgorithmProvider interface {
-	DataSigner(crypto.PrivateKey, insolar.Hasher) insolar.Signer
-	DigestSigner(crypto.PrivateKey) insolar.Signer
-	DataVerifier(crypto.PublicKey, insolar.Hasher) insolar.Verifier
-	DigestVerifier(crypto.PublicKey) insolar.Verifier
+	DataSigner(crypto.PrivateKey, cryptography.Hasher) cryptography.Signer
+	DigestSigner(crypto.PrivateKey) cryptography.Signer
+	DataVerifier(crypto.PublicKey, cryptography.Hasher) cryptography.Verifier
+	DigestVerifier(crypto.PublicKey) cryptography.Verifier
 }

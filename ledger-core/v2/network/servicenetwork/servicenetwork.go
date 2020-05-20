@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/termination"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -35,7 +36,7 @@ type ServiceNetwork struct {
 	cm  *component.Manager
 
 	// dependencies
-	CertificateManager insolar.CertificateManager `inject:""`
+	CertificateManager node.CertificateManager `inject:""`
 
 	// watermill support interfaces
 	Pub message.Publisher `inject:""`
@@ -76,7 +77,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
-	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, insolar.NoNetworkState))
+	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, node.NoNetworkState))
 
 	table := &routing.Table{}
 
@@ -117,7 +118,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 	return nil
 }
 
-func (n *ServiceNetwork) Leave(ctx context.Context, eta insolar.PulseNumber) {
+func (n *ServiceNetwork) Leave(ctx context.Context, eta pulse.Number) {
 	logger := inslogger.FromContext(ctx)
 	logger.Info("Gracefully stopping service network")
 
@@ -142,14 +143,14 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
 
-func (n *ServiceNetwork) GetOrigin() insolar.NetworkNode {
+func (n *ServiceNetwork) GetOrigin() node.NetworkNode {
 	return n.NodeKeeper.GetOrigin()
 }
 
-func (n *ServiceNetwork) GetAccessor(p insolar.PulseNumber) network.Accessor {
+func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
-func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (insolar.Certificate, error) {
+func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (node.Certificate, error) {
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }

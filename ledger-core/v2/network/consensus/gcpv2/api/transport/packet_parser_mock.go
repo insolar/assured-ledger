@@ -7,7 +7,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -47,19 +47,19 @@ type PacketParserMock struct {
 	beforeGetPulsePacketCounter uint64
 	GetPulsePacketMock          mPacketParserMockGetPulsePacket
 
-	funcGetReceiverID          func() (s1 insolar.ShortNodeID)
+	funcGetReceiverID          func() (s1 node.ShortNodeID)
 	inspectFuncGetReceiverID   func()
 	afterGetReceiverIDCounter  uint64
 	beforeGetReceiverIDCounter uint64
 	GetReceiverIDMock          mPacketParserMockGetReceiverID
 
-	funcGetSourceID          func() (s1 insolar.ShortNodeID)
+	funcGetSourceID          func() (s1 node.ShortNodeID)
 	inspectFuncGetSourceID   func()
 	afterGetSourceIDCounter  uint64
 	beforeGetSourceIDCounter uint64
 	GetSourceIDMock          mPacketParserMockGetSourceID
 
-	funcGetTargetID          func() (s1 insolar.ShortNodeID)
+	funcGetTargetID          func() (s1 node.ShortNodeID)
 	inspectFuncGetTargetID   func()
 	afterGetTargetIDCounter  uint64
 	beforeGetTargetIDCounter uint64
@@ -839,7 +839,7 @@ type PacketParserMockGetReceiverIDExpectation struct {
 
 // PacketParserMockGetReceiverIDResults contains results of the PacketParser.GetReceiverID
 type PacketParserMockGetReceiverIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for PacketParser.GetReceiverID
@@ -867,7 +867,7 @@ func (mmGetReceiverID *mPacketParserMockGetReceiverID) Inspect(f func()) *mPacke
 }
 
 // Return sets up results that will be returned by PacketParser.GetReceiverID
-func (mmGetReceiverID *mPacketParserMockGetReceiverID) Return(s1 insolar.ShortNodeID) *PacketParserMock {
+func (mmGetReceiverID *mPacketParserMockGetReceiverID) Return(s1 node.ShortNodeID) *PacketParserMock {
 	if mmGetReceiverID.mock.funcGetReceiverID != nil {
 		mmGetReceiverID.mock.t.Fatalf("PacketParserMock.GetReceiverID mock is already set by Set")
 	}
@@ -880,7 +880,7 @@ func (mmGetReceiverID *mPacketParserMockGetReceiverID) Return(s1 insolar.ShortNo
 }
 
 //Set uses given function f to mock the PacketParser.GetReceiverID method
-func (mmGetReceiverID *mPacketParserMockGetReceiverID) Set(f func() (s1 insolar.ShortNodeID)) *PacketParserMock {
+func (mmGetReceiverID *mPacketParserMockGetReceiverID) Set(f func() (s1 node.ShortNodeID)) *PacketParserMock {
 	if mmGetReceiverID.defaultExpectation != nil {
 		mmGetReceiverID.mock.t.Fatalf("Default expectation is already set for the PacketParser.GetReceiverID method")
 	}
@@ -894,7 +894,7 @@ func (mmGetReceiverID *mPacketParserMockGetReceiverID) Set(f func() (s1 insolar.
 }
 
 // GetReceiverID implements PacketParser
-func (mmGetReceiverID *PacketParserMock) GetReceiverID() (s1 insolar.ShortNodeID) {
+func (mmGetReceiverID *PacketParserMock) GetReceiverID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetReceiverID.beforeGetReceiverIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetReceiverID.afterGetReceiverIDCounter, 1)
 
@@ -982,7 +982,7 @@ type PacketParserMockGetSourceIDExpectation struct {
 
 // PacketParserMockGetSourceIDResults contains results of the PacketParser.GetSourceID
 type PacketParserMockGetSourceIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for PacketParser.GetSourceID
@@ -1010,7 +1010,7 @@ func (mmGetSourceID *mPacketParserMockGetSourceID) Inspect(f func()) *mPacketPar
 }
 
 // Return sets up results that will be returned by PacketParser.GetSourceID
-func (mmGetSourceID *mPacketParserMockGetSourceID) Return(s1 insolar.ShortNodeID) *PacketParserMock {
+func (mmGetSourceID *mPacketParserMockGetSourceID) Return(s1 node.ShortNodeID) *PacketParserMock {
 	if mmGetSourceID.mock.funcGetSourceID != nil {
 		mmGetSourceID.mock.t.Fatalf("PacketParserMock.GetSourceID mock is already set by Set")
 	}
@@ -1023,7 +1023,7 @@ func (mmGetSourceID *mPacketParserMockGetSourceID) Return(s1 insolar.ShortNodeID
 }
 
 //Set uses given function f to mock the PacketParser.GetSourceID method
-func (mmGetSourceID *mPacketParserMockGetSourceID) Set(f func() (s1 insolar.ShortNodeID)) *PacketParserMock {
+func (mmGetSourceID *mPacketParserMockGetSourceID) Set(f func() (s1 node.ShortNodeID)) *PacketParserMock {
 	if mmGetSourceID.defaultExpectation != nil {
 		mmGetSourceID.mock.t.Fatalf("Default expectation is already set for the PacketParser.GetSourceID method")
 	}
@@ -1037,7 +1037,7 @@ func (mmGetSourceID *mPacketParserMockGetSourceID) Set(f func() (s1 insolar.Shor
 }
 
 // GetSourceID implements PacketParser
-func (mmGetSourceID *PacketParserMock) GetSourceID() (s1 insolar.ShortNodeID) {
+func (mmGetSourceID *PacketParserMock) GetSourceID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetSourceID.beforeGetSourceIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetSourceID.afterGetSourceIDCounter, 1)
 
@@ -1125,7 +1125,7 @@ type PacketParserMockGetTargetIDExpectation struct {
 
 // PacketParserMockGetTargetIDResults contains results of the PacketParser.GetTargetID
 type PacketParserMockGetTargetIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for PacketParser.GetTargetID
@@ -1153,7 +1153,7 @@ func (mmGetTargetID *mPacketParserMockGetTargetID) Inspect(f func()) *mPacketPar
 }
 
 // Return sets up results that will be returned by PacketParser.GetTargetID
-func (mmGetTargetID *mPacketParserMockGetTargetID) Return(s1 insolar.ShortNodeID) *PacketParserMock {
+func (mmGetTargetID *mPacketParserMockGetTargetID) Return(s1 node.ShortNodeID) *PacketParserMock {
 	if mmGetTargetID.mock.funcGetTargetID != nil {
 		mmGetTargetID.mock.t.Fatalf("PacketParserMock.GetTargetID mock is already set by Set")
 	}
@@ -1166,7 +1166,7 @@ func (mmGetTargetID *mPacketParserMockGetTargetID) Return(s1 insolar.ShortNodeID
 }
 
 //Set uses given function f to mock the PacketParser.GetTargetID method
-func (mmGetTargetID *mPacketParserMockGetTargetID) Set(f func() (s1 insolar.ShortNodeID)) *PacketParserMock {
+func (mmGetTargetID *mPacketParserMockGetTargetID) Set(f func() (s1 node.ShortNodeID)) *PacketParserMock {
 	if mmGetTargetID.defaultExpectation != nil {
 		mmGetTargetID.mock.t.Fatalf("Default expectation is already set for the PacketParser.GetTargetID method")
 	}
@@ -1180,7 +1180,7 @@ func (mmGetTargetID *mPacketParserMockGetTargetID) Set(f func() (s1 insolar.Shor
 }
 
 // GetTargetID implements PacketParser
-func (mmGetTargetID *PacketParserMock) GetTargetID() (s1 insolar.ShortNodeID) {
+func (mmGetTargetID *PacketParserMock) GetTargetID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetTargetID.beforeGetTargetIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetTargetID.afterGetTargetIDCounter, 1)
 

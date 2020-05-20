@@ -8,7 +8,7 @@ package population
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
 )
@@ -36,7 +36,7 @@ func NewFixedRealmPopulation(population census.OnlinePopulation, phase2ExtLimit 
 			nodeIndex:       make([]*NodeAppearance, nodeCount),
 			nodeShuffle:     make([]*NodeAppearance, otherCount),
 			shuffledCount:   otherCount,
-			dynamicNodes:    make(map[insolar.ShortNodeID]*NodeAppearance),
+			dynamicNodes:    make(map[node.ShortNodeID]*NodeAppearance),
 			indexedLenSet:   true, // locks down SealIndexed
 			hook:            NewHook(nil, nil, hookCfg),
 		}},
@@ -121,7 +121,7 @@ func (r *FixedRealmPopulation) GetIndexedCount() int {
 	return r.indexedCount
 }
 
-func (r *FixedRealmPopulation) GetActiveNodeAppearance(id insolar.ShortNodeID) *NodeAppearance {
+func (r *FixedRealmPopulation) GetActiveNodeAppearance(id node.ShortNodeID) *NodeAppearance {
 	np := r.population.FindProfile(id)
 	if np != nil && !np.IsJoiner() {
 		return r.GetNodeAppearanceByIndex(np.GetIndex().AsInt())
@@ -129,7 +129,7 @@ func (r *FixedRealmPopulation) GetActiveNodeAppearance(id insolar.ShortNodeID) *
 	return nil
 }
 
-func (r *FixedRealmPopulation) GetNodeAppearance(id insolar.ShortNodeID) *NodeAppearance {
+func (r *FixedRealmPopulation) GetNodeAppearance(id node.ShortNodeID) *NodeAppearance {
 	na := r.GetActiveNodeAppearance(id)
 	if na != nil {
 		return na

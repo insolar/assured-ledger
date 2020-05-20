@@ -8,7 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -26,7 +26,7 @@ type StaticProfileExtensionMock struct {
 	beforeGetExtraEndpointsCounter uint64
 	GetExtraEndpointsMock          mStaticProfileExtensionMockGetExtraEndpoints
 
-	funcGetIntroducedNodeID          func() (s1 insolar.ShortNodeID)
+	funcGetIntroducedNodeID          func() (s1 node.ShortNodeID)
 	inspectFuncGetIntroducedNodeID   func()
 	afterGetIntroducedNodeIDCounter  uint64
 	beforeGetIntroducedNodeIDCounter uint64
@@ -44,7 +44,7 @@ type StaticProfileExtensionMock struct {
 	beforeGetIssuedAtTimeCounter uint64
 	GetIssuedAtTimeMock          mStaticProfileExtensionMockGetIssuedAtTime
 
-	funcGetIssuerID          func() (s1 insolar.ShortNodeID)
+	funcGetIssuerID          func() (s1 node.ShortNodeID)
 	inspectFuncGetIssuerID   func()
 	afterGetIssuerIDCounter  uint64
 	beforeGetIssuerIDCounter uint64
@@ -254,7 +254,7 @@ type StaticProfileExtensionMockGetIntroducedNodeIDExpectation struct {
 
 // StaticProfileExtensionMockGetIntroducedNodeIDResults contains results of the StaticProfileExtension.GetIntroducedNodeID
 type StaticProfileExtensionMockGetIntroducedNodeIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for StaticProfileExtension.GetIntroducedNodeID
@@ -282,7 +282,7 @@ func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Ins
 }
 
 // Return sets up results that will be returned by StaticProfileExtension.GetIntroducedNodeID
-func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Return(s1 insolar.ShortNodeID) *StaticProfileExtensionMock {
+func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Return(s1 node.ShortNodeID) *StaticProfileExtensionMock {
 	if mmGetIntroducedNodeID.mock.funcGetIntroducedNodeID != nil {
 		mmGetIntroducedNodeID.mock.t.Fatalf("StaticProfileExtensionMock.GetIntroducedNodeID mock is already set by Set")
 	}
@@ -295,7 +295,7 @@ func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Ret
 }
 
 //Set uses given function f to mock the StaticProfileExtension.GetIntroducedNodeID method
-func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Set(f func() (s1 insolar.ShortNodeID)) *StaticProfileExtensionMock {
+func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Set(f func() (s1 node.ShortNodeID)) *StaticProfileExtensionMock {
 	if mmGetIntroducedNodeID.defaultExpectation != nil {
 		mmGetIntroducedNodeID.mock.t.Fatalf("Default expectation is already set for the StaticProfileExtension.GetIntroducedNodeID method")
 	}
@@ -309,7 +309,7 @@ func (mmGetIntroducedNodeID *mStaticProfileExtensionMockGetIntroducedNodeID) Set
 }
 
 // GetIntroducedNodeID implements StaticProfileExtension
-func (mmGetIntroducedNodeID *StaticProfileExtensionMock) GetIntroducedNodeID() (s1 insolar.ShortNodeID) {
+func (mmGetIntroducedNodeID *StaticProfileExtensionMock) GetIntroducedNodeID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetIntroducedNodeID.beforeGetIntroducedNodeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetIntroducedNodeID.afterGetIntroducedNodeIDCounter, 1)
 
@@ -683,7 +683,7 @@ type StaticProfileExtensionMockGetIssuerIDExpectation struct {
 
 // StaticProfileExtensionMockGetIssuerIDResults contains results of the StaticProfileExtension.GetIssuerID
 type StaticProfileExtensionMockGetIssuerIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for StaticProfileExtension.GetIssuerID
@@ -711,7 +711,7 @@ func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Inspect(f func()) *
 }
 
 // Return sets up results that will be returned by StaticProfileExtension.GetIssuerID
-func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Return(s1 insolar.ShortNodeID) *StaticProfileExtensionMock {
+func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Return(s1 node.ShortNodeID) *StaticProfileExtensionMock {
 	if mmGetIssuerID.mock.funcGetIssuerID != nil {
 		mmGetIssuerID.mock.t.Fatalf("StaticProfileExtensionMock.GetIssuerID mock is already set by Set")
 	}
@@ -724,7 +724,7 @@ func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Return(s1 insolar.S
 }
 
 //Set uses given function f to mock the StaticProfileExtension.GetIssuerID method
-func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Set(f func() (s1 insolar.ShortNodeID)) *StaticProfileExtensionMock {
+func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Set(f func() (s1 node.ShortNodeID)) *StaticProfileExtensionMock {
 	if mmGetIssuerID.defaultExpectation != nil {
 		mmGetIssuerID.mock.t.Fatalf("Default expectation is already set for the StaticProfileExtension.GetIssuerID method")
 	}
@@ -738,7 +738,7 @@ func (mmGetIssuerID *mStaticProfileExtensionMockGetIssuerID) Set(f func() (s1 in
 }
 
 // GetIssuerID implements StaticProfileExtension
-func (mmGetIssuerID *StaticProfileExtensionMock) GetIssuerID() (s1 insolar.ShortNodeID) {
+func (mmGetIssuerID *StaticProfileExtensionMock) GetIssuerID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetIssuerID.beforeGetIssuerIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetIssuerID.afterGetIssuerIDCounter, 1)
 

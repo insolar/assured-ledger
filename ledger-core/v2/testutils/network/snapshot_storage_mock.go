@@ -8,22 +8,22 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // SnapshotStorageMock implements storage.SnapshotStorage
 type SnapshotStorageMock struct {
 	t minimock.Tester
 
-	funcAppend          func(pulse insolar.PulseNumber, snapshot *node.Snapshot) (err error)
-	inspectFuncAppend   func(pulse insolar.PulseNumber, snapshot *node.Snapshot)
+	funcAppend          func(pulse pulse.Number, snapshot *node.Snapshot) (err error)
+	inspectFuncAppend   func(pulse pulse.Number, snapshot *node.Snapshot)
 	afterAppendCounter  uint64
 	beforeAppendCounter uint64
 	AppendMock          mSnapshotStorageMockAppend
 
-	funcForPulseNumber          func(p1 insolar.PulseNumber) (sp1 *node.Snapshot, err error)
-	inspectFuncForPulseNumber   func(p1 insolar.PulseNumber)
+	funcForPulseNumber          func(n1 pulse.Number) (sp1 *node.Snapshot, err error)
+	inspectFuncForPulseNumber   func(n1 pulse.Number)
 	afterForPulseNumberCounter  uint64
 	beforeForPulseNumberCounter uint64
 	ForPulseNumberMock          mSnapshotStorageMockForPulseNumber
@@ -64,7 +64,7 @@ type SnapshotStorageMockAppendExpectation struct {
 
 // SnapshotStorageMockAppendParams contains parameters of the SnapshotStorage.Append
 type SnapshotStorageMockAppendParams struct {
-	pulse    insolar.PulseNumber
+	pulse    pulse.Number
 	snapshot *node.Snapshot
 }
 
@@ -74,7 +74,7 @@ type SnapshotStorageMockAppendResults struct {
 }
 
 // Expect sets up expected params for SnapshotStorage.Append
-func (mmAppend *mSnapshotStorageMockAppend) Expect(pulse insolar.PulseNumber, snapshot *node.Snapshot) *mSnapshotStorageMockAppend {
+func (mmAppend *mSnapshotStorageMockAppend) Expect(pulse pulse.Number, snapshot *node.Snapshot) *mSnapshotStorageMockAppend {
 	if mmAppend.mock.funcAppend != nil {
 		mmAppend.mock.t.Fatalf("SnapshotStorageMock.Append mock is already set by Set")
 	}
@@ -94,7 +94,7 @@ func (mmAppend *mSnapshotStorageMockAppend) Expect(pulse insolar.PulseNumber, sn
 }
 
 // Inspect accepts an inspector function that has same arguments as the SnapshotStorage.Append
-func (mmAppend *mSnapshotStorageMockAppend) Inspect(f func(pulse insolar.PulseNumber, snapshot *node.Snapshot)) *mSnapshotStorageMockAppend {
+func (mmAppend *mSnapshotStorageMockAppend) Inspect(f func(pulse pulse.Number, snapshot *node.Snapshot)) *mSnapshotStorageMockAppend {
 	if mmAppend.mock.inspectFuncAppend != nil {
 		mmAppend.mock.t.Fatalf("Inspect function is already set for SnapshotStorageMock.Append")
 	}
@@ -118,7 +118,7 @@ func (mmAppend *mSnapshotStorageMockAppend) Return(err error) *SnapshotStorageMo
 }
 
 //Set uses given function f to mock the SnapshotStorage.Append method
-func (mmAppend *mSnapshotStorageMockAppend) Set(f func(pulse insolar.PulseNumber, snapshot *node.Snapshot) (err error)) *SnapshotStorageMock {
+func (mmAppend *mSnapshotStorageMockAppend) Set(f func(pulse pulse.Number, snapshot *node.Snapshot) (err error)) *SnapshotStorageMock {
 	if mmAppend.defaultExpectation != nil {
 		mmAppend.mock.t.Fatalf("Default expectation is already set for the SnapshotStorage.Append method")
 	}
@@ -133,7 +133,7 @@ func (mmAppend *mSnapshotStorageMockAppend) Set(f func(pulse insolar.PulseNumber
 
 // When sets expectation for the SnapshotStorage.Append which will trigger the result defined by the following
 // Then helper
-func (mmAppend *mSnapshotStorageMockAppend) When(pulse insolar.PulseNumber, snapshot *node.Snapshot) *SnapshotStorageMockAppendExpectation {
+func (mmAppend *mSnapshotStorageMockAppend) When(pulse pulse.Number, snapshot *node.Snapshot) *SnapshotStorageMockAppendExpectation {
 	if mmAppend.mock.funcAppend != nil {
 		mmAppend.mock.t.Fatalf("SnapshotStorageMock.Append mock is already set by Set")
 	}
@@ -153,7 +153,7 @@ func (e *SnapshotStorageMockAppendExpectation) Then(err error) *SnapshotStorageM
 }
 
 // Append implements storage.SnapshotStorage
-func (mmAppend *SnapshotStorageMock) Append(pulse insolar.PulseNumber, snapshot *node.Snapshot) (err error) {
+func (mmAppend *SnapshotStorageMock) Append(pulse pulse.Number, snapshot *node.Snapshot) (err error) {
 	mm_atomic.AddUint64(&mmAppend.beforeAppendCounter, 1)
 	defer mm_atomic.AddUint64(&mmAppend.afterAppendCounter, 1)
 
@@ -280,7 +280,7 @@ type SnapshotStorageMockForPulseNumberExpectation struct {
 
 // SnapshotStorageMockForPulseNumberParams contains parameters of the SnapshotStorage.ForPulseNumber
 type SnapshotStorageMockForPulseNumberParams struct {
-	p1 insolar.PulseNumber
+	n1 pulse.Number
 }
 
 // SnapshotStorageMockForPulseNumberResults contains results of the SnapshotStorage.ForPulseNumber
@@ -290,7 +290,7 @@ type SnapshotStorageMockForPulseNumberResults struct {
 }
 
 // Expect sets up expected params for SnapshotStorage.ForPulseNumber
-func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Expect(p1 insolar.PulseNumber) *mSnapshotStorageMockForPulseNumber {
+func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Expect(n1 pulse.Number) *mSnapshotStorageMockForPulseNumber {
 	if mmForPulseNumber.mock.funcForPulseNumber != nil {
 		mmForPulseNumber.mock.t.Fatalf("SnapshotStorageMock.ForPulseNumber mock is already set by Set")
 	}
@@ -299,7 +299,7 @@ func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Expect(p1 insolar.Pu
 		mmForPulseNumber.defaultExpectation = &SnapshotStorageMockForPulseNumberExpectation{}
 	}
 
-	mmForPulseNumber.defaultExpectation.params = &SnapshotStorageMockForPulseNumberParams{p1}
+	mmForPulseNumber.defaultExpectation.params = &SnapshotStorageMockForPulseNumberParams{n1}
 	for _, e := range mmForPulseNumber.expectations {
 		if minimock.Equal(e.params, mmForPulseNumber.defaultExpectation.params) {
 			mmForPulseNumber.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmForPulseNumber.defaultExpectation.params)
@@ -310,7 +310,7 @@ func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Expect(p1 insolar.Pu
 }
 
 // Inspect accepts an inspector function that has same arguments as the SnapshotStorage.ForPulseNumber
-func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Inspect(f func(p1 insolar.PulseNumber)) *mSnapshotStorageMockForPulseNumber {
+func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Inspect(f func(n1 pulse.Number)) *mSnapshotStorageMockForPulseNumber {
 	if mmForPulseNumber.mock.inspectFuncForPulseNumber != nil {
 		mmForPulseNumber.mock.t.Fatalf("Inspect function is already set for SnapshotStorageMock.ForPulseNumber")
 	}
@@ -334,7 +334,7 @@ func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Return(sp1 *node.Sna
 }
 
 //Set uses given function f to mock the SnapshotStorage.ForPulseNumber method
-func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Set(f func(p1 insolar.PulseNumber) (sp1 *node.Snapshot, err error)) *SnapshotStorageMock {
+func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Set(f func(n1 pulse.Number) (sp1 *node.Snapshot, err error)) *SnapshotStorageMock {
 	if mmForPulseNumber.defaultExpectation != nil {
 		mmForPulseNumber.mock.t.Fatalf("Default expectation is already set for the SnapshotStorage.ForPulseNumber method")
 	}
@@ -349,14 +349,14 @@ func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) Set(f func(p1 insola
 
 // When sets expectation for the SnapshotStorage.ForPulseNumber which will trigger the result defined by the following
 // Then helper
-func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) When(p1 insolar.PulseNumber) *SnapshotStorageMockForPulseNumberExpectation {
+func (mmForPulseNumber *mSnapshotStorageMockForPulseNumber) When(n1 pulse.Number) *SnapshotStorageMockForPulseNumberExpectation {
 	if mmForPulseNumber.mock.funcForPulseNumber != nil {
 		mmForPulseNumber.mock.t.Fatalf("SnapshotStorageMock.ForPulseNumber mock is already set by Set")
 	}
 
 	expectation := &SnapshotStorageMockForPulseNumberExpectation{
 		mock:   mmForPulseNumber.mock,
-		params: &SnapshotStorageMockForPulseNumberParams{p1},
+		params: &SnapshotStorageMockForPulseNumberParams{n1},
 	}
 	mmForPulseNumber.expectations = append(mmForPulseNumber.expectations, expectation)
 	return expectation
@@ -369,15 +369,15 @@ func (e *SnapshotStorageMockForPulseNumberExpectation) Then(sp1 *node.Snapshot, 
 }
 
 // ForPulseNumber implements storage.SnapshotStorage
-func (mmForPulseNumber *SnapshotStorageMock) ForPulseNumber(p1 insolar.PulseNumber) (sp1 *node.Snapshot, err error) {
+func (mmForPulseNumber *SnapshotStorageMock) ForPulseNumber(n1 pulse.Number) (sp1 *node.Snapshot, err error) {
 	mm_atomic.AddUint64(&mmForPulseNumber.beforeForPulseNumberCounter, 1)
 	defer mm_atomic.AddUint64(&mmForPulseNumber.afterForPulseNumberCounter, 1)
 
 	if mmForPulseNumber.inspectFuncForPulseNumber != nil {
-		mmForPulseNumber.inspectFuncForPulseNumber(p1)
+		mmForPulseNumber.inspectFuncForPulseNumber(n1)
 	}
 
-	mm_params := &SnapshotStorageMockForPulseNumberParams{p1}
+	mm_params := &SnapshotStorageMockForPulseNumberParams{n1}
 
 	// Record call args
 	mmForPulseNumber.ForPulseNumberMock.mutex.Lock()
@@ -394,7 +394,7 @@ func (mmForPulseNumber *SnapshotStorageMock) ForPulseNumber(p1 insolar.PulseNumb
 	if mmForPulseNumber.ForPulseNumberMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmForPulseNumber.ForPulseNumberMock.defaultExpectation.Counter, 1)
 		mm_want := mmForPulseNumber.ForPulseNumberMock.defaultExpectation.params
-		mm_got := SnapshotStorageMockForPulseNumberParams{p1}
+		mm_got := SnapshotStorageMockForPulseNumberParams{n1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmForPulseNumber.t.Errorf("SnapshotStorageMock.ForPulseNumber got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -406,9 +406,9 @@ func (mmForPulseNumber *SnapshotStorageMock) ForPulseNumber(p1 insolar.PulseNumb
 		return (*mm_results).sp1, (*mm_results).err
 	}
 	if mmForPulseNumber.funcForPulseNumber != nil {
-		return mmForPulseNumber.funcForPulseNumber(p1)
+		return mmForPulseNumber.funcForPulseNumber(n1)
 	}
-	mmForPulseNumber.t.Fatalf("Unexpected call to SnapshotStorageMock.ForPulseNumber. %v", p1)
+	mmForPulseNumber.t.Fatalf("Unexpected call to SnapshotStorageMock.ForPulseNumber. %v", n1)
 	return
 }
 

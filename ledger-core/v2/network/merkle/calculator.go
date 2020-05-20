@@ -9,9 +9,10 @@ import (
 	"context"
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/pkg/errors"
 )
 
@@ -20,10 +21,10 @@ type stater interface {
 }
 
 type calculator struct {
-	Stater                     stater                             `inject:""`
-	OriginProvider             network.OriginProvider             `inject:""` // nolint
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme `inject:""`
-	CryptographyService        insolar.CryptographyService        `inject:""`
+	Stater                     stater                                  `inject:""`
+	OriginProvider             network.OriginProvider                  `inject:""` // nolint
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
+	CryptographyService        cryptography.Service                    `inject:""`
 
 	merkleHelper *merkleHelper
 }
@@ -37,7 +38,7 @@ func (c *calculator) Init(ctx context.Context) error {
 	return nil
 }
 
-func (c *calculator) getStateHash(_ insolar.StaticRole) OriginHash {
+func (c *calculator) getStateHash(_ node.StaticRole) OriginHash {
 	// TODO: do something with role
 	return c.Stater.State()
 }

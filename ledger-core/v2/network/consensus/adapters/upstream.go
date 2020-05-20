@@ -9,7 +9,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
@@ -24,11 +25,11 @@ type StateGetter interface {
 }
 
 type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse insolar.Pulse)
+	ChangePulse(ctx context.Context, newPulse pulsestor.Pulse)
 }
 
 type StateUpdater interface {
-	UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
 }
 
 type UpstreamController struct {
@@ -56,11 +57,11 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	logger := inslogger.FromContext(ctx)
 	population := expectedCensus.GetOnlinePopulation()
 
-	var networkNodes []insolar.NetworkNode
+	var networkNodes []node.NetworkNode
 	if report.MemberMode.IsEvicted() || report.MemberMode.IsSuspended() || !population.IsValid() {
 		logger.Warnf("Consensus finished unexpectedly mode: %s, population: %v", report.MemberMode, expectedCensus)
 
-		networkNodes = []insolar.NetworkNode{
+		networkNodes = []node.NetworkNode{
 			NewNetworkNode(expectedCensus.GetOnlinePopulation().GetLocalProfile()),
 		}
 	} else {

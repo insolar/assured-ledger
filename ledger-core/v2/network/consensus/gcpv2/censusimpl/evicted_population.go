@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
@@ -21,7 +21,7 @@ func newEvictedPopulation(evicts []*updatableSlot, detectedErrors census.Recover
 	if len(evicts) == 0 {
 		return evictedPopulation{detectedErrors: detectedErrors}
 	}
-	evictedNodes := make(map[insolar.ShortNodeID]profiles.EvictedNode, len(evicts))
+	evictedNodes := make(map[node.ShortNodeID]profiles.EvictedNode, len(evicts))
 
 	for _, s := range evicts {
 		id := s.GetNodeID()
@@ -35,7 +35,7 @@ func newEvictedPopulation(evicts []*updatableSlot, detectedErrors census.Recover
 var _ census.EvictedPopulation = &evictedPopulation{}
 
 type evictedPopulation struct {
-	profiles       map[insolar.ShortNodeID]profiles.EvictedNode
+	profiles       map[node.ShortNodeID]profiles.EvictedNode
 	detectedErrors census.RecoverableErrorTypes
 }
 
@@ -71,7 +71,7 @@ func (p *evictedPopulation) GetDetectedErrors() census.RecoverableErrorTypes {
 	return p.detectedErrors
 }
 
-func (p *evictedPopulation) FindProfile(nodeID insolar.ShortNodeID) profiles.EvictedNode {
+func (p *evictedPopulation) FindProfile(nodeID node.ShortNodeID) profiles.EvictedNode {
 	return p.profiles[nodeID]
 }
 
@@ -98,7 +98,7 @@ type evictedSlot struct {
 	leaveReason uint32
 }
 
-func (p *evictedSlot) GetNodeID() insolar.ShortNodeID {
+func (p *evictedSlot) GetNodeID() node.ShortNodeID {
 	return p.GetStaticNodeID()
 }
 

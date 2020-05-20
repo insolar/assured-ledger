@@ -10,13 +10,12 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
@@ -35,7 +34,7 @@ const (
 type conveyorDispatcher struct {
 	conveyor      *conveyor.PulseConveyor
 	state         dispatcherInitializationState
-	previousPulse insolar.PulseNumber
+	previousPulse pulse.Number
 }
 
 var _ dispatcher.Dispatcher = &conveyorDispatcher{}
@@ -43,17 +42,17 @@ var _ dispatcher.Dispatcher = &conveyorDispatcher{}
 type logBeginPulseMessage struct {
 	*log.Msg `fmt:"BeginPulse"`
 
-	PreviousPulse insolar.PulseNumber
-	NextPulse     insolar.PulseNumber `opt:""`
+	PreviousPulse pulse.Number
+	NextPulse     pulse.Number `opt:""`
 }
 
 type logClosePulseMessage struct {
 	*log.Msg `fmt:"ClosePulse"`
 
-	PreviousPulse insolar.PulseNumber
+	PreviousPulse pulse.Number
 }
 
-func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar.Pulse) {
+func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsestor.Pulse) {
 	var (
 		pulseData  = adapters.NewPulseData(pulseObject)
 		pulseRange pulse.Range
@@ -84,7 +83,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject insolar
 	}
 }
 
-func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject insolar.Pulse) {
+func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulsestor.Pulse) {
 	inslogger.FromContext(ctx).Errorm(logClosePulseMessage{
 		PreviousPulse: c.previousPulse,
 	})
@@ -122,7 +121,7 @@ type errUnknownPayload struct {
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
 	pl, err := payload.Unmarshal(msg.Payload)
 	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal payload.Meta")
+		return throw.W(err, "failed to unmarshal payload.Meta")
 	}
 	plMeta, ok := pl.(*payload.Meta)
 	if !ok {

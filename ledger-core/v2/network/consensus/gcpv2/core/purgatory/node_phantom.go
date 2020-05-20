@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/coreapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/packetdispatch"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
@@ -25,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
 
-func NewNodePhantom(purgatory *RealmPurgatory, nodeID insolar.ShortNodeID, limiter phases.PacketLimiter) *NodePhantom {
+func NewNodePhantom(purgatory *RealmPurgatory, nodeID node.ShortNodeID, limiter phases.PacketLimiter) *NodePhantom {
 	return &NodePhantom{
 		purgatory: purgatory,
 		nodeID:    nodeID,
@@ -40,7 +40,7 @@ var _ population.MemberPacketSender = &NodePhantom{}
 type NodePhantom struct {
 	purgatory *RealmPurgatory
 
-	nodeID    insolar.ShortNodeID
+	nodeID    node.ShortNodeID
 	mutex     sync.Mutex
 	limiter   phases.PacketLimiter
 	recorder  packetdispatch.UnsafePacketRecorder
@@ -98,7 +98,7 @@ func (p *NodePhantom) SetPacketSent(pt phases.PacketType) bool {
 	return allowed
 }
 
-func (p *NodePhantom) GetNodeID() insolar.ShortNodeID {
+func (p *NodePhantom) GetNodeID() node.ShortNodeID {
 	return p.nodeID
 }
 
@@ -168,7 +168,7 @@ func (p *NodePhantom) ascend(ctx context.Context, sv cryptkit.SignatureVerifier,
 	return true
 }
 
-func (p *NodePhantom) IntroducedBy( /*id */ insolar.ShortNodeID) {
+func (p *NodePhantom) IntroducedBy( /*id */ node.ShortNodeID) {
 
 }
 
@@ -178,7 +178,7 @@ func (p *NodePhantom) GetAnnouncementAsJoiner() *transport.JoinerAnnouncement {
 
 type figment struct {
 	phantom     *NodePhantom
-	announcerID insolar.ShortNodeID
+	announcerID node.ShortNodeID
 	rank        member.Rank
 
 	profile      profiles.StaticProfile

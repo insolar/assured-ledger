@@ -6,15 +6,14 @@
 package requestresult
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
 
 type RequestResult struct {
-	SideEffectType     insolar.RequestResultType // every
-	RawResult          []byte                    // every
-	RawObjectReference reference.Global          // every
+	SideEffectType     Type             // every
+	RawResult          []byte           // every
+	RawObjectReference reference.Global // every
 
 	ParentReference reference.Global // activate
 	ObjectImage     reference.Global // amend + activate
@@ -24,7 +23,7 @@ type RequestResult struct {
 
 func New(result []byte, objectRef reference.Global) *RequestResult {
 	return &RequestResult{
-		SideEffectType:     insolar.RequestSideEffectNone,
+		SideEffectType:     SideEffectNone,
 		RawResult:          result,
 		RawObjectReference: objectRef,
 	}
@@ -47,7 +46,7 @@ func (s *RequestResult) Deactivate() reference.Local {
 }
 
 func (s *RequestResult) SetActivate(parent, image reference.Global, memory []byte) {
-	s.SideEffectType = insolar.RequestSideEffectActivate
+	s.SideEffectType = SideEffectActivate
 
 	s.ParentReference = parent
 	s.ObjectImage = image
@@ -55,7 +54,7 @@ func (s *RequestResult) SetActivate(parent, image reference.Global, memory []byt
 }
 
 func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
-	s.SideEffectType = insolar.RequestSideEffectAmend
+	s.SideEffectType = SideEffectAmend
 	s.Memory = memory
 	s.ObjectStateID = object.StateID()
 
@@ -64,11 +63,11 @@ func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
 }
 
 func (s *RequestResult) SetDeactivate(object descriptor.Object) {
-	s.SideEffectType = insolar.RequestSideEffectDeactivate
+	s.SideEffectType = SideEffectDeactivate
 	s.ObjectStateID = object.StateID()
 }
 
-func (s RequestResult) Type() insolar.RequestResultType {
+func (s RequestResult) Type() Type {
 	return s.SideEffectType
 }
 

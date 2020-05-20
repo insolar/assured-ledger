@@ -8,13 +8,13 @@ package errors
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/warning"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 )
 
-func LimitExceeded(packetType phases.PacketType, sourceID insolar.ShortNodeID, sourceEndpoint endpoints.Inbound) error {
+func LimitExceeded(packetType phases.PacketType, sourceID node.ShortNodeID, sourceEndpoint endpoints.Inbound) error {
 	err := fmt.Errorf(
 		"packet type (%v) limit exceeded: from=%v(%v)",
 		packetType,

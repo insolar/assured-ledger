@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization/pulseserialization"
@@ -377,7 +377,7 @@ func (n *Neighbourhood) DeserializeFrom(ctx DeserializeContext, reader io.Reader
 type NeighbourAnnouncement struct {
 	// ByteSize(JOINER) = 73 + (135, 137, 147) = 208, 210, 220
 	// ByteSize(MEMBER) = 73 + (132, 136) = 205, 209
-	NeighbourNodeID insolar.ShortNodeID // ByteSize=4 // !=0
+	NeighbourNodeID node.ShortNodeID // ByteSize=4 // !=0
 
 	CurrentRank    member.Rank  // ByteSize=4
 	RequestedPower member.Power // ByteSize=1
@@ -389,8 +389,8 @@ type NeighbourAnnouncement struct {
 		Fields "Joiner" and "JoinerIntroducedBy" MUST BE OMITTED when this joiner is introduced by the sending node
 	*/
 	// TODO merge "Joiner" and "JoinerIntroducedBy" fields into NeighbourJoinerAnnouncement
-	Joiner             JoinAnnouncement    `insolar-transport:"optional=CurrentRank==0"` // ByteSize = 135, 137, 147
-	JoinerIntroducedBy insolar.ShortNodeID `insolar-transport:"optional=CurrentRank==0"`
+	Joiner             JoinAnnouncement `insolar-transport:"optional=CurrentRank==0"` // ByteSize = 135, 137, 147
+	JoinerIntroducedBy node.ShortNodeID `insolar-transport:"optional=CurrentRank==0"`
 
 	/* For non-joiner */
 	Member NodeAnnouncement `insolar-transport:"optional=CurrentRank!=0"` // ByteSize = 132, 136
@@ -441,7 +441,7 @@ func (na *NeighbourAnnouncement) SerializeTo(ctx SerializeContext, writer io.Wri
 		ctx.SetInContext(ContextNeighbourAnnouncement)
 		ctx.SetNeighbourNodeID(na.NeighbourNodeID)
 		defer ctx.SetInContext(NoContext)
-		defer ctx.SetNeighbourNodeID(insolar.AbsentShortNodeID)
+		defer ctx.SetNeighbourNodeID(node.AbsentShortNodeID)
 
 		if err := na.Member.SerializeTo(ctx, writer); err != nil {
 			return errors.Wrap(err, "failed to serialize Member")
@@ -482,7 +482,7 @@ func (na *NeighbourAnnouncement) DeserializeFrom(ctx DeserializeContext, reader 
 		ctx.SetInContext(ContextNeighbourAnnouncement)
 		ctx.SetNeighbourNodeID(na.NeighbourNodeID)
 		defer ctx.SetInContext(NoContext)
-		defer ctx.SetNeighbourNodeID(insolar.AbsentShortNodeID)
+		defer ctx.SetNeighbourNodeID(node.AbsentShortNodeID)
 
 		if err := na.Member.DeserializeFrom(ctx, reader); err != nil {
 			return errors.Wrap(err, "failed to deserialize Member")
@@ -505,7 +505,7 @@ type MembershipAnnouncement struct {
 		This field MUST be excluded from the packet, but considered for signature calculation.
 		Value of this field equals SourceID
 	*/
-	ShortID insolar.ShortNodeID `insolar-transport:"ignore=send"` // ByteSize = 0
+	ShortID node.ShortNodeID `insolar-transport:"ignore=send"` // ByteSize = 0
 
 	CurrentRank    member.Rank  // ByteSize=4
 	RequestedPower member.Power // ByteSize=1
@@ -605,7 +605,7 @@ type NodeAnnouncement struct {
 	// ByteSize(NeighbourAnnouncement) = 132, 136
 
 	NodeState  CompactGlobulaNodeState // ByteSize=128
-	AnnounceID insolar.ShortNodeID     // ByteSize=4 // =0 - no announcement, =self - is leaver, else has joiner
+	AnnounceID node.ShortNodeID        // ByteSize=4 // =0 - no announcement, =self - is leaver, else has joiner
 	/*
 		1. When is in MembershipAnnouncement
 			"Leaver" is present when AnnounceID = Header.SourceID (sender is leaving)

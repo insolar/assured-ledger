@@ -16,7 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
@@ -59,7 +59,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	if err != nil {
 		global.Fatal(errors.Wrap(err, "readRole failed"))
 	}
-	role := insolar.GetStaticRoleFromString(roleString)
+	role := node.GetStaticRoleFromString(roleString)
 	if role != certRole {
 		global.Fatal("Role from certificate and role from flag must be equal")
 	}
@@ -69,7 +69,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	}
 
 	switch role {
-	case insolar.StaticRoleVirtual:
+	case node.StaticRoleVirtual:
 		s := server.NewVirtualServer(configPath)
 		s.Serve()
 	default:
@@ -87,18 +87,18 @@ func runHeadlessNetwork(configPath string) {
 	server.NewHeadlessNetworkNodeServer(configPath).Serve()
 }
 
-func readRoleFromCertificate(path string) (insolar.StaticRole, error) {
+func readRoleFromCertificate(path string) (node.StaticRole, error) {
 	var err error
 	cfg := configuration.NewHolder(path)
 
 	err = cfg.Load()
 	if err != nil {
-		return insolar.StaticRoleUnknown, errors.Wrap(err, "failed to load configuration from file")
+		return node.StaticRoleUnknown, errors.Wrap(err, "failed to load configuration from file")
 	}
 
 	data, err := ioutil.ReadFile(filepath.Clean(cfg.Configuration.CertificatePath))
 	if err != nil {
-		return insolar.StaticRoleUnknown, errors.Wrapf(
+		return node.StaticRoleUnknown, errors.Wrapf(
 			err,
 			"failed to read certificate from: %s",
 			cfg.Configuration.CertificatePath,
@@ -107,7 +107,7 @@ func readRoleFromCertificate(path string) (insolar.StaticRole, error) {
 	cert := certificate.AuthorizationCertificate{}
 	err = json.Unmarshal(data, &cert)
 	if err != nil {
-		return insolar.StaticRoleUnknown, errors.Wrap(err, "failed to parse certificate json")
+		return node.StaticRoleUnknown, errors.Wrap(err, "failed to parse certificate json")
 	}
 	return cert.GetRole(), nil
 }

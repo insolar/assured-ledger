@@ -8,7 +8,7 @@ package adapters
 import (
 	"crypto/ecdsa"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters/candidate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -16,7 +16,7 @@ import (
 
 type Candidate candidate.Profile
 
-func (c Candidate) StaticProfile(keyProcessor insolar.KeyProcessor) *StaticProfile {
+func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *StaticProfile {
 	publicKey, err := keyProcessor.ImportPublicKeyBinary(c.PublicKey)
 	if err != nil {
 		panic("Failed to import public key")
@@ -52,7 +52,7 @@ func (c Candidate) Profile() candidate.Profile {
 	return candidate.Profile(c)
 }
 
-func NewCandidate(staticProfile *StaticProfile, keyProcessor insolar.KeyProcessor) *Candidate {
+func NewCandidate(staticProfile *StaticProfile, keyProcessor cryptography.KeyProcessor) *Candidate {
 	pubKey, err := keyProcessor.ExportPublicKeyBinary(staticProfile.store.(*ECDSAPublicKeyStore).publicKey)
 	if err != nil {
 		panic("failed to export public key")

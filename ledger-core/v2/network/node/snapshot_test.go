@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
@@ -25,7 +25,7 @@ type Mutator struct {
 	*Accessor
 }
 
-func (m *Mutator) AddWorkingNode(n insolar.NetworkNode) {
+func (m *Mutator) AddWorkingNode(n node2.NetworkNode) {
 	if _, ok := m.refIndex[n.ID()]; ok {
 		return
 	}
@@ -43,14 +43,14 @@ func TestSnapshotEncodeDecode(t *testing.T) {
 	p2, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
 
-	n1 := newMutableNode(gen.Reference(), insolar.StaticRoleVirtual, ks.ExtractPublicKey(p1), insolar.NodeReady, "127.0.0.1:22", "ver2")
-	n2 := newMutableNode(gen.Reference(), insolar.StaticRoleHeavyMaterial, ks.ExtractPublicKey(p2), insolar.NodeLeaving, "127.0.0.1:33", "ver5")
+	n1 := newMutableNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), node2.Ready, "127.0.0.1:22", "ver2")
+	n2 := newMutableNode(gen.Reference(), node2.StaticRoleHeavyMaterial, ks.ExtractPublicKey(p2), node2.Leaving, "127.0.0.1:33", "ver5")
 
 	s := Snapshot{}
 	s.pulse = 22
-	s.state = insolar.CompleteNetworkState
-	s.nodeList[ListLeaving] = []insolar.NetworkNode{n1, n2}
-	s.nodeList[ListJoiner] = []insolar.NetworkNode{n2}
+	s.state = node2.CompleteNetworkState
+	s.nodeList[ListLeaving] = []node2.NetworkNode{n1, n2}
+	s.nodeList[ListJoiner] = []node2.NetworkNode{n2}
 
 	buff, err := s.Encode()
 	assert.NoError(t, err)
@@ -72,14 +72,14 @@ func TestSnapshot_Copy(t *testing.T) {
 	snapshot := NewSnapshot(pulse.MinTimePulse, nil)
 	mutator := NewMutator(snapshot)
 	ref1 := gen.Reference()
-	node1 := newMutableNode(ref1, insolar.StaticRoleVirtual, nil, insolar.NodeReady, "127.0.0.1:0", "")
+	node1 := newMutableNode(ref1, node2.StaticRoleVirtual, nil, node2.Ready, "127.0.0.1:0", "")
 	mutator.AddWorkingNode(node1)
 
 	snapshot2 := snapshot.Copy()
 	accessor := NewAccessor(snapshot2)
 
 	ref2 := gen.Reference()
-	node2 := newMutableNode(ref2, insolar.StaticRoleLightMaterial, nil, insolar.NodeReady, "127.0.0.1:0", "")
+	node2 := newMutableNode(ref2, node2.StaticRoleLightMaterial, nil, node2.Ready, "127.0.0.1:0", "")
 	mutator.AddWorkingNode(node2)
 
 	// mutator and accessor observe different copies of snapshot and don't affect each other
@@ -100,11 +100,11 @@ func TestSnapshot_Equal(t *testing.T) {
 	snapshot2 := NewSnapshot(11, nil)
 	assert.False(t, snapshot.Equal(snapshot2))
 
-	snapshot2.pulse = insolar.PulseNumber(10)
+	snapshot2.pulse = pulse.Number(10)
 
-	genNodeCopy := func(reference reference.Global) insolar.NetworkNode {
-		return newMutableNode(reference, insolar.StaticRoleLightMaterial,
-			nil, insolar.NodeReady, "127.0.0.1:0", "")
+	genNodeCopy := func(reference reference.Global) node2.NetworkNode {
+		return newMutableNode(reference, node2.StaticRoleLightMaterial,
+			nil, node2.Ready, "127.0.0.1:0", "")
 	}
 
 	refs := gen.UniqueReferences(2)

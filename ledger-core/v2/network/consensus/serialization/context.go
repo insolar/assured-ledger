@@ -12,7 +12,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 
@@ -41,8 +41,8 @@ type packetContext struct {
 	header *Header
 
 	fieldContext          FieldContext
-	neighbourNodeID       insolar.ShortNodeID
-	announcedJoinerNodeID insolar.ShortNodeID
+	neighbourNodeID       node.ShortNodeID
+	announcedJoinerNodeID node.ShortNodeID
 }
 
 func newPacketContext(ctx context.Context, header *Header) packetContext {
@@ -66,7 +66,7 @@ func (pc *packetContext) SetInContext(ctx FieldContext) {
 	pc.fieldContext = ctx
 }
 
-func (pc *packetContext) GetNeighbourNodeID() insolar.ShortNodeID {
+func (pc *packetContext) GetNeighbourNodeID() node.ShortNodeID {
 	if pc.neighbourNodeID.IsAbsent() {
 		panic("illegal value")
 	}
@@ -74,15 +74,15 @@ func (pc *packetContext) GetNeighbourNodeID() insolar.ShortNodeID {
 	return pc.neighbourNodeID
 }
 
-func (pc *packetContext) SetNeighbourNodeID(nodeID insolar.ShortNodeID) {
+func (pc *packetContext) SetNeighbourNodeID(nodeID node.ShortNodeID) {
 	pc.neighbourNodeID = nodeID
 }
 
-func (pc *packetContext) GetAnnouncedJoinerNodeID() insolar.ShortNodeID {
+func (pc *packetContext) GetAnnouncedJoinerNodeID() node.ShortNodeID {
 	return pc.announcedJoinerNodeID
 }
 
-func (pc *packetContext) SetAnnouncedJoinerNodeID(nodeID insolar.ShortNodeID) {
+func (pc *packetContext) SetAnnouncedJoinerNodeID(nodeID node.ShortNodeID) {
 	if nodeID.IsAbsent() {
 		panic("illegal value")
 	}

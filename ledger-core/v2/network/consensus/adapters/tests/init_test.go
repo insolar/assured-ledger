@@ -17,10 +17,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
@@ -34,6 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 var (
@@ -79,12 +82,12 @@ type InitializedNodes struct {
 }
 
 type GeneratedNodes struct {
-	nodes          []insolar.NetworkNode
+	nodes          []node2.NetworkNode
 	meta           []*nodeMeta
-	discoveryNodes []insolar.NetworkNode
+	discoveryNodes []node2.NetworkNode
 }
 
-func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []insolar.NetworkNode) (*GeneratedNodes, error) {
+func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []node2.NetworkNode) (*GeneratedNodes, error) {
 	nodeIdentities := generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual)
 	nodeInfos := generateNodeInfos(nodeIdentities)
 	nodes, dn, err := nodesFromInfo(nodeInfos)
@@ -201,15 +204,15 @@ func initLogger(level log.Level) context.Context {
 func generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual int) []nodeIdentity {
 	r := make([]nodeIdentity, 0, countNeutral+countHeavy+countLight+countVirtual)
 
-	r = _generateNodeIdentity(r, countNeutral, insolar.StaticRoleUnknown)
-	r = _generateNodeIdentity(r, countHeavy, insolar.StaticRoleHeavyMaterial)
-	r = _generateNodeIdentity(r, countLight, insolar.StaticRoleLightMaterial)
-	r = _generateNodeIdentity(r, countVirtual, insolar.StaticRoleVirtual)
+	r = _generateNodeIdentity(r, countNeutral, node2.StaticRoleUnknown)
+	r = _generateNodeIdentity(r, countHeavy, node2.StaticRoleHeavyMaterial)
+	r = _generateNodeIdentity(r, countLight, node2.StaticRoleLightMaterial)
+	r = _generateNodeIdentity(r, countVirtual, node2.StaticRoleVirtual)
 
 	return r
 }
 
-func _generateNodeIdentity(r []nodeIdentity, count int, role insolar.StaticRole) []nodeIdentity {
+func _generateNodeIdentity(r []nodeIdentity, count int, role node2.StaticRole) []nodeIdentity {
 	for i := 0; i < count; i++ {
 		port := portOffset
 		r = append(r, nodeIdentity{
@@ -237,7 +240,7 @@ func generateNodeInfos(nodeIdentities []nodeIdentity) []*nodeMeta {
 }
 
 type nodeIdentity struct {
-	role insolar.StaticRole
+	role node2.StaticRole
 	addr string
 }
 
@@ -248,12 +251,12 @@ type nodeMeta struct {
 }
 
 func getAnnounceSignature(
-	node insolar.NetworkNode,
+	node node2.NetworkNode,
 	isDiscovery bool,
-	kp insolar.KeyProcessor,
+	kp cryptography.KeyProcessor,
 	key *ecdsa.PrivateKey,
-	scheme insolar.PlatformCryptographyScheme,
-) ([]byte, *insolar.Signature, error) {
+	scheme cryptography.PlatformCryptographyScheme,
+) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
 	brief.ShortID = node.ShortID()
@@ -294,13 +297,13 @@ func getAnnounceSignature(
 	return digest, sign, nil
 }
 
-func nodesFromInfo(nodeInfos []*nodeMeta) ([]insolar.NetworkNode, []insolar.NetworkNode, error) {
-	nodes := make([]insolar.NetworkNode, len(nodeInfos))
-	discoveryNodes := make([]insolar.NetworkNode, 0)
+func nodesFromInfo(nodeInfos []*nodeMeta) ([]node2.NetworkNode, []node2.NetworkNode, error) {
+	nodes := make([]node2.NetworkNode, len(nodeInfos))
+	discoveryNodes := make([]node2.NetworkNode, 0)
 
 	for i, info := range nodeInfos {
 		var isDiscovery bool
-		if info.role == insolar.StaticRoleHeavyMaterial || info.role == insolar.StaticRoleUnknown {
+		if info.role == node2.StaticRoleHeavyMaterial || info.role == node2.StaticRoleUnknown {
 			isDiscovery = true
 		}
 
@@ -326,7 +329,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]insolar.NetworkNode, []insolar.Netw
 	return nodes, discoveryNodes, nil
 }
 
-func newNetworkNode(addr string, role insolar.StaticRole, pk crypto.PublicKey) node.MutableNode {
+func newNetworkNode(addr string, role node2.StaticRole, pk crypto.PublicKey) node.MutableNode {
 	n := node.NewNode(
 		gen.Reference(),
 		role,
@@ -335,13 +338,13 @@ func newNetworkNode(addr string, role insolar.StaticRole, pk crypto.PublicKey) n
 		"",
 	)
 	mn := n.(node.MutableNode)
-	mn.SetShortID(insolar.ShortNodeID(shortNodeIdOffset))
+	mn.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
 
 	shortNodeIdOffset += 1
 	return mn
 }
 
-func initCrypto(node insolar.NetworkNode, discoveryNodes []insolar.NetworkNode) *certificate.CertificateManager {
+func initCrypto(node node2.NetworkNode, discoveryNodes []node2.NetworkNode) *certificate.CertificateManager {
 	pubKey := node.PublicKey()
 
 	publicKey, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
@@ -398,7 +401,7 @@ type pulseChanger struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse insolar.Pulse) {
+func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse pulsestor.Pulse) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
 	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
 }
@@ -407,7 +410,7 @@ type stateUpdater struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte) {
+func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
 	su.nodeKeeper.Sync(ctx, pulseNumber, nodes)
@@ -417,6 +420,6 @@ type ephemeralController struct {
 	allowed bool
 }
 
-func (e *ephemeralController) EphemeralMode(nodes []insolar.NetworkNode) bool {
+func (e *ephemeralController) EphemeralMode(nodes []node2.NetworkNode) bool {
 	return e.allowed
 }

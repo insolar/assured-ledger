@@ -14,7 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -23,7 +23,7 @@ type Host struct {
 	// NodeID is unique identifier of the node
 	NodeID reference.Global
 	// ShortID is shortened unique identifier of the node inside the globe
-	ShortID insolar.ShortNodeID
+	ShortID node.ShortNodeID
 	// Address is IP and port.
 	Address *Address
 }
@@ -48,7 +48,7 @@ func NewHostN(address string, nodeID reference.Global) (*Host, error) {
 }
 
 // NewHostNS creates a new Host with specified physical address, NodeID and ShortID.
-func NewHostNS(address string, nodeID reference.Global, shortID insolar.ShortNodeID) (*Host, error) {
+func NewHostNS(address string, nodeID reference.Global, shortID node.ShortNodeID) (*Host, error) {
 	h, err := NewHostN(address, nodeID)
 	if err != nil {
 		return nil, err
@@ -161,5 +161,5 @@ func (host *Host) Size() int {
 }
 
 func (host *Host) basicSize() int {
-	return reference.GlobalBinarySize + insolar.ShortNodeIDSize + 1
+	return reference.GlobalBinarySize + node.ShortNodeIDSize + 1
 }

@@ -8,7 +8,7 @@ package profiles
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -120,7 +120,7 @@ func (p MembershipProfile) String() string {
 
 type JoinerAnnouncement struct {
 	JoinerProfile  StaticProfile
-	IntroducedByID insolar.ShortNodeID
+	IntroducedByID node.ShortNodeID
 	JoinerSecret   cryptkit.DigestHolder
 }
 
@@ -132,19 +132,19 @@ type MembershipAnnouncement struct {
 	Membership   MembershipProfile
 	IsLeaving    bool
 	LeaveReason  uint32
-	JoinerID     insolar.ShortNodeID
+	JoinerID     node.ShortNodeID
 	JoinerSecret cryptkit.DigestHolder
 }
 
 type MemberAnnouncement struct {
-	MemberID insolar.ShortNodeID
+	MemberID node.ShortNodeID
 	MembershipAnnouncement
 	Joiner        JoinerAnnouncement
-	AnnouncedByID insolar.ShortNodeID
+	AnnouncedByID node.ShortNodeID
 }
 
-func NewMemberAnnouncement(memberID insolar.ShortNodeID, mp MembershipProfile,
-	announcerID insolar.ShortNodeID) MemberAnnouncement {
+func NewMemberAnnouncement(memberID node.ShortNodeID, mp MembershipProfile,
+	announcerID node.ShortNodeID) MemberAnnouncement {
 
 	return MemberAnnouncement{
 		MemberID:               memberID,
@@ -154,7 +154,7 @@ func NewMemberAnnouncement(memberID insolar.ShortNodeID, mp MembershipProfile,
 }
 
 func NewJoinerAnnouncement(brief StaticProfile,
-	announcerID insolar.ShortNodeID) MemberAnnouncement {
+	announcerID node.ShortNodeID) MemberAnnouncement {
 
 	// TODO joiner secret
 	return MemberAnnouncement{
@@ -168,7 +168,7 @@ func NewJoinerAnnouncement(brief StaticProfile,
 	}
 }
 
-func NewJoinerIDAnnouncement(joinerID, announcerID insolar.ShortNodeID) MemberAnnouncement {
+func NewJoinerIDAnnouncement(joinerID, announcerID node.ShortNodeID) MemberAnnouncement {
 
 	return MemberAnnouncement{
 		MemberID:      joinerID,
@@ -176,8 +176,8 @@ func NewJoinerIDAnnouncement(joinerID, announcerID insolar.ShortNodeID) MemberAn
 	}
 }
 
-func NewMemberAnnouncementWithLeave(memberID insolar.ShortNodeID, mp MembershipProfile, leaveReason uint32,
-	announcerID insolar.ShortNodeID) MemberAnnouncement {
+func NewMemberAnnouncementWithLeave(memberID node.ShortNodeID, mp MembershipProfile, leaveReason uint32,
+	announcerID node.ShortNodeID) MemberAnnouncement {
 
 	return MemberAnnouncement{
 		MemberID:               memberID,
@@ -186,9 +186,9 @@ func NewMemberAnnouncementWithLeave(memberID insolar.ShortNodeID, mp MembershipP
 	}
 }
 
-func NewMemberAnnouncementWithJoinerID(memberID insolar.ShortNodeID, mp MembershipProfile,
-	joinerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder,
-	announcerID insolar.ShortNodeID) MemberAnnouncement {
+func NewMemberAnnouncementWithJoinerID(memberID node.ShortNodeID, mp MembershipProfile,
+	joinerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder,
+	announcerID node.ShortNodeID) MemberAnnouncement {
 
 	return MemberAnnouncement{
 		MemberID:               memberID,
@@ -197,8 +197,8 @@ func NewMemberAnnouncementWithJoinerID(memberID insolar.ShortNodeID, mp Membersh
 	}
 }
 
-func NewMemberAnnouncementWithJoiner(memberID insolar.ShortNodeID, mp MembershipProfile, joiner JoinerAnnouncement,
-	announcerID insolar.ShortNodeID) MemberAnnouncement {
+func NewMemberAnnouncementWithJoiner(memberID node.ShortNodeID, mp MembershipProfile, joiner JoinerAnnouncement,
+	announcerID node.ShortNodeID) MemberAnnouncement {
 
 	return MemberAnnouncement{
 		MemberID: memberID,
@@ -216,7 +216,7 @@ func NewMembershipAnnouncement(mp MembershipProfile) MembershipAnnouncement {
 }
 
 func NewMembershipAnnouncementWithJoinerID(mp MembershipProfile,
-	joinerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) MembershipAnnouncement {
+	joinerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) MembershipAnnouncement {
 
 	return MembershipAnnouncement{
 		Membership:   mp,

@@ -95,6 +95,24 @@ When the pulse watcher says `INSOLAR STATE: READY`, run the following command in
              It can be changed in configuration.
 
 
+Functional test can be executed in kubernetes cluster. You need to have `kubectl` installed.
+_This will install nginx ingress in your cluster and uses 80/443 port_
+
+   ```
+    make docker-build           # builds new images
+    make test_func_kubernetes   # starts insolar network and run tests
+    make kube_stop_net          # stops network
+   ```
+To run from IDE set the environment to
+```
+INSOLAR_FUNC_RPC_URL_PUBLIC=http://localhost/api/rpc;INSOLAR_FUNC_RPC_URL=http://localhost/admin-api/rpc;INSOLAR_FUNC_KEYS_PATH=/tmp/insolar/;INSOLAR_FUNC_TESTWALLET_HOST=localhost
+```
+To check your network you can do
+```
+kubectl -n insolar logs --tail=20 services/pulsewatcher
+```
+There is a debug pulsewatcher info after failed tests, it's not working yet. **Don't look at it**.
+
 ## Run single Insolar node
 
 We use a two-process approach for running a node in production.<br>

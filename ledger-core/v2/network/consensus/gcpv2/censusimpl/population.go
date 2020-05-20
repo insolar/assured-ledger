@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
@@ -27,7 +27,7 @@ type copyFromPopulation interface {
 	makeCopyOf(slots []updatableSlot, local *updatableSlot)
 }
 
-func NewManyNodePopulation(nodes []profiles.StaticProfile, localID insolar.ShortNodeID,
+func NewManyNodePopulation(nodes []profiles.StaticProfile, localID node.ShortNodeID,
 	vf cryptkit.SignatureVerifierFactory) ManyNodePopulation {
 
 	r := ManyNodePopulation{}
@@ -40,7 +40,7 @@ var _ census.OnlinePopulation = &ManyNodePopulation{}
 
 type ManyNodePopulation struct {
 	slots             []updatableSlot
-	slotByID          map[insolar.ShortNodeID]*updatableSlot
+	slotByID          map[node.ShortNodeID]*updatableSlot
 	local             *updatableSlot
 	roles             []roleRecord
 	workingRoles      []member.PrimaryRole
@@ -164,7 +164,7 @@ func panicOnRecoverable(e census.RecoverableErrorTypes, msg string, args ...inte
 }
 
 // TODO it needs extensive testing on detection/tolerance when an invalid population is provided
-func (c *ManyNodePopulation) makeCopyOfMapAndSeparateEvicts(slots map[insolar.ShortNodeID]*updatableSlot,
+func (c *ManyNodePopulation) makeCopyOfMapAndSeparateEvicts(slots map[node.ShortNodeID]*updatableSlot,
 	local *updatableSlot, fail RecoverableReport) []*updatableSlot {
 
 	if fail == nil {
@@ -186,7 +186,7 @@ func (c *ManyNodePopulation) makeCopyOfMapAndSeparateEvicts(slots map[insolar.Sh
 	return evicts
 }
 
-func (c *ManyNodePopulation) _filterAndFillInSlots(slots map[insolar.ShortNodeID]*updatableSlot,
+func (c *ManyNodePopulation) _filterAndFillInSlots(slots map[node.ShortNodeID]*updatableSlot,
 	fail RecoverableReport) ([]*updatableSlot, int) {
 
 	if len(slots) > member.MaxNodeIndex {
@@ -198,7 +198,7 @@ func (c *ManyNodePopulation) _filterAndFillInSlots(slots map[insolar.ShortNodeID
 
 	slotCount := 0
 	for id, vv := range slots {
-		if vv == nil || vv.IsEmpty() || id == insolar.AbsentShortNodeID {
+		if vv == nil || vv.IsEmpty() || id == node.AbsentShortNodeID {
 			c.isInvalid = true
 			fail(census.EmptySlot, "invalid slot: id:%d", id)
 			continue
@@ -231,13 +231,13 @@ func (c *ManyNodePopulation) _filterAndFillInSlots(slots map[insolar.ShortNodeID
 	}
 
 	if slotCount != 0 {
-		c.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, slotCount)
+		c.slotByID = make(map[node.ShortNodeID]*updatableSlot, slotCount)
 	}
 
 	return evicts, slotCount
 }
 
-func (c *ManyNodePopulation) _fillInRoleStatsAndMap(localID insolar.ShortNodeID, slotCount int,
+func (c *ManyNodePopulation) _fillInRoleStatsAndMap(localID node.ShortNodeID, slotCount int,
 	compactIndex bool, checkUniqueID bool, fail RecoverableReport) {
 
 	if slotCount > 0 {
@@ -331,7 +331,7 @@ func (c *ManyNodePopulation) _fillInRoleStatsAndMap(localID insolar.ShortNodeID,
 	}
 }
 
-func (c *ManyNodePopulation) _adjustSlotsAndCopyEvicts(localID insolar.ShortNodeID, evicts []*updatableSlot) []*updatableSlot {
+func (c *ManyNodePopulation) _adjustSlotsAndCopyEvicts(localID node.ShortNodeID, evicts []*updatableSlot) []*updatableSlot {
 
 	evictCopies := c.slots[c.assignedSlotCount:] // reuse remaining capacity for copies of evicts
 	if c.assignedSlotCount == 0 {
@@ -354,7 +354,7 @@ func (c *ManyNodePopulation) _adjustSlotsAndCopyEvicts(localID insolar.ShortNode
 	return evicts
 }
 
-func (c *ManyNodePopulation) makeOfProfiles(nodes []profiles.StaticProfile, localNodeID insolar.ShortNodeID,
+func (c *ManyNodePopulation) makeOfProfiles(nodes []profiles.StaticProfile, localNodeID node.ShortNodeID,
 	vf cryptkit.SignatureVerifierFactory) {
 
 	/*
@@ -367,7 +367,7 @@ func (c *ManyNodePopulation) makeOfProfiles(nodes []profiles.StaticProfile, loca
 	}
 
 	buf := make([]updatableSlot, len(nodes)) // local node MUST be on the list
-	c.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, len(nodes))
+	c.slotByID = make(map[node.ShortNodeID]*updatableSlot, len(nodes))
 
 	for i, n := range nodes {
 		if n.GetStaticNodeID().IsAbsent() {
@@ -380,7 +380,7 @@ func (c *ManyNodePopulation) makeOfProfiles(nodes []profiles.StaticProfile, loca
 	c._fillInRoleStatsAndMap(localNodeID, len(c.slots), false, true, panicOnRecoverable)
 }
 
-func (c *ManyNodePopulation) FindProfile(nodeID insolar.ShortNodeID) profiles.ActiveNode {
+func (c *ManyNodePopulation) FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode {
 	slot := c.slotByID[nodeID]
 	if slot == nil {
 		return nil
@@ -405,7 +405,7 @@ func (c *ManyNodePopulation) setInvalid() {
 }
 
 type DynamicPopulation struct {
-	slotByID map[insolar.ShortNodeID]*updatableSlot
+	slotByID map[node.ShortNodeID]*updatableSlot
 	local    *updatableSlot
 }
 
@@ -416,18 +416,18 @@ func NewDynamicPopulationCopySelf(src copyToPopulation) DynamicPopulation {
 }
 
 func (c *DynamicPopulation) makeCopyOf(slots []updatableSlot, local *updatableSlot) {
-	c.slotByID = make(map[insolar.ShortNodeID]*updatableSlot, len(slots))
+	c.slotByID = make(map[node.ShortNodeID]*updatableSlot, len(slots))
 	v := *local
 	v.index = 0
 	c.local = &v
 	c.slotByID[v.GetNodeID()] = c.local
 }
 
-func (c *DynamicPopulation) FindProfile(nodeID insolar.ShortNodeID) profiles.ActiveNode {
+func (c *DynamicPopulation) FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode {
 	return &c.slotByID[nodeID].NodeProfileSlot
 }
 
-func (c *DynamicPopulation) FindUpdatableProfile(nodeID insolar.ShortNodeID) profiles.Updatable {
+func (c *DynamicPopulation) FindUpdatableProfile(nodeID node.ShortNodeID) profiles.Updatable {
 	return c.slotByID[nodeID]
 }
 
@@ -505,12 +505,12 @@ func (c *DynamicPopulation) AddProfile(n profiles.StaticProfile) profiles.Updata
 	return &v
 }
 
-func (c *DynamicPopulation) RemoveProfile(id insolar.ShortNodeID) {
+func (c *DynamicPopulation) RemoveProfile(id node.ShortNodeID) {
 	delete(c.slotByID, id)
 }
 
 func (c *DynamicPopulation) RemoveOthers() {
-	c.slotByID = make(map[insolar.ShortNodeID]*updatableSlot)
+	c.slotByID = make(map[node.ShortNodeID]*updatableSlot)
 	c.slotByID[c.local.GetNodeID()] = c.local
 }
 
@@ -610,7 +610,7 @@ func (p *roleRecord) GetProfiles() []profiles.ActiveNode {
 }
 
 func (p *roleRecord) GetAssignmentByPower(metric uint64,
-	excludeID insolar.ShortNodeID) (assigned, excluded profiles.ActiveNode) {
+	excludeID node.ShortNodeID) (assigned, excluded profiles.ActiveNode) {
 
 	if p.roleCount == 0 || p.rolePower == 0 || !p.IsValid() {
 		return nil, nil
@@ -643,7 +643,7 @@ func (p *roleRecord) GetAssignmentByPower(metric uint64,
 }
 
 func (p *roleRecord) GetAssignmentByCount(metric uint64,
-	excludeID insolar.ShortNodeID) (assigned, excluded profiles.ActiveNode) {
+	excludeID node.ShortNodeID) (assigned, excluded profiles.ActiveNode) {
 
 	if p.roleCount == 0 || !p.IsValid() {
 		return nil, nil

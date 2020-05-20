@@ -19,5 +19,5 @@ type ConsensusChronicles interface {
 	GetExpectedCensus() census.Expected
 	GetLatestCensus() (lastCensus census.Operational, expectedCensus bool)
 	GetRecentCensus(pn pulse.Number) census.Operational
-	// FindArchivedCensus(pn common.PulseNumber) Archived
+	// FindArchivedCensus(pn common.Number) Archived
 }

@@ -11,7 +11,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
@@ -37,7 +38,7 @@ type PacketParser struct {
 	packetData
 	digester     cryptkit.DataDigester
 	signMethod   cryptkit.SigningMethod
-	keyProcessor insolar.KeyProcessor
+	keyProcessor cryptography.KeyProcessor
 }
 
 func newPacketParser(
@@ -45,7 +46,7 @@ func newPacketParser(
 	reader io.Reader,
 	digester cryptkit.DataDigester,
 	signMethod cryptkit.SigningMethod,
-	keyProcessor insolar.KeyProcessor,
+	keyProcessor cryptography.KeyProcessor,
 ) (*PacketParser, error) {
 
 	capture := network.NewCapturingReader(reader)
@@ -79,13 +80,13 @@ func (p *PacketParser) ParsePacketBody() (transport.PacketParser, error) {
 type PacketParserFactory struct {
 	digester     cryptkit.DataDigester
 	signMethod   cryptkit.SigningMethod
-	keyProcessor insolar.KeyProcessor
+	keyProcessor cryptography.KeyProcessor
 }
 
 func NewPacketParserFactory(
 	digester cryptkit.DataDigester,
 	signMethod cryptkit.SigningMethod,
-	keyProcessor insolar.KeyProcessor,
+	keyProcessor cryptography.KeyProcessor,
 ) *PacketParserFactory {
 
 	return &PacketParserFactory{
@@ -111,16 +112,16 @@ func (p *PacketParser) GetMemberPacket() transport.MemberPacketReader {
 	}
 }
 
-func (p *PacketParser) GetSourceID() insolar.ShortNodeID {
+func (p *PacketParser) GetSourceID() node.ShortNodeID {
 	return p.packet.Header.GetSourceID()
 }
 
-func (p *PacketParser) GetReceiverID() insolar.ShortNodeID {
-	return insolar.ShortNodeID(p.packet.Header.ReceiverID)
+func (p *PacketParser) GetReceiverID() node.ShortNodeID {
+	return node.ShortNodeID(p.packet.Header.ReceiverID)
 }
 
-func (p *PacketParser) GetTargetID() insolar.ShortNodeID {
-	return insolar.ShortNodeID(p.packet.Header.TargetID)
+func (p *PacketParser) GetTargetID() node.ShortNodeID {
+	return node.ShortNodeID(p.packet.Header.TargetID)
 }
 
 func (p *PacketParser) GetPacketType() phases.PacketType {
@@ -229,7 +230,7 @@ func (r *ExtendedIntroReader) GetFullIntroduction() transport.FullIntroductionRe
 	return &FullIntroductionReader{
 		MemberPacketReader: r.MemberPacketReader,
 		intro:              r.body.FullSelfIntro,
-		nodeID:             insolar.ShortNodeID(r.packet.Header.SourceID),
+		nodeID:             node.ShortNodeID(r.packet.Header.SourceID),
 	}
 }
 
@@ -282,7 +283,7 @@ func (r *Phase2PacketReader) GetBriefIntroduction() transport.BriefIntroductionR
 		intro: NodeFullIntro{
 			NodeBriefIntro: r.body.BriefSelfIntro,
 		},
-		nodeID: insolar.ShortNodeID(r.packet.Header.SourceID),
+		nodeID: node.ShortNodeID(r.packet.Header.SourceID),
 	}
 }
 
@@ -387,7 +388,7 @@ func (r *CloudIntroductionReader) GetCloudIdentity() cryptkit.DigestHolder {
 type FullIntroductionReader struct {
 	MemberPacketReader
 	intro  NodeFullIntro
-	nodeID insolar.ShortNodeID
+	nodeID node.ShortNodeID
 }
 
 func (r *FullIntroductionReader) GetBriefIntroSignedDigest() cryptkit.SignedDigestHolder {
@@ -397,7 +398,7 @@ func (r *FullIntroductionReader) GetBriefIntroSignedDigest() cryptkit.SignedDige
 	).AsSignedDigestHolder()
 }
 
-func (r *FullIntroductionReader) GetStaticNodeID() insolar.ShortNodeID {
+func (r *FullIntroductionReader) GetStaticNodeID() node.ShortNodeID {
 	return r.nodeID
 }
 
@@ -446,7 +447,7 @@ func (r *FullIntroductionReader) GetReference() reference.Global {
 	return reference.Global{}
 }
 
-func (r *FullIntroductionReader) GetIssuerID() insolar.ShortNodeID {
+func (r *FullIntroductionReader) GetIssuerID() node.ShortNodeID {
 	return r.intro.DiscoveryIssuerNodeID
 }
 
@@ -465,8 +466,8 @@ func (r *MembershipAnnouncementReader) isJoiner() bool {
 	return r.body.Announcement.CurrentRank.IsJoiner()
 }
 
-func (r *MembershipAnnouncementReader) GetNodeID() insolar.ShortNodeID {
-	return insolar.ShortNodeID(r.packet.Header.SourceID)
+func (r *MembershipAnnouncementReader) GetNodeID() node.ShortNodeID {
+	return node.ShortNodeID(r.packet.Header.SourceID)
 }
 
 func (r *MembershipAnnouncementReader) GetNodeRank() member.Rank {
@@ -504,7 +505,7 @@ func (r *MembershipAnnouncementReader) IsLeaving() bool {
 		return false
 	}
 
-	return r.body.Announcement.Member.AnnounceID == insolar.ShortNodeID(r.packet.Header.SourceID)
+	return r.body.Announcement.Member.AnnounceID == node.ShortNodeID(r.packet.Header.SourceID)
 }
 
 func (r *MembershipAnnouncementReader) GetLeaveReason() uint32 {
@@ -515,13 +516,13 @@ func (r *MembershipAnnouncementReader) GetLeaveReason() uint32 {
 	return r.body.Announcement.Member.Leaver.LeaveReason
 }
 
-func (r *MembershipAnnouncementReader) GetJoinerID() insolar.ShortNodeID {
+func (r *MembershipAnnouncementReader) GetJoinerID() node.ShortNodeID {
 	if r.isJoiner() {
-		return insolar.AbsentShortNodeID
+		return node.AbsentShortNodeID
 	}
 
 	if r.IsLeaving() {
-		return insolar.AbsentShortNodeID
+		return node.AbsentShortNodeID
 	}
 
 	return r.body.Announcement.Member.AnnounceID
@@ -532,7 +533,7 @@ func (r *MembershipAnnouncementReader) GetJoinerAnnouncement() transport.JoinerA
 		return nil
 	}
 
-	if r.body.Announcement.Member.AnnounceID == insolar.ShortNodeID(r.packet.Header.SourceID) ||
+	if r.body.Announcement.Member.AnnounceID == node.ShortNodeID(r.packet.Header.SourceID) ||
 		r.body.Announcement.Member.AnnounceID.IsAbsent() {
 		return nil
 	}
@@ -545,7 +546,7 @@ func (r *MembershipAnnouncementReader) GetJoinerAnnouncement() transport.JoinerA
 	return &JoinerAnnouncementReader{
 		MemberPacketReader: r.MemberPacketReader,
 		joiner:             r.body.Announcement.Member.Joiner,
-		introducedBy:       insolar.ShortNodeID(r.packet.Header.SourceID),
+		introducedBy:       node.ShortNodeID(r.packet.Header.SourceID),
 		nodeID:             r.body.Announcement.Member.AnnounceID,
 		extIntro:           ext,
 	}
@@ -554,12 +555,12 @@ func (r *MembershipAnnouncementReader) GetJoinerAnnouncement() transport.JoinerA
 type JoinerAnnouncementReader struct {
 	MemberPacketReader
 	joiner       JoinAnnouncement
-	introducedBy insolar.ShortNodeID
-	nodeID       insolar.ShortNodeID
+	introducedBy node.ShortNodeID
+	nodeID       node.ShortNodeID
 	extIntro     *NodeExtendedIntro
 }
 
-func (r *JoinerAnnouncementReader) GetJoinerIntroducedByID() insolar.ShortNodeID {
+func (r *JoinerAnnouncementReader) GetJoinerIntroducedByID() node.ShortNodeID {
 	return r.introducedBy
 }
 
@@ -601,7 +602,7 @@ func (r *NeighbourAnnouncementReader) isJoiner() bool {
 	return r.neighbour.CurrentRank.IsJoiner()
 }
 
-func (r *NeighbourAnnouncementReader) GetNodeID() insolar.ShortNodeID {
+func (r *NeighbourAnnouncementReader) GetNodeID() node.ShortNodeID {
 	return r.neighbour.NeighbourNodeID
 }
 
@@ -643,13 +644,13 @@ func (r *NeighbourAnnouncementReader) GetLeaveReason() uint32 {
 	return r.neighbour.Member.Leaver.LeaveReason
 }
 
-func (r *NeighbourAnnouncementReader) GetJoinerID() insolar.ShortNodeID {
+func (r *NeighbourAnnouncementReader) GetJoinerID() node.ShortNodeID {
 	if r.isJoiner() {
-		return insolar.AbsentShortNodeID
+		return node.AbsentShortNodeID
 	}
 
 	if r.IsLeaving() {
-		return insolar.AbsentShortNodeID
+		return node.AbsentShortNodeID
 	}
 
 	return r.neighbour.Member.AnnounceID

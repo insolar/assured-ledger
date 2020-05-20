@@ -8,7 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 )
 
@@ -16,8 +16,8 @@ import (
 type EvictedPopulationMock struct {
 	t minimock.Tester
 
-	funcFindProfile          func(nodeID insolar.ShortNodeID) (e1 profiles.EvictedNode)
-	inspectFuncFindProfile   func(nodeID insolar.ShortNodeID)
+	funcFindProfile          func(nodeID node.ShortNodeID) (e1 profiles.EvictedNode)
+	inspectFuncFindProfile   func(nodeID node.ShortNodeID)
 	afterFindProfileCounter  uint64
 	beforeFindProfileCounter uint64
 	FindProfileMock          mEvictedPopulationMockFindProfile
@@ -87,7 +87,7 @@ type EvictedPopulationMockFindProfileExpectation struct {
 
 // EvictedPopulationMockFindProfileParams contains parameters of the EvictedPopulation.FindProfile
 type EvictedPopulationMockFindProfileParams struct {
-	nodeID insolar.ShortNodeID
+	nodeID node.ShortNodeID
 }
 
 // EvictedPopulationMockFindProfileResults contains results of the EvictedPopulation.FindProfile
@@ -96,7 +96,7 @@ type EvictedPopulationMockFindProfileResults struct {
 }
 
 // Expect sets up expected params for EvictedPopulation.FindProfile
-func (mmFindProfile *mEvictedPopulationMockFindProfile) Expect(nodeID insolar.ShortNodeID) *mEvictedPopulationMockFindProfile {
+func (mmFindProfile *mEvictedPopulationMockFindProfile) Expect(nodeID node.ShortNodeID) *mEvictedPopulationMockFindProfile {
 	if mmFindProfile.mock.funcFindProfile != nil {
 		mmFindProfile.mock.t.Fatalf("EvictedPopulationMock.FindProfile mock is already set by Set")
 	}
@@ -116,7 +116,7 @@ func (mmFindProfile *mEvictedPopulationMockFindProfile) Expect(nodeID insolar.Sh
 }
 
 // Inspect accepts an inspector function that has same arguments as the EvictedPopulation.FindProfile
-func (mmFindProfile *mEvictedPopulationMockFindProfile) Inspect(f func(nodeID insolar.ShortNodeID)) *mEvictedPopulationMockFindProfile {
+func (mmFindProfile *mEvictedPopulationMockFindProfile) Inspect(f func(nodeID node.ShortNodeID)) *mEvictedPopulationMockFindProfile {
 	if mmFindProfile.mock.inspectFuncFindProfile != nil {
 		mmFindProfile.mock.t.Fatalf("Inspect function is already set for EvictedPopulationMock.FindProfile")
 	}
@@ -140,7 +140,7 @@ func (mmFindProfile *mEvictedPopulationMockFindProfile) Return(e1 profiles.Evict
 }
 
 //Set uses given function f to mock the EvictedPopulation.FindProfile method
-func (mmFindProfile *mEvictedPopulationMockFindProfile) Set(f func(nodeID insolar.ShortNodeID) (e1 profiles.EvictedNode)) *EvictedPopulationMock {
+func (mmFindProfile *mEvictedPopulationMockFindProfile) Set(f func(nodeID node.ShortNodeID) (e1 profiles.EvictedNode)) *EvictedPopulationMock {
 	if mmFindProfile.defaultExpectation != nil {
 		mmFindProfile.mock.t.Fatalf("Default expectation is already set for the EvictedPopulation.FindProfile method")
 	}
@@ -155,7 +155,7 @@ func (mmFindProfile *mEvictedPopulationMockFindProfile) Set(f func(nodeID insola
 
 // When sets expectation for the EvictedPopulation.FindProfile which will trigger the result defined by the following
 // Then helper
-func (mmFindProfile *mEvictedPopulationMockFindProfile) When(nodeID insolar.ShortNodeID) *EvictedPopulationMockFindProfileExpectation {
+func (mmFindProfile *mEvictedPopulationMockFindProfile) When(nodeID node.ShortNodeID) *EvictedPopulationMockFindProfileExpectation {
 	if mmFindProfile.mock.funcFindProfile != nil {
 		mmFindProfile.mock.t.Fatalf("EvictedPopulationMock.FindProfile mock is already set by Set")
 	}
@@ -175,7 +175,7 @@ func (e *EvictedPopulationMockFindProfileExpectation) Then(e1 profiles.EvictedNo
 }
 
 // FindProfile implements EvictedPopulation
-func (mmFindProfile *EvictedPopulationMock) FindProfile(nodeID insolar.ShortNodeID) (e1 profiles.EvictedNode) {
+func (mmFindProfile *EvictedPopulationMock) FindProfile(nodeID node.ShortNodeID) (e1 profiles.EvictedNode) {
 	mm_atomic.AddUint64(&mmFindProfile.beforeFindProfileCounter, 1)
 	defer mm_atomic.AddUint64(&mmFindProfile.afterFindProfileCounter, 1)
 

@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/rpc/v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 )
@@ -55,7 +55,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 
 	p, err := s.runner.PulseAccessor.Latest(ctx)
 	if err != nil {
-		p = *insolar.GenesisPulse
+		p = *pulsestor.GenesisPulse
 	}
 	reply.PulseNumber = uint32(p.PulseNumber)
 
