@@ -113,6 +113,7 @@ func TestSMExecute_UpdateSawRequests(t *testing.T) {
 	callFlags.SetTolerance(payload.CallTolerable)
 	callFlags.SetState(payload.CallDirty)
 
+	callee := gen.Reference()
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
@@ -121,29 +122,18 @@ func TestSMExecute_UpdateSawRequests(t *testing.T) {
 			CallSiteDeclaration: testwallet.GetPrototype(),
 			CallSiteMethod:      "New",
 			CallOutgoing:        smObjectID,
+			Callee:              callee,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
 		objectCatalog: catalog,
 		pulseSlot:     &pulseSlot,
 	}
 
-	stepChecker := testutils.NewSMStepChecker()
-	{
-		exec := SMExecute{}
-		stepChecker.AddStep(exec.stepCheckRequest)
-		stepChecker.AddStep(exec.stepUpdateSawRequests)
-		stepChecker.AddStep(exec.stepUpdatePendingCounters)
-		stepChecker.AddStep(exec.stepWaitObjectReady)
-	}
-
 	execCtx := smachine.NewExecutionContextMock(mc).
 		GetContextMock.Return(ctx).
-		JumpMock.Set(testutils.CheckWrapper(stepChecker, t)).
-		UseSharedMock.Set(CallSharedDataAccessor)
-
-
-
-	// execCtx.SetDefaultMigrationMock.Return()
+		JumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
+		return smachine.StateUpdate{}
+	}).UseSharedMock.Set(CallSharedDataAccessor)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef).Return(smObjectAccessor)
@@ -151,51 +141,15 @@ func TestSMExecute_UpdateSawRequests(t *testing.T) {
 	smExecute.Init(execCtx)
 	smExecute.stepGetObject(execCtx)
 
-
-	assert.Empty(t,  smObject.SawRequests)
-
+	assert.Empty(t, smObject.SawRequests)
 	smExecute.stepUpdateSawRequests(execCtx)
-	// smExecute.stepUpdatePendingCounters(execCtx)
-
-	// _, ok := smObject.SawRequests[smGlobalRef]
-	// fmt.Println("smGlobalRef ", smGlobalRef.String())
-	// assert.True (t, ok, "reference not found in SawRequests")
 	assert.Len(t, smObject.SawRequests, 1)
 
-	// getBalance SM ==================================
+	outgoing := reference.NewRecordOf(callee, smObjectID)
+	_, ok := smObject.SawRequests[outgoing]
+	assert.True(t, ok)
 
-	smExecuteGetBalance := SMExecute{
-		Payload: &payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
-			CallType:            payload.CTMethod,
-			CallFlags:           callFlags,
-			CallSiteDeclaration: testwallet.GetPrototype(),
-			CallSiteMethod:      "GetBalance",
-			CallOutgoing:        smObjectID,
-			Arguments:           insolar.MustSerialize([]interface{}{}),
-		},
-		objectCatalog: catalog,
-		pulseSlot:     &pulseSlot,
-	}
-
-	stepChecker2 := testutils.NewSMStepChecker()
-	{
-		exec := SMExecute{}
-		stepChecker2.AddStep(exec.stepCheckRequest)
-		stepChecker2.AddStep(exec.stepUpdateSawRequests)
-		stepChecker2.AddStep(exec.stepUpdatePendingCounters)
-		stepChecker2.AddStep(exec.stepWaitObjectReady)
-	}
-
-	execCtx2 := smachine.NewExecutionContextMock(mc).
-		GetContextMock.Return(ctx).
-		JumpMock.Set(testutils.CheckWrapper(stepChecker2, t)).
-		UseSharedMock.Set(CallSharedDataAccessor)
-
-	smExecuteGetBalance.Init(execCtx2)
-	smExecuteGetBalance.stepGetObject(execCtx2)
-	smExecuteGetBalance.stepUpdateSawRequests(execCtx2)
-	// smExecuteGetBalance.stepUpdatePendingCounters(execCtx2)
-
-	assert.Len(t, smObject.SawRequests, 2)
+	assert.Panics(t, func() {
+		smExecute.stepUpdateSawRequests(execCtx)
+	}, "panic with not implemented deduplication algorithm should be here")
 }
