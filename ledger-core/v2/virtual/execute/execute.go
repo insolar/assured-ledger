@@ -148,6 +148,29 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 		}
 	}
 
+	return ctx.Jump(s.stepUpdateKnownRequests)
+}
+
+func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	action := func(state *object.SharedState) {
+		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+			// found duplicate request, todo: deduplication algorithm
+			panic(throw.NotImplemented())
+		} else {
+			state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		}
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
 	return ctx.Jump(s.stepUpdatePendingCounters)
 }
 
