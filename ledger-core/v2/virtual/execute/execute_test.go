@@ -64,6 +64,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
+		stepChecker.AddStep(exec.stepUpdateKnownRequests)
 		stepChecker.AddStep(exec.stepUpdatePendingCounters)
 		stepChecker.AddStep(exec.stepWaitObjectReady)
 	}
@@ -84,8 +85,71 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
 
+	smExecute.stepUpdateKnownRequests(execCtx)
 	smExecute.stepUpdatePendingCounters(execCtx)
 
 	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
+}
+
+func TestSMExecute_UpdateKnownRequests(t *testing.T) {
+	var (
+		ctx = inslogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		catalog         = object.NewCatalogMock(mc)
+		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags payload.CallRequestFlags
+	)
+
+	defer mc.Finish()
+
+	callFlags.SetTolerance(payload.CallTolerable)
+	callFlags.SetState(payload.CallDirty)
+
+	callee := gen.Reference()
+	smExecute := SMExecute{
+		Payload: &payload.VCallRequest{
+			Polymorph:           uint32(payload.TypeVCallRequest),
+			CallType:            payload.CTConstructor,
+			CallFlags:           callFlags,
+			CallSiteDeclaration: testwallet.GetPrototype(),
+			CallSiteMethod:      "New",
+			CallOutgoing:        smObjectID,
+			Callee:              callee,
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		},
+		objectCatalog: catalog,
+		pulseSlot:     &pulseSlot,
+	}
+
+	execCtx := smachine.NewExecutionContextMock(mc).
+		GetContextMock.Return(ctx).
+		JumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
+		return smachine.StateUpdate{}
+	}).UseSharedMock.Set(CallSharedDataAccessor)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	catalog.GetOrCreateMock.Expect(execCtx, smGlobalRef).Return(smObjectAccessor)
+
+	smExecute.Init(execCtx)
+	smExecute.stepGetObject(execCtx)
+
+	assert.Empty(t, smObject.KnownRequests)
+	smExecute.stepUpdateKnownRequests(execCtx)
+	assert.Len(t, smObject.KnownRequests, 1)
+
+	outgoing := reference.NewRecordOf(callee, smObjectID)
+	_, ok := smObject.KnownRequests[outgoing]
+	assert.True(t, ok)
+
+	assert.Panics(t, func() {
+		smExecute.stepUpdateKnownRequests(execCtx)
+	}, "panic with not implemented deduplication algorithm should be here")
 }
