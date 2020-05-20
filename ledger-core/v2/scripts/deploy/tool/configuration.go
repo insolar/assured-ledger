@@ -6,5 +6,6 @@
 package main
 
 type KubeDeployTool struct {
-	NodesCount uint
+	NodesCount    uint
+	ManifestsPath string
 }
