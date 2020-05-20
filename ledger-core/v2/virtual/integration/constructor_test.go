@@ -26,6 +26,7 @@ import (
 )
 
 func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
+	t.Log("C4835")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -122,6 +123,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
+	t.Log("C4835")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

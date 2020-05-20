@@ -107,7 +107,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 }
 
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
-
+	t.Log("C4923")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -166,6 +166,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
+	t.Log("C4930")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -266,6 +267,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 }
 
 func TestVirtual_Method_WithExecutor(t *testing.T) {
+	t.Log("C4923")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -350,6 +352,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
+	t.Log("C4870")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

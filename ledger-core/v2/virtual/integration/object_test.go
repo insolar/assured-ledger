@@ -20,6 +20,7 @@ import (
 )
 
 func TestInitViaCTMethod(t *testing.T) {
+	t.Log("C4867")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

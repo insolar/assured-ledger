@@ -17,6 +17,7 @@ import (
 )
 
 func Test_API_Create(t *testing.T) {
+	t.Log("C4837")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
