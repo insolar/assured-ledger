@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/pkg/errors"
@@ -130,7 +131,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	require.True(t, reflect.DeepEqual(expSeq, aclSeq))
 }
 
-func wrapMsg(pulseNumber insolar.PulseNumber, request payload.Marshaler) (*message.Message, error) {
+func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Message, error) {
 	bytes, err := request.Marshal()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal request")
