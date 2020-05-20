@@ -129,9 +129,14 @@ func (zf zerologFactory) createNewLogger(output zerolog.LevelWriter, params logc
 		lc = lc.Interface(k, v)
 	}
 
-	la.logger.UpdateContext(func(zerolog.Context) zerolog.Context {
-		return lc
-	})
+	if template == nil {
+		la.logger = lc.Logger()
+	} else {
+		// use fields, but not hooks
+		la.logger.UpdateContext(func(zerolog.Context) zerolog.Context {
+			return lc
+		})
+	}
 
 	return &la, nil
 }

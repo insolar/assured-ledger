@@ -242,13 +242,10 @@ func GetFilter() log.Level {
 	return log.MinLevel
 }
 
-//func EnforceOutput(outFn func())
-
-/*
-We use EmbeddedLog functions here to avoid SkipStackFrame corrections
-*/
-
 func g() logcommon.EmbeddedLogger {
+	/*
+	   We use EmbeddedLog functions here to avoid SkipStackFrame corrections
+	*/
 	return Logger().Embeddable()
 }
 
