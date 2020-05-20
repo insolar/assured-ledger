@@ -57,7 +57,7 @@ func (st SuiteTextualLog) newAdapter(level logcommon.Level) logm.Logger {
 	zc := logcommon.Config{}
 
 	var err error
-	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "", "")
 
 	t := st.T()
 	require.NoError(t, err)

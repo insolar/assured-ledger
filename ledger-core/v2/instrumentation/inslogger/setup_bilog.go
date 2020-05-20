@@ -25,7 +25,7 @@ func newBilogAdapter(pCfg ParsedLogConfig, msgFmt logfmt.MsgFormatConfig) (log.L
 	zc := logcommon.Config{}
 
 	var err error
-	zc.BareOutput, err = logoutput.OpenLogBareOutput(pCfg.OutputType, pCfg.OutputParam)
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(pCfg.OutputType, pCfg.Output.Format, pCfg.OutputParam)
 	if err != nil {
 		return log.LoggerBuilder{}, err
 	}

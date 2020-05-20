@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/outputsyslog"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type LogOutput uint8
@@ -32,15 +33,28 @@ func (l LogOutput) String() string {
 	return string(l)
 }
 
-func OpenLogBareOutput(output LogOutput, param string) (logcommon.BareOutput, error) {
+var JSONStdErr = logcommon.BareOutput{
+	Writer:         os.Stderr,
+	FlushFn:        os.Stderr.Sync,
+	ProtectedClose: true,
+}
+
+func OpenLogBareOutput(output LogOutput, fmt logcommon.LogFormat, param string) (logcommon.BareOutput, error) {
 	switch output {
 	case StdErrOutput:
-		w := os.Stderr
-		return logcommon.BareOutput{
-			Writer:         w,
-			FlushFn:        w.Sync,
-			ProtectedClose: true,
-		}, nil
+		if fmt != logcommon.JSONFormat {
+			return logcommon.BareOutput{
+				Writer:         os.Stderr,
+				FlushFn:        os.Stderr.Sync,
+				ProtectedClose: true,
+			}, nil
+		}
+
+		o := JSONStdErr
+		if o.Writer == nil {
+			return o, throw.IllegalState()
+		}
+		return o, nil
 	case SysLogOutput:
 		executableName := filepath.Base(os.Args[0])
 		w, err := outputsyslog.ConnectSyslogByParam(param, executableName)
