@@ -33,16 +33,24 @@ func (l LogOutput) String() string {
 	return string(l)
 }
 
-var BareStdErr = logcommon.BareOutput{
+var JsonStdErr = logcommon.BareOutput{
 	Writer:         os.Stderr,
 	FlushFn:        os.Stderr.Sync,
 	ProtectedClose: true,
 }
 
-func OpenLogBareOutput(output LogOutput, param string) (logcommon.BareOutput, error) {
+func OpenLogBareOutput(output LogOutput, fmt logcommon.LogFormat, param string) (logcommon.BareOutput, error) {
 	switch output {
 	case StdErrOutput:
-		o := BareStdErr
+		if fmt != logcommon.JSONFormat {
+			return logcommon.BareOutput{
+				Writer:         os.Stderr,
+				FlushFn:        os.Stderr.Sync,
+				ProtectedClose: true,
+			}, nil
+		}
+
+		o := JsonStdErr
 		if o.Writer == nil {
 			return o, throw.IllegalState()
 		}

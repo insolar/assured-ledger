@@ -31,9 +31,10 @@ var globalLogger = struct {
 
 func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 	zc := logcommon.Config{}
+	defFmt := logcommon.TextFormat
 
 	var err error
-	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, defFmt, "")
 	if err != nil {
 		return log.LoggerBuilder{}, err
 	}
@@ -41,9 +42,7 @@ func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 		panic("output is nil")
 	}
 
-	zc.Output = logcommon.OutputConfig{
-		Format: logcommon.TextFormat,
-	}
+	zc.Output = logcommon.OutputConfig{	Format: defFmt }
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.CallerMode = logcommon.CallerField
 	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField | logcommon.LogMetricsTimestamp

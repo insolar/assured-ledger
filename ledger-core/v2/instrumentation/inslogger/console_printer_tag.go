@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	if _, ok := logoutput.BareStdErr.Writer.(*os.File); !ok {
+	if _, ok := logoutput.JsonStdErr.Writer.(*os.File); !ok {
 		// avoid cases of unexpected use
 		panic(throw.IllegalState())
 	}
@@ -36,5 +36,5 @@ func init() {
 		FormatErrFieldName: d.FormatErrFieldName,
 		FormatErrFieldValue: d.FormatErrFieldValue,
 	}
-	logoutput.BareStdErr.Writer = consprint.NewConsolePrinter(logoutput.BareStdErr.Writer, cfg)
+	logoutput.JsonStdErr.Writer = consprint.NewConsolePrinter(logoutput.JsonStdErr.Writer, cfg)
 }
