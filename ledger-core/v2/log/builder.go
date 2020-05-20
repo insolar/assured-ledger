@@ -309,7 +309,6 @@ func (z LoggerBuilder) prepareOutput(metrics *logcommon.MetricsHelper, needsLowL
 	if err != nil {
 		return nil, err
 	}
-	//if _, ok := z.cfg.BareOutput.(logcommon.LoggerOutput); ok &&
 
 	outputAdapter := logwriter.NewAdapter(outputWriter, z.cfg.BareOutput.ProtectedClose,
 		z.cfg.BareOutput.FlushFn, z.cfg.BareOutput.FlushFn)
