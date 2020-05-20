@@ -16,7 +16,7 @@ import (
 
 // Creates wallets and check Reference format in response body.
 func TestWalletCreate(t *testing.T) {
-	t.Log("C4854	Создание кошелька")
+	t.Log("C4854")
 	status := getStatus(t)
 	require.NotEqual(t, 0, status.WorkingListSize, "not enough nodes to run test")
 	count := 50 * status.WorkingListSize
