@@ -30,7 +30,11 @@ type Object interface {
 }
 
 func NewObject(
-	head reference.Global, state reference.Local, prototype reference.Global, memory []byte, parent reference.Global,
+	head reference.Global,
+	state reference.Local,
+	prototype reference.Global,
+	memory []byte,
+	parent reference.Global,
 ) Object {
 	return &object{
 		head:      head,
