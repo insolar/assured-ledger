@@ -10,7 +10,7 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type fixedAddressResolver struct {

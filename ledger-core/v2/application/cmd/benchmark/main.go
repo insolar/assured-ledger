@@ -20,8 +20,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
@@ -92,7 +93,7 @@ func chooseOutput(path string) (io.Writer, error) {
 		var err error
 		res, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0600)
 		if err != nil {
-			return nil, errors.Wrap(err, "couldn't open file for writing")
+			return nil, errors.W(err, "couldn't open file for writing")
 		}
 	}
 	return res, nil
@@ -302,7 +303,7 @@ func getMembers(insSDK *sdk.SDK, number int, migration bool) ([]sdk.Member, erro
 		}
 		err = loadMembers(&members)
 		if err != nil {
-			return nil, errors.Wrap(err, "error while loading members: ")
+			return nil, errors.W(err, "error while loading members: ")
 		}
 	} else {
 		start := time.Now()
@@ -319,31 +320,31 @@ func saveMembers(members []sdk.Member) error {
 	dir, _ := path.Split(memberFile)
 	err := os.MkdirAll(dir, 0777)
 	if err != nil {
-		return errors.Wrap(err, "couldn't create dir for file")
+		return errors.W(err, "couldn't create dir for file")
 	}
 	file, err := os.Create(memberFile)
 	if err != nil {
-		return errors.Wrap(err, "couldn't create file")
+		return errors.W(err, "couldn't create file")
 	}
 	defer file.Close() // nolint:errcheck
 
 	result, err := json.MarshalIndent(members, "", "    ")
 	if err != nil {
-		return errors.Wrap(err, "couldn't marshal members in json")
+		return errors.W(err, "couldn't marshal members in json")
 	}
 	_, err = file.Write(result)
-	return errors.Wrap(err, "couldn't save members in file")
+	return errors.W(err, "couldn't save members in file")
 }
 
 func loadMembers(members *[]sdk.Member) error {
 	rawMembers, err := ioutil.ReadFile(memberFile)
 	if err != nil {
-		return errors.Wrap(err, "can't read members from file")
+		return errors.W(err, "can't read members from file")
 	}
 
 	err = json.Unmarshal(rawMembers, members)
 	if err != nil {
-		return errors.Wrap(err, "can't unmarshal members from file")
+		return errors.W(err, "can't unmarshal members from file")
 	}
 
 	return nil

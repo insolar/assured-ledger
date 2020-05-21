@@ -6,7 +6,13 @@
 package integration
 
 import (
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/stretchr/testify/require"
+
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -14,12 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
-	"reflect"
-	"testing"
-	"time"
 )
 
 // 1. Send VStateReport with 2 pending ordered
@@ -134,7 +136,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Message, error) {
 	bytes, err := request.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal request")
+		return nil, errors.W(err, "failed to marshal request")
 	}
 
 	msg, err := payload.NewMessage(&payload.Meta{
@@ -147,7 +149,7 @@ func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Mess
 		OriginHash: payload.MessageHash{},
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create new message")
+		return nil, errors.W(err, "failed to create new message")
 	}
 
 	return msg, nil

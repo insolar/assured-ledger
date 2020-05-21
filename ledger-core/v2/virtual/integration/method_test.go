@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
@@ -31,7 +32,7 @@ import (
 func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*message.Message, error) {
 	plBytes, err := pl.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal VCallRequest")
+		return nil, errors.W(err, "failed to marshal VCallRequest")
 	}
 
 	msg, err := payload.NewMessage(&payload.Meta{
@@ -44,7 +45,7 @@ func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*messa
 		OriginHash: payload.MessageHash{},
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create new message")
+		return nil, errors.W(err, "failed to create new message")
 	}
 
 	return msg, nil
@@ -72,7 +73,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 	}
 	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
 	if err != nil {
-		return errors.Wrap(err, "failed to construct VCallRequest message")
+		return errors.W(err, "failed to construct VCallRequest message")
 	}
 
 	requestIsDone := make(chan error, 0)

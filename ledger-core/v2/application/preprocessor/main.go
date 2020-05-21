@@ -30,7 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
@@ -87,7 +87,7 @@ func ParseFile(fileName string, machineType machine.Type) (*ParsedFile, error) {
 	}
 	sourceCode, err := slurpFile(fileName)
 	if err != nil {
-		return nil, errors.Wrap(err, "Can't read file")
+		return nil, errors.W(err, "Can't read file")
 	}
 	res.code = sourceCode
 
@@ -100,12 +100,12 @@ func ParseFile(fileName string, machineType machine.Type) (*ParsedFile, error) {
 
 	err = res.parseTypes()
 	if err != nil {
-		return nil, errors.Wrap(err, "")
+		return nil, errors.W(err, "")
 	}
 
 	err = res.parseFunctionsAndMethods()
 	if err != nil {
-		return nil, errors.Wrap(err, "")
+		return nil, errors.W(err, "")
 	}
 	if res.contract == "" {
 		return nil, errors.New("Only one smart contract must exist")
@@ -265,7 +265,7 @@ func formatAndWrite(out io.Writer, templateName string, data map[string]interfac
 
 	err = tmpl.Execute(&buff, data)
 	if err != nil {
-		return errors.Wrap(err, "couldn't write code output handle")
+		return errors.W(err, "couldn't write code output handle")
 	}
 
 	fmtOut, err := format.Source(buff.Bytes())
@@ -275,12 +275,12 @@ func formatAndWrite(out io.Writer, templateName string, data map[string]interfac
 		for lineNo, line := range lines {
 			errPrefix += fmt.Sprintf("\n%04d | %s", lineNo, line)
 		}
-		return errors.Wrap(err, errPrefix)
+		return errors.W(err, errPrefix)
 	}
 
 	_, err = out.Write(fmtOut)
 	if err != nil {
-		return errors.Wrap(err, "couldn't write code to output")
+		return errors.W(err, "couldn't write code to output")
 	}
 
 	return nil
@@ -316,7 +316,10 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		return err
 	}
 
-	imports := pf.generateImports([]string{"github.com/pkg/errors"})
+	imports := pf.generateImports([]string{
+		"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw",
+	})
+
 	for _, t := range pf.types {
 		extendImportsMapWithType(pf, t, imports)
 	}
@@ -488,7 +491,7 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 
 	_, err = reference.GlobalFromString(classReference)
 	if err != nil {
-		return errors.Wrap(err, "can't write proxy: ")
+		return errors.W(err, "can't write proxy: ")
 	}
 
 	if err := checkMachineType(pf.machineType); err != nil {
@@ -632,12 +635,12 @@ func openTemplate(fileName string) (*template.Template, error) {
 
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
-		return nil, errors.Wrap(nil, "couldn't find info about current file")
+		return nil, errors.W(nil, "couldn't find info about current file")
 	}
 	templateDir := filepath.Join(filepath.Dir(currentFile), fileName)
 	tmpl, err := tmpl.ParseFiles(templateDir)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't parse template for output")
+		return nil, errors.W(err, "couldn't parse template for output")
 	}
 
 	return tmpl, nil
@@ -837,7 +840,7 @@ func generateInitArguments(list *ast.FieldList) string {
 func GetRealApplicationDir(dir string) (string, error) {
 	gopath := build.Default.GOPATH
 	if gopath == "" {
-		return "", errors.Errorf("GOPATH is not set")
+		return "", errors.New("GOPATH is not set")
 	}
 	contractsPath := ""
 	for _, p := range strings.Split(gopath, ":") {
@@ -847,14 +850,14 @@ func GetRealApplicationDir(dir string) (string, error) {
 			return contractsPath, nil
 		}
 	}
-	return "", errors.Errorf("Not found github.com/insolar/assured-ledger/ledger-core/v2 in GOPATH")
+	return "", errors.New("Not found github.com/insolar/assured-ledger/ledger-core/v2 in GOPATH")
 }
 
 // GetRealContractsNames returns names of all real smart contracts
 func GetRealContractsNames() ([]string, error) {
 	pathWithContracts, err := GetRealApplicationDir("contract")
 	if err != nil {
-		return nil, errors.Wrap(err, "[ GetContractNames ]")
+		return nil, errors.W(err, "[ GetContractNames ]")
 	}
 	if len(pathWithContracts) == 0 {
 		return nil, errors.New("[ GetContractNames ] There are contracts dir")
@@ -876,13 +879,13 @@ func GetRealContractsNames() ([]string, error) {
 func slurpFile(fileName string) ([]byte, error) {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
-		return nil, errors.Wrap(err, "Can't open file '"+fileName+"'")
+		return nil, errors.W(err, "Can't open file '"+fileName+"'")
 	}
 	defer file.Close() //nolint: errcheck
 
 	res, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, errors.Wrap(err, "Can't read file '"+fileName+"'")
+		return nil, errors.W(err, "Can't read file '"+fileName+"'")
 	}
 	return res, nil
 }
@@ -1004,7 +1007,7 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"`,
 			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/v2/reference"`,
 			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"`,
-			"errors":         `"github.com/pkg/errors"`,
+			"throw":          `"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"`,
 		},
 	}
 

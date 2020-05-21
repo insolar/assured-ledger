@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ecdsaDigestSignerWrapper struct {
@@ -22,7 +22,7 @@ type ecdsaDigestSignerWrapper struct {
 func (sw *ecdsaDigestSignerWrapper) Sign(digest []byte) (*cryptography.Signature, error) {
 	r, s, err := ecdsa.Sign(rand.Reader, sw.privateKey, digest)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ DataSigner ] could't sign data")
+		return nil, errors.W(err, "[ DataSigner ] could't sign data")
 	}
 
 	ecdsaSignature := SerializeTwoBigInt(r, s)

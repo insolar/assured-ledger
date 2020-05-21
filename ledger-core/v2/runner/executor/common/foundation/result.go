@@ -6,7 +6,7 @@
 package foundation
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
@@ -26,7 +26,7 @@ type Result struct {
 func MarshalMethodResult(returns ...interface{}) ([]byte, error) {
 	result, err := insolar.Serialize(Result{Returns: returns})
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't serialize method returns")
+		return nil, errors.W(err, "couldn't serialize method returns")
 	}
 
 	return result, nil
@@ -36,7 +36,7 @@ func MarshalMethodResult(returns ...interface{}) ([]byte, error) {
 func MarshalMethodErrorResult(err error) ([]byte, error) {
 	result, err := insolar.Serialize(Result{Error: &Error{S: err.Error()}})
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't serialize method returns")
+		return nil, errors.W(err, "couldn't serialize method returns")
 	}
 
 	return result, nil
@@ -68,7 +68,7 @@ func UnmarshalMethodResult(data []byte, returns ...interface{}) (*Error, error) 
 	}
 	err := insolar.Deserialize(data, &res)
 	if err != nil {
-		return nil, errors.Wrap(err, "can't deserialize method result")
+		return nil, errors.W(err, "can't deserialize method result")
 	}
 
 	return res.Error, nil
@@ -93,7 +93,7 @@ func UnmarshalMethodResult(data []byte, returns ...interface{}) (*Error, error) 
 func UnmarshalMethodResultSimplified(data []byte, returns ...interface{}) error {
 	contractErr, err := UnmarshalMethodResult(data, returns...)
 	if err != nil {
-		return errors.Wrap(err, "can't unmarshal result")
+		return errors.W(err, "can't unmarshal result")
 	}
 
 	// this magic helper that injects logic error into one of returns, just sugar

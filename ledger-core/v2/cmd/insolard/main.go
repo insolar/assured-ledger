@@ -10,9 +10,10 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
@@ -57,7 +58,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 
 	certRole, err := readRoleFromCertificate(configPath)
 	if err != nil {
-		global.Fatal(errors.Wrap(err, "readRole failed"))
+		global.Fatal(errors.W(err, "readRole failed"))
 	}
 	role := node.GetStaticRoleFromString(roleString)
 	if role != certRole {
@@ -93,7 +94,7 @@ func readRoleFromCertificate(path string) (node.StaticRole, error) {
 
 	err = cfg.Load()
 	if err != nil {
-		return node.StaticRoleUnknown, errors.Wrap(err, "failed to load configuration from file")
+		return node.StaticRoleUnknown, errors.W(err, "failed to load configuration from file")
 	}
 
 	data, err := ioutil.ReadFile(filepath.Clean(cfg.Configuration.CertificatePath))
@@ -107,7 +108,7 @@ func readRoleFromCertificate(path string) (node.StaticRole, error) {
 	cert := certificate.AuthorizationCertificate{}
 	err = json.Unmarshal(data, &cert)
 	if err != nil {
-		return node.StaticRoleUnknown, errors.Wrap(err, "failed to parse certificate json")
+		return node.StaticRoleUnknown, errors.W(err, "failed to parse certificate json")
 	}
 	return cert.GetRole(), nil
 }

@@ -23,8 +23,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/v2/cmd/pulsewatcher/config"
 )
@@ -302,7 +303,7 @@ func main() {
 
 	conf, err := pulsewatcher.ReadConfig(configFile)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "couldn't load config file"))
+		log.Fatal(errors.W(err, "couldn't load config file"))
 	}
 	if len(conf.Nodes) == 0 {
 		log.Fatal("couldn't find any nodes in config file")

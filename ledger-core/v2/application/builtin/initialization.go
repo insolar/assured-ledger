@@ -23,8 +23,8 @@ import (
 	XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	XXX_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	XXX_machine "github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	throw "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-	errors "github.com/pkg/errors"
 
 	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 )
@@ -38,7 +38,7 @@ func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
 func shouldLoadRef(strRef string) XXX_reference.Global {
 	ref, err := XXX_reference.GlobalFromString(strRef)
 	if err != nil {
-		panic(errors.Wrap(err, "Unexpected error, bailing out"))
+		panic(throw.W(err, "Unexpected error, bailing out"))
 	}
 	return ref
 }

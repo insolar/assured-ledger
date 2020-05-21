@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
@@ -102,7 +102,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
 	switch {
 	case err != nil:
-		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
+		result.Error = errors.W(err, "Failed to unmarshal response").Error()
 	case contractCallErr != nil:
 		result.Error = contractCallErr.Error()
 	default:

@@ -20,8 +20,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 
-	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -32,7 +33,7 @@ import (
 func NewNodeNetwork(configuration configuration.Transport, certificate node2.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
 	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create origin node")
+		return nil, errors.W(err, "Failed to create origin node")
 	}
 	nodeKeeper := NewNodeKeeper(origin)
 	if !network.OriginIsDiscovery(certificate) {
@@ -44,7 +45,7 @@ func NewNodeNetwork(configuration configuration.Transport, certificate node2.Cer
 func createOrigin(configuration configuration.Transport, certificate node2.Certificate) (node2.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to resolve public address")
+		return nil, errors.W(err, "Failed to resolve public address")
 	}
 
 	role := certificate.GetRole()
