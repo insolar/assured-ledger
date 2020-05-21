@@ -23,17 +23,17 @@ func init() {
 
 	d := ConsoleWriterDefaults
 	cfg := consprint.Config{
-		NoColor: d.NoColor,
+		NoColor:    d.NoColor,
 		TimeFormat: d.TimeFormat,
 		PartsOrder: d.PartsOrder,
 
-		FormatTimestamp: d.FormatTimestamp,
-		FormatLevel: d.FormatLevel,
-		FormatCaller: d.FormatCaller,
-		FormatMessage: d.FormatMessage,
-		FormatFieldName: d.FormatFieldName,
-		FormatFieldValue: d.FormatFieldValue,
-		FormatErrFieldName: d.FormatErrFieldName,
+		FormatTimestamp:     d.FormatTimestamp,
+		FormatLevel:         d.FormatLevel,
+		FormatCaller:        d.FormatCaller,
+		FormatMessage:       d.FormatMessage,
+		FormatFieldName:     d.FormatFieldName,
+		FormatFieldValue:    d.FormatFieldValue,
+		FormatErrFieldName:  d.FormatErrFieldName,
 		FormatErrFieldValue: d.FormatErrFieldValue,
 	}
 	logoutput.JSONStdErr.Writer = consprint.NewConsolePrinter(logoutput.JSONStdErr.Writer, cfg)
