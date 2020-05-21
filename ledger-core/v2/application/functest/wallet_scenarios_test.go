@@ -15,6 +15,7 @@ import (
 )
 
 func TestCreateUpdateWallet(t *testing.T) {
+	t.Log("C4857")
 	var (
 		ref    string
 		amount uint = 100
@@ -51,6 +52,7 @@ func TestCreateUpdateWallet(t *testing.T) {
 }
 
 func TestGetUpdateBalanceConcurrently(t *testing.T) {
+	t.Log("C4858")
 	var (
 		ref             string
 		count                = 10 // Number of concurrent requests per node.

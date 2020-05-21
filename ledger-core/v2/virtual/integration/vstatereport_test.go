@@ -27,6 +27,7 @@ import (
 // 4. Since we changed pulse during execution, we expect that VStateReport will be sent
 // 5. Check that in VStateReport new object state is stored
 func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
+	t.Log("C4934")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

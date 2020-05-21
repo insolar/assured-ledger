@@ -70,6 +70,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc)
 // 4. Since we changed pulse during execution, we expect that VDelegatedRequestFinished will be sent
 // 5. Check that in VDelegatedRequestFinished new object state is stored
 func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
+	t.Log("C4935")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

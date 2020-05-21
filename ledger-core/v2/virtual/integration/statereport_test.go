@@ -70,6 +70,7 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 }
 
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
+	t.Log("C4866")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -94,6 +95,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 }
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
+	t.Log("C4919")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -117,7 +119,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	checkBalance(ctx, t, server, objectRef, testBalance)
 	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
-		// send VStateRequest: one more time to simulate rewrite
+		// send VStateReport: one more time to simulate rewrite
 		msg := makeVStateReportEvent(t, objectRef, newStateID, makeRawWalletState(t, 444))
 		require.NoError(t, server.AddInput(ctx, msg))
 	}
