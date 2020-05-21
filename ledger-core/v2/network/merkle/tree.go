@@ -9,7 +9,8 @@ import (
 	"hash"
 
 	"github.com/onrik/gomerkle"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type tree interface {

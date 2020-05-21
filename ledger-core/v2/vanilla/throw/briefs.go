@@ -5,6 +5,8 @@
 
 package throw
 
+import "fmt"
+
 // E creates an error by the provided message and description. Description can be a log structure
 func E(msg string, description ...interface{}) error {
 	if len(description) == 1 {
@@ -18,6 +20,9 @@ func E(msg string, description ...interface{}) error {
 // W wraps the given error with provided message and details.
 // Returns nil when (err) == nil
 func W(err error, msg string, description ...interface{}) error {
+	if err == nil {
+		return nil
+	}
 	return WithDetails(err, New(msg, description...))
 }
 
@@ -66,4 +71,23 @@ func RWn(recovered interface{}, prevErr error, msg string, details ...interface{
 	err := WithStackExt(NewDescription(recovered), recoverSkipFrames+1)
 	d := New(msg, details...)
 	return WithDetails(err, WithDetails(prevErr, d))
+}
+
+func Wrap(err error, message string) error {
+	return W(err, message)
+}
+
+// deprecated
+// Wrapf must be replaced with throw.W and struct for details
+func Wrapf(err error, format string, args ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+	return W(err, fmt.Sprintf(format, args...))
+}
+
+// deprecated
+// Errorf must be replaced with either throw.New or with fmt.Errorf
+func Errorf(format string, args ...interface{}) error {
+	return fmt.Errorf(format, args...)
 }

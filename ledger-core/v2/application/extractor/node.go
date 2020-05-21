@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // NodeInfoResponse extracts response of GetNodeInfo

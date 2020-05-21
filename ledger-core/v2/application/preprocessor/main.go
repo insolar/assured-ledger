@@ -30,7 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
@@ -837,7 +837,7 @@ func generateInitArguments(list *ast.FieldList) string {
 func GetRealApplicationDir(dir string) (string, error) {
 	gopath := build.Default.GOPATH
 	if gopath == "" {
-		return "", errors.Errorf("GOPATH is not set")
+		return "", errors.New("GOPATH is not set")
 	}
 	contractsPath := ""
 	for _, p := range strings.Split(gopath, ":") {
@@ -847,7 +847,7 @@ func GetRealApplicationDir(dir string) (string, error) {
 			return contractsPath, nil
 		}
 	}
-	return "", errors.Errorf("Not found github.com/insolar/assured-ledger/ledger-core/v2 in GOPATH")
+	return "", errors.New("Not found github.com/insolar/assured-ledger/ledger-core/v2 in GOPATH")
 }
 
 // GetRealContractsNames returns names of all real smart contracts

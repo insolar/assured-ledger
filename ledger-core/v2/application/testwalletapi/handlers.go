@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"

@@ -8,7 +8,7 @@ package extractor
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 func stringResponse(data []byte) (string, error) {

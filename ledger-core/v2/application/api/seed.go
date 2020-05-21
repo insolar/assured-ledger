@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/rpc/v2"
 	"github.com/insolar/rpc/v2/json2"
@@ -119,7 +119,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 			Code:    InternalError,
 			Message: InternalErrorMessage,
 			Data: requester.Data{
-				Trace:   strings.Split(err.Error(), ": "),
+				Trace:   strings.Split(err.Error(), ";\t"),
 				TraceID: instr.TraceID(),
 			},
 		}

@@ -9,7 +9,8 @@ import (
 	"crypto"
 
 	"github.com/insolar/component-manager"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"

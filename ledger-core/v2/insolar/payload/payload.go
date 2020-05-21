@@ -9,7 +9,8 @@ import (
 	"encoding/base64"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Type uint32

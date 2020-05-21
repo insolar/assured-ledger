@@ -10,7 +10,8 @@ import (
 	"io"
 
 	"github.com/jbenet/go-base58"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ByteDecoderFactory interface {

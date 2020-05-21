@@ -6,7 +6,7 @@
 package descriptor
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )

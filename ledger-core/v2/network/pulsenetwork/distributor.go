@@ -15,8 +15,9 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"

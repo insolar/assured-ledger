@@ -8,8 +8,9 @@ package insolar
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var mapType = reflect.TypeOf(map[string]interface{}(nil))

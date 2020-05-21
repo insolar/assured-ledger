@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
@@ -222,7 +222,7 @@ func ReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPr
 func ReadCertificateFromReader(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, reader io.Reader) (*Certificate, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, errors.Wrapf(err, "[ ReadCertificateFromReader ] failed to read certificate data")
+		return nil, errors.Wrap(err, "[ ReadCertificateFromReader ] failed to read certificate data")
 	}
 	cert, err := newCertificate(publicKey, keyProcessor, data)
 	if err != nil {

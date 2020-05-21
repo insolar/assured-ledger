@@ -9,8 +9,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"

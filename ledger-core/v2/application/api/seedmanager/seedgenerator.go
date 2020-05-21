@@ -8,7 +8,7 @@ package seedmanager
 import (
 	"crypto/rand"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // SeedSize is size of seed

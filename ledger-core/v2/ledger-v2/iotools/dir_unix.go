@@ -13,8 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // directoryLockGuard holds a lock on a directory and a pid file inside.  The pid file isn't part

@@ -22,8 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"

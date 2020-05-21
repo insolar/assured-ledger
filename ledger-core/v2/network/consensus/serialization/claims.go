@@ -8,7 +8,7 @@ package serialization
 import (
 	"io"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 const (

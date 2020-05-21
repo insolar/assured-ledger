@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Table struct {

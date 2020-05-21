@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 )
@@ -51,7 +51,7 @@ func ReadKeys(r io.Reader, publicOnly bool) (*KeyPair, error) {
 	var keys map[string]string
 	err := json.NewDecoder(r).Decode(&keys)
 	if err != nil {
-		return nil, errors.Wrapf(err, "fail unmarshal keys data")
+		return nil, errors.Wrap(err, "fail unmarshal keys data")
 	}
 	if !publicOnly && keys["private_key"] == "" {
 		return nil, errors.New("empty private key")
@@ -66,12 +66,12 @@ func ReadKeys(r io.Reader, publicOnly bool) (*KeyPair, error) {
 	if !publicOnly {
 		privateKey, err = kp.ImportPrivateKeyPEM([]byte(keys["private_key"]))
 		if err != nil {
-			return nil, errors.Wrapf(err, "fail import private key")
+			return nil, errors.Wrap(err, "fail import private key")
 		}
 	}
 	publicKey, err := kp.ImportPublicKeyPEM([]byte(keys["public_key"]))
 	if err != nil {
-		return nil, errors.Wrapf(err, "fail import private key")
+		return nil, errors.Wrap(err, "fail import private key")
 	}
 
 	return &KeyPair{

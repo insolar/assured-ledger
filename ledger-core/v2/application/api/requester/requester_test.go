@@ -24,8 +24,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
@@ -169,7 +170,7 @@ func TestGetSeed(t *testing.T) {
 
 func TestGetResponseBodyEmpty(t *testing.T) {
 	_, err := GetResponseBodyPlatform("test", "", nil)
-	require.EqualError(t, err, "problem with sending request: Post \"test\": unsupported protocol scheme \"\"")
+	require.EqualError(t, err, "problem with sending request;\tPost \"test\": unsupported protocol scheme \"\"")
 }
 
 func TestGetResponseBodyBadHttpStatus(t *testing.T) {
@@ -224,13 +225,13 @@ func TestSendWithSeed_WithBadUrl(t *testing.T) {
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed_WithBadUrl")
 	userConf, reqConf := readConfigs(t)
 	_, err := SendWithSeed(ctx, URL+"TTT", userConf, reqConf, TESTSEED)
-	require.EqualError(t, err, "[ SendWithSeed ] Problem with sending target request: bad http response code: 404")
+	require.EqualError(t, err, "[ SendWithSeed ] Problem with sending target request;\tbad http response code: 404")
 }
 
 func TestSendWithSeed_NilConfigs(t *testing.T) {
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed_NilConfigs")
 	_, err := SendWithSeed(ctx, URL, nil, nil, TESTSEED)
-	require.EqualError(t, err, "[ SendWithSeed ] Problem with creating target request: configs must be initialized")
+	require.EqualError(t, err, "[ SendWithSeed ] Problem with creating target request;\tconfigs must be initialized")
 }
 
 func TestInfo(t *testing.T) {
@@ -261,8 +262,8 @@ func TestMarshalSig(t *testing.T) {
 	r2, s2, err := foundation.UnmarshalSig(sig)
 	require.NoError(t, err)
 
-	require.Equal(t, r1, r2, errors.Errorf("Invalid S number"))
-	require.Equal(t, s1, s2, errors.Errorf("Invalid R number"))
+	require.Equal(t, r1, r2, errors.New("Invalid S number"))
+	require.Equal(t, s1, s2, errors.New("Invalid R number"))
 }
 
 // unmarshalRequest unmarshals request to api

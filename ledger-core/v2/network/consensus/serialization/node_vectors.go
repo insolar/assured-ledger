@@ -10,7 +10,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
@@ -243,7 +243,7 @@ func (nab *NodeAppearanceBitset) DeserializeFrom(ctx DeserializeContext, reader 
 	if length > 0 {
 		nab.Bytes = make([]byte, length)
 		if err := read(reader, &nab.Bytes); err != nil {
-			return errors.Wrapf(err, "failed to serialize Bytes")
+			return errors.Wrap(err, "failed to serialize Bytes")
 		}
 	}
 	return nil

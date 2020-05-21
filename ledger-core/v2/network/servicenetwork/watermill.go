@@ -10,7 +10,8 @@ import (
 	"context"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"

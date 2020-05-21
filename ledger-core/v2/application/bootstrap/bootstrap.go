@@ -14,7 +14,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
@@ -68,7 +68,7 @@ func (g *Generator) Run(ctx context.Context, properNames bool) error {
 		properNames,
 	)
 	if err != nil {
-		return errors.Wrapf(err, "create keys step failed")
+		return errors.Wrap(err, "create keys step failed")
 	}
 
 	inslog.Info("[ bootstrap ] create discovery certificates ...")
@@ -88,7 +88,7 @@ func (g *Generator) Run(ctx context.Context, properNames bool) error {
 			properNames,
 		)
 		if err != nil {
-			return errors.Wrapf(err, "create keys step failed")
+			return errors.Wrap(err, "create keys step failed")
 		}
 
 		inslog.Info("[ bootstrap ] create not discovery certificates ...", nodes)
@@ -109,7 +109,7 @@ func (g *Generator) makeEmptyGenesisConfig() error {
 	cfg := &application.GenesisHeavyConfig{}
 	b, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
-		return errors.Wrapf(err, "failed to decode heavy config to json")
+		return errors.Wrap(err, "failed to decode heavy config to json")
 	}
 
 	err = ioutil.WriteFile(g.config.HeavyGenesisConfigFile, b, 0600)
@@ -178,7 +178,7 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		// save cert to disk
 		cert, err := json.MarshalIndent(certs[i], "", "  ")
 		if err != nil {
-			return errors.Wrapf(err, "can't MarshalIndent")
+			return errors.Wrap(err, "can't MarshalIndent")
 		}
 
 		if len(node.certName) == 0 {

@@ -18,7 +18,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/insolar/rpc/v2/json2"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"

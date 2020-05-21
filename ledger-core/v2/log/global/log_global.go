@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var globalLogger = struct {

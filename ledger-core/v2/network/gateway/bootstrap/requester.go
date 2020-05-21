@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/pkg/errors"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -99,7 +100,7 @@ func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*pac
 		return bestResult.Permit, nil
 	}
 
-	return nil, errors.New("failed to authorize to any discovery node")
+	return nil, throw.New("failed to authorize to any discovery node")
 }
 
 func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
@@ -112,7 +113,7 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.A
 	defer span.Finish()
 	serializedCert, err := certificate.Serialize(cert)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error serializing certificate")
+		return nil, throw.Wrap(err, "Error serializing certificate")
 	}
 
 	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: ac.OriginProvider.GetOrigin().Version()}
@@ -125,9 +126,9 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.A
 	case packet.Success:
 		return response, nil
 	case packet.WrongMandate:
-		return response, errors.New("failed to authorize, wrong mandate")
+		return response, throw.New("failed to authorize, wrong mandate")
 	case packet.WrongVersion:
-		return response, errors.New("failed to authorize, wrong version")
+		return response, throw.New("failed to authorize, wrong version")
 	}
 
 	// retry with received timestamp
@@ -142,31 +143,31 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 
 	data, err := authData.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal permit")
+		return nil, throw.Wrap(err, "failed to marshal permit")
 	}
 
 	signature, err := ac.CryptographyService.Sign(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign permit")
+		return nil, throw.Wrap(err, "failed to sign permit")
 	}
 
 	req := &packet.AuthorizeRequest{AuthorizeData: authData, Signature: signature.Bytes()}
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Authorize, req, h)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending Authorize request")
+		return nil, throw.Wrap(err, "Error sending Authorize request")
 	}
 	response, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for Authorize request")
+		return nil, throw.Wrap(err, "Error getting response for Authorize request")
 	}
 
 	if response.GetResponse().GetError() != nil {
-		return nil, errors.New(response.GetResponse().GetError().Error)
+		return nil, throw.New(response.GetResponse().GetError().Error)
 	}
 
 	if response.GetResponse() == nil || response.GetResponse().GetAuthorize() == nil {
-		return nil, errors.Errorf("Authorize failed: got incorrect response: %s", response)
+		return nil, throw.Errorf("Authorize failed: got incorrect response: %s", response)
 	}
 
 	return response.GetResponse().GetAuthorize(), nil
@@ -182,28 +183,28 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending Bootstrap request")
+		return nil, throw.Wrap(err, "Error sending Bootstrap request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for Bootstrap request")
+		return nil, throw.Wrap(err, "Error getting response for Bootstrap request")
 	}
 
 	respData := resp.GetResponse().GetBootstrap()
 	if respData == nil {
-		return nil, errors.New("bad response for bootstrap")
+		return nil, throw.New("bad response for bootstrap")
 	}
 
 	switch respData.Code {
 	case packet.UpdateShortID:
-		return respData, errors.New("Bootstrap got UpdateShortID")
+		return respData, throw.New("Bootstrap got UpdateShortID")
 	case packet.UpdateSchedule:
 		// ac.UpdateSchedule(ctx, permit, p.Number)
 		// panic("call bootstrap again")
-		return respData, errors.New("Bootstrap got UpdateSchedule")
+		return respData, throw.New("Bootstrap got UpdateSchedule")
 	case packet.Reject:
-		return respData, errors.New("Bootstrap request rejected")
+		return respData, throw.New("Bootstrap request rejected")
 	}
 
 	// case Accepted
@@ -220,12 +221,12 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, 
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending UpdateSchedule request")
+		return nil, throw.Wrap(err, "Error sending UpdateSchedule request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for UpdateSchedule request")
+		return nil, throw.Wrap(err, "Error getting response for UpdateSchedule request")
 	}
 
 	return resp.GetResponse().GetUpdateSchedule(), nil
@@ -239,12 +240,12 @@ func (ac *requester) Reconnect(ctx context.Context, h *host.Host, permit *packet
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Reconnect, req, h)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending Reconnect request")
+		return nil, throw.Wrap(err, "Error sending Reconnect request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for Reconnect request")
+		return nil, throw.Wrap(err, "Error getting response for Reconnect request")
 	}
 
 	return resp.GetResponse().GetReconnect(), nil

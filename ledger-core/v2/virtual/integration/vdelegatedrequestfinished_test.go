@@ -6,7 +6,13 @@
 package integration
 
 import (
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/stretchr/testify/require"
+
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
@@ -14,12 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
-	"reflect"
-	"testing"
-	"time"
 )
 
 // 1. Send VStateReport with 2 pending ordered

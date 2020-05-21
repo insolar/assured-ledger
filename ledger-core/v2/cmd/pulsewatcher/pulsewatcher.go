@@ -23,8 +23,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/v2/cmd/pulsewatcher/config"
 )

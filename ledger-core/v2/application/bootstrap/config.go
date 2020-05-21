@@ -6,8 +6,9 @@
 package bootstrap
 
 import (
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Node contains info about discovery nodes.

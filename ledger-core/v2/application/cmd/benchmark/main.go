@@ -20,8 +20,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"

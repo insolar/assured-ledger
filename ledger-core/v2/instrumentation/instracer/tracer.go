@@ -13,10 +13,11 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/uber/jaeger-client-go"
 	"github.com/uber/jaeger-client-go/config"
 	"go.opencensus.io/trace"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )

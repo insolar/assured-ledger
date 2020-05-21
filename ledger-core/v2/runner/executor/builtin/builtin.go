@@ -9,7 +9,7 @@ package builtin
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"

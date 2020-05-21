@@ -11,7 +11,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // FileLoadingMode specifies how data in LSM table files and value log files should

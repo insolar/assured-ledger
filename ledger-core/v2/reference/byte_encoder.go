@@ -12,7 +12,8 @@ import (
 	"strings"
 
 	"github.com/jbenet/go-base58"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ByteEncodeFunc func(source io.ByteReader, builder *strings.Builder) error
