@@ -23,7 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
 
-func TestSMObject_migrate_Fail_If_State_Is_Empty_And_No_Counters(t *testing.T) {
+func TestSMObject_MigrateFail_IfStateIsEmptyAndNoCounters(t *testing.T) {
 	var (
 		mc = minimock.NewController(t)
 
@@ -65,7 +65,7 @@ func TestSMObject_migrate_Fail_If_State_Is_Empty_And_No_Counters(t *testing.T) {
 	}
 }
 
-func TestSMObject_SendVStateUnavailable_After_Migration_If_State_Missing(t *testing.T) {
+func TestSMObject_SendVStateUnavailableAfterMigration_IfStateMissing(t *testing.T) {
 	var (
 		mc = minimock.NewController(t)
 
@@ -131,7 +131,7 @@ func TestSMObject_SendVStateUnavailable_After_Migration_If_State_Missing(t *test
 	}
 }
 
-func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
+func TestSMObject_SendVStateReportAfterMigration_IfStateEmptyAndCountersSet(t *testing.T) {
 	var (
 		mc = minimock.NewController(t)
 
@@ -197,7 +197,7 @@ func TestSMObject_SendVStateReport_After_Migration(t *testing.T) {
 	}
 }
 
-func TestSMObject_Send_Nothing_After_Migration_If_State_Unknown(t *testing.T) {
+func TestSMObject_SendNothingAfterMigration_IfStateUnknown(t *testing.T) {
 	var (
 		mc = minimock.NewController(t)
 
