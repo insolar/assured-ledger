@@ -115,18 +115,6 @@ prepare-inrospector-proto: ## install tools required for grpc development
 application-git-config: ## change remote repo url from HTTPS to SSH in 'application' submodule
 	perl -i.bak -pe 's!url\s*=\s*https?://github.com/!url = git\@github.com:!' .git/modules/application/config
 
-.PHONY: docker-build
-docker-build: ## build image with binaries and files required for kubernetes deployment.
-	docker build -t insolar/assured-ledger:$(DOCKER_IMAGE_TAG) \
-		--build-arg BUILD_DATE="$(BUILD_DATE)" \
-		--build-arg BUILD_TIME="$(BUILD_TIME)" \
-		--build-arg BUILD_NUMBER="$(BUILD_NUMBER)" \
-		--build-arg BUILD_HASH="$(BUILD_HASH)" \
-		--build-arg BUILD_VERSION="$(BUILD_VERSION)" \
-		-f Dockerfile .
-	docker tag insolar/assured-ledger:$(DOCKER_IMAGE_TAG) insolar/assured-ledger:latest
-	docker images "insolar/assured-ledger"
-
 $(ARTIFACTS_DIR):
 	mkdir -p $(ARTIFACTS_DIR)
 

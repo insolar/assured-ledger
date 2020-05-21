@@ -3,7 +3,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 KUBECTL=${KUBECTL:-"kubectl"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
 LOG_DIR="$ARTIFACTS_DIR/logs"
-set -x
 
 save_logs_to_files() {
   LOG_DIR="$ARTIFACTS_DIR/logs"
@@ -19,4 +18,3 @@ save_logs_to_files() {
 
 save_logs_to_files
 echo "Logs saved to $LOG_DIR"
-set +x
