@@ -12,6 +12,7 @@ import (
 
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -30,7 +31,7 @@ type Service interface {
 }
 
 type UnmanagedService interface {
-	ExecutionClassify(execution execution.Context) interface{}
+	ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error)
 }
 
 type DefaultService struct {
@@ -143,8 +144,6 @@ func generateCallContext(
 	} else {
 		res.Callee = execution.Object
 	}
-
-	res.Unordered = execution.Unordered
 
 	return res
 }
@@ -300,8 +299,32 @@ func (r *DefaultService) runAbort(_ *executionEventSink, _ func()) {
 	panic(throw.NotImplemented())
 }
 
-func (r *DefaultService) ExecutionClassify(_ execution.Context) interface{} {
-	panic(throw.NotImplemented())
+func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (contract.MethodIsolation, error) {
+	var (
+		request = executionContext.Request
+
+		objectDescriptor = executionContext.ObjectDescriptor
+	)
+
+	prototypeReference, err := objectDescriptor.Prototype()
+	if err != nil {
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get prototype reference")
+	}
+	if prototypeReference.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+
+	_, codeDescriptor, err := r.Cache.ByPrototypeRef(executionContext.Context, prototypeReference)
+	if err != nil {
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get descriptors")
+	}
+
+	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
+	if err != nil {
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get executor")
+	}
+
+	return codeExecutor.ClassifyMethod(executionContext.Context, codeDescriptor.Ref(), request.CallSiteMethod)
 }
 
 func NewService() *DefaultService {

@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -46,8 +47,8 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
 
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
+	callFlags.SetInterference(contract.CallTolerable)
+	callFlags.SetState(contract.CallDirty)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -133,8 +134,8 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
 
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
+	callFlags.SetInterference(contract.CallTolerable)
+	callFlags.SetState(contract.CallDirty)
 
 	callee := gen.Reference()
 	smExecute := SMExecute{

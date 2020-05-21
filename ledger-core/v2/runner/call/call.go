@@ -29,9 +29,8 @@ type LogicContext struct {
 	Caller          reference.Global // Contract that made the call
 	CallerPrototype reference.Global // Prototype (base class) of the caller
 
-	TraceID   string          // trace mark for Jaeger and friends
-	Pulse     pulsestor.Pulse // pre-fetched pulse for call context
-	Unordered bool
+	TraceID string          // trace mark for Jaeger and friends
+	Pulse   pulsestor.Pulse // pre-fetched pulse for call context
 }
 
 type ContractCallType uint8
@@ -75,4 +74,3 @@ func (m Mode) String() string {
 		return "unknown"
 	}
 }
-

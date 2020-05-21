@@ -39,7 +39,7 @@ type Server struct {
 
 	// real components
 	virtual       *virtual.Dispatcher
-	runner        *runner.DefaultService
+	Runner        *runner.DefaultService
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
@@ -104,7 +104,7 @@ func NewServer(t *testing.T) *Server {
 	if err := runnerService.Init(); err != nil {
 		panic(err)
 	}
-	s.runner = runnerService
+	s.Runner = runnerService
 
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
@@ -158,11 +158,11 @@ func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
 }
 
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
-	s.runner.Manager = manager
+	s.Runner.Manager = manager
 }
 
 func (s *Server) ReplaceCache(cache descriptor.Cache) {
-	s.runner.Cache = cache
+	s.Runner.Cache = cache
 }
 
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {

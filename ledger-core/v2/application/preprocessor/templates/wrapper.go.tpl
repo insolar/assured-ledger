@@ -20,6 +20,10 @@
 package {{ .Package }}
 
 import (
+{{ range $name, $path := .CustomImports }}
+	{{ $name }} {{ $path }}
+{{- end }}
+
 {{- range $import, $i := .Imports }}
 	{{ $import }}
 {{- end }}
@@ -240,7 +244,7 @@ func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []by
 	}
 
 	if ret1 != nil {
-		// logical error, the result should be registered with type RequestSideEffectNone
+		// logical error, the result should be registered with type SideEffectNone
 		state = nil
 		return
 	}
@@ -255,19 +259,22 @@ func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []by
 {{ end }}
 
 {{ if $.GenerateInitialize -}}
-func Initialize() insolar.ContractWrapper {
-	return insolar.ContractWrapper{
+func Initialize() XXX_contract.Wrapper {
+	return XXX_contract.Wrapper{
 		GetCode: INSMETHOD_GetCode,
 		GetPrototype: INSMETHOD_GetPrototype,
-		Methods: insolar.ContractMethods{
+		Methods: XXX_contract.Methods{
 			{{ range $method := .Methods -}}
-					"{{ $method.Name }}": insolar.ContractMethod{
+					"{{ $method.Name }}": XXX_contract.Method{
 					    Func: INSMETHOD_{{ $method.Name }},
-					    Unordered: {{ $method.Immutable }},
+						Isolation: XXX_contract.MethodIsolation {
+							Interference: {{ $method.Interference }},
+							State: {{ $method.State }},
+						},
 					},
 			{{ end }}
 		},
-		Constructors: insolar.ContractConstructors{
+		Constructors: XXX_contract.Constructors{
 			{{ range $f := .Functions -}}
 					"{{ $f.Name }}": INSCONSTRUCTOR_{{ $f.Name }},
 			{{ end }}

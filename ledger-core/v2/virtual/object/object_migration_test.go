@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -83,7 +84,10 @@ func TestSMObject_SendVStateUnavailableAfterMigration_IfStateMissing(t *testing.
 	}
 
 	smObject.SharedState.SetState(Missing)
-	smObject.IncrementPotentialPendingCounter(true)
+	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
+		Interference: contract.CallIntolerable,
+		State:        contract.CallValidated,
+	})
 
 	messageService := testutils.NewMessageServiceMock(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
@@ -149,8 +153,10 @@ func TestSMObject_SendVStateReportAfterMigration_IfStateEmptyAndCountersSet(t *t
 	}
 
 	smObject.SharedState.SetState(Empty)
-	smObject.IncrementPotentialPendingCounter(true)
-
+	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
+		Interference: contract.CallIntolerable,
+		State:        contract.CallValidated,
+	})
 	messageService := testutils.NewMessageServiceMock(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
 		_, ok := msg.(*payload.VStateReport)

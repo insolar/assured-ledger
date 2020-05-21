@@ -8,6 +8,7 @@ package execution
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -27,7 +28,7 @@ type Context struct {
 	Incoming reference.Global
 	Outgoing reference.Global
 
-	Unordered bool
+	Isolation contract.MethodIsolation
 
 	LogicContext call.LogicContext
 }

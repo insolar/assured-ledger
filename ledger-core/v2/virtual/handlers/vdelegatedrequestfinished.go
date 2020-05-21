@@ -7,6 +7,7 @@ package handlers
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
@@ -130,8 +131,8 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetDescriptor(s.latestState())
 	}
 
-	switch s.Payload.CallFlags.GetTolerance() {
-	case payload.CallIntolerable:
+	switch s.Payload.CallFlags.GetInterference() {
+	case contract.CallIntolerable:
 		if state.ActiveImmutablePendingCount > 0 {
 			state.ActiveImmutablePendingCount--
 		} else {
@@ -140,7 +141,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 				ordered:   false,
 			})
 		}
-	case payload.CallTolerable:
+	case contract.CallTolerable:
 		if state.ActiveMutablePendingCount > 0 {
 			state.ActiveMutablePendingCount--
 
