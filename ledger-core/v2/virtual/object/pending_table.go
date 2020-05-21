@@ -34,3 +34,7 @@ func (pt *pendingTable) Add(ref reference.Global) bool {
 func (pt *pendingTable) Count() int {
 	return len(pt.requests)
 }
+
+func (pt *pendingTable) OldestPulse() pulse.Number {
+	return pt.oldestPulse
+}

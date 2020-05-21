@@ -12,23 +12,35 @@ import (
 )
 
 func TestPendingTable(t *testing.T) {
-	var (
-		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		objectOne = gen.IDWithPulse(pd.PulseNumber)
-		objectTwo = gen.IDWithPulse(pd.PulseNumber)
-		RefOne    = reference.NewSelf(objectOne)
-		RefTwo    = reference.NewSelf(objectTwo)
-	)
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+
+	objectOld := gen.IDWithPulse(pd.PulseNumber)
+	RefOld := reference.NewSelf(objectOld)
+
+	nextPulseNumber := pd.PulseNumber+pulse.Number(pd.NextPulseDelta)
+	objectOne := gen.IDWithPulse(nextPulseNumber)
+	objectTwo := gen.IDWithPulse(nextPulseNumber)
+	RefOne := reference.NewSelf(objectOne)
+	RefTwo := reference.NewSelf(objectTwo)
+
 
 	pt := newPendingTable()
 	require.Equal(t, 0, pt.Count())
+	require.Equal(t, pulse.Number(0), pt.oldestPulse)
 
 	require.Equal(t, true, pt.Add(RefOne))
 	require.Equal(t, 1, pt.Count())
+	require.Equal(t, nextPulseNumber, pt.oldestPulse)
 
 	require.Equal(t, false, pt.Add(RefOne))
 	require.Equal(t, 1, pt.Count())
+	require.Equal(t, nextPulseNumber, pt.oldestPulse)
+
+	require.Equal(t, true, pt.Add(RefOld))
+	require.Equal(t, 2, pt.Count())
+	require.Equal(t, pd.PulseNumber, pt.oldestPulse)
 
 	require.Equal(t, true, pt.Add(RefTwo))
-	require.Equal(t, 2, pt.Count())
+	require.Equal(t, 3, pt.Count())
+	require.Equal(t, pd.PulseNumber, pt.oldestPulse)
 }
