@@ -60,6 +60,7 @@ type SMExecute struct {
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
+	delegationToken   payload.CallDelegationToken
 }
 
 /* -------- Declaration ------------- */
