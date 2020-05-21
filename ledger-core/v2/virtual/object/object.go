@@ -55,6 +55,8 @@ type Info struct {
 	PotentialMutablePendingCount   uint8
 
 	objectState State
+
+	pendingTable pendingTable
 }
 
 func (i *Info) IsReady() bool {
@@ -149,6 +151,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
+	sm.pendingTable = newPendingTable()
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
