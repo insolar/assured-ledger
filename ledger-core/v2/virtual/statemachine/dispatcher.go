@@ -72,7 +72,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsest
 		panic(throw.Impossible())
 	}
 
-	inslogger.FromContext(ctx).Errorm(logBeginPulseMessage{
+	inslogger.FromContext(ctx).Debugm(logBeginPulseMessage{
 		PreviousPulse: c.previousPulse,
 		NextPulse:     pulseData.PulseNumber,
 	})
@@ -84,7 +84,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsest
 }
 
 func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulsestor.Pulse) {
-	inslogger.FromContext(ctx).Errorm(logClosePulseMessage{
+	inslogger.FromContext(ctx).Debugm(logClosePulseMessage{
 		PreviousPulse: c.previousPulse,
 	})
 

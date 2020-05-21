@@ -162,7 +162,11 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 		msg.InactivityTime = stepLoggerUpdateData.InactivityNano.Nanoseconds()
 	}
 
-	c.logger.Error(msg)
+	if stepLoggerData.Error == nil {
+		c.logger.Debug(msg)
+	} else {
+		c.logger.Error(msg)
+	}
 }
 
 type ConveyorLoggerFactory struct {
