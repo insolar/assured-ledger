@@ -39,6 +39,14 @@ kube_start_net: ## run insolar net in local kubernetes cluster
 kube_stop_net: ## stop insolar net in local kubernetes cluster
 	./scripts/deploy/kube/stop.sh
 
+.PHONY: kube_drop_ingress
+kube_drop_ingress: ## drop ingress from local cluster
+	./scripts/deploy/kube/drop_ingress.sh
+
+.PHONY: kube_apply_ingress
+kube_apply_ingress: ## drop ingress from local cluster
+	./scripts/deploy/kube/apply_ingress.sh
+
 .PHONY: kube_collect_artifacts
 kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
 	./scripts/deploy/kube/collect_artifacts.sh
