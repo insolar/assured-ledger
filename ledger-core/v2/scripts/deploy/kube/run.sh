@@ -6,7 +6,6 @@ KUBECTL=${KUBECTL:-"kubectl"}
 USE_MANIFESTS=${USE_MANIFESTS:-"local"}
 INSOLAR_IMAGE=${INSOLAR_IMAGE:-"insolar/assured-ledger:latest"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
-set -x
 check_dependencies() {
   command -v docker >/dev/null 2>&1 || {
     echo >&2 "docker is required. Aborting."
@@ -31,12 +30,9 @@ check_docker_images() {
 # todo remove ingress
 check_ingress_installation() {
   if [ "$($KUBECTL get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
-    $KUBECTL apply -f ./deploy/kube/ingress-nginx-2.0.3.yaml
+    echo >&2 "make sure you made 'make kube_apply_ingress'"
+    exit 1
   fi
-}
-
-delete_ingress() {
-  $KUBECTL delete -f ./deploy/kube/ingress-nginx-2.0.3.yaml
 }
 
 run_network() {
@@ -47,7 +43,6 @@ run_network() {
 }
 
 wait_for_complete_network_state() {
-  #set +x
   ready=0
   for try in {0..60}; do
     if [ "$($KUBECTL -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
@@ -67,11 +62,9 @@ wait_for_complete_network_state() {
   ready=0
   for try in {0..30}; do
     if [ "$($KUBECTL -n insolar exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -c -v 'NOT')" = "1" ]; then
-      echo "network is ready!"
       ready=1
       break
     else
-      echo "network is not ready"
       sleep 2
     fi
   done
@@ -81,7 +74,6 @@ wait_for_complete_network_state() {
     $KUBECTL -n insolar describe pods
     exit 1
   fi
-  set -x
 }
 
 copy_bootstrap_config_to_temp() {
@@ -93,6 +85,6 @@ check_dependencies
 echo "Starting insolar"
 run_network
 wait_for_complete_network_state
+echo "network is ready!"
 copy_bootstrap_config_to_temp
 echo "Insolar started"
-set +x

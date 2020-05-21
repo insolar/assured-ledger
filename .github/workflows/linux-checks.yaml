@@ -121,14 +121,26 @@ jobs:
       - name: launch registry
         run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
       - name: wait for k3s
-        run:  until ${{env.KUBECTL}} version; do echo "k3s is not up yet"; sleep 3; done
+        run: |
+          for try in {0..60}; do
+            if $KUBECTL version; then
+              echo "k3s started"
+              exit 0
+            fi
+            sleep 2s
+          done
+
+          echo "failed to start k3s server"
+          docker logs k3s
+          exit 1
       - name: describe node
         run: |
           ${{env.KUBECTL}} get no
           ${{env.KUBECTL}} describe no
           docker ps
-      - name: apply ingress
-        run:  ${{env.KUBECTL}} apply -f scripts/deploy/kube/ingress-nginx-2.0.3.yaml
+        working-directory: ${{env.V2_PATH}}
+      - name: install ingress
+        run: make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
@@ -139,8 +151,6 @@ jobs:
           docker tag insolar/assured-ledger:latest localhost:5000/assured-ledger:latest
           docker tag insolar/assured-ledger:latest ci:5000/assured-ledger:latest
           docker push localhost:5000/assured-ledger:latest
-      - name: wait for ingress
-        run:  until ${{env.KUBECTL}} get pods -n ingress-nginx | grep controller | grep -v svclb | grep Running; do echo "ingress is not up yet"; sleep 1; done
       - name: run insolar net
         run: |
           go mod download
