@@ -64,7 +64,7 @@ func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manag
 func (n *ServiceNetwork) Init(ctx context.Context) error {
 	hostNetwork, err := hostnetwork.NewHostNetwork(n.CertificateManager.GetCertificate().GetNodeRef().String())
 	if err != nil {
-		return errors.Wrap(err, "failed to create hostnetwork")
+		return errors.W(err, "failed to create hostnetwork")
 	}
 	n.HostNetwork = hostNetwork
 
@@ -74,7 +74,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	nodeNetwork, err := nodenetwork.NewNodeNetwork(n.cfg.Host.Transport, cert)
 	if err != nil {
-		return errors.Wrap(err, "failed to create NodeNetwork")
+		return errors.W(err, "failed to create NodeNetwork")
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
@@ -99,7 +99,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	err = n.cm.Init(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to init internal components")
+		return errors.W(err, "failed to init internal components")
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 func (n *ServiceNetwork) Start(ctx context.Context) error {
 	err := n.cm.Start(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to start component manager")
+		return errors.W(err, "failed to start component manager")
 	}
 
 	bootstrapPulse := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)

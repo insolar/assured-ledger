@@ -64,19 +64,19 @@ func (g *Complete) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {
 func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (node2.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ GetCert ] Couldn't get node info")
+		return nil, errors.W(err, "[ GetCert ] Couldn't get node info")
 	}
 
 	currentNodeCert := g.CertificateManager.GetCertificate()
 	registeredNodeCert, err := certificate.NewUnsignedCertificate(currentNodeCert, pKey, role, registeredNodeRef.String())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ GetCert ] Couldn't create certificate")
+		return nil, errors.W(err, "[ GetCert ] Couldn't create certificate")
 	}
 
 	for i, discoveryNode := range currentNodeCert.GetDiscoveryNodes() {
 		sign, err := g.requestCertSign(ctx, discoveryNode, registeredNodeRef)
 		if err != nil {
-			return nil, errors.Wrap(err, "[ GetCert ] Couldn't request cert sign")
+			return nil, errors.W(err, "[ GetCert ] Couldn't request cert sign")
 		}
 		registeredNodeCert.(*certificate.Certificate).BootstrapNodes[i].NodeSign = sign
 	}
@@ -120,7 +120,7 @@ func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (s
 func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*cryptography.Signature, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ SignCert ] Couldn't extract response")
+		return nil, errors.W(err, "[ SignCert ] Couldn't extract response")
 	}
 	return certificate.SignCert(g.CryptographyService, pKey, role, registeredNodeRef.String())
 }

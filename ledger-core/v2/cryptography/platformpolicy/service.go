@@ -25,7 +25,7 @@ type NodeCryptographyService struct {
 func (cs *NodeCryptographyService) GetPublicKey() (crypto.PublicKey, error) {
 	privateKey, err := cs.KeyStore.GetPrivateKey("")
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Sign ] Failed to get private privateKey")
+		return nil, errors.W(err, "[ Sign ] Failed to get private privateKey")
 	}
 
 	return cs.KeyProcessor.ExtractPublicKey(privateKey), nil
@@ -34,13 +34,13 @@ func (cs *NodeCryptographyService) GetPublicKey() (crypto.PublicKey, error) {
 func (cs *NodeCryptographyService) Sign(payload []byte) (*cryptography.Signature, error) {
 	privateKey, err := cs.KeyStore.GetPrivateKey("")
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Sign ] Failed to get private privateKey")
+		return nil, errors.W(err, "[ Sign ] Failed to get private privateKey")
 	}
 
 	signer := cs.PlatformCryptographyScheme.DataSigner(privateKey, cs.PlatformCryptographyScheme.IntegrityHasher())
 	signature, err := signer.Sign(payload)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Sign ] Failed to sign payload")
+		return nil, errors.W(err, "[ Sign ] Failed to sign payload")
 	}
 
 	return signature, nil
@@ -71,7 +71,7 @@ func NewStorageBoundCryptographyService(path string) (cryptography.Service, erro
 	platformCryptographyScheme := NewPlatformCryptographyScheme()
 	keyStore, err := keystore.NewKeyStore(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ NewStorageBoundCryptographyService ] Failed to create KeyStore")
+		return nil, errors.W(err, "[ NewStorageBoundCryptographyService ] Failed to create KeyStore")
 	}
 	keyProcessor := NewKeyProcessor()
 	cryptographyService := NewCryptographyService()

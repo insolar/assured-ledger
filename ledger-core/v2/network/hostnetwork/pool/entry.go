@@ -69,7 +69,7 @@ func (e *entry) open(ctx context.Context) (io.ReadWriteCloser, error) {
 func (e *entry) dial(ctx context.Context) (io.ReadWriteCloser, error) {
 	conn, err := e.transport.Dial(ctx, e.host.Address.String())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Open ] Failed to create TCP connection")
+		return nil, errors.W(err, "[ Open ] Failed to create TCP connection")
 	}
 
 	return conn, nil

@@ -20,7 +20,7 @@ func Serialize(o interface{}) ([]byte, error) {
 	ch := new(codec.CborHandle)
 	var data []byte
 	err := codec.NewEncoderBytes(&data, ch).Encode(o)
-	return data, errors.Wrap(err, "[ Serialize ]")
+	return data, errors.W(err, "[ Serialize ]")
 }
 
 // Deserialize deserializes data to specific interface
@@ -29,7 +29,7 @@ func Deserialize(data []byte, to interface{}) error {
 	ch.MapType = mapType
 
 	err := codec.NewDecoderBytes(data, ch).Decode(&to)
-	return errors.Wrap(err, "[ Deserialize ]")
+	return errors.W(err, "[ Deserialize ]")
 }
 
 // MustSerialize serializes interface, panics on error.

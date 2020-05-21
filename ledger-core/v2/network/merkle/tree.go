@@ -22,7 +22,7 @@ func treeFromHashList(list [][]byte, hasher hash.Hash) (tree, error) {
 	mt.AddHash(list...)
 
 	if err := mt.Generate(); err != nil {
-		return nil, errors.Wrap(err, "[ treeFromHashList ] Failed to generate merkle tree")
+		return nil, errors.W(err, "[ treeFromHashList ] Failed to generate merkle tree")
 	}
 
 	return &mt, nil

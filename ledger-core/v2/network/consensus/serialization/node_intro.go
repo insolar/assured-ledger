@@ -81,27 +81,27 @@ func (bi *NodeBriefIntro) SetAddrMode(addrMode endpoints.NodeEndpointType) {
 
 func (bi *NodeBriefIntro) SerializeTo(ctx SerializeContext, writer io.Writer) error {
 	if err := write(writer, bi.PrimaryRoleAndFlags); err != nil {
-		return errors.Wrap(err, "failed to serialize PrimaryRoleAndFlags")
+		return errors.W(err, "failed to serialize PrimaryRoleAndFlags")
 	}
 
 	if err := write(writer, bi.SpecialRoles); err != nil {
-		return errors.Wrap(err, "failed to serialize SpecialRoles")
+		return errors.W(err, "failed to serialize SpecialRoles")
 	}
 
 	if err := write(writer, bi.StartPower); err != nil {
-		return errors.Wrap(err, "failed to serialize StartPower")
+		return errors.W(err, "failed to serialize StartPower")
 	}
 
 	if err := write(writer, bi.Endpoint); err != nil {
-		return errors.Wrap(err, "failed to serialize Endpoint")
+		return errors.W(err, "failed to serialize Endpoint")
 	}
 
 	if err := write(writer, bi.NodePK); err != nil {
-		return errors.Wrap(err, "failed to serialize NodePK")
+		return errors.W(err, "failed to serialize NodePK")
 	}
 
 	if err := write(writer, bi.JoinerSignature); err != nil {
-		return errors.Wrap(err, "failed to serialize JoinerSignature")
+		return errors.W(err, "failed to serialize JoinerSignature")
 	}
 
 	return nil
@@ -111,29 +111,29 @@ func (bi *NodeBriefIntro) DeserializeFrom(ctx DeserializeContext, reader io.Read
 	capture := network.NewCapturingReader(reader)
 
 	if err := read(capture, &bi.PrimaryRoleAndFlags); err != nil {
-		return errors.Wrap(err, "failed to deserialize PrimaryRoleAndFlags")
+		return errors.W(err, "failed to deserialize PrimaryRoleAndFlags")
 	}
 
 	if err := read(capture, &bi.SpecialRoles); err != nil {
-		return errors.Wrap(err, "failed to deserialize SpecialRoles")
+		return errors.W(err, "failed to deserialize SpecialRoles")
 	}
 
 	if err := read(capture, &bi.StartPower); err != nil {
-		return errors.Wrap(err, "failed to deserialize StartPower")
+		return errors.W(err, "failed to deserialize StartPower")
 	}
 
 	if err := read(capture, &bi.Endpoint); err != nil {
-		return errors.Wrap(err, "failed to deserialize BasePort")
+		return errors.W(err, "failed to deserialize BasePort")
 	}
 
 	if err := read(capture, &bi.NodePK); err != nil {
-		return errors.Wrap(err, "failed to deserialize NodePK")
+		return errors.W(err, "failed to deserialize NodePK")
 	}
 
 	bi.JoinerData = capture.Captured()
 
 	if err := read(reader, &bi.JoinerSignature); err != nil {
-		return errors.Wrap(err, "failed to deserialize JoinerSignature")
+		return errors.W(err, "failed to deserialize JoinerSignature")
 	}
 
 	return nil
@@ -158,19 +158,19 @@ type NodeExtendedIntro struct {
 
 func (ei *NodeExtendedIntro) SerializeTo(ctx SerializeContext, writer io.Writer) error {
 	if err := write(writer, ei.IssuedAtPulse); err != nil {
-		return errors.Wrap(err, "failed to serialize IssuedAtPulse")
+		return errors.W(err, "failed to serialize IssuedAtPulse")
 	}
 
 	if err := write(writer, ei.IssuedAtTime); err != nil {
-		return errors.Wrap(err, "failed to serialize IssuedAtTime")
+		return errors.W(err, "failed to serialize IssuedAtTime")
 	}
 
 	if err := write(writer, ei.PowerLevels); err != nil {
-		return errors.Wrap(err, "failed to serialize PowerLevels")
+		return errors.W(err, "failed to serialize PowerLevels")
 	}
 
 	if err := write(writer, ei.EndpointLen); err != nil {
-		return errors.Wrap(err, "failed to serialize EndpointLen")
+		return errors.W(err, "failed to serialize EndpointLen")
 	}
 
 	for i := 0; i < int(ei.EndpointLen); i++ {
@@ -180,7 +180,7 @@ func (ei *NodeExtendedIntro) SerializeTo(ctx SerializeContext, writer io.Writer)
 	}
 
 	if err := write(writer, ei.ProofLen); err != nil {
-		return errors.Wrap(err, "failed to serialize ProofLen")
+		return errors.W(err, "failed to serialize ProofLen")
 	}
 
 	for i := 0; i < int(ei.ProofLen); i++ {
@@ -190,11 +190,11 @@ func (ei *NodeExtendedIntro) SerializeTo(ctx SerializeContext, writer io.Writer)
 	}
 
 	if err := write(writer, ei.DiscoveryIssuerNodeID); err != nil {
-		return errors.Wrap(err, "failed to serialize DiscoveryIssuerNodeID")
+		return errors.W(err, "failed to serialize DiscoveryIssuerNodeID")
 	}
 
 	if err := write(writer, ei.IssuerSignature); err != nil {
-		return errors.Wrap(err, "failed to serialize IssuerSignature")
+		return errors.W(err, "failed to serialize IssuerSignature")
 	}
 
 	return nil
@@ -202,19 +202,19 @@ func (ei *NodeExtendedIntro) SerializeTo(ctx SerializeContext, writer io.Writer)
 
 func (ei *NodeExtendedIntro) DeserializeFrom(ctx DeserializeContext, reader io.Reader) error {
 	if err := read(reader, &ei.IssuedAtPulse); err != nil {
-		return errors.Wrap(err, "failed to deserialize IssuedAtPulse")
+		return errors.W(err, "failed to deserialize IssuedAtPulse")
 	}
 
 	if err := read(reader, &ei.IssuedAtTime); err != nil {
-		return errors.Wrap(err, "failed to deserialize IssuedAtTime")
+		return errors.W(err, "failed to deserialize IssuedAtTime")
 	}
 
 	if err := read(reader, &ei.PowerLevels); err != nil {
-		return errors.Wrap(err, "failed to deserialize PowerLevels")
+		return errors.W(err, "failed to deserialize PowerLevels")
 	}
 
 	if err := read(reader, &ei.EndpointLen); err != nil {
-		return errors.Wrap(err, "failed to deserialize EndpointLen")
+		return errors.W(err, "failed to deserialize EndpointLen")
 	}
 
 	if ei.EndpointLen > 0 {
@@ -227,7 +227,7 @@ func (ei *NodeExtendedIntro) DeserializeFrom(ctx DeserializeContext, reader io.R
 	}
 
 	if err := read(reader, &ei.ProofLen); err != nil {
-		return errors.Wrap(err, "failed to deserialize ProofLen")
+		return errors.W(err, "failed to deserialize ProofLen")
 	}
 
 	if ei.ProofLen > 0 {
@@ -240,11 +240,11 @@ func (ei *NodeExtendedIntro) DeserializeFrom(ctx DeserializeContext, reader io.R
 	}
 
 	if err := read(reader, &ei.DiscoveryIssuerNodeID); err != nil {
-		return errors.Wrap(err, "failed to deserialize DiscoveryIssuerNodeID")
+		return errors.W(err, "failed to deserialize DiscoveryIssuerNodeID")
 	}
 
 	if err := read(reader, &ei.IssuerSignature); err != nil {
-		return errors.Wrap(err, "failed to deserialize IssuerSignature")
+		return errors.W(err, "failed to deserialize IssuerSignature")
 	}
 
 	return nil
@@ -259,11 +259,11 @@ type NodeFullIntro struct {
 
 func (fi *NodeFullIntro) SerializeTo(ctx SerializeContext, writer io.Writer) error {
 	if err := fi.NodeBriefIntro.SerializeTo(ctx, writer); err != nil {
-		return errors.Wrap(err, "failed to serialize NodeBriefIntro")
+		return errors.W(err, "failed to serialize NodeBriefIntro")
 	}
 
 	if err := fi.NodeExtendedIntro.SerializeTo(ctx, writer); err != nil {
-		return errors.Wrap(err, "failed to serialize NodeExtendedIntro")
+		return errors.W(err, "failed to serialize NodeExtendedIntro")
 	}
 
 	return nil
@@ -271,11 +271,11 @@ func (fi *NodeFullIntro) SerializeTo(ctx SerializeContext, writer io.Writer) err
 
 func (fi *NodeFullIntro) DeserializeFrom(ctx DeserializeContext, reader io.Reader) error {
 	if err := fi.NodeBriefIntro.DeserializeFrom(ctx, reader); err != nil {
-		return errors.Wrap(err, "failed to deserialize NodeBriefIntro")
+		return errors.W(err, "failed to deserialize NodeBriefIntro")
 	}
 
 	if err := fi.NodeExtendedIntro.DeserializeFrom(ctx, reader); err != nil {
-		return errors.Wrap(err, "failed to deserialize NodeExtendedIntro")
+		return errors.W(err, "failed to deserialize NodeExtendedIntro")
 	}
 
 	return nil

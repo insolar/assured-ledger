@@ -64,7 +64,7 @@ func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs,
 
 	p, err := s.runner.PulseAccessor.Latest(context.Background())
 	if err != nil {
-		return errors.Wrap(err, "couldn't receive pulse")
+		return errors.W(err, "couldn't receive pulse")
 	}
 	s.runner.SeedManager.Add(*seed, p.PulseNumber)
 

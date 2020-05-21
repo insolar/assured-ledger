@@ -90,7 +90,7 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number)
 
 	latest, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
-		return false, throw.Wrap(err, "failed to fetch pulse")
+		return false, throw.W(err, "failed to fetch pulse")
 	}
 
 	// Out target on the latest pulse. It's within limit.
@@ -106,7 +106,7 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number)
 			return true, nil
 		}
 		if err != nil {
-			return false, throw.Wrap(err, "failed to calculate pulse")
+			return false, throw.W(err, "failed to calculate pulse")
 		}
 		// We reached our target. It's within limit.
 		if iter <= targetPN {
@@ -160,7 +160,7 @@ func CircleXOR(value, src []byte) []byte {
 func (jc *Coordinator) entropy(ctx context.Context, pulse pulse.Number) (pulsestor.Entropy, error) {
 	current, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
-		return pulsestor.Entropy{}, throw.Wrap(err, "failed to get current pulse")
+		return pulsestor.Entropy{}, throw.W(err, "failed to get current pulse")
 	}
 
 	if current.PulseNumber == pulse {

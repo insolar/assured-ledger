@@ -68,13 +68,13 @@ func (g *Generator) Run(ctx context.Context, properNames bool) error {
 		properNames,
 	)
 	if err != nil {
-		return errors.Wrap(err, "create keys step failed")
+		return errors.W(err, "create keys step failed")
 	}
 
 	inslog.Info("[ bootstrap ] create discovery certificates ...")
 	err = g.makeCertificates(ctx, discoveryNodes, discoveryNodes)
 	if err != nil {
-		return errors.Wrap(err, "generate discovery certificates failed")
+		return errors.W(err, "generate discovery certificates failed")
 	}
 
 	if g.config.NotDiscoveryKeysDir != "" {
@@ -88,18 +88,18 @@ func (g *Generator) Run(ctx context.Context, properNames bool) error {
 			properNames,
 		)
 		if err != nil {
-			return errors.Wrap(err, "create keys step failed")
+			return errors.W(err, "create keys step failed")
 		}
 
 		inslog.Info("[ bootstrap ] create not discovery certificates ...", nodes)
 		err = g.makeCertificates(ctx, nodes, discoveryNodes)
 		if err != nil {
-			return errors.Wrap(err, "generate not discovery certificates failed")
+			return errors.W(err, "generate not discovery certificates failed")
 		}
 	}
 
 	if err := g.makeEmptyGenesisConfig(); err != nil {
-		return errors.Wrap(err, "generate empty genesis config failed")
+		return errors.W(err, "generate empty genesis config failed")
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (g *Generator) makeEmptyGenesisConfig() error {
 	cfg := &application.GenesisHeavyConfig{}
 	b, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
-		return errors.Wrap(err, "failed to decode heavy config to json")
+		return errors.W(err, "failed to decode heavy config to json")
 	}
 
 	err = ioutil.WriteFile(g.config.HeavyGenesisConfigFile, b, 0600)
@@ -178,7 +178,7 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		// save cert to disk
 		cert, err := json.MarshalIndent(certs[i], "", "  ")
 		if err != nil {
-			return errors.Wrap(err, "can't MarshalIndent")
+			return errors.W(err, "can't MarshalIndent")
 		}
 
 		if len(node.certName) == 0 {

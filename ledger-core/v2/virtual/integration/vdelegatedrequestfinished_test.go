@@ -136,7 +136,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Message, error) {
 	bytes, err := request.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal request")
+		return nil, errors.W(err, "failed to marshal request")
 	}
 
 	msg, err := payload.NewMessage(&payload.Meta{
@@ -149,7 +149,7 @@ func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Mess
 		OriginHash: payload.MessageHash{},
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create new message")
+		return nil, errors.W(err, "failed to create new message")
 	}
 
 	return msg, nil

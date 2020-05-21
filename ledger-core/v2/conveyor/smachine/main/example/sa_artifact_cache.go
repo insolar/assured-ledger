@@ -79,7 +79,7 @@ func (a *unlimitedArtifactCacheService) SetRandomID(object []byte) (ArtifactCach
 
 	rawCacheID, err := uuid.NewV4()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get id for request")
+		return "", errors.W(err, "failed to get id for request")
 	}
 	cacheID := ArtifactCacheID(rawCacheID.String())
 

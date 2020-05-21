@@ -101,7 +101,7 @@ func StartSpanWithSpanID(ctx context.Context, name string, spanID uint64, o ...o
 		}
 		traceID, err = jaeger.TraceIDFromString(traceStr)
 		if err != nil {
-			inslogger.FromContext(ctx).Error(errors.Wrap(err, "failed to parse tracespan traceID"))
+			inslogger.FromContext(ctx).Error(errors.W(err, "failed to parse tracespan traceID"))
 		}
 	}
 
@@ -177,7 +177,7 @@ func ParentSpanCtx(ctx context.Context) (jaeger.SpanContext, context.Context) {
 		}
 		traceID, err = jaeger.TraceIDFromString(stringTrace)
 		if err != nil {
-			inslogger.FromContext(ctx).Error(errors.Wrap(err, "failed to parse tracespan traceID"))
+			inslogger.FromContext(ctx).Error(errors.W(err, "failed to parse tracespan traceID"))
 			return emptyContext, ctx
 		}
 	}
@@ -226,7 +226,7 @@ func NewJaegerTracer(
 
 	remoteReporter, err := remoteReporterCfg.NewReporter(serviceName, nil, nil)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to init new reporter")
+		return nil, nil, errors.W(err, "failed to init new reporter")
 	}
 
 	cfg := config.Configuration{

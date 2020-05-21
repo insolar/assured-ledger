@@ -55,13 +55,13 @@ func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 func initDefault() {
 	switch b, err := globalLogger.defInit(); {
 	case err != nil:
-		panic(errors.Wrap(err, "default global logger initializer has failed"))
+		panic(errors.W(err, "default global logger initializer has failed"))
 	case b.IsZero():
 		panic("default global logger initializer has returned zero builder")
 	default:
 		switch logger, err := b.Build(); {
 		case err != nil:
-			panic(errors.Wrap(err, "default global logger builder has failed"))
+			panic(errors.W(err, "default global logger builder has failed"))
 		default:
 			globalLogger.logger = &logger
 		}

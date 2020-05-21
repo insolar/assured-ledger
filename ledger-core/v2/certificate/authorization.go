@@ -62,7 +62,7 @@ func (authCert *AuthorizationCertificate) SignNodePart(key crypto.PrivateKey) ([
 	signer := scheme.DataSigner(key, scheme.IntegrityHasher())
 	sign, err := signer.Sign(authCert.SerializeNodePart())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ SignNodePart ] Can't Sign")
+		return nil, errors.W(err, "[ SignNodePart ] Can't Sign")
 	}
 	return sign.Bytes(), nil
 }
@@ -73,13 +73,13 @@ func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (node.Authoriza
 	err := insolar.Deserialize(data, cert)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "[ AuthorizatonCertificate::Deserialize ] failed to deserialize a data")
+		return nil, errors.W(err, "[ AuthorizatonCertificate::Deserialize ] failed to deserialize a data")
 	}
 
 	key, err := keyProc.ImportPublicKeyPEM([]byte(cert.PublicKey))
 
 	if err != nil {
-		return nil, errors.Wrap(err, "[ AuthorizationCertificate::Deserialize ] failed to import a public key")
+		return nil, errors.W(err, "[ AuthorizationCertificate::Deserialize ] failed to import a public key")
 	}
 
 	cert.nodePublicKey = key
@@ -91,7 +91,7 @@ func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (node.Authoriza
 func Serialize(authCert node.AuthorizationCertificate) ([]byte, error) {
 	data, err := insolar.Serialize(authCert)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ AuthorizationCertificate::Serialize ]")
+		return nil, errors.W(err, "[ AuthorizationCertificate::Serialize ]")
 	}
 	return data, nil
 }

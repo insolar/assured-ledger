@@ -155,13 +155,13 @@ func TestVirtual_Scenario1(t *testing.T) {
 			// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 			response, err := utils.UnmarshalWalletTransferResponse(byteBuffer)
 			if err != nil {
-				outChan <- errors.Wrap(err, "failed to parse response")
+				outChan <- errors.W(err, "failed to parse response")
 				return
 			}
 
 			if response.Err != "" {
 				err := errors.New(response.Err)
-				outChan <- errors.Wrap(err, "failed to execute contract")
+				outChan <- errors.W(err, "failed to execute contract")
 				return
 			}
 

@@ -100,7 +100,7 @@ func UnmarshalType(data []byte) (Type, error) {
 	buf := proto.NewBuffer(data)
 	fieldNumType, err := buf.DecodeVarint()
 	if err != nil {
-		return TypeUnknown, errors.Wrap(err, "failed to decode polymorph")
+		return TypeUnknown, errors.W(err, "failed to decode polymorph")
 	}
 	// First 3 bits is a field type (see protobuf wire protocol docs), key is always varint
 	if fieldNumType != MorphFieldNum<<3|MorpyFieldType {
@@ -108,7 +108,7 @@ func UnmarshalType(data []byte) (Type, error) {
 	}
 	morph, err := buf.DecodeVarint()
 	if err != nil {
-		return TypeUnknown, errors.Wrap(err, "failed to decode polymorph")
+		return TypeUnknown, errors.W(err, "failed to decode polymorph")
 	}
 	return Type(morph), nil
 }
@@ -118,11 +118,11 @@ func MarshalType(t Type) ([]byte, error) {
 	buf := proto.NewBuffer(nil)
 	err := buf.EncodeVarint(MorphFieldNum<<3 | MorpyFieldType)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode polymorph")
+		return nil, errors.W(err, "failed to encode polymorph")
 	}
 	err = buf.EncodeVarint(uint64(t))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode polymorph")
+		return nil, errors.W(err, "failed to encode polymorph")
 	}
 	return buf.Bytes(), nil
 }

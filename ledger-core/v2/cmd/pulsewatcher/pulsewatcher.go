@@ -303,7 +303,7 @@ func main() {
 
 	conf, err := pulsewatcher.ReadConfig(configFile)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "couldn't load config file"))
+		log.Fatal(errors.W(err, "couldn't load config file"))
 	}
 	if len(conf.Nodes) == 0 {
 		log.Fatal("couldn't find any nodes in config file")

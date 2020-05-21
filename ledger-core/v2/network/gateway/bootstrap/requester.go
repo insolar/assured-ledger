@@ -113,7 +113,7 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.A
 	defer span.Finish()
 	serializedCert, err := certificate.Serialize(cert)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error serializing certificate")
+		return nil, throw.W(err, "Error serializing certificate")
 	}
 
 	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: ac.OriginProvider.GetOrigin().Version()}
@@ -143,23 +143,23 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 
 	data, err := authData.Marshal()
 	if err != nil {
-		return nil, throw.Wrap(err, "failed to marshal permit")
+		return nil, throw.W(err, "failed to marshal permit")
 	}
 
 	signature, err := ac.CryptographyService.Sign(data)
 	if err != nil {
-		return nil, throw.Wrap(err, "failed to sign permit")
+		return nil, throw.W(err, "failed to sign permit")
 	}
 
 	req := &packet.AuthorizeRequest{AuthorizeData: authData, Signature: signature.Bytes()}
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Authorize, req, h)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error sending Authorize request")
+		return nil, throw.W(err, "Error sending Authorize request")
 	}
 	response, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error getting response for Authorize request")
+		return nil, throw.W(err, "Error getting response for Authorize request")
 	}
 
 	if response.GetResponse().GetError() != nil {
@@ -183,12 +183,12 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error sending Bootstrap request")
+		return nil, throw.W(err, "Error sending Bootstrap request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error getting response for Bootstrap request")
+		return nil, throw.W(err, "Error getting response for Bootstrap request")
 	}
 
 	respData := resp.GetResponse().GetBootstrap()
@@ -221,12 +221,12 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, 
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error sending UpdateSchedule request")
+		return nil, throw.W(err, "Error sending UpdateSchedule request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error getting response for UpdateSchedule request")
+		return nil, throw.W(err, "Error getting response for UpdateSchedule request")
 	}
 
 	return resp.GetResponse().GetUpdateSchedule(), nil
@@ -240,12 +240,12 @@ func (ac *requester) Reconnect(ctx context.Context, h *host.Host, permit *packet
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Reconnect, req, h)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error sending Reconnect request")
+		return nil, throw.W(err, "Error sending Reconnect request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, throw.Wrap(err, "Error getting response for Reconnect request")
+		return nil, throw.W(err, "Error getting response for Reconnect request")
 	}
 
 	return resp.GetResponse().GetReconnect(), nil

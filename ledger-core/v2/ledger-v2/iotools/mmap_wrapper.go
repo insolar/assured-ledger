@@ -165,7 +165,7 @@ func Wrap(err error) error {
 	//if !debugMode {
 	//	return err
 	//}
-	return errors.Wrap(err, "")
+	return errors.W(err, "")
 }
 
 // Wrapf is Wrap with extra info.

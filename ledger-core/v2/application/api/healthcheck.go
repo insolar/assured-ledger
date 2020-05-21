@@ -35,7 +35,7 @@ func (hc *HealthChecker) CheckHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	p, err := hc.PulseAccessor.Latest(ctx)
 	if err != nil {
-		err := errors.Wrap(err, "failed to get latest pulse")
+		err := errors.W(err, "failed to get latest pulse")
 		inslogger.FromContext(ctx).Errorf("[ NodeService.GetStatus ] %s", err.Error())
 		_, _ = w.Write([]byte("FAIL"))
 		return

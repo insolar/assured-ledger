@@ -34,7 +34,7 @@ func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
 		p, err := t.PulseAccessor.GetLatestPulse(context.Background())
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get latest pulse --==-- ")
+			return nil, errors.W(err, "failed to get latest pulse --==-- ")
 		}
 
 		node := t.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNode(ref)

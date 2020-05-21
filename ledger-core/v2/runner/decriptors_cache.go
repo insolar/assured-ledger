@@ -44,13 +44,13 @@ func (c *descriptorsCache) ByPrototypeRef(
 ) {
 	protoDesc, err := c.GetPrototype(ctx, protoRef)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't get prototype descriptor")
+		return nil, nil, errors.W(err, "couldn't get prototype descriptor")
 	}
 
 	codeRef := protoDesc.Code()
 	codeDesc, err := c.GetCode(ctx, codeRef)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't get code descriptor")
+		return nil, nil, errors.W(err, "couldn't get code descriptor")
 	}
 
 	return protoDesc, codeDesc, nil
@@ -63,7 +63,7 @@ func (c *descriptorsCache) ByObjectDescriptor(
 ) {
 	protoRef, err := obj.Prototype()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't get prototype reference")
+		return nil, nil, errors.W(err, "couldn't get prototype reference")
 	}
 
 	if protoRef.IsEmpty() {
@@ -89,7 +89,7 @@ func (c *descriptorsCache) GetPrototype(
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get prototype")
+		return nil, errors.W(err, "couldn't get prototype")
 	} else if rawResult == nil {
 		return nil, errors.Errorf("failed to find prototype descriptor %s", ref.String())
 	}
@@ -118,7 +118,7 @@ func (c *descriptorsCache) GetCode(
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get code")
+		return nil, errors.W(err, "couldn't get code")
 	} else if rawResult == nil {
 		return nil, errors.Errorf("failed to find code descriptor %s", ref.String())
 	}

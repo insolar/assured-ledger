@@ -59,11 +59,11 @@ func (nv NodeVectors) String() string {
 
 func (nv *NodeVectors) SerializeTo(ctx SerializeContext, writer io.Writer) error {
 	if err := nv.StateVectorMask.SerializeTo(ctx, writer); err != nil {
-		return errors.Wrap(err, "failed to serialize StateVectorMask")
+		return errors.W(err, "failed to serialize StateVectorMask")
 	}
 
 	if err := nv.MainStateVector.SerializeTo(ctx, writer); err != nil {
-		return errors.Wrap(err, "failed to serialize MainStateVector")
+		return errors.W(err, "failed to serialize MainStateVector")
 	}
 
 	for i := 0; i < int(ctx.GetFlagRangeInt(1, 2)); i++ {
@@ -77,11 +77,11 @@ func (nv *NodeVectors) SerializeTo(ctx SerializeContext, writer io.Writer) error
 
 func (nv *NodeVectors) DeserializeFrom(ctx DeserializeContext, reader io.Reader) error {
 	if err := nv.StateVectorMask.DeserializeFrom(ctx, reader); err != nil {
-		return errors.Wrap(err, "failed to deserialize StateVectorMask")
+		return errors.W(err, "failed to deserialize StateVectorMask")
 	}
 
 	if err := nv.MainStateVector.DeserializeFrom(ctx, reader); err != nil {
-		return errors.Wrap(err, "failed to deserialize MainStateVector")
+		return errors.W(err, "failed to deserialize MainStateVector")
 	}
 
 	length := ctx.GetFlagRangeInt(1, 2)
@@ -210,18 +210,18 @@ func (nab *NodeAppearanceBitset) setLength(length uint16) {
 
 func (nab *NodeAppearanceBitset) SerializeTo(ctx SerializeContext, writer io.Writer) error {
 	if err := write(writer, nab.FlagsAndLoLength); err != nil {
-		return errors.Wrap(err, "failed to serialize FlagsAndLoLength")
+		return errors.W(err, "failed to serialize FlagsAndLoLength")
 	}
 
 	if nab.hasHiLength() {
 		if err := write(writer, nab.HiLength); err != nil {
-			return errors.Wrap(err, "failed to serialize HiLength")
+			return errors.W(err, "failed to serialize HiLength")
 		}
 	}
 
 	if nab.getLength() > 0 {
 		if err := write(writer, nab.Bytes); err != nil {
-			return errors.Wrap(err, "failed to serialize Bytes")
+			return errors.W(err, "failed to serialize Bytes")
 		}
 	}
 
@@ -230,12 +230,12 @@ func (nab *NodeAppearanceBitset) SerializeTo(ctx SerializeContext, writer io.Wri
 
 func (nab *NodeAppearanceBitset) DeserializeFrom(ctx DeserializeContext, reader io.Reader) error {
 	if err := read(reader, &nab.FlagsAndLoLength); err != nil {
-		return errors.Wrap(err, "failed to deserialize FlagsAndLoLength")
+		return errors.W(err, "failed to deserialize FlagsAndLoLength")
 	}
 
 	if nab.hasHiLength() {
 		if err := read(reader, &nab.HiLength); err != nil {
-			return errors.Wrap(err, "failed to serialize HiLength")
+			return errors.W(err, "failed to serialize HiLength")
 		}
 	}
 
@@ -243,7 +243,7 @@ func (nab *NodeAppearanceBitset) DeserializeFrom(ctx DeserializeContext, reader 
 	if length > 0 {
 		nab.Bytes = make([]byte, length)
 		if err := read(reader, &nab.Bytes); err != nil {
-			return errors.Wrap(err, "failed to serialize Bytes")
+			return errors.W(err, "failed to serialize Bytes")
 		}
 	}
 	return nil

@@ -22,7 +22,7 @@ type ecdsaDigestSignerWrapper struct {
 func (sw *ecdsaDigestSignerWrapper) Sign(digest []byte) (*cryptography.Signature, error) {
 	r, s, err := ecdsa.Sign(rand.Reader, sw.privateKey, digest)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ DataSigner ] could't sign data")
+		return nil, errors.W(err, "[ DataSigner ] could't sign data")
 	}
 
 	ecdsaSignature := SerializeTwoBigInt(r, s)

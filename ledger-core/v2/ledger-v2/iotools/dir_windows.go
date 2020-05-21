@@ -65,7 +65,7 @@ func acquireDirectoryLock(dirPath string, pidFileName string, readOnly bool) (*d
 	// chdir in the meantime.
 	absLockFilePath, err := filepath.Abs(filepath.Join(dirPath, pidFileName))
 	if err != nil {
-		return nil, errors.Wrap(err, "Cannot get absolute path for pid lock file")
+		return nil, errors.W(err, "Cannot get absolute path for pid lock file")
 	}
 
 	absLockFilePathUtf16, err := syscall.UTF16FromString(absLockFilePath)

@@ -73,7 +73,7 @@ func NewUnsignedCertificate(baseCert node.Certificate, pKey string, role string,
 func NewManagerReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*CertificateManager, error) {
 	cert, err := ReadCertificate(publicKey, keyProcessor, certPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ NewManagerReadCertificate ] failed to read certificate:")
+		return nil, errors.W(err, "[ NewManagerReadCertificate ] failed to read certificate:")
 	}
 	certManager := NewCertificateManager(cert)
 	return certManager, nil

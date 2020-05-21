@@ -68,18 +68,18 @@ func createKeysInDir(
 		pair, err := secrets.GenerateKeyPair()
 
 		if err != nil {
-			return nil, errors.Wrap(err, "[ createKeysInDir ] couldn't generate keys")
+			return nil, errors.W(err, "[ createKeysInDir ] couldn't generate keys")
 		}
 
 		ks := platformpolicy.NewKeyProcessor()
 		privKeyStr, err := ks.ExportPrivateKeyPEM(pair.Private)
 		if err != nil {
-			return nil, errors.Wrap(err, "[ createKeysInDir ] couldn't export private key")
+			return nil, errors.W(err, "[ createKeysInDir ] couldn't export private key")
 		}
 
 		pubKeyStr, err := ks.ExportPublicKeyPEM(pair.Public)
 		if err != nil {
-			return nil, errors.Wrap(err, "[ createKeysInDir ] couldn't export public key")
+			return nil, errors.W(err, "[ createKeysInDir ] couldn't export public key")
 		}
 
 		result, err := json.MarshalIndent(map[string]interface{}{
@@ -87,7 +87,7 @@ func createKeysInDir(
 			"public_key":  string(pubKeyStr),
 		}, "", "    ")
 		if err != nil {
-			return nil, errors.Wrap(err, "[ createKeysInDir ] couldn't marshal keys")
+			return nil, errors.W(err, "[ createKeysInDir ] couldn't marshal keys")
 		}
 
 		if properNames {
@@ -97,7 +97,7 @@ func createKeysInDir(
 		inslogger.FromContext(ctx).Info("Genesis write key " + filepath.Join(dir, keyname))
 		err = makeFileWithDir(dir, keyname, result)
 		if err != nil {
-			return nil, errors.Wrap(err, "[ createKeysInDir ] couldn't write keys to file")
+			return nil, errors.W(err, "[ createKeysInDir ] couldn't write keys to file")
 		}
 
 		p := keysToNodeInfo(pair)

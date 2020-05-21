@@ -14,17 +14,17 @@ func ErrPayloadLengthMismatch(expected, actual int64) error {
 }
 
 func ErrMalformedPulseNumber(err error) error {
-	return errors.Wrap(err, "malformed pulse number")
+	return errors.W(err, "malformed pulse number")
 }
 
 func ErrMalformedHeader(err error) error {
-	return errors.Wrap(err, "malformed header")
+	return errors.W(err, "malformed header")
 }
 
 func ErrMalformedPacketBody(err error) error {
-	return errors.Wrap(err, "malformed packet body")
+	return errors.W(err, "malformed packet body")
 }
 
 func ErrMalformedPacketSignature(err error) error {
-	return errors.Wrap(err, "invalid packet signature")
+	return errors.W(err, "invalid packet signature")
 }

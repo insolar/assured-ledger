@@ -52,7 +52,7 @@ func (t *tcpTransport) Dial(ctx context.Context, address string) (io.ReadWriteCl
 	conn, err := t.dialer.Dial("tcp", address)
 	if err != nil {
 		logger.Warn("[ Dial ] Failed to open connection: ", err)
-		return nil, errors.Wrap(err, "[ Dial ] Failed to open connection")
+		return nil, errors.W(err, "[ Dial ] Failed to open connection")
 	}
 
 	setupConnection(ctx, conn.(*net.TCPConn))
@@ -70,17 +70,17 @@ func (t *tcpTransport) Start(ctx context.Context) error {
 
 		addr, err := net.ResolveTCPAddr("tcp", t.address)
 		if err != nil {
-			return errors.Wrap(err, "Failed to resolve TCP addr")
+			return errors.W(err, "Failed to resolve TCP addr")
 		}
 
 		t.listener, err = net.ListenTCP("tcp", addr)
 		if err != nil {
-			return errors.Wrap(err, "Failed to Listen TCP ")
+			return errors.W(err, "Failed to Listen TCP ")
 		}
 
 		t.address, err = resolver.Resolve(t.fixedPublicAddress, t.listener.Addr().String())
 		if err != nil {
-			return errors.Wrap(err, "Failed to resolve public address")
+			return errors.W(err, "Failed to resolve public address")
 		}
 
 		go t.listen(ctx)

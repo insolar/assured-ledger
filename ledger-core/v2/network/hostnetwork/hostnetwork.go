@@ -32,7 +32,7 @@ func NewHostNetwork(nodeRef string) (network.HostNetwork, error) {
 
 	id, err := reference.GlobalFromString(nodeRef)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid nodeRef")
+		return nil, errors.W(err, "invalid nodeRef")
 	}
 
 	futureManager := future.NewManager()
@@ -78,7 +78,7 @@ func (hn *hostNetwork) Start(ctx context.Context) error {
 	var err error
 	hn.transport, err = hn.Factory.CreateStreamTransport(handler)
 	if err != nil {
-		return errors.Wrap(err, "Failed to create stream transport")
+		return errors.W(err, "Failed to create stream transport")
 	}
 
 	hn.pool = pool.NewConnectionPool(hn.transport)
@@ -87,12 +87,12 @@ func (hn *hostNetwork) Start(ctx context.Context) error {
 	defer hn.muOrigin.Unlock()
 
 	if err := hn.transport.Start(ctx); err != nil {
-		return errors.Wrap(err, "failed to start stream transport")
+		return errors.W(err, "failed to start stream transport")
 	}
 
 	h, err := host.NewHostN(hn.transport.Address(), hn.nodeID)
 	if err != nil {
-		return errors.Wrap(err, "failed to create host")
+		return errors.W(err, "failed to create host")
 	}
 
 	hn.origin = h
@@ -106,7 +106,7 @@ func (hn *hostNetwork) Stop(ctx context.Context) error {
 		hn.pool.Reset()
 		err := hn.transport.Stop(ctx)
 		if err != nil {
-			return errors.Wrap(err, "Failed to stop transport.")
+			return errors.W(err, "Failed to stop transport.")
 		}
 	}
 	return nil
@@ -187,7 +187,7 @@ func (hn *hostNetwork) SendRequestToHost(ctx context.Context, packetType types.P
 	err := SendPacket(ctx, hn.pool, p)
 	if err != nil {
 		f.Cancel()
-		return nil, errors.Wrap(err, "Failed to send transport packet")
+		return nil, errors.W(err, "Failed to send transport packet")
 	}
 	metrics.NetworkPacketSentTotal.WithLabelValues(p.GetType().String()).Inc()
 	return f, nil
@@ -224,7 +224,7 @@ func (hn *hostNetwork) SendRequest(ctx context.Context, packetType types.PacketT
 
 	h, err := hn.Resolver.Resolve(receiver)
 	if err != nil {
-		return nil, errors.Wrap(err, "error resolving NodeID -> Address")
+		return nil, errors.W(err, "error resolving NodeID -> Address")
 	}
 	return hn.SendRequestToHost(ctx, packetType, requestData, h)
 }

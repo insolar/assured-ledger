@@ -83,7 +83,7 @@ func (d *distributor) Init(ctx context.Context) error {
 	var err error
 	d.transport, err = d.Factory.CreateDatagramTransport(handlerThatPanics{})
 	if err != nil {
-		return errors.Wrap(err, "Failed to create transport")
+		return errors.W(err, "Failed to create transport")
 	}
 	transportCryptographyFactory := adapters.NewTransportCryptographyFactory(d.Scheme)
 
@@ -91,7 +91,7 @@ func (d *distributor) Init(ctx context.Context) error {
 
 	privateKey, err := d.KeyStore.GetPrivateKey("")
 	if err != nil {
-		return errors.Wrap(err, "failed to get private key")
+		return errors.W(err, "failed to get private key")
 	}
 	ecdsaPrivateKey := privateKey.(*ecdsa.PrivateKey)
 
@@ -110,7 +110,7 @@ func (d *distributor) Start(ctx context.Context) error {
 
 	pulsarHost, err := host.NewHost(d.publicAddress)
 	if err != nil {
-		return errors.Wrap(err, "[ NewDistributor ] failed to create pulsar host")
+		return errors.W(err, "[ NewDistributor ] failed to create pulsar host")
 	}
 	pulsarHost.NodeID = reference.Global{}
 
@@ -202,12 +202,12 @@ func (d *distributor) sendRequestToHost(ctx context.Context, p *serialization.Pa
 	buffer := &bytes.Buffer{}
 	n, err := p.SerializeTo(ctx, buffer, d.digester, d.signer)
 	if err != nil {
-		return errors.Wrap(err, "Failed to serialize packet")
+		return errors.W(err, "Failed to serialize packet")
 	}
 
 	err = d.transport.SendDatagram(ctx, rcv, buffer.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "[SendDatagram] Failed to write data")
+		return errors.W(err, "[SendDatagram] Failed to write data")
 	}
 
 	metrics.NetworkSentSize.Observe(float64(n))

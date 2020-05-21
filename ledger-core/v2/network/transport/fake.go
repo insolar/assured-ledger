@@ -74,7 +74,7 @@ func (f *fakeDatagramTransport) SendDatagram(ctx context.Context, address string
 	}
 	_, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return errors.Wrap(err, "Failed to resolve UDP address")
+		return errors.W(err, "Failed to resolve UDP address")
 	}
 
 	udpMutex.RLock()

@@ -28,17 +28,17 @@ func InfoResponse(data []byte) (*Info, error) {
 	var contractErr *foundation.Error
 	err := foundation.UnmarshalMethodResultSimplified(data, &infoMap, &contractErr)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ InfoResponse ] Can't unmarshal")
+		return nil, errors.W(err, "[ InfoResponse ] Can't unmarshal")
 	}
 	if contractErr != nil {
-		return nil, errors.Wrap(contractErr, "[ InfoResponse ] Has error in response")
+		return nil, errors.W(contractErr, "[ InfoResponse ] Has error in response")
 	}
 
 	var info Info
 	data = infoMap.([]byte)
 	err = json.Unmarshal(data, &info)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ InfoResponse ] Can't unmarshal response ")
+		return nil, errors.W(err, "[ InfoResponse ] Can't unmarshal response ")
 	}
 
 	return &info, nil

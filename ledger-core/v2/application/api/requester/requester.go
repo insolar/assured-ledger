@@ -114,13 +114,13 @@ func GetResponseBodyContract(url string, postP ContractRequest, signature string
 func MakeContractRequest(url string, postP ContractRequest, signature string) (*http.Request, error) {
 	req, jsonValue, err := prepareReq(url, postP)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with preparing contract request")
+		return nil, errors.W(err, "problem with preparing contract request")
 	}
 
 	h := sha256.New()
 	_, err = h.Write(jsonValue)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ GetResponseBodyContract ] Cant get hash")
+		return nil, errors.W(err, "[ GetResponseBodyContract ] Cant get hash")
 	}
 	sha := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	req.Header.Set(Digest, "SHA-256="+sha)
@@ -142,7 +142,7 @@ func GetResponseBodyPlatform(url string, method string, params interface{}) ([]b
 
 	req, _, err := prepareReq(url, request)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with preparing platform request")
+		return nil, errors.W(err, "problem with preparing platform request")
 	}
 
 	return doReq(req)
@@ -151,12 +151,12 @@ func GetResponseBodyPlatform(url string, method string, params interface{}) ([]b
 func prepareReq(url string, postP interface{}) (*http.Request, []byte, error) {
 	jsonValue, err := json.Marshal(postP)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "problem with marshaling params")
+		return nil, nil, errors.W(err, "problem with marshaling params")
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "problem with creating request")
+		return nil, nil, errors.W(err, "problem with creating request")
 	}
 	req.Header.Set(ContentType, "application/json")
 
@@ -166,7 +166,7 @@ func prepareReq(url string, postP interface{}) (*http.Request, []byte, error) {
 func doReq(req *http.Request) ([]byte, error) {
 	postResp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with sending request")
+		return nil, errors.W(err, "problem with sending request")
 	}
 
 	if postResp == nil {
@@ -180,7 +180,7 @@ func doReq(req *http.Request) ([]byte, error) {
 
 	body, err := ioutil.ReadAll(postResp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with reading body")
+		return nil, errors.W(err, "problem with reading body")
 	}
 
 	return body, nil
@@ -190,14 +190,14 @@ func doReq(req *http.Request) ([]byte, error) {
 func GetSeed(url string) (string, error) {
 	body, err := GetResponseBodyPlatform(url, "node.getSeed", nil)
 	if err != nil {
-		return "", errors.Wrap(err, "[ GetSeed ] seed request")
+		return "", errors.W(err, "[ GetSeed ] seed request")
 	}
 
 	seedResp := rpcSeedResponse{}
 
 	err = json.Unmarshal(body, &seedResp)
 	if err != nil {
-		return "", errors.Wrap(err, "[ GetSeed ] Can't unmarshal")
+		return "", errors.W(err, "[ GetSeed ] Can't unmarshal")
 	}
 	if seedResp.Error != nil {
 		return "", seedResp.Error
@@ -213,10 +213,10 @@ func GetSeed(url string) (string, error) {
 func SendWithSeed(ctx context.Context, url string, userCfg *UserConfigJSON, params *Params, seed string) ([]byte, error) {
 	req, err := MakeRequestWithSeed(ctx, url, userCfg, params, seed)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ SendWithSeed ] Problem with creating target request")
+		return nil, errors.W(err, "[ SendWithSeed ] Problem with creating target request")
 	}
 	b, err := doReq(req)
-	return b, errors.Wrap(err, "[ SendWithSeed ] Problem with sending target request")
+	return b, errors.W(err, "[ SendWithSeed ] Problem with sending target request")
 }
 
 // MakeRequestWithSeed creates request with provided url, user config, params and seed.
@@ -240,11 +240,11 @@ func MakeRequestWithSeed(ctx context.Context, url string, userCfg *UserConfigJSO
 	verboseInfo(ctx, "Signing request ...")
 	dataToSign, err := json.Marshal(request)
 	if err != nil {
-		return nil, errors.Wrap(err, "config request marshaling failed")
+		return nil, errors.W(err, "config request marshaling failed")
 	}
 	signature, err := Sign(userCfg.privateKeyObject, dataToSign)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with signing request")
+		return nil, errors.W(err, "problem with signing request")
 	}
 	verboseInfo(ctx, "Signing request completed")
 
@@ -256,7 +256,7 @@ func Sign(privateKey crypto.PrivateKey, data []byte) (string, error) {
 
 	r, s, err := ecdsa.Sign(rand.Reader, privateKey.(*ecdsa.PrivateKey), hash[:])
 	if err != nil {
-		return "", errors.Wrap(err, "[ sign ] Cant sign data")
+		return "", errors.W(err, "[ sign ] Cant sign data")
 	}
 
 	return marshalSig(r, s)
@@ -282,13 +282,13 @@ func Send(ctx context.Context, url string, userCfg *UserConfigJSON, params *Para
 	verboseInfo(ctx, "Sending GETSEED request ...")
 	seed, err := GetSeed(url)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Send ] Problem with getting seed")
+		return nil, errors.W(err, "[ Send ] Problem with getting seed")
 	}
 	verboseInfo(ctx, "GETSEED request completed. seed: "+seed)
 
 	response, err := SendWithSeed(ctx, url, userCfg, params, seed)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Send ]")
+		return nil, errors.W(err, "[ Send ]")
 	}
 
 	return response, nil
@@ -298,14 +298,14 @@ func Send(ctx context.Context, url string, userCfg *UserConfigJSON, params *Para
 func Info(url string) (*InfoResponse, error) {
 	body, err := GetResponseBodyPlatform(url, "network.getInfo", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Info ]")
+		return nil, errors.W(err, "[ Info ]")
 	}
 
 	infoResp := rpcInfoResponse{}
 
 	err = json.Unmarshal(body, &infoResp)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Info ] Can't unmarshal")
+		return nil, errors.W(err, "[ Info ] Can't unmarshal")
 	}
 	if infoResp.Error != nil {
 		return nil, infoResp.Error
@@ -318,14 +318,14 @@ func Info(url string) (*InfoResponse, error) {
 func Status(url string) (*StatusResponse, error) {
 	body, err := GetResponseBodyPlatform(url, "node.getStatus", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Status ]")
+		return nil, errors.W(err, "[ Status ]")
 	}
 
 	statusResp := rpcStatusResponse{}
 
 	err = json.Unmarshal(body, &statusResp)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ Status ] Can't unmarshal")
+		return nil, errors.W(err, "[ Status ] Can't unmarshal")
 	}
 	if statusResp.Error != nil {
 		return nil, statusResp.Error

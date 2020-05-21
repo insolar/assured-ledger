@@ -73,10 +73,6 @@ func RWn(recovered interface{}, prevErr error, msg string, details ...interface{
 	return WithDetails(err, WithDetails(prevErr, d))
 }
 
-func Wrap(err error, message string) error {
-	return W(err, message)
-}
-
 // deprecated
 // Wrapf must be replaced with throw.W and struct for details
 func Wrapf(err error, format string, args ...interface{}) error {

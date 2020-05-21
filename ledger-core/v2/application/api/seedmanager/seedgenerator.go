@@ -26,7 +26,7 @@ func (sg *SeedGenerator) Next() (*Seed, error) {
 	seed := Seed{}
 	_, err := rand.Read(seed[:])
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get next seed")
+		return nil, errors.W(err, "failed to get next seed")
 	}
 
 	return &seed, nil

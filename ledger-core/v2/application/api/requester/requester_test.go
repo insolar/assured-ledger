@@ -109,7 +109,7 @@ func startServer() error {
 	server := &http.Server{}
 	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12221})
 	if err != nil {
-		return errors.Wrap(err, "error creating listener")
+		return errors.W(err, "error creating listener")
 	}
 	go server.Serve(listener)
 
@@ -124,13 +124,13 @@ func setup() error {
 	err := startServer()
 	if err != nil {
 		global.Error("Problem with starting test server: ", err)
-		return errors.Wrap(err, "[ setup ]")
+		return errors.W(err, "[ setup ]")
 	}
 
 	err = waitForStart()
 	if err != nil {
 		global.Error("Can't start api: ", err)
-		return errors.Wrap(err, "[ setup ]")
+		return errors.W(err, "[ setup ]")
 	}
 
 	return nil
@@ -270,7 +270,7 @@ func TestMarshalSig(t *testing.T) {
 func unmarshalRequest(req *http.Request, params interface{}) ([]byte, error) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ unmarshalRequest ] Can't read body. So strange")
+		return nil, errors.W(err, "[ unmarshalRequest ] Can't read body. So strange")
 	}
 	if len(body) == 0 {
 		return nil, errors.New("[ unmarshalRequest ] Empty body")
@@ -278,7 +278,7 @@ func unmarshalRequest(req *http.Request, params interface{}) ([]byte, error) {
 
 	err = json.Unmarshal(body, &params)
 	if err != nil {
-		return body, errors.Wrap(err, "[ unmarshalRequest ] Can't unmarshal input params")
+		return body, errors.W(err, "[ unmarshalRequest ] Can't unmarshal input params")
 	}
 	return body, nil
 }

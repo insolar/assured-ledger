@@ -44,7 +44,7 @@ func (ge *GlobuleEntry) hash(helper *merkleHelper) ([]byte, error) {
 		bucketEntryRoot, err := roleEntryRoot(roleEntries, helper)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "[ hash ] Failed to create tree for bucket role entry")
+			return nil, errors.W(err, "[ hash ] Failed to create tree for bucket role entry")
 		}
 
 		bucketInfoHash := helper.bucketInfoHash(role, uint32(len(roleEntries)))
@@ -55,7 +55,7 @@ func (ge *GlobuleEntry) hash(helper *merkleHelper) ([]byte, error) {
 	tree, err := treeFromHashList(bucketHashes, helper.scheme.IntegrityHasher())
 
 	if err != nil {
-		return nil, errors.Wrap(err, "[ hash ] Failed to create tree for bucket hashes")
+		return nil, errors.W(err, "[ hash ] Failed to create tree for bucket hashes")
 	}
 
 	return tree.Root(), nil
@@ -77,7 +77,7 @@ func (ce *CloudEntry) hash(helper *merkleHelper) ([]byte, error) {
 
 	tree, err := treeFromHashList(result, helper.scheme.IntegrityHasher())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ hash ] Failed to create tree")
+		return nil, errors.W(err, "[ hash ] Failed to create tree")
 	}
 
 	return tree.Root(), nil
@@ -123,7 +123,7 @@ func roleEntryRoot(roleEntries []*nodeEntry, helper *merkleHelper) ([]byte, erro
 
 	tree, err := treeFromHashList(roleEntriesHashes, helper.scheme.IntegrityHasher())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ hash ] Failed to create tree")
+		return nil, errors.W(err, "[ hash ] Failed to create tree")
 	}
 
 	return tree.Root(), nil

@@ -113,11 +113,11 @@ func ParseConfig(path string) (*Config, error) {
 	v.SetConfigFile(path)
 	err := v.ReadInConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't read config file")
+		return nil, errors.W(err, "couldn't read config file")
 	}
 	err = v.Unmarshal(conf)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't unmarshal yaml to struct")
+		return nil, errors.W(err, "couldn't unmarshal yaml to struct")
 	}
 
 	err = hasMinimumRolesSet(conf)

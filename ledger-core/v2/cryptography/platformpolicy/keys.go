@@ -75,7 +75,7 @@ func (*keyProcessor) ExportPublicKeyPEM(publicKey crypto.PublicKey) ([]byte, err
 	ecdsaPublicKey := sign.MustConvertPublicKeyToEcdsa(publicKey)
 	x509EncodedPub, err := x509.MarshalPKIXPublicKey(ecdsaPublicKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ ExportPublicKey ]")
+		return nil, errors.W(err, "[ ExportPublicKey ]")
 	}
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
 	return pemEncoded, nil
@@ -85,7 +85,7 @@ func (*keyProcessor) ExportPrivateKeyPEM(privateKey crypto.PrivateKey) ([]byte, 
 	ecdsaPrivateKey := sign.MustConvertPrivateKeyToEcdsa(privateKey)
 	x509Encoded, err := x509.MarshalPKCS8PrivateKey(ecdsaPrivateKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ ExportPrivateKey ]")
+		return nil, errors.W(err, "[ ExportPrivateKey ]")
 	}
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 	return pemEncoded, nil
@@ -99,7 +99,7 @@ func (kp *keyProcessor) ExportPublicKeyBinary(publicKey crypto.PublicKey) ([]byt
 func (kp *keyProcessor) ImportPublicKeyBinary(data []byte) (crypto.PublicKey, error) {
 	x, y, err := sign.DeserializeTwoBigInt(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ ImportPublicKeyBinary ]")
+		return nil, errors.W(err, "[ ImportPublicKeyBinary ]")
 	}
 
 	return &ecdsa.PublicKey{

@@ -32,7 +32,7 @@ func convertArgs(args []byte, result *[]interface{}) error {
 	var value interface{}
 	err := insolar.Deserialize(args, &value)
 	if err != nil {
-		return errors.Wrap(err, "Can't deserialize record")
+		return errors.W(err, "Can't deserialize record")
 	}
 
 	tmp, ok := value.([]interface{})

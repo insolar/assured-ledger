@@ -166,7 +166,7 @@ func (r *DefaultService) executeMethod(
 
 	prototypeReference, err := objectDescriptor.Prototype()
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get prototype reference")
+		return nil, errors.W(err, "couldn't get prototype reference")
 	}
 	if prototypeReference.IsEmpty() {
 		panic(throw.IllegalState())
@@ -174,12 +174,12 @@ func (r *DefaultService) executeMethod(
 
 	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, prototypeReference)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get descriptors")
+		return nil, errors.W(err, "couldn't get descriptors")
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get executor")
+		return nil, errors.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
@@ -188,7 +188,7 @@ func (r *DefaultService) executeMethod(
 		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "execution error")
+		return nil, errors.W(err, "execution error")
 	}
 	if len(result) == 0 {
 		return nil, errors.New("return of method is empty")
@@ -221,19 +221,19 @@ func (r *DefaultService) executeConstructor(
 
 	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get descriptors")
+		return nil, errors.W(err, "couldn't get descriptors")
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get executor")
+		return nil, errors.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
 
 	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
-		return nil, errors.Wrap(err, "execution error")
+		return nil, errors.W(err, "execution error")
 	}
 	if len(executionResult) == 0 {
 		return nil, errors.New("return of constructor is empty")

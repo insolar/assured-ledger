@@ -32,7 +32,7 @@ type WalletCreateResponse struct {
 func UnmarshalWalletCreateResponse(resp []byte) (WalletCreateResponse, error) { // nolint:unused,deadcode
 	result := WalletCreateResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
-		return WalletCreateResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+		return WalletCreateResponse{}, errors.W(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }
@@ -52,7 +52,7 @@ type WalletGetBalanceResponse struct {
 func UnmarshalWalletGetBalanceResponse(resp []byte) (WalletGetBalanceResponse, error) { // nolint:unused,deadcode
 	result := WalletGetBalanceResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
-		return WalletGetBalanceResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+		return WalletGetBalanceResponse{}, errors.W(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }
@@ -72,7 +72,7 @@ type WalletAddAmountResponse struct {
 func UnmarshalWalletAddAmountResponse(resp []byte) (WalletAddAmountResponse, error) { // nolint:unused,deadcode
 	result := WalletAddAmountResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
-		return WalletAddAmountResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+		return WalletAddAmountResponse{}, errors.W(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }
@@ -93,7 +93,7 @@ type WalletTransferResponse struct {
 func UnmarshalWalletTransferResponse(resp []byte) (WalletTransferResponse, error) { // nolint:unused,deadcode
 	result := WalletTransferResponse{}
 	if err := json.Unmarshal(resp, &result); err != nil {
-		return WalletTransferResponse{}, errors.Wrap(err, "problem with unmarshaling response")
+		return WalletTransferResponse{}, errors.W(err, "problem with unmarshaling response")
 	}
 	return result, nil
 }

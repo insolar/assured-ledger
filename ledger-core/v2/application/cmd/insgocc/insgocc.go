@@ -45,7 +45,7 @@ func (r *outputFlag) Set(arg string) error {
 		var err error
 		res, err = os.OpenFile(arg, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
-			return errors.Wrap(err, "couldn't open file for writing")
+			return errors.W(err, "couldn't open file for writing")
 		}
 	}
 	r.path = arg
@@ -150,11 +150,11 @@ func mkdirIfNotExists(pathParts ...string) (string, error) {
 		return "", fmt.Errorf("failed to mkdir '%s': already exists and is not dir", newPath)
 	} else if os.IsNotExist(err) {
 		if err := os.MkdirAll(newPath, 0755); err != nil {
-			return "", errors.Wrap(err, "failed to mkdir "+newPath)
+			return "", errors.W(err, "failed to mkdir "+newPath)
 		}
 		return newPath, nil
 	}
-	return "", errors.Wrap(err, "failed to mkdir "+newPath)
+	return "", errors.W(err, "failed to mkdir "+newPath)
 }
 
 func openDefaultProxyPath(proxyOut *outputFlag,
@@ -230,7 +230,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			parsed, err := preprocessor.ParseFile(args[0], machineType.Value())
 			if err != nil {
-				fmt.Println(errors.Wrap(err, "couldn't parse"))
+				fmt.Println(errors.W(err, "couldn't parse"))
 				os.Exit(1)
 			}
 
@@ -254,7 +254,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			parsed, err := preprocessor.ParseFile(args[0], machineType.Value())
 			if err != nil {
-				fmt.Println(errors.Wrap(err, "couldn't parse"))
+				fmt.Println(errors.W(err, "couldn't parse"))
 				os.Exit(1)
 			}
 			if panicIsLogicalError {
@@ -276,7 +276,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			parsed, err := preprocessor.ParseFile(args[0], machineType.Value())
 			if err != nil {
-				fmt.Println(errors.Wrap(err, "couldn't parse"))
+				fmt.Println(errors.W(err, "couldn't parse"))
 				os.Exit(1)
 			}
 

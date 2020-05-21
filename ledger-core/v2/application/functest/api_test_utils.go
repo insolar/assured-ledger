@@ -60,12 +60,12 @@ func createHTTPClient() *http.Client {
 func prepareReq(url string, body interface{}) (*http.Request, error) {
 	jsonValue, err := json.Marshal(body)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with marshaling params")
+		return nil, errors.W(err, "problem with marshaling params")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonValue))
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with creating request")
+		return nil, errors.W(err, "problem with creating request")
 	}
 	req.Header.Set(contentType, "application/json")
 
@@ -76,7 +76,7 @@ func prepareReq(url string, body interface{}) (*http.Request, error) {
 func doReq(req *http.Request) ([]byte, error) {
 	postResp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with sending request")
+		return nil, errors.W(err, "problem with sending request")
 	}
 
 	if postResp == nil {
@@ -90,7 +90,7 @@ func doReq(req *http.Request) ([]byte, error) {
 
 	body, err := ioutil.ReadAll(postResp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with reading body")
+		return nil, errors.W(err, "problem with reading body")
 	}
 
 	return body, nil
@@ -117,7 +117,7 @@ func getURL(path, host, port string) string {
 func sendAPIRequest(url string, body interface{}) ([]byte, error) {
 	req, err := prepareReq(url, body)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with preparing request")
+		return nil, errors.W(err, "problem with preparing request")
 	}
 
 	return doReq(req)
@@ -128,12 +128,12 @@ func createSimpleWallet() (string, error) {
 	createURL := getURL(walletCreatePath, "", "")
 	rawResp, err := sendAPIRequest(createURL, nil)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to send request or get response body")
+		return "", errors.W(err, "failed to send request or get response body")
 	}
 
 	resp, err := unmarshalWalletCreateResponse(rawResp)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to unmarshal response")
+		return "", errors.W(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
 		return "", fmt.Errorf("problem during execute request: %s", resp.Err)
@@ -145,12 +145,12 @@ func createSimpleWallet() (string, error) {
 func getWalletBalance(url, ref string) (uint, error) {
 	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to send request or get response body")
+		return 0, errors.W(err, "failed to send request or get response body")
 	}
 
 	resp, err := unmarshalWalletGetBalanceResponse(rawResp)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to unmarshal response")
+		return 0, errors.W(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
 		return 0, fmt.Errorf("problem during execute request: %s", resp.Err)
@@ -162,12 +162,12 @@ func getWalletBalance(url, ref string) (uint, error) {
 func addAmountToWallet(url, ref string, amount uint) error {
 	rawResp, err := sendAPIRequest(url, walletAddAmountRequestBody{To: ref, Amount: amount})
 	if err != nil {
-		return errors.Wrap(err, "failed to send request or get response body")
+		return errors.W(err, "failed to send request or get response body")
 	}
 
 	resp, err := unmarshalWalletAddAmountResponse(rawResp)
 	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal response")
+		return errors.W(err, "failed to unmarshal response")
 	}
 	if resp.Err != "" {
 		return fmt.Errorf("problem during execute request: %s", resp.Err)

@@ -62,7 +62,7 @@ func (s *TestWalletServer) Start(ctx context.Context) error {
 
 	listener, err := net.Listen("tcp", s.server.Addr)
 	if err != nil {
-		return errors.Wrap(err, "Can't start listening")
+		return errors.W(err, "Can't start listening")
 	}
 
 	go func() {
@@ -81,7 +81,7 @@ func (s *TestWalletServer) Stop(ctx context.Context) error {
 	defer cancel()
 	err := s.server.Shutdown(ctxWithTimeout)
 	if err != nil {
-		return errors.Wrap(err, "Can't gracefully stop API server")
+		return errors.W(err, "Can't gracefully stop API server")
 	}
 	return nil
 }
