@@ -14,8 +14,8 @@ import (
 )
 
 var ConsoleWriterDefaults = ConsoleWriterConfig{
-	NoColor: true,
-	TimeFormat: TimestampFormat,
+	NoColor:      true,
+	TimeFormat:   TimestampFormat,
 	FormatCaller: formatCaller,
 	PartsOrder: []string{
 		logoutput.TimestampFieldName,
@@ -59,7 +59,7 @@ func formatCaller(i interface{}) string {
 			c = strings.TrimPrefix(c, cwd)
 			c = strings.TrimPrefix(c, "/")
 		}
-		c = "file=" + c
+		c = logoutput.CallerFieldName + "=" + c
 	}
 	return c
 }

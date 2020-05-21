@@ -49,7 +49,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
-	logger.Error(logProcessing{messageType: payloadType.String()})
+	logger.Info(logProcessing{messageType: payloadType.String()})
 
 	switch payloadType {
 	case payload.TypeVCallRequest:
