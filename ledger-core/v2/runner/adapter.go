@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
@@ -127,15 +128,15 @@ func (a *ServiceAdapter) PrepareExecutionAbort(ctx smachine.ExecutionContext, st
 	})
 }
 
-func (a *ServiceAdapter) PrepareExecutionClassify(ctx smachine.ExecutionContext, execution execution.Context, fn func(interface{})) smachine.AsyncCallRequester {
+func (a *ServiceAdapter) PrepareExecutionClassify(ctx smachine.ExecutionContext, execution execution.Context, fn func(contract.MethodIsolation, error)) smachine.AsyncCallRequester {
 	if fn == nil {
 		panic(throw.IllegalValue())
 	}
 
 	return a.parallelExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
-		classification := arg.(UnmanagedService).ExecutionClassify(execution)
+		classification, err := a.svc.ExecutionClassify(execution)
 		return func(ctx smachine.AsyncResultContext) {
-			fn(classification)
+			fn(classification, err)
 		}
 	})
 }

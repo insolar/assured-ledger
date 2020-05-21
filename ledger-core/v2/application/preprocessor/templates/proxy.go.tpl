@@ -20,6 +20,10 @@
 package {{ .PackageName }}
 
 import (
+{{ range $name, $path := .CustomImports }}
+	{{ $name }} {{ $path }}
+{{- end }}
+
 {{- range $import, $i := .Imports }}
 	{{ $import }}
 {{- end }}
@@ -118,7 +122,7 @@ func (r *{{ $.ContractType }}) GetPrototype() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := common.CurrentProxyCtx.CallMethod(
-			r.Reference, payload.CallIntolerable, payload.CallValidated, false, "GetPrototype", make([]byte, 0), PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetPrototype", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -149,7 +153,7 @@ func (r *{{ $.ContractType }}) GetCode() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := common.CurrentProxyCtx.CallMethod(
-			r.Reference, payload.CallIntolerable, payload.CallValidated, false, "GetCode", make([]byte, 0), PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -184,12 +188,12 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{/* Saga call doesn't has a reply (it's `nil`), thus we shouldn't try to deserialize it. */}}
 	{{if $method.SagaInfo.IsSaga }}
-	_, err = common.CurrentProxyCtx.CallMethod(r.Reference, payload.CallTolerable, payload.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
+	_, err = common.CurrentProxyCtx.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
 	{{else}}
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, payload.CallTolerable, payload.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
+	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
@@ -228,7 +232,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 	}
 
 	res, err := common.CurrentProxyCtx.CallMethod(
-			r.Reference, payload.CallIntolerable, payload.CallValidated, false, "{{ $method.Name }}", argsSerialized, PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "{{ $method.Name }}", argsSerialized, PrototypeReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}

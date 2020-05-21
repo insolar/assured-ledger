@@ -14,6 +14,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -39,18 +41,26 @@ func makeEmptyResult(t *testing.T) []byte {
 type callMethodFunc = func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error)
 
 func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc) {
+	builtinExecutor, err := server.Runner.Manager.GetExecutor(machine.Builtin)
+	require.NoError(t, err)
+
+	cache := server.Runner.Cache
+	_, walletCodeRef, err := cache.ByPrototypeRef(context.Background(), testwallet.GetPrototype())
+	require.NoError(t, err)
+
 	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallMethodMock.Set(callMethod)
+	executorMock.ClassifyMethodMock.Set(builtinExecutor.ClassifyMethod)
 	manager := machine.NewManager()
-	err := manager.RegisterExecutor(machine.Builtin, executorMock)
+	err = manager.RegisterExecutor(machine.Builtin, executorMock)
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCode(nil, machine.Builtin, gen.Reference()),
+		descriptor.NewPrototype(gen.Reference(), gen.ID(), testwallet.GetPrototype()),
+		descriptor.NewCode(nil, machine.Builtin, walletCodeRef.Ref()),
 		nil,
 	)
 }
@@ -118,9 +128,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 
 	select {
 	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
-		callFlags := payload.CallRequestFlags(0)
-		callFlags.SetTolerance(payload.CallTolerable)
-		callFlags.SetState(payload.CallDirty)
+		callFlags := payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 
 		require.Equal(t, objectRef, delegateFinishedMsg.Callee)
 		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)

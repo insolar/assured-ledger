@@ -6,7 +6,7 @@
 package common
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
 )
@@ -24,7 +24,7 @@ type ProxyHelper interface {
 	Serializer
 	CallMethod(
 		ref reference.Global,
-		tolerance payload.ToleranceFlag, isolation payload.StateFlag, saga bool,
+		tolerance contract.InterferenceFlag, isolation contract.StateFlag, saga bool,
 		method string, args []byte, proxyPrototype reference.Global,
 	) (result []byte, err error)
 	CallConstructor(

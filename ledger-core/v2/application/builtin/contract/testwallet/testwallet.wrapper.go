@@ -20,7 +20,7 @@
 package testwallet
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	XXX_contract "github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
@@ -473,7 +473,7 @@ func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result
 	}
 
 	if ret1 != nil {
-		// logical error, the result should be registered with type RequestSideEffectNone
+		// logical error, the result should be registered with type SideEffectNone
 		state = nil
 		return
 	}
@@ -486,29 +486,41 @@ func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result
 	return
 }
 
-func Initialize() insolar.ContractWrapper {
-	return insolar.ContractWrapper{
+func Initialize() XXX_contract.Wrapper {
+	return XXX_contract.Wrapper{
 		GetCode:      INSMETHOD_GetCode,
 		GetPrototype: INSMETHOD_GetPrototype,
-		Methods: insolar.ContractMethods{
-			"GetBalance": insolar.ContractMethod{
-				Func:      INSMETHOD_GetBalance,
-				Unordered: true,
+		Methods: XXX_contract.Methods{
+			"GetBalance": XXX_contract.Method{
+				Func: INSMETHOD_GetBalance,
+				Isolation: XXX_contract.MethodIsolation{
+					Interference: 0,
+					State:        1,
+				},
 			},
-			"Accept": insolar.ContractMethod{
-				Func:      INSMETHOD_Accept,
-				Unordered: false,
+			"Accept": XXX_contract.Method{
+				Func: INSMETHOD_Accept,
+				Isolation: XXX_contract.MethodIsolation{
+					Interference: 1,
+					State:        0,
+				},
 			},
-			"Transfer": insolar.ContractMethod{
-				Func:      INSMETHOD_Transfer,
-				Unordered: false,
+			"Transfer": XXX_contract.Method{
+				Func: INSMETHOD_Transfer,
+				Isolation: XXX_contract.MethodIsolation{
+					Interference: 1,
+					State:        0,
+				},
 			},
-			"Destroy": insolar.ContractMethod{
-				Func:      INSMETHOD_Destroy,
-				Unordered: false,
+			"Destroy": XXX_contract.Method{
+				Func: INSMETHOD_Destroy,
+				Isolation: XXX_contract.MethodIsolation{
+					Interference: 1,
+					State:        0,
+				},
 			},
 		},
-		Constructors: insolar.ContractConstructors{
+		Constructors: XXX_contract.Constructors{
 			"New": INSCONSTRUCTOR_New,
 		},
 	}

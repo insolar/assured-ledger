@@ -9,74 +9,76 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 )
 
 func TestCallRequestFlags(t *testing.T) {
 	t.Run("tolerance", func(t *testing.T) {
 		flags := CallRequestFlags(0)
 
-		assert.Equal(t, CallIntolerable, flags.GetTolerance())
+		assert.Equal(t, contract.CallIntolerable, flags.GetInterference())
 
-		flags.SetTolerance(CallTolerable)
+		flags.SetInterference(contract.CallTolerable)
 
-		assert.Equal(t, CallTolerable, flags.GetTolerance())
+		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 	})
 
 	t.Run("state", func(t *testing.T) {
 		flags := CallRequestFlags(0)
 
-		assert.Equal(t, CallDirty, flags.GetState())
+		assert.Equal(t, contract.CallDirty, flags.GetState())
 
-		flags.SetState(CallValidated)
+		flags.SetState(contract.CallValidated)
 
 		assert.Equal(t, CallRequestFlags(4), flags, "%b", flags)
 
-		assert.Equal(t, CallValidated, flags.GetState())
+		assert.Equal(t, contract.CallValidated, flags.GetState())
 
-		flags.SetState(CallDirty)
+		flags.SetState(contract.CallDirty)
 
 		assert.Equal(t, CallRequestFlags(0), flags, "%b", flags)
 
-		assert.Equal(t, CallDirty, flags.GetState())
+		assert.Equal(t, contract.CallDirty, flags.GetState())
 	})
 
 	t.Run("mixed", func(t *testing.T) {
 		flags := CallRequestFlags(0)
 
-		assert.Equal(t, CallIntolerable, flags.GetTolerance())
+		assert.Equal(t, contract.CallIntolerable, flags.GetInterference())
 
-		assert.Equal(t, CallDirty, flags.GetState())
+		assert.Equal(t, contract.CallDirty, flags.GetState())
 
-		flags.SetTolerance(CallTolerable)
+		flags.SetInterference(contract.CallTolerable)
 
 		assert.Equal(t, CallRequestFlags(1), flags, "%b", flags)
 
-		assert.Equal(t, CallTolerable, flags.GetTolerance())
+		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 
-		assert.Equal(t, CallDirty, flags.GetState())
+		assert.Equal(t, contract.CallDirty, flags.GetState())
 
-		flags.SetState(CallValidated)
+		flags.SetState(contract.CallValidated)
 
 		assert.Equal(t, CallRequestFlags(5), flags, "%b", flags)
 
-		assert.Equal(t, CallTolerable, flags.GetTolerance())
+		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 
-		flags.SetTolerance(CallIntolerable)
+		flags.SetInterference(contract.CallIntolerable)
 
 		assert.Equal(t, CallRequestFlags(4), flags, "%b", flags)
 
-		assert.Equal(t, CallValidated, flags.GetState())
+		assert.Equal(t, contract.CallValidated, flags.GetState())
 
-		flags.SetTolerance(CallTolerable)
+		flags.SetInterference(contract.CallTolerable)
 
 		assert.Equal(t, CallRequestFlags(5), flags, "%b", flags)
 
-		assert.Equal(t, CallTolerable, flags.GetTolerance())
+		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 
-		flags.SetState(CallDirty)
+		flags.SetState(contract.CallDirty)
 
 		assert.Equal(t, CallRequestFlags(1), flags, "%b", flags)
 
-		assert.Equal(t, CallDirty, flags.GetState())
+		assert.Equal(t, contract.CallDirty, flags.GetState())
 	})
 }

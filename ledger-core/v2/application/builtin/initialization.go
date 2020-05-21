@@ -20,7 +20,7 @@
 package builtin
 
 import (
-	XXX_insolar "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	XXX_contract "github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	XXX_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	XXX_machine "github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	throw "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -29,8 +29,8 @@ import (
 	testwallet "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 )
 
-func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
-	return map[string]XXX_insolar.ContractWrapper{
+func InitializeContractMethods() map[string]XXX_contract.Wrapper {
+	return map[string]XXX_contract.Wrapper{
 		"testwallet": testwallet.Initialize(),
 	}
 }
