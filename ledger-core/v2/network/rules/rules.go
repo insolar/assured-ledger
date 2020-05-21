@@ -8,7 +8,7 @@ package rules
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
@@ -38,7 +38,7 @@ func CheckMajorityRule(cert node.Certificate, nodes []node.NetworkNode) (int, er
 			strErr += d.GetHost() + " " + d.GetRole().String() + " "
 		}
 	}
-	return activeDiscoveryNodesLen, errors.Wrap(errors.New(strErr), "MajorityRule failed")
+	return activeDiscoveryNodesLen, errors.W(errors.New(strErr), "MajorityRule failed")
 }
 
 // CheckMinRole returns true if MinRole check passed
@@ -68,5 +68,5 @@ func CheckMinRole(cert node.Certificate, nodes []node.NetworkNode) error {
 		node.StaticRoleVirtual.String(), virtualCount, v,
 		node.StaticRoleHeavyMaterial.String(), heavyCount, h,
 		node.StaticRoleLightMaterial.String(), lightCount, l))
-	return errors.Wrap(err, "MinRoles failed")
+	return errors.W(err, "MinRoles failed")
 }

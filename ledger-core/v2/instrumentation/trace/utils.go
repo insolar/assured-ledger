@@ -10,8 +10,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type traceIDKey struct{}

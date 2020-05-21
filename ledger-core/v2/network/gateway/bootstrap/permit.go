@@ -8,7 +8,7 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -31,11 +31,11 @@ func CreatePermit(authorityNodeRef reference.Global, reconnectHost *host.Host, j
 
 	data, err := payload.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal bootstrap permit")
+		return nil, errors.W(err, "failed to marshal bootstrap permit")
 	}
 	signature, err := signer.Sign(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign bootstrap permit")
+		return nil, errors.W(err, "failed to sign bootstrap permit")
 	}
 	return &packet.Permit{Payload: payload, Signature: signature.Bytes()}, nil
 }

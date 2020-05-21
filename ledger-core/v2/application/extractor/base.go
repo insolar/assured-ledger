@@ -8,7 +8,7 @@ package extractor
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 func stringResponse(data []byte) (string, error) {
@@ -16,10 +16,10 @@ func stringResponse(data []byte) (string, error) {
 	var contractErr *foundation.Error
 	err := foundation.UnmarshalMethodResultSimplified(data, &result, &contractErr)
 	if err != nil {
-		return "", errors.Wrap(err, "[ StringResponse ] Can't unmarshal response ")
+		return "", errors.W(err, "[ StringResponse ] Can't unmarshal response ")
 	}
 	if contractErr != nil {
-		return "", errors.Wrap(contractErr, "[ StringResponse ] Has error in response")
+		return "", errors.W(contractErr, "[ StringResponse ] Has error in response")
 	}
 
 	return result, nil

@@ -13,8 +13,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // directoryLockGuard holds a lock on a directory and a pid file inside.  The pid file isn't part
@@ -37,7 +38,7 @@ func acquireDirectoryLock(dirPath string, pidFileName string, readOnly bool) (
 	// chdir in the meantime.
 	absPidFilePath, err := filepath.Abs(filepath.Join(dirPath, pidFileName))
 	if err != nil {
-		return nil, errors.Wrap(err, "cannot get absolute path for pid lock file")
+		return nil, errors.W(err, "cannot get absolute path for pid lock file")
 	}
 	f, err := os.Open(dirPath)
 	if err != nil {

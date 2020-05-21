@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type Table struct {
@@ -34,7 +34,7 @@ func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
 		p, err := t.PulseAccessor.GetLatestPulse(context.Background())
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get latest pulse --==-- ")
+			return nil, errors.W(err, "failed to get latest pulse --==-- ")
 		}
 
 		node := t.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNode(ref)

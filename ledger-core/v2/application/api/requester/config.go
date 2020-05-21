@@ -14,7 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // UserConfigJSON holds info about user
@@ -34,12 +34,12 @@ func readFile(path string, configType interface{}) error {
 		rawConf, err = ioutil.ReadFile(filepath.Clean(path))
 	}
 	if err != nil {
-		return errors.Wrap(err, "[ readFile ] Problem with reading config")
+		return errors.W(err, "[ readFile ] Problem with reading config")
 	}
 
 	err = json.Unmarshal(rawConf, &configType)
 	if err != nil {
-		return errors.Wrap(err, "[ readFile ] Problem with unmarshaling config")
+		return errors.W(err, "[ readFile ] Problem with unmarshaling config")
 	}
 
 	return nil
@@ -50,7 +50,7 @@ func ReadUserConfigFromFile(file string) (*UserConfigJSON, error) {
 	cfgJSON := &UserConfigJSON{}
 	err := readFile(file, cfgJSON)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ readUserConfigFromFile ] ")
+		return nil, errors.W(err, "[ readUserConfigFromFile ] ")
 	}
 
 	ks := platformpolicy.NewKeyProcessor()
@@ -58,18 +58,18 @@ func ReadUserConfigFromFile(file string) (*UserConfigJSON, error) {
 	if cfgJSON.PrivateKey == "" {
 		privKey, err := ks.GeneratePrivateKey()
 		if err != nil {
-			return nil, errors.Wrap(err, "[ readUserConfigFromFile ] ")
+			return nil, errors.W(err, "[ readUserConfigFromFile ] ")
 		}
 		privKeyStr, err := ks.ExportPrivateKeyPEM(privKey)
 		if err != nil {
-			return nil, errors.Wrap(err, "[ readUserConfigFromFile ] ")
+			return nil, errors.W(err, "[ readUserConfigFromFile ] ")
 		}
 		cfgJSON.PrivateKey = string(privKeyStr)
 	}
 
 	cfgJSON.privateKeyObject, err = ks.ImportPrivateKeyPEM([]byte(cfgJSON.PrivateKey))
 	if err != nil {
-		return nil, errors.Wrap(err, "[ readUserConfigFromFile ] Problem with reading private key")
+		return nil, errors.W(err, "[ readUserConfigFromFile ] Problem with reading private key")
 	}
 
 	return cfgJSON, nil
@@ -80,7 +80,7 @@ func ReadRequestParamsFromFile(path string) (*Params, error) {
 	rParams := &Params{}
 	err := readFile(path, rParams)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read call params from file")
+		return nil, errors.W(err, "failed to read call params from file")
 	}
 
 	return rParams, nil

@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
@@ -85,12 +85,12 @@ func (p *Pulsar) Pulse(ctx context.Context, attempts int) {
 				buffer := &bytes.Buffer{}
 				_, err := pp.SerializeTo(ctx, buffer, digester, signer)
 				if err != nil {
-					panic(errors.Wrap(err, "Failed to serialize packet"))
+					panic(errors.W(err, "Failed to serialize packet"))
 				}
 
 				err = transport.SendDatagram(ctx, address, buffer.Bytes())
 				if err != nil {
-					panic(errors.Wrap(err, "[SendDatagram] Failed to write data"))
+					panic(errors.W(err, "[SendDatagram] Failed to write data"))
 				}
 
 			}()

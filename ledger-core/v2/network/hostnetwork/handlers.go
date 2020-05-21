@@ -11,7 +11,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
@@ -98,12 +98,12 @@ func (s *StreamHandler) HandleStream(ctx context.Context, address string, reader
 func SendPacket(ctx context.Context, pool pool.ConnectionPool, p *packet.Packet) error {
 	data, err := packet.SerializePacket(p)
 	if err != nil {
-		return errors.Wrap(err, "Failed to serialize packet")
+		return errors.W(err, "Failed to serialize packet")
 	}
 
 	conn, err := pool.GetConnection(ctx, p.Receiver)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get connection")
+		return errors.W(err, "Failed to get connection")
 	}
 
 	n, err := conn.Write(data)
@@ -114,7 +114,7 @@ func SendPacket(ctx context.Context, pool pool.ConnectionPool, p *packet.Packet)
 		conn, err = pool.GetConnection(ctx, p.Receiver)
 
 		if err != nil {
-			return errors.Wrap(err, "[ SendPacket ] Failed to get connection")
+			return errors.W(err, "[ SendPacket ] Failed to get connection")
 		}
 		n, err = conn.Write(data)
 	}
@@ -122,5 +122,5 @@ func SendPacket(ctx context.Context, pool pool.ConnectionPool, p *packet.Packet)
 		metrics.NetworkSentSize.Observe(float64(n))
 		return nil
 	}
-	return errors.Wrap(err, "[ SendPacket ] Failed to write data")
+	return errors.W(err, "[ SendPacket ] Failed to write data")
 }

@@ -9,9 +9,10 @@ import (
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -154,13 +155,13 @@ func TestVirtual_Scenario1(t *testing.T) {
 			// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 			response, err := utils.UnmarshalWalletTransferResponse(byteBuffer)
 			if err != nil {
-				outChan <- errors.Wrap(err, "failed to parse response")
+				outChan <- errors.W(err, "failed to parse response")
 				return
 			}
 
 			if response.Err != "" {
 				err := errors.New(response.Err)
-				outChan <- errors.Wrap(err, "failed to execute contract")
+				outChan <- errors.W(err, "failed to execute contract")
 				return
 			}
 

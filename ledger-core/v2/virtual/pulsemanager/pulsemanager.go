@@ -9,7 +9,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -68,7 +68,7 @@ func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error 
 	if err == pulsestor.ErrNotFound {
 		storagePulse = *pulsestor.GenesisPulse
 	} else if err != nil {
-		return errors.Wrap(err, "call of GetLatestPulseNumber failed")
+		return errors.W(err, "call of GetLatestPulseNumber failed")
 	}
 
 	logger := inslogger.FromContext(ctx)
@@ -95,7 +95,7 @@ func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error 
 	}
 
 	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
-		return errors.Wrap(err, "call of AddPulse failed")
+		return errors.W(err, "call of AddPulse failed")
 	}
 
 	for _, d := range m.dispatchers {

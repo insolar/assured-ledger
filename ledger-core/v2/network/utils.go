@@ -8,6 +8,7 @@ package network
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"math"
 	"sort"
@@ -15,8 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -161,8 +160,8 @@ func IsConnectionClosed(err error) bool {
 	if err == nil {
 		return false
 	}
-	err = errors.Cause(err)
-	return strings.Contains(err.Error(), "use of closed network connection")
+	err = errors.Unwrap(err)
+	return err != nil && strings.Contains(err.Error(), "use of closed network connection")
 }
 
 // FindDiscoveriesInNodeList returns only discovery nodes from active node list
@@ -186,8 +185,8 @@ func IsClosedPipe(err error) bool {
 	if err == nil {
 		return false
 	}
-	err = errors.Cause(err)
-	return strings.Contains(err.Error(), "read/write on closed pipe")
+	err = errors.Unwrap(err)
+	return err != nil && strings.Contains(err.Error(), "read/write on closed pipe")
 }
 
 func NewPulseContext(ctx context.Context, pulseNumber uint32) context.Context {

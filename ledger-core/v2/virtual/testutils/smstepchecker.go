@@ -11,8 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -126,7 +127,7 @@ func (c *SMStepChecker) CheckRepeat() error {
 		return throw.IllegalState()
 	}
 	if c.position > len(c.steps) {
-		return errors.Errorf("unexpected repeat")
+		return errors.New("unexpected repeat")
 	}
 
 	expectedStep := c.steps[c.position]

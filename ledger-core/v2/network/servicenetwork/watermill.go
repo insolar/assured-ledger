@@ -10,7 +10,8 @@ import (
 	"context"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -34,7 +35,7 @@ func (n *ServiceNetwork) SendMessageHandler(msg *message.Message) error {
 	inslogger.FromContext(ctx).Debug("Request comes to service network. uuid = ", msg.UUID)
 	err = n.sendMessage(ctx, msg)
 	if err != nil {
-		inslogger.FromContext(ctx).Error(errors.Wrap(err, "failed to send message"))
+		inslogger.FromContext(ctx).Error(errors.W(err, "failed to send message"))
 		return nil
 	}
 	return nil
@@ -47,7 +48,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	}
 	node, err := reference.GlobalFromString(receiver)
 	if err != nil {
-		return errors.Wrap(err, "failed to send message: Receiver in message metadata is invalid")
+		return errors.W(err, "failed to send message: Receiver in message metadata is invalid")
 	}
 	if node.IsEmpty() {
 		return errors.New("failed to send message: Receiver in message metadata is empty")
@@ -58,17 +59,17 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	if node.Equal(origin.ID()) {
 		err := n.Pub.Publish(getIncomingTopic(msg), msg)
 		if err != nil {
-			return errors.Wrap(err, "error while publish msg to TopicIncoming")
+			return errors.W(err, "error while publish msg to TopicIncoming")
 		}
 		return nil
 	}
 	msgBytes, err := serializeMessage(msg)
 	if err != nil {
-		return errors.Wrap(err, "error while converting message to bytes")
+		return errors.W(err, "error while converting message to bytes")
 	}
 	res, err := n.RPC.SendBytes(ctx, node, deliverWatermillMsg, msgBytes)
 	if err != nil {
-		return errors.Wrap(err, "error while sending watermillMsg to controller")
+		return errors.W(err, "error while sending watermillMsg to controller")
 	}
 	if !bytes.Equal(res, ack) {
 		return errors.Errorf("reply is not ack: %s", res)
@@ -80,7 +81,7 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 	logger := inslogger.FromContext(ctx)
 	msg, err := deserializeMessage(args)
 	if err != nil {
-		err = errors.Wrap(err, "error while deserialize msg from buffer")
+		err = errors.W(err, "error while deserialize msg from buffer")
 		logger.Error(err)
 		return nil, err
 	}
@@ -92,7 +93,7 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 
 	err = n.Pub.Publish(getIncomingTopic(msg), msg)
 	if err != nil {
-		err = errors.Wrap(err, "error while publish msg to TopicIncoming")
+		err = errors.W(err, "error while publish msg to TopicIncoming")
 		logger.Error(err)
 		return nil, err
 	}
