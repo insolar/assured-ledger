@@ -104,14 +104,15 @@ func (b *benchmark) startScenario(ctx context.Context, concurrentIndex int, wg *
 
 		var netErr net.Error
 
-		if err == nil {
+		switch {
+		case err == nil:
 			atomic.AddUint32(&b.successes, 1)
 			atomic.AddInt64(&b.totalTime, int64(stop))
 			goroutineTime += stop
-		} else if errors.As(err, &netErr) && netErr.Timeout() {
+		case errors.As(err, &netErr) && netErr.Timeout():
 			atomic.AddUint32(&b.timeouts, 1)
 			writeToOutput(b.out, fmt.Sprintf("[Member №%d] Scenario error. Timeout. Error: %s \n", concurrentIndex, err.Error()))
-		} else {
+		default:
 			atomic.AddUint32(&b.errors, 1)
 			atomic.AddInt64(&b.totalTime, int64(stop))
 			goroutineTime += stop

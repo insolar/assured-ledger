@@ -134,8 +134,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -205,8 +204,7 @@ func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []by
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute constructor (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute constructor (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {

@@ -316,7 +316,10 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		return err
 	}
 
-	imports := pf.generateImports([]string{"github.com/pkg/errors"})
+	imports := pf.generateImports([]string{
+		"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw",
+	})
+
 	for _, t := range pf.types {
 		extendImportsMapWithType(pf, t, imports)
 	}
@@ -1004,7 +1007,7 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"`,
 			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/v2/reference"`,
 			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"`,
-			"errors":         `"github.com/pkg/errors"`,
+			"throw":          `"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"`,
 		},
 	}
 

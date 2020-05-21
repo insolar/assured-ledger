@@ -24,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
-	"github.com/pkg/errors"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 const PanicIsLogicalError = false
@@ -127,8 +127,7 @@ func INSMETHOD_GetBalance(object []byte, data []byte) (newState []byte, result [
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -209,8 +208,7 @@ func INSMETHOD_Accept(object []byte, data []byte) (newState []byte, result []byt
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -293,8 +291,7 @@ func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []b
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -373,8 +370,7 @@ func INSMETHOD_Destroy(object []byte, data []byte) (newState []byte, result []by
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -441,8 +437,7 @@ func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute constructor (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute constructor (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
