@@ -6,7 +6,6 @@
 package integration
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -31,14 +30,6 @@ import (
 func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
-
-	//Test steps for checks sequence.
-	const (
-		stateReportSend           = "stateReportSend"
-		callRequestSend           = "callRequestSend"
-		delegateRequestFinishSend = "delegateRequestFinishSend"
-		callResultReceive         = "callResultReceive"
-	)
 
 	testBalance := uint32(100)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -85,10 +76,10 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 		Callee:    objectRef,
 	}
 
-	requestIsDone := make(chan string, 0)
+	requestIsDone := make(chan bool, 0)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		defer func() { requestIsDone <- callResultReceive }()
+		defer func() { requestIsDone <- true }()
 
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
 		require.NoError(t, err)
@@ -101,8 +92,6 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 		return nil
 	}
 
-	aclSeq := make([]string, 0)
-
 	vStateReportMsg, err := wrapMsg(pulseNumber, &sr)
 	require.NoError(t, err)
 
@@ -113,24 +102,24 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	require.NoError(t, err)
 
 	server.SendMessage(ctx, vStateReportMsg)
-	aclSeq = append(aclSeq, stateReportSend)
 
 	server.SendMessage(ctx, vCallRequestMsg)
-	aclSeq = append(aclSeq, callRequestSend)
-
-	server.SendMessage(ctx, vDelegateRequestFinishedMsg)
-	aclSeq = append(aclSeq, delegateRequestFinishSend)
 
 	select {
-	case res := <-requestIsDone:
-		aclSeq = append(aclSeq, res)
+	case <-requestIsDone:
+		// We should not execute request while we have pending execution.
+		require.Failf(t, "", "unexpected execute")
+	case <-time.After(20 * time.Second):
+	}
+
+	server.SendMessage(ctx, vDelegateRequestFinishedMsg)
+
+	select {
+	case <-requestIsDone:
 		break
 	case <-time.After(20 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
-
-	expSeq := []string{stateReportSend, callRequestSend, delegateRequestFinishSend, callResultReceive}
-	require.True(t, reflect.DeepEqual(expSeq, aclSeq))
 }
 
 func wrapMsg(pulseNumber pulse.Number, request payload.Marshaler) (*message.Message, error) {
