@@ -78,13 +78,13 @@ jobs:
           name: coverage-out
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
       - name: Send failure notification to Slack
+        if: ${{ github.event_name == 'push' && failure() }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
           fields: repo,message,commit,author,action,eventName,ref,workflow
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
-        if: failure()
   func-test-kuber:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
@@ -181,10 +181,10 @@ jobs:
           name: kube-nodes-output
           path: ${{env.V2_PATH}}/kube-nodes-output.tgz
       - name: Send failure notification to Slack
+        if: ${{ github.event_name == 'push' && failure() }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
           fields: repo,message,commit,author,action,eventName,ref,workflow
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
-        if: failure()
