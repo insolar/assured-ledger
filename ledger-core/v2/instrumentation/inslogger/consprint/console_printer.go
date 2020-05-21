@@ -33,7 +33,7 @@ func NewConsolePrinter(w io.Writer, config Config) io.Writer {
 	}
 
 	config.Out = w
-	return closableConsoleWriter{config}
+	return &closableConsoleWriter{config}
 }
 
 var _ io.WriteCloser = &closableConsoleWriter{}
