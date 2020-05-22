@@ -40,15 +40,12 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags payload.CallRequestFlags
+		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
-
-	callFlags.SetInterference(contract.CallTolerable)
-	callFlags.SetState(contract.CallDirty)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -127,15 +124,12 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags payload.CallRequestFlags
+		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
-
-	callFlags.SetInterference(contract.CallTolerable)
-	callFlags.SetState(contract.CallDirty)
 
 	callee := gen.Reference()
 	smExecute := SMExecute{
