@@ -130,6 +130,18 @@ func FromContext(ctx context.Context) log.Logger {
 	return getLogger(ctx)
 }
 
+func Clean(ctx context.Context) (context.Context, error) {
+	l, wasInContext := _getLogger(ctx)
+	if wasInContext {
+		var err error
+		l, err = l.Copy().WithoutInheritedFields().Build()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return SetLogger(context.Background(), l), nil
+}
+
 // SetLogger returns context with provided insolar.Logger,
 func SetLogger(ctx context.Context, l log.Logger) context.Context {
 	return context.WithValue(ctx, loggerKey, l)
@@ -193,11 +205,16 @@ func ContextWithTrace(ctx context.Context, traceid string) context.Context {
 }
 
 func getLogger(ctx context.Context) log.Logger {
+	l, _ := _getLogger(ctx)
+	return l
+}
+
+func _getLogger(ctx context.Context) (log.Logger, bool) {
 	val := ctx.Value(loggerKey)
 	if val == nil {
-		return global.CopyForContext()
+		return global.CopyForContext(), false
 	}
-	return val.(log.Logger)
+	return val.(log.Logger), true
 }
 
 // TestContext returns context with initalized log field "testname" equal t.Name() value.

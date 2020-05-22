@@ -7,13 +7,12 @@ package logcommon
 
 import (
 	"io"
-	"sync"
 )
 
 var _ LoggerOutput = &TestingLoggerOutput{}
 
 // this interface matches required  *testing.T
-type TestingRedirectTarget interface {
+type TestingLogger interface {
 	Helper()
 	Log(...interface{})
 	Error(...interface{})
@@ -21,51 +20,59 @@ type TestingRedirectTarget interface {
 }
 
 type TestingLoggerOutput struct {
-	Mutex sync.Mutex
-	Target TestingRedirectTarget
+	Output            io.Writer
+	Testing           TestingLogger
+	InterceptFatal    func([]byte) bool
+	SuppressTestError bool
 }
 
 func (r *TestingLoggerOutput) Close() error {
-	if closer, ok := r.Target.(io.Closer); ok {
-		r.Mutex.Lock()
-		defer r.Mutex.Unlock()
-
+	if closer, ok := r.Output.(io.Closer); ok {
 		return closer.Close()
 	}
 	return nil
 }
 
 func (r *TestingLoggerOutput) Flush() error {
-
-	if flusher, ok := r.Target.(interface{ Flush() error }); ok {
-		r.Mutex.Lock()
-		defer r.Mutex.Unlock()
-
+	if flusher, ok := r.Output.(interface{ Flush() error }); ok {
 		return flusher.Flush()
 	}
 	return nil
 }
 
 func (r *TestingLoggerOutput) Write(b []byte) (int, error) {
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+	if r.Output != nil {
+		return r.Output.Write(b)
+	}
 
-	r.Target.Log(string(b))
+	r.Testing.Log(string(b))
 	return len(b), nil
 }
 
 func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) {
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
 	msg := string(b)
 	switch level {
 	case FatalLevel:
-		r.Target.Fatal(msg)
+		if r.InterceptFatal == nil || !r.InterceptFatal(b) {
+			defer r.Testing.Fatal(msg)
+		} else {
+			defer r.Testing.Error(msg)
+		}
 	case PanicLevel, ErrorLevel:
-		r.Target.Error(msg)
+		if !r.SuppressTestError {
+			defer r.Testing.Error(msg)
+		} else {
+			defer r.Testing.Log(msg)
+		}
 	default:
-		r.Target.Log(msg)
+		if r.Output == nil {
+			r.Testing.Log(msg)
+			return len(b), nil
+		}
+	}
+
+	if r.Output != nil {
+		return r.Output.Write(b)
 	}
 	return len(b), nil
 }

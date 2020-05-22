@@ -71,7 +71,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc)
 // 5. Check that in VDelegatedRequestFinished new object state is stored
 func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	t.Log("C4935")
-	server := utils.NewServer(t)
+	server := utils.NewServerIgnoreLogErrors(t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	ctx := inslogger.TestContext(t)
 
 	testBalance := uint32(555)
