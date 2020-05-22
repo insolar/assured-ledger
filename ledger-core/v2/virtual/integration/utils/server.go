@@ -58,7 +58,11 @@ type Server struct {
 }
 
 func NewServer(t *testing.T) *Server {
-	inslogger.SetTestOutput(t, true)
+	return NewServerExt(t, false)
+}
+
+func NewServerExt(t *testing.T, suppressLogError bool) *Server {
+	inslogger.SetTestOutput(t, suppressLogError)
 
 	ctx := context.Background()
 
