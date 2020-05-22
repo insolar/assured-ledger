@@ -43,11 +43,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObject        = object.NewStateMachineObject(smGlobalRef)
 			sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-			callFlags payload.CallRequestFlags
+			callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 		)
-
-		callFlags.SetInterference(contract.CallTolerable)
-		callFlags.SetState(contract.CallDirty)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -102,11 +99,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObject        = object.NewStateMachineObject(smGlobalRef)
 			sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-			callFlags payload.CallRequestFlags
+			callFlags = payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallDirty)
 		)
-
-		callFlags.SetInterference(contract.CallIntolerable)
-		callFlags.SetState(contract.CallDirty)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -160,7 +154,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObjectID  = gen.IDWithPulse(pd.PulseNumber)
 			smGlobalRef = reference.NewSelf(smObjectID)
 			smObject    = object.NewStateMachineObject(smGlobalRef)
-			callFlags   payload.CallRequestFlags
+
+			callFlags = payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated)
 		)
 
 		smObject.SharedState.SetDescriptor(descriptor.NewObject(smGlobalRef, smObjectID, testwallet.GetPrototype(), nil, reference.Global{}))
@@ -168,9 +163,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 		runnerService := runner.NewService()
 		require.NoError(t, runnerService.Init())
-
-		callFlags.SetInterference(contract.CallIntolerable)
-		callFlags.SetState(contract.CallValidated)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -232,7 +224,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObjectID  = gen.IDWithPulse(pd.PulseNumber)
 			smGlobalRef = reference.NewSelf(smObjectID)
 			smObject    = object.NewStateMachineObject(smGlobalRef)
-			callFlags   payload.CallRequestFlags
+
+			callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 		)
 
 		smObject.SharedState.SetDescriptor(descriptor.NewObject(smGlobalRef, smObjectID, testwallet.GetPrototype(), nil, reference.Global{}))
@@ -240,9 +233,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 		runnerService := runner.NewService()
 		require.NoError(t, runnerService.Init())
-
-		callFlags.SetInterference(contract.CallTolerable)
-		callFlags.SetState(contract.CallDirty)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -304,7 +294,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObjectID  = gen.IDWithPulse(pd.PulseNumber)
 			smGlobalRef = reference.NewSelf(smObjectID)
 			smObject    = object.NewStateMachineObject(smGlobalRef)
-			callFlags   payload.CallRequestFlags
+
+			callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 		)
 
 		smObject.SharedState.SetDescriptor(descriptor.NewObject(smGlobalRef, smObjectID, testwallet.GetPrototype(), nil, reference.Global{}))
@@ -312,9 +303,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 		runnerService := runner.NewService()
 		require.NoError(t, runnerService.Init())
-
-		callFlags.SetInterference(contract.CallTolerable)
-		callFlags.SetState(contract.CallDirty)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -376,7 +364,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObjectID  = gen.IDWithPulse(pd.PulseNumber)
 			smGlobalRef = reference.NewSelf(smObjectID)
 			smObject    = object.NewStateMachineObject(smGlobalRef)
-			callFlags   payload.CallRequestFlags
+
+			callFlags = payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallDirty)
 		)
 
 		smObject.SharedState.SetDescriptor(descriptor.NewObject(smGlobalRef, smObjectID, testwallet.GetPrototype(), nil, reference.Global{}))
@@ -384,9 +373,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 		runnerService := runner.NewService()
 		require.NoError(t, runnerService.Init())
-
-		callFlags.SetInterference(contract.CallIntolerable)
-		callFlags.SetState(contract.CallDirty)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -445,7 +431,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObjectID  = gen.IDWithPulse(pd.PulseNumber)
 			smGlobalRef = reference.NewSelf(smObjectID)
 			smObject    = object.NewStateMachineObject(smGlobalRef)
-			callFlags   payload.CallRequestFlags
+
+			callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 		)
 
 		smObject.SharedState.SetDescriptor(descriptor.NewObject(smGlobalRef, smObjectID, testwallet.GetPrototype(), nil, reference.Global{}))
@@ -453,9 +440,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 		runnerService := runner.NewService()
 		require.NoError(t, runnerService.Init())
-
-		callFlags.SetInterference(contract.CallTolerable)
-		callFlags.SetState(contract.CallDirty)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{
@@ -517,7 +501,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			smObjectID  = gen.IDWithPulse(pd.PulseNumber)
 			smGlobalRef = reference.NewSelf(smObjectID)
 			smObject    = object.NewStateMachineObject(smGlobalRef)
-			callFlags   payload.CallRequestFlags
+
+			callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallValidated)
 		)
 
 		smObject.SharedState.SetDescriptor(descriptor.NewObject(smGlobalRef, smObjectID, testwallet.GetPrototype(), nil, reference.Global{}))
@@ -525,9 +510,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 		runnerService := runner.NewService()
 		require.NoError(t, runnerService.Init())
-
-		callFlags.SetInterference(contract.CallTolerable)
-		callFlags.SetState(contract.CallValidated)
 
 		smExecute := SMExecute{
 			Payload: &payload.VCallRequest{

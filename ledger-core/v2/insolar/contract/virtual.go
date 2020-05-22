@@ -50,18 +50,18 @@ type Wrapper struct {
 
 type StateFlag byte
 
-type InterferenceFlag byte
-
 const (
 	CallDirty StateFlag = iota
 	CallValidated
 
-	LastKnownStateFlag
+	StateFlagCount = iota
 )
+
+type InterferenceFlag byte
 
 const (
 	CallIntolerable InterferenceFlag = iota
 	CallTolerable
 
-	LastKnownInterferenceFlag
+	InterferenceFlagCount = iota
 )

@@ -17,40 +17,43 @@ func (f CallRequestFlags) Equal(r CallRequestFlags) bool {
 }
 
 const (
-	// 1111111111111100
-	interferenceMask = 0xfffc
+	bitInterferenceFlagCount = 2
+	bitStateFlagCount        = 2
+
+	bitInterferenceFlagOffset = 0
+	bitStateFlagOffset        = bitInterferenceFlagOffset + bitInterferenceFlagCount
 )
 
-func (f *CallRequestFlags) SetInterference(t contract.InterferenceFlag) {
-	if t > contract.LastKnownInterferenceFlag {
+const (
+	bitInterferenceMask = ((1 << bitInterferenceFlagCount) - 1) << bitInterferenceFlagOffset
+)
+
+func (f CallRequestFlags) WithInterference(t contract.InterferenceFlag) CallRequestFlags {
+	if t > contract.InterferenceFlagCount {
 		panic(throw.IllegalValue())
 	}
-	*f = *f&interferenceMask | CallRequestFlags(t)&3
+	return (f &^ bitInterferenceMask) | (CallRequestFlags(t) << bitInterferenceFlagOffset)
 }
 
 func (f CallRequestFlags) GetInterference() contract.InterferenceFlag {
-	return contract.InterferenceFlag(f & 3)
+	return contract.InterferenceFlag(f&bitInterferenceMask) >> bitInterferenceFlagOffset
 }
 
 const (
-	// 1111111111110011
-	stateMask = 0xfff3
+	bitStateFlagMask = ((1 << bitStateFlagCount) - 1) << bitStateFlagOffset
 )
 
-func (f *CallRequestFlags) SetState(s contract.StateFlag) {
-	if s > contract.LastKnownStateFlag {
+func (f CallRequestFlags) WithState(s contract.StateFlag) CallRequestFlags {
+	if s > contract.StateFlagCount {
 		panic(throw.IllegalValue())
 	}
-	*f = (*f & stateMask) | ((CallRequestFlags(s) & 3) << 2)
+	return (f &^ bitStateFlagMask) | (CallRequestFlags(s) << bitStateFlagOffset)
 }
 
 func (f CallRequestFlags) GetState() contract.StateFlag {
-	return contract.StateFlag((f >> 2) & 3)
+	return contract.StateFlag(f&bitStateFlagMask) >> bitStateFlagOffset
 }
 
 func BuildCallRequestFlags(interference contract.InterferenceFlag, state contract.StateFlag) CallRequestFlags {
-	var callFlags CallRequestFlags
-	callFlags.SetInterference(interference)
-	callFlags.SetState(state)
-	return callFlags
+	return CallRequestFlags(0).WithInterference(interference).WithState(state)
 }

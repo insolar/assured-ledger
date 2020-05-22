@@ -232,12 +232,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 
 		for i := 0; i < 2; i++ {
-			flags := payload.CallRequestFlags(0)
-			flags.SetInterference(contract.CallIntolerable)
 			pl := payload.VCallRequest{
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
-				CallFlags:           flags,
+				CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
