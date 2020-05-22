@@ -6,22 +6,38 @@ import (
 )
 
 type pendingTable struct {
+	ordered   pendingList
+	unordered pendingList
+}
+
+type pendingList struct {
 	oldestPulse pulse.Number
-	requests    map[reference.Global]struct{}
+	requests    map[reference.Global]*struct{
+		active bool
+	}
 }
 
 func newPendingTable() pendingTable {
-	return pendingTable{requests: make(map[reference.Global]struct{})}
+	return pendingTable{
+		ordered:   newPendingList(),
+		unordered: newPendingList(),
+	}
+}
+
+func newPendingList() pendingList {
+	return pendingList{
+		requests: make(map[reference.Global]*struct{active bool}),
+	}
 }
 
 // Add adds reference.Global and update OldestPulse if needed
 // returns true if added and false if already exists
-func (pt *pendingTable) Add(ref reference.Global) bool {
+func (pt *pendingList) Add(ref reference.Global) bool {
 	if _, exist := pt.requests[ref]; exist {
 		return false
 	}
 
-	pt.requests[ref] = struct{}{}
+	pt.requests[ref] = &struct{active bool}{true}
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
 	if pt.oldestPulse == 0 || requestPulseNumber < pt.oldestPulse {
@@ -31,10 +47,29 @@ func (pt *pendingTable) Add(ref reference.Global) bool {
 	return true
 }
 
-func (pt *pendingTable) Count() int {
+func (pt *pendingList) Finish(ref reference.Global) bool {
+	if _, exist := pt.requests[ref]; !exist {
+		return false
+	}
+	pt.requests[ref].active = false
+
+	return true
+}
+
+func (pt *pendingList) Count() int {
 	return len(pt.requests)
 }
 
-func (pt *pendingTable) OldestPulse() pulse.Number {
+func (pt *pendingList) CountFinish() int {
+	var count int
+	for _, request := range pt.requests {
+		if !request.active {
+			count++
+		}
+	}
+	return count
+}
+
+func (pt *pendingList) OldestPulse() pulse.Number {
 	return pt.oldestPulse
 }
