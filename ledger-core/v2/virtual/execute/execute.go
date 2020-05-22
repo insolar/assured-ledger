@@ -51,7 +51,7 @@ type SMExecute struct {
 	deactivate        bool
 	run               *runner.RunState
 
-	methodIsolation *contract.MethodIsolation
+	methodIsolation contract.MethodIsolation
 
 	// dependencies
 	runner        *runner.ServiceAdapter
@@ -249,27 +249,31 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	if isConstructor {
 		// default isolation for constructors
-		isolation := contract.ConstructorIsolation()
-		s.methodIsolation = &isolation
+		s.methodIsolation = contract.ConstructorIsolation()
 	}
 	// TODO[bigbes]: we're ready to execute here, so lets execute
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
 
 func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.methodIsolation == nil {
-		defer s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
+	if s.methodIsolation.IsZero() {
+		return s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
 			if err != nil {
 				panic(throw.W(err, "failed to classify method"))
 			}
-			s.methodIsolation = &isolation
-		}).Start()
-		return ctx.Sleep().ThenRepeat()
+			s.methodIsolation = isolation
+		}).DelayedStart().Sleep().ThenRepeat()
 	}
 
-	negotiatedIsolation, err := negotiateIsolation(*s.methodIsolation, s.execution.Isolation)
+	negotiatedIsolation, err := negotiateIsolation(s.methodIsolation, s.execution.Isolation)
 	if err != nil {
-		return ctx.Error(err)
+		return ctx.Error(throw.W(err, "failed to negotiate", struct {
+			methodIsolation contract.MethodIsolation
+			callIsolation   contract.MethodIsolation
+		}{
+			methodIsolation: s.methodIsolation,
+			callIsolation:   s.execution.Isolation,
+		}))
 	}
 	s.execution.Isolation = negotiatedIsolation
 

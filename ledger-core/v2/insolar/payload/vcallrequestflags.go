@@ -29,6 +29,9 @@ const (
 )
 
 func (f CallRequestFlags) WithInterference(t contract.InterferenceFlag) CallRequestFlags {
+	if t == 0 {
+		panic(throw.IllegalValue())
+	}
 	if t > contract.InterferenceFlagCount {
 		panic(throw.IllegalValue())
 	}
@@ -44,6 +47,9 @@ const (
 )
 
 func (f CallRequestFlags) WithState(s contract.StateFlag) CallRequestFlags {
+	if s == 0 {
+		panic(throw.IllegalValue())
+	}
 	if s > contract.StateFlagCount {
 		panic(throw.IllegalValue())
 	}
