@@ -15,12 +15,12 @@ func TestPendingList(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOld := gen.IDWithPulse(currentPulse)
+	objectOld := gen.UniqueIDWithPulse(currentPulse)
 	RefOld := reference.NewSelf(objectOld)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
-	objectOne := gen.IDWithPulse(nextPulseNumber)
-	objectTwo := gen.IDWithPulse(nextPulseNumber)
+	objectOne := gen.UniqueIDWithPulse(nextPulseNumber)
+	objectTwo := gen.UniqueIDWithPulse(nextPulseNumber)
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
