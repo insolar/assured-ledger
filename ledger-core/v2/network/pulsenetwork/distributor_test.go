@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -25,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -37,7 +37,7 @@ func createHostNetwork(t *testing.T) (network.HostNetwork, error) {
 
 	cm1 := component.NewManager(nil)
 	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
-	n1, err := hostnetwork.NewHostNetwork(gen.Reference().String())
+	n1, err := hostnetwork.NewHostNetwork(gen.UniqueReference().String())
 	if err != nil {
 		return nil, err
 	}

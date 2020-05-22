@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -53,7 +53,7 @@ func randomNodeList(t *testing.T, size int) []node.DiscoveryNode {
 	list := make([]node.DiscoveryNode, size)
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
-		r := gen.Reference()
+		r := gen.UniqueReference()
 		dn.GetNodeRefMock.Set(func() reference.Global {
 			return r
 		})

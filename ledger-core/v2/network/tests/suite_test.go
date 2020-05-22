@@ -20,7 +20,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
@@ -28,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
 	"github.com/stretchr/testify/require"
 
@@ -440,7 +440,7 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
 
 	n := &networkNode{
-		id:                  gen.Reference(),
+		id:                  gen.UniqueReference(),
 		role:                role,
 		privateKey:          key,
 		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),

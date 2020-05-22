@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
@@ -29,15 +28,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 var id1, id2, id3, idunknown string
 
 func init() {
-	id1 = gen.Reference().String()
-	id2 = gen.Reference().String()
-	id3 = gen.Reference().String()
-	idunknown = gen.Reference().String()
+	id1 = gen.UniqueReference().String()
+	id2 = gen.UniqueReference().String()
+	id3 = gen.UniqueReference().String()
+	idunknown = gen.UniqueReference().String()
 }
 
 type MockResolver struct {

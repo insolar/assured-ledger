@@ -10,9 +10,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 )
@@ -72,6 +72,6 @@ func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
 
 	w.Prototypes[head] = descriptorPair{
 		proto: descriptor.NewPrototype(head, state, code),
-		code:  descriptor.NewCode(gen.Reference().AsBytes(), machine.Builtin, code),
+		code:  descriptor.NewCode(gen.UniqueReference().AsBytes(), machine.Builtin, code),
 	}
 }

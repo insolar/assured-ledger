@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -37,6 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 var (
@@ -331,7 +331,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]node2.NetworkNode, []node2.NetworkN
 
 func newNetworkNode(addr string, role node2.StaticRole, pk crypto.PublicKey) node.MutableNode {
 	n := node.NewNode(
-		gen.Reference(),
+		gen.UniqueReference(),
 		role,
 		pk,
 		addr,

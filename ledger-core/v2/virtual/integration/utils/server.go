@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
@@ -23,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -60,7 +60,7 @@ func NewServer(t *testing.T) *Server {
 	ctx := context.Background()
 
 	s := Server{
-		caller: gen.Reference(),
+		caller: gen.UniqueReference(),
 	}
 
 	// Pulse-related components
@@ -70,7 +70,7 @@ func NewServer(t *testing.T) *Server {
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.Reference()).
+			IDMock.Return(gen.UniqueReference()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
 			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
@@ -95,8 +95,8 @@ func NewServer(t *testing.T) *Server {
 	s.pulseGenerator = mimic.NewPulseGenerator(10)
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
-		MeMock.Return(gen.Reference()).
-		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
+		MeMock.Return(gen.UniqueReference()).
+		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
 
 	s.PublisherMock = &mock.PublisherMock{}
 

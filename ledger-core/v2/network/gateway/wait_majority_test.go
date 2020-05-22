@@ -14,12 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -66,7 +66,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 		assert.Equal(t, node2.WaitMinRoles, state)
 	})
 
-	ref := gen.Reference()
+	ref := gen.UniqueReference()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 	accessor1 := mock.NewAccessorMock(mc)
 	accessor1.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {

@@ -15,10 +15,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func createCryptographyService(t *testing.T) cryptography.Service {
@@ -29,9 +29,9 @@ func createCryptographyService(t *testing.T) cryptography.Service {
 }
 
 func TestCreateAndVerifyPermit(t *testing.T) {
-	origin, err := host.NewHostN("127.0.0.1:123", gen.Reference())
+	origin, err := host.NewHostN("127.0.0.1:123", gen.UniqueReference())
 	assert.NoError(t, err)
-	redirect, err := host.NewHostN("127.0.0.1:321", gen.Reference())
+	redirect, err := host.NewHostN("127.0.0.1:321", gen.UniqueReference())
 	assert.NoError(t, err)
 
 	cryptographyService := createCryptographyService(t)

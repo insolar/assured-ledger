@@ -14,12 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -67,7 +67,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 		assert.Equal(t, node2.WaitPulsar, state)
 	})
 
-	ref := gen.Reference()
+	ref := gen.UniqueReference()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 
 	accessor1 := mock.NewAccessorMock(mc)

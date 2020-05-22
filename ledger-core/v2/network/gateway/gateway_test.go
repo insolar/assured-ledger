@@ -16,8 +16,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	testnet "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -55,7 +55,7 @@ func TestSwitch(t *testing.T) {
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	require.False(t, gilreleased)
-	cref := gen.Reference()
+	cref := gen.UniqueReference()
 
 	for _, state := range []node.NetworkState{node.NoNetworkState,
 		node.JoinerBootstrap, node.CompleteNetworkState} {
@@ -109,7 +109,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	require.False(t, gilreleased)
 
-	cref := gen.Reference()
+	cref := gen.UniqueReference()
 
 	// CR.CallMock.Set(func(ctx context.Context, ref reference.Global, method string, argsIn []interface{}, p insolar.Number,
 	// ) (r insolar.Reply, r2 reference.Global, r1 error) {
