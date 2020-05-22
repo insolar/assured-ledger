@@ -161,7 +161,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				objectCatalog:     catalog,
 				pulseSlot:         &pulseSlot,
 				objectSharedState: object.SharedStateAccessor{SharedDataLink: sharedStateData},
-				methodIsolation:   &tc.methodIsolation,
+				methodIsolation:   tc.methodIsolation,
 			}
 
 			stepChecker := testutils.NewSMStepChecker()
