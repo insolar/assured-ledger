@@ -216,12 +216,12 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		return nil
 	}
 
-	jetCoordinatorMock := jet.NewCoordinatorMock(t).
+	affinityHelperMock := jet.NewAffinityHelperMock(t).
 		MeMock.Return(gen.Reference()).
 		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 	pulses := pulsestor.NewStorageMem()
 
-	messageSender := messagesender.NewDefaultService(publisherMock, jetCoordinatorMock, pulses)
+	messageSender := messagesender.NewDefaultService(publisherMock, affinityHelperMock, pulses)
 	var messageSenderAdapter messagesenderAdapter.MessageSender = messagesenderAdapter.CreateMessageSendService(ctx, messageSender)
 	slotMachine.AddInterfaceDependency(&messageSenderAdapter)
 

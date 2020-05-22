@@ -36,7 +36,7 @@ type Runner struct {
 	NodeNetwork         network.NodeNetwork
 	CertificateGetter   node.CertificateGetter
 	PulseAccessor       pulsestor.Accessor
-	JetCoordinator      jet.Coordinator
+	JetCoordinator      jet.AffinityHelper
 	NetworkStatus       node.NetworkStatus
 	AvailabilityChecker AvailabilityChecker
 
@@ -83,7 +83,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	nodeNetwork network.NodeNetwork,
 	certificateGetter node.CertificateGetter,
 	pulseAccessor pulsestor.Accessor,
-	jetCoordinator jet.Coordinator,
+	jetCoordinator jet.AffinityHelper,
 	networkStatus node.NetworkStatus,
 	availabilityChecker AvailabilityChecker,
 ) (*Runner, error) {

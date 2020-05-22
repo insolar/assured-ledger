@@ -11,9 +11,9 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
-	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -25,8 +25,8 @@ var ack = []byte{1}
 
 // SendMessageHandler async sends message with confirmation of delivery.
 func (n *ServiceNetwork) SendMessageHandler(msg *message.Message) error {
-	ctx := inslogger.ContextWithTrace(context.Background(), msg.Metadata.Get(busMeta.TraceID))
-	parentSpan, err := instracer.Deserialize([]byte(msg.Metadata.Get(busMeta.SpanData)))
+	ctx := inslogger.ContextWithTrace(context.Background(), msg.Metadata.Get(defaults.TraceID))
+	parentSpan, err := instracer.Deserialize([]byte(msg.Metadata.Get(defaults.SpanData)))
 	if err == nil {
 		ctx = instracer.WithParentSpan(ctx, parentSpan)
 	} else {
@@ -42,7 +42,7 @@ func (n *ServiceNetwork) SendMessageHandler(msg *message.Message) error {
 }
 
 func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) error {
-	receiver := msg.Metadata.Get(busMeta.Receiver)
+	receiver := msg.Metadata.Get(defaults.Receiver)
 	if receiver == "" {
 		return errors.New("failed to send message: Receiver in message metadata is not set")
 	}
@@ -86,8 +86,8 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 		return nil, err
 	}
 	logger = inslogger.FromContext(ctx)
-	if inslogger.TraceID(ctx) != msg.Metadata.Get(busMeta.TraceID) {
-		logger.Errorf("traceID from context (%s) is different from traceID from message Metadata (%s)", inslogger.TraceID(ctx), msg.Metadata.Get(busMeta.TraceID))
+	if inslogger.TraceID(ctx) != msg.Metadata.Get(defaults.TraceID) {
+		logger.Errorf("traceID from context (%s) is different from traceID from message Metadata (%s)", inslogger.TraceID(ctx), msg.Metadata.Get(defaults.TraceID))
 	}
 	// TODO: check pulse here
 
@@ -102,9 +102,9 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 }
 
 func getIncomingTopic(msg *message.Message) string {
-	topic := busMeta.TopicIncoming
-	if msg.Metadata.Get(busMeta.Type) == busMeta.TypeReturnResults {
-		topic = busMeta.TopicIncomingRequestResults
+	topic := defaults.TopicIncoming
+	if msg.Metadata.Get(defaults.Type) == defaults.TypeReturnResults {
+		topic = defaults.TopicIncomingRequestResults
 	}
 	return topic
 }

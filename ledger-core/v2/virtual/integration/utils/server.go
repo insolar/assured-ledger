@@ -44,7 +44,7 @@ type Server struct {
 
 	// testing components and Mocks
 	PublisherMock      *mock.PublisherMock
-	JetCoordinatorMock *jet.CoordinatorMock
+	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *mimic.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       pulsestor.Manager
@@ -94,7 +94,7 @@ func NewServer(t *testing.T) *Server {
 	s.pulseStorage = Pulses
 	s.pulseGenerator = mimic.NewPulseGenerator(10)
 
-	s.JetCoordinatorMock = jet.NewCoordinatorMock(t).
+	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
 		MeMock.Return(gen.Reference()).
 		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
 

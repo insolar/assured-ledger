@@ -21,8 +21,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jetcoordinator"
-	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
@@ -116,7 +116,7 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
+	jc := jet.NewAffinityHelper(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
 	pulses := pulsestor.NewStorageMem()
 
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
@@ -218,14 +218,14 @@ func startWatermill(
 
 	outRouter.AddNoPublisherHandler(
 		"OutgoingHandler",
-		busMeta.TopicOutgoing,
+		defaults.TopicOutgoing,
 		sub,
 		outHandler,
 	)
 
 	inRouter.AddNoPublisherHandler(
 		"IncomingHandler",
-		busMeta.TopicIncoming,
+		defaults.TopicIncoming,
 		sub,
 		inHandler,
 	)

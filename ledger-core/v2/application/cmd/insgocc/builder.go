@@ -13,19 +13,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/preprocessor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 )
 
 var (
-	contractSources = insolar.RootModule + "/application/contract"
-	proxySources    = insolar.RootModule + "/application/proxy"
+	contractSources = defaults.RootModule + "/application/contract"
+	proxySources    = defaults.RootModule + "/application/proxy"
 )
 
 type contractsBuilder struct {
@@ -53,7 +53,7 @@ func (cb *contractsBuilder) outputDir() string {
 
 func newContractBuilder(tmpDir string, skipProxy bool) *contractsBuilder {
 	if tmpDir == "" {
-		tmpDir = insolar.ContractBuildTmpDir("insgocc-")
+		tmpDir = defaults.ContractBuildTmpDir("insgocc-")
 	}
 
 	cb := &contractsBuilder{
