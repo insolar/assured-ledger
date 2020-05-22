@@ -11,11 +11,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 )
 
-func NewTestLogger(target logcommon.TestingRedirectTarget) log.Logger {
-	return NewTestLoggerExt(target, "")
+func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
+	return NewTestLoggerExt(target, suppressTestError, "")
 }
 
-func NewTestLoggerExt(target logcommon.TestingRedirectTarget, adapter string) log.Logger {
+func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, adapter string) log.Logger {
 	if target == nil {
 		panic("illegal value")
 	}
@@ -28,13 +28,13 @@ func NewTestLoggerExt(target logcommon.TestingRedirectTarget, adapter string) lo
 	if err != nil {
 		panic(err)
 	}
-	return l.WithMetrics(logcommon.LogMetricsResetMode).
-		WithFormat(logcommon.TextFormat).
+
+	return l.WithMetrics(logcommon.LogMetricsResetMode|logcommon.LogMetricsTimestamp).
 		WithCaller(logcommon.CallerField).
-		WithOutput(&logcommon.TestingLoggerOutput{Target: target}).
+		WithOutput(&logcommon.TestingLoggerOutput{Testing: target, Output: l.GetOutput(), SuppressTestError: suppressTestError}).
 		MustBuild()
 }
 
-func SetTestOutput(target logcommon.TestingRedirectTarget) {
-	global.SetLogger(NewTestLogger(target))
+func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
+	global.SetLogger(NewTestLogger(target, suppressLogError))
 }

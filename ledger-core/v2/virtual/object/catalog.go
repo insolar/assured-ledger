@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -40,10 +42,6 @@ type errEntryExists struct {
 	ObjectReference reference.Global
 }
 
-func formatSMTraceID(ref reference.Global) string {
-	return fmt.Sprintf("object-%s", ref.String())
-}
-
 func (p LocalCatalog) Get(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor {
 	if v, ok := p.TryGet(ctx, objectReference); ok {
 		return v
@@ -58,13 +56,29 @@ func (p LocalCatalog) TryGet(ctx smachine.ExecutionContext, objectReference refe
 	return SharedStateAccessor{}, false
 }
 
+func (p LocalCatalog) initChildCtx(ctx smachine.ConstructionContext, ref reference.Global) {
+	traceID := fmt.Sprintf("object-%s", ref.String())
+
+	goCtx, err := inslogger.Clean(ctx.GetContext())
+	if err == nil {
+		goCtx, err = trace.SetID(goCtx, traceID)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	ctx.SetContext(goCtx)
+	ctx.SetTracerID(traceID)
+}
+
 func (p LocalCatalog) Create(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor {
 	if _, ok := p.TryGet(ctx, objectReference); ok {
 		panic(throw.E("", errEntryExists{ObjectReference: objectReference}))
 	}
 
+
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerID(formatSMTraceID(objectReference))
+		p.initChildCtx(ctx, objectReference)
 
 		return NewStateMachineObject(objectReference)
 	})
@@ -79,7 +93,7 @@ func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerID(formatSMTraceID(objectReference))
+		p.initChildCtx(ctx, objectReference)
 
 		return NewStateMachineObject(objectReference)
 	})

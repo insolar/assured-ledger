@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
@@ -29,6 +30,7 @@ func TestInitViaCTMethod(t *testing.T) {
 		Polymorph: uint32(payload.TypeVCallRequest),
 		CallType:  payload.CTMethod,
 		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
+		CallFlags: payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 	}
 	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
 	require.NoError(t, err)
