@@ -96,7 +96,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	t.Log("C4919")
-	server := utils.NewServer(t)
+	server := utils.NewServerIgnoreLogErrors(t)
 	ctx := inslogger.TestContext(t)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {

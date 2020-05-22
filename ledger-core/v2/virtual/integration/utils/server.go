@@ -61,6 +61,10 @@ func NewServer(t *testing.T) *Server {
 	return NewServerExt(t, false)
 }
 
+func NewServerIgnoreLogErrors(t *testing.T) *Server {
+	return NewServerExt(t, true)
+}
+
 func NewServerExt(t *testing.T, suppressLogError bool) *Server {
 	inslogger.SetTestOutput(t, suppressLogError)
 
