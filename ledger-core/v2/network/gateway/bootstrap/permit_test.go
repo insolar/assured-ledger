@@ -12,11 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
@@ -43,7 +43,7 @@ func TestCreateAndVerifyPermit(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
 	cert.GetDiscoveryNodesMock.Set(func() (r []node2.DiscoveryNode) {
 		pk, _ := cryptographyService.GetPublicKey()
-		node := certificate.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), node2.StaticRoleVirtual.String())
+		node := mandates.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), node2.StaticRoleVirtual.String())
 		return []node2.DiscoveryNode{node}
 	})
 

@@ -13,10 +13,10 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
@@ -37,10 +37,10 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 		return accessor
 	})
 
-	cert := &certificate.Certificate{}
+	cert := &mandates.Certificate{}
 	cert.MinRoles.HeavyMaterial = 1
 	b := createBase(mc)
-	b.CertificateManager = certificate.NewCertificateManager(cert)
+	b.CertificateManager = mandates.NewCertificateManager(cert)
 	b.NodeKeeper = nodeKeeper
 	waitMinRoles := newWaitMinRoles(b)
 
@@ -86,8 +86,8 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 		return accessor2
 	})
 
-	discoveryNode := certificate.BootstrapNode{NodeRef: ref.String()}
-	cert := &certificate.Certificate{MajorityRule: 1, BootstrapNodes: []certificate.BootstrapNode{discoveryNode}}
+	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
+	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}
 	cert.MinRoles.LightMaterial = 1
 	pulseAccessor := mock.NewPulseAccessorMock(mc)
 	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
@@ -96,7 +96,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 		return p, nil
 	})
 	waitMinRoles := newWaitMinRoles(&Base{
-		CertificateManager: certificate.NewCertificateManager(cert),
+		CertificateManager: mandates.NewCertificateManager(cert),
 		NodeKeeper:         nodeKeeper,
 		PulseAccessor:      pulseAccessor,
 	})

@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
@@ -32,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
@@ -344,17 +344,17 @@ func newNetworkNode(addr string, role node2.StaticRole, pk crypto.PublicKey) nod
 	return mn
 }
 
-func initCrypto(node node2.NetworkNode, discoveryNodes []node2.NetworkNode) *certificate.CertificateManager {
+func initCrypto(node node2.NetworkNode, discoveryNodes []node2.NetworkNode) *mandates.CertificateManager {
 	pubKey := node.PublicKey()
 
 	publicKey, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
 
-	bootstrapNodes := make([]certificate.BootstrapNode, 0, len(discoveryNodes))
+	bootstrapNodes := make([]mandates.BootstrapNode, 0, len(discoveryNodes))
 	for _, dn := range discoveryNodes {
 		pubKey := dn.PublicKey()
 		pubKeyBuf, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
 
-		bootstrapNode := certificate.NewBootstrapNode(
+		bootstrapNode := mandates.NewBootstrapNode(
 			pubKey,
 			string(pubKeyBuf[:]),
 			dn.Address(),
@@ -364,8 +364,8 @@ func initCrypto(node node2.NetworkNode, discoveryNodes []node2.NetworkNode) *cer
 		bootstrapNodes = append(bootstrapNodes, *bootstrapNode)
 	}
 
-	cert := &certificate.Certificate{
-		AuthorizationCertificate: certificate.AuthorizationCertificate{
+	cert := &mandates.Certificate{
+		AuthorizationCertificate: mandates.AuthorizationCertificate{
 			PublicKey: string(publicKey[:]),
 			Reference: node.ID().String(),
 			Role:      node.Role().String(),
@@ -375,8 +375,8 @@ func initCrypto(node node2.NetworkNode, discoveryNodes []node2.NetworkNode) *cer
 
 	// dump cert and read it again from json for correct private files initialization
 	jsonCert, _ := cert.Dump()
-	cert, _ = certificate.ReadCertificateFromReader(pubKey, keyProcessor, strings.NewReader(jsonCert))
-	return certificate.NewCertificateManager(cert)
+	cert, _ = mandates.ReadCertificateFromReader(pubKey, keyProcessor, strings.NewReader(jsonCert))
+	return mandates.NewCertificateManager(cert)
 }
 
 const defaultNshGenerationDelay = time.Millisecond * 0

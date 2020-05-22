@@ -15,7 +15,6 @@ import (
 
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -29,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
@@ -263,7 +263,7 @@ func (g *Base) GetCert(ctx context.Context, ref reference.Global) (node2.Certifi
 
 // ValidateCert validates node certificate
 func (g *Base) ValidateCert(ctx context.Context, authCert node2.AuthorizationCertificate) (bool, error) {
-	return certificate.VerifyAuthorizationCertificate(g.CryptographyService, g.CertificateManager.GetCertificate().GetDiscoveryNodes(), authCert)
+	return mandates.VerifyAuthorizationCertificate(g.CryptographyService, g.CertificateManager.GetCertificate().GetDiscoveryNodes(), authCert)
 }
 
 // ============= Bootstrap =======
@@ -380,7 +380,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}), nil
 	}
 
-	cert, err := certificate.Deserialize(data.Certificate, platformpolicy.NewKeyProcessor())
+	cert, err := mandates.Deserialize(data.Certificate, platformpolicy.NewKeyProcessor())
 	if err != nil {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}

@@ -9,9 +9,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/stretchr/testify/require"
@@ -67,7 +67,7 @@ func TestSwitch(t *testing.T) {
 		_, err := au.GetCert(ctx, cref)
 		require.Error(t, err)
 
-		_, err = au.ValidateCert(ctx, &certificate.Certificate{})
+		_, err = au.ValidateCert(ctx, &mandates.Certificate{})
 		require.Error(t, err)
 
 	}
@@ -124,10 +124,10 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	// 	}, nil, nil
 	// })
 
-	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &certificate.Certificate{} })
+	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &mandates.Certificate{} })
 	cert, err := ge.Auther().GetCert(ctx, cref)
 
 	require.NoError(t, err)
 	require.NotNil(t, cert)
-	require.Equal(t, cert, &certificate.Certificate{})
+	require.Equal(t, cert, &mandates.Certificate{})
 }

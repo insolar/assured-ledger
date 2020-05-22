@@ -23,10 +23,10 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -228,9 +228,9 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm := component.NewManager(nil)
 	origin := gen.UniqueReference()
 	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
-	cert := &certificate.Certificate{}
+	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()
-	certManager := certificate.NewCertificateManager(cert)
+	certManager := mandates.NewCertificateManager(cert)
 	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), cm)
 	require.NoError(t, err)
 	ctx := context.Background()

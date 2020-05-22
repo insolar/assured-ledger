@@ -13,10 +13,10 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
@@ -37,10 +37,10 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 		return accessor
 	})
 
-	cert := &certificate.Certificate{MajorityRule: 4}
+	cert := &mandates.Certificate{MajorityRule: 4}
 
 	b := createBase(mc)
-	b.CertificateManager = certificate.NewCertificateManager(cert)
+	b.CertificateManager = mandates.NewCertificateManager(cert)
 	b.NodeKeeper = nodeKeeper
 
 	waitMajority := newWaitMajority(b)
@@ -84,8 +84,8 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 		return accessor2
 	})
 
-	discoveryNode := certificate.BootstrapNode{NodeRef: ref.String()}
-	cert := &certificate.Certificate{MajorityRule: 1, BootstrapNodes: []certificate.BootstrapNode{discoveryNode}}
+	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
+	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}
 	pulseAccessor := mock.NewPulseAccessorMock(mc)
 	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
 		p := *pulsestor.GenesisPulse
@@ -93,7 +93,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 		return p, nil
 	})
 	waitMajority := newWaitMajority(&Base{
-		CertificateManager: certificate.NewCertificateManager(cert),
+		CertificateManager: mandates.NewCertificateManager(cert),
 		NodeKeeper:         nodeKeeper,
 		PulseAccessor:      pulseAccessor,
 	})

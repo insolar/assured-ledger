@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
@@ -68,7 +68,7 @@ func getDiscoveryNodes(count int) ([]node2.NetworkNode, []node2.DiscoveryNode) {
 	discoveryNodes := make([]node2.DiscoveryNode, count)
 	for i := 0; i < count; i++ {
 		n := newNode(gen.UniqueReference(), i)
-		d := certificate.NewBootstrapNode(nil, "", n.Address(), n.ID().String(), n.Role().String())
+		d := mandates.NewBootstrapNode(nil, "", n.Address(), n.ID().String(), n.Role().String())
 		netNodes[i] = n
 		discoveryNodes[i] = d
 	}

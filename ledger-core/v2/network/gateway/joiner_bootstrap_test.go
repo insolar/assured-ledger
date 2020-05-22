@@ -14,12 +14,12 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
@@ -33,12 +33,12 @@ type fixture struct {
 
 func createFixture(t *testing.T) fixture {
 	mc := minimock.NewController(t)
-	cert := &certificate.Certificate{}
+	cert := &mandates.Certificate{}
 	gatewayer := mock.NewGatewayerMock(mc)
 	requester := bootstrap.NewRequesterMock(mc)
 
 	joinerBootstrap := newJoinerBootstrap(&Base{
-		CertificateManager: certificate.NewCertificateManager(cert),
+		CertificateManager: mandates.NewCertificateManager(cert),
 		BootstrapRequester: requester,
 		Gatewayer:          gatewayer,
 		originCandidate:    &adapters.Candidate{},

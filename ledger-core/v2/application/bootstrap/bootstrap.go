@@ -18,8 +18,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -129,10 +129,10 @@ func (ni nodeInfo) reference() reference.Global {
 }
 
 func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, discoveryNodes []nodeInfo) error {
-	certs := make([]certificate.Certificate, 0, len(g.config.DiscoveryNodes))
+	certs := make([]mandates.Certificate, 0, len(g.config.DiscoveryNodes))
 	for _, node := range nodesInfo {
-		c := certificate.Certificate{
-			AuthorizationCertificate: certificate.AuthorizationCertificate{
+		c := mandates.Certificate{
+			AuthorizationCertificate: mandates.AuthorizationCertificate{
 				PublicKey: node.publicKey,
 				Role:      node.role,
 				Reference: node.reference().String(),
@@ -142,11 +142,11 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		c.MinRoles.Virtual = g.config.MinRoles.Virtual
 		c.MinRoles.HeavyMaterial = g.config.MinRoles.HeavyMaterial
 		c.MinRoles.LightMaterial = g.config.MinRoles.LightMaterial
-		c.BootstrapNodes = []certificate.BootstrapNode{}
+		c.BootstrapNodes = []mandates.BootstrapNode{}
 
 		for j, n2 := range discoveryNodes {
 			host := g.config.DiscoveryNodes[j].Host
-			c.BootstrapNodes = append(c.BootstrapNodes, certificate.BootstrapNode{
+			c.BootstrapNodes = append(c.BootstrapNodes, mandates.BootstrapNode{
 				PublicKey: n2.publicKey,
 				Host:      host,
 				NodeRef:   n2.reference().String(),
