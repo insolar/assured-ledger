@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
@@ -28,8 +27,9 @@ import (
 
 func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	t.Log("C4835")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(t, nil)
+	defer server.Stop()
 
 	prototype := gen.Reference()
 
@@ -127,8 +127,9 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	t.Log("C4835")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(t, nil)
+	defer server.Stop()
 
 	isolation := contract.ConstructorIsolation()
 

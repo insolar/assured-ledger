@@ -16,7 +16,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
@@ -28,8 +27,9 @@ import (
 // 5. Check that in VStateReport new object state is stored
 func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 	t.Log("C4934")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(t, nil)
+	defer server.Stop()
 
 	testBalance := uint32(555)
 	additionalBalance := uint(133)

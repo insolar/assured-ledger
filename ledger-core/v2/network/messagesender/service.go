@@ -64,6 +64,10 @@ func NewDefaultService(pub message.Publisher, coordinator jet.Coordinator, pulse
 	}
 }
 
+func (dm *DefaultService) Close() error {
+	return dm.pub.Close()
+}
+
 func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
 	if err != nil {

@@ -57,18 +57,20 @@ type Server struct {
 	caller reference.Global
 }
 
-func NewServer(t *testing.T) *Server {
-	return NewServerExt(t, false)
+func NewServer(t *testing.T, ctx context.Context) (*Server, context.Context) {
+	return newServerExt(t, ctx, false)
 }
 
-func NewServerIgnoreLogErrors(t *testing.T) *Server {
-	return NewServerExt(t, true)
+func NewServerIgnoreLogErrors(t *testing.T, ctx context.Context) (*Server, context.Context) {
+	return newServerExt(t, ctx, true)
 }
 
-func NewServerExt(t *testing.T, suppressLogError bool) *Server {
+func newServerExt(t *testing.T, ctx context.Context, suppressLogError bool) (*Server, context.Context) {
 	inslogger.SetTestOutput(t, suppressLogError)
 
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = inslogger.TestContext(t)
+	}
 
 	s := Server{
 		caller: gen.Reference(),
@@ -140,7 +142,7 @@ func NewServerExt(t *testing.T, suppressLogError bool) *Server {
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
 	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
 
-	return &s
+	return &s, ctx
 }
 
 func (s *Server) GetPulse() pulsestor.Pulse {
@@ -186,4 +188,10 @@ func (s *Server) GlobalCaller() reference.Global {
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
 	return gen.UniqueIDWithPulse(s.GetPulse().PulseNumber)
+}
+
+func (s *Server) Stop() {
+	s.virtual.Conveyor.Stop()
+	_ = s.testWalletServer.Stop(context.Background())
+	_ = s.messageSender.Close()
 }

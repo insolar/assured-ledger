@@ -16,7 +16,6 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
@@ -71,8 +70,9 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	t.Log("C4866")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(t, nil)
+	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
@@ -96,8 +96,9 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	t.Log("C4919")
-	server := utils.NewServerIgnoreLogErrors(t) // TODO PLAT-367 fix test to be stable and have no errors in logs
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServerIgnoreLogErrors(t, nil) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
