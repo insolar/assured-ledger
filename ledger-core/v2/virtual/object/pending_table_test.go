@@ -18,12 +18,11 @@ func TestPendingList(t *testing.T) {
 	objectOld := gen.IDWithPulse(currentPulse)
 	RefOld := reference.NewSelf(objectOld)
 
-	nextPulseNumber := currentPulse+pulse.Number(pd.NextPulseDelta)
+	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
 	objectOne := gen.IDWithPulse(nextPulseNumber)
 	objectTwo := gen.IDWithPulse(nextPulseNumber)
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
-
 
 	pt := newPendingList()
 	require.Equal(t, 0, pt.Count())

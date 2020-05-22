@@ -12,11 +12,12 @@ type pendingTable struct {
 
 type pendingList struct {
 	oldestPulse pulse.Number
-	requests    map[reference.Global]*struct{
+	requests    map[reference.Global]*struct {
 		active bool
 	}
 }
 
+// nolint // it will be used in PLAT-311
 func newPendingTable() pendingTable {
 	return pendingTable{
 		Ordered:   newPendingList(),
@@ -26,7 +27,7 @@ func newPendingTable() pendingTable {
 
 func newPendingList() pendingList {
 	return pendingList{
-		requests: make(map[reference.Global]*struct{active bool}),
+		requests: make(map[reference.Global]*struct{ active bool }),
 	}
 }
 
@@ -37,7 +38,7 @@ func (pt *pendingList) Add(ref reference.Global) bool {
 		return false
 	}
 
-	pt.requests[ref] = &struct{active bool}{true}
+	pt.requests[ref] = &struct{ active bool }{true}
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
 	if pt.oldestPulse == 0 || requestPulseNumber < pt.oldestPulse {
