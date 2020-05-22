@@ -5,35 +5,34 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-type pendingTable struct {
-	Ordered   pendingList
-	Unordered pendingList
+type PendingTable struct {
+	Ordered   PendingList
+	Unordered PendingList
 }
 
-type pendingList struct {
+type PendingList struct {
 	oldestPulse pulse.Number
 	requests    map[reference.Global]*struct {
 		active bool
 	}
 }
 
-// nolint // it will be used in PLAT-311
-func newPendingTable() pendingTable {
-	return pendingTable{
-		Ordered:   newPendingList(),
-		Unordered: newPendingList(),
+func NewPendingTable() PendingTable {
+	return PendingTable{
+		Ordered:   NewPendingList(),
+		Unordered: NewPendingList(),
 	}
 }
 
-func newPendingList() pendingList {
-	return pendingList{
+func NewPendingList() PendingList {
+	return PendingList{
 		requests: make(map[reference.Global]*struct{ active bool }),
 	}
 }
 
 // Add adds reference.Global and update OldestPulse if needed
 // returns true if added and false if already exists
-func (pt *pendingList) Add(ref reference.Global) bool {
+func (pt *PendingList) Add(ref reference.Global) bool {
 	if _, exist := pt.requests[ref]; exist {
 		return false
 	}
@@ -48,7 +47,7 @@ func (pt *pendingList) Add(ref reference.Global) bool {
 	return true
 }
 
-func (pt *pendingList) Finish(ref reference.Global) bool {
+func (pt *PendingList) Finish(ref reference.Global) bool {
 	if _, exist := pt.requests[ref]; !exist {
 		return false
 	}
@@ -57,11 +56,11 @@ func (pt *pendingList) Finish(ref reference.Global) bool {
 	return true
 }
 
-func (pt *pendingList) Count() int {
+func (pt *PendingList) Count() int {
 	return len(pt.requests)
 }
 
-func (pt *pendingList) CountFinish() int {
+func (pt *PendingList) CountFinish() int {
 	var count int
 	for _, request := range pt.requests {
 		if !request.active {
@@ -71,6 +70,6 @@ func (pt *pendingList) CountFinish() int {
 	return count
 }
 
-func (pt *pendingList) OldestPulse() pulse.Number {
+func (pt *PendingList) OldestPulse() pulse.Number {
 	return pt.oldestPulse
 }

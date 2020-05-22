@@ -24,7 +24,7 @@ func TestPendingList(t *testing.T) {
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	pt := newPendingList()
+	pt := NewPendingList()
 	require.Equal(t, 0, pt.Count())
 	require.Equal(t, 0, pt.CountFinish())
 	require.Equal(t, pulse.Number(0), pt.oldestPulse)
