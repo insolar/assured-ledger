@@ -177,7 +177,8 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		smExecute.stepGetObject(execCtx)
 	}
 
-	assert.Empty(t, smObject.KnownRequests)
+	assert.Equal(t, 0, smObject.KnownRequests.Ordered.Count())
+	assert.Equal(t, 0, smObject.KnownRequests.Unordered.Count())
 
 	{ // update known requests successful
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -187,10 +188,12 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		smExecute.stepUpdateKnownRequests(execCtx)
 	}
 
-	assert.Len(t, smObject.KnownRequests, 1)
+	assert.Equal(t, 1, smObject.KnownRequests.Ordered.Count())
+	assert.Equal(t, 0, smObject.KnownRequests.Unordered.Count())
 	outgoing := reference.NewRecordOf(callee, smObjectID)
-	_, ok := smObject.KnownRequests[outgoing]
-	assert.True(t, ok)
+
+	added := smObject.KnownRequests.Ordered.Add(outgoing)
+	assert.False(t, added) // can't add because already added by stepUpdateKnownRequests
 
 	{ // update known requests panics
 		execCtx := smachine.NewExecutionContextMock(mc).

@@ -6,8 +6,8 @@ import (
 )
 
 type pendingTable struct {
-	ordered   pendingList
-	unordered pendingList
+	Ordered   pendingList
+	Unordered pendingList
 }
 
 type pendingList struct {
@@ -19,8 +19,8 @@ type pendingList struct {
 
 func newPendingTable() pendingTable {
 	return pendingTable{
-		ordered:   newPendingList(),
-		unordered: newPendingList(),
+		Ordered:   newPendingList(),
+		Unordered: newPendingList(),
 	}
 }
 

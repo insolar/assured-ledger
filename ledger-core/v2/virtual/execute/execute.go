@@ -153,11 +153,17 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 
 func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	action := func(state *object.SharedState) {
-		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+		var added bool
+
+		if s.execution.Unordered {
+			added = state.KnownRequests.Unordered.Add(s.execution.Outgoing)
+		} else {
+			added = state.KnownRequests.Ordered.Add(s.execution.Outgoing)
+		}
+
+		if !added {
 			// found duplicate request, todo: deduplication algorithm
 			panic(throw.NotImplemented())
-		} else {
-			state.KnownRequests[s.execution.Outgoing] = struct{}{}
 		}
 	}
 

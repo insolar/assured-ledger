@@ -47,7 +47,7 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
-	KnownRequests map[reference.Global]struct{}
+	KnownRequests pendingTable
 
 	ActiveImmutablePendingCount    uint8
 	ActiveMutablePendingCount      uint8
@@ -55,8 +55,6 @@ type Info struct {
 	PotentialMutablePendingCount   uint8
 
 	objectState State
-
-	pendingTable pendingTable
 }
 
 func (i *Info) IsReady() bool {
@@ -106,7 +104,7 @@ type SharedState struct {
 func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
-			Info: Info{Reference: objectReference, KnownRequests: make(map[reference.Global]struct{})},
+			Info: Info{Reference: objectReference, KnownRequests: newPendingTable()},
 		},
 	}
 }
@@ -151,7 +149,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
-	sm.pendingTable = newPendingTable()
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
