@@ -12,10 +12,10 @@ type PendingTable struct {
 
 type PendingList struct {
 	oldestPulse pulse.Number
-	requests    map[reference.Global]*struct {
-		active bool
-	}
+	requests    map[reference.Global]isActive
 }
+
+type isActive bool
 
 func NewPendingTable() PendingTable {
 	return PendingTable{
@@ -26,7 +26,7 @@ func NewPendingTable() PendingTable {
 
 func NewPendingList() PendingList {
 	return PendingList{
-		requests: make(map[reference.Global]*struct{ active bool }),
+		requests: make(map[reference.Global]isActive),
 	}
 }
 
@@ -37,7 +37,7 @@ func (pt *PendingList) Add(ref reference.Global) bool {
 		return false
 	}
 
-	pt.requests[ref] = &struct{ active bool }{true}
+	pt.requests[ref] = true
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
 	if pt.oldestPulse == 0 || requestPulseNumber < pt.oldestPulse {
@@ -51,7 +51,8 @@ func (pt *PendingList) Finish(ref reference.Global) bool {
 	if _, exist := pt.requests[ref]; !exist {
 		return false
 	}
-	pt.requests[ref].active = false
+
+	pt.requests[ref] = false
 
 	return true
 }
@@ -62,8 +63,8 @@ func (pt *PendingList) Count() int {
 
 func (pt *PendingList) CountFinish() int {
 	var count int
-	for _, request := range pt.requests {
-		if !request.active {
+	for _, requestIsActive := range pt.requests {
+		if !requestIsActive {
 			count++
 		}
 	}
