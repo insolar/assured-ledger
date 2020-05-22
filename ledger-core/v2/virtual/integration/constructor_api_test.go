@@ -17,8 +17,10 @@ import (
 )
 
 func Test_API_Create(t *testing.T) {
-	server := utils.NewServer(t)
+	t.Log("C4837")
 	ctx := inslogger.TestContext(t)
+
+	server := utils.NewServer(t)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		// verify and decode incoming message

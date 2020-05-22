@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -26,6 +27,7 @@ import (
 )
 
 func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
+	t.Log("C4835")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -49,10 +51,12 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		nil,
 	)
 
+	isolation := contract.ConstructorIsolation()
+
 	pl := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           0,
+		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
 		Caller:              reference.Global{},
 		Callee:              gen.Reference(),
@@ -122,14 +126,17 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
+	t.Log("C4835")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
+
+	isolation := contract.ConstructorIsolation()
 
 	for i := 0; i < 10; i++ {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
-			CallFlags:           0,
+			CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 			CallAsOf:            0,
 			Caller:              reference.Global{},
 			Callee:              gen.Reference(),

@@ -27,6 +27,7 @@ import (
 	"text/template"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 
@@ -35,7 +36,6 @@ import (
 
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
-var corePath = "github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 var referencePath = "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
 var immutableFlag = "ins:immutable"
@@ -324,18 +324,20 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		extendImportsMapWithType(pf, t, imports)
 	}
 	if pf.machineType == machine.Builtin || len(functionsInfo) > 0 {
-		imports[fmt.Sprintf(`"%s"`, corePath)] = true
 		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	}
 
 	data := map[string]interface{}{
-		"Package":             packageName,
-		"ContractType":        pf.contract,
-		"Methods":             methodsInfo,
-		"Functions":           functionsInfo,
-		"ParsedCode":          pf.code,
-		"FoundationPath":      foundationPath,
-		"Imports":             imports,
+		"Package":        packageName,
+		"ContractType":   pf.contract,
+		"Methods":        methodsInfo,
+		"Functions":      functionsInfo,
+		"ParsedCode":     pf.code,
+		"FoundationPath": foundationPath,
+		"Imports":        imports,
+		"CustomImports": map[string]string{
+			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"`,
+		},
 		"GenerateInitialize":  pf.machineType == machine.Builtin,
 		"PanicIsLogicalError": pf.panicIsLogicalError,
 	}
@@ -470,8 +472,9 @@ func (pf *ParsedFile) functionInfoForWrapper(list []*ast.FuncDecl) []map[string]
 			"ResultDefinitions":   numberedDefinition(pf, fun.Type.Results, "ret"),
 			"ErrorInterfaceInRes": errorInterfaceInRes,
 			"LastErrorInRes":      lastErrorInRes,
-			"Immutable":           isImmutable(fun),  // only for methods, not constructors
-			"SagaInfo":            sagaInfo(pf, fun), // only for methods, not constructors
+			"Interference":        getInterference(fun), // only for methods, not constructors
+			"State":               getState(fun),        // only for methods, not constructors
+			"SagaInfo":            sagaInfo(pf, fun),    // only for methods, not constructors
 		}
 		res = append(res, info)
 	}
@@ -552,9 +555,11 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 		"MethodsProxies":      filteredMethodsProxies,
 		"ConstructorsProxies": constructorProxies,
 		"ClassReference":      classReference,
+		"CustomImports": map[string]string{
+			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"`,
+		},
 		"Imports": pf.generateImports([]string{
-			referencePath,
-			"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"}),
+			referencePath}),
 	}
 
 	return formatAndWrite(out, "proxy", data)
@@ -908,6 +913,42 @@ func isImmutable(decl *ast.FuncDecl) bool {
 	return isImmutable
 }
 
+func getInterference(decl *ast.FuncDecl) contract.InterferenceFlag {
+	interference := contract.CallTolerable
+	if decl.Doc != nil && decl.Doc.List != nil {
+		for _, comment := range decl.Doc.List {
+			slice, err := skipCommentBeginning(comment.Text)
+			if err != nil {
+				// invalid comment beginning
+				continue
+			}
+			if slice == immutableFlag {
+				interference = contract.CallIntolerable
+				break
+			}
+		}
+	}
+	return interference
+}
+
+func getState(decl *ast.FuncDecl) contract.StateFlag {
+	state := contract.CallDirty
+	if decl.Doc != nil && decl.Doc.List != nil {
+		for _, comment := range decl.Doc.List {
+			slice, err := skipCommentBeginning(comment.Text)
+			if err != nil {
+				// invalid comment beginning
+				continue
+			}
+			if slice == immutableFlag {
+				state = contract.CallValidated
+				break
+			}
+		}
+	}
+	return state
+}
+
 // skipCommentBegin converts '//comment' or '//[spaces]comment' to 'comment'
 // The procedure returns an error if the string is not started with '//'
 func skipCommentBeginning(comment string) (string, error) {
@@ -1003,7 +1044,7 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 		"Contracts": generateContractList(contracts),
 		"Package":   "builtin",
 		"CustomImports": map[string]string{
-			"XXX_insolar":    `"github.com/insolar/assured-ledger/ledger-core/v2/insolar"`,
+			"XXX_contract":   `"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"`,
 			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"`,
 			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/v2/reference"`,
 			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"`,

@@ -23,7 +23,7 @@ func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.U
 
 	event := executionevent.NewRPCBuilder(in.Request, in.Callee).
 		CallMethod(in.Object, in.Prototype, in.Method, in.Arguments).
-		SetTolerance(in.Tolerance).SetIsolation(in.Isolation)
+		SetInterference(in.Interference).SetIsolation(in.Isolation)
 	sink.ExternalCall(event)
 	r.awaitedRunFinish(in.ID)
 

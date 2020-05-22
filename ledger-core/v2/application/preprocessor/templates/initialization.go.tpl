@@ -29,8 +29,8 @@ import (
 {{- end }}
 )
 
-func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
-    return map[string]XXX_insolar.ContractWrapper{
+func InitializeContractMethods() map[string]XXX_contract.Wrapper {
+    return map[string]XXX_contract.Wrapper{
 {{- range $contract := .Contracts }}
         "{{ $contract.Name }}": {{ $contract.ImportName }}.Initialize(),
 {{- end }}

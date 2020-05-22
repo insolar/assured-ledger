@@ -20,6 +20,7 @@ import (
 )
 
 func TestVirtual_Method_API(t *testing.T) {
+	t.Log("C4931")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -109,6 +110,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 // 10 parallel executions
 func TestVirtual_Scenario1(t *testing.T) {
+	t.Log("C4932")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -186,6 +188,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 
 // 10 sequential executions
 func TestVirtual_Scenario2(t *testing.T) {
+	t.Log("C4933")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 

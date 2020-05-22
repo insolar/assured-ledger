@@ -6,28 +6,11 @@
 package payload
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type CallRequestFlags uint32
-
-type StateFlag byte
-
-const (
-	CallDirty StateFlag = iota
-	CallValidated
-
-	lastKnownStateFlag
-)
-
-type ToleranceFlag byte
-
-const (
-	CallIntolerable ToleranceFlag = iota
-	CallTolerable
-
-	lastKnownToleranceFlag
-)
 
 func (f CallRequestFlags) Equal(r CallRequestFlags) bool {
 	return f == r
@@ -35,18 +18,18 @@ func (f CallRequestFlags) Equal(r CallRequestFlags) bool {
 
 const (
 	// 1111111111111100
-	toleranceMask = 0xfffc
+	interferenceMask = 0xfffc
 )
 
-func (f *CallRequestFlags) SetTolerance(t ToleranceFlag) {
-	if t > lastKnownToleranceFlag {
+func (f *CallRequestFlags) SetInterference(t contract.InterferenceFlag) {
+	if t > contract.LastKnownInterferenceFlag {
 		panic(throw.IllegalValue())
 	}
-	*f = *f&toleranceMask | CallRequestFlags(t)&3
+	*f = *f&interferenceMask | CallRequestFlags(t)&3
 }
 
-func (f CallRequestFlags) GetTolerance() ToleranceFlag {
-	return ToleranceFlag(f & 3)
+func (f CallRequestFlags) GetInterference() contract.InterferenceFlag {
+	return contract.InterferenceFlag(f & 3)
 }
 
 const (
@@ -54,13 +37,20 @@ const (
 	stateMask = 0xfff3
 )
 
-func (f *CallRequestFlags) SetState(s StateFlag) {
-	if s > lastKnownStateFlag {
+func (f *CallRequestFlags) SetState(s contract.StateFlag) {
+	if s > contract.LastKnownStateFlag {
 		panic(throw.IllegalValue())
 	}
 	*f = (*f & stateMask) | ((CallRequestFlags(s) & 3) << 2)
 }
 
-func (f CallRequestFlags) GetState() StateFlag {
-	return StateFlag((f >> 2) & 3)
+func (f CallRequestFlags) GetState() contract.StateFlag {
+	return contract.StateFlag((f >> 2) & 3)
+}
+
+func BuildCallRequestFlags(interference contract.InterferenceFlag, state contract.StateFlag) CallRequestFlags {
+	var callFlags CallRequestFlags
+	callFlags.SetInterference(interference)
+	callFlags.SetState(state)
+	return callFlags
 }

@@ -43,6 +43,7 @@ func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global,
 }
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
+	t.Log("C4861")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -92,6 +93,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 }
 
 func TestVirtual_VStateRequest_WithBody(t *testing.T) {
+	t.Log("C4862")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 
@@ -147,6 +149,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 }
 
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
+	t.Log("C4863")
 	server := utils.NewServer(t)
 	ctx := inslogger.TestContext(t)
 	reportChan := make(chan *payload.VStateUnavailable, 0)

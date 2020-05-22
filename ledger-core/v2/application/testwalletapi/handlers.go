@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -83,6 +84,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
+		CallFlags:           payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:              gen.Reference(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 		CallSiteDeclaration: testwallet.GetPrototype(),
@@ -91,7 +93,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = throw.W(err, "Failed to process create wallet contract call request", nil).Error()
+		result.Error = throw.W(err, "Failed to process create wallet contract call request").Error()
 		return
 	}
 
@@ -174,13 +176,9 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
-
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callFlags,
+		CallFlags:      payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
@@ -254,13 +252,9 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallIntolerable)
-	callFlags.SetState(payload.CallValidated)
-
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callFlags,
+		CallFlags:      payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -344,13 +338,9 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
-
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callFlags,
+		CallFlags:      payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,
