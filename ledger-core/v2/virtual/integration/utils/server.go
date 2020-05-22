@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
@@ -57,6 +58,16 @@ type Server struct {
 }
 
 func NewServer(t *testing.T) *Server {
+	return NewServerExt(t, false)
+}
+
+func NewServerIgnoreLogErrors(t *testing.T) *Server {
+	return NewServerExt(t, true)
+}
+
+func NewServerExt(t *testing.T, suppressLogError bool) *Server {
+	inslogger.SetTestOutput(t, suppressLogError)
+
 	ctx := context.Background()
 
 	s := Server{
