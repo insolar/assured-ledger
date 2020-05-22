@@ -33,14 +33,14 @@ func TestVirtual_Scenario1(t *testing.T) {
 		outChan              = make(chan error, count)
 	)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		// verify and decode incoming message
 		assert.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 
 		return nil
-	}
+	})
 
 	var (
 		walletReference reference.Global
@@ -113,14 +113,14 @@ func TestVirtual_Scenario2(t *testing.T) {
 		expectedBalance      = 1000000000 + uint(count)*amount
 	)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		// verify and decode incoming message
 		assert.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 
 		return nil
-	}
+	})
 
 	var (
 		walletReference reference.Global

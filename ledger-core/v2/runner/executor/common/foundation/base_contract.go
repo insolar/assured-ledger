@@ -56,5 +56,5 @@ func (bc *BaseContract) getContext() *call.LogicContext {
 
 // SelfDestruct contract will be marked as deleted
 func (bc *BaseContract) SelfDestruct() error {
-	return common.CurrentProxyCtx.DeactivateObject(bc.GetReference())
+	return common.CurrentProxyCtx().DeactivateObject(bc.GetReference())
 }

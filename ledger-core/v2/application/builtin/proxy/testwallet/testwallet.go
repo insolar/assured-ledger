@@ -45,7 +45,8 @@ type ContractConstructorHolder struct {
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, error) {
-	ret, err := common.CurrentProxyCtx.CallConstructor(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
+	var ph = common.CurrentProxyCtx()
+	ret, err := ph.CallConstructor(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, e
 	resultContainer := foundation.Result{
 		Returns: []interface{}{&ref, &constructorError},
 	}
-	err = common.CurrentProxyCtx.Deserialize(ret, &resultContainer)
+	err = ph.Deserialize(ret, &resultContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func New() *ContractConstructorHolder {
 	var args [0]interface{}
 
 	var argsSerialized []byte
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	err := common.CurrentProxyCtx().Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
@@ -104,6 +105,7 @@ func (r *Wallet) GetReference() reference.Global {
 
 // GetPrototype returns reference to the code
 func (r *Wallet) GetPrototype() (reference.Global, error) {
+	var ph = common.CurrentProxyCtx()
 	if r.Prototype.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -111,13 +113,13 @@ func (r *Wallet) GetPrototype() (reference.Global, error) {
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.CallMethod(
+		res, err := ph.CallMethod(
 			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetPrototype", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
 
-		err = common.CurrentProxyCtx.Deserialize(res, &ret)
+		err = ph.Deserialize(res, &ret)
 		if err != nil {
 			return ret0, err
 		}
@@ -135,6 +137,7 @@ func (r *Wallet) GetPrototype() (reference.Global, error) {
 
 // GetCode returns reference to the code
 func (r *Wallet) GetCode() (reference.Global, error) {
+	var ph = common.CurrentProxyCtx()
 	if r.Code.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -142,13 +145,13 @@ func (r *Wallet) GetCode() (reference.Global, error) {
 		var ret1 *foundation.Error
 		ret[1] = &ret1
 
-		res, err := common.CurrentProxyCtx.CallMethod(
+		res, err := ph.CallMethod(
 			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), PrototypeReference)
 		if err != nil {
 			return ret0, err
 		}
 
-		err = common.CurrentProxyCtx.Deserialize(res, &ret)
+		err = ph.Deserialize(res, &ret)
 		if err != nil {
 			return ret0, err
 		}
@@ -175,12 +178,14 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 	var ret1 *foundation.Error
 	ret[1] = &ret1
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "GetBalance", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -188,7 +193,7 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return ret0, err
 	}
@@ -214,12 +219,14 @@ func (r *Wallet) GetBalance() (uint32, error) {
 	var ret1 *foundation.Error
 	ret[1] = &ret1
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return ret0, err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(
+	res, err := ph.CallMethod(
 		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetBalance", argsSerialized, PrototypeReference)
 	if err != nil {
 		return ret0, err
@@ -228,7 +235,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return ret0, err
 	}
@@ -253,12 +260,14 @@ func (r *Wallet) Accept(amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Accept", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -266,7 +275,7 @@ func (r *Wallet) Accept(amount uint32) error {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return err
 	}
@@ -291,12 +300,14 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(
+	res, err := ph.CallMethod(
 		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Accept", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
@@ -305,7 +316,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return err
 	}
@@ -331,12 +342,14 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Transfer", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -344,7 +357,7 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return err
 	}
@@ -370,12 +383,14 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(
+	res, err := ph.CallMethod(
 		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Transfer", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
@@ -384,7 +399,7 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return err
 	}
@@ -408,12 +423,14 @@ func (r *Wallet) Destroy() error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Destroy", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Destroy", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
 	}
@@ -421,7 +438,7 @@ func (r *Wallet) Destroy() error {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return err
 	}
@@ -445,12 +462,14 @@ func (r *Wallet) DestroyAsImmutable() error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	err := common.CurrentProxyCtx.Serialize(args, &argsSerialized)
+	var ph = common.CurrentProxyCtx()
+
+	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := common.CurrentProxyCtx.CallMethod(
+	res, err := ph.CallMethod(
 		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Destroy", argsSerialized, PrototypeReference)
 	if err != nil {
 		return err
@@ -459,7 +478,7 @@ func (r *Wallet) DestroyAsImmutable() error {
 	resultContainer := foundation.Result{
 		Returns: ret,
 	}
-	err = common.CurrentProxyCtx.Deserialize(res, &resultContainer)
+	err = ph.Deserialize(res, &resultContainer)
 	if err != nil {
 		return err
 	}

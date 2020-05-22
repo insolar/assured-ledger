@@ -88,7 +88,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 	testIsDone := make(chan struct{}, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		assert.Len(t, messages, 1)
 
 		var (
@@ -118,7 +118,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		testIsDone <- struct{}{}
 
 		return nil
-	}
+	})
 
 	server.SendMessage(ctx, msg)
 
@@ -169,7 +169,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 		testIsDone := make(chan struct{}, 0)
 
-		server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 			assert.Len(t, messages, 1)
 
 			var (
@@ -197,7 +197,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			testIsDone <- struct{}{}
 
 			return nil
-		}
+		})
 
 		server.SendMessage(ctx, msg)
 

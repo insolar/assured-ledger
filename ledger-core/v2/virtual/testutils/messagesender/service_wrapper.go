@@ -1,4 +1,9 @@
-package testutils
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package messagesender
 
 import (
 	"context"
@@ -9,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
-	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -18,7 +22,7 @@ type AsyncCallRequesterMock struct {
 	childMock *smachine.AsyncCallRequesterMock
 }
 
-func NewAsyncCallRequesterMock(t minimock.Tester) *AsyncCallRequesterMock {
+func NewAsyncCallRequesterMock(t *minimock.Controller) *AsyncCallRequesterMock {
 	mock := AsyncCallRequesterMock{
 		childMock: smachine.NewAsyncCallRequesterMock(t),
 	}
@@ -51,7 +55,7 @@ type SendRoleFn func(
 ) error
 
 type AsyncCallRequesterSendRoleMock struct {
-	parentMock *MessageServiceMock
+	parentMock *ServiceMockWrapper
 
 	checkMessageFn     func(msg payload.Marshaler)
 	checkRoleFn        func(role node.DynamicRole)
@@ -59,7 +63,7 @@ type AsyncCallRequesterSendRoleMock struct {
 	checkPulseNumberFn func(pn pulse.Number)
 }
 
-func NewAsyncCallRequesterSendRoleMock(parent *MessageServiceMock) *AsyncCallRequesterSendRoleMock {
+func NewAsyncCallRequesterSendRoleMock(parent *ServiceMockWrapper) *AsyncCallRequesterSendRoleMock {
 	mock := AsyncCallRequesterSendRoleMock{
 		parentMock: parent,
 	}
@@ -67,27 +71,27 @@ func NewAsyncCallRequesterSendRoleMock(parent *MessageServiceMock) *AsyncCallReq
 }
 
 func (m *AsyncCallRequesterSendRoleMock) SetCheckMessage(fn func(payload.Marshaler)) *AsyncCallRequesterSendRoleMock {
-	m.parentMock.Mock().SendRoleMock.Set(m.check)
+	m.prepare()
 	m.checkMessageFn = fn
 	return m
 
 }
 
 func (m *AsyncCallRequesterSendRoleMock) SetCheckRole(fn func(node.DynamicRole)) *AsyncCallRequesterSendRoleMock {
-	m.parentMock.Mock().SendRoleMock.Set(m.check)
+	m.prepare()
 	m.checkRoleFn = fn
 	return m
 }
 
 func (m *AsyncCallRequesterSendRoleMock) SetCheckObject(fn func(reference.Global)) *AsyncCallRequesterSendRoleMock {
-	m.parentMock.Mock().SendRoleMock.Set(m.check)
+	m.prepare()
 	m.checkObjectFn = fn
 	return m
 
 }
 
 func (m *AsyncCallRequesterSendRoleMock) SetCheckPulseNumber(fn func(pulse.Number)) *AsyncCallRequesterSendRoleMock {
-	m.parentMock.Mock().SendRoleMock.Set(m.check)
+	m.prepare()
 	m.checkPulseNumberFn = fn
 	return m
 }
@@ -121,59 +125,94 @@ func (m *AsyncCallRequesterSendRoleMock) Set(fn SendRoleFn) *AsyncCallRequesterS
 	return m
 }
 
-// ==================================================================================================
-
-type MessageServiceMock struct {
-	t         minimock.Tester
-	childMock *messageSender.ServiceMock
-	SendRole  *AsyncCallRequesterSendRoleMock
+func (m *AsyncCallRequesterSendRoleMock) prepare() {
+	m.parentMock.Mock().SendRoleMock.Set(m.check)
 }
 
-func NewMessageServiceMock(t minimock.Tester) *MessageServiceMock {
-	mock := MessageServiceMock{
+// ==================================================================================================
+
+type SendTargetFn func(
+	_ context.Context,
+	msg payload.Marshaler,
+	target reference.Global,
+	_ ...messageSender.SendOption,
+) error
+
+type AsyncCallRequesterSendTargetMock struct {
+	parentMock *ServiceMockWrapper
+
+	checkMessageFn func(msg payload.Marshaler)
+	checkTargetFn  func(target reference.Global)
+}
+
+func NewAsyncCallRequesterSendTargetMock(parent *ServiceMockWrapper) *AsyncCallRequesterSendTargetMock {
+	mock := AsyncCallRequesterSendTargetMock{
+		parentMock: parent,
+	}
+	return &mock
+}
+
+func (m *AsyncCallRequesterSendTargetMock) SetCheckMessage(fn func(payload.Marshaler)) *AsyncCallRequesterSendTargetMock {
+	m.prepare()
+	m.checkMessageFn = fn
+	return m
+
+}
+
+func (m *AsyncCallRequesterSendTargetMock) SetCheckTarget(fn func(reference.Global)) *AsyncCallRequesterSendTargetMock {
+	m.prepare()
+	m.checkTargetFn = fn
+	return m
+}
+func (m *AsyncCallRequesterSendTargetMock) check(
+	_ context.Context,
+	msg payload.Marshaler,
+	target reference.Global,
+	_ ...messageSender.SendOption,
+) error {
+	if m.checkMessageFn != nil {
+		m.checkMessageFn(msg)
+	}
+	if m.checkTargetFn != nil {
+		m.checkTargetFn(target)
+	}
+
+	return nil
+}
+
+func (m *AsyncCallRequesterSendTargetMock) Set(fn SendTargetFn) *AsyncCallRequesterSendTargetMock {
+	m.parentMock.Mock().SendTargetMock.Set(fn)
+	return m
+}
+
+func (m *AsyncCallRequesterSendTargetMock) prepare() {
+	m.parentMock.Mock().SendTargetMock.Set(m.check)
+}
+
+// ==================================================================================================
+
+type ServiceMockWrapper struct {
+	t         *minimock.Controller
+	childMock *messageSender.ServiceMock
+
+	SendRole   *AsyncCallRequesterSendRoleMock
+	SendTarget *AsyncCallRequesterSendTargetMock
+}
+
+func NewServiceMockWrapper(t *minimock.Controller) *ServiceMockWrapper {
+	mock := ServiceMockWrapper{
 		t:         t,
 		childMock: messageSender.NewServiceMock(t),
 	}
 	mock.SendRole = NewAsyncCallRequesterSendRoleMock(&mock)
+	mock.SendTarget = NewAsyncCallRequesterSendTargetMock(&mock)
 	return &mock
 }
 
-func (m *MessageServiceMock) Mock() *messageSender.ServiceMock {
+func (m *ServiceMockWrapper) Mock() *messageSender.ServiceMock {
 	return m.childMock
 }
 
-func (m *MessageServiceMock) NewAdapterMock() *MessageSenderMock {
-	return NewMessageSenderMock(m.t, m.Mock())
+func (m *ServiceMockWrapper) NewAdapterMock() *AdapterMockWrapper {
+	return NewAdapterMockWrapper(m.t, m.Mock())
 }
-
-// ==================================================================================================
-
-type MessageSenderMock struct {
-	t         minimock.Tester
-	service   messageSender.Service
-	childMock *messageSenderAdapter.MessageSenderMock
-}
-
-func NewMessageSenderMock(t minimock.Tester, svc messageSender.Service) *MessageSenderMock {
-	mock := MessageSenderMock{
-		t:         t,
-		service:   svc,
-		childMock: messageSenderAdapter.NewMessageSenderMock(t),
-	}
-	return &mock
-}
-
-func (m *MessageSenderMock) Mock() *messageSenderAdapter.MessageSenderMock {
-	return m.childMock
-}
-
-func (m *MessageSenderMock) SetDefaultPrepareAsyncCall(ctx context.Context) *MessageSenderMock {
-	cb := func(_ smachine.ExecutionContext, fn messageSenderAdapter.AsyncCallFunc) smachine.AsyncCallRequester {
-		fn(ctx, m.service)
-		return NewAsyncCallRequesterMock(m.t).SetWithoutAutoWakeUp().SetStart().Mock()
-	}
-	m.childMock.PrepareAsyncMock.Set(cb)
-	return m
-}
-
-// ==================================================================================================

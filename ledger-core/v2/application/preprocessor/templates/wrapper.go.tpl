@@ -48,7 +48,7 @@ func INS_META_INFO() ([] map[string]string) {
 }
 
 func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	self := new({{ $.ContractType }})
 
 	if len(object) == 0 {
@@ -74,7 +74,7 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 }
 
 func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	self := new({{ $.ContractType }})
 
 	if len(object) == 0 {
@@ -101,7 +101,7 @@ func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) 
 
 {{ range $method := .Methods }}
 func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	self := new({{ $.ContractType }})
@@ -184,7 +184,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 
 {{ range $f := .Functions }}
 func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	{{ $f.ArgumentsZeroList }}

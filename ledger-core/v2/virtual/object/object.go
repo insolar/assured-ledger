@@ -242,7 +242,7 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 }
 
 func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
-	syncSM := AwaitOrderedPendingSM{
+	syncSM := SMAwaitDelegate{
 		sync: sm.MutableExecute,
 	}
 

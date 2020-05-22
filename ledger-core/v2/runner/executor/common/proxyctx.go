@@ -6,6 +6,8 @@
 package common
 
 import (
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
@@ -36,4 +38,21 @@ type ProxyHelper interface {
 
 // CurrentProxyCtx - hackish way to give proxies access to the current environment. Also,
 // to avoid compiling in whole Insolar platform into every contract based on GoPlugin.
-var CurrentProxyCtx ProxyHelper
+var (
+	currentProxyCtxLock sync.RWMutex
+	currentProxyCtx     ProxyHelper
+)
+
+func CurrentProxyCtx() ProxyHelper {
+	currentProxyCtxLock.RLock()
+	defer currentProxyCtxLock.RUnlock()
+
+	return currentProxyCtx
+}
+
+func SetCurrentProxyCtx(ctx ProxyHelper) {
+	currentProxyCtxLock.Lock()
+	defer currentProxyCtxLock.Unlock()
+
+	currentProxyCtx = ctx
+}
