@@ -19,7 +19,7 @@ import (
 func TestVirtual_Method_API(t *testing.T) {
 	t.Log("C4931")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {

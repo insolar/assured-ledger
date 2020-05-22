@@ -23,7 +23,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 
 	t.Log("C4932")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	var (
@@ -104,7 +104,7 @@ func TestVirtual_Scenario2(t *testing.T) {
 
 	t.Log("C4933")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	var (

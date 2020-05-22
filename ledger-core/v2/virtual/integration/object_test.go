@@ -22,7 +22,7 @@ import (
 func TestInitViaCTMethod(t *testing.T) {
 	t.Log("C4867")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	// Call method on non-existent object, expect calling of VStateRequest

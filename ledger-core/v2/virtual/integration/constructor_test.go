@@ -28,7 +28,7 @@ import (
 func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	t.Log("C4835")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	prototype := gen.Reference()
@@ -128,7 +128,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	t.Log("C4835")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	isolation := contract.ConstructorIsolation()

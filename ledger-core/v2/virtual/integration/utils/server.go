@@ -57,15 +57,15 @@ type Server struct {
 	caller reference.Global
 }
 
-func NewServer(t *testing.T, ctx context.Context) (*Server, context.Context) {
-	return newServerExt(t, ctx, false)
+func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, false)
 }
 
-func NewServerIgnoreLogErrors(t *testing.T, ctx context.Context) (*Server, context.Context) {
-	return newServerExt(t, ctx, true)
+func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, true)
 }
 
-func newServerExt(t *testing.T, ctx context.Context, suppressLogError bool) (*Server, context.Context) {
+func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Server, context.Context) {
 	inslogger.SetTestOutput(t, suppressLogError)
 
 	if ctx == nil {

@@ -18,7 +18,7 @@ import (
 func Test_API_Create(t *testing.T) {
 	t.Log("C4837")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {

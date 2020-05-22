@@ -71,7 +71,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc)
 func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	t.Log("C4935")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(t, nil) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
 
 	testBalance := uint32(555)

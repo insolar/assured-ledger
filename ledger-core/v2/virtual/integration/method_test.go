@@ -111,7 +111,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	t.Log("C4923")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	prototype := testwallet.GetPrototype()
@@ -171,7 +171,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	t.Log("C4930")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	var (
@@ -275,7 +275,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 func TestVirtual_Method_WithExecutor(t *testing.T) {
 	t.Log("C4923")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	prototype := testwallet.GetPrototype()
@@ -361,7 +361,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	t.Log("C4870")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	server.IncrementPulse(ctx)

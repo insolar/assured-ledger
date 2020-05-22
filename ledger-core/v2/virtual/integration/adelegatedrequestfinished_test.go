@@ -31,7 +31,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 
 	t.Parallel()
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	testBalance := uint32(100)

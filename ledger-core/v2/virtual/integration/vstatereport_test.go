@@ -28,7 +28,7 @@ import (
 func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 	t.Log("C4934")
 
-	server, ctx := utils.NewServer(t, nil)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	testBalance := uint32(555)

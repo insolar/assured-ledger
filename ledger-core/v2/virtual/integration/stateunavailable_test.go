@@ -29,7 +29,7 @@ func makeVStateUnavailableEvent(t *testing.T, ref reference.Global, reason paylo
 func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 	t.Log("C4864")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(t, nil)
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
 	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
@@ -51,7 +51,7 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
 	t.Log("C4865")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(t, nil)
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
 	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
