@@ -51,8 +51,7 @@ type SMExecute struct {
 	deactivate        bool
 	run               *runner.RunState
 
-	hasMethodIsolation bool
-	methodIsolation    contract.MethodIsolation
+	methodIsolation contract.MethodIsolation
 
 	// dependencies
 	runner        *runner.ServiceAdapter
@@ -250,7 +249,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	if isConstructor {
 		// default isolation for constructors
-		s.hasMethodIsolation = true
 		s.methodIsolation = contract.ConstructorIsolation()
 	}
 	// TODO[bigbes]: we're ready to execute here, so lets execute
@@ -258,19 +256,24 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !s.hasMethodIsolation {
+	if s.methodIsolation.IsZero() {
 		return s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
 			if err != nil {
 				panic(throw.W(err, "failed to classify method"))
 			}
 			s.methodIsolation = isolation
-			s.hasMethodIsolation = true
 		}).DelayedStart().Sleep().ThenRepeat()
 	}
 
 	negotiatedIsolation, err := negotiateIsolation(s.methodIsolation, s.execution.Isolation)
 	if err != nil {
-		return ctx.Error(err)
+		return ctx.Error(throw.W(err, "failed to negotiate", struct {
+			methodIsolation contract.MethodIsolation
+			callIsolation   contract.MethodIsolation
+		}{
+			methodIsolation: s.methodIsolation,
+			callIsolation:   s.execution.Isolation,
+		}))
 	}
 	s.execution.Isolation = negotiatedIsolation
 
