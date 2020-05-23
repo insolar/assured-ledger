@@ -531,23 +531,33 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
-	s._logStepUpdate(StepLoggerUpdate, durationUnknownNano, durationUnknownNano, stateUpdate, flags, err)
-}
-
-func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
-	flags := StepLoggerFlags(0)
-	if wasAsync {
-		flags |= StepLoggerDetached
-	}
-	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, flags, nil)
+	s._logStepUpdate(StepLoggerUpdate, durationUnknownOrTooShortNano, durationUnknownOrTooShortNano, stateUpdate, func(d *StepLoggerData) {
+		d.Flags |= flags
+		d.Error = err
+	})
 }
 
 func (s *Slot) logStepMigrate(stateUpdate StateUpdate, inactivityNano, activityNano time.Duration) {
-	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, 0, nil)
+	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, nil)
+}
+
+func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
+	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData) {
+		if wasAsync {
+			d.Flags |= StepLoggerDetached
+		}
+	})
+}
+
+func (s *Slot) logShortLoopUpdate(stateUpdate StateUpdate, curStep StepDeclaration, inactivityNano, activityNano time.Duration) {
+	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData) {
+		d.Flags |= StepLoggerShortLoop
+		d.CurrentStep = curStep
+	})
 }
 
 func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activityNano time.Duration,
-	stateUpdate StateUpdate, flags StepLoggerFlags, err error) {
+	stateUpdate StateUpdate, fn func(*StepLoggerData)) {
 	if s.stepLogger == nil {
 		return
 	}
@@ -565,8 +575,9 @@ func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activit
 	}
 
 	stepData := s.newStepLoggerData(eventType, s.NewStepLink())
-	stepData.Flags = flags
-	stepData.Error = err
+	if fn != nil {
+		fn(&stepData)
+	}
 
 	updData := StepLoggerUpdateData{
 		InactivityNano: inactivityNano,
@@ -649,14 +660,14 @@ func (s *Slot) isBoosted() bool {
 func (s *Slot) touch(touchAt int64) time.Duration {
 	if s.lastTouchNano == 0 {
 		s.lastTouchNano = touchAt
-		return durationUnknownNano
+		return durationUnknownOrTooShortNano
 	}
 
 	inactivityNano := time.Duration(touchAt - s.lastTouchNano)
 	s.lastTouchNano = touchAt
 
-	if inactivityNano <= durationUnknownNano {
-		return durationUnknownNano
+	if inactivityNano <= durationUnknownOrTooShortNano {
+		return durationUnknownOrTooShortNano
 	}
 	return inactivityNano
 }

@@ -36,6 +36,7 @@ const (
 	stepLoggerUpdateAdapterBit1
 	stepLoggerUpdateAdapterBit2
 	StepLoggerDetached
+	StepLoggerShortLoop
 )
 
 const (
