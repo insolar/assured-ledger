@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
@@ -29,8 +28,11 @@ import (
 // 3. Send VDelegateRequestFinished
 // 4. Check that execute process request after VDelegateRequestFinished
 func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	t.Parallel()
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	testBalance := uint32(100)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -108,7 +110,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	case <-requestIsDone:
 		// We should not execute request while we have pending execution.
 		require.Failf(t, "", "unexpected execute")
-	case <-time.After(20 * time.Second):
+	case <-time.After(5 * time.Second):
 	}
 
 	server.SendMessage(ctx, vDelegateRequestFinishedMsg)
@@ -116,7 +118,7 @@ func TestVirtual_SendVStateReport_And_VDelegateRequestFinished(t *testing.T) {
 	select {
 	case <-requestIsDone:
 		break
-	case <-time.After(20 * time.Second):
+	case <-time.After(5 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 }

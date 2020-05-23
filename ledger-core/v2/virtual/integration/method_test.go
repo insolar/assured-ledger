@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -111,8 +110,9 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	t.Log("C4923")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	prototype := testwallet.GetPrototype()
 	objectLocal := server.RandomLocalWithPulse()
@@ -170,8 +170,9 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	t.Log("C4930")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	var (
 		waitInputChannel  = make(chan struct{}, 2)
@@ -273,8 +274,9 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 func TestVirtual_Method_WithExecutor(t *testing.T) {
 	t.Log("C4923")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	prototype := testwallet.GetPrototype()
 	objectLocal := server.RandomLocalWithPulse()
@@ -358,8 +360,9 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	t.Log("C4870")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	server.IncrementPulse(ctx)
 
