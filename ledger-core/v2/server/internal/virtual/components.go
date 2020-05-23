@@ -16,19 +16,19 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jetcoordinator"
-	busMeta "github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/v2/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
@@ -70,14 +70,14 @@ func initCertificateManager(
 	cfg configuration.Configuration,
 	cryptographyService cryptography.Service,
 	keyProcessor cryptography.KeyProcessor,
-) *certificate.CertificateManager {
-	var certManager *certificate.CertificateManager
+) *mandates.CertificateManager {
+	var certManager *mandates.CertificateManager
 	var err error
 
 	publicKey, err := cryptographyService.GetPublicKey()
 	checkError(ctx, err, "failed to retrieve node public key")
 
-	certManager, err = certificate.NewManagerReadCertificate(publicKey, keyProcessor, cfg.CertificatePath)
+	certManager, err = mandates.NewManagerReadCertificate(publicKey, keyProcessor, cfg.CertificatePath)
 	checkError(ctx, err, "failed to start Certificate")
 
 	return certManager
@@ -116,7 +116,7 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	jc := jetcoordinator.NewJetCoordinator(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
+	jc := jet.NewAffinityHelper(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
 	pulses := pulsestor.NewStorageMem()
 
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
@@ -218,14 +218,14 @@ func startWatermill(
 
 	outRouter.AddNoPublisherHandler(
 		"OutgoingHandler",
-		busMeta.TopicOutgoing,
+		defaults.TopicOutgoing,
 		sub,
 		outHandler,
 	)
 
 	inRouter.AddNoPublisherHandler(
 		"IncomingHandler",
-		busMeta.TopicIncoming,
+		defaults.TopicIncoming,
 		sub,
 		inHandler,
 	)

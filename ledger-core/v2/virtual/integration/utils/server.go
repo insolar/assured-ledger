@@ -14,15 +14,16 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -44,7 +45,7 @@ type Server struct {
 
 	// testing components and Mocks
 	PublisherMock      *mock.PublisherMock
-	JetCoordinatorMock *jet.CoordinatorMock
+	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *mimic.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       pulsestor.Manager
@@ -57,10 +58,20 @@ type Server struct {
 }
 
 func NewServer(t *testing.T) *Server {
+	return NewServerExt(t, false)
+}
+
+func NewServerIgnoreLogErrors(t *testing.T) *Server {
+	return NewServerExt(t, true)
+}
+
+func NewServerExt(t *testing.T, suppressLogError bool) *Server {
+	inslogger.SetTestOutput(t, suppressLogError)
+
 	ctx := context.Background()
 
 	s := Server{
-		caller: gen.Reference(),
+		caller: gen.UniqueReference(),
 	}
 
 	// Pulse-related components
@@ -70,7 +81,7 @@ func NewServer(t *testing.T) *Server {
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.Reference()).
+			IDMock.Return(gen.UniqueReference()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
 			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
@@ -94,9 +105,9 @@ func NewServer(t *testing.T) *Server {
 	s.pulseStorage = Pulses
 	s.pulseGenerator = mimic.NewPulseGenerator(10)
 
-	s.JetCoordinatorMock = jet.NewCoordinatorMock(t).
-		MeMock.Return(gen.Reference()).
-		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
+	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
+		MeMock.Return(gen.UniqueReference()).
+		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
 
 	s.PublisherMock = &mock.PublisherMock{}
 

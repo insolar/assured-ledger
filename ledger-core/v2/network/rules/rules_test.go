@@ -11,23 +11,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
 func TestRules_CheckMinRole(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
 	nodes := []node2.NetworkNode{
-		node.NewNode(gen.Reference(), node2.StaticRoleHeavyMaterial, nil, "", ""),
-		node.NewNode(gen.Reference(), node2.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.Reference(), node2.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "", ""),
-		node.NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "", ""),
+		node.NewNode(gen.UniqueReference(), node2.StaticRoleHeavyMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueReference(), node2.StaticRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueReference(), node2.StaticRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueReference(), node2.StaticRoleVirtual, nil, "", ""),
+		node.NewNode(gen.UniqueReference(), node2.StaticRoleVirtual, nil, "", ""),
 	}
 	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
 		return 1, 0, 0
@@ -67,8 +67,8 @@ func getDiscoveryNodes(count int) ([]node2.NetworkNode, []node2.DiscoveryNode) {
 	netNodes := make([]node2.NetworkNode, count)
 	discoveryNodes := make([]node2.DiscoveryNode, count)
 	for i := 0; i < count; i++ {
-		n := newNode(gen.Reference(), i)
-		d := certificate.NewBootstrapNode(nil, "", n.Address(), n.ID().String(), n.Role().String())
+		n := newNode(gen.UniqueReference(), i)
+		d := mandates.NewBootstrapNode(nil, "", n.Address(), n.ID().String(), n.Role().String())
 		netNodes[i] = n
 		discoveryNodes[i] = d
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
@@ -25,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -51,7 +51,7 @@ type SMExecute struct {
 	deactivate        bool
 	run               *runner.RunState
 
-	methodIsolation *contract.MethodIsolation
+	methodIsolation contract.MethodIsolation
 
 	// dependencies
 	runner        *runner.ServiceAdapter
@@ -253,27 +253,31 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	if isConstructor {
 		// default isolation for constructors
-		isolation := contract.ConstructorIsolation()
-		s.methodIsolation = &isolation
+		s.methodIsolation = contract.ConstructorIsolation()
 	}
 	// TODO[bigbes]: we're ready to execute here, so lets execute
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
 
 func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.methodIsolation == nil {
-		defer s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
+	if s.methodIsolation.IsZero() {
+		return s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
 			if err != nil {
 				panic(throw.W(err, "failed to classify method"))
 			}
-			s.methodIsolation = &isolation
-		}).Start()
-		return ctx.Sleep().ThenRepeat()
+			s.methodIsolation = isolation
+		}).DelayedStart().Sleep().ThenRepeat()
 	}
 
-	negotiatedIsolation, err := negotiateIsolation(*s.methodIsolation, s.execution.Isolation)
+	negotiatedIsolation, err := negotiateIsolation(s.methodIsolation, s.execution.Isolation)
 	if err != nil {
-		return ctx.Error(err)
+		return ctx.Error(throw.W(err, "failed to negotiate", struct {
+			methodIsolation contract.MethodIsolation
+			callIsolation   contract.MethodIsolation
+		}{
+			methodIsolation: s.methodIsolation,
+			callIsolation:   s.execution.Isolation,
+		}))
 	}
 	s.execution.Isolation = negotiatedIsolation
 

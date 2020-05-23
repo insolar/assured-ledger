@@ -17,11 +17,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
@@ -35,20 +35,17 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		catalog         = object.NewCatalogWrapperMock(mc)
-		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags payload.CallRequestFlags
+		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
-
-	callFlags.SetInterference(contract.CallTolerable)
-	callFlags.SetState(contract.CallDirty)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -122,22 +119,19 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		catalog         = object.NewCatalogWrapperMock(mc)
-		smObjectID      = gen.IDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags payload.CallRequestFlags
+		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
 
-	callFlags.SetInterference(contract.CallTolerable)
-	callFlags.SetState(contract.CallDirty)
-
-	callee := gen.Reference()
+	callee := gen.UniqueReference()
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),

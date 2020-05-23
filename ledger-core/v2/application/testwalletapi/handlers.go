@@ -19,13 +19,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -85,7 +85,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	walletReq := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
 		CallFlags:           payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
-		Callee:              gen.Reference(),
+		Callee:              gen.UniqueReference(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 		CallSiteDeclaration: testwallet.GetPrototype(),
 		CallSiteMethod:      create,

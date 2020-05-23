@@ -12,10 +12,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +30,7 @@ func createBase(mc *minimock.Controller) *Base {
 
 	op := mock.NewOriginProviderMock(mc)
 	op.GetOriginMock.Set(func() node2.NetworkNode {
-		return node.NewNode(gen.Reference(), node2.StaticRoleVirtual, nil, "127.0.0.1:123", "")
+		return node.NewNode(gen.UniqueReference(), node2.StaticRoleVirtual, nil, "127.0.0.1:123", "")
 	})
 
 	aborter := network.NewAborterMock(mc)

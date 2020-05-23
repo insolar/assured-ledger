@@ -24,6 +24,10 @@ type MethodIsolation struct {
 	State        StateFlag
 }
 
+func (i MethodIsolation) IsZero() bool {
+	return i.Interference.IsZero() && i.State.IsZero()
+}
+
 // Method is a struct for Method and it's properties
 type Method struct {
 	Func      MethodFunc
@@ -50,18 +54,28 @@ type Wrapper struct {
 
 type StateFlag byte
 
+const (
+	_ StateFlag = iota
+	CallDirty
+	CallValidated
+
+	StateFlagCount = iota
+)
+
+func (f StateFlag) IsZero() bool {
+	return f == 0
+}
+
 type InterferenceFlag byte
 
 const (
-	CallDirty StateFlag = iota
-	CallValidated
-
-	LastKnownStateFlag
-)
-
-const (
-	CallIntolerable InterferenceFlag = iota
+	_ InterferenceFlag = iota
+	CallIntolerable
 	CallTolerable
 
-	LastKnownInterferenceFlag
+	InterferenceFlagCount = iota
 )
+
+func (f InterferenceFlag) IsZero() bool {
+	return f == 0
+}

@@ -106,7 +106,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
 					activityNano := slot.touch(time.Now().UnixNano())
 					slot.logStepMigrate(stateUpdate, inactivityNano, activityNano)
-					inactivityNano = durationUnknownNano
+					inactivityNano = durationUnknownOrTooShortNano
 
 					switch {
 					case !typeOfStateUpdate(stateUpdate).IsSubroutineSafe():

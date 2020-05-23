@@ -36,8 +36,8 @@ func generateUniqueID(pn pulse.Number) reference.Local {
 	return id
 }
 
-// ID generates random id.
-func ID() reference.Local {
+// UniqueID generates random unique id.
+func UniqueID() reference.Local {
 	return generateUniqueID(PulseNumber())
 }
 
@@ -45,29 +45,18 @@ func UniqueIDWithPulse(pn pulse.Number) reference.Local {
 	return generateUniqueID(pn)
 }
 
-// IDWithPulse generates random id with provided pulse.
-func IDWithPulse(pn pulse.Number) reference.Local {
-	hash := make([]byte, reference.LocalBinaryHashSize)
-
-	fuzz.New().
-		NilChance(0).
-		NumElements(reference.LocalBinaryHashSize, reference.LocalBinaryHashSize).
-		Fuzz(&hash)
-	return reference.NewRecordID(pn, reference.BytesToLocalHash(hash))
-}
-
-// Reference generates random reference.
-func Reference() reference.Global {
-	id := ID()
+// UniqueReference generates random reference.
+func UniqueReference() reference.Global {
+	id := UniqueID()
 	return reference.NewSelf(id)
 }
 
 // UniqueReferences generates multiple random unique References.
-func UniqueReferences(a int) []reference.Global {
-	refs := make([]reference.Global, a)
+func UniqueReferences(n int) []reference.Global {
+	refs := make([]reference.Global, n)
 
-	for i := 0; i < a; i++ {
-		refs[i] = Reference()
+	for i := 0; i < n; i++ {
+		refs[i] = UniqueReference()
 	}
 	return refs
 }

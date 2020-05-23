@@ -20,7 +20,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
@@ -28,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
 	"github.com/stretchr/testify/require"
 
@@ -39,12 +39,12 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -440,7 +440,7 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
 
 	n := &networkNode{
-		id:                  gen.Reference(),
+		id:                  gen.UniqueReference(),
 		role:                role,
 		privateKey:          key,
 		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),
@@ -477,7 +477,7 @@ func (n *networkNode) GetWorkingNodes() []node2.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
 }
 
-func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManager, cryptography.Service) {
+func (s *testSuite) initCrypto(node *networkNode) (*mandates.CertificateManager, cryptography.Service) {
 	pubKey, err := node.cryptographyService.GetPublicKey()
 	require.NoError(s.t, err)
 
@@ -487,11 +487,11 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 	publicKey, err := proc.ExportPublicKeyPEM(pubKey)
 	require.NoError(s.t, err)
 
-	cert := &certificate.Certificate{}
+	cert := &mandates.Certificate{}
 	cert.PublicKey = string(publicKey[:])
 	cert.Reference = node.id.String()
 	cert.Role = node.role.String()
-	cert.BootstrapNodes = make([]certificate.BootstrapNode, 0)
+	cert.BootstrapNodes = make([]mandates.BootstrapNode, 0)
 	cert.MinRoles.HeavyMaterial = 1
 	cert.MinRoles.Virtual = 1
 
@@ -500,7 +500,7 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 		pubKeyBuf, err := proc.ExportPublicKeyPEM(pubKey)
 		require.NoError(s.t, err)
 
-		bootstrapNode := certificate.NewBootstrapNode(
+		bootstrapNode := mandates.NewBootstrapNode(
 			pubKey,
 			string(pubKeyBuf[:]),
 			b.host,
@@ -508,7 +508,7 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 			b.role.String(),
 		)
 
-		sign, err := certificate.SignCert(b.cryptographyService, cert.PublicKey, cert.Role, cert.Reference)
+		sign, err := mandates.SignCert(b.cryptographyService, cert.PublicKey, cert.Role, cert.Reference)
 		require.NoError(s.t, err)
 		bootstrapNode.NodeSign = sign.Bytes()
 
@@ -519,9 +519,9 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 	jsonCert, err := cert.Dump()
 	require.NoError(s.t, err)
 
-	cert, err = certificate.ReadCertificateFromReader(pubKey, proc, strings.NewReader(jsonCert))
+	cert, err = mandates.ReadCertificateFromReader(pubKey, proc, strings.NewReader(jsonCert))
 	require.NoError(s.t, err)
-	return certificate.NewCertificateManager(cert), node.cryptographyService
+	return mandates.NewCertificateManager(cert), node.cryptographyService
 }
 
 type PublisherMock struct{}

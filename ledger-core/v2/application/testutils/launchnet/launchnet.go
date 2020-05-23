@@ -27,7 +27,6 @@ import (
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
@@ -371,7 +370,7 @@ func setup() error {
 }
 
 func pulseWatcherPath() (string, string) {
-	insDir := insolar.RootModuleDir()
+	insDir := defaults.RootModuleDir()
 	pulseWatcher := filepath.Join(insDir, "bin", "pulsewatcher")
 
 	baseDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), insDir)
@@ -390,7 +389,7 @@ func teardown() {
 
 // RotateLogs rotates launchnet logs, verbose flag enables printing what happens.
 func RotateLogs(verbose bool) {
-	launchnetDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), insolar.RootModuleDir())
+	launchnetDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), defaults.RootModuleDir())
 	dirPattern := filepath.Join(launchnetDir, "logs/*/*/*.log")
 
 	rmCmd := "rm -vf " + dirPattern
@@ -452,7 +451,7 @@ func FetchAndSaveMetrics(iteration int) ([][]byte, error) {
 	}
 	wg.Wait()
 
-	insDir := insolar.RootModuleDir()
+	insDir := defaults.RootModuleDir()
 	subDir := fmt.Sprintf("%04d", iteration)
 	outDir := filepath.Join(insDir, defaults.LaunchnetDir(), "logs/metrics", subDir)
 	if err := os.MkdirAll(outDir, os.ModePerm); err != nil {

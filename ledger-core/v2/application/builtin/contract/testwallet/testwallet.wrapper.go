@@ -494,29 +494,29 @@ func Initialize() XXX_contract.Wrapper {
 			"GetBalance": XXX_contract.Method{
 				Func: INSMETHOD_GetBalance,
 				Isolation: XXX_contract.MethodIsolation{
-					Interference: 0,
-					State:        1,
+					Interference: 1,
+					State:        2,
 				},
 			},
 			"Accept": XXX_contract.Method{
 				Func: INSMETHOD_Accept,
 				Isolation: XXX_contract.MethodIsolation{
-					Interference: 1,
-					State:        0,
+					Interference: 2,
+					State:        1,
 				},
 			},
 			"Transfer": XXX_contract.Method{
 				Func: INSMETHOD_Transfer,
 				Isolation: XXX_contract.MethodIsolation{
-					Interference: 1,
-					State:        0,
+					Interference: 2,
+					State:        1,
 				},
 			},
 			"Destroy": XXX_contract.Method{
 				Func: INSMETHOD_Destroy,
 				Isolation: XXX_contract.MethodIsolation{
-					Interference: 1,
-					State:        0,
+					Interference: 2,
+					State:        1,
 				},
 			},
 		},

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insolar
+package defaults
 
 import (
 	"go/build"
@@ -11,8 +11,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 )
 
 // RootModule holds root module name.
@@ -28,7 +26,7 @@ func RootModuleDir() string {
 }
 
 func ContractBuildTmpDir(prefix string) string {
-	dir := filepath.Join(RootModuleDir(), defaults.ArtifactsDir(), "tmp")
+	dir := filepath.Join(RootModuleDir(), ArtifactsDir(), "tmp")
 	// create if not exist
 	if err := os.MkdirAll(dir, 0777); err != nil {
 		panic(err)

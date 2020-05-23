@@ -11,10 +11,10 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
@@ -29,7 +29,7 @@ func makeVStateUnavailableEvent(t *testing.T, ref reference.Global, reason paylo
 
 func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 	t.Log("C4864")
-	server := utils.NewServer(t)
+	server := utils.NewServerIgnoreLogErrors(t)
 	ctx := inslogger.TestContext(t)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
@@ -50,7 +50,7 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 
 func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
 	t.Log("C4865")
-	server := utils.NewServer(t)
+	server := utils.NewServerIgnoreLogErrors(t)
 	ctx := inslogger.TestContext(t)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {

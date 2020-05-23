@@ -19,13 +19,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -179,7 +179,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	)
 
 	executorMock := machine.NewExecutorMock(t)
-	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
+	executorMock.CallConstructorMock.Return(gen.UniqueReference().AsBytes(), []byte("345"), nil)
 	executorMock.ClassifyMethodMock.Return(contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
 		State:        contract.CallValidated,
@@ -204,13 +204,13 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
-	prototype := gen.Reference()
+	prototype := gen.UniqueReference()
 	cacheMock := mock.NewDescriptorsCacheMockWrapper(t)
-	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.ID(), gen.Reference())
+	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.UniqueID(), gen.UniqueReference())
 	cacheMock.IntenselyPanic = true
 	server.ReplaceCache(cacheMock)
 
-	objectLocal := gen.ID()
+	objectLocal := gen.UniqueID()
 	err = Method_PrepareObject(ctx, server, prototype, objectLocal)
 	require.NoError(t, err)
 
@@ -232,12 +232,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 
 		for i := 0; i < 2; i++ {
-			flags := payload.CallRequestFlags(0)
-			flags.SetInterference(contract.CallIntolerable)
 			pl := payload.VCallRequest{
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
-				CallFlags:           flags,
+				CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
@@ -303,7 +301,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			CallRequestFlags:    0,
 			KnownCalleeIncoming: reference.Global{},
 			EntryHeadHash:       nil,
-			CallOutgoing:        gen.ID(),
+			CallOutgoing:        gen.UniqueID(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 

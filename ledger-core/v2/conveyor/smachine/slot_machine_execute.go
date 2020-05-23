@@ -222,6 +222,8 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			stateUpdate, sut, asyncCnt = ec.executeNextStep()
 
 			slot.addAsyncCount(asyncCnt)
+			prevStepDecl := stepToDecl(slot.step, slot.stepDecl)
+
 			switch {
 			case !sut.ShortLoop(slot, stateUpdate, uint32(loopCount)):
 				return
@@ -229,20 +231,26 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 				// don't short-loop no-migrate cases to avoid increase of their duration
 				return
 			}
-			if !slot.needsReleaseOnStepping(prevStepNo) {
-				_, prevStepNo, _ = slot._getState()
-				continue
-			}
-			if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
-				// MUST match SlotMachine.stopSlotWorking
-				released := slot._releaseAllDependency()
-				link := slot.NewLink()
-				m.activateDependants(released, link, worker)
 
-				_, prevStepNo, _ = slot._getState()
-			}) {
+			switch {
+			case !slot.needsReleaseOnStepping(prevStepNo):
+				//
+			case worker.NonDetachableCall(func(worker FixedSlotWorker) {
+					// MUST match SlotMachine.stopSlotWorking
+					released := slot._releaseAllDependency()
+					link := slot.NewLink()
+					m.activateDependants(released, link, worker)
+				}):
+			default:
+				// we need to release, but we were unable to synchronize with SlotMachine
+				// cant' short-loop further
 				return
 			}
+			_, prevStepNo, _ = slot._getState()
+
+			activityNano := slot.touch(time.Now().UnixNano())
+			slot.logShortLoopUpdate(stateUpdate, prevStepDecl, inactivityNano, activityNano)
+			inactivityNano = durationUnknownOrTooShortNano
 		}
 	})
 
@@ -260,7 +268,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 	return hasSignal, loopCount
 }
 
-const durationUnknownNano = time.Duration(1)
+const durationUnknownOrTooShortNano = time.Duration(1)
 const durationNotApplicableNano = time.Duration(0)
 
 func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitFunc, worker DetachableSlotWorker) {
@@ -276,9 +284,9 @@ func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitF
 
 	defer func() {
 		if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
-			m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationUnknownNano)
+			m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
 		}) {
-			m.asyncPostSlotExecution(slot, stateUpdate, 0, durationUnknownNano)
+			m.asyncPostSlotExecution(slot, stateUpdate, 0, durationNotApplicableNano)
 		}
 	}()
 

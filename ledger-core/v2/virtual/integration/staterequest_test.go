@@ -15,11 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
@@ -66,7 +66,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
@@ -116,7 +116,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
@@ -169,7 +169,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 		return nil
 	}
 
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 
 	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 

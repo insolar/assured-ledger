@@ -9,15 +9,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	testnet "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -55,7 +55,7 @@ func TestSwitch(t *testing.T) {
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	require.False(t, gilreleased)
-	cref := gen.Reference()
+	cref := gen.UniqueReference()
 
 	for _, state := range []node.NetworkState{node.NoNetworkState,
 		node.JoinerBootstrap, node.CompleteNetworkState} {
@@ -67,7 +67,7 @@ func TestSwitch(t *testing.T) {
 		_, err := au.GetCert(ctx, cref)
 		require.Error(t, err)
 
-		_, err = au.ValidateCert(ctx, &certificate.Certificate{})
+		_, err = au.ValidateCert(ctx, &mandates.Certificate{})
 		require.Error(t, err)
 
 	}
@@ -109,7 +109,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	require.False(t, gilreleased)
 
-	cref := gen.Reference()
+	cref := gen.UniqueReference()
 
 	// CR.CallMock.Set(func(ctx context.Context, ref reference.Global, method string, argsIn []interface{}, p insolar.Number,
 	// ) (r insolar.Reply, r2 reference.Global, r1 error) {
@@ -124,10 +124,10 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	// 	}, nil, nil
 	// })
 
-	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &certificate.Certificate{} })
+	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &mandates.Certificate{} })
 	cert, err := ge.Auther().GetCert(ctx, cref)
 
 	require.NoError(t, err)
 	require.NotNil(t, cert)
-	require.Equal(t, cert, &certificate.Certificate{})
+	require.Equal(t, cert, &mandates.Certificate{})
 }

@@ -11,9 +11,9 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestNode(t *testing.T) {
@@ -24,14 +24,14 @@ func TestNode(t *testing.T) {
 	)
 	{
 		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.Reference()
+			e.ID = gen.UniqueReference()
 			e.Role = node.StaticRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
 		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.Reference()
+			e.ID = gen.UniqueReference()
 			e.Role = node.StaticRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
