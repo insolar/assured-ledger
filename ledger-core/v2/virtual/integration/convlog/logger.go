@@ -8,9 +8,6 @@ package convlog
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -79,32 +76,10 @@ func (v conveyorStepLogger) CreateAsyncLogger(_ context.Context, _ *smachine.Ste
 	return v.ctxWithTrace, v
 }
 
-func getStepName(step interface{}) string {
-	fullName := runtime.FuncForPC(reflect.ValueOf(step).Pointer()).Name()
-	if lastIndex := strings.LastIndex(fullName, "/"); lastIndex >= 0 {
-		fullName = fullName[lastIndex+1:]
-	}
-	if firstIndex := strings.Index(fullName, "."); firstIndex >= 0 {
-		fullName = fullName[firstIndex+1:]
-	}
-	if lastIndex := strings.LastIndex(fullName, "-"); lastIndex >= 0 {
-		fullName = fullName[:lastIndex]
-	}
-
-	return fullName
-}
-
-func (v conveyorStepLogger) prepareStepName(sd *smachine.StepDeclaration) {
-	if !sd.IsNameless() {
-		return
-	}
-	sd.Name = getStepName(sd.Transition)
-}
-
 func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine.StepLoggerUpdateData) {
 
-	v.prepareStepName(&data.CurrentStep)
-	v.prepareStepName(&upd.NextStep)
+	smachine.PrepareStepName(&data.CurrentStep)
+	smachine.PrepareStepName(&upd.NextStep)
 
 	durations := ""
 	if upd.InactivityNano > 0 || upd.ActivityNano > 0 {
@@ -131,7 +106,7 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 
 func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
 
-	v.prepareStepName(&data.CurrentStep)
+	smachine.PrepareStepName(&data.CurrentStep)
 
 	msg := printStepData(data, "", "internal " + updateType,
 		fmt.Sprintf("payload=%T tracer=%v", v.sm, v.tracer))
@@ -154,7 +129,7 @@ func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType
 func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
 	levelName := ""
 
-	v.prepareStepName(&data.CurrentStep)
+	smachine.PrepareStepName(&data.CurrentStep)
 
 	var level log.Level
 	switch data.EventType {

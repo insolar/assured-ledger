@@ -8,6 +8,9 @@ package smachine
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"runtime"
+	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
@@ -105,12 +108,6 @@ type ShadowMigrator interface {
 type StateMachineDeclTemplate struct {
 }
 
-//var _ StateMachineDeclaration = &StateMachineDeclTemplate{}
-//
-//func (s *StateMachineDeclTemplate) GetInitStateFor(StateMachine) InitFunc {
-//	panic("implement me")
-//}
-
 func (s *StateMachineDeclTemplate) GetStepDeclaration(StateFunc) *StepDeclaration {
 	return nil
 }
@@ -167,3 +164,26 @@ func (p *CreateDefaultValues) PutOverride(id string, v interface{}) {
 		p.OverriddenDependencies[id] = v
 	}
 }
+
+func GetStepName(step interface{}) string {
+	fullName := runtime.FuncForPC(reflect.ValueOf(step).Pointer()).Name()
+	if lastIndex := strings.LastIndex(fullName, "/"); lastIndex >= 0 {
+		fullName = fullName[lastIndex+1:]
+	}
+	if firstIndex := strings.Index(fullName, "."); firstIndex >= 0 {
+		fullName = fullName[firstIndex+1:]
+	}
+	if lastIndex := strings.LastIndex(fullName, "-"); lastIndex >= 0 {
+		fullName = fullName[:lastIndex]
+	}
+
+	return fullName
+}
+
+func PrepareStepName(sd *StepDeclaration) {
+	if !sd.IsNameless() {
+		return
+	}
+	sd.Name = GetStepName(sd.Transition)
+}
+

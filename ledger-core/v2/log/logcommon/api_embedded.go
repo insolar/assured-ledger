@@ -6,6 +6,8 @@
 package logcommon
 
 import (
+	"reflect"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
@@ -22,6 +24,8 @@ import (
 
 	Is(Level) bool
 	Copy() EmbeddedLoggerBuilder
+
+	FieldsOf(reflect.Value) logfmt.LogObjectMarshaller
 }
 
 type EmbeddedLoggerBuilder interface {

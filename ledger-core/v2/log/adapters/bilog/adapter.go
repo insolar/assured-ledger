@@ -8,6 +8,7 @@ package bilog
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"runtime/debug"
 	"sort"
 	"strconv"
@@ -280,6 +281,10 @@ func (v *binLogAdapter) Copy() logcommon.EmbeddedLoggerBuilder {
 
 func (v binLogAdapter) GetLoggerOutput() logcommon.LoggerOutput {
 	return v.config.LoggerOutput
+}
+
+func (v binLogAdapter) FieldsOf(data reflect.Value) logfmt.LogObjectMarshaller {
+	return v.config.MsgFormat.MFactory.CreateLogObjectMarshaller(data)
 }
 
 func (v binLogAdapter) _prepareAppendFields(nExpected int) objectEncoder {
