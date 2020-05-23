@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -177,7 +178,7 @@ func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent i
 		level = log.WarnLevel
 	}
 
-	printStepData(data, levelName, fmt.Sprintf("custom %v", customEvent),
+	printStepData(data, levelName, fmt.Sprintf("custom %+v", customEvent),
 		fmt.Sprintf("payload=%T tracer=%v", v.sm, v.tracer))
 
 	if !v.echoToGlobal && level < log.ErrorLevel {
@@ -247,11 +248,8 @@ func formatErrorStack(err error) string {
 		return ""
 	}
 	st := throw.DeepestStackTraceOf(err)
-	if st == nil {
-		return " err=" + err.Error()
-	}
 	st = throw.MinimizeStackTrace(st, StackMinimizePackage, true)
-	return throw.JoinStackText(" err="+err.Error(), st)
+	return throw.JoinStackText(" " + logoutput.ErrorMsgFieldName + "=" + err.Error(), st)
 }
 
 func printTimestamp() string {
@@ -282,7 +280,6 @@ func printStepData(data smachine.StepLoggerData, level, msg, extra string) strin
 		detached = ""
 	}
 
-
 	errSpecial := ""
 	switch {
 	case data.Error != nil:
@@ -307,7 +304,8 @@ func printStepData(data smachine.StepLoggerData, level, msg, extra string) strin
 		level, data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
 		msg,
-		data.CurrentStep.GetStepName(), extra, formatErrorStack(data.Error))
+		data.CurrentStep.GetStepName(), extra,
+		formatErrorStack(data.Error))
 
 	return msg
 }
