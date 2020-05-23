@@ -40,7 +40,7 @@ var stateUpdateTypes []StateUpdateType
 func init() {
 	stateUpdateTypes = []StateUpdateType{
 		stateUpdNoChange: {
-			name:   "noChange",
+			name:   "noop",
 			filter: updCtxMigrate | updCtxBargeIn | updCtxAsyncCallback,
 
 			safeWithSubroutine: true,
