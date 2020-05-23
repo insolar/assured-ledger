@@ -232,48 +232,22 @@ func printTimestamp() string {
 }
 
 func printMachineData(data smachine.SlotMachineData, level, msg string) {
-
-
 	fmt.Printf("%s %s %s[%3d] [MACHINE] %03d @ %03d: internal %s%s\n", printTimestamp(),
 		level, data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, formatErrorStack(data.Error))
 }
 
 func printStepData(data smachine.StepLoggerData, level, msg, extra string) string {
-	special := ""
-	detached := ""
+	msg = data.FormatForLog(msg)
 
-	if data.Flags&smachine.StepLoggerDetached != 0 {
-		detached = " (detached)"
-	}
-
-	switch data.EventType {
-	case smachine.StepLoggerUpdate:
-	case smachine.StepLoggerMigrate:
-		special = "migrate "
-	case smachine.StepLoggerAdapterCall:
-		detached = ""
-	}
-
-	errSpecial := ""
 	switch {
 	case data.Error != nil:
 		if level == "" {
 			level = "ERR"
 		}
-		switch data.Flags & smachine.StepLoggerErrorMask {
-		case smachine.StepLoggerUpdateErrorMuted:
-			errSpecial = "muted "
-		case smachine.StepLoggerUpdateErrorRecovered:
-			errSpecial = "recovered "
-		case smachine.StepLoggerUpdateErrorRecoveryDenied:
-			errSpecial = "recover-denied "
-		}
 	case level == "":
 		level = "LOG"
 	}
-
-	msg = errSpecial+special+msg+detached
 
 	fmt.Printf("%s %s %s[%3d] %03d @ %03d: %s current=%v %s%s\n", printTimestamp(),
 		level, data.StepNo.MachineID(), data.CycleNo,

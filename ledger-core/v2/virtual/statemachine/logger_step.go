@@ -51,28 +51,6 @@ func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smach
 	// TODO LogAdapter
 }
 
-type LogStepMessage struct {
-	*log.Msg
-
-	Message   string
-	Component string `txt:"sm"`
-	TraceID   string `opt:""`
-
-	MachineName interface{} `fmt:"%T"`
-	MachineID   string
-	SlotID      smachine.SlotID
-	SlotStepNo  uint32
-	CycleNo     uint32
-	From        string
-	To          string `opt:""`
-
-	Error     string `opt:""`
-	Backtrace string `opt:""`
-
-	ExecutionTime  int64 `opt:""`
-	InactivityTime int64 `opt:""`
-}
-
 func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logfmt.LogFieldMarshaller) {
 	dm := c.logger.FieldsOf(data)
 	if dm == nil {
@@ -86,6 +64,28 @@ func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, 
 	f := make([]logfmt.LogFieldMarshaller, 0, len(fields) + 1)
 	f[0] = dm
 	c.logger.Errorm(msg, append(f, fields...)...)
+}
+
+type LogStepUpdate struct {
+	*log.Msg
+
+	Message   string
+	Component string `txt:"sm"`
+	TraceID   string `opt:""`
+
+	MachineID   string
+	CycleNo     uint32
+	Declaration interface{} `fmt:"%T"`
+	SlotID      smachine.SlotID
+	SlotStepNo  uint32
+	CurrentStep string
+	NextStep    string `opt:""`
+
+	ErrorMsg    string `opt:""` // like logoutput.ErrorMsgFieldName
+	ErrorStack  string `opt:""` // like logoutput.StackTraceFieldName
+
+	ExecutionTime  int64 `opt:""`
+	InactivityTime int64 `opt:""`
 }
 
 func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLoggerUpdateData smachine.StepLoggerUpdateData) {
@@ -127,20 +127,20 @@ func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLo
 		fmt.Println(err)
 	}
 
-	msg := LogStepMessage{
+	msg := LogStepUpdate{
 		Message: special + stepLoggerUpdateData.UpdateType + suffix,
 
-		MachineName: stepLoggerData.Declaration,
+		Declaration: stepLoggerData.Declaration,
 		MachineID:   stepLoggerData.StepNo.MachineID(),
 		CycleNo:     stepLoggerData.CycleNo,
 		SlotID:      stepLoggerData.StepNo.SlotID(),
 		SlotStepNo:  stepLoggerData.StepNo.StepNo(),
 
-		From: stepLoggerData.CurrentStep.GetStepName(),
-		To:   stepLoggerUpdateData.NextStep.GetStepName(),
+		CurrentStep: stepLoggerData.CurrentStep.GetStepName(),
+		NextStep:    stepLoggerUpdateData.NextStep.GetStepName(),
 
-		Error:     err,
-		Backtrace: backtrace,
+		ErrorMsg:   err,
+		ErrorStack: backtrace,
 	}
 
 	if stepLoggerUpdateData.ActivityNano > 0 {

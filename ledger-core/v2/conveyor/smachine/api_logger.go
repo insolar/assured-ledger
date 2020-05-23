@@ -247,3 +247,35 @@ func (p Logger) Fatal(msg interface{}, fields ...logfmt.LogFieldMarshaller) {
 		p._doLog(stepLogger, stepUpdate, eventType, msg, fields, nil)
 	}
 }
+
+func (v StepLoggerData) FormatForLog(msg string) string {
+	special := ""
+	detached := ""
+
+	if v.Flags&StepLoggerDetached != 0 {
+		detached = " (detached)"
+	}
+
+	switch v.EventType {
+	case StepLoggerUpdate:
+	case StepLoggerMigrate:
+		special = "migrate "
+	case StepLoggerAdapterCall:
+		detached = ""
+	}
+
+	errSpecial := ""
+	if v.Error != nil {
+		switch v.Flags & StepLoggerErrorMask {
+		case StepLoggerUpdateErrorMuted:
+			errSpecial = "muted "
+		case StepLoggerUpdateErrorRecovered:
+			errSpecial = "recovered "
+		case StepLoggerUpdateErrorRecoveryDenied:
+			errSpecial = "recover-denied "
+		}
+	}
+
+	return errSpecial + special + msg + detached
+}
+
