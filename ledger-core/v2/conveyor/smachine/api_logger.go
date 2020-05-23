@@ -36,7 +36,9 @@ const (
 	stepLoggerUpdateAdapterBit1
 	stepLoggerUpdateAdapterBit2
 	StepLoggerDetached
+	StepLoggerInline
 	StepLoggerShortLoop
+	StepLoggerElevated
 )
 
 const (
@@ -117,6 +119,7 @@ const (
 	StepLogLevelElevated
 	// StepLogLevelElevated indicates that this SM was marked for detailed logging
 	StepLogLevelTracing
+	StepLogLevelError
 )
 
 // StepLogger is a per-Slot helper to facilitate reporting of Slot operations into a log or console.
@@ -153,16 +156,16 @@ type StepLoggerFunc func(*StepLoggerData, *StepLoggerUpdateData)
 type TracerID = string
 
 type Logger struct { // we use an explicit struct here to enable compiler optimizations when logging is not needed
-	ctx      context.Context
-	loggerFn interface {
+	ctx    context.Context
+	logger interface {
 		getStepLogger() (StepLogger, StepLogLevel, uint32)
 		getStepLoggerData() StepLoggerData
 	}
 }
 
 func (p Logger) getStepLogger() (StepLogger, StepLogLevel, uint32) {
-	if p.loggerFn != nil {
-		return p.loggerFn.getStepLogger()
+	if p.logger != nil {
+		return p.logger.getStepLogger()
 	}
 	return nil, 0, 0
 }
@@ -182,7 +185,7 @@ func (p Logger) GetTracerID() TracerID {
 func (p Logger) _checkLog(eventType StepLoggerEvent) (StepLogger, uint32, StepLoggerEvent) {
 	if stepLogger, stepLevel, stepUpdate := p.getStepLogger(); stepLogger != nil {
 		if stepLogger.CanLogEvent(eventType, stepLevel) {
-			if stepLevel == StepLogLevelTracing && eventType == StepLoggerTrace {
+			if stepLevel >= StepLogLevelElevated && eventType == StepLoggerTrace {
 				eventType = StepLoggerActiveTrace
 			}
 			return stepLogger, stepUpdate, eventType
@@ -192,7 +195,7 @@ func (p Logger) _checkLog(eventType StepLoggerEvent) (StepLogger, uint32, StepLo
 }
 
 func (p Logger) getStepLoggerData(eventType StepLoggerEvent, stepUpdate uint32, err error) StepLoggerData {
-	stepData := p.loggerFn.getStepLoggerData()
+	stepData := p.logger.getStepLoggerData()
 	stepData.EventType = eventType
 	stepData.Error = err
 	if stepUpdate != 0 {
@@ -251,10 +254,17 @@ func (p Logger) Fatal(msg interface{}, fields ...logfmt.LogFieldMarshaller) {
 
 func (v StepLoggerData) FormatForLog(msg string) string {
 	special := ""
-	detached := ""
+	extra := ""
+	sep := ""
 
-	if v.Flags&StepLoggerDetached != 0 {
-		detached = " (detached)"
+	switch { // these flags are exclusive
+	case v.Flags&StepLoggerDetached != 0:
+		extra = " (detached)"
+	case v.Flags&StepLoggerShortLoop != 0:
+		extra = " (short)"
+	}
+	if v.Flags&StepLoggerInline != 0 {
+		extra += " (inline)"
 	}
 
 	switch v.EventType {
@@ -262,21 +272,49 @@ func (v StepLoggerData) FormatForLog(msg string) string {
 	case StepLoggerMigrate:
 		special = "migrate "
 	case StepLoggerAdapterCall:
-		detached = ""
-	}
-
-	errSpecial := ""
-	if v.Error != nil {
-		switch v.Flags & StepLoggerErrorMask {
-		case StepLoggerUpdateErrorMuted:
-			errSpecial = "muted "
-		case StepLoggerUpdateErrorRecovered:
-			errSpecial = "recovered "
-		case StepLoggerUpdateErrorRecoveryDenied:
-			errSpecial = "recover-denied "
+		// it is always (detached)
+		extra = v.Flags.FormatAdapterForLog()
+		if extra == "" {
+			extra = "adapter-unknown-event"
+		}
+		if msg != "" {
+			sep = " "
 		}
 	}
 
-	return errSpecial + special + msg + detached
+	errSpecial := v.Flags.FormatErrorForLog()
+
+	return errSpecial + special + msg + sep + extra
 }
 
+func (v StepLoggerData) IsElevated() bool {
+	return v.Flags & StepLoggerElevated != 0
+}
+
+func (v StepLoggerFlags) FormatAdapterForLog() string {
+	switch v & StepLoggerAdapterMask {
+	case StepLoggerAdapterSyncCall:
+		return "sync-call"
+	case StepLoggerAdapterAsyncCall:
+		return "async-call"
+	case StepLoggerAdapterNotifyCall:
+		return "notify-call"
+	case StepLoggerAdapterAsyncResult:
+		return "async-result"
+	case StepLoggerAdapterAsyncCancel:
+		return "async-cancel"
+	}
+	return ""
+}
+
+func (v StepLoggerFlags) FormatErrorForLog() string {
+	switch v & StepLoggerErrorMask {
+	case StepLoggerUpdateErrorMuted:
+		return "muted "
+	case StepLoggerUpdateErrorRecovered:
+		return "recovered "
+	case StepLoggerUpdateErrorRecoveryDenied:
+		return "recover-denied "
+	}
+	return ""
+}

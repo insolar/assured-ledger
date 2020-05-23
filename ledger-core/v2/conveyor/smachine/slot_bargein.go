@@ -235,7 +235,7 @@ func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc
 	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
 	needsStop = false
 
-	m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, durationNotApplicableNano)
+	m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, wasAsyncExec, durationNotApplicableNano)
 
 	return true
 }

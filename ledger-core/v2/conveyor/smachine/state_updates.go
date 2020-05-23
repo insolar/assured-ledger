@@ -161,7 +161,6 @@ func init() {
 
 				nextStep := stateUpdate.step.Transition
 				if nextStep == nil {
-					slot.setNextStep(stateUpdate.step, nil)
 					return false // the same step won't be short-looped
 				}
 

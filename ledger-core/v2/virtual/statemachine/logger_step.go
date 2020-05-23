@@ -7,11 +7,11 @@ package statemachine
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
@@ -35,124 +35,121 @@ func (c ConveyorLogger) GetLoggerContext() context.Context {
 }
 
 func (c ConveyorLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
-	return true
+	level, _ := convlog.MapLogEvent(eventType, stepLevel)
+	return c.logger.Is(level)
 }
 
-func (c ConveyorLogger) CreateAsyncLogger(ctx context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
+func (c ConveyorLogger) CreateAsyncLogger(_ context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
 	return c.tracerCtx, c
 }
 
-
 func (c ConveyorLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
-	// TODO LogInternal
+	level, _ := convlog.MapBasicLogLevel(data)
+
+	convlog.PrepareStepName(&data.CurrentStep)
+	logMsg := c.logPrepare(data)
+	msgText := data.FormatForLog("internal " + updateType)
+
+	if err := data.Error; err != nil {
+		data.Error = nil
+		global.Eventm(level, throw.W(err, msgText, logMsg))
+	} else {
+		logMsg.Message = msgText
+		global.Eventm(level, logMsg)
+	}
+}
+
+func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
+	level, _ := convlog.MapCustomLogLevel(data)
+
+	convlog.PrepareStepName(&data.CurrentStep)
+	logMsg := c.logPrepare(data)
+	msgText := data.FormatForLog("custom")
+
+	if err, ok := customEvent.(error); ok && err == nil {
+		global.Eventm(level, throw.W(err, msgText, logMsg), fields...)
+	} else if err = data.Error; err != nil {
+		data.Error = nil
+		global.Eventm(level, throw.W(err, msgText, logMsg), fields...)
+	} else {
+		dm := global.Logger().FieldsOf(logMsg)
+		logMsg.Message = msgText
+		global.Eventm(level, customEvent, logfmt.JoinFields(fields, dm)...)
+	}
 }
 
 func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
-	// TODO LogAdapter
+	level, _ := convlog.MapBasicLogLevel(data)
+
+	convlog.PrepareStepName(&data.CurrentStep)
+	logMsg := c.logPrepare(data)
+	logMsg.Message = data.FormatForLog("")
+
+	extra := struct { AdapterID smachine.AdapterID; CallID uint64 }{ adapterID, callID }
+
+	if err := data.Error; err != nil {
+		data.Error = nil
+		global.Eventm(level, throw.WithDetails(err, logMsg, extra), fields...)
+	} else {
+		em := global.Logger().FieldsOf(extra)
+		global.Eventm(level, logMsg, logfmt.JoinFields(fields, em)...)
+	}
 }
 
-func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logfmt.LogFieldMarshaller) {
-	dm := c.logger.FieldsOf(data)
-	if dm == nil {
-		panic(throw.IllegalState())
-	}
+func (c ConveyorLogger) LogUpdate(data smachine.StepLoggerData, updateData smachine.StepLoggerUpdateData) {
 
-	if len(fields) == 0 {
-		c.logger.Errorm(msg, dm)
+	if _, ok := data.Declaration.(*conveyor.PulseSlotMachine); ok {
 		return
 	}
-	f := make([]logfmt.LogFieldMarshaller, 0, len(fields) + 1)
-	f[0] = dm
-	c.logger.Errorm(msg, append(f, fields...)...)
+
+	level, _ := convlog.MapBasicLogLevel(data)
+
+	convlog.PrepareStepName(&data.CurrentStep)
+	convlog.PrepareStepName(&updateData.NextStep)
+	logMsg := c.logPrepare(data)
+	logMsg.Message = data.FormatForLog(updateData.UpdateType)
+
+	logMsg.NextStep = updateData.NextStep.GetStepName()
+
+	if updateData.ActivityNano > 0 {
+		logMsg.ExecutionTime = updateData.ActivityNano.Nanoseconds()
+	}
+	if updateData.InactivityNano > 0 {
+		logMsg.InactivityTime = updateData.InactivityNano.Nanoseconds()
+	}
+
+	c.logger.Eventm(level, logMsg)
 }
 
-type LogStepUpdate struct {
+func (c ConveyorLogger) logPrepare(data smachine.StepLoggerData) LogStepInfo {
+	return LogStepInfo{
+		MachineID:   data.StepNo.MachineID(),
+		CycleNo:     data.CycleNo,
+		Declaration: data.Declaration,
+		SlotID:      data.StepNo.SlotID(),
+		SlotStepNo:  data.StepNo.StepNo(),
+
+		CurrentStep: data.CurrentStep.GetStepName(),
+	}
+}
+
+type LogStepInfo struct {
 	*log.Msg
 
-	Message   string
+	Message   string `opt:""`
 	Component string `txt:"sm"`
-	TraceID   string `opt:""`
 
 	MachineID   string
 	CycleNo     uint32
 	Declaration interface{} `fmt:"%T"`
 	SlotID      smachine.SlotID
 	SlotStepNo  uint32
+
 	CurrentStep string
 	NextStep    string `opt:""`
-
-	ErrorMsg    string `opt:""` // like logoutput.ErrorMsgFieldName
-	ErrorStack  string `opt:""` // like logoutput.StackTraceFieldName
 
 	ExecutionTime  int64 `opt:""`
 	InactivityTime int64 `opt:""`
 }
 
-func (c ConveyorLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLoggerUpdateData smachine.StepLoggerUpdateData) {
-	special := ""
 
-	switch stepLoggerData.EventType {
-	case smachine.StepLoggerUpdate:
-	case smachine.StepLoggerMigrate:
-		special = "migrate "
-	default:
-		panic(throw.Impossible())
-	}
-
-	smachine.PrepareStepName(&stepLoggerData.CurrentStep)
-	smachine.PrepareStepName(&stepLoggerUpdateData.NextStep)
-
-	suffix := ""
-	if stepLoggerData.Flags&smachine.StepLoggerDetached != 0 {
-		suffix = " (detached)"
-	}
-
-	if _, ok := stepLoggerData.Declaration.(*conveyor.PulseSlotMachine); ok {
-		return
-	}
-
-	var (
-		backtrace string
-		err       string
-	)
-	if stepLoggerData.Error != nil {
-		var st throw.StackTrace
-		err, st = throw.ErrorWithTopOrMinimizedStack(stepLoggerData.Error, convlog.StackMinimizePackage, true)
-		if st != nil {
-			backtrace = st.StackTraceAsText()
-		}
-	}
-
-	if err != "" {
-		fmt.Println(err)
-	}
-
-	msg := LogStepUpdate{
-		Message: special + stepLoggerUpdateData.UpdateType + suffix,
-
-		Declaration: stepLoggerData.Declaration,
-		MachineID:   stepLoggerData.StepNo.MachineID(),
-		CycleNo:     stepLoggerData.CycleNo,
-		SlotID:      stepLoggerData.StepNo.SlotID(),
-		SlotStepNo:  stepLoggerData.StepNo.StepNo(),
-
-		CurrentStep: stepLoggerData.CurrentStep.GetStepName(),
-		NextStep:    stepLoggerUpdateData.NextStep.GetStepName(),
-
-		ErrorMsg:   err,
-		ErrorStack: backtrace,
-	}
-
-	if stepLoggerUpdateData.ActivityNano > 0 {
-		msg.ExecutionTime = stepLoggerUpdateData.ActivityNano.Nanoseconds()
-	}
-	if stepLoggerUpdateData.InactivityNano > 0 {
-		msg.InactivityTime = stepLoggerUpdateData.InactivityNano.Nanoseconds()
-	}
-
-	if stepLoggerData.Error == nil {
-		c.logger.Debug(msg)
-	} else {
-		c.logger.Error(msg)
-	}
-}
