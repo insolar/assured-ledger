@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package certificate
+package mandates
 
 import (
 	"strings"
@@ -14,8 +14,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestNewManagerReadCertificate(t *testing.T) {
@@ -36,7 +36,7 @@ func newDiscovery() (*BootstrapNode, cryptography.Service) {
 	cs := platformpolicy.NewKeyBoundCryptographyService(key)
 	pk, _ := cs.GetPublicKey()
 	pubKeyBuf, _ := kp.ExportPublicKeyPEM(pk)
-	ref := gen.Reference().String()
+	ref := gen.UniqueReference().String()
 	n := NewBootstrapNode(pk, string(pubKeyBuf), " ", ref, node.StaticRoleVirtual.String())
 	return n, cs
 }
@@ -53,7 +53,7 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 
 	cert := &Certificate{}
 	cert.PublicKey = string(publicKey[:])
-	cert.Reference = gen.Reference().String()
+	cert.Reference = gen.UniqueReference().String()
 	cert.Role = node.StaticRoleHeavyMaterial.String()
 	cert.MinRoles.HeavyMaterial = 1
 	cert.MinRoles.Virtual = 4

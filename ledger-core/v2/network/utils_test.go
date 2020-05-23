@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func newTestNode() node2.NetworkNode {
-	return node.NewNode(gen.Reference(), node2.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
+	return node.NewNode(gen.UniqueReference(), node2.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
 }
 
 func newTestNodeWithShortID(id node2.ShortNodeID) node2.NetworkNode {
@@ -91,10 +91,10 @@ func (t testNode) GetRole() node2.StaticRole {
 }
 
 func TestExcludeOrigin(t *testing.T) {
-	origin := gen.Reference()
+	origin := gen.UniqueReference()
 	originNode := testNode{origin}
-	first := testNode{gen.Reference()}
-	second := testNode{gen.Reference()}
+	first := testNode{gen.UniqueReference()}
+	second := testNode{gen.UniqueReference()}
 
 	discoveryNodes := []node2.DiscoveryNode{first, originNode, second}
 	result := ExcludeOrigin(discoveryNodes, origin)

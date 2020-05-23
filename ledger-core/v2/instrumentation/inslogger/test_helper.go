@@ -19,6 +19,7 @@ func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, ad
 	if target == nil {
 		panic("illegal value")
 	}
+
 	logCfg := defaultLogConfig()
 	if adapter != "" {
 		logCfg.Adapter = adapter

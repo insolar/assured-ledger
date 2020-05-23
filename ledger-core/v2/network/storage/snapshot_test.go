@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestNewMemorySnapshotStorage(t *testing.T) {
@@ -22,7 +22,7 @@ func TestNewMemorySnapshotStorage(t *testing.T) {
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
-	n := node.NewNode(gen.Reference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	n := node.NewNode(gen.UniqueReference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
 
 	pulse := pulsestor.Pulse{PulseNumber: 15}
 	snap := node.NewSnapshot(pulse.PulseNumber, []node2.NetworkNode{n})

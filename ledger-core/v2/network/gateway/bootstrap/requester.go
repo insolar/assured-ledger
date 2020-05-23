@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
@@ -27,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
@@ -111,7 +111,7 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.A
 		log.String("node", host.NodeID.String()),
 	)
 	defer span.Finish()
-	serializedCert, err := certificate.Serialize(cert)
+	serializedCert, err := mandates.Serialize(cert)
 	if err != nil {
 		return nil, throw.W(err, "Error serializing certificate")
 	}
