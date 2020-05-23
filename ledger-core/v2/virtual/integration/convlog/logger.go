@@ -23,6 +23,15 @@ import (
 )
 
 
+const (
+	mLog   = "LOG"
+	mError = "ERR"
+	mWarning = "WRN"
+	mTrace   = "TRC"
+	mActiveTrace = "TRA"
+	mFatal = "FTL"
+)
+
 var _ smachine.SlotMachineLogger = MachineLogger{}
 type MachineLogger struct {
 	EchoToGlobal bool
@@ -34,7 +43,7 @@ func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg str
 		return
 	}
 
-	printMachineData(data, "LOG", msg)
+	printMachineData(data, mLog, msg)
 
 	if l.EchoToGlobal {
 		global.Infom(throw.E(msg, data))
@@ -42,7 +51,7 @@ func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg str
 }
 
 func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
-	printMachineData(data, "ERR", msg)
+	printMachineData(data, mError, msg)
 
 	if data.Error == nil {
 		data.Error = throw.New("error is missing")
@@ -205,10 +214,10 @@ func printStepData(data smachine.StepLoggerData, level, msg, extra string) {
 	switch {
 	case data.Error != nil:
 		if level == "" {
-			level = "ERR"
+			level = mError
 		}
 	case level == "":
-		level = "LOG"
+		level = mLog
 	}
 
 	fmt.Printf("%s %s %s[%3d] %03d @ %03d: %s current=%v %s%s\n", printTimestamp(),
@@ -241,31 +250,31 @@ func _mapLogLevel(eventType smachine.StepLoggerEvent, data smachine.StepLoggerDa
 func MapLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) (log.Level, string) {
 	switch eventType {
 	case smachine.StepLoggerError:
-		return log.ErrorLevel, "ERR"
+		return log.ErrorLevel, mError
 	case smachine.StepLoggerFatal:
-		return log.FatalLevel, "FTL"
+		return log.FatalLevel, mFatal
 	}
 
 	switch stepLevel {
 	case smachine.StepLogLevelDefault:
 		switch eventType {
 		case smachine.StepLoggerTrace:
-			return log.DebugLevel, "TRC"
+			return log.DebugLevel, mTrace
 		case smachine.StepLoggerActiveTrace:
-			return log.InfoLevel, "TRA"
+			return log.InfoLevel, mActiveTrace
 		case smachine.StepLoggerWarn:
-			return log.WarnLevel, "WRN"
+			return log.WarnLevel, mWarning
 		case smachine.StepLoggerUpdate, smachine.StepLoggerMigrate, smachine.StepLoggerInternal, smachine.StepLoggerAdapterCall:
-			return log.DebugLevel, "LOG"
+			return log.DebugLevel, mLog
 		}
 	case smachine.StepLogLevelError:
-		return log.ErrorLevel, "ERR"
+		return log.ErrorLevel, mError
 	default:
 		if eventType < smachine.StepLoggerWarn {
-			return log.InfoLevel, "LOG"
+			return log.InfoLevel, mLog
 		}
 		if eventType == smachine.StepLoggerWarn {
-			return log.WarnLevel, "WRN"
+			return log.WarnLevel, mWarning
 		}
 	}
 
