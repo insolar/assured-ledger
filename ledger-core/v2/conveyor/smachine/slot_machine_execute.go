@@ -247,7 +247,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			_, prevStepNo, _ = slot._getState()
 
 			activityNano := slot.touch(time.Now().UnixNano())
-			slot.logStepUpdate(stateUpdate, false, inactivityNano, activityNano)
+			slot.logStepUpdate(stateUpdate, false, true, inactivityNano, activityNano)
 			inactivityNano = durationUnknownOrTooShortNano
 		}
 	})
@@ -304,7 +304,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 		activityNano = slot.touch(time.Now().UnixNano())
 	}
 
-	slot.logStepUpdate(stateUpdate, wasAsync, inactivityNano, activityNano)
+	slot.logStepUpdate(stateUpdate, wasAsync, false, inactivityNano, activityNano)
 
 	slot.updateBoostFlag()
 

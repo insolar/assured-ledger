@@ -534,10 +534,13 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	s._logStepUpdate(StepLoggerUpdate, durationUnknownOrTooShortNano, durationUnknownOrTooShortNano, stateUpdate, flags, err)
 }
 
-func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync, wasShortLoop bool, inactivityNano, activityNano time.Duration) {
 	flags := StepLoggerFlags(0)
 	if wasAsync {
 		flags |= StepLoggerDetached
+	}
+	if wasShortLoop {
+		flags |= StepLoggerShortLoop
 	}
 	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, flags, nil)
 }
