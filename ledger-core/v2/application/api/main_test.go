@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 )
 
 type MainAPISuite struct {
@@ -53,7 +53,7 @@ func TestMainTestSuite(t *testing.T) {
 	api, err := NewRunner(&cfg, nil, nil, nil, nil, nil, nil, nil)
 	require.NoError(t, err, "new runner constructor")
 
-	cm := certificate.NewCertificateManager(&certificate.Certificate{})
+	cm := mandates.NewCertificateManager(&mandates.Certificate{})
 	api.CertificateManager = cm
 	api.Start(ctx)
 

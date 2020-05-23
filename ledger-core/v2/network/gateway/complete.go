@@ -19,10 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
 
@@ -68,7 +68,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 	}
 
 	currentNodeCert := g.CertificateManager.GetCertificate()
-	registeredNodeCert, err := certificate.NewUnsignedCertificate(currentNodeCert, pKey, role, registeredNodeRef.String())
+	registeredNodeCert, err := mandates.NewUnsignedCertificate(currentNodeCert, pKey, role, registeredNodeRef.String())
 	if err != nil {
 		return nil, errors.W(err, "[ GetCert ] Couldn't create certificate")
 	}
@@ -78,7 +78,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 		if err != nil {
 			return nil, errors.W(err, "[ GetCert ] Couldn't request cert sign")
 		}
-		registeredNodeCert.(*certificate.Certificate).BootstrapNodes[i].NodeSign = sign
+		registeredNodeCert.(*mandates.Certificate).BootstrapNodes[i].NodeSign = sign
 	}
 	return registeredNodeCert, nil
 }
@@ -122,7 +122,7 @@ func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Glo
 	if err != nil {
 		return nil, errors.W(err, "[ SignCert ] Couldn't extract response")
 	}
-	return certificate.SignCert(g.CryptographyService, pKey, role, registeredNodeRef.String())
+	return mandates.SignCert(g.CryptographyService, pKey, role, registeredNodeRef.String())
 }
 
 // signCertHandler is handler that signs certificate for some node with node own key

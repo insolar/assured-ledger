@@ -13,11 +13,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/hash"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/sign"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestEcdsaMarshalUnmarshal(t *testing.T) {
-	data := gen.Reference()
+	data := gen.UniqueReference()
 
 	kp := platformpolicy.NewKeyProcessor()
 	provider := sign.NewECDSAProvider()

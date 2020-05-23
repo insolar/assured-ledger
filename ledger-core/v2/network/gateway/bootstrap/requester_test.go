@@ -19,12 +19,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -64,7 +64,7 @@ func TestRequester_Bootstrap(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func GetTestCertificate() *certificate.Certificate {
+func GetTestCertificate() *mandates.Certificate {
 	buff := bytes.NewBufferString(`
 {
   "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+2RsLu5z3nFEimNiesiLDH2Kw1GM\nvgYylDXAmZxpbGjQZ5FqHuXF+DJrwKYzDyfBDEQz6Tu/aeA2CgRZvqbKug==\n-----END PUBLIC KEY-----\n",
@@ -122,7 +122,7 @@ func GetTestCertificate() *certificate.Certificate {
 	if err != nil {
 		panic(err)
 	}
-	c, err := certificate.ReadCertificateFromReader(publicKey, platformpolicy.NewKeyProcessor(), buff)
+	c, err := mandates.ReadCertificateFromReader(publicKey, platformpolicy.NewKeyProcessor(), buff)
 	if err != nil {
 		panic(err)
 	}

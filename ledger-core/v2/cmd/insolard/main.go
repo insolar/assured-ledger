@@ -15,10 +15,10 @@ import (
 
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/server"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
@@ -105,7 +105,7 @@ func readRoleFromCertificate(path string) (node.StaticRole, error) {
 			cfg.Configuration.CertificatePath,
 		)
 	}
-	cert := certificate.AuthorizationCertificate{}
+	cert := mandates.AuthorizationCertificate{}
 	err = json.Unmarshal(data, &cert)
 	if err != nil {
 		return node.StaticRoleUnknown, errors.W(err, "failed to parse certificate json")
