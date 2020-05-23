@@ -531,7 +531,7 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
-	s._logStepUpdate(StepLoggerUpdate, durationUnknownNano, durationUnknownNano, stateUpdate, flags, err)
+	s._logStepUpdate(StepLoggerUpdate, durationUnknownOrTooShortNano, durationUnknownOrTooShortNano, stateUpdate, flags, err)
 }
 
 func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
@@ -649,14 +649,14 @@ func (s *Slot) isBoosted() bool {
 func (s *Slot) touch(touchAt int64) time.Duration {
 	if s.lastTouchNano == 0 {
 		s.lastTouchNano = touchAt
-		return durationUnknownNano
+		return durationUnknownOrTooShortNano
 	}
 
 	inactivityNano := time.Duration(touchAt - s.lastTouchNano)
 	s.lastTouchNano = touchAt
 
-	if inactivityNano <= durationUnknownNano {
-		return durationUnknownNano
+	if inactivityNano <= durationUnknownOrTooShortNano {
+		return durationUnknownOrTooShortNano
 	}
 	return inactivityNano
 }
