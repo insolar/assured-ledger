@@ -10,8 +10,8 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
@@ -51,16 +51,16 @@ type Service interface {
 }
 
 type DefaultService struct {
-	pub         message.Publisher
-	coordinator jet.Coordinator
-	pulses      pulsestor.Accessor
+	pub      message.Publisher
+	affinity jet.AffinityHelper
+	pulses   pulsestor.Accessor
 }
 
-func NewDefaultService(pub message.Publisher, coordinator jet.Coordinator, pulses pulsestor.Accessor) *DefaultService {
+func NewDefaultService(pub message.Publisher, affinity jet.AffinityHelper, pulses pulsestor.Accessor) *DefaultService {
 	return &DefaultService{
-		pub:         pub,
-		coordinator: coordinator,
-		pulses:      pulses,
+		pub:      pub,
+		affinity: affinity,
+		pulses:   pulses,
 	}
 }
 
@@ -74,7 +74,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 		return errors.W(err, "Can't create watermill message")
 	}
 
-	nodes, err := dm.coordinator.QueryRole(ctx, role, object.GetLocal(), pn)
+	nodes, err := dm.affinity.QueryRole(ctx, role, object.GetLocal(), pn)
 	if err != nil {
 		return errors.W(err, "failed to calculate role")
 	}
@@ -109,10 +109,10 @@ func (dm *DefaultService) sendTarget(
 
 	ctx, logger := inslogger.WithField(ctx, "sending_uuid", msg.UUID)
 
-	msg.Metadata.Set(meta.TraceID, inslogger.TraceID(ctx))
+	msg.Metadata.Set(defaults.TraceID, inslogger.TraceID(ctx))
 	sp, err := instracer.Serialize(ctx)
 	if err == nil {
-		msg.Metadata.Set(meta.SpanData, string(sp))
+		msg.Metadata.Set(defaults.SpanData, string(sp))
 	} else {
 		logger.Error(err)
 	}
@@ -148,7 +148,7 @@ func (dm *DefaultService) wrapMeta(
 		Polymorph:  uint32(payload.TypeMeta),
 		Payload:    msg.Payload,
 		Receiver:   receiver,
-		Sender:     dm.coordinator.Me(),
+		Sender:     dm.affinity.Me(),
 		Pulse:      pulse,
 		OriginHash: originHash,
 		ID:         []byte(msg.UUID),
@@ -159,7 +159,7 @@ func (dm *DefaultService) wrapMeta(
 		return payload.Meta{}, nil, errors.W(err, "wrapMeta. failed to wrap message")
 	}
 	msg.Payload = buf
-	msg.Metadata.Set(meta.Receiver, receiver.String())
+	msg.Metadata.Set(defaults.Receiver, receiver.String())
 
 	return payloadMeta, msg, nil
 }

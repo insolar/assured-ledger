@@ -16,11 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -31,10 +31,10 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	prototype := gen.Reference()
+	prototype := gen.UniqueReference()
 
-	requestResult := requestresult.New([]byte("123"), gen.Reference())
-	requestResult.SetActivate(gen.Reference(), prototype, []byte("234"))
+	requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
+	requestResult.SetActivate(gen.UniqueReference(), prototype, []byte("234"))
 
 	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallConstructorMock.Return(nil, []byte("345"), nil)
@@ -46,8 +46,8 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCode(nil, machine.Builtin, gen.Reference()),
+		descriptor.NewPrototype(gen.UniqueReference(), gen.UniqueID(), gen.UniqueReference()),
+		descriptor.NewCode(nil, machine.Builtin, gen.UniqueReference()),
 		nil,
 	)
 
@@ -59,7 +59,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
 		Caller:              reference.Global{},
-		Callee:              gen.Reference(),
+		Callee:              gen.UniqueReference(),
 		CallSiteDeclaration: prototype,
 		CallSiteMethod:      "test",
 		CallSequence:        0,
@@ -140,7 +140,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 			CallAsOf:            0,
 			Caller:              reference.Global{},
-			Callee:              gen.Reference(),
+			Callee:              gen.UniqueReference(),
 			CallSiteDeclaration: testwallet.GetPrototype(),
 			CallSiteMethod:      "New",
 			CallSequence:        0,
@@ -150,7 +150,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			CallRequestFlags:    0,
 			KnownCalleeIncoming: reference.Global{},
 			EntryHeadHash:       nil,
-			CallOutgoing:        gen.ID(),
+			CallOutgoing:        gen.UniqueID(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 

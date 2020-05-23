@@ -20,9 +20,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestNewNodeNetwork(t *testing.T) {
@@ -30,7 +30,7 @@ func TestNewNodeNetwork(t *testing.T) {
 	certMock := testutils.NewCertificateMock(t)
 	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return nil })
-	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.Reference(); return ref })
+	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueReference(); return ref })
 	certMock.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode { return nil })
 	_, err := NewNodeNetwork(cfg, certMock)
 	assert.Error(t, err)
@@ -52,7 +52,7 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 	require.NoError(t, err)
 	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return pk })
-	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.Reference(); return ref })
+	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueReference(); return ref })
 	certMock.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode { return nil })
 	nw, err := NewNodeNetwork(cfg, certMock)
 	require.NoError(t, err)

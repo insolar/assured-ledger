@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetcoordinator
+package jet
 
 import (
 	"context"
@@ -22,8 +22,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-// Coordinator is responsible for all jet interactions
-type Coordinator struct {
+// AffinityCoordinator is responsible for all jet interactions
+type AffinityCoordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
 	PulseAccessor   pulsestor.Accessor   `inject:""`
@@ -35,9 +35,9 @@ type Coordinator struct {
 	originRef       reference.Global
 }
 
-// NewJetCoordinator creates new coordinator instance.
-func NewJetCoordinator(lightChainLimit int, originRef reference.Global) *Coordinator {
-	return &Coordinator{lightChainLimit: lightChainLimit, originRef: originRef}
+// NewAffinityHelper creates new AffinityHelper instance.
+func NewAffinityHelper(lightChainLimit int, originRef reference.Global) *AffinityCoordinator {
+	return &AffinityCoordinator{lightChainLimit: lightChainLimit, originRef: originRef}
 }
 
 // Hardcoded roles count for validation and execution
@@ -46,12 +46,12 @@ const (
 )
 
 // Me returns current node.
-func (jc *Coordinator) Me() reference.Global {
+func (jc *AffinityCoordinator) Me() reference.Global {
 	return jc.originRef
 }
 
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
-func (jc *Coordinator) QueryRole(
+func (jc *AffinityCoordinator) QueryRole(
 	ctx context.Context,
 	role node.DynamicRole,
 	objID reference.Local,
@@ -70,7 +70,7 @@ func (jc *Coordinator) QueryRole(
 }
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
-func (jc *Coordinator) VirtualExecutorForObject(
+func (jc *AffinityCoordinator) VirtualExecutorForObject(
 	ctx context.Context, objID reference.Local, pulse pulse.Number,
 ) (reference.Global, error) {
 	nodes, err := jc.virtualsForObject(ctx, objID, pulse, VirtualExecutorCount)
@@ -82,7 +82,7 @@ func (jc *Coordinator) VirtualExecutorForObject(
 
 // IsBeyondLimit calculates if target pulse is behind clean-up limit
 // or if currentPN|targetPN didn't found in in-memory pulse-storage.
-func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number) (bool, error) {
+func (jc *AffinityCoordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number) (bool, error) {
 	// Genesis case. When there is no any data on a lme
 	if targetPN <= pulsestor.GenesisPulse.PulseNumber {
 		return true, nil
@@ -119,7 +119,7 @@ func (jc *Coordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number)
 	return true, nil
 }
 
-func (jc *Coordinator) virtualsForObject(
+func (jc *AffinityCoordinator) virtualsForObject(
 	ctx context.Context, objID reference.Local, pulse pulse.Number, count int,
 ) ([]reference.Global, error) {
 	candidates, err := jc.Nodes.InRole(pulse, node.StaticRoleVirtual)
@@ -157,7 +157,7 @@ func CircleXOR(value, src []byte) []byte {
 	return result
 }
 
-func (jc *Coordinator) entropy(ctx context.Context, pulse pulse.Number) (pulsestor.Entropy, error) {
+func (jc *AffinityCoordinator) entropy(ctx context.Context, pulse pulse.Number) (pulsestor.Entropy, error) {
 	current, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
 		return pulsestor.Entropy{}, throw.W(err, "failed to get current pulse")

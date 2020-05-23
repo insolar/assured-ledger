@@ -14,17 +14,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -43,15 +43,15 @@ func mockCryptographyService(t *testing.T, ok bool) cryptography.Service {
 func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discoveryNodeRef reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
 	cm.GetCertificateMock.Set(func() node.Certificate {
-		return &certificate.Certificate{
-			AuthorizationCertificate: certificate.AuthorizationCertificate{
+		return &mandates.Certificate{
+			AuthorizationCertificate: mandates.AuthorizationCertificate{
 				PublicKey: "test_public_key",
 				Reference: certNodeRef.String(),
 				Role:      "virtual",
 			},
 			MajorityRule:     0,
 			PulsarPublicKeys: []string{},
-			BootstrapNodes: []certificate.BootstrapNode{
+			BootstrapNodes: []mandates.BootstrapNode{
 				{
 					NodeRef:     discoveryNodeRef.String(),
 					PublicKey:   "test_discovery_public_key",
@@ -85,8 +85,8 @@ func mockPulseManager(t *testing.T) pulsestor.Manager {
 func TestComplete_GetCert(t *testing.T) {
 	t.Skip("fixme")
 
-	nodeRef := gen.Reference()
-	certNodeRef := gen.Reference()
+	nodeRef := gen.UniqueReference()
+	certNodeRef := gen.UniqueReference()
 
 	gatewayer := mock.NewGatewayerMock(t)
 	nodekeeper := mock.NewNodeKeeperMock(t)
@@ -115,7 +115,7 @@ func TestComplete_GetCert(t *testing.T) {
 	result, err := ge.Auther().GetCert(ctx, nodeRef)
 	require.NoError(t, err)
 
-	cert := result.(*certificate.Certificate)
+	cert := result.(*mandates.Certificate)
 	assert.Equal(t, "test_node_public_key", cert.PublicKey)
 	assert.Equal(t, nodeRef.String(), cert.Reference)
 	assert.Equal(t, "virtual", cert.Role)
@@ -134,8 +134,8 @@ func TestComplete_GetCert(t *testing.T) {
 
 func TestComplete_handler(t *testing.T) {
 	t.Skip("fixme")
-	nodeRef := gen.Reference()
-	certNodeRef := gen.Reference()
+	nodeRef := gen.UniqueReference()
+	certNodeRef := gen.UniqueReference()
 
 	gatewayer := mock.NewGatewayerMock(t)
 	nodekeeper := mock.NewNodeKeeperMock(t)
