@@ -60,6 +60,10 @@ type SMExecute struct {
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
+
+	// todo: remove nolint in PLAT-309
+	// nolint
+	delegationToken payload.CallDelegationToken
 }
 
 /* -------- Declaration ------------- */
