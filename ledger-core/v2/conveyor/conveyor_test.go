@@ -144,6 +144,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor.StartWorker(emerChan, func() {})
 		defer func() {
 			close(emerChan)
+			conveyor.Stop()
 		}()
 
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
@@ -181,6 +182,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor.StartWorker(emerChan, func() {})
 		defer func() {
 			close(emerChan)
+			conveyor.Stop()
 		}()
 
 		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
@@ -221,6 +223,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor.StartWorker(emerChan, func() {})
 		defer func() {
 			close(emerChan)
+			conveyor.Stop()
 		}()
 
 		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
@@ -263,6 +266,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor.StartWorker(emerChan, func() {})
 		defer func() {
 			close(emerChan)
+			conveyor.Stop()
 		}()
 
 		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
