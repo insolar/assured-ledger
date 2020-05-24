@@ -15,15 +15,15 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
 func TestInitViaCTMethod(t *testing.T) {
 	t.Log("C4867")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	// Call method on non-existent object, expect calling of VStateRequest
 	pl := payload.VCallRequest{

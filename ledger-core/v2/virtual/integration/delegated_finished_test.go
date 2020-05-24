@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
@@ -71,8 +70,9 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc)
 // 5. Check that in VDelegatedRequestFinished new object state is stored
 func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	t.Log("C4935")
-	server := utils.NewServerIgnoreLogErrors(t) // TODO PLAT-367 fix test to be stable and have no errors in logs
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	defer server.Stop()
 
 	testBalance := uint32(555)
 	additionalBalance := uint(133)

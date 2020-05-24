@@ -16,7 +16,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
@@ -44,8 +43,9 @@ func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global,
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	t.Log("C4861")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
@@ -94,8 +94,9 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	t.Log("C4862")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
@@ -150,8 +151,10 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	t.Log("C4863")
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
 	reportChan := make(chan *payload.VStateUnavailable, 0)
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
