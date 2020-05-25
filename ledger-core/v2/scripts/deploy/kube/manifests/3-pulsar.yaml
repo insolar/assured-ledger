@@ -19,7 +19,7 @@ spec:
       serviceAccountName: insolar-bootstrap
       initContainers:
         - name: wait
-          image: "bitnami/kubectl:1.18"
+          image: "insolar/kubectl:1.18.0"
           command: ["/bin/wait-for-bootstrap.sh"]
           volumeMounts:
             - name: wait-script
