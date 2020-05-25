@@ -339,7 +339,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 	return hasAsync
 }
 
-func (m *SlotMachine) applyAsyncCallback(link SlotLink, worker DetachableSlotWorker,
+func (m *SlotMachine) applyAsyncCallback(link SlotLink, inlineFlags postExecFlags, worker DetachableSlotWorker,
 	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error,
 ) bool {
 	if !m._canCallback(link) {
@@ -368,7 +368,7 @@ func (m *SlotMachine) applyAsyncCallback(link SlotLink, worker DetachableSlotWor
 	}()
 
 	if worker.NonDetachableCall(func(worker FixedSlotWorker) {
-		m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, wasAsyncExec, durationNotApplicableNano)
+		m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, inlineFlags, durationNotApplicableNano)
 	}) {
 		m.syncQueue.ProcessDetachQueue(link, worker)
 	} else {
@@ -386,7 +386,7 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 	}
 
 	return m.syncQueue.AddAsyncCallback(link, func(link SlotLink, worker DetachableSlotWorker) (isDone bool) {
-		return m.applyAsyncCallback(link, worker, callbackFn, prevErr)
+		return m.applyAsyncCallback(link, wasAsyncExec, worker, callbackFn, prevErr)
 	})
 }
 
