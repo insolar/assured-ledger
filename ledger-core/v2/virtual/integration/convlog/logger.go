@@ -66,7 +66,7 @@ func (v conveyorStepLogger) CreateAsyncLogger(_ context.Context, _ *smachine.Ste
 	return v.ctxWithTrace, v
 }
 
-func getStepName(step interface{}) string {
+func GetStepName(step interface{}) string {
 	fullName := runtime.FuncForPC(reflect.ValueOf(step).Pointer()).Name()
 	if lastIndex := strings.LastIndex(fullName, "/"); lastIndex >= 0 {
 		fullName = fullName[lastIndex+1:]
@@ -85,7 +85,7 @@ func (v conveyorStepLogger) prepareStepName(sd *smachine.StepDeclaration) {
 	if !sd.IsNameless() {
 		return
 	}
-	sd.Name = getStepName(sd.Transition)
+	sd.Name = GetStepName(sd.Transition)
 }
 
 func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine.StepLoggerUpdateData) {

@@ -22,14 +22,14 @@ func TestVirtual_Method_API(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		// verify and decode incoming message
 		assert.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 
 		return nil
-	}
+	})
 
 	var (
 		walletReference1 reference.Global

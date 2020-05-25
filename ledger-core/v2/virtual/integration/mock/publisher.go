@@ -6,18 +6,56 @@
 package mock
 
 import (
+	"sync"
+
 	"github.com/ThreeDotsLabs/watermill/message"
 )
 
+var _ message.Publisher = &PublisherMock{}
+
+type CheckerFn func(topic string, messages ...*message.Message) error
+
 type PublisherMock struct {
-	Checker func(topic string, messages ...*message.Message) error
+	lock    sync.Mutex
+	checker CheckerFn
+	closed  bool
+}
+
+func (p *PublisherMock) SetChecker(fn CheckerFn) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.checker = fn
+}
+
+func (p *PublisherMock) getChecker() CheckerFn {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if p.closed {
+		panic("publisher is closed")
+	}
+
+	if p.checker == nil {
+		panic("checker function is empty")
+	}
+
+	return p.checker
 }
 
 func (p *PublisherMock) Publish(topic string, messages ...*message.Message) error {
-	if err := p.Checker(topic, messages...); err != nil {
+	fn := p.getChecker()
+	if err := fn(topic, messages...); err != nil {
 		panic(err)
 	}
 	return nil
 }
 
-func (*PublisherMock) Close() error { return nil }
+func (p *PublisherMock) Close() error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.closed = true
+
+	return nil
+}

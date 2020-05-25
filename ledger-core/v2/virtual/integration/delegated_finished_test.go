@@ -74,6 +74,29 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
 
+	var countVCallResult int
+	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
+		require.Len(t, messages, 1)
+
+		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
+		if err != nil {
+			return nil
+		}
+
+		switch payLoadData := pl.(type) {
+		case *payload.VDelegatedRequestFinished:
+			gotDelegatedRequestFinished <- payLoadData
+		case *payload.VCallResult:
+			countVCallResult++
+		default:
+			fmt.Printf("Going message: %T", payLoadData)
+		}
+
+		server.SendMessage(ctx, messages[0])
+		return nil
+	})
+
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
 	objectRef := gen.UniqueReference()
@@ -99,29 +122,6 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	}
 
 	mockExecutor(t, server, callMethod)
-
-	var countVCallResult int
-	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
-
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		if err != nil {
-			return nil
-		}
-
-		switch payLoadData := pl.(type) {
-		case *payload.VDelegatedRequestFinished:
-			gotDelegatedRequestFinished <- payLoadData
-		case *payload.VCallResult:
-			countVCallResult++
-		default:
-			fmt.Printf("Going message: %T", payLoadData)
-		}
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	}
 
 	code, _ := server.CallAPIAddAmount(ctx, objectRef, additionalBalance)
 	require.Equal(t, 200, code)

@@ -37,7 +37,7 @@ func TestInitViaCTMethod(t *testing.T) {
 
 	requestIsDone := make(chan struct{}, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		defer func() { requestIsDone <- struct{}{} }()
 
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
@@ -54,7 +54,7 @@ func TestInitViaCTMethod(t *testing.T) {
 		}
 
 		return nil
-	}
+	})
 
 	server.SendMessage(ctx, msg)
 

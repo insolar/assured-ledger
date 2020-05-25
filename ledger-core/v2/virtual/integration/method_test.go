@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,8 +26,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
 
 func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*message.Message, error) {
@@ -80,7 +81,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 
 	requestIsDone := make(chan error, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		var err error
 		defer func() { requestIsDone <- err }()
 
@@ -96,7 +97,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 			err = errors.Errorf("bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
 			return nil
 		}
-	}
+	})
 
 	server.SendMessage(ctx, msg)
 
@@ -140,7 +141,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 
 		requestIsDone := make(chan struct{}, 0)
 
-		server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 			defer func() { requestIsDone <- struct{}{} }()
 
 			pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
@@ -152,11 +153,8 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 				require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
 			}
 
-			// var returnValue []interface{}
-			// insolar.MustDeserialize(callResultPayload.(*payload.VCallResult).ReturnArguments, returnValue)
-
 			return nil
-		}
+		})
 
 		server.SendMessage(ctx, msg)
 
@@ -179,7 +177,9 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		waitOutputChannel = make(chan struct{}, 0)
 	)
 
-	executorMock := machine.NewExecutorMock(t)
+	mc := minimock.NewController(t)
+
+	executorMock := machine.NewExecutorMock(mc)
 	executorMock.CallConstructorMock.Return(gen.UniqueReference().AsBytes(), []byte("345"), nil)
 	executorMock.ClassifyMethodMock.Return(contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
@@ -206,10 +206,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceMachinesManager(manager)
 
 	prototype := gen.UniqueReference()
-	cacheMock := mock.NewDescriptorsCacheMockWrapper(t)
+	cacheMock := testutils.NewDescriptorsCacheMockWrapper(mc)
 	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.UniqueID(), gen.UniqueReference())
 	cacheMock.IntenselyPanic = true
-	server.ReplaceCache(cacheMock)
+	server.ReplaceCache(cacheMock.Mock())
 
 	objectLocal := gen.UniqueID()
 	err = Method_PrepareObject(ctx, server, prototype, objectLocal)
@@ -217,7 +217,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 	{
 		requestIsDone := make(chan struct{}, 2)
-		server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 			defer func() { requestIsDone <- struct{}{} }()
 
 			pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
@@ -230,7 +230,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			}
 
 			return nil
-		}
+		})
 
 		for i := 0; i < 2; i++ {
 			pl := payload.VCallRequest{
@@ -322,7 +322,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 		testIsDone := make(chan struct{}, 0)
 
-		server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 			assert.Len(t, messages, 1)
 
 			var (
@@ -350,7 +350,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			testIsDone <- struct{}{}
 
 			return nil
-		}
+		})
 
 		server.SendMessage(ctx, msg)
 
@@ -364,8 +364,6 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.IncrementPulse(ctx)
-
 	var (
 		vCallRequestCount  uint
 		vStateRequestCount uint
@@ -373,7 +371,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		vCallResultCount   uint
 	)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
@@ -394,7 +392,9 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 
 		server.SendMessage(ctx, messages[0])
 		return nil
-	}
+	})
+
+	server.IncrementPulse(ctx)
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)

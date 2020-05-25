@@ -59,7 +59,7 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 		countVStateReport int
 	)
 	gotVStateReport := make(chan *payload.VStateReport, 0)
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
@@ -78,7 +78,7 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 
 		server.SendMessage(ctx, messages[0])
 		return nil
-	}
+	})
 
 	code, _ := server.CallAPIAddAmount(ctx, objectRef, additionalBalance)
 	require.Equal(t, 200, code)

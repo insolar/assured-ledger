@@ -3,12 +3,14 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package mock
+package testutils
 
 import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
@@ -23,21 +25,18 @@ type descriptorPair struct {
 }
 
 type DescriptorCacheMockWrapper struct {
-	*descriptor.CacheMock
+	childMock      *descriptor.CacheMock
 	T              *testing.T
 	Prototypes     map[reference.Global]descriptorPair
 	IntenselyPanic bool
 }
 
-func NewDescriptorsCacheMockWrapper(t *testing.T) *DescriptorCacheMockWrapper {
+func NewDescriptorsCacheMockWrapper(mc *minimock.Controller) *DescriptorCacheMockWrapper {
 	mock := DescriptorCacheMockWrapper{
-		T:              t,
-		CacheMock:      descriptor.NewCacheMock(t),
+		childMock:      descriptor.NewCacheMock(mc),
 		Prototypes:     make(map[reference.Global]descriptorPair),
 		IntenselyPanic: false,
 	}
-
-	mock.CacheMock.ByPrototypeRefMock.Set(mock.byPrototypeRefImpl)
 
 	return &mock
 }
@@ -74,4 +73,10 @@ func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
 		proto: descriptor.NewPrototype(head, state, code),
 		code:  descriptor.NewCode(gen.UniqueReference().AsBytes(), machine.Builtin, code),
 	}
+
+	w.childMock.ByPrototypeRefMock.Set(w.byPrototypeRefImpl)
+}
+
+func (w *DescriptorCacheMockWrapper) Mock() *descriptor.CacheMock {
+	return w.childMock
 }
