@@ -256,8 +256,6 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 }
 
 func TestSMExecute_MigrateBeforeLock(t *testing.T) {
-	t.Skip()
-
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
@@ -328,10 +326,10 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		t.FailNow()
 	}
 
-	// {
-	// 	migrateCtx := smachine.NewMigrationContextMock(mc)
-	// 	slotMachine.Migrate(migrateCtx)
-	// }
+	{
+		//migrateCtx := smachine.NewMigrationContextMock(mc)
+		slotMachine.Migrate()
+	}
 
 	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
