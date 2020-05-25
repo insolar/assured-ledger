@@ -99,7 +99,7 @@ func (p *SlotPool) AllocateSlot(m *SlotMachine, id SlotID) (slot *Slot) {
 }
 
 // RecycleSlot adds a slot to unused slot queue.
-// Work of AllocateSlot is not blocked during ScanAndCleanup
+// Work of RecycleSlot is not blocked during ScanAndCleanup
 func (p *SlotPool) RecycleSlot(slot *Slot) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -107,24 +107,11 @@ func (p *SlotPool) RecycleSlot(slot *Slot) {
 	p.unusedSlots.AddFirst(slot)
 }
 
-func (p *SlotPool) getScanPages() (partial slotPage, full []slotPage) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
-	switch n := len(p.slotPages); {
-	case n > 1:
-		return p.slotPages[0][:p.slotPgPos], p.slotPages[1:]
-	case n == 0 || p.slotPgPos == 0:
-		return nil, nil
-	default:
-		return p.slotPages[0][:p.slotPgPos], nil
-	}
-}
-
 type SlotPageScanFunc func([]Slot) (isPageEmptyOrWeak, hasWeakSlots bool)
 type SlotDisposeFunc func(*Slot)
 
-// ScanAndCleanup is safe and non-blocking for parallel calls of AllocateSlot(), but ScanAndCleanup can't be called multiple times
+// ScanAndCleanup is safe and non-blocking for parallel calls of AllocateSlot(),
+// but ScanAndCleanup can't be called multiple times in parallel
 func (p *SlotPool) ScanAndCleanup(cleanupWeak bool, disposeWeakFn SlotDisposeFunc, scanPageFn SlotPageScanFunc) bool {
 	// ScanAndCleanup doesn't need to hold a lock, because AllocateSlot either appends or change [0].
 	// And here we get [0] as an explicit slice (partialPage) while other pages as a slice of pages.
@@ -150,6 +137,20 @@ func (p *SlotPool) ScanAndCleanup(cleanupWeak bool, disposeWeakFn SlotDisposeFun
 
 	cleanupAll := isAllEmptyOrWeak && (cleanupWeak || !hasSomeWeakSlots)
 	return p.cleanup(len(partialPage), len(fullPages), firstNil, cleanupAll, disposeWeakFn)
+}
+
+func (p *SlotPool) getScanPages() (partial slotPage, full []slotPage) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	switch n := len(p.slotPages); {
+	case n > 1:
+		return p.slotPages[0][:p.slotPgPos], p.slotPages[1:]
+	case n == 0 || p.slotPgPos == 0:
+		return nil, nil
+	default:
+		return p.slotPages[0][:p.slotPgPos], nil
+	}
 }
 
 func (p *SlotPool) cleanup(partialCount, fullCount, firstNil int, cleanupAll bool, disposeWeakFn SlotDisposeFunc) bool {
