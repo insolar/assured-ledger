@@ -449,7 +449,16 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		return ctx.Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
 	}
 
-	return ctx.Jump(s.stepExecuteContinue)
+	return ctx.JumpExt(
+		smachine.SlotStep{
+			Transition: s.stepExecuteContinue,
+			Migration:  s.migrateDuringExecuteOutgoing,
+		})
+}
+
+func (s *SMExecute) migrateDuringExecuteOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.migrationHappened = true
+	return ctx.Jump(s.stepExecuteOutgoing)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
