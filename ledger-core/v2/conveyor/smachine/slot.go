@@ -560,7 +560,7 @@ func (s *Slot) logStepMigrate(stateUpdate StateUpdate, appliedMigrateFn MigrateF
 		return
 	}
 
-	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, func(data *StepLoggerData, upd *StepLoggerUpdateData) {
+	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, func(_ *StepLoggerData, upd *StepLoggerUpdateData) {
 		upd.AppliedMigrate = appliedMigrateFn
 	})
 }
