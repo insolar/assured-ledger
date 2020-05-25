@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -171,7 +171,7 @@ func (s *hostSuite) Stop() {
 }
 
 func TestNewHostNetwork(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -241,7 +241,7 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket2(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -334,7 +334,7 @@ func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
 }
 
 func TestHostNetwork_WrongHandler(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -363,7 +363,7 @@ func TestHostNetwork_WrongHandler(t *testing.T) {
 }
 
 func TestStartStopSend(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -403,7 +403,7 @@ func TestStartStopSend(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestToHost_NotStarted(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 
 	hn, err := NewHostNetwork(id1)
 	require.NoError(t, err)
