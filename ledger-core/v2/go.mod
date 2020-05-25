@@ -56,6 +56,7 @@ require (
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.22.0
 	gopkg.in/yaml.v2 v2.2.8
+	gotest.tools v2.2.0+incompatible
 	gotest.tools/gotestsum v0.4.1
 )
 

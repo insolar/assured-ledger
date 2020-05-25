@@ -493,19 +493,33 @@ func stepToDecl(step SlotStep, stepDecl *StepDeclaration) StepDeclaration {
 }
 
 func (s *Slot) newStepLoggerData(eventType StepLoggerEvent, link StepLink) StepLoggerData {
+	flags := StepLoggerFlags(0)
+	if s.getStepLogLevel() >= StepLogLevelElevated {
+		flags |= StepLoggerElevated
+	}
+
 	return StepLoggerData{
 		CycleNo:     s.getMachine().getScanCount(),
 		StepNo:      link,
 		CurrentStep: stepToDecl(s.step, s.stepDecl),
 		Declaration: s.declaration,
 		EventType:   eventType,
+		Flags: 		 flags,
 	}
 }
 
 func (s *Slot) logInternal(link StepLink, updateType string, err error) {
-	if s.stepLogger == nil || !s.stepLogger.CanLogEvent(StepLoggerInternal, s.getStepLogLevel()) {
+	switch {
+	case s.stepLogger == nil:
+		return
+	case err != nil:
+		if !s.stepLogger.CanLogEvent(StepLoggerInternal, StepLogLevelError) {
+			return
+		}
+	case !s.stepLogger.CanLogEvent(StepLoggerInternal, s.getStepLogLevel()):
 		return
 	}
+
 	stepData := s.newStepLoggerData(StepLoggerInternal, link)
 	stepData.Error = err
 
@@ -518,6 +532,10 @@ func (s *Slot) logInternal(link StepLink, updateType string, err error) {
 }
 
 func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, area SlotPanicArea, err error) {
+	if !s._canLogEvent(StepLoggerUpdate, true) {
+		return
+	}
+
 	flags := StepLoggerUpdateErrorDefault
 	switch action {
 	case ErrorHandlerMute:
@@ -538,41 +556,51 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 }
 
 func (s *Slot) logStepMigrate(stateUpdate StateUpdate, inactivityNano, activityNano time.Duration) {
+	if !s._canLogEvent(StepLoggerMigrate, false) {
+		return
+	}
+
 	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, nil)
 }
 
-func (s *Slot) logStepUpdate(stateUpdate StateUpdate, wasAsync bool, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, inactivityNano, activityNano time.Duration) {
+	if !s._canLogEvent(StepLoggerUpdate, false) {
+		return
+	}
+
 	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData) {
-		if wasAsync {
+		if flags & wasAsyncExec != 0 {
 			d.Flags |= StepLoggerDetached
+		}
+		if flags & wasInlineExec != 0 {
+			d.Flags |= StepLoggerInline
 		}
 	})
 }
 
 func (s *Slot) logShortLoopUpdate(stateUpdate StateUpdate, curStep StepDeclaration, inactivityNano, activityNano time.Duration) {
+	if !s._canLogEvent(StepLoggerUpdate, false) {
+		return
+	}
+
 	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData) {
 		d.Flags |= StepLoggerShortLoop
 		d.CurrentStep = curStep
 	})
 }
 
+func (s *Slot) _canLogEvent(eventType StepLoggerEvent, hasError bool) bool {
+	switch {
+	case s.stepLogger == nil:
+		return false
+	case hasError:
+		return s.stepLogger.CanLogEvent(eventType, StepLogLevelError)
+	}
+	return s.stepLogger.CanLogEvent(eventType, s.getStepLogLevel())
+}
+
 func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activityNano time.Duration,
 	stateUpdate StateUpdate, fn func(*StepLoggerData)) {
-	if s.stepLogger == nil {
-		return
-	}
-
-	switch stepLogLevel := s.getStepLogLevel(); stepLogLevel {
-	case StepLogLevelDefault:
-		if stateUpdate.step.Transition != nil && stateUpdate.step.Flags&StepElevatedLog != 0 {
-			stepLogLevel = StepLogLevelElevated
-		}
-		fallthrough
-	default:
-		if !s.stepLogger.CanLogEvent(eventType, stepLogLevel) {
-			return
-		}
-	}
 
 	stepData := s.newStepLoggerData(eventType, s.NewStepLink())
 	if fn != nil {

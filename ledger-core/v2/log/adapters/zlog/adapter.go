@@ -7,6 +7,7 @@ package zlog
 
 import (
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
@@ -265,6 +266,10 @@ func (z *zerologAdapter) Copy() logcommon.EmbeddedLoggerBuilder {
 
 func (z *zerologAdapter) GetLoggerOutput() logcommon.LoggerOutput {
 	return z.config.LoggerOutput
+}
+
+func (z *zerologAdapter) FieldsOf(data reflect.Value) logfmt.LogObjectMarshaller {
+	return z.config.MsgFormat.MFactory.CreateLogObjectMarshaller(data)
 }
 
 /* =========================== */
