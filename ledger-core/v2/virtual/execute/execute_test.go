@@ -322,13 +322,13 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	stepToWait := smExecute.stepTakeLock
 	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
-		t.Error("slotmachine stopped")
 		t.FailNow()
 	}
 
-	{
-		//migrateCtx := smachine.NewMigrationContextMock(mc)
-		slotMachine.Migrate()
+	slotMachine.Migrate()
+
+	if !slotMachine.StepUntil(smWrapper.WaitAnyMigrate()) {
+		t.FailNow()
 	}
 
 	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)

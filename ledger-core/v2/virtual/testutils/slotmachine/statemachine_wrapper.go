@@ -41,6 +41,18 @@ func (w *StateMachineWrapper) WaitStep(fn smachine.StateFunc) func(testUtilsComm
 	}
 }
 
+func (w *StateMachineWrapper) WaitAnyStep() func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		return event.Data.EventType == smachine.StepLoggerUpdate && w.slotLink.SlotID() == event.Data.StepNo.SlotID()
+	}
+}
+
+func (w *StateMachineWrapper) WaitAnyMigrate() func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		return event.Data.EventType == smachine.StepLoggerMigrate && w.slotLink.SlotID() == event.Data.StepNo.SlotID()
+	}
+}
+
 func (w *StateMachineWrapper) WaitMigrate(fn smachine.MigrateFunc) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		if event.Data.EventType != smachine.StepLoggerMigrate || w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
