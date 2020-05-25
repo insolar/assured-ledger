@@ -114,6 +114,15 @@ func (c *ControlledSlotMachine) Stop() {
 	c.slotMachine.Stop()
 }
 
+func (c *ControlledSlotMachine) Migrate() {
+	done := make(synckit.ClosableSignalChannel)
+	c.slotMachine.ScheduleCall(func(callContext smachine.MachineCallContext) {
+		defer close(done)
+		callContext.Migrate(nil)
+	}, true)
+	<- done
+}
+
 func (c *ControlledSlotMachine) AddDependency(dep interface{}) {
 	c.slotMachine.AddDependency(dep)
 }
