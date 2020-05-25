@@ -38,13 +38,15 @@ func (s StepLoggerSuite) TestLevels() {
 
 func (s StepLoggerSuite) TestCanLogEvent() {
 	for level := log.Disabled; level < log.NoLevel; level++ {
-		for _, levelCase := range s.Levels {
-			for _, v := range []struct { smachine.StepLogLevel; log.Level }{
+		for _, lc := range s.Levels {
+			levelCase := lc
+			for _, vc := range []struct { smachine.StepLogLevel; log.Level }{
 				{smachine.StepLogLevelDefault, levelCase.LevelNorm},
 				{smachine.StepLogLevelElevated, levelCase.LevelElev},
 				{smachine.StepLogLevelTracing, levelCase.LevelElev},
 				{smachine.StepLogLevelError, levelCase.LevelErr},
 			} {
+				v := vc
 				s.Run(fmt.Sprintf("%v/%v/%v", level, levelCase.Event, v.StepLogLevel), func() {
 					t := s.T()
 					logger := logcommon.NewEmbeddedLoggerMock(s.T())
