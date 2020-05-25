@@ -237,7 +237,11 @@ func (m *SlotMachine) allocateSlot() *Slot {
 /* -- Methods to dispose/reuse slots ------------------------------ */
 
 func (m *SlotMachine) Cleanup(worker FixedSlotWorker) {
-	m.slotPool.ScanAndCleanup(true, worker, m.recycleSlot, m.verifyPage)
+	m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
+		m.recycleSlot(slot, worker)
+	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
+		return m.verifyPage(slots, worker)
+	})
 	m.syncQueue.CleanupDetachQueues()
 }
 
