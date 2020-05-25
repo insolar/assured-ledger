@@ -549,7 +549,7 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
-	s._logStepUpdate(StepLoggerUpdate, durationUnknownOrTooShortNano, durationUnknownOrTooShortNano, stateUpdate, func(d *StepLoggerData) {
+	s._logStepUpdate(StepLoggerUpdate, durationUnknownOrTooShortNano, durationUnknownOrTooShortNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
 		d.Flags |= flags
 		d.Error = err
 	})

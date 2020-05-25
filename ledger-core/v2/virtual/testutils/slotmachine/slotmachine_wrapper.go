@@ -116,10 +116,12 @@ func (c *ControlledSlotMachine) Stop() {
 
 func (c *ControlledSlotMachine) Migrate() {
 	done := make(synckit.ClosableSignalChannel)
-	c.slotMachine.ScheduleCall(func(callContext smachine.MachineCallContext) {
+	if !c.slotMachine.ScheduleCall(func(callContext smachine.MachineCallContext) {
 		defer close(done)
 		callContext.Migrate(nil)
-	}, true)
+	}, true) {
+		panic(throw.IllegalState())
+	}
 	<- done
 }
 
