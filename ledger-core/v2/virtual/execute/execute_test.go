@@ -324,9 +324,11 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		t.FailNow()
 	}
 
-	{
-		slotMachine.Migrate()
-		_ = slotMachine.Step()
+	slotMachine.Migrate()
+
+	if !slotMachine.StepUntil(smWrapper.WaitAnyMigrate()) {
+		t.Error("slotmachine stopped")
+		t.FailNow()
 	}
 
 	require.False(t, smExecute.migrationHappened)
@@ -398,15 +400,19 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
-	stepToWait := smExecute.stepStartRequestProcessing
+	stepToWait := smExecute.stepExecuteStart
 	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
-		t.Error("slotmachine stopped")
+		t.Error("slotmachine finished working before got into stepExecuteStart")
 		t.FailNow()
 	}
 
 	{
 		slotMachine.Migrate()
-		_ = slotMachine.Step()
+
+		if !slotMachine.StepUntil(smWrapper.WaitAnyMigrate()) {
+			t.Error("slotmachine finished working before migration")
+			t.FailNow()
+		}
 	}
 
 	require.True(t, smExecute.migrationHappened)
