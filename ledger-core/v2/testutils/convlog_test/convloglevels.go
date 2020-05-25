@@ -47,11 +47,12 @@ func (s StepLoggerSuite) TestCanLogEvent() {
 				{smachine.StepLogLevelError, levelCase.LevelErr},
 			} {
 				v := vc
+				lvl := level
 				s.Run(fmt.Sprintf("%v/%v/%v", level, levelCase.Event, v.StepLogLevel), func() {
 					t := s.T()
 					logger := logcommon.NewEmbeddedLoggerMock(s.T())
 					stepLogger := s.LoggerFn(log.WrapEmbeddedLogger(logger))
-					allowed := v.Level >= level
+					allowed := v.Level >= lvl
 					logger.IsMock.Return(allowed)
 					assert.Equal(t, allowed, stepLogger.CanLogEvent(levelCase.Event, v.StepLogLevel))
 					logger.MinimockIsDone()
