@@ -156,7 +156,7 @@ func (p *SlotPool) cleanup(partialCount, fullCount, firstNil int, cleanupAll boo
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if cleanupAll && fullCount == len(p.slotPages) + 1 && p.slotPgPos == uint16(partialCount) {
+	if cleanupAll && fullCount + 1 == len(p.slotPages) && p.slotPgPos == uint16(partialCount) {
 		// As AllocateSlot() can run in parallel, there can be new slots and slot pages
 		// so, full cleanup can only be applied when there were no additions
 		for i, slotPage := range p.slotPages {
