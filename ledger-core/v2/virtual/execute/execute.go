@@ -116,8 +116,14 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 	}
 }
 
+func (s *SMExecute) defaultMigration(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx.GetContext())
+
+	ctx.SetDefaultMigration(s.defaultMigration)
 
 	return ctx.Jump(s.stepCheckRequest)
 }
@@ -157,50 +163,6 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 		}
 	}
 
-	return ctx.Jump(s.stepUpdateKnownRequests)
-}
-
-func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	action := func(state *object.SharedState) {
-		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
-			// found duplicate request, todo: deduplication algorithm
-			panic(throw.NotImplemented())
-		} else {
-			state.KnownRequests[s.execution.Outgoing] = struct{}{}
-		}
-	}
-
-	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		panic(throw.NotImplemented())
-	case smachine.Passed:
-		// go further
-	default:
-		panic(throw.Impossible())
-	}
-
-	return ctx.Jump(s.stepUpdatePendingCounters)
-}
-
-func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	action := func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-	}
-
-	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		panic(throw.NotImplemented())
-	case smachine.Passed:
-		// go further
-	default:
-		panic(throw.Impossible())
-	}
-
-	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	return ctx.Jump(s.stepWaitObjectReady)
 }
 
@@ -257,7 +219,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		// default isolation for constructors
 		s.methodIsolation = contract.ConstructorIsolation()
 	}
-	// TODO[bigbes]: we're ready to execute here, so lets execute
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
 
@@ -329,13 +290,22 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	return ctx.Jump(s.stepGetObjectDescriptor)
+	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
-func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var objectDescriptor descriptor.Object
 
 	action := func(state *object.SharedState) {
+		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+			// found duplicate request, todo: deduplication algorithm
+			panic(throw.NotImplemented())
+		} else {
+			state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		}
+
+		state.IncrementPotentialPendingCounter(s.execution.Isolation)
+
 		objectDescriptor = state.Descriptor()
 	}
 
@@ -345,10 +315,11 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 	case smachine.Impossible:
 		panic(throw.NotImplemented())
 	case smachine.Passed:
-		// go further
 	default:
-		panic(throw.Impossible())
+		panic(throw.NotImplemented())
 	}
+
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.execution.ObjectDescriptor = objectDescriptor
 
