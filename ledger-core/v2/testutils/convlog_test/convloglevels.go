@@ -80,39 +80,42 @@ func (s StepLoggerSuite) TestLogEvent() {
 				s.Run(fmt.Sprintf("%v/%v/%v", level, levelCase.Event, v.StepLogLevel), func() {
 					t := s.T()
 					data := smachine.StepLoggerData{EventType: levelCase.Event}
-
-					for {
-						logger := logcommon.NewEmbeddedLoggerMock(s.T())
-						stepLogger := s.LoggerFn(log.WrapEmbeddedLogger(logger))
-						logger.IsMock.Return(true)
-						logger.NewEventFmtMock.Return(func(string, []interface{}) {})
-						logger.NewEventStructMock.Return(func(interface{}, []logfmt.LogFieldMarshaller) {})
-						logger.NewEventMock.Return(func([]interface{}) {})
-						logger.FieldsOfMock.Return(logfmt.LogField{Name: "stub", Value: "stub"})
-						logger.EmbeddedFlushMock.Return()
-
-						switch levelCase.Event {
-						case smachine.StepLoggerUpdate, smachine.StepLoggerMigrate:
-							stepLogger.LogUpdate(data, smachine.StepLoggerUpdateData{UpdateType: "test"})
-						case smachine.StepLoggerInternal:
-							stepLogger.LogInternal(data, "")
-						case smachine.StepLoggerAdapterCall:
-							stepLogger.LogAdapter(data, "test", 0, nil)
-						case smachine.StepLoggerTrace, smachine.StepLoggerActiveTrace, smachine.StepLoggerWarn, smachine.StepLoggerError, smachine.StepLoggerFatal:
-							stepLogger.LogEvent(data, "test", nil)
-						default:
-							t.FailNow()
-						}
-						logger.MinimockIsDone()
-
-						callCount := logger.NewEventAfterCounter() + logger.NewEventFmtAfterCounter() + logger.NewEventStructAfterCounter()
-						require.Equal(t, 1, int(callCount))
-
-						if data.Error != nil || v.StepLogLevel == smachine.StepLogLevelError {
-							break
-						}
+					if v.StepLogLevel > smachine.StepLogLevelDefault {
+						data.Flags |= smachine.StepLoggerElevated
+					}
+					if v.StepLogLevel == smachine.StepLogLevelError {
 						data.Error = throw.New("test")
 					}
+
+					lvl := v.Level
+					logger := logcommon.NewEmbeddedLoggerMock(s.T())
+					stepLogger := s.LoggerFn(log.WrapEmbeddedLogger(logger))
+					logger.IsMock.Return(true)
+					logger.NewEventFmtMock.Expect(lvl)
+					logger.NewEventFmtMock.Return(func(string, []interface{}) {})
+					logger.NewEventStructMock.Expect(lvl)
+					logger.NewEventStructMock.Return(func(interface{}, []logfmt.LogFieldMarshaller) {})
+					logger.NewEventStructMock.Expect(lvl)
+					logger.NewEventMock.Return(func([]interface{}) {})
+					logger.FieldsOfMock.Return(logfmt.LogField{Name: "stub", Value: "stub"})
+					logger.EmbeddedFlushMock.Return()
+
+					switch levelCase.Event {
+					case smachine.StepLoggerUpdate, smachine.StepLoggerMigrate:
+						stepLogger.LogUpdate(data, smachine.StepLoggerUpdateData{UpdateType: "test"})
+					case smachine.StepLoggerInternal:
+						stepLogger.LogInternal(data, "")
+					case smachine.StepLoggerAdapterCall:
+						stepLogger.LogAdapter(data, "test", 0, nil)
+					case smachine.StepLoggerTrace, smachine.StepLoggerActiveTrace, smachine.StepLoggerWarn, smachine.StepLoggerError, smachine.StepLoggerFatal:
+						stepLogger.LogEvent(data, "test", nil)
+					default:
+						t.FailNow()
+					}
+					logger.MinimockIsDone()
+
+					callCount := logger.NewEventAfterCounter() + logger.NewEventFmtAfterCounter() + logger.NewEventStructAfterCounter()
+					require.Equal(t, 1, int(callCount))
 				})
 			}
 		}
