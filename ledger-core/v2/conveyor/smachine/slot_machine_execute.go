@@ -261,11 +261,11 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 
 	if wasDetached {
 		// MUST NOT apply any changes in the current routine, as it is no more safe to update queues
-		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, inactivityNano)
+		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, 0, inactivityNano)
 		return true, loopCount
 	}
 
-	hasAsync := m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, false, inactivityNano)
+	hasAsync := m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, 0, inactivityNano)
 	if hasAsync && !hasSignal {
 		_, hasSignal, wasDetached = m.syncQueue.ProcessCallbacks(worker)
 		return hasSignal || wasDetached, loopCount
@@ -289,9 +289,9 @@ func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitF
 
 	defer func() {
 		if !worker.NonDetachableCall(func(worker FixedSlotWorker) {
-			m.slotPostExecution(slot, stateUpdate, worker, 0, false, durationNotApplicableNano)
+			m.slotPostExecution(slot, stateUpdate, worker, 0, wasInlineExec, durationNotApplicableNano)
 		}) {
-			m.asyncPostSlotExecution(slot, stateUpdate, 0, durationNotApplicableNano)
+			m.asyncPostSlotExecution(slot, stateUpdate, 0, wasInlineExec, durationNotApplicableNano)
 		}
 	}()
 
@@ -303,15 +303,23 @@ func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitF
 	}
 }
 
+type postExecFlags uint8
+
+const (
+	wasAsyncExec postExecFlags = 1<<iota
+	wasInlineExec
+)
+
 func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker,
-	prevStepNo uint32, wasAsync bool, inactivityNano time.Duration) (hasAsync bool) {
+	prevStepNo uint32, flags postExecFlags, inactivityNano time.Duration) (hasAsync bool) {
 
 	activityNano := durationNotApplicableNano
+	wasAsync := flags & wasAsyncExec != 0
 	if !wasAsync && inactivityNano > durationNotApplicableNano {
 		activityNano = slot.touch(time.Now().UnixNano())
 	}
 
-	slot.logStepUpdate(stateUpdate, wasAsync, inactivityNano, activityNano)
+	slot.logStepUpdate(stateUpdate, flags, inactivityNano, activityNano)
 
 	slot.updateBoostFlag()
 
@@ -331,7 +339,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 	return hasAsync
 }
 
-func (m *SlotMachine) applyAsyncCallback(link SlotLink, worker DetachableSlotWorker,
+func (m *SlotMachine) applyAsyncCallback(link SlotLink, inlineFlags postExecFlags, worker DetachableSlotWorker,
 	callbackFn func(*Slot, DetachableSlotWorker, error) StateUpdate, prevErr error,
 ) bool {
 	if !m._canCallback(link) {
@@ -360,11 +368,11 @@ func (m *SlotMachine) applyAsyncCallback(link SlotLink, worker DetachableSlotWor
 	}()
 
 	if worker.NonDetachableCall(func(worker FixedSlotWorker) {
-		m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, durationNotApplicableNano)
+		m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, inlineFlags, durationNotApplicableNano)
 	}) {
 		m.syncQueue.ProcessDetachQueue(link, worker)
 	} else {
-		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, durationNotApplicableNano)
+		m.asyncPostSlotExecution(slot, stateUpdate, prevStepNo, wasAsyncExec, durationNotApplicableNano)
 	}
 
 	return true
@@ -378,7 +386,7 @@ func (m *SlotMachine) queueAsyncCallback(link SlotLink,
 	}
 
 	return m.syncQueue.AddAsyncCallback(link, func(link SlotLink, worker DetachableSlotWorker) (isDone bool) {
-		return m.applyAsyncCallback(link, worker, callbackFn, prevErr)
+		return m.applyAsyncCallback(link, wasAsyncExec, worker, callbackFn, prevErr)
 	})
 }
 
@@ -395,13 +403,13 @@ func (m *SlotMachine) _canCallback(link SlotLink) bool {
 	return link.IsValid()
 }
 
-func (m *SlotMachine) asyncPostSlotExecution(s *Slot, stateUpdate StateUpdate, prevStepNo uint32, inactivityNano time.Duration) {
+func (m *SlotMachine) asyncPostSlotExecution(s *Slot, stateUpdate StateUpdate, prevStepNo uint32, flags postExecFlags, inactivityNano time.Duration) {
 	m.syncQueue.AddAsyncUpdate(s.NewLink(), func(link SlotLink, worker FixedSlotWorker) {
 		if !link.IsValid() {
 			return
 		}
 		slot := link.s
-		if m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, true, inactivityNano) {
+		if m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, flags|wasAsyncExec, inactivityNano) {
 			m.syncQueue.FlushSlotDetachQueue(link)
 		}
 	})

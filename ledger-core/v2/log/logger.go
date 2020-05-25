@@ -6,6 +6,8 @@
 package log
 
 import (
+	"reflect"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
@@ -63,6 +65,17 @@ func (z Logger) WithField(name string, value interface{}) Logger {
 	}
 }
 
+func (z Logger) FieldsOf(data interface{}) logfmt.LogFieldMarshaller {
+	if data == nil {
+		return nil
+	}
+	om := z.embedded.FieldsOf(reflect.ValueOf(data))
+	if om == nil {
+		return nil
+	}
+	return logfmt.LogObjectFields{Object: om}
+}
+
 // Embeddable returns an internal representation of the logger.
 // Do not use directly as caller handling may be incorrect.
 func (z Logger) Embeddable() logcommon.EmbeddedLogger {
@@ -89,7 +102,7 @@ func (z Logger) Eventf(level Level, fmt string, args ...interface{}) {
 // Events logs an event of the given (level).
 // Value of (msgStruct) is processed as a logging struct.
 // And the event will also include provided (fields).
-func (z Logger) Events(level Level, msgStruct interface{}, fields ...logfmt.LogFieldMarshaller) {
+func (z Logger) Eventm(level Level, msgStruct interface{}, fields ...logfmt.LogFieldMarshaller) {
 	if fn := z.embedded.NewEventStruct(level); fn != nil {
 		fn(msgStruct, fields)
 	}

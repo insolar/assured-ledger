@@ -5,8 +5,13 @@
 
 package example
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+)
 
 func TestExample(t *testing.T) {
+	inslogger.SetTestOutput(t, false)
 	RunExample()
 }

@@ -7,6 +7,7 @@ package smachine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -766,8 +767,9 @@ func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, 
 
 	canRecover := false
 	area := StateArea
-	if se, ok := err.(SlotPanicError); ok && se.Area != 0 {
-		area = se.Area
+	var slotError SlotPanicError
+	if errors.As(err, &slotError) && slotError.Area != 0 {
+		area = slotError.Area
 	}
 
 	canRecover = area.CanRecoverByHandler()

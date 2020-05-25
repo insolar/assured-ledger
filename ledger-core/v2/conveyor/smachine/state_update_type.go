@@ -32,9 +32,6 @@ func _getStateUpdateType(updKind stateUpdKind) (StateUpdateType, bool) {
 // }
 
 func getStateUpdateTypeAndName(stateUpdate StateUpdate) (StateUpdateType, string, bool) {
-	if stateUpdate.IsZero() {
-		return StateUpdateType{}, "zero", false
-	}
 	if sut, ok := _getStateUpdateType(stateUpdKind(stateUpdate.updKind)); ok {
 		if len(sut.name) > 0 {
 			return sut, sut.name, true
