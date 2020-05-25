@@ -34,7 +34,7 @@ func (w *StateMachineWrapper) SlotLink() smachine.SlotLink {
 
 func (w *StateMachineWrapper) WaitStep(fn smachine.StateFunc) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
-		if w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
+		if event.Data.EventType != smachine.StepLoggerUpdate || w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
 			return false
 		}
 		return utils.CmpStateFuncs(fn, event.Update.NextStep.Transition)
@@ -43,7 +43,7 @@ func (w *StateMachineWrapper) WaitStep(fn smachine.StateFunc) func(testUtilsComm
 
 func (w *StateMachineWrapper) WaitMigrate(fn smachine.MigrateFunc) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
-		if w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
+		if event.Data.EventType != smachine.StepLoggerMigrate || w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
 			return false
 		}
 		return utils.CmpStateFuncs(fn, event.Update.AppliedMigrate)
