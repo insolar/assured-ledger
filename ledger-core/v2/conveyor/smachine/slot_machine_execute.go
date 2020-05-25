@@ -132,7 +132,12 @@ func (m *SlotMachine) beforeScan(scanTime time.Time) {
 }
 
 func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
-	clean := m.slotPool.ScanAndCleanup(true, worker, m.recycleSlot, m.stopPage)
+	clean := m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
+		m.recycleSlot(slot, worker)
+	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
+		return m.stopPage(slots, worker)
+	})
+
 	hasUpdates := m.syncQueue.ProcessUpdates(worker)
 	hasCallbacks, _, _ := m.syncQueue.ProcessCallbacks(worker)
 
@@ -143,7 +148,7 @@ func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
 	m.syncQueue.SetInactive()
 
 	// unsets Slots' reference to SlotMachine to stop retention of SlotMachine by SlotLinks
-	m.slotPool._cleanupEmpty()
+	m.slotPool.cleanupEmpty()
 
 	return false
 }

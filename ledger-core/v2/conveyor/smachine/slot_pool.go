@@ -14,24 +14,24 @@ import (
 // SlotPool by default recycles deallocated pages to mitigate possible memory leak through SlotLink references
 // When flow of slots varies a lot and there is no long-living links then deallocateOnCleanup can be enabled.
 func newSlotPool(pageSize uint16, deallocateOnCleanup bool) SlotPool {
-	//if locker == nil {
-	//	panic("illegal value")
-	//}
 	if pageSize < 1 {
 		panic("illegal value")
 	}
 	return SlotPool{
-		slotPages:  [][]Slot{make([]Slot, pageSize)},
+		slotPages:  []slotPage{make(slotPage, pageSize)},
 		deallocate: deallocateOnCleanup,
 	}
 }
 
+type slotPage = []Slot
+
 type SlotPool struct {
 	mutex sync.RWMutex
 
+	slotPages   []slotPage // LOCK specifics. This slice has mixed access - see ScanAndCleanup
+
 	unusedSlots SlotQueue
-	slotPages   [][]Slot
-	emptyPages  [][]Slot
+	emptyPages  []slotPage
 	slotPgPos   uint16
 	deallocate  bool
 }
@@ -69,7 +69,8 @@ func (p *SlotPool) IsEmpty() bool {
 	return p.Count() == 0
 }
 
-/* creates or reuse a slot, and marks it as BUSY */
+// AllocateSlot creates or reuses a slot. The returned slot is marked BUSY and is at step 0.
+// Work of AllocateSlot is not blocked during ScanAndCleanup
 func (p *SlotPool) AllocateSlot(m *SlotMachine, id SlotID) (slot *Slot) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -97,6 +98,8 @@ func (p *SlotPool) AllocateSlot(m *SlotMachine, id SlotID) (slot *Slot) {
 	return slot
 }
 
+// RecycleSlot adds a slot to unused slot queue.
+// Work of AllocateSlot is not blocked during ScanAndCleanup
 func (p *SlotPool) RecycleSlot(slot *Slot) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -104,41 +107,58 @@ func (p *SlotPool) RecycleSlot(slot *Slot) {
 	p.unusedSlots.AddFirst(slot)
 }
 
-type SlotPageScanFunc func([]Slot, FixedSlotWorker) (isPageEmptyOrWeak, hasWeakSlots bool)
-type SlotDisposeFunc func(*Slot, FixedSlotWorker)
+func (p *SlotPool) getScanPages() (partial slotPage, full []slotPage) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
-func (p *SlotPool) ScanAndCleanup(cleanupWeak bool, w FixedSlotWorker,
-	disposeWeakFn SlotDisposeFunc, scanPageFn SlotPageScanFunc,
-) bool {
-	if len(p.slotPages) == 0 || len(p.slotPages) == 1 && p.slotPgPos == 0 {
-		return true
+	switch n := len(p.slotPages); {
+	case n > 1:
+		return p.slotPages[0][:p.slotPgPos], p.slotPages[1:]
+	case n == 0 || p.slotPgPos == 0:
+		return nil, nil
+	default:
+		return p.slotPages[0][:p.slotPgPos], nil
 	}
+}
 
-	isAllEmptyOrWeak, hasSomeWeakSlots := scanPageFn(p.slotPages[0][:p.slotPgPos], w)
+type SlotPageScanFunc func([]Slot) (isPageEmptyOrWeak, hasWeakSlots bool)
+type SlotDisposeFunc func(*Slot)
 
-	nextSlotPageNo := 1
-	for i, slotPage := range p.slotPages[1:] {
-		isPageEmptyOrWeak, hasWeakSlots := scanPageFn(slotPage, w)
+// ScanAndCleanup is safe and non-blocking for parallel calls of AllocateSlot(), but ScanAndCleanup can't be called multiple times
+func (p *SlotPool) ScanAndCleanup(cleanupWeak bool, disposeWeakFn SlotDisposeFunc, scanPageFn SlotPageScanFunc) bool {
+	// ScanAndCleanup doesn't need to hold a lock, because AllocateSlot either appends or change [0].
+	// And here we get [0] as an explicit slice (partialPage) while other pages as a slice of pages.
+	partialPage, fullPages := p.getScanPages()
+
+	isAllEmptyOrWeak, hasSomeWeakSlots := scanPageFn(partialPage)
+
+	firstNil := 0
+	for i, slotPage := range fullPages {
+		isPageEmptyOrWeak, hasWeakSlots := scanPageFn(slotPage)
 		switch {
 		case !isPageEmptyOrWeak:
 			isAllEmptyOrWeak = false
-		case !hasWeakSlots:
-			cleanupEmptyPage(slotPage)
-			p.recyclePage(slotPage)
-			p.slotPages[i+1] = nil
-			continue
-		default:
+		case hasWeakSlots:
 			hasSomeWeakSlots = true
+		case firstNil == 0:
+			firstNil = i + 1
+			fallthrough
+		default:
+			p.recycleEmptyPage(i + 1)
 		}
-
-		if nextSlotPageNo != i+1 {
-			p.slotPages[nextSlotPageNo] = slotPage
-			p.slotPages[i+1] = nil
-		}
-		nextSlotPageNo++
 	}
 
-	if isAllEmptyOrWeak && (cleanupWeak || !hasSomeWeakSlots) {
+	cleanupAll := isAllEmptyOrWeak && (cleanupWeak || !hasSomeWeakSlots)
+	return p.cleanup(len(partialPage), len(fullPages), firstNil, cleanupAll, disposeWeakFn)
+}
+
+func (p *SlotPool) cleanup(partialCount, fullCount, firstNil int, cleanupAll bool, disposeWeakFn SlotDisposeFunc) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if cleanupAll && fullCount == len(p.slotPages) + 1 && p.slotPgPos == uint16(partialCount) {
+		// As AllocateSlot() can run in parallel, there can be new slots and slot pages
+		// so, full cleanup can only be applied when there were no additions
 		for i, slotPage := range p.slotPages {
 			if slotPage == nil {
 				break
@@ -146,47 +166,45 @@ func (p *SlotPool) ScanAndCleanup(cleanupWeak bool, w FixedSlotWorker,
 			for j := range slotPage {
 				slot := &slotPage[j]
 				if !slot.isEmpty() {
-					disposeWeakFn(slot, w)
+					disposeWeakFn(slot)
 				}
-				qt := slot.QueueType()
-				if qt == UnusedSlots {
+				switch qt := slot.QueueType(); {
+				case qt == UnusedSlots:
 					slot.removeFromQueue()
-					continue
+				case i != 0:
+					panic(throw.IllegalState())
+				case qt != NoQueue:
+					panic(throw.IllegalState())
 				}
-				if qt == NoQueue && i == 0 {
-					break
-				}
-				panic("illegal state")
 			}
 		}
 		if p.unusedSlots.Count() != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		p.slotPages = p.slotPages[:1]
 		p.slotPgPos = 0
 		return true
 	}
 
-	if len(p.slotPages) > nextSlotPageNo {
-		p.slotPages = p.slotPages[:nextSlotPageNo]
+	if firstNil > 0 {
+		j := firstNil
+		if p.slotPages[j] != nil {
+			panic(throw.IllegalState())
+		}
+
+		for i := j + 1; i < len(p.slotPages); i++ {
+			if sp := p.slotPages[i]; sp != nil {
+				p.slotPages[j] = sp
+				j++
+			}
+		}
+		p.slotPages = p.slotPages[:j]
 	}
 	return false
 }
 
-func cleanupEmptyPage(slotPage []Slot) {
-	for i := range slotPage {
-		slot := &slotPage[i]
-		if slot.QueueType() != UnusedSlots {
-			panic("illegal state")
-		}
-		slot.removeFromQueue()
-	}
-}
-
 func (p *SlotPool) allocatePage(lenSlots int) []Slot {
-	n := len(p.emptyPages)
-	if n > 0 {
-		n--
+	for n := len(p.emptyPages) - 1; n >= 0; n-- {
 		pg := p.emptyPages[n]
 		p.emptyPages[n] = nil
 		p.emptyPages = p.emptyPages[:n]
@@ -198,13 +216,41 @@ func (p *SlotPool) allocatePage(lenSlots int) []Slot {
 	return make([]Slot, lenSlots)
 }
 
-func (p *SlotPool) recyclePage(pg []Slot) {
+func (p *SlotPool) recycleEmptyPage(pageNo int) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	page := p.slotPages[pageNo]
+	switch {
+	case pageNo == 0:
+		panic(throw.IllegalState())
+	case page == nil:
+		panic(throw.IllegalState())
+	}
+	p.slotPages[pageNo] = nil
+
+	for i := range page {
+		slot := &page[i]
+		if slot.QueueType() != UnusedSlots {
+			panic(throw.IllegalState())
+		}
+		slot.removeFromQueue()
+	}
+
 	if !p.deallocate {
-		p.emptyPages = append(p.emptyPages, pg)
+		p.emptyPages = append(p.emptyPages, page)
+		return
+	}
+
+	for i := range page {
+		if !page[i].unsetMachine() {
+			break
+		}
 	}
 }
 
-func (p *SlotPool) _cleanupEmpty() {
+// cleanupEmpty can ONLY be applied after cleanup of regular pages
+func (p *SlotPool) cleanupEmpty() {
 	if !p.IsEmpty() {
 		panic(throw.IllegalState())
 	}
