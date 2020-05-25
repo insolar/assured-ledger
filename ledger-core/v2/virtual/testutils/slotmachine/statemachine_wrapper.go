@@ -52,19 +52,18 @@ func (w *StateMachineWrapper) WaitMigrate(fn smachine.MigrateFunc) func(testUtil
 
 func (w *StateMachineWrapper) WaitStepExt(s smachine.SlotStep) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
-		if w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
+		switch {
+		case event.Data.EventType != smachine.StepLoggerUpdate:
 			return false
-		}
-		if s.Transition != nil {
+		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
+			return false
+		case s.Transition != nil:
 			panic(throw.FailHere("Transition is empty"))
-		}
-		if !utils.CmpStateFuncs(s.Transition, event.Update.NextStep.Transition) {
+		case !utils.CmpStateFuncs(s.Transition, event.Update.NextStep.Transition):
 			return false
-		}
-		if s.Migration != nil && !utils.CmpStateFuncs(s.Transition, event.Update.NextStep.Migration) {
+		case s.Migration != nil && !utils.CmpStateFuncs(s.Migration, event.Update.NextStep.Migration):
 			return false
-		}
-		if s.Handler != nil && !utils.CmpStateFuncs(s.Transition, event.Update.NextStep.Handler) {
+		case s.Handler != nil && !utils.CmpStateFuncs(s.Handler, event.Update.NextStep.Handler):
 			return false
 		}
 		return event.Update.NextStep.Flags&s.Flags == s.Flags
