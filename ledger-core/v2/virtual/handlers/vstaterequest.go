@@ -135,7 +135,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 	case smachine.NotPassed:
 		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
+		panic(throw.NotImplemented())
 	case smachine.Passed:
 		// go further
 	default:
