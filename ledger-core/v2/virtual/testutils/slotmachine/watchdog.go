@@ -27,7 +27,9 @@ func (w *watchdog) Heartbeat() {
 	if w.timer == nil {
 		panic(throw.IllegalState())
 	}
-	w.setDuration(w.defaultDuration)
+	if !w.setDuration(w.defaultDuration) {
+		panic(throw.FailHere("timer already stopped"))
+	}
 }
 
 func (w *watchdog) HeartbeatAsChannel() chan<- struct{} {
@@ -49,9 +51,12 @@ func (w *watchdog) Extend(duration time.Duration) {
 	if w.timer == nil {
 		panic(throw.IllegalState())
 	}
-	resultDuration := w.timerEnd.Sub(time.Now()) + duration
 
-	w.setDuration(resultDuration)
+	resultDuration := time.Until(w.timerEnd) + duration
+
+	if !w.setDuration(resultDuration) {
+		panic(throw.FailHere("timer already stopped"))
+	}
 }
 
 func (w *watchdog) Stop() bool {
