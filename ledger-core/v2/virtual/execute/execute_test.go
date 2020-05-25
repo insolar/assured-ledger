@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -23,8 +24,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotmachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 )
 
 func TestSMExecute_IncreasePendingCounter(t *testing.T) {
@@ -34,7 +37,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		catalog         = object.NewCatalogWrapperMock(mc)
+		catalog         = object.NewCatalogMockWrapper(mc)
 		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
@@ -61,7 +64,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		pulseSlot:     &pulseSlot,
 	}
 
-	stepChecker := testutils.NewSMStepChecker()
+	stepChecker := stepchecker.New()
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
@@ -118,7 +121,7 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		catalog         = object.NewCatalogWrapperMock(mc)
+		catalog         = object.NewCatalogMockWrapper(mc)
 		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
@@ -147,7 +150,7 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		pulseSlot:     &pulseSlot,
 	}
 
-	stepChecker := testutils.NewSMStepChecker()
+	stepChecker := stepchecker.New()
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
@@ -196,4 +199,80 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		}
 		assert.Panics(t, checkerFunc, "panic with not implemented deduplication algorithm should be here")
 	}
+}
+
+func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
+	var (
+		mc  = minimock.NewController(t)
+		ctx = inslogger.TestContext(t)
+
+		prototype   = gen.UniqueReference()
+		caller      = gen.UniqueReference()
+		callee      = gen.UniqueReference()
+		outgoing    = gen.UniqueID()
+		objectRef   = reference.NewSelf(outgoing)
+		sharedState = &object.SharedState{
+			Info: object.Info{
+				KnownRequests:  make(map[reference.Global]struct{}),
+				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+			},
+		}
+	)
+
+	slotMachine := slotmachine.NewControlledSlotMachine(ctx, t, true)
+	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.PrepareRunner(mc)
+
+	smExecute := SMExecute{
+		Payload: &payload.VCallRequest{
+			Polymorph:    uint32(payload.TypeVCallRequest),
+			CallType:     payload.CTConstructor,
+			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+			CallOutgoing: outgoing,
+
+			Caller:              caller,
+			Callee:              callee,
+			CallSiteDeclaration: prototype,
+			CallSiteMethod:      "New",
+		},
+		Meta: &payload.Meta{
+			Sender: caller,
+		},
+	}
+
+	{
+		catalogWrapper := object.NewCatalogMockWrapper(mc)
+		var catalog object.Catalog = catalogWrapper.Mock()
+		slotMachine.AddInterfaceDependency(&catalog)
+
+		sharedStateData := smachine.NewUnboundSharedData(sharedState)
+		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+	}
+
+	{
+		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		slotMachine.AddDependency(&pulseSlot)
+	}
+
+	slotMachine.Start()
+	defer slotMachine.Stop()
+
+	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
+
+	require.Equal(t, uint8(0), sharedState.PotentialMutablePendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+
+	stepToWait := smWrapper.StateMachine().(*SMExecute).stepWaitObjectReady
+	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
+		panic(throw.FailHere("slotmachine stopped"))
+	}
+
+	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+
+	mc.Finish()
 }

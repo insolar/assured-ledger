@@ -21,7 +21,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
+	messageSenderWrapper "github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/utils"
 )
 
 func TestSMObject_MigrateFail_IfStateIsEmptyAndNoCounters(t *testing.T) {
@@ -32,7 +34,7 @@ func TestSMObject_MigrateFail_IfStateIsEmptyAndNoCounters(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
-	stepChecker := testutils.NewSMStepChecker()
+	stepChecker := stepchecker.New()
 	{
 		exec := SMObject{}
 		stepChecker.AddStep(exec.stepGetState)
@@ -42,7 +44,7 @@ func TestSMObject_MigrateFail_IfStateIsEmptyAndNoCounters(t *testing.T) {
 
 	{ // check Init set migration and Jmp to stepGetState
 		compareDefaultMigration := func(fn smachine.MigrateFunc) {
-			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+			require.True(t, utils.CmpStateFuncs(smObject.migrate, fn))
 		}
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
@@ -75,7 +77,7 @@ func TestSMObject_SendVStateUnavailableAfterMigration_IfStateMissing(t *testing.
 		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
-	stepChecker := testutils.NewSMStepChecker()
+	stepChecker := stepchecker.New()
 	{
 		exec := SMObject{}
 		stepChecker.AddStep(exec.stepGetState)
@@ -89,7 +91,7 @@ func TestSMObject_SendVStateUnavailableAfterMigration_IfStateMissing(t *testing.
 		State:        contract.CallValidated,
 	})
 
-	messageService := testutils.NewMessageServiceMock(mc)
+	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
 		_, ok := msg.(*payload.VStateUnavailable)
 		require.True(t, ok)
@@ -102,7 +104,7 @@ func TestSMObject_SendVStateUnavailableAfterMigration_IfStateMissing(t *testing.
 
 	{ // check migration is set
 		compareDefaultMigration := func(fn smachine.MigrateFunc) {
-			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+			require.True(t, utils.CmpStateFuncs(smObject.migrate, fn))
 		}
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
@@ -144,7 +146,7 @@ func TestSMObject_SendVStateReportAfterMigration_IfStateEmptyAndCountersSet(t *t
 		sharedStateData      = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
-	stepChecker := testutils.NewSMStepChecker()
+	stepChecker := stepchecker.New()
 	{
 		exec := SMObject{}
 		stepChecker.AddStep(exec.stepGetState)
@@ -157,7 +159,7 @@ func TestSMObject_SendVStateReportAfterMigration_IfStateEmptyAndCountersSet(t *t
 		Interference: contract.CallIntolerable,
 		State:        contract.CallValidated,
 	})
-	messageService := testutils.NewMessageServiceMock(mc)
+	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
 		_, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
@@ -170,7 +172,7 @@ func TestSMObject_SendVStateReportAfterMigration_IfStateEmptyAndCountersSet(t *t
 
 	{ // check migration is set
 		compareDefaultMigration := func(fn smachine.MigrateFunc) {
-			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+			require.True(t, utils.CmpStateFuncs(smObject.migrate, fn))
 		}
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
@@ -211,7 +213,7 @@ func TestSMObject_SendNothingAfterMigration_IfStateUnknown(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
-	stepChecker := testutils.NewSMStepChecker()
+	stepChecker := stepchecker.New()
 	{
 		exec := SMObject{}
 		stepChecker.AddStep(exec.stepGetState)
@@ -219,7 +221,7 @@ func TestSMObject_SendNothingAfterMigration_IfStateUnknown(t *testing.T) {
 
 	{ // check migration is set
 		compareDefaultMigration := func(fn smachine.MigrateFunc) {
-			require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+			require.True(t, utils.CmpStateFuncs(smObject.migrate, fn))
 		}
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).

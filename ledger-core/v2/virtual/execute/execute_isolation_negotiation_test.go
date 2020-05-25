@@ -22,11 +22,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 )
 
 func Test_Execute_stepIsolationNegotiation(t *testing.T) {
-
 	for _, tc := range []struct {
 		name string
 
@@ -164,7 +163,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				methodIsolation:   tc.methodIsolation,
 			}
 
-			stepChecker := testutils.NewSMStepChecker()
+			stepChecker := stepchecker.New()
 			{
 				exec := SMExecute{}
 				stepChecker.AddStep(exec.stepTakeLock)

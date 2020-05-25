@@ -65,6 +65,7 @@ const (
 
 type TerminationCallbackFunc func(result interface{}, err error) AsyncResultFunc
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.ConstructionContext -o ./ -s _mock.go -g
 /* During construction SlotLink() will have correct SlotID, but MAY have INVALID status, as slot was not yet created */
 type ConstructionContext interface {
 	BasicContext

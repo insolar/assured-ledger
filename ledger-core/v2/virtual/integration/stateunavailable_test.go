@@ -32,12 +32,12 @@ func TestVirtual_VStateUnavailable_NoSuchObject(t *testing.T) {
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 		return nil
-	}
+	})
 
 	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
 
@@ -54,12 +54,12 @@ func TestVirtual_VStateUnavailable_StateAlreadyExists(t *testing.T) {
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)

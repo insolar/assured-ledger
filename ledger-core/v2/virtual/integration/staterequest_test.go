@@ -49,7 +49,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 			server.SendMessage(context.Background(), msg)
 		}
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -100,7 +100,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
@@ -113,7 +113,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 			server.SendMessage(context.Background(), msg)
 		}
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -157,7 +157,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	reportChan := make(chan *payload.VStateUnavailable, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
@@ -170,7 +170,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 			server.SendMessage(context.Background(), msg)
 		}
 		return nil
-	}
+	})
 
 	objectRef := gen.UniqueReference()
 

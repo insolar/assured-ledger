@@ -74,12 +74,12 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -100,12 +100,12 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
