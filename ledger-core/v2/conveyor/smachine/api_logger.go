@@ -91,6 +91,9 @@ type StepLoggerUpdateData struct {
 	// NextStep is a step and its declaration data to be applied to SM.
 	NextStep   StepDeclaration
 
+	// AppliedMigrate is set on migration update
+	AppliedMigrate MigrateFunc
+
 	// InactivityNano is a duration since the previous update, a time for which SM did not run any step.
 	// Zero or negative value means that duration is not applicable / not valid.
 	InactivityNano time.Duration

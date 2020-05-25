@@ -32,12 +32,21 @@ func (w *StateMachineWrapper) SlotLink() smachine.SlotLink {
 	return w.slotLink
 }
 
-func (w *StateMachineWrapper) WaitStep(fn interface{}) func(testUtilsCommon.UpdateEvent) bool {
+func (w *StateMachineWrapper) WaitStep(fn smachine.StateFunc) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		if w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
 			return false
 		}
 		return utils.CmpStateFuncs(fn, event.Update.NextStep.Transition)
+	}
+}
+
+func (w *StateMachineWrapper) WaitMigrate(fn smachine.MigrateFunc) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		if w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
+			return false
+		}
+		return utils.CmpStateFuncs(fn, event.Update.AppliedMigrate)
 	}
 }
 

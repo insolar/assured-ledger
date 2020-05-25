@@ -555,12 +555,14 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	})
 }
 
-func (s *Slot) logStepMigrate(stateUpdate StateUpdate, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logStepMigrate(stateUpdate StateUpdate, appliedMigrateFn MigrateFunc, inactivityNano, activityNano time.Duration) {
 	if !s._canLogEvent(StepLoggerMigrate, false) {
 		return
 	}
 
-	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, nil)
+	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, func(data *StepLoggerData, upd *StepLoggerUpdateData) {
+		upd.AppliedMigrate = appliedMigrateFn
+	})
 }
 
 func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, inactivityNano, activityNano time.Duration) {
@@ -568,7 +570,7 @@ func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, inact
 		return
 	}
 
-	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData) {
+	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
 		if flags & wasAsyncExec != 0 {
 			d.Flags |= StepLoggerDetached
 		}
@@ -583,7 +585,7 @@ func (s *Slot) logShortLoopUpdate(stateUpdate StateUpdate, curStep StepDeclarati
 		return
 	}
 
-	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData) {
+	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
 		d.Flags |= StepLoggerShortLoop
 		d.CurrentStep = curStep
 	})
@@ -600,13 +602,9 @@ func (s *Slot) _canLogEvent(eventType StepLoggerEvent, hasError bool) bool {
 }
 
 func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activityNano time.Duration,
-	stateUpdate StateUpdate, fn func(*StepLoggerData)) {
+	stateUpdate StateUpdate, fn func(*StepLoggerData, *StepLoggerUpdateData)) {
 
 	stepData := s.newStepLoggerData(eventType, s.NewStepLink())
-	if fn != nil {
-		fn(&stepData)
-	}
-
 	updData := StepLoggerUpdateData{
 		InactivityNano: inactivityNano,
 		ActivityNano:   activityNano,
@@ -614,6 +612,10 @@ func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activit
 
 	sut, sutName, _ := getStateUpdateTypeAndName(stateUpdate)
 	updData.UpdateType = sutName
+
+	if fn != nil {
+		fn(&stepData, &updData)
+	}
 
 	if nextStep := stateUpdate.step.Transition; nextStep != nil {
 		nextDecl := sut.GetStepDeclaration()
