@@ -35,7 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
 
-const PulsarOneShotEnv = "PULSAR_ONE_SHOT"
+const PulsarOneShotEnv = "PULSAR.ONESHOT"
 
 type inputParams struct {
 	configPath string
@@ -52,10 +52,6 @@ func parseInputParams() inputParams {
 	if err != nil {
 		fmt.Println("Wrong input params:", err.Error())
 	}
-	if oneShot, exists := os.LookupEnv(PulsarOneShotEnv); exists {
-		oneShot = strings.ToUpper(oneShot)
-		result.oneShot = result.oneShot || oneShot == "TRUE" || oneShot == "1" || oneShot == "YES"
-	}
 
 	return result
 }
@@ -71,6 +67,7 @@ func main() {
 	vp.AutomaticEnv()
 	vp.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	_ = vp.BindEnv("Pulsar.PulseTime")
+	_ = vp.BindEnv(PulsarOneShotEnv)
 	if len(params.configPath) != 0 {
 		vp.SetConfigFile(params.configPath)
 	}
@@ -83,6 +80,8 @@ func main() {
 	if err != nil {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
+	oneShot := vp.GetBool(PulsarOneShotEnv)
+	params.oneShot = params.oneShot || oneShot
 
 	ctx := context.Background()
 	ctx, inslog := inslogger.InitNodeLogger(ctx, pCfg.Log, "", "pulsar")
