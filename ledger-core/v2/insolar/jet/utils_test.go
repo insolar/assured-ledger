@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetcoordinator
+package jet
 
 import (
 	"crypto/rand"
@@ -13,11 +13,11 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 // In reality compares no sort vs with sort + in/out conversions of array of empty interfaces
@@ -102,7 +102,7 @@ func benchSelectByEntropyWrapped(b *testing.B, valuescount int, count int) {
 
 	values := make([]node.Node, 0, valuescount)
 	for i := 0; i < valuescount; i++ {
-		values = append(values, node.Node{ID: gen.Reference()})
+		values = append(values, node.Node{ID: gen.UniqueReference()})
 	}
 
 	b.ResetTimer()

@@ -3,12 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package certificate
+package mandates
 
 import (
 	"crypto"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -73,7 +73,7 @@ func NewUnsignedCertificate(baseCert node.Certificate, pKey string, role string,
 func NewManagerReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*CertificateManager, error) {
 	cert, err := ReadCertificate(publicKey, keyProcessor, certPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ NewManagerReadCertificate ] failed to read certificate:")
+		return nil, errors.W(err, "[ NewManagerReadCertificate ] failed to read certificate:")
 	}
 	certManager := NewCertificateManager(cert)
 	return certManager, nil

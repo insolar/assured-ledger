@@ -15,7 +15,8 @@ import (
 
 	"github.com/insolar/rpc/v2"
 	jsonrpc "github.com/insolar/rpc/v2/json2"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -35,7 +36,7 @@ type Runner struct {
 	NodeNetwork         network.NodeNetwork
 	CertificateGetter   node.CertificateGetter
 	PulseAccessor       pulsestor.Accessor
-	JetCoordinator      jet.Coordinator
+	JetCoordinator      jet.AffinityHelper
 	NetworkStatus       node.NetworkStatus
 	AvailabilityChecker AvailabilityChecker
 
@@ -69,7 +70,7 @@ func checkConfig(cfg *configuration.APIRunner) error {
 func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 	err := rpcServer.RegisterService(NewNodeService(ar), "node")
 	if err != nil {
-		return errors.Wrap(err, "[ registerServices ] Can't RegisterService: node")
+		return errors.W(err, "[ registerServices ] Can't RegisterService: node")
 	}
 
 	return nil
@@ -82,14 +83,14 @@ func NewRunner(cfg *configuration.APIRunner,
 	nodeNetwork network.NodeNetwork,
 	certificateGetter node.CertificateGetter,
 	pulseAccessor pulsestor.Accessor,
-	jetCoordinator jet.Coordinator,
+	jetCoordinator jet.AffinityHelper,
 	networkStatus node.NetworkStatus,
 	availabilityChecker AvailabilityChecker,
 ) (*Runner, error) {
 
 	err := checkConfig(cfg)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ NewAPIRunner ] Bad config")
+		return nil, errors.W(err, "[ NewAPIRunner ] Bad config")
 	}
 
 	rpcServer := rpc.NewServer()
@@ -111,7 +112,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	rpcServer.RegisterCodec(jsonrpc.NewCodec(), "application/json")
 
 	if err := ar.registerPublicServices(rpcServer); err != nil {
-		return nil, errors.Wrap(err, "[ NewAPIRunner ] Can't register public services:")
+		return nil, errors.W(err, "[ NewAPIRunner ] Can't register public services:")
 	}
 
 	// init handler
@@ -123,7 +124,7 @@ func NewRunner(cfg *configuration.APIRunner,
 
 	server, err := NewRequestValidator(cfg.SwaggerPath, ar.rpcServer)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to prepare api validator")
+		return nil, errors.W(err, "failed to prepare api validator")
 	}
 
 	router.HandleFunc("/healthcheck", hc.CheckHandler)
@@ -150,7 +151,7 @@ func (ar *Runner) Start(ctx context.Context) error {
 	logger.Info("Config: ", ar.cfg)
 	listener, err := net.Listen("tcp", ar.server.Addr)
 	if err != nil {
-		return errors.Wrap(err, "Can't start listening")
+		return errors.W(err, "Can't start listening")
 	}
 	go func() {
 		if err := ar.server.Serve(listener); err != http.ErrServerClosed {
@@ -169,7 +170,7 @@ func (ar *Runner) Stop(ctx context.Context) error {
 	defer cancel()
 	err := ar.server.Shutdown(ctxWithTimeout)
 	if err != nil {
-		return errors.Wrap(err, "Can't gracefully stop API server")
+		return errors.W(err, "Can't gracefully stop API server")
 	}
 
 	ar.SeedManager.Stop()

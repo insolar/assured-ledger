@@ -38,10 +38,11 @@ func (m *SlotMachine) migrateWithBefore(worker FixedSlotWorker, beforeFn func())
 		fn(migrateCount)
 	}
 
-	m.slotPool.ScanAndCleanup(m.config.CleanupWeakOnMigrate, worker, m.recycleSlot,
-		func(slotPage []Slot, worker FixedSlotWorker) (isPageEmptyOrWeak, hasWeakSlots bool) {
-			return m.migratePage(migrateCount, slotPage, worker)
-		})
+	m.slotPool.ScanAndCleanup(m.config.CleanupWeakOnMigrate, func(slot *Slot) {
+		m.recycleSlot(slot, worker)
+	}, func(slotPage []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
+		return m.migratePage(migrateCount, slotPage, worker)
+	})
 
 	m.syncQueue.CleanupDetachQueues()
 }
@@ -106,7 +107,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
 					activityNano := slot.touch(time.Now().UnixNano())
 					slot.logStepMigrate(stateUpdate, inactivityNano, activityNano)
-					inactivityNano = durationUnknownNano
+					inactivityNano = durationUnknownOrTooShortNano
 
 					switch {
 					case !typeOfStateUpdate(stateUpdate).IsSubroutineSafe():

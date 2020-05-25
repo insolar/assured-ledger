@@ -24,8 +24,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
@@ -108,7 +109,7 @@ func startServer() error {
 	server := &http.Server{}
 	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12221})
 	if err != nil {
-		return errors.Wrap(err, "error creating listener")
+		return errors.W(err, "error creating listener")
 	}
 	go server.Serve(listener)
 
@@ -123,13 +124,13 @@ func setup() error {
 	err := startServer()
 	if err != nil {
 		global.Error("Problem with starting test server: ", err)
-		return errors.Wrap(err, "[ setup ]")
+		return errors.W(err, "[ setup ]")
 	}
 
 	err = waitForStart()
 	if err != nil {
 		global.Error("Can't start api: ", err)
-		return errors.Wrap(err, "[ setup ]")
+		return errors.W(err, "[ setup ]")
 	}
 
 	return nil
@@ -169,7 +170,7 @@ func TestGetSeed(t *testing.T) {
 
 func TestGetResponseBodyEmpty(t *testing.T) {
 	_, err := GetResponseBodyPlatform("test", "", nil)
-	require.EqualError(t, err, "problem with sending request: Post \"test\": unsupported protocol scheme \"\"")
+	require.EqualError(t, err, "problem with sending request;\tPost \"test\": unsupported protocol scheme \"\"")
 }
 
 func TestGetResponseBodyBadHttpStatus(t *testing.T) {
@@ -224,13 +225,13 @@ func TestSendWithSeed_WithBadUrl(t *testing.T) {
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed_WithBadUrl")
 	userConf, reqConf := readConfigs(t)
 	_, err := SendWithSeed(ctx, URL+"TTT", userConf, reqConf, TESTSEED)
-	require.EqualError(t, err, "[ SendWithSeed ] Problem with sending target request: bad http response code: 404")
+	require.EqualError(t, err, "[ SendWithSeed ] Problem with sending target request;\tbad http response code: 404")
 }
 
 func TestSendWithSeed_NilConfigs(t *testing.T) {
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed_NilConfigs")
 	_, err := SendWithSeed(ctx, URL, nil, nil, TESTSEED)
-	require.EqualError(t, err, "[ SendWithSeed ] Problem with creating target request: configs must be initialized")
+	require.EqualError(t, err, "[ SendWithSeed ] Problem with creating target request;\tconfigs must be initialized")
 }
 
 func TestInfo(t *testing.T) {
@@ -261,15 +262,15 @@ func TestMarshalSig(t *testing.T) {
 	r2, s2, err := foundation.UnmarshalSig(sig)
 	require.NoError(t, err)
 
-	require.Equal(t, r1, r2, errors.Errorf("Invalid S number"))
-	require.Equal(t, s1, s2, errors.Errorf("Invalid R number"))
+	require.Equal(t, r1, r2, errors.New("Invalid S number"))
+	require.Equal(t, s1, s2, errors.New("Invalid R number"))
 }
 
 // unmarshalRequest unmarshals request to api
 func unmarshalRequest(req *http.Request, params interface{}) ([]byte, error) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ unmarshalRequest ] Can't read body. So strange")
+		return nil, errors.W(err, "[ unmarshalRequest ] Can't read body. So strange")
 	}
 	if len(body) == 0 {
 		return nil, errors.New("[ unmarshalRequest ] Empty body")
@@ -277,7 +278,7 @@ func unmarshalRequest(req *http.Request, params interface{}) ([]byte, error) {
 
 	err = json.Unmarshal(body, &params)
 	if err != nil {
-		return body, errors.Wrap(err, "[ unmarshalRequest ] Can't unmarshal input params")
+		return body, errors.W(err, "[ unmarshalRequest ] Can't unmarshal input params")
 	}
 	return body, nil
 }

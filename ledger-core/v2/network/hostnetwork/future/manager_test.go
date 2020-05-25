@@ -8,11 +8,12 @@ package future
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
-	"github.com/stretchr/testify/require"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestNewManager(t *testing.T) {
@@ -24,8 +25,8 @@ func TestNewManager(t *testing.T) {
 func TestFutureManager_Create(t *testing.T) {
 	m := NewManager()
 
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.Reference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.Reference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
 
 	p := packet.NewPacket(sender, receiver, types.Unknown, 123)
 	future := m.Create(p)
@@ -38,8 +39,8 @@ func TestFutureManager_Create(t *testing.T) {
 func TestFutureManager_Get(t *testing.T) {
 	m := NewManager()
 
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.Reference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.Reference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
 
 	p := packet.NewPacket(sender, receiver, types.Unknown, 123)
 
@@ -54,8 +55,8 @@ func TestFutureManager_Get(t *testing.T) {
 func TestFutureManager_Canceler(t *testing.T) {
 	m := NewManager()
 
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.Reference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.Reference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
 
 	p := packet.NewPacket(sender, receiver, types.Unknown, 123)
 

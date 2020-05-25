@@ -11,12 +11,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 )
@@ -33,20 +34,20 @@ var inDir = flag.String("in", ".", "directory with swagger files")
 func copyFile(fromName, toName string) error {
  	from, err := os.Open(fromName)
 	if err != nil {
-		return errors.Wrap(err, "os.Open")
+		return errors.W(err, "os.Open")
 	}
 	defer from.Close() // nolint
 
 	// We can't use OpenFile here. File should be truncated if it existed.
 	to, err := os.Create(toName)
 	if err != nil {
-		return errors.Wrap(err, "os.Create")
+		return errors.W(err, "os.Create")
 	}
 	defer to.Close() // nolint
 
 	_, err = io.Copy(to, from)
 	if err != nil {
-		return errors.Wrap(err, "io.Copy")
+		return errors.W(err, "io.Copy")
 	}
 	return nil
 }

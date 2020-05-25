@@ -13,19 +13,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/preprocessor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 )
 
 var (
-	contractSources = insolar.RootModule + "/application/contract"
-	proxySources    = insolar.RootModule + "/application/proxy"
+	contractSources = defaults.RootModule + "/application/contract"
+	proxySources    = defaults.RootModule + "/application/proxy"
 )
 
 type contractsBuilder struct {
@@ -53,7 +53,7 @@ func (cb *contractsBuilder) outputDir() string {
 
 func newContractBuilder(tmpDir string, skipProxy bool) *contractsBuilder {
 	if tmpDir == "" {
-		tmpDir = insolar.ContractBuildTmpDir("insgocc-")
+		tmpDir = defaults.ContractBuildTmpDir("insgocc-")
 	}
 
 	cb := &contractsBuilder{
@@ -115,11 +115,11 @@ func (cb *contractsBuilder) prepare(ctx context.Context, names ...string) error 
 
 		ctr, err := createFileInDir(filepath.Join(cb.root, "src/contract", name), "main.go")
 		if err != nil {
-			return errors.Wrap(err, "can't create contract file")
+			return errors.W(err, "can't create contract file")
 		}
 		err = code.Write(ctr)
 		if err != nil {
-			return errors.Wrap(err, "can't write to contract file")
+			return errors.W(err, "can't write to contract file")
 		}
 		closeAndCheck(ctr)
 
@@ -127,24 +127,24 @@ func (cb *contractsBuilder) prepare(ctx context.Context, names ...string) error 
 			proxyPath := filepath.Join(cb.root, "src", proxySources, name)
 			proxy, err := createFileInDir(proxyPath, "main.go")
 			if err != nil {
-				return errors.Wrap(err, "can't open proxy file")
+				return errors.W(err, "can't open proxy file")
 			}
 			protoRef := genesisrefs.GenesisRef(name + genesisrefs.PrototypeSuffix)
 			err = code.WriteProxy(protoRef.String(), proxy)
 			closeAndCheck(proxy)
 			if err != nil {
-				return errors.Wrap(err, "can't write proxy")
+				return errors.W(err, "can't write proxy")
 			}
 		}
 
 		wrp, err := createFileInDir(filepath.Join(cb.root, "src/contract", name), "main_wrapper.go")
 		if err != nil {
-			return errors.Wrap(err, "can't open wrapper file")
+			return errors.W(err, "can't open wrapper file")
 		}
 		err = code.WriteWrapper(wrp, "main")
 		closeAndCheck(wrp)
 		if err != nil {
-			return errors.Wrap(err, "can't write wrapper")
+			return errors.W(err, "can't write wrapper")
 		}
 	}
 

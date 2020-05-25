@@ -8,6 +8,7 @@ package machine
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 )
@@ -29,4 +30,7 @@ type Executor interface {
 	) (
 		objectState []byte, result []byte, err error,
 	)
+	ClassifyMethod(ctx context.Context,
+		codeRef reference.Global,
+		method string) (contract.MethodIsolation, error)
 }

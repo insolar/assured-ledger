@@ -127,7 +127,8 @@ func TestLog_Timestamp(t *testing.T) {
 
 			logger.Error("test")
 
-			assert.Regexp(t, regexp.MustCompile("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]"), buf.String())
+			s := buf.String()
+			assert.Regexp(t, regexp.MustCompile("[0-9][0-9]:[0-9][0-9]:[0-9][0-9]"), s)
 		})
 	}
 }

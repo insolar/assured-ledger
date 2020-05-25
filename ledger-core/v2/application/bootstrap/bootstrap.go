@@ -14,12 +14,12 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -68,13 +68,13 @@ func (g *Generator) Run(ctx context.Context, properNames bool) error {
 		properNames,
 	)
 	if err != nil {
-		return errors.Wrapf(err, "create keys step failed")
+		return errors.W(err, "create keys step failed")
 	}
 
 	inslog.Info("[ bootstrap ] create discovery certificates ...")
 	err = g.makeCertificates(ctx, discoveryNodes, discoveryNodes)
 	if err != nil {
-		return errors.Wrap(err, "generate discovery certificates failed")
+		return errors.W(err, "generate discovery certificates failed")
 	}
 
 	if g.config.NotDiscoveryKeysDir != "" {
@@ -88,18 +88,18 @@ func (g *Generator) Run(ctx context.Context, properNames bool) error {
 			properNames,
 		)
 		if err != nil {
-			return errors.Wrapf(err, "create keys step failed")
+			return errors.W(err, "create keys step failed")
 		}
 
 		inslog.Info("[ bootstrap ] create not discovery certificates ...", nodes)
 		err = g.makeCertificates(ctx, nodes, discoveryNodes)
 		if err != nil {
-			return errors.Wrap(err, "generate not discovery certificates failed")
+			return errors.W(err, "generate not discovery certificates failed")
 		}
 	}
 
 	if err := g.makeEmptyGenesisConfig(); err != nil {
-		return errors.Wrap(err, "generate empty genesis config failed")
+		return errors.W(err, "generate empty genesis config failed")
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (g *Generator) makeEmptyGenesisConfig() error {
 	cfg := &application.GenesisHeavyConfig{}
 	b, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
-		return errors.Wrapf(err, "failed to decode heavy config to json")
+		return errors.W(err, "failed to decode heavy config to json")
 	}
 
 	err = ioutil.WriteFile(g.config.HeavyGenesisConfigFile, b, 0600)
@@ -129,10 +129,10 @@ func (ni nodeInfo) reference() reference.Global {
 }
 
 func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, discoveryNodes []nodeInfo) error {
-	certs := make([]certificate.Certificate, 0, len(g.config.DiscoveryNodes))
+	certs := make([]mandates.Certificate, 0, len(g.config.DiscoveryNodes))
 	for _, node := range nodesInfo {
-		c := certificate.Certificate{
-			AuthorizationCertificate: certificate.AuthorizationCertificate{
+		c := mandates.Certificate{
+			AuthorizationCertificate: mandates.AuthorizationCertificate{
 				PublicKey: node.publicKey,
 				Role:      node.role,
 				Reference: node.reference().String(),
@@ -142,11 +142,11 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		c.MinRoles.Virtual = g.config.MinRoles.Virtual
 		c.MinRoles.HeavyMaterial = g.config.MinRoles.HeavyMaterial
 		c.MinRoles.LightMaterial = g.config.MinRoles.LightMaterial
-		c.BootstrapNodes = []certificate.BootstrapNode{}
+		c.BootstrapNodes = []mandates.BootstrapNode{}
 
 		for j, n2 := range discoveryNodes {
 			host := g.config.DiscoveryNodes[j].Host
-			c.BootstrapNodes = append(c.BootstrapNodes, certificate.BootstrapNode{
+			c.BootstrapNodes = append(c.BootstrapNodes, mandates.BootstrapNode{
 				PublicKey: n2.publicKey,
 				Host:      host,
 				NodeRef:   n2.reference().String(),
@@ -178,7 +178,7 @@ func (g *Generator) makeCertificates(ctx context.Context, nodesInfo []nodeInfo, 
 		// save cert to disk
 		cert, err := json.MarshalIndent(certs[i], "", "  ")
 		if err != nil {
-			return errors.Wrapf(err, "can't MarshalIndent")
+			return errors.W(err, "can't MarshalIndent")
 		}
 
 		if len(node.certName) == 0 {

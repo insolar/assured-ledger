@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package certificate
+package mandates
 
 import (
 	"bytes"
@@ -26,7 +26,7 @@ const TestDifferentKeys = "testdata/different_keys.json"
 func TestNewCertificate_NoCert(t *testing.T) {
 	_, err := ReadCertificate(nil, nil, TestInvalidFileCert)
 	require.Contains(t, err.Error(), "[ ReadCertificate ] failed to read certificate from: "+
-		"testdata/bad_cert11111.json: ")
+		"testdata/bad_cert11111.json;\t")
 }
 
 func TestNewCertificate_BadCert(t *testing.T) {
@@ -105,7 +105,7 @@ func TestReadCertificate_BadBootstrapPublicKey(t *testing.T) {
 
 	_, err := ReadCertificate(pk, kp, "testdata/cert_bad_bootstrap_key.json")
 	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "Incorrect fields: [ fillExtraFields ] Bad Bootstrap PublicKey")
+	require.Contains(t, err.Error(), "Incorrect fields;\t[ fillExtraFields ] Bad Bootstrap PublicKey")
 }
 
 func TestReadPrivateKey_BadJson(t *testing.T) {

@@ -151,6 +151,14 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
 	v.prepareStepName(&data.CurrentStep)
 
+	if data.Error == nil {
+		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v\n", data.StepNo.MachineID(), data.CycleNo,
+			data.StepNo.SlotID(), data.StepNo.StepNo(),
+			updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer)
+
+		return
+	}
+
 	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v%s\n", data.StepNo.MachineID(), data.CycleNo,
 		data.StepNo.SlotID(), data.StepNo.StepNo(),
 		updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer, formatErrorStack(data.Error))

@@ -12,8 +12,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -72,7 +72,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsest
 		panic(throw.Impossible())
 	}
 
-	inslogger.FromContext(ctx).Errorm(logBeginPulseMessage{
+	inslogger.FromContext(ctx).Debugm(logBeginPulseMessage{
 		PreviousPulse: c.previousPulse,
 		NextPulse:     pulseData.PulseNumber,
 	})
@@ -84,7 +84,7 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsest
 }
 
 func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulsestor.Pulse) {
-	inslogger.FromContext(ctx).Errorm(logClosePulseMessage{
+	inslogger.FromContext(ctx).Debugm(logClosePulseMessage{
 		PreviousPulse: c.previousPulse,
 	})
 
@@ -128,7 +128,7 @@ func (c *conveyorDispatcher) Process(msg *message.Message) error {
 		return throw.E("unexpected type", errUnknownPayload{ExpectedType: "payload.Meta", GotType: pl})
 	}
 
-	ctx, _ := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(meta.TraceID))
+	ctx, _ := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(defaults.TraceID))
 	return c.conveyor.AddInput(ctx, plMeta.Pulse, &DispatcherMessage{
 		MessageMeta: msg.Metadata,
 		PayloadMeta: plMeta,

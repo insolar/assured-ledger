@@ -13,11 +13,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.Coordinator -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet.AffinityHelper -o ./ -s _mock.go -g
 
-// Coordinator provides methods for calculating Jet affinity
+// AffinityHelper provides methods for calculating Jet affinity
 // (e.g. to which Jet a message should be sent).
-type Coordinator interface {
+type AffinityHelper interface {
 	// Me returns current node.
 	Me() reference.Global
 

@@ -8,7 +8,7 @@ package seedmanager
 import (
 	"crypto/rand"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // SeedSize is size of seed
@@ -26,7 +26,7 @@ func (sg *SeedGenerator) Next() (*Seed, error) {
 	seed := Seed{}
 	_, err := rand.Read(seed[:])
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get next seed")
+		return nil, errors.W(err, "failed to get next seed")
 	}
 
 	return &seed, nil

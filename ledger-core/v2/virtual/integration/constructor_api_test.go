@@ -12,13 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
 func Test_API_Create(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4837")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		// verify and decode incoming message

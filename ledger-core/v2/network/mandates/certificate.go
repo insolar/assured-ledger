@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package certificate
+package mandates
 
 import (
 	"crypto"
@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
@@ -98,12 +98,12 @@ func newCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPro
 	cert := Certificate{}
 	err := json.Unmarshal(data, &cert)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ newCertificate ] failed to parse certificate json")
+		return nil, errors.W(err, "[ newCertificate ] failed to parse certificate json")
 	}
 
 	pub, err := keyProcessor.ExportPublicKeyPEM(publicKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ newCertificate ] failed to retrieve public key from node private key")
+		return nil, errors.W(err, "[ newCertificate ] failed to retrieve public key from node private key")
 	}
 
 	if cert.PublicKey != string(pub) {
@@ -112,7 +112,7 @@ func newCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPro
 
 	err = cert.fillExtraFields(keyProcessor)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ newCertificate ] Incorrect fields")
+		return nil, errors.W(err, "[ newCertificate ] Incorrect fields")
 	}
 
 	cert.DiscoverySigns = make(map[reference.Global][]byte)
@@ -144,7 +144,7 @@ func (cert *Certificate) SignNetworkPart(key crypto.PrivateKey) ([]byte, error) 
 	signer := scheme.DataSigner(key, scheme.IntegrityHasher())
 	sign, err := signer.Sign(cert.SerializeNetworkPart())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ SignNetworkPart ] Can't Sign")
+		return nil, errors.W(err, "[ SignNetworkPart ] Can't Sign")
 	}
 	return sign.Bytes(), nil
 }
@@ -199,7 +199,7 @@ func (cert *Certificate) GetMajorityRule() int {
 func (cert *Certificate) Dump() (string, error) {
 	result, err := json.MarshalIndent(cert, "", "    ")
 	if err != nil {
-		return "", errors.Wrap(err, "[ Certificate::Dump ]")
+		return "", errors.W(err, "[ Certificate::Dump ]")
 	}
 
 	return string(result), nil
@@ -213,7 +213,7 @@ func ReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPr
 	}
 	cert, err := newCertificate(publicKey, keyProcessor, data)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ ReadCertificate ]")
+		return nil, errors.W(err, "[ ReadCertificate ]")
 	}
 	return cert, nil
 }
@@ -222,11 +222,11 @@ func ReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPr
 func ReadCertificateFromReader(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, reader io.Reader) (*Certificate, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, errors.Wrapf(err, "[ ReadCertificateFromReader ] failed to read certificate data")
+		return nil, errors.W(err, "[ ReadCertificateFromReader ] failed to read certificate data")
 	}
 	cert, err := newCertificate(publicKey, keyProcessor, data)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ ReadCertificateFromReader ]")
+		return nil, errors.W(err, "[ ReadCertificateFromReader ]")
 	}
 	return cert, nil
 }
@@ -236,7 +236,7 @@ func SignCert(signer cryptography.Signer, pKey, role, registeredNodeRef string) 
 	data := []byte(pKey + registeredNodeRef + role)
 	sign, err := signer.Sign(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ SignCert ] Couldn't sign")
+		return nil, errors.W(err, "[ SignCert ] Couldn't sign")
 	}
 	return sign, nil
 }

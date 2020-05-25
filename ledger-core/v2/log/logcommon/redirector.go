@@ -9,10 +9,10 @@ import (
 	"io"
 )
 
-var _ LoggerOutput = TestingLoggerOutput{}
+var _ LoggerOutput = &TestingLoggerOutput{}
 
 // this interface matches required  *testing.T
-type TestingRedirectTarget interface {
+type TestingLogger interface {
 	Helper()
 	Log(...interface{})
 	Error(...interface{})
@@ -20,45 +20,69 @@ type TestingRedirectTarget interface {
 }
 
 type TestingLoggerOutput struct {
-	Target TestingRedirectTarget
+	Output            io.Writer
+	Testing           TestingLogger
+	InterceptFatal    func([]byte) bool
+	SuppressTestError bool
 }
 
-func (r TestingLoggerOutput) Close() error {
-	if closer, ok := r.Target.(io.Closer); ok {
+func (r *TestingLoggerOutput) Close() error {
+	if closer, ok := r.Output.(io.Closer); ok {
 		return closer.Close()
 	}
 	return nil
 }
 
-func (r TestingLoggerOutput) Flush() error {
-	if flusher, ok := r.Target.(interface{ Flush() error }); ok {
+func (r *TestingLoggerOutput) Flush() error {
+	if flusher, ok := r.Output.(interface{ Flush() error }); ok {
 		return flusher.Flush()
 	}
 	return nil
 }
 
-func (r TestingLoggerOutput) Write(b []byte) (int, error) {
-	r.Target.Log(string(b))
+func (r *TestingLoggerOutput) Write(b []byte) (int, error) {
+	if r.Output != nil {
+		return r.Output.Write(b)
+	}
+
+	r.Testing.Log(string(b))
 	return len(b), nil
 }
 
-func (r TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) {
+func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) {
 	msg := string(b)
 	switch level {
 	case FatalLevel:
-		r.Target.Fatal(msg)
+		if r.InterceptFatal == nil || !r.InterceptFatal(b) {
+			defer r.Testing.Fatal(msg)
+		} else {
+			defer r.Testing.Error(msg)
+		}
 	case PanicLevel, ErrorLevel:
-		r.Target.Error(msg)
+		if !r.SuppressTestError {
+			defer r.Testing.Error(msg)
+		} else {
+			defer r.Testing.Log(msg)
+		}
 	default:
-		r.Target.Log(msg)
+		if r.Output == nil {
+			r.Testing.Log(msg)
+			return len(b), nil
+		}
+	}
+
+	if r.Output != nil {
+		return r.Output.Write(b)
 	}
 	return len(b), nil
 }
 
-func (r TestingLoggerOutput) LowLatencyWrite(level Level, b []byte) (int, error) {
-	return r.LogLevelWrite(level, b)
+func (r *TestingLoggerOutput) LowLatencyWrite(level Level, b []byte) (int, error) {
+	//nolint
+	go r.LogLevelWrite(level, b)
+	return len(b), nil
 }
 
-func (r TestingLoggerOutput) IsLowLatencySupported() bool {
+func (r *TestingLoggerOutput) IsLowLatencySupported() bool {
 	return true
 }

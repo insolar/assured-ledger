@@ -8,7 +8,7 @@ package host
 import (
 	"net"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Address is host's real network address.
@@ -20,7 +20,7 @@ type Address struct {
 func NewAddress(address string) (*Address, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to resolve ip address")
+		return nil, errors.W(err, "Failed to resolve ip address")
 	}
 	return &Address{UDPAddr: *udpAddr}, nil
 }

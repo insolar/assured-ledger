@@ -6,6 +6,7 @@
 package executionevent
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
@@ -122,7 +123,7 @@ func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *pay
 
 	return &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
-		CallFlags:           execution.Request.CallFlags,
+		CallFlags:           payload.BuildCallRequestFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              reference.Global{},
 		CallSiteDeclaration: e.prototype,
@@ -141,16 +142,16 @@ type CallMethod struct {
 	parentRequestReference reference.Global
 	parentObjectReference  reference.Global
 
-	method    string
-	arguments []byte
-	object    reference.Global
-	prototype reference.Global
-	tolerance payload.ToleranceFlag
-	isolation payload.StateFlag
+	method       string
+	arguments    []byte
+	object       reference.Global
+	prototype    reference.Global
+	interference contract.InterferenceFlag
+	isolation    contract.StateFlag
 }
 
-func (e CallMethod) Tolerance() payload.ToleranceFlag {
-	return e.tolerance
+func (e CallMethod) Interference() contract.InterferenceFlag {
+	return e.interference
 }
 
 func (e CallMethod) Prototype() reference.Global {
@@ -180,14 +181,9 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
 	execution.Sequence++
 
-	var callFlags payload.CallRequestFlags
-
-	callFlags.SetTolerance(e.tolerance)
-	callFlags.SetState(e.isolation)
-
 	return &payload.VCallRequest{
 		CallType:            payload.CTMethod,
-		CallFlags:           execution.Request.CallFlags,
+		CallFlags:           payload.BuildCallRequestFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              e.object,
 		CallSiteDeclaration: e.prototype,
@@ -199,12 +195,12 @@ func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.
 	}
 }
 
-func (e CallMethod) SetTolerance(tolerance payload.ToleranceFlag) CallMethod {
-	e.tolerance = tolerance
+func (e CallMethod) SetInterference(interference contract.InterferenceFlag) CallMethod {
+	e.interference = interference
 	return e
 }
 
-func (e CallMethod) SetIsolation(isolation payload.StateFlag) CallMethod {
+func (e CallMethod) SetIsolation(isolation contract.StateFlag) CallMethod {
 	e.isolation = isolation
 	return e
 }

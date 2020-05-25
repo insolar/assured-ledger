@@ -14,11 +14,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
@@ -70,8 +69,10 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 }
 
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4866")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
@@ -82,7 +83,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
@@ -94,8 +95,10 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 }
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4919")
+
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	defer server.Stop()
 
 	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
@@ -106,7 +109,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
@@ -117,7 +120,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	checkBalance(ctx, t, server, objectRef, testBalance)
 	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
-		// send VStateRequest: one more time to simulate rewrite
+		// send VStateReport: one more time to simulate rewrite
 		msg := makeVStateReportEvent(t, objectRef, newStateID, makeRawWalletState(t, 444))
 		require.NoError(t, server.AddInput(ctx, msg))
 	}

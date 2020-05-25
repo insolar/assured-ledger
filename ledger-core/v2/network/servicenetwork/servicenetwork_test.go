@@ -11,9 +11,10 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -22,14 +23,14 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	networkUtils "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -49,7 +50,7 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwo
 
 	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
 	nodeMock := networkUtils.NewNetworkNodeMock(t)
-	nodeMock.IDMock.Return(gen.Reference())
+	nodeMock.IDMock.Return(gen.UniqueReference())
 	nodeKeeper.GetOriginMock.Return(nodeMock)
 	serviceNetwork.NodeKeeper = nodeKeeper
 
@@ -77,7 +78,7 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 func TestSendMessageHandler_SameNode(t *testing.T) {
 	cfg := configuration.NewConfiguration()
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	nodeRef := gen.Reference()
+	nodeRef := gen.UniqueReference()
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
@@ -116,7 +117,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
-			return gen.Reference()
+			return gen.UniqueReference()
 		})
 		return n
 	})
@@ -133,7 +134,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
 		Payload:  p,
-		Receiver: gen.Reference(),
+		Receiver: gen.UniqueReference(),
 	}
 	data, err := meta.Marshal()
 	require.NoError(t, err)
@@ -153,7 +154,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
-			return gen.Reference()
+			return gen.UniqueReference()
 		})
 		return n
 	})
@@ -170,7 +171,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
 		Payload:  p,
-		Receiver: gen.Reference(),
+		Receiver: gen.UniqueReference(),
 	}
 	data, err := meta.Marshal()
 	require.NoError(t, err)
@@ -188,7 +189,7 @@ func TestSendMessageHandler(t *testing.T) {
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
-			return gen.Reference()
+			return gen.UniqueReference()
 		})
 		return n
 	})
@@ -205,7 +206,7 @@ func TestSendMessageHandler(t *testing.T) {
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
 		Payload:  p,
-		Receiver: gen.Reference(),
+		Receiver: gen.UniqueReference(),
 	}
 	data, err := meta.Marshal()
 	require.NoError(t, err)
@@ -225,11 +226,11 @@ func (s *stater) State() []byte {
 func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")
 	cm := component.NewManager(nil)
-	origin := gen.Reference()
+	origin := gen.UniqueReference()
 	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
-	cert := &certificate.Certificate{}
+	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()
-	certManager := certificate.NewCertificateManager(cert)
+	certManager := mandates.NewCertificateManager(cert)
 	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), cm)
 	require.NoError(t, err)
 	ctx := context.Background()

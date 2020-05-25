@@ -12,7 +12,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
@@ -74,7 +74,7 @@ func (f *fakeDatagramTransport) SendDatagram(ctx context.Context, address string
 	}
 	_, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return errors.Wrap(err, "Failed to resolve UDP address")
+		return errors.W(err, "Failed to resolve UDP address")
 	}
 
 	udpMutex.RLock()

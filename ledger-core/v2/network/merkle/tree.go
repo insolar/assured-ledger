@@ -9,7 +9,8 @@ import (
 	"hash"
 
 	"github.com/onrik/gomerkle"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type tree interface {
@@ -21,7 +22,7 @@ func treeFromHashList(list [][]byte, hasher hash.Hash) (tree, error) {
 	mt.AddHash(list...)
 
 	if err := mt.Generate(); err != nil {
-		return nil, errors.Wrap(err, "[ treeFromHashList ] Failed to generate merkle tree")
+		return nil, errors.W(err, "[ treeFromHashList ] Failed to generate merkle tree")
 	}
 
 	return &mt, nil

@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -50,6 +51,8 @@ type SMExecute struct {
 	deactivate        bool
 	run               *runner.RunState
 
+	methodIsolation contract.MethodIsolation
+
 	// dependencies
 	runner        *runner.ServiceAdapter
 	messageSender messageSenderAdapter.MessageSender
@@ -57,6 +60,10 @@ type SMExecute struct {
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
+
+	// todo: remove nolint in PLAT-309
+	// nolint
+	delegationToken payload.CallDelegationToken
 }
 
 /* -------- Declaration ------------- */
@@ -87,8 +94,8 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 	return dSMExecuteInstance
 }
 
-func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
-	s.execution.Context = ctx.GetContext()
+func (s *SMExecute) prepareExecution(ctx context.Context) {
+	s.execution.Context = ctx
 	s.execution.Sequence = 0
 	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
@@ -103,13 +110,14 @@ func (s *SMExecute) prepareExecution(ctx smachine.InitializationContext) {
 	s.execution.Incoming = reference.NewRecordOf(s.Payload.Caller, s.Payload.CallOutgoing)
 	s.execution.Outgoing = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing)
 
-	if s.Payload.CallFlags.GetTolerance() == payload.CallIntolerable {
-		s.execution.Unordered = true
+	s.execution.Isolation = contract.MethodIsolation{
+		Interference: s.Payload.CallFlags.GetInterference(),
+		State:        s.Payload.CallFlags.GetState(),
 	}
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	s.prepareExecution(ctx)
+	s.prepareExecution(ctx.GetContext())
 
 	return ctx.Jump(s.stepCheckRequest)
 }
@@ -148,12 +156,35 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 		}
 	}
 
+	return ctx.Jump(s.stepUpdateKnownRequests)
+}
+
+func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	action := func(state *object.SharedState) {
+		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+			// found duplicate request, todo: deduplication algorithm
+			panic(throw.NotImplemented())
+		} else {
+			state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		}
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		ctx.Log().Fatal("failed to get object state: already dead")
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
 	return ctx.Jump(s.stepUpdatePendingCounters)
 }
 
 func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	action := func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounter(!s.execution.Unordered)
+		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -178,6 +209,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	var (
 		semaphoreReadyToWork    smachine.SyncLink
+		objectDescriptor        descriptor.Object
 		objectDescriptorIsEmpty bool
 		semaphoreOrdered        smachine.SyncLink
 		semaphoreUnordered      smachine.SyncLink
@@ -189,7 +221,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreOrdered = state.MutableExecute
 		semaphoreUnordered = state.ImmutableExecute
 
-		objectDescriptor := state.Descriptor()
+		objectDescriptor = state.Descriptor()
 		objectDescriptorIsEmpty = objectDescriptor == nil
 	}
 
@@ -217,14 +249,70 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.semaphoreOrdered = semaphoreOrdered
 	s.semaphoreUnordered = semaphoreUnordered
 
+	s.execution.ObjectDescriptor = objectDescriptor
+
+	if isConstructor {
+		// default isolation for constructors
+		s.methodIsolation = contract.ConstructorIsolation()
+	}
 	// TODO[bigbes]: we're ready to execute here, so lets execute
+	return ctx.Jump(s.stepIsolationNegotiation)
+}
+
+func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.methodIsolation.IsZero() {
+		return s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
+			if err != nil {
+				panic(throw.W(err, "failed to classify method"))
+			}
+			s.methodIsolation = isolation
+		}).DelayedStart().Sleep().ThenRepeat()
+	}
+
+	negotiatedIsolation, err := negotiateIsolation(s.methodIsolation, s.execution.Isolation)
+	if err != nil {
+		return ctx.Error(throw.W(err, "failed to negotiate", struct {
+			methodIsolation contract.MethodIsolation
+			callIsolation   contract.MethodIsolation
+		}{
+			methodIsolation: s.methodIsolation,
+			callIsolation:   s.execution.Isolation,
+		}))
+	}
+	s.execution.Isolation = negotiatedIsolation
+
 	return ctx.Jump(s.stepTakeLock)
+}
+
+func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation) (contract.MethodIsolation, error) {
+	if methodIsolation == callIsolation {
+		return methodIsolation, nil
+	}
+	res := methodIsolation
+	switch {
+	case methodIsolation.Interference == callIsolation.Interference:
+		// ok case
+	case methodIsolation.Interference == contract.CallIntolerable && callIsolation.Interference == contract.CallTolerable:
+		res.Interference = callIsolation.Interference
+	default:
+		return contract.MethodIsolation{}, throw.IllegalValue()
+	}
+	switch {
+	case methodIsolation.State == callIsolation.State:
+		// ok case
+	case methodIsolation.State == contract.CallValidated && callIsolation.State == contract.CallDirty:
+		res.State = callIsolation.State
+	default:
+		return contract.MethodIsolation{}, throw.IllegalValue()
+	}
+
+	return res, nil
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var executionSemaphore smachine.SyncLink
 
-	if s.execution.Unordered {
+	if s.execution.Isolation.Interference == contract.CallIntolerable {
 		executionSemaphore = s.semaphoreUnordered
 	} else {
 		executionSemaphore = s.semaphoreOrdered
@@ -425,12 +513,19 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 }
 
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
 	var lastState *payload.ObjectState = nil
-	if !s.execution.Unordered {
+
+	if s.execution.Isolation.Interference == contract.CallTolerable {
+		prototype, err := s.execution.ObjectDescriptor.Prototype()
+		if err != nil {
+			panic(throw.W(err, "failed to get prototype from descriptor", nil))
+		}
+
 		lastState = &payload.ObjectState{
 			Reference: s.executionNewState.Result.ObjectStateID,
 			State:     s.executionNewState.Result.Memory,
+			Parent:    s.executionNewState.Result.ParentReference,
+			Prototype: prototype,
 		}
 	}
 
@@ -461,7 +556,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 
 func (s *SMExecute) decrementCounters(state *object.SharedState) {
 	if !s.migrationHappened {
-		state.DecrementPotentialPendingCounter(!s.execution.Unordered)
+		state.DecrementPotentialPendingCounter(s.execution.Isolation)
 	}
 }
 

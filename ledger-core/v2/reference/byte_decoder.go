@@ -10,7 +10,8 @@ import (
 	"io"
 
 	"github.com/jbenet/go-base58"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type ByteDecoderFactory interface {
@@ -32,7 +33,7 @@ func byteDecodeBase58(s string, target io.ByteWriter) (stringRead int, err error
 	for _, b := range bytes {
 		err := target.WriteByte(b)
 		if err != nil {
-			return 0, errors.Wrap(err, "failed to write byte")
+			return 0, errors.W(err, "failed to write byte")
 		}
 	}
 	return len(s), nil
@@ -47,7 +48,7 @@ func byteDecodeBase64(s string, target io.ByteWriter) (stringRead int, err error
 	for _, b := range bytes {
 		err := target.WriteByte(b)
 		if err != nil {
-			return 0, errors.Wrap(err, "failed to write byte")
+			return 0, errors.W(err, "failed to write byte")
 		}
 	}
 	return len(s), nil

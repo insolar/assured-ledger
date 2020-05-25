@@ -14,15 +14,16 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -39,12 +40,12 @@ type Server struct {
 
 	// real components
 	virtual       *virtual.Dispatcher
-	runner        *runner.DefaultService
+	Runner        *runner.DefaultService
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
 	PublisherMock      *mock.PublisherMock
-	JetCoordinatorMock *jet.CoordinatorMock
+	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *mimic.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       pulsestor.Manager
@@ -56,11 +57,23 @@ type Server struct {
 	caller reference.Global
 }
 
-func NewServer(t *testing.T) *Server {
-	ctx := context.Background()
+func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, false)
+}
+
+func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, true)
+}
+
+func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Server, context.Context) {
+	inslogger.SetTestOutput(t, suppressLogError)
+
+	if ctx == nil {
+		ctx = inslogger.TestContext(t)
+	}
 
 	s := Server{
-		caller: gen.Reference(),
+		caller: gen.UniqueReference(),
 	}
 
 	// Pulse-related components
@@ -70,7 +83,7 @@ func NewServer(t *testing.T) *Server {
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.Reference()).
+			IDMock.Return(gen.UniqueReference()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
 			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
@@ -94,9 +107,9 @@ func NewServer(t *testing.T) *Server {
 	s.pulseStorage = Pulses
 	s.pulseGenerator = mimic.NewPulseGenerator(10)
 
-	s.JetCoordinatorMock = jet.NewCoordinatorMock(t).
-		MeMock.Return(gen.Reference()).
-		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
+	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
+		MeMock.Return(gen.UniqueReference()).
+		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
 
 	s.PublisherMock = &mock.PublisherMock{}
 
@@ -104,7 +117,7 @@ func NewServer(t *testing.T) *Server {
 	if err := runnerService.Init(); err != nil {
 		panic(err)
 	}
-	s.runner = runnerService
+	s.Runner = runnerService
 
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
@@ -129,7 +142,7 @@ func NewServer(t *testing.T) *Server {
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
 	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
 
-	return &s
+	return &s, ctx
 }
 
 func (s *Server) GetPulse() pulsestor.Pulse {
@@ -158,11 +171,11 @@ func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
 }
 
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
-	s.runner.Manager = manager
+	s.Runner.Manager = manager
 }
 
 func (s *Server) ReplaceCache(cache descriptor.Cache) {
-	s.runner.Cache = cache
+	s.Runner.Cache = cache
 }
 
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
@@ -175,4 +188,10 @@ func (s *Server) GlobalCaller() reference.Global {
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
 	return gen.UniqueIDWithPulse(s.GetPulse().PulseNumber)
+}
+
+func (s *Server) Stop() {
+	s.virtual.Conveyor.Stop()
+	_ = s.testWalletServer.Stop(context.Background())
+	_ = s.messageSender.Close()
 }

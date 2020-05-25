@@ -57,7 +57,7 @@ func (st SuiteTextualLog) newAdapter(level logcommon.Level) logm.Logger {
 	zc := logcommon.Config{}
 
 	var err error
-	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "", "")
 
 	t := st.T()
 	require.NoError(t, err)
@@ -83,11 +83,6 @@ type logRecord struct {
 func (st SuiteTextualLog) TestFields() {
 	t := st.T()
 
-	if st.parseFn == nil {
-		t.Skip("missing parser for", st.logFormat.String())
-		return
-	}
-
 	buf := bytes.Buffer{}
 	lg, _ := st.newAdapter(logcommon.InfoLevel).Copy().
 		WithOutput(&buf).
@@ -98,6 +93,11 @@ func (st SuiteTextualLog) TestFields() {
 	const logstring = "msgstrval"
 	lg.WithField("testfield", 200.200).Warnm(logRecord{logstring})
 	fileLine, _ := logoutput.GetCallerFileNameWithLine(0, -1)
+
+	if st.parseFn == nil {
+		t.Skip("missing parser for", st.logFormat.String())
+		return
+	}
 
 	c := st.parseFn(t, buf.Bytes())
 

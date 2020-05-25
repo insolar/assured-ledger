@@ -8,13 +8,8 @@ package node
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	protonode "github.com/insolar/assured-ledger/ledger-core/v2/network/node/internal/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type ListType int
@@ -112,73 +107,6 @@ func nodeStateToListType(nd node.NetworkNode) ListType {
 	}
 	// special case for no match
 	return ListLength
-}
-
-func (s *Snapshot) Encode() ([]byte, error) {
-	ss := protonode.Snapshot{}
-	ss.PulseNumber = uint32(s.pulse)
-	ss.State = uint32(s.state)
-	keyProc := platformpolicy.NewKeyProcessor()
-
-	ss.Nodes = make(map[uint32]*protonode.NodeList)
-	for t, list := range s.nodeList {
-		protoNodeList := make([]*protonode.Node, len(list))
-		for i, n := range list {
-
-			exportedKey, err := keyProc.ExportPublicKeyBinary(n.PublicKey())
-			if err != nil {
-				return nil, errors.Wrap(err, "Failed to export a public key")
-			}
-
-			protoNode := &protonode.Node{
-				NodeID:         n.ID().AsBytes(),
-				NodeShortID:    uint32(n.ShortID()),
-				NodeRole:       uint32(n.Role()),
-				NodePublicKey:  exportedKey,
-				NodeAddress:    n.Address(),
-				NodeVersion:    n.Version(),
-				NodeLeavingETA: uint32(n.LeavingETA()),
-				State:          uint32(n.GetState()),
-			}
-
-			protoNodeList[i] = protoNode
-		}
-
-		l := &protonode.NodeList{}
-		l.List = protoNodeList
-		ss.Nodes[uint32(t)] = l
-	}
-
-	return ss.Marshal()
-}
-
-func (s *Snapshot) Decode(buff []byte) error {
-	ss := protonode.Snapshot{}
-	err := ss.Unmarshal(buff)
-	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal node")
-	}
-
-	keyProc := platformpolicy.NewKeyProcessor()
-	s.pulse = pulse.Number(ss.PulseNumber)
-	s.state = node.NetworkState(ss.State)
-
-	for t, nodes := range ss.Nodes {
-		nodeList := make([]node.NetworkNode, len(nodes.List))
-		for i, n := range nodes.List {
-
-			pk, err := keyProc.ImportPublicKeyBinary(n.NodePublicKey)
-			if err != nil {
-				return errors.Wrap(err, "Failed to ImportPublicKeyBinary")
-			}
-
-			ref := reference.GlobalFromBytes(n.NodeID)
-			nodeList[i] = newMutableNode(ref, node.StaticRole(n.NodeRole), pk, node.State(n.State), n.NodeAddress, n.NodeVersion)
-		}
-		s.nodeList[t] = nodeList
-	}
-
-	return nil
 }
 
 func Select(nodes []node.NetworkNode, typ ListType) []node.NetworkNode {

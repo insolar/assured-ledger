@@ -14,11 +14,10 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
@@ -27,12 +26,14 @@ import (
 // 4. Since we changed pulse during execution, we expect that VStateReport will be sent
 // 5. Check that in VStateReport new object state is stored
 func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4934")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet

@@ -16,6 +16,7 @@ import (
 
 // Creates wallet, calls /wallet/get_balance and checks it's response body.
 func TestWalletGetBalance(t *testing.T) {
+	t.Log("C4855")
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
@@ -33,6 +34,7 @@ func TestWalletGetBalance(t *testing.T) {
 
 // Creates wallet and calls /wallet/get_balance concurrently.
 func TestWalletGetBalanceConcurrently(t *testing.T) {
+	t.Log("C4920")
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 

@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/insolar/component-manager"
-	"github.com/pkg/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
@@ -129,7 +130,7 @@ func (g *Base) Init(ctx context.Context) error {
 func (g *Base) Stop(ctx context.Context) error {
 	err := g.datagramTransport.Stop(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to stop datagram transport")
+		return errors.W(err, "failed to stop datagram transport")
 	}
 
 	g.pulseWatchdog.Stop()
@@ -141,7 +142,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	g.datagramHandler = adapters.NewDatagramHandler()
 	datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
 	if err != nil {
-		return errors.Wrap(err, "failed to create datagramTransport")
+		return errors.W(err, "failed to create datagramTransport")
 	}
 	g.datagramTransport = datagramTransport
 
@@ -162,12 +163,12 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	// transport start should be here because of TestComponents tests, couldn't createOriginCandidate with 0 port
 	err = g.datagramTransport.Start(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to start datagram transport")
+		return errors.W(err, "failed to start datagram transport")
 	}
 
 	err = g.createOriginCandidate()
 	if err != nil {
-		return errors.Wrap(err, "failed to createOriginCandidate")
+		return errors.W(err, "failed to createOriginCandidate")
 	}
 
 	return nil
@@ -262,7 +263,7 @@ func (g *Base) GetCert(ctx context.Context, ref reference.Global) (node2.Certifi
 
 // ValidateCert validates node certificate
 func (g *Base) ValidateCert(ctx context.Context, authCert node2.AuthorizationCertificate) (bool, error) {
-	return certificate.VerifyAuthorizationCertificate(g.CryptographyService, g.CertificateManager.GetCertificate().GetDiscoveryNodes(), authCert)
+	return mandates.VerifyAuthorizationCertificate(g.CryptographyService, g.CertificateManager.GetCertificate().GetDiscoveryNodes(), authCert)
 }
 
 // ============= Bootstrap =======
@@ -379,7 +380,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}), nil
 	}
 
-	cert, err := certificate.Deserialize(data.Certificate, platformpolicy.NewKeyProcessor())
+	cert, err := mandates.Deserialize(data.Certificate, platformpolicy.NewKeyProcessor())
 	if err != nil {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
@@ -400,14 +401,14 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	// workaround bootstrap to the origin node
 	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.ShortID())
 	if err != nil {
-		err = errors.Wrap(err, "Failed to get reconnectHost")
+		err = errors.W(err, "Failed to get reconnectHost")
 		inslogger.FromContext(ctx).Warn(err.Error())
 		return nil, err
 	}
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
 	if err != nil {
-		err = errors.Wrap(err, "Failed to export public key")
+		err = errors.W(err, "Failed to export public key")
 		inslogger.FromContext(ctx).Warn(err.Error())
 		return nil, err
 	}

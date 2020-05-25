@@ -11,19 +11,20 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
@@ -31,7 +32,7 @@ import (
 func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*message.Message, error) {
 	plBytes, err := pl.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal VCallRequest")
+		return nil, errors.W(err, "failed to marshal VCallRequest")
 	}
 
 	msg, err := payload.NewMessage(&payload.Meta{
@@ -44,17 +45,19 @@ func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*messa
 		OriginHash: payload.MessageHash{},
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create new message")
+		return nil, errors.W(err, "failed to create new message")
 	}
 
 	return msg, nil
 }
 
 func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype reference.Global, object reference.Local) error {
+	isolation := contract.ConstructorIsolation()
+
 	pl := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           0,
+		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
 		Callee:              reference.Global{},
@@ -72,7 +75,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 	}
 	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
 	if err != nil {
-		return errors.Wrap(err, "failed to construct VCallRequest message")
+		return errors.W(err, "failed to construct VCallRequest message")
 	}
 
 	requestIsDone := make(chan error, 0)
@@ -106,9 +109,10 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 }
 
 func TestVirtual_Method_WithoutExecutor(t *testing.T) {
+	t.Log("C4923")
 
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	prototype := testwallet.GetPrototype()
 	objectLocal := server.RandomLocalWithPulse()
@@ -121,7 +125,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTMethod,
-			CallFlags:           0,
+			CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
@@ -165,8 +169,10 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4930")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	var (
 		waitInputChannel  = make(chan struct{}, 2)
@@ -174,7 +180,11 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	)
 
 	executorMock := machine.NewExecutorMock(t)
-	executorMock.CallConstructorMock.Return(gen.Reference().AsBytes(), []byte("345"), nil)
+	executorMock.CallConstructorMock.Return(gen.UniqueReference().AsBytes(), []byte("345"), nil)
+	executorMock.ClassifyMethodMock.Return(contract.MethodIsolation{
+		Interference: contract.CallIntolerable,
+		State:        contract.CallValidated,
+	}, nil)
 	executorMock.CallMethodMock.Set(func(
 		ctx context.Context, callContext *call.LogicContext, code reference.Global,
 		data []byte, method string, args []byte,
@@ -195,13 +205,13 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
-	prototype := gen.Reference()
+	prototype := gen.UniqueReference()
 	cacheMock := mock.NewDescriptorsCacheMockWrapper(t)
-	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.ID(), gen.Reference())
+	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.UniqueID(), gen.UniqueReference())
 	cacheMock.IntenselyPanic = true
 	server.ReplaceCache(cacheMock)
 
-	objectLocal := gen.ID()
+	objectLocal := gen.UniqueID()
 	err = Method_PrepareObject(ctx, server, prototype, objectLocal)
 	require.NoError(t, err)
 
@@ -223,12 +233,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 
 		for i := 0; i < 2; i++ {
-			flags := payload.CallRequestFlags(0)
-			flags.SetTolerance(payload.CallIntolerable)
 			pl := payload.VCallRequest{
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
-				CallFlags:           flags,
+				CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
@@ -265,8 +273,10 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 }
 
 func TestVirtual_Method_WithExecutor(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4923")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	prototype := testwallet.GetPrototype()
 	objectLocal := server.RandomLocalWithPulse()
@@ -280,7 +290,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		pl := payload.VCallRequest{
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTMethod,
-			CallFlags:           0,
+			CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
@@ -293,7 +303,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			CallRequestFlags:    0,
 			KnownCalleeIncoming: reference.Global{},
 			EntryHeadHash:       nil,
-			CallOutgoing:        gen.ID(),
+			CallOutgoing:        gen.UniqueID(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
@@ -349,8 +359,10 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4870")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	server.IncrementPulse(ctx)
 

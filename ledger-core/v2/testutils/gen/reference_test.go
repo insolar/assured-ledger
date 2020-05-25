@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestGen_IDWithPulse(t *testing.T) {
@@ -21,7 +21,7 @@ func TestGen_IDWithPulse(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		pulse := gen.PulseNumber()
 
-		idWithPulse := gen.IDWithPulse(pulse)
+		idWithPulse := gen.UniqueIDWithPulse(pulse)
 
 		require.Equal(t,
 			idWithPulse.Pulse().Bytes(),

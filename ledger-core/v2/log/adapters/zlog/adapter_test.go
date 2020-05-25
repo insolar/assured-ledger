@@ -22,7 +22,7 @@ func newZerologAdapter(level logcommon.Level) (logm.Logger, error) {
 	zc := logcommon.Config{}
 
 	var err error
-	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "", "")
 	if err != nil {
 		return logm.Logger{}, err
 	}

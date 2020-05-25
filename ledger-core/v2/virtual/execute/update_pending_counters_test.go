@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
@@ -119,19 +120,15 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	// create VCallRequest
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	caller := reference.Global{}
-	prototype := gen.Reference()
-
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
+	prototype := gen.UniqueReference()
 
 	vCallRequest := payload.VCallRequest{
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
-		CallFlags:           callFlags,
+		CallFlags:           payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 		CallAsOf:            0,
 		Caller:              caller,
-		Callee:              gen.Reference(),
+		Callee:              gen.UniqueReference(),
 		CallSiteDeclaration: prototype,
 		CallSiteMethod:      "test",
 		CallSequence:        0,
@@ -175,8 +172,8 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 	cacheMock := descriptor.NewCacheMock(t)
 	runnerService.Cache = cacheMock
 	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototype(gen.Reference(), gen.ID(), gen.Reference()),
-		descriptor.NewCode(nil, machine.Builtin, gen.Reference()),
+		descriptor.NewPrototype(gen.UniqueReference(), gen.UniqueID(), gen.UniqueReference()),
+		descriptor.NewCode(nil, machine.Builtin, gen.UniqueReference()),
 		nil,
 	)
 	runnerAdapter := runner.CreateRunnerService(ctx, runnerService)
@@ -219,12 +216,12 @@ func Test_SlotMachine_Increment_Pending_Counters(t *testing.T) {
 		return nil
 	}
 
-	jetCoordinatorMock := jet.NewCoordinatorMock(t).
-		MeMock.Return(gen.Reference()).
-		QueryRoleMock.Return([]reference.Global{gen.Reference()}, nil)
+	affinityHelperMock := jet.NewAffinityHelperMock(t).
+		MeMock.Return(gen.UniqueReference()).
+		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
 	pulses := pulsestor.NewStorageMem()
 
-	messageSender := messagesender.NewDefaultService(publisherMock, jetCoordinatorMock, pulses)
+	messageSender := messagesender.NewDefaultService(publisherMock, affinityHelperMock, pulses)
 	var messageSenderAdapter messagesenderAdapter.MessageSender = messagesenderAdapter.CreateMessageSendService(ctx, messageSender)
 	slotMachine.AddInterfaceDependency(&messageSenderAdapter)
 

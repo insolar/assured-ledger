@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
@@ -74,7 +74,7 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 
 	tp.distributor, err = pulsenetwork.NewDistributor(distributorCfg)
 	if err != nil {
-		return errors.Wrap(err, "Failed to create pulse distributor")
+		return errors.W(err, "Failed to create pulse distributor")
 	}
 
 	tp.cm = component.NewManager(nil)
@@ -91,10 +91,10 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 	tp.cm.Inject(tp.distributor)
 
 	if err = tp.cm.Init(ctx); err != nil {
-		return errors.Wrap(err, "Failed to init test pulsar components")
+		return errors.W(err, "Failed to init test pulsar components")
 	}
 	if err = tp.cm.Start(ctx); err != nil {
-		return errors.Wrap(err, "Failed to start test pulsar components")
+		return errors.W(err, "Failed to start test pulsar components")
 	}
 
 	go tp.distribute(ctx)
@@ -204,7 +204,7 @@ func getPSC(pulse pulsestor.Pulse) (map[string]pulsestor.SenderConfirmation, err
 
 func (tp *testPulsar) Stop(ctx context.Context) error {
 	if err := tp.cm.Stop(ctx); err != nil {
-		return errors.Wrap(err, "Failed to stop test pulsar components")
+		return errors.W(err, "Failed to stop test pulsar components")
 	}
 	close(tp.cancellationToken)
 	return nil

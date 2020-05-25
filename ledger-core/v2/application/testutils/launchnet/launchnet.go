@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 )
@@ -145,12 +145,12 @@ func GetNodesCount() (int, error) {
 	}
 	buff, err := ioutil.ReadFile(path)
 	if err != nil {
-		return 0, errors.Wrap(err, "[ getNumberNodes ] Can't read bootstrap config")
+		return 0, errors.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}
 
 	err = yaml.Unmarshal(buff, &conf)
 	if err != nil {
-		return 0, errors.Wrap(err, "[ getNumberNodes ] Can't parse bootstrap config")
+		return 0, errors.W(err, "[ getNumberNodes ] Can't parse bootstrap config")
 	}
 
 	return len(conf.DiscoverNodes) + len(conf.Nodes), nil
@@ -170,12 +170,12 @@ func stopInsolard() error {
 
 	err := cmd.Process.Signal(syscall.SIGHUP)
 	if err != nil {
-		return errors.Wrap(err, "[ stopInsolard ] failed to kill process:")
+		return errors.W(err, "[ stopInsolard ] failed to kill process:")
 	}
 
 	pState, err := cmd.Process.Wait()
 	if err != nil {
-		return errors.Wrap(err, "[ stopInsolard ] failed to wait process:")
+		return errors.W(err, "[ stopInsolard ] failed to wait process:")
 	}
 
 	fmt.Println("[ stopInsolard ] State: ", pState.String())
@@ -238,23 +238,23 @@ func runPulsar() error {
 	output, err := pulsarCmd.CombinedOutput()
 	fmt.Println("Pulsar launch output: ", string(output))
 
-	return errors.Wrap(err, "failed to launch pulsar")
+	return errors.W(err, "failed to launch pulsar")
 }
 
 func waitForNet() error {
 	err := waitForNetworkState(node.WaitPulsar)
 	if err != nil {
-		return errors.Wrap(err, "Can't wait for NetworkState "+node.WaitPulsar.String())
+		return errors.W(err, "Can't wait for NetworkState "+node.WaitPulsar.String())
 	}
 
 	err = runPulsar()
 	if err != nil {
-		return errors.Wrap(err, "Can't run pulsar")
+		return errors.W(err, "Can't run pulsar")
 	}
 
 	err = waitForNetworkState(node.CompleteNetworkState)
 	if err != nil {
-		return errors.Wrap(err, "Can't wait for NetworkState "+node.CompleteNetworkState.String())
+		return errors.W(err, "Can't wait for NetworkState "+node.CompleteNetworkState.String())
 	}
 
 	return nil
@@ -263,13 +263,13 @@ func waitForNet() error {
 func startNet() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return errors.Wrap(err, "failed to get working directory")
+		return errors.W(err, "failed to get working directory")
 	}
 	rootPath := rootPath()
 
 	err = os.Chdir(rootPath)
 	if err != nil {
-		return errors.Wrap(err, "[ startNet  ] Can't change dir")
+		return errors.W(err, "[ startNet  ] Can't change dir")
 	}
 	defer func() {
 		_ = os.Chdir(cwd)
@@ -280,22 +280,22 @@ func startNet() error {
 
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
-		return errors.Wrap(err, "[ startNet] could't set stderr: ")
+		return errors.W(err, "[ startNet] could't set stderr: ")
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		return errors.Wrap(err, "[ startNet ] Can't run cmd")
+		return errors.W(err, "[ startNet ] Can't run cmd")
 	}
 
 	err = waitForLaunch()
 	if err != nil {
-		return errors.Wrap(err, "[ startNet ] couldn't waitForLaunch more")
+		return errors.W(err, "[ startNet ] couldn't waitForLaunch more")
 	}
 
 	err = waitForNet()
 	if err != nil {
-		return errors.Wrap(err, "[ startNet ] couldn't waitForNet more")
+		return errors.W(err, "[ startNet ] couldn't waitForNet more")
 	}
 
 	return nil
@@ -357,7 +357,7 @@ func setup() error {
 	if testRPCUrl == "" || testRPCUrlPublic == "" {
 		err := startNet()
 		if err != nil {
-			return errors.Wrap(err, "[ setup ] could't startNet")
+			return errors.W(err, "[ setup ] could't startNet")
 		}
 	} else {
 		TestRPCUrl = testRPCUrl
@@ -370,7 +370,7 @@ func setup() error {
 }
 
 func pulseWatcherPath() (string, string) {
-	insDir := insolar.RootModuleDir()
+	insDir := defaults.RootModuleDir()
 	pulseWatcher := filepath.Join(insDir, "bin", "pulsewatcher")
 
 	baseDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), insDir)
@@ -389,7 +389,7 @@ func teardown() {
 
 // RotateLogs rotates launchnet logs, verbose flag enables printing what happens.
 func RotateLogs(verbose bool) {
-	launchnetDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), insolar.RootModuleDir())
+	launchnetDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), defaults.RootModuleDir())
 	dirPattern := filepath.Join(launchnetDir, "logs/*/*/*.log")
 
 	rmCmd := "rm -vf " + dirPattern
@@ -451,11 +451,11 @@ func FetchAndSaveMetrics(iteration int) ([][]byte, error) {
 	}
 	wg.Wait()
 
-	insDir := insolar.RootModuleDir()
+	insDir := defaults.RootModuleDir()
 	subDir := fmt.Sprintf("%04d", iteration)
 	outDir := filepath.Join(insDir, defaults.LaunchnetDir(), "logs/metrics", subDir)
 	if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
-		return nil, errors.Wrap(err, "failed to create metrics subdirectory")
+		return nil, errors.W(err, "failed to create metrics subdirectory")
 	}
 
 	for i, b := range results {
@@ -465,7 +465,7 @@ func FetchAndSaveMetrics(iteration int) ([][]byte, error) {
 
 		err := ioutil.WriteFile(outFile, b, 0640)
 		if err != nil {
-			return nil, errors.Wrap(err, "write metrics failed")
+			return nil, errors.W(err, "write metrics failed")
 		}
 		fmt.Printf("Dump metrics from %v to %v\n", addrs[i], outFile)
 	}

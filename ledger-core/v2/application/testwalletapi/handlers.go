@@ -12,19 +12,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -83,7 +84,8 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
-		Callee:              gen.Reference(),
+		CallFlags:           payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+		Callee:              gen.UniqueReference(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 		CallSiteDeclaration: testwallet.GetPrototype(),
 		CallSiteMethod:      create,
@@ -91,7 +93,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = throw.W(err, "Failed to process create wallet contract call request", nil).Error()
+		result.Error = throw.W(err, "Failed to process create wallet contract call request").Error()
 		return
 	}
 
@@ -102,7 +104,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
 	switch {
 	case err != nil:
-		result.Error = errors.Wrap(err, "Failed to unmarshal response").Error()
+		result.Error = errors.W(err, "Failed to unmarshal response").Error()
 	case contractCallErr != nil:
 		result.Error = contractCallErr.Error()
 	default:
@@ -174,13 +176,9 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
-
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callFlags,
+		CallFlags:      payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
@@ -254,13 +252,9 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallIntolerable)
-	callFlags.SetState(payload.CallValidated)
-
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callFlags,
+		CallFlags:      payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -344,13 +338,9 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	callFlags := payload.CallRequestFlags(0)
-	callFlags.SetTolerance(payload.CallTolerable)
-	callFlags.SetState(payload.CallDirty)
-
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      callFlags,
+		CallFlags:      payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,

@@ -65,6 +65,7 @@ func buildTrace(t *testing.T, count uint, unbalancedStub cryptkit.Digest, skipEm
 	return
 }
 
+//nolint
 func printTrace(trace []item, count uint) {
 	for i, item := range trace {
 		switch index := uint(i >> 1); {
@@ -112,43 +113,42 @@ func testWalk(t *testing.T, leafCount uint, stubDigest cryptkit.Digest) {
 	}
 
 	trace, expected := buildTrace(t, leafCount, stubDigest, false)
-	fmt.Println("\nTrace: ", leafCount, " ============================================================== ")
-	printTrace(trace, leafCount)
+	// fmt.Println("\nTrace: ", leafCount, " ============================================================== ")
+	// printTrace(trace, leafCount)
 
 	pb := NewPathBuilder(leafCount, !stubDigest.IsEmpty())
 
-	fmt.Println()
-	for i, level := range pb.levels {
-		fmt.Printf("L%d	%3d %3d\n", i+1, level.nodeValueL, level.nodeValueR)
-	}
-
-	fmt.Println()
-	//lastBitCount := 1
+	// fmt.Println()
+	// for i, level := range pb.levels {
+	// 	fmt.Printf("L%d	%3d %3d\n", i+1, level.nodeValueL, level.nodeValueR)
+	// }
+	//
+	// fmt.Println()
 
 	for i := uint(0); i < pb.count; i++ {
-		fmt.Println("\nIndex: ", i, "/", leafCount, " ======== ")
+		// fmt.Println("\nIndex: ", i, "/", leafCount, " ======== ")
 
 		total := uint64(1) << i
-		fmt.Printf("     %064b\n", total)
+		// fmt.Printf("     %064b\n", total)
 		pb.WalkFor(i, func(index uint, isLeaf, _ bool) {
 
 			switch {
 			case isLeaf:
-				fmt.Printf("%3d  ", index)
+				// fmt.Printf("%3d  ", index)
 				index <<= 1
 			case pb.stubbed && index == 0:
-				fmt.Printf("stub %064b\n", stub)
+				// fmt.Printf("stub %064b\n", stub)
 				total ^= stub
 				return
 			case index < pb.count:
-				fmt.Printf("%3d* ", index)
+				// fmt.Printf("%3d* ", index)
 				index = index<<1 + 1
 			default:
-				fmt.Printf("%3d# ", index)
+				// fmt.Printf("%3d# ", index)
 				index = pb.count + index
 			}
 			if index >= uint(len(trace)) {
-				fmt.Println("-")
+				// fmt.Println("-")
 				return
 			}
 
@@ -161,15 +161,11 @@ func testWalk(t *testing.T, leafCount uint, stubDigest cryptkit.Digest) {
 			default:
 				v := u &^ stub
 				assert.Zero(t, v&total)
-
-				//bitCount := bits.OnesCount64(u&^stub)
-				//assert.GreaterOrEqual(t, bitCount, lastBitCount, i)
-				//lastBitCount = bitCount
 			}
 			total ^= u
-			fmt.Printf("%064b\n", u)
+			// fmt.Printf("%064b\n", u)
 		})
-		fmt.Printf("ALL  %064b\n", total)
+		// fmt.Printf("ALL  %064b\n", total)
 		assert.Equal(t, expected, total)
 	}
 }

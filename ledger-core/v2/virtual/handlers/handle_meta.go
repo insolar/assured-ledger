@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/meta"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
@@ -35,7 +35,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	payloadMeta := message.PayloadMeta
 	messageMeta := message.MessageMeta
 
-	traceID := messageMeta.Get(meta.TraceID)
+	traceID := messageMeta.Get(defaults.TraceID)
 	if traceID == "" { // TODO[bigbes]: dirty hack, if we have no traceID - replace it with surrogate one
 		traceID = uuid.New().String()
 	}
@@ -49,7 +49,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
-	logger.Error(logProcessing{messageType: payloadType.String()})
+	logger.Info(logProcessing{messageType: payloadType.String()})
 
 	switch payloadType {
 	case payload.TypeVCallRequest:
@@ -93,7 +93,6 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			ctx.SetTracerID(traceID)
 			return &SMVStateReport{Meta: payloadMeta, Payload: &pl}
 		}
-
 	case payload.TypeVStateUnavailable:
 		pl := payload.VStateUnavailable{}
 		if err := pl.Unmarshal(payloadBytes); err != nil {
@@ -103,6 +102,16 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
 			return &SMVStateUnavailable{Meta: payloadMeta, Payload: &pl}
+		}
+	case payload.TypeVDelegatedRequestFinished:
+		pl := payload.VDelegatedRequestFinished{}
+		if err := pl.Unmarshal(payloadBytes); err != nil {
+			panic(err)
+		}
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: &pl}
 		}
 	default:
 		panic(errNoHandler{MessageType: payloadType})

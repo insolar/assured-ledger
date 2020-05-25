@@ -2,7 +2,6 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 KUBECTL=${KUBECTL:-"kubectl"}
 USE_MANIFESTS=${USE_MANIFESTS:-"local"}
-set -x
 
 stop_network() {
   $KUBECTL delete -k "$DIR/$USE_MANIFESTS/"
@@ -11,4 +10,3 @@ stop_network() {
 echo "Stopping insolar"
 stop_network
 echo "Insolar stopped"
-set +x

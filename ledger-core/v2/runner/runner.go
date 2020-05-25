@@ -10,8 +10,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -30,7 +31,7 @@ type Service interface {
 }
 
 type UnmanagedService interface {
-	ExecutionClassify(execution execution.Context) interface{}
+	ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error)
 }
 
 type DefaultService struct {
@@ -144,8 +145,6 @@ func generateCallContext(
 		res.Callee = execution.Object
 	}
 
-	res.Unordered = execution.Unordered
-
 	return res
 }
 
@@ -166,7 +165,7 @@ func (r *DefaultService) executeMethod(
 
 	prototypeReference, err := objectDescriptor.Prototype()
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get prototype reference")
+		return nil, errors.W(err, "couldn't get prototype reference")
 	}
 	if prototypeReference.IsEmpty() {
 		panic(throw.IllegalState())
@@ -174,12 +173,12 @@ func (r *DefaultService) executeMethod(
 
 	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, prototypeReference)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get descriptors")
+		return nil, errors.W(err, "couldn't get descriptors")
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get executor")
+		return nil, errors.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
@@ -188,7 +187,7 @@ func (r *DefaultService) executeMethod(
 		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "execution error")
+		return nil, errors.W(err, "execution error")
 	}
 	if len(result) == 0 {
 		return nil, errors.New("return of method is empty")
@@ -221,19 +220,19 @@ func (r *DefaultService) executeConstructor(
 
 	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get descriptors")
+		return nil, errors.W(err, "couldn't get descriptors")
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get executor")
+		return nil, errors.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
 
 	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
-		return nil, errors.Wrap(err, "execution error")
+		return nil, errors.W(err, "execution error")
 	}
 	if len(executionResult) == 0 {
 		return nil, errors.New("return of constructor is empty")
@@ -300,8 +299,32 @@ func (r *DefaultService) runAbort(_ *executionEventSink, _ func()) {
 	panic(throw.NotImplemented())
 }
 
-func (r *DefaultService) ExecutionClassify(_ execution.Context) interface{} {
-	panic(throw.NotImplemented())
+func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (contract.MethodIsolation, error) {
+	var (
+		request = executionContext.Request
+
+		objectDescriptor = executionContext.ObjectDescriptor
+	)
+
+	prototypeReference, err := objectDescriptor.Prototype()
+	if err != nil {
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get prototype reference")
+	}
+	if prototypeReference.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+
+	_, codeDescriptor, err := r.Cache.ByPrototypeRef(executionContext.Context, prototypeReference)
+	if err != nil {
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get descriptors")
+	}
+
+	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
+	if err != nil {
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get executor")
+	}
+
+	return codeExecutor.ClassifyMethod(executionContext.Context, codeDescriptor.Ref(), request.CallSiteMethod)
 }
 
 func NewService() *DefaultService {
