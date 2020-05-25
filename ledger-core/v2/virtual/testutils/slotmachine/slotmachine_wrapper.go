@@ -32,7 +32,10 @@ const (
 type ControlledSlotMachine struct {
 	t           *testing.T
 	ctx         context.Context
-	signal      *synckit.VersionedSignal
+
+	externalSignal synckit.VersionedSignal
+	internalSignal synckit.VersionedSignal
+
 	slotMachine *smachine.SlotMachine
 	debugLogger *testUtilsCommon.DebugMachineLogger
 	watchdog    *watchdog
@@ -57,23 +60,33 @@ func NewControlledSlotMachine(ctx context.Context, t *testing.T, suppressLogErro
 		SlotMachineLogger: debugLogger,
 	}
 
-	signal := synckit.NewVersionedSignal()
-	slotMachine := smachine.NewSlotMachine(machineConfig,
-		signal.NextBroadcast,
-		signal.NextBroadcast,
-		nil,
-	)
-
-	slotMachineWrapper := &ControlledSlotMachine{
+	w := &ControlledSlotMachine{
 		t:           t,
 		ctx:         ctx,
-		signal:      &signal,
-		slotMachine: slotMachine,
 		debugLogger: debugLogger,
 	}
-	slotMachineWrapper.worker = NewWorker(slotMachineWrapper)
+	w.slotMachine = smachine.NewSlotMachine(machineConfig,
+		w.internalSignal.NextBroadcast,
+		combineCallbacks(w.externalSignal.NextBroadcast, w.internalSignal.NextBroadcast),
+		nil,
+	)
+	w.worker = NewWorker(w)
 
-	return slotMachineWrapper
+	return w
+}
+
+func combineCallbacks(mainFn, auxFn func()) func() {
+	switch {
+	case mainFn == nil:
+		panic("illegal state")
+	case auxFn == nil:
+		return mainFn
+	default:
+		return func() {
+			mainFn()
+			auxFn()
+		}
+	}
 }
 
 func (c *ControlledSlotMachine) GetOccupiedSlotCount() int {

@@ -6,55 +6,59 @@
 package slotmachine
 
 import (
+	"math"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type Worker struct {
-	slotMachine    *smachine.SlotMachine
-	signal         *synckit.VersionedSignal
+	slotMachine    *ControlledSlotMachine
 	stepController chan struct{}
 }
 
 func NewWorker(parent *ControlledSlotMachine) *Worker {
 	return &Worker{
-		slotMachine:    parent.slotMachine,
-		signal:         parent.signal,
+		slotMachine:    parent,
 		stepController: make(chan struct{}),
 	}
 }
 
 func (w *Worker) Start() {
 	var (
-		scanCountLimit uint32 = 1e6
-
-		neverSignal   = synckit.NewNeverSignal()
 		workerFactory = sworker.NewAttachableSimpleSlotWorker()
 	)
 
 	go func() {
+		machine := w.slotMachine.slotMachine
 		for {
 			var (
 				repeatNow    bool
 				nextPollTime time.Time
 			)
-			wakeupSignal := w.signal.Mark()
+			eventMark := w.slotMachine.internalSignal.Mark()
 			fn := func(worker smachine.AttachedSlotWorker) {
-				repeatNow, nextPollTime = w.slotMachine.ScanOnce(0, worker)
+				repeatNow, nextPollTime = machine.ScanOnce(0, worker)
 			}
-			workerFactory.AttachTo(w.slotMachine, neverSignal, scanCountLimit, fn)
-			switch {
-			case repeatNow:
-				continue
-			case !nextPollTime.IsZero():
-				time.Sleep(time.Until(nextPollTime))
-			case !w.slotMachine.IsActive():
+			workerFactory.AttachTo(machine, w.slotMachine.externalSignal.Mark(), math.MaxUint32, fn)
+
+			if !machine.IsActive() {
 				break
-			default:
-				wakeupSignal.Wait()
+			}
+
+			if repeatNow || eventMark.HasSignal() {
+				continue
+			}
+
+			select {
+			case <-eventMark.Channel():
+			case <-func() <-chan time.Time {
+				if !nextPollTime.IsZero() {
+					return time.After(time.Until(nextPollTime))
+				}
+				return nil
+			}():
 			}
 		}
 	}()
