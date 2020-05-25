@@ -233,7 +233,10 @@ func MapCustomLogLevel(data smachine.StepLoggerData) (log.Level, string) {
 }
 
 func MapBasicLogLevel(data smachine.StepLoggerData) (log.Level, string) {
-	return _mapLogLevel(smachine.StepLoggerUpdate, data)
+	if data.EventType >= smachine.StepLoggerTrace {
+		panic(throw.IllegalValue())
+	}
+	return _mapLogLevel(data.EventType, data)
 }
 
 func _mapLogLevel(eventType smachine.StepLoggerEvent, data smachine.StepLoggerData) (log.Level, string) {

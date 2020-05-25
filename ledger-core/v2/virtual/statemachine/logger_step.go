@@ -52,10 +52,10 @@ func (c ConveyorLogger) LogInternal(data smachine.StepLoggerData, updateType str
 
 	if err := data.Error; err != nil {
 		data.Error = nil
-		global.Eventm(level, throw.W(err, msgText, logMsg))
+		c.logger.Eventm(level, throw.W(err, msgText, logMsg))
 	} else {
 		logMsg.Message = msgText
-		global.Eventm(level, logMsg)
+		c.logger.Eventm(level, logMsg)
 	}
 }
 
@@ -67,14 +67,14 @@ func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, customEvent inter
 	msgText := data.FormatForLog("custom")
 
 	if err, ok := customEvent.(error); ok && err == nil {
-		global.Eventm(level, throw.W(err, msgText, logMsg), fields...)
+		c.logger.Eventm(level, throw.W(err, msgText, logMsg), fields...)
 	} else if err = data.Error; err != nil {
 		data.Error = nil
-		global.Eventm(level, throw.W(err, msgText, logMsg), fields...)
+		c.logger.Eventm(level, throw.W(err, msgText, logMsg), fields...)
 	} else {
 		dm := global.Logger().FieldsOf(logMsg)
 		logMsg.Message = msgText
-		global.Eventm(level, customEvent, logfmt.JoinFields(fields, dm)...)
+		c.logger.Eventm(level, customEvent, logfmt.JoinFields(fields, dm)...)
 	}
 }
 
@@ -89,10 +89,10 @@ func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smach
 
 	if err := data.Error; err != nil {
 		data.Error = nil
-		global.Eventm(level, throw.WithDetails(err, logMsg, extra), fields...)
+		c.logger.Eventm(level, throw.WithDetails(err, logMsg, extra), fields...)
 	} else {
 		em := global.Logger().FieldsOf(extra)
-		global.Eventm(level, logMsg, logfmt.JoinFields(fields, em)...)
+		c.logger.Eventm(level, logMsg, logfmt.JoinFields(fields, em)...)
 	}
 }
 

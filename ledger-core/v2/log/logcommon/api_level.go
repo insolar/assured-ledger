@@ -52,10 +52,12 @@ func (l Level) String() string {
 	case PanicLevel:
 		return "panic"
 	case Disabled:
-		//
+		return "ignore"
+	default:
+		return "ignore"
 	}
-	return "ignore"
 }
+
 
 func ParseLevel(levelStr string) (Level, error) {
 	switch strings.ToLower(levelStr) {

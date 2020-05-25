@@ -11,6 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon.EmbeddedLogger -s _mock.go -g
+
 /*
 	This interface provides methods with -1 call levels.
 	DO NOT USE directly, otherwise WithCaller() functionality will be broken.
