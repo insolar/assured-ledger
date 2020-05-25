@@ -28,12 +28,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mimic"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/pulsemanager"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
-
-var _ message.Publisher = &mock.PublisherMock{}
 
 type Server struct {
 	lock sync.Mutex
@@ -46,7 +44,7 @@ type Server struct {
 	// testing components and Mocks
 	PublisherMock      *mock.PublisherMock
 	JetCoordinatorMock *jet.AffinityHelperMock
-	pulseGenerator     *mimic.PulseGenerator
+	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       pulsestor.Manager
 
@@ -105,7 +103,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	s.pulseGenerator = mimic.NewPulseGenerator(10)
+	s.pulseGenerator = testutils.NewPulseGenerator(10)
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
 		MeMock.Return(gen.UniqueReference()).

@@ -21,14 +21,14 @@ func Test_API_Create(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		// verify and decode incoming message
 		assert.Len(t, messages, 1)
 
 		server.SendMessage(ctx, messages[0])
 
 		return nil
-	}
+	})
 
 	code, byteBuffer := server.CallAPICreateWallet(ctx)
 	if !assert.Equal(t, 200, code) {
