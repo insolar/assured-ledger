@@ -1,0 +1,40 @@
+members_keys_dir: "/var/data/bootstrap/configs/"
+discovery_keys_dir: "/var/data/bootstrap/discovery-keys/"
+certificates_out_dir: "/var/data/bootstrap/certs/"
+certificate_name_offset_from_zero: True
+keys_name_format: "node-%d.json"
+reuse_keys: false
+heavy_genesis_config_file: "/var/data/bootstrap/heavy_genesis.json"
+root_balance: "5000000000000000000"
+md_balance: "5000000000000000000"
+lockup_pulse_period: 20
+pk_shard_count: 10000
+ma_shard_count: 1000
+vesting_pulse_period: 10
+vesting_pulse_step: 10
+majority_rule: 5
+min_roles:
+  heavy_material: 0
+  virtual:  3
+  light_material: 0
+discovery_nodes:
+  -
+    host: "virtual-0.platform-network.insolar:13831"
+    role: "virtual"
+    cert_name: "virtual-0.json"
+  -
+    host: "virtual-1.platform-network.insolar:13831"
+    role: "virtual"
+    cert_name: "virtual-1.json"
+  -
+    host: "virtual-2.platform-network.insolar:13831"
+    role: "virtual"
+    cert_name: "virtual-2.json"
+  -
+    host: "virtual-3.platform-network.insolar:13831"
+    role: "virtual"
+    cert_name: "virtual-3.json"
+  -
+    host: "virtual-4.platform-network.insolar:13831"
+    role: "virtual"
+    cert_name: "virtual-4.json"

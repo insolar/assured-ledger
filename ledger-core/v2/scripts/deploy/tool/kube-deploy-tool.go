@@ -22,18 +22,46 @@ const Kubectl = "kubectl"
 func main() {
 	cfg := readConfig()
 
-	err := runNetwork(cfg)
+	err := startNetwork(cfg)
 	if err != nil {
 		panic(err)
 	}
+	callCreated()
 	err = waitForReady()
 	if err != nil {
 		panic(err)
 	}
+	callReady()
 	err = stopNetwork(cfg)
 	if err != nil {
 		panic(err)
 	}
+	callStopped()
+}
+
+func callStopped() {
+
+}
+
+func callReady() {
+
+}
+
+func callCreated() {
+
+}
+
+func startNetwork(cfg *KubeDeployTool) error {
+	// fmt.Println(command)
+	out, _ := exec.Command("pwd").CombinedOutput()
+	fmt.Printf("path: %s\n", out)
+
+	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.ManifestsPath).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("run failed: %s %w", string(out), err)
+	}
+	fmt.Printf("Output: %s\n", out)
+	return nil
 }
 
 func waitForReady() error {
@@ -85,19 +113,6 @@ func waitForReady() error {
 	}
 
 	return errors.New("insolar has not been started")
-}
-
-func runNetwork(cfg *KubeDeployTool) error {
-	// fmt.Println(command)
-	out, _ := exec.Command("pwd").CombinedOutput()
-	fmt.Printf("path: %s\n", out)
-
-	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.ManifestsPath).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("run failed: %s %w", string(out), err)
-	}
-	fmt.Printf("Output: %s\n", out)
-	return nil
 }
 
 func stopNetwork(cfg *KubeDeployTool) error {
