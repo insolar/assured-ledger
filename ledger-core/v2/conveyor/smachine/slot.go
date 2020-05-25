@@ -504,7 +504,7 @@ func (s *Slot) newStepLoggerData(eventType StepLoggerEvent, link StepLink) StepL
 		CurrentStep: stepToDecl(s.step, s.stepDecl),
 		Declaration: s.declaration,
 		EventType:   eventType,
-		Flags: 		 flags,
+		Flags:       flags,
 	}
 }
 
@@ -571,10 +571,10 @@ func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, inact
 	}
 
 	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
-		if flags & wasAsyncExec != 0 {
+		if flags&wasAsyncExec != 0 {
 			d.Flags |= StepLoggerDetached
 		}
-		if flags & wasInlineExec != 0 {
+		if flags&wasInlineExec != 0 {
 			d.Flags |= StepLoggerInline
 		}
 	})

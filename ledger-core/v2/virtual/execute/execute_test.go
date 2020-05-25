@@ -317,22 +317,99 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialMutablePendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+	require.False(t, smExecute.migrationHappened)
 
 	stepToWait := smExecute.stepTakeLock
 	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
 		t.FailNow()
 	}
 
-	slotMachine.Migrate()
+	{
+		slotMachine.Migrate()
+		_ = slotMachine.Step()
+	}
 
-	if !slotMachine.StepUntil(smWrapper.WaitAnyMigrate()) {
+	require.False(t, smExecute.migrationHappened)
+
+	mc.Finish()
+}
+
+func TestSMExecute_MigrateAfterLock(t *testing.T) {
+	var (
+		mc  = minimock.NewController(t)
+		ctx = inslogger.TestContext(t)
+
+		prototype   = gen.UniqueReference()
+		caller      = gen.UniqueReference()
+		callee      = gen.UniqueReference()
+		outgoing    = gen.UniqueID()
+		objectRef   = reference.NewSelf(outgoing)
+		sharedState = &object.SharedState{
+			Info: object.Info{
+				KnownRequests:  make(map[reference.Global]struct{}),
+				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+			},
+		}
+	)
+
+	slotMachine := slotmachine.NewControlledSlotMachine(ctx, t, true)
+	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.PrepareRunner(mc)
+
+	smExecute := SMExecute{
+		Payload: &payload.VCallRequest{
+			Polymorph:    uint32(payload.TypeVCallRequest),
+			CallType:     payload.CTConstructor,
+			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+			CallOutgoing: outgoing,
+
+			Caller:              caller,
+			Callee:              callee,
+			CallSiteDeclaration: prototype,
+			CallSiteMethod:      "New",
+		},
+		Meta: &payload.Meta{
+			Sender: caller,
+		},
+	}
+
+	{
+		catalogWrapper := object.NewCatalogMockWrapper(mc)
+		var catalog object.Catalog = catalogWrapper.Mock()
+		slotMachine.AddInterfaceDependency(&catalog)
+
+		sharedStateData := smachine.NewUnboundSharedData(sharedState)
+		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+	}
+
+	{
+		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		slotMachine.AddDependency(&pulseSlot)
+	}
+
+	slotMachine.Start()
+	defer slotMachine.Stop()
+
+	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
+
+	require.False(t, smExecute.migrationHappened)
+
+	stepToWait := smExecute.stepStartRequestProcessing
+	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
+		t.Error("slotmachine stopped")
 		t.FailNow()
 	}
 
-	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+	{
+		slotMachine.Migrate()
+		_ = slotMachine.Step()
+	}
+
+	require.True(t, smExecute.migrationHappened)
 
 	mc.Finish()
 }
