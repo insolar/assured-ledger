@@ -77,7 +77,7 @@ func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContex
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
+		panic(throw.Impossible())
 	case smachine.Passed:
 	default:
 		panic(throw.NotImplemented())

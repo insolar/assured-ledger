@@ -195,8 +195,12 @@ func (sm *SMObject) stepGetState(ctx smachine.ExecutionContext) smachine.StateUp
 
 func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	flags := payload.StateRequestContentFlags(0)
-	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
-		payload.RequestMutableQueue, payload.RequestImmutableQueue)
+	flags.Set(
+		payload.RequestLatestDirtyState,
+		payload.RequestLatestValidatedState,
+		payload.RequestMutableQueue,
+		payload.RequestImmutableQueue,
+	)
 	msg := payload.VStateRequest{
 		Callee:           sm.Reference,
 		RequestedContent: flags,
