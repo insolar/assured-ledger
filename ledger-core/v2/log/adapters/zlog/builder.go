@@ -121,21 +121,24 @@ func (zf zerologFactory) createNewLogger(output zerolog.LevelWriter, params logc
 		lc = lc.CallerWithSkipFrameCount(skipFrames)
 	}
 
+	replaceContext := false
 	if template != nil && params.Reqs&logcommon.RequiresParentCtxFields != 0 {
 		la.logger = lc.Logger()     // save hooks
 		lc = template.logger.With() // get a copy of the inherited context
+		replaceContext = true
 	}
+
 	for k, v := range params.Fields {
 		lc = lc.Interface(k, v)
 	}
 
-	if template == nil {
-		la.logger = lc.Logger()
-	} else {
+	if replaceContext {
 		// use fields, but not hooks
 		la.logger.UpdateContext(func(zerolog.Context) zerolog.Context {
 			return lc
 		})
+	} else {
+		la.logger = lc.Logger()
 	}
 
 	return &la, nil
