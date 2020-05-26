@@ -27,7 +27,6 @@ func TestInitViaCTMethod(t *testing.T) {
 
 	// Call method on non-existent object, expect calling of VStateRequest
 	pl := payload.VCallRequest{
-		Polymorph: uint32(payload.TypeVCallRequest),
 		CallType:  payload.CTMethod,
 		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
 		CallFlags: payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),

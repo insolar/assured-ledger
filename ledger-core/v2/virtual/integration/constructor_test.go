@@ -54,7 +54,6 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	isolation := contract.ConstructorIsolation()
 
 	pl := payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
@@ -77,7 +76,6 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	require.NoError(t, err)
 
 	msg := payload.MustNewMessage(&payload.Meta{
-		Polymorph:  uint32(payload.TypeMeta),
 		Payload:    plBytes,
 		Sender:     reference.Global{},
 		Receiver:   reference.Global{},
@@ -135,7 +133,6 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		pl := payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
 			CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
 			CallAsOf:            0,
@@ -158,7 +155,6 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		require.NoError(t, err)
 
 		msg := payload.MustNewMessage(&payload.Meta{
-			Polymorph:  uint32(payload.TypeMeta),
 			Payload:    plBytes,
 			Sender:     reference.Global{},
 			Receiver:   reference.Global{},

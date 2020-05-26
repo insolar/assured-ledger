@@ -52,7 +52,6 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
 			CallFlags:           callFlags,
 			CallSiteDeclaration: testwallet.GetPrototype(),
@@ -137,7 +136,6 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 	callee := gen.UniqueReference()
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
 			CallFlags:           callFlags,
 			CallSiteDeclaration: testwallet.GetPrototype(),
@@ -226,7 +224,6 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,

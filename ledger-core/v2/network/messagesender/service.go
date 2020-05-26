@@ -145,7 +145,6 @@ func (dm *DefaultService) wrapMeta(
 	msg = msg.Copy()
 
 	payloadMeta := payload.Meta{
-		Polymorph:  uint32(payload.TypeMeta),
 		Payload:    msg.Payload,
 		Receiver:   receiver,
 		Sender:     dm.affinity.Me(),
