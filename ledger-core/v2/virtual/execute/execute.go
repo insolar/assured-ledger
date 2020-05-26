@@ -116,14 +116,14 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 	}
 }
 
-func (s *SMExecute) defaultMigration(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx.GetContext())
 
-	ctx.SetDefaultMigration(s.defaultMigration)
+	ctx.SetDefaultMigration(s.migrationDefault)
 
 	return ctx.Jump(s.stepCheckRequest)
 }

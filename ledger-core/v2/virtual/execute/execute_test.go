@@ -30,6 +30,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 )
 
+func assertJumpStep(t *testing.T, f smachine.StateFunc) func(smachine.StateFunc) smachine.StateUpdate {
+	return func(s1 smachine.StateFunc) smachine.StateUpdate {
+		assert.Equal(t, reflectkit.CodeOf(f), reflectkit.CodeOf(s1))
+		return smachine.StateUpdate{}
+	}
+}
+
+func assertMigration(t *testing.T, f smachine.MigrateFunc) func(smachine.MigrateFunc) {
+	return func(s1 smachine.MigrateFunc) {
+		assert.Equal(t, reflectkit.CodeOf(f), reflectkit.CodeOf(s1))
+	}
+}
+
 func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 	sm.execution.Context = ctx
 	sm.execution.Sequence = 0
@@ -90,14 +103,8 @@ func TestSMExecute_Init(t *testing.T) {
 	{
 		initCtx := smachine.NewInitializationContextMock(mc).
 			GetContextMock.Return(ctx).
-			SetDefaultMigrationMock.Set(func(fn smachine.MigrateFunc) {
-			require.Equal(t, reflectkit.CodeOf(smExecute.defaultMigration), reflectkit.CodeOf(fn))
-			return
-		}).
-			JumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
-			require.Equal(t, reflectkit.CodeOf(smExecute.stepCheckRequest), reflectkit.CodeOf(s1))
-			return smachine.StateUpdate{}
-		})
+			SetDefaultMigrationMock.Set(assertMigration(t, smExecute.migrationDefault)).
+			JumpMock.Set(assertJumpStep(t, smExecute.stepCheckRequest))
 
 		smExecute.Init(initCtx)
 	}
@@ -150,10 +157,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(CallSharedDataAccessor).
 			SetDefaultMigrationMock.Return().
-			JumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
-			require.Equal(t, reflectkit.CodeOf(smExecute.stepExecuteStart), reflectkit.CodeOf(s1))
-			return smachine.StateUpdate{}
-		})
+			JumpMock.Set(assertJumpStep(t, smExecute.stepExecuteStart))
 
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
@@ -199,7 +203,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.PrepareRunner(mc)
+	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -272,7 +276,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.PrepareRunner(mc)
+	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -347,7 +351,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.PrepareRunner(mc)
+	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -396,7 +400,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	slotMachine.RunTil(smWrapper.AfterAnyMigrate())
 
-	require.True(t, smExecute.migrationHappened)
+	assert.True(t, smExecute.migrationHappened)
 
 	mc.Finish()
 }

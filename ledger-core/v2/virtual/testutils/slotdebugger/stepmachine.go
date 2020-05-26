@@ -5,6 +5,7 @@
 
 package slotdebugger
 
+import "C"
 import (
 	"context"
 	"testing"
@@ -30,16 +31,16 @@ const (
 )
 
 type StepController struct {
-	t           *testing.T
-	ctx         context.Context
+	t   *testing.T
+	ctx context.Context
 
 	externalSignal synckit.VersionedSignal
 	internalSignal synckit.VersionedSignal
 
-	slotMachine *smachine.SlotMachine
-	debugLogger *testUtilsCommon.DebugMachineLogger
+	slotMachine   *smachine.SlotMachine
+	debugLogger   *testUtilsCommon.DebugMachineLogger
 	stepIsWaiting bool
-	watchdog    *watchdog
+	watchdog      *watchdog
 
 	worker *worker
 
@@ -127,8 +128,11 @@ func (c *StepController) RunTil(predicate func(event testUtilsCommon.UpdateEvent
 
 func (c *StepController) Stop() {
 	c.watchdog.Stop()
-	c.debugLogger.Stop()
+
 	c.slotMachine.Stop()
+	c.externalSignal.NextBroadcast()
+	c.debugLogger.Stop()
+
 	c.debugLogger.FlushEvents(c.worker.finishedSignal())
 }
 
@@ -148,7 +152,7 @@ func (c *StepController) AddInterfaceDependency(dep interface{}) {
 	c.slotMachine.AddInterfaceDependency(dep)
 }
 
-func (c *StepController) PrepareRunner(mc *minimock.Controller) {
+func (c *StepController) PrepareRunner(ctx context.Context, mc *minimock.Controller) {
 	c.RunnerDescriptorCache = testutils.NewDescriptorsCacheMockWrapper(mc)
 	c.MachineManager = machine.NewManager()
 
@@ -156,7 +160,7 @@ func (c *StepController) PrepareRunner(mc *minimock.Controller) {
 	runnerService.Manager = c.MachineManager
 	runnerService.Cache = c.RunnerDescriptorCache.Mock()
 
-	runnerAdapter := runner.CreateRunnerService(context.Background(), runnerService)
+	runnerAdapter := runner.CreateRunnerService(ctx, runnerService)
 	c.slotMachine.AddDependency(runnerAdapter)
 }
 
