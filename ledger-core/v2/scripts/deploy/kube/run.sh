@@ -27,14 +27,6 @@ check_docker_images() {
   fi
 }
 
-# todo remove ingress
-check_ingress_installation() {
-  if [ "$($KUBECTL get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
-    echo >&2 "make sure you made 'make kube_apply_ingress'"
-    exit 1
-  fi
-}
-
 run_network() {
   $KUBECTL apply -k "$DIR/$USE_MANIFESTS/" 2>&1 || {
     echo >&2 "kubectl apply failed. Aborting."
