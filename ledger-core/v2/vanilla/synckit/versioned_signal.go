@@ -121,13 +121,15 @@ func (p *SignalVersion) Channel() <-chan struct{} {
 		}
 
 		if atomic.CompareAndSwapPointer(p._signalChannel(), nil, (unsafe.Pointer)(wcp)) {
-			go func() {
-				p.wg.Wait()
-				close(*wcp)
-			}()
+			go p.waitClose(wcp)
 			return *wcp
 		}
 	}
+}
+
+func (p *SignalVersion) waitClose(wcp *signalChannel) {
+	p.wg.Wait()
+	close(*wcp)
 }
 
 func (p *SignalVersion) HasSignal() bool {
