@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,6 +34,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/version"
 )
+
+const PulsarOneShotEnv = "PULSAR.ONESHOT"
 
 type inputParams struct {
 	configPath string
@@ -61,7 +64,10 @@ func main() {
 	var err error
 
 	vp := viper.New()
-	pCfg := configuration.NewPulsarConfiguration()
+	vp.AutomaticEnv()
+	vp.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	_ = vp.BindEnv("Pulsar.PulseTime")
+	_ = vp.BindEnv(PulsarOneShotEnv)
 	if len(params.configPath) != 0 {
 		vp.SetConfigFile(params.configPath)
 	}
@@ -69,10 +75,13 @@ func main() {
 	if err != nil {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
+	pCfg := configuration.NewPulsarConfiguration()
 	err = vp.Unmarshal(&pCfg)
 	if err != nil {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
+	oneShot := vp.GetBool(PulsarOneShotEnv)
+	params.oneShot = params.oneShot || oneShot
 
 	ctx := context.Background()
 	ctx, inslog := inslogger.InitNodeLogger(ctx, pCfg.Log, "", "pulsar")
