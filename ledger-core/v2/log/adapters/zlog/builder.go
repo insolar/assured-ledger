@@ -132,7 +132,7 @@ func (zf zerologFactory) createNewLogger(output zerolog.LevelWriter, params logc
 		lc = lc.Interface(k, v)
 	}
 
-	if replaceContext  {
+	if replaceContext {
 		// use fields, but not hooks
 		la.logger.UpdateContext(func(zerolog.Context) zerolog.Context {
 			return lc
