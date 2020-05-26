@@ -153,6 +153,7 @@ func (v *DebugMachineLogger) SetPredicate(fn LoggerSlotPredicateFn) {
 }
 
 func (v *DebugMachineLogger) Stop() {
+	close(v.continueExecution)
 	v.events <- UpdateEvent{}
 }
 
