@@ -28,8 +28,6 @@ import (
 const (
 	runTimeout = 30 * time.Second
 )
-var ignoreWatchdog bool
-
 
 type StepController struct {
 	t           *testing.T
@@ -99,7 +97,7 @@ func (c *StepController) Start() {
 	if c.watchdog != nil {
 		panic(throw.FailHere("double start"))
 	}
-	if !ignoreWatchdog {
+	if !testUtilsCommon.IsLocalDebug() {
 		c.watchdog = newWatchdog(runTimeout)
 	}
 

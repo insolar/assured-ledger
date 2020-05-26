@@ -5,8 +5,10 @@
 
 // +build localdebug
 
-package slotdebugger
+package testutils
 
-func init() {
-	ignoreWatchdog = true
+const LocalDebug = true
+
+func IsLocalDebug() bool {
+	return LocalDebug
 }
