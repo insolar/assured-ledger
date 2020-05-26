@@ -12,17 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 )
 
 func Test_Execute_stepIsolationNegotiation(t *testing.T) {
@@ -142,12 +145,21 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				catalog         = object.NewCatalogMock(mc)
 				smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
 				smGlobalRef     = reference.NewSelf(smObjectID)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 			)
+
+			request := &payload.VCallRequest{
+				Polymorph:           uint32(payload.TypeVCallRequest),
+				CallType:            payload.CTConstructor,
+				CallFlags:           payload.BuildCallRequestFlags(tc.callIsolation.Interference, tc.callIsolation.State),
+				CallSiteDeclaration: testwallet.GetPrototype(),
+				CallSiteMethod:      "New",
+				CallOutgoing:        smObjectID,
+				Arguments:           insolar.MustSerialize([]interface{}{}),
+			}
 
 			smExecute := SMExecute{
 				execution: execution.Context{
@@ -157,17 +169,13 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 						State:        tc.callIsolation.State,
 					},
 				},
-				objectCatalog:     catalog,
+				Payload:           request,
 				pulseSlot:         &pulseSlot,
 				objectSharedState: object.SharedStateAccessor{SharedDataLink: sharedStateData},
 				methodIsolation:   tc.methodIsolation,
 			}
 
-			stepChecker := stepchecker.New()
-			{
-				exec := SMExecute{}
-				stepChecker.AddStep(exec.stepTakeLock)
-			}
+			smExecute = expectedInitState(ctx, smExecute)
 
 			execCtx := smachine.NewExecutionContextMock(mc)
 
@@ -178,7 +186,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 					return smachine.StateUpdate{}
 				})
 			} else {
-				execCtx.JumpMock.Set(stepChecker.CheckJumpW(t))
+				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 			}
 
 			smExecute.stepIsolationNegotiation(execCtx)
