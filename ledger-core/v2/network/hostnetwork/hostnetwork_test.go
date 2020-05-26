@@ -120,8 +120,10 @@ type hostSuite struct {
 }
 
 func newHostSuite(t *testing.T) *hostSuite {
-	ctx1 := inslogger.ContextWithTrace(context.Background(), "AAA")
-	ctx2 := inslogger.ContextWithTrace(context.Background(), "BBB")
+	ctx := inslogger.TestContext(t)
+
+	ctx1 := inslogger.ContextWithTrace(ctx, "AAA")
+	ctx2 := inslogger.ContextWithTrace(ctx, "BBB")
 	resolver := newMockResolver()
 
 	cm1 := component.NewManager(nil)
@@ -201,7 +203,7 @@ func TestNewHostNetwork(t *testing.T) {
 
 func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	m := newMockResolver()
-	ctx := context.Background()
+	ctx := inslogger.TestContext(t)
 
 	n1, err := NewHostNetwork(id1)
 	require.NoError(t, err)
@@ -394,7 +396,7 @@ func TestStartStopSend(t *testing.T) {
 	require.NoError(t, err)
 	<-time.After(time.Millisecond * 10)
 
-	s.ctx1 = context.Background()
+	s.ctx1 = inslogger.TestContext(t)
 	err = s.cm1.Start(s.ctx1)
 	require.NoError(t, err)
 
@@ -405,10 +407,12 @@ func TestStartStopSend(t *testing.T) {
 func TestHostNetwork_SendRequestToHost_NotStarted(t *testing.T) {
 	defer testutils.LeakTester(t)
 
+	ctx := inslogger.TestContext(t)
+
 	hn, err := NewHostNetwork(id1)
 	require.NoError(t, err)
 
-	f, err := hn.SendRequestToHost(context.Background(), types.Unknown, nil, nil)
+	f, err := hn.SendRequestToHost(ctx, types.Unknown, nil, nil)
 	require.EqualError(t, err, "host network is not started")
 	assert.Nil(t, f)
 }
