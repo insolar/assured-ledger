@@ -7,7 +7,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -16,7 +15,9 @@ import (
 	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/v2/cmd/pulsewatcher/config"
 )
 
-var hostTemplate = "virtual-%d.platform-network.insolar:13831"
+var transportPort = 13831
+var adminApiPort = 19001
+var hostTemplate = "virtual-%d.platform-network.insolar:%d"
 var certNameTemplate = "virtual-%d.json"
 
 type ConfigGenerator struct {
@@ -31,10 +32,11 @@ func NewConfigGenerator(nodes uint) *ConfigGenerator {
 
 func (c *ConfigGenerator) generateBootstrapConfig() string {
 	cfg := bootstrap.Config{
-		MembersKeysDir:   "/var/data/bootstrap/configs/",
-		DiscoveryKeysDir: "/var/data/bootstrap/discovery-keys/",
-		KeysNameFormat:   "node-%d.json",
-		MajorityRule:     5,
+		MembersKeysDir:         "/var/data/bootstrap/configs/",
+		DiscoveryKeysDir:       "/var/data/bootstrap/discovery-keys/",
+		HeavyGenesisConfigFile: "/var/data/bootstrap/heavy_genesis.json",
+		KeysNameFormat:         "node-%d.json",
+		MajorityRule:           5,
 		MinRoles: struct {
 			Virtual       uint `mapstructure:"virtual" yaml:"virtual"`
 			HeavyMaterial uint `mapstructure:"heavy_material" yaml:"heavy_material"`
@@ -47,12 +49,13 @@ func (c *ConfigGenerator) generateBootstrapConfig() string {
 		DiscoveryNodes: nil,
 	}
 
-	cfg.MinRoles.Virtual = c.numNodes
+	cfg.MinRoles.Virtual = 3
 	cfg.MajorityRule = int(c.numNodes)
 
 	for i := 0; i < int(c.numNodes); i++ {
 		cfg.DiscoveryNodes = append(cfg.DiscoveryNodes, bootstrap.Node{
-			Host:     fmt.Sprintf(hostTemplate, i),
+			Host:     fmt.Sprintf(hostTemplate, i, transportPort),
+			Role:     "virtual",
 			CertName: fmt.Sprintf(certNameTemplate, i),
 		})
 	}
@@ -73,7 +76,7 @@ func (c *ConfigGenerator) generateKustomizePatch() string {
 					App: "virtual",
 				},
 			},
-			Replicas: strconv.Itoa(int(c.numNodes)),
+			Replicas: int(c.numNodes),
 		},
 	}
 
@@ -87,7 +90,7 @@ func (c *ConfigGenerator) generatePulsewatcherConfig() string {
 	}
 
 	for i := 0; i < int(c.numNodes); i++ {
-		cfg.Nodes = append(cfg.Nodes, fmt.Sprintf(hostTemplate, i))
+		cfg.Nodes = append(cfg.Nodes, fmt.Sprintf(hostTemplate, i, adminApiPort))
 	}
 
 	return c.toYaml(cfg)
