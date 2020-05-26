@@ -16,7 +16,6 @@ check_dependencies() {
     exit 1
   }
   check_docker_images
-  check_ingress_installation
 }
 
 # Delete this after image templating will be done, and images will be in insolar hub
