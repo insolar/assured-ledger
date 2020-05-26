@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package slotmachine
+package slotdebugger
 
 import (
 	"math"
@@ -13,19 +13,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
 )
 
-type Worker struct {
-	slotMachine    *ControlledSlotMachine
+type worker struct {
+	slotMachine    *StepController
 	stepController chan struct{}
 }
 
-func NewWorker(parent *ControlledSlotMachine) *Worker {
-	return &Worker{
+func newWorker(parent *StepController) *worker {
+	return &worker{
 		slotMachine:    parent,
 		stepController: make(chan struct{}),
 	}
 }
 
-func (w *Worker) Start() {
+func (w *worker) Start() {
 	var (
 		workerFactory = sworker.NewAttachableSimpleSlotWorker()
 	)

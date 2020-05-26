@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package slotmachine
+package slotdebugger
 
 import (
 	"context"
@@ -28,8 +28,10 @@ import (
 const (
 	runTimeout = 30 * time.Second
 )
+var ignoreWatchdog bool
 
-type ControlledSlotMachine struct {
+
+type StepController struct {
 	t           *testing.T
 	ctx         context.Context
 
@@ -40,14 +42,14 @@ type ControlledSlotMachine struct {
 	debugLogger *testUtilsCommon.DebugMachineLogger
 	watchdog    *watchdog
 
-	worker *Worker
+	worker *worker
 
 	RunnerDescriptorCache *testutils.DescriptorCacheMockWrapper
 	MachineManager        machine.Manager
 	MessageSender         *messagesender.ServiceMockWrapper
 }
 
-func NewControlledSlotMachine(ctx context.Context, t *testing.T, suppressLogError bool) *ControlledSlotMachine {
+func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
 	inslogger.SetTestOutput(t, suppressLogError)
 
 	debugLogger := testUtilsCommon.NewDebugMachineLogger(convlog.MachineLogger{})
@@ -60,7 +62,7 @@ func NewControlledSlotMachine(ctx context.Context, t *testing.T, suppressLogErro
 		SlotMachineLogger: debugLogger,
 	}
 
-	w := &ControlledSlotMachine{
+	w := &StepController{
 		t:           t,
 		ctx:         ctx,
 		debugLogger: debugLogger,
@@ -70,7 +72,7 @@ func NewControlledSlotMachine(ctx context.Context, t *testing.T, suppressLogErro
 		combineCallbacks(w.externalSignal.NextBroadcast, w.internalSignal.NextBroadcast),
 		nil,
 	)
-	w.worker = NewWorker(w)
+	w.worker = newWorker(w)
 
 	return w
 }
@@ -89,45 +91,45 @@ func combineCallbacks(mainFn, auxFn func()) func() {
 	}
 }
 
-func (c *ControlledSlotMachine) GetOccupiedSlotCount() int {
+func (c *StepController) GetOccupiedSlotCount() int {
 	return c.slotMachine.OccupiedSlotCount()
 }
 
-func (c *ControlledSlotMachine) Start() {
+func (c *StepController) Start() {
 	if c.watchdog != nil {
 		panic(throw.FailHere("double start"))
 	}
-	c.watchdog = newWatchdog(runTimeout)
+	if !ignoreWatchdog {
+		c.watchdog = newWatchdog(runTimeout)
+	}
 
 	c.worker.Start()
 }
 
-func (c *ControlledSlotMachine) Step() testUtilsCommon.UpdateEvent {
+func (c *StepController) Step() testUtilsCommon.UpdateEvent {
 	rv := c.debugLogger.GetEvent()
 	c.debugLogger.Continue()
 	return rv
 }
 
-func (c *ControlledSlotMachine) StepUntil(predicate func(event testUtilsCommon.UpdateEvent) bool) bool {
+func (c *StepController) StepUntil(predicate func(event testUtilsCommon.UpdateEvent) bool) {
 	for {
-		event := c.Step()
-		if event.IsEmpty() {
-			return false
-		}
-
-		if predicate(event) {
-			return true
+		switch event := c.Step(); {
+		case event.IsEmpty():
+			panic(throw.IllegalState())
+		case predicate(event):
+			return
 		}
 	}
 }
 
-func (c *ControlledSlotMachine) Stop() {
+func (c *StepController) Stop() {
 	c.watchdog.Stop()
 	c.debugLogger.Stop()
 	c.slotMachine.Stop()
 }
 
-func (c *ControlledSlotMachine) Migrate() {
+func (c *StepController) Migrate() {
 	if !c.slotMachine.ScheduleCall(func(callContext smachine.MachineCallContext) {
 		callContext.Migrate(nil)
 	}, true) {
@@ -135,15 +137,15 @@ func (c *ControlledSlotMachine) Migrate() {
 	}
 }
 
-func (c *ControlledSlotMachine) AddDependency(dep interface{}) {
+func (c *StepController) AddDependency(dep interface{}) {
 	c.slotMachine.AddDependency(dep)
 }
 
-func (c *ControlledSlotMachine) AddInterfaceDependency(dep interface{}) {
+func (c *StepController) AddInterfaceDependency(dep interface{}) {
 	c.slotMachine.AddInterfaceDependency(dep)
 }
 
-func (c *ControlledSlotMachine) PrepareRunner(mc *minimock.Controller) {
+func (c *StepController) PrepareRunner(mc *minimock.Controller) {
 	c.RunnerDescriptorCache = testutils.NewDescriptorsCacheMockWrapper(mc)
 	c.MachineManager = machine.NewManager()
 
@@ -155,7 +157,7 @@ func (c *ControlledSlotMachine) PrepareRunner(mc *minimock.Controller) {
 	c.slotMachine.AddDependency(runnerAdapter)
 }
 
-func (c *ControlledSlotMachine) PrepareMockedMessageSender(mc *minimock.Controller) {
+func (c *StepController) PrepareMockedMessageSender(mc *minimock.Controller) {
 	c.MessageSender = messagesender.NewServiceMockWrapper(mc)
 
 	adapterMock := c.MessageSender.NewAdapterMock()
@@ -164,6 +166,6 @@ func (c *ControlledSlotMachine) PrepareMockedMessageSender(mc *minimock.Controll
 	c.slotMachine.AddInterfaceDependency(&messageSender)
 }
 
-func (c *ControlledSlotMachine) AddStateMachine(ctx context.Context, sm smachine.StateMachine) *StateMachineWrapper {
-	return NewStateMachineWrapper(sm, c.slotMachine.AddNew(ctx, sm, smachine.CreateDefaultValues{}))
+func (c *StepController) AddStateMachine(ctx context.Context, sm smachine.StateMachine) StateMachineHelper {
+	return StateMachineHelper{sm, c.slotMachine.AddNew(ctx, sm, smachine.CreateDefaultValues{})}
 }

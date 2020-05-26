@@ -27,6 +27,10 @@ const (
 	StepLoggerFatal
 )
 
+func (v StepLoggerEvent) IsEvent() bool {
+	return v >= StepLoggerTrace
+}
+
 type StepLoggerFlags uint32
 
 const (
@@ -49,6 +53,10 @@ const (
 )
 const StepLoggerErrorMask = stepLoggerUpdateErrorBit0 | stepLoggerUpdateErrorBit1
 
+func (v StepLoggerFlags) ErrorFlags() StepLoggerFlags {
+	return v & StepLoggerErrorMask
+}
+
 const (
 	StepLoggerAdapterSyncCall    StepLoggerFlags = 0
 	StepLoggerAdapterNotifyCall                  = stepLoggerUpdateAdapterBit0
@@ -57,6 +65,10 @@ const (
 	StepLoggerAdapterAsyncCancel                 = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
 )
 const StepLoggerAdapterMask = stepLoggerUpdateAdapterBit0 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit2
+
+func (v StepLoggerFlags) AdapterFlags() StepLoggerFlags {
+	return v & StepLoggerAdapterMask
+}
 
 // SlotMachineData describes an event that is not connected to a specific SM, or when the related SM is already dead.
 type SlotMachineData struct {

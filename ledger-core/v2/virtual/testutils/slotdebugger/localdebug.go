@@ -3,8 +3,10 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build !convlogtxt,!localdebug
+// +build localdebug
 
-package convlog
+package slotdebugger
 
-const UseTextConvLog = false
+func init() {
+	ignoreWatchdog = true
+}

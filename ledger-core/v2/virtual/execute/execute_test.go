@@ -26,9 +26,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotmachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 )
 
 func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
@@ -198,7 +197,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotmachine.NewControlledSlotMachine(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(mc)
 
@@ -244,10 +243,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	require.Equal(t, uint8(0), sharedState.PotentialMutablePendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
 
-	stepToWait := smExecute.stepExecuteStart
-	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
-		panic(throw.FailHere("slotmachine stopped"))
-	}
+	slotMachine.StepUntil(smWrapper.WaitStep(smExecute.stepExecuteStart))
 
 	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
@@ -274,7 +270,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotmachine.NewControlledSlotMachine(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(mc)
 
@@ -319,17 +315,11 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
-	stepToWait := smExecute.stepTakeLock
-	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
-		t.FailNow()
-	}
+	slotMachine.StepUntil(smWrapper.WaitStep(smExecute.stepTakeLock))
 
 	slotMachine.Migrate()
 
-	if !slotMachine.StepUntil(smWrapper.WaitAnyMigrate()) {
-		t.Error("slotmachine stopped")
-		t.FailNow()
-	}
+	slotMachine.StepUntil(smWrapper.WaitStop())
 
 	require.False(t, smExecute.migrationHappened)
 
@@ -355,7 +345,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotmachine.NewControlledSlotMachine(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(mc)
 
@@ -400,20 +390,11 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
-	stepToWait := smExecute.stepExecuteStart
-	if !slotMachine.StepUntil(smWrapper.WaitStep(stepToWait)) {
-		t.Error("slotmachine finished working before got into stepExecuteStart")
-		t.FailNow()
-	}
+	slotMachine.StepUntil(smWrapper.WaitStep(smExecute.stepExecuteStart))
 
-	{
-		slotMachine.Migrate()
+	slotMachine.Migrate()
 
-		if !slotMachine.StepUntil(smWrapper.WaitAnyMigrate()) {
-			t.Error("slotmachine finished working before migration")
-			t.FailNow()
-		}
-	}
+	slotMachine.StepUntil(smWrapper.WaitAnyMigrate())
 
 	require.True(t, smExecute.migrationHappened)
 

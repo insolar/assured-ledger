@@ -20,8 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotmachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 )
 
@@ -163,7 +162,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	smObject.SetState(HasState)
 	smObject.ActiveMutablePendingCount = 1
 
-	slotMachine := slotmachine.NewControlledSlotMachine(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	{
@@ -179,9 +178,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 
 	require.Equal(t, 1, slotMachine.GetOccupiedSlotCount())
 
-	if !slotMachine.StepUntil(smWrapper.WaitStep(smObject.stepReadyToWork)) {
-		panic(throw.FailHere("slotmachine stopped"))
-	}
+	slotMachine.StepUntil(smWrapper.WaitStep(smObject.stepReadyToWork))
 
 	require.Equal(t, 2, slotMachine.GetOccupiedSlotCount())
 
