@@ -22,9 +22,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 )
 
@@ -186,10 +186,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 					return smachine.StateUpdate{}
 				})
 			} else {
-				execCtx.JumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
-					require.Equal(t, reflectkit.CodeOf(smExecute.stepTakeLock), reflectkit.CodeOf(s1))
-					return smachine.StateUpdate{}
-				})
+				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 			}
 
 			smExecute.stepIsolationNegotiation(execCtx)

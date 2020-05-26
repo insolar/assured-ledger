@@ -8,7 +8,3 @@
 package testutils
 
 const LocalDebug = false
-
-func IsLocalDebug() bool {
-	return LocalDebug
-}

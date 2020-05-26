@@ -23,25 +23,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 )
-
-func assertJumpStep(t *testing.T, f smachine.StateFunc) func(smachine.StateFunc) smachine.StateUpdate {
-	return func(s1 smachine.StateFunc) smachine.StateUpdate {
-		assert.Equal(t, reflectkit.CodeOf(f), reflectkit.CodeOf(s1))
-		return smachine.StateUpdate{}
-	}
-}
-
-func assertMigration(t *testing.T, f smachine.MigrateFunc) func(smachine.MigrateFunc) {
-	return func(s1 smachine.MigrateFunc) {
-		assert.Equal(t, reflectkit.CodeOf(f), reflectkit.CodeOf(s1))
-	}
-}
 
 func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 	sm.execution.Context = ctx
@@ -103,8 +90,8 @@ func TestSMExecute_Init(t *testing.T) {
 	{
 		initCtx := smachine.NewInitializationContextMock(mc).
 			GetContextMock.Return(ctx).
-			SetDefaultMigrationMock.Set(assertMigration(t, smExecute.migrationDefault)).
-			JumpMock.Set(assertJumpStep(t, smExecute.stepCheckRequest))
+			SetDefaultMigrationMock.Set(testutils.AssertMigration(t, smExecute.migrationDefault)).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepCheckRequest))
 
 		smExecute.Init(initCtx)
 	}
@@ -157,7 +144,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(CallSharedDataAccessor).
 			SetDefaultMigrationMock.Return().
-			JumpMock.Set(assertJumpStep(t, smExecute.stepExecuteStart))
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteStart))
 
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
