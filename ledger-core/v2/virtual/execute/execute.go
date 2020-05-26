@@ -149,10 +149,11 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 		case smachine.NotPassed:
 			return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 		case smachine.Impossible:
-			ctx.Log().Fatal("failed to get object state: already dead")
-		case smachine.Passed:
-		default:
 			panic(throw.NotImplemented())
+		case smachine.Passed:
+			// go further
+		default:
+			panic(throw.Impossible())
 		}
 	}
 
@@ -173,10 +174,11 @@ func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smach
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
-	case smachine.Passed:
-	default:
 		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
 	}
 
 	return ctx.Jump(s.stepUpdatePendingCounters)
@@ -191,8 +193,9 @@ func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) sma
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		ctx.Log().Fatal("failed to get object state: already dead")
+		panic(throw.NotImplemented())
 	case smachine.Passed:
+		// go further
 	default:
 		panic(throw.Impossible())
 	}
@@ -229,8 +232,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	case smachine.NotPassed:
 		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		// TODO[bigbes]: handle object is gone here the right way
-		ctx.Log().Fatal("failed to get object state: already dead")
+		panic(throw.NotImplemented())
 	case smachine.Passed:
 		// go further
 	default:
@@ -341,8 +343,7 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		// TODO[bigbes]: handle object is gone here the right way
-		ctx.Log().Fatal("failed to get object state: already dead")
+		panic(throw.NotImplemented())
 	case smachine.Passed:
 		// go further
 	default:
@@ -497,8 +498,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
-		// TODO[bigbes]: handle object is gone here the right way
-		ctx.Log().Fatal("failed to get object state: already dead")
+		panic(throw.NotImplemented())
 	case smachine.Passed:
 		// go further
 	default:

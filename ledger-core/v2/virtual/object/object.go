@@ -121,6 +121,14 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	}
 }
 
+type smObjectMigrateState int
+
+const (
+	stateWasNotSend smObjectMigrateState = iota
+	stateSent
+	readyToStop
+)
+
 type SMObject struct {
 	smachine.StateMachineDeclTemplate
 
@@ -130,6 +138,8 @@ type SMObject struct {
 	migrateTransition smachine.StateFunc
 
 	waitGetStateUntil time.Time
+
+	migrateState smObjectMigrateState
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -238,6 +248,10 @@ func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.Stat
 }
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !sm.hasPendingExecution() && sm.migrateState == readyToStop {
+		return ctx.Stop()
+	}
+
 	return ctx.Sleep().ThenRepeat()
 }
 
@@ -255,6 +269,14 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 }
 
 func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	switch sm.migrateState {
+	case stateWasNotSend:
+		sm.migrateState = stateSent
+	case stateSent:
+		sm.migrateState = readyToStop
+		return ctx.Jump(sm.migrateTransition)
+	}
+
 	var (
 		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
 	)
@@ -286,8 +308,13 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
-	// TODO: sm must be stopped here in PLAT-347
+
 	return ctx.Jump(sm.migrateTransition)
+}
+
+func (sm *SMObject) hasPendingExecution() bool {
+	return sm.PotentialImmutablePendingCount > 0 ||
+		sm.PotentialMutablePendingCount > 0
 }
 
 func (sm *SMObject) stepSendVStateUnavailable(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -325,7 +352,6 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	switch sm.GetState() {
 	case Unknown:
 		ctx.Log().Warn("SMObject migration happened when object is not ready yet")
-		// TODO: should sm die here in PLAT-347?
 		return ctx.Stay()
 	case Missing:
 		fallthrough

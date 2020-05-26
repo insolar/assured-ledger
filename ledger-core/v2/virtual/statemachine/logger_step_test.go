@@ -25,7 +25,7 @@ var levelCases = []convlog_test.LevelCase {
 	{smachine.StepLoggerActiveTrace, log.InfoLevel, log.InfoLevel, log.ErrorLevel },
 	{smachine.StepLoggerWarn, log.WarnLevel, log.WarnLevel, log.ErrorLevel },
 	{smachine.StepLoggerError, log.ErrorLevel, log.ErrorLevel, log.ErrorLevel },
-	{smachine.StepLoggerFatal, log.FatalLevel, log.FatalLevel, log.ErrorLevel },
+	{smachine.StepLoggerFatal, log.FatalLevel, log.FatalLevel, log.FatalLevel },
 }
 
 func TestLevels(t *testing.T) {

@@ -68,7 +68,7 @@ func (st SuiteTextualLog) newAdapter(level logcommon.Level) logm.Logger {
 	}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 
-	zb := logm.NewBuilder(NewFactory(nil, st.recycleBuf), zc, level)
+	zb := logm.NewBuilder(NewFactory(nil, st.recycleBuf), zc, level).WithCaller(logcommon.CallerField)
 
 	l, err := zb.Build()
 	require.NoError(t, err)
@@ -160,6 +160,7 @@ func (st SuiteTextualLog) TestInheritFields() {
 	s := buf2.String()
 	require.Contains(t, s, "value1")
 	require.Contains(t, s, "value2")
+	require.Contains(t, s, "caller")
 }
 
 func (st SuiteTextualLog) TestChangeLevel() {
@@ -192,6 +193,7 @@ func (st SuiteTextualLog) TestBuildFields() {
 	s := buf.String()
 	require.Contains(t, s, "value0")
 	require.Contains(t, s, "value1")
+	require.Contains(t, s, "caller")
 	buf.Reset()
 
 	log = log.Copy().WithoutInheritedFields().WithField("test2", "value2").MustBuild()
@@ -201,6 +203,7 @@ func (st SuiteTextualLog) TestBuildFields() {
 	require.NotContains(t, s, "value0")
 	require.NotContains(t, s, "value1")
 	require.Contains(t, s, "value2")
+	require.Contains(t, s, "caller")
 }
 
 func (st SuiteTextualLog) TestBuildDynFields() {
@@ -223,6 +226,7 @@ func (st SuiteTextualLog) TestBuildDynFields() {
 	require.Contains(t, s, "static0")
 	require.Contains(t, s, "value0")
 	require.Contains(t, s, "value1")
+	require.Contains(t, s, "caller")
 
 	buf.Reset()
 	log = log.Copy().WithoutInheritedDynFields().WithDynamicField("test2", func() interface{} { return "value2" }).MustBuild()
@@ -233,6 +237,7 @@ func (st SuiteTextualLog) TestBuildDynFields() {
 	require.NotContains(t, s, "value0")
 	require.NotContains(t, s, "value1")
 	require.Contains(t, s, "value2")
+	require.Contains(t, s, "caller")
 
 	buf.Reset()
 	log = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value3" }).MustBuild()
@@ -244,6 +249,7 @@ func (st SuiteTextualLog) TestBuildDynFields() {
 	require.NotContains(t, s, "value1")
 	require.NotContains(t, s, "value2")
 	require.Contains(t, s, "value3")
+	require.Contains(t, s, "caller")
 
 	buf.Reset()
 	log = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value-3" }).MustBuild()
@@ -256,6 +262,7 @@ func (st SuiteTextualLog) TestBuildDynFields() {
 	require.NotContains(t, s, "value2")
 	require.NotContains(t, s, "value3")
 	require.Contains(t, s, "value-3")
+	require.Contains(t, s, "caller")
 }
 
 func (st SuiteTextualLog) prepareSpecial(zc logcommon.Config, flushFn func()) (*bytes.Buffer, logm.Logger) {
