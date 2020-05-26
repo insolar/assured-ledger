@@ -44,7 +44,7 @@ jobs:
           sudo lscpu
           free -h
       - name: k3s
-        uses: yellowmegaman/k3s-gha@master
+        uses: insolar/k3s-gha@master
         with:
           custom_registry: true
           registries_yaml_path: "ledger-core/v2/scripts/deploy/kube/ci/registries.yaml"
@@ -74,6 +74,7 @@ jobs:
           docker push localhost/assured-ledger:latest
       - name: run insolar net
         run: |
+          export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
           go mod download
           make vendor install-build-tools kube_start_net
         working-directory: ${{env.V2_PATH}}
