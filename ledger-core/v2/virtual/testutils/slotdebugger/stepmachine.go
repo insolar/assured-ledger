@@ -104,15 +104,15 @@ func (c *StepController) Start() {
 	c.worker.Start()
 }
 
-func (c *StepController) Step() testUtilsCommon.UpdateEvent {
+func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
 	rv := c.debugLogger.GetEvent()
 	c.debugLogger.Continue()
 	return rv
 }
 
-func (c *StepController) StepUntil(predicate func(event testUtilsCommon.UpdateEvent) bool) {
+func (c *StepController) Run(predicate func(event testUtilsCommon.UpdateEvent) bool) {
 	for {
-		switch event := c.Step(); {
+		switch event := c.NextStep(); {
 		case event.IsEmpty():
 			panic(throw.IllegalState())
 		case predicate(event):

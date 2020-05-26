@@ -243,7 +243,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	require.Equal(t, uint8(0), sharedState.PotentialMutablePendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
 
-	slotMachine.StepUntil(smWrapper.WaitStep(smExecute.stepExecuteStart))
+	slotMachine.Run(smWrapper.TilStep(smExecute.stepExecuteStart))
 
 	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
@@ -315,11 +315,11 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
-	slotMachine.StepUntil(smWrapper.WaitStep(smExecute.stepTakeLock))
+	slotMachine.Run(smWrapper.TilStep(smExecute.stepTakeLock))
 
 	slotMachine.Migrate()
 
-	slotMachine.StepUntil(smWrapper.WaitStop())
+	slotMachine.Run(smWrapper.TilStop())
 
 	require.False(t, smExecute.migrationHappened)
 
@@ -390,11 +390,11 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
-	slotMachine.StepUntil(smWrapper.WaitStep(smExecute.stepExecuteStart))
+	slotMachine.Run(smWrapper.TilStep(smExecute.stepExecuteStart))
 
 	slotMachine.Migrate()
 
-	slotMachine.StepUntil(smWrapper.WaitAnyMigrate())
+	slotMachine.Run(smWrapper.TilAnyMigrate())
 
 	require.True(t, smExecute.migrationHappened)
 
