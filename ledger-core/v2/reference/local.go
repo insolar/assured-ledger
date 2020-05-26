@@ -120,6 +120,11 @@ func (v Local) asEncoderReader(limit uint8) *byteReader {
 	return &byteReader{v: v, s: limit}
 }
 
+//DEPRICATED
+func (v Local) ProtoSize() int {
+	return BinarySizeLocal(v)
+}
+
 // Encoder encodes Local to string with chosen encoder.
 func (v Local) Encode(enc Encoder) string {
 	repr, err := enc.EncodeRecord(v)

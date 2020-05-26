@@ -30,6 +30,9 @@ func (p *Polymorph) GenerateMsg(file *generator.FileDescriptor, message *generat
 		return
 	}
 	id := insproto.GetPolymorphID(message.DescriptorProto)
+	if id == 0 {
+		return
+	}
 	idStr := strconv.FormatUint(id, 10)
 
 	p.P(`func (*`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)

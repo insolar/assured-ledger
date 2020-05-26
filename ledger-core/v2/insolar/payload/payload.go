@@ -132,30 +132,9 @@ func Marshal(payload Payload) ([]byte, error) {
 	case *Meta:
 		pl.Polymorph = uint32(TypeMeta)
 		return pl.Marshal()
-	case *VCallRequest:
-		pl.Polymorph = uint32(TypeVCallRequest)
-		return pl.Marshal()
-	case *VCallResult:
-		pl.Polymorph = uint32(TypeVCallResult)
-		return pl.Marshal()
-	case *VStateRequest:
-		pl.Polymorph = uint32(TypeVStateRequest)
-		return pl.Marshal()
-	case *VStateReport:
-		pl.Polymorph = uint32(TypeVStateReport)
-		return pl.Marshal()
-	case *VStateUnavailable:
-		pl.Polymorph = uint32(TypeVStateUnavailable)
-		return pl.Marshal()
-	case *VPendingDelegationRequest:
-		pl.Polymorph = uint32(TypeVPendingDelegationRequest)
-		return pl.Marshal()
-	case *VDelegatedRequestFinished:
-		pl.Polymorph = uint32(TypeVDelegatedRequestFinished)
+	default:
 		return pl.Marshal()
 	}
-
-	return nil, errors.New("unknown payload type")
 }
 
 func Unmarshal(data []byte) (Payload, error) {

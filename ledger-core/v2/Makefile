@@ -87,6 +87,10 @@ generate-protobuf: protoc-gen-ins ## generate protobuf structs
 
 	cd rms; protoc -I../vendor -I./ --ins_out=./ --proto_path=${GOPATH}/src proto_*.proto
 
+.PHONY: my_gen
+my_gen: protoc-gen-ins
+	protoc -I./vendor -I./ --ins_out=./ --proto_path=${GOPATH}/src insolar/payload/proto_vnvn.r0.proto
+
 .PHONY: proto
 proto: generate-proto-options protoc-gen-ins generate-protobuf
 
