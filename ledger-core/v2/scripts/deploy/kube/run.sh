@@ -75,8 +75,6 @@ copy_bootstrap_config_to_temp() {
 check_dependencies
 echo "Starting insolar"
 run_network
-sleep 30
-kubectl -n insolar logs deploy/pulsewatcher
 wait_for_complete_network_state
 echo "network is ready!"
 copy_bootstrap_config_to_temp
