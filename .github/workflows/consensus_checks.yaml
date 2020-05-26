@@ -49,11 +49,11 @@ jobs:
           registries_yaml_path: "ledger-core/v2/scripts/deploy/kube/ci/registries.yaml"
           kubectl_version: "v1.18.2"
       - name: deploy traefik
-        run: kubectl apply -k traefik
+        run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/traefik
       - name: deploy k3s-registry
-        run: kubectl apply -k k3s-registry
+        run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/k3s-registry
       - name: deploy prometheus
-        run: kubectl apply -k prometheus
+        run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/prometheus
       - name: wait for registry to be up and running
         run: kubectl -n registry rollout status deploy/registry --timeout=80s
       - name: wait for traefik to be up and running
