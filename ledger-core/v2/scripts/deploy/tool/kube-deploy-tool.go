@@ -24,10 +24,13 @@ func main() {
 	cfg := readConfig()
 	cfgGenerator := NewConfigGenerator(cfg.NodesCount)
 	netManager := NewInsolarNetManager()
-	generateBootstrapConfigs(cfg, cfgGenerator)
+	err := generateBootstrapConfigs(cfg, cfgGenerator)
+	if err != nil {
+		panic(err)
+	}
 	os.Exit(0)
 
-	err := netManager.startNetwork(cfg)
+	err = netManager.startNetwork(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -44,7 +47,7 @@ func main() {
 	callStopped()
 }
 
-func generateBootstrapConfigs(cfg *KubeDeployToolConfig, generator *ConfigGenerator) {
+func generateBootstrapConfigs(cfg *KubeDeployToolConfig, generator *ConfigGenerator) error {
 	bootstrapConfig := generator.generateBootstrapConfig()
 	kustomizePatch := generator.generateKustomizePatch()
 	pwConfig := generator.generatePulsewatcherConfig()
@@ -54,10 +57,22 @@ func generateBootstrapConfigs(cfg *KubeDeployToolConfig, generator *ConfigGenera
 	fmt.Println(kustomizePatch)
 	fmt.Println(pwConfig)
 
-	bootstrapConfigPath := getExecutablePath() + cfg.ManifestsPath + cfg.BootstrapConfigRelPath
-	ioutil.WriteFile(bootstrapConfigPath+"bootstrap-config.yaml", []byte(bootstrapConfig), 0644)
-	ioutil.WriteFile(bootstrapConfigPath+"pulsewatcher-config.yaml", []byte(pwConfig), 0644)
-	ioutil.WriteFile(getExecutablePath()+cfg.ManifestsPath+"nodes-patch.yaml", []byte(kustomizePatch), 0644)
+	bootstrapConfigPath := getExecutablePath() + cfg.KubeRootPath + cfg.BootstrapConfigRelPath
+	fmt.Println(bootstrapConfigPath)
+	err := ioutil.WriteFile(bootstrapConfigPath+"bootstrap-config.yaml", []byte(bootstrapConfig), 0644)
+	if err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+	err = ioutil.WriteFile(bootstrapConfigPath+"pulsewatcher-config.yaml", []byte(pwConfig), 0644)
+	if err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+	err = ioutil.WriteFile(getExecutablePath()+cfg.KubeRootPath+cfg.ManifestsRelPath+"nodes-patch.yaml", []byte(kustomizePatch), 0644)
+	if err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+
+	return nil
 }
 
 func callStopped() {
@@ -84,7 +99,7 @@ func (i *InsolarNetManager) startNetwork(cfg *KubeDeployToolConfig) error {
 	out, _ := exec.Command("pwd").CombinedOutput()
 	fmt.Printf("path: %s\n", out)
 
-	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.ManifestsPath).CombinedOutput()
+	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.KubeRootPath+cfg.Env+"/").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("run failed: %s %w", string(out), err)
 	}
@@ -144,7 +159,7 @@ func (i *InsolarNetManager) waitForReady() error {
 }
 
 func (i *InsolarNetManager) stopNetwork(cfg *KubeDeployToolConfig) error {
-	out, err := exec.Command(Kubectl, "delete", "-k", getExecutablePath()+cfg.ManifestsPath).CombinedOutput()
+	out, err := exec.Command(Kubectl, "delete", "-k", getExecutablePath()+cfg.KubeRootPath+cfg.Env+"/").CombinedOutput()
 	if err != nil {
 		fmt.Errorf("stop failed: %s %w", string(out), err)
 	}
