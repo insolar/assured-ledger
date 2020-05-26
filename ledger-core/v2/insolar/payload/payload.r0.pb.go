@@ -93,11 +93,11 @@ func (VStateUnavailable_ReasonType) EnumDescriptor() ([]byte, []int) {
 }
 
 type VCallRequest struct {
-	Polymorph                   uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	CallType                    CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
-	CallFlags                   CallRequestFlags                                                  `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallRequestFlags" json:"CallFlags"`
-	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"CallAsOf"`
-	Caller                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Caller"`
+	Polymorph uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	CallType  CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
+	CallFlags CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallFlags" json:"CallFlags"`
+	CallAsOf  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"CallAsOf"`
+	Caller    github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Caller"`
 	Callee                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Callee"`
 	CallSiteDeclaration         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,25,opt,name=CallSiteDeclaration,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"CallSiteDeclaration"`
 	CallSiteMethod              string                                                            `protobuf:"bytes,26,opt,name=CallSiteMethod,proto3" json:"CallSiteMethod,omitempty"`
@@ -114,7 +114,7 @@ type VCallRequest struct {
 	RegistrarSignature          []byte                                                            `protobuf:"bytes,37,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature,omitempty"`
 	RegistrarDelegationSpec     []byte                                                            `protobuf:"bytes,38,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec,omitempty"`
 	RegistrarDelegatorSignature []byte                                                            `protobuf:"bytes,39,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature,omitempty"`
-	CallRequestFlags            int32                                                             `protobuf:"varint,40,opt,name=CallRequestFlags,proto3" json:"CallRequestFlags,omitempty"`
+	CallRequestFlags            int32                                                             `protobuf:"varint,40,opt,name=CallFlags,proto3" json:"CallFlags,omitempty"`
 	KnownCalleeIncoming         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,41,opt,name=KnownCalleeIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"KnownCalleeIncoming"`
 	EntryHeadHash               []byte                                                            `protobuf:"bytes,42,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash,omitempty"`
 	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,43,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallOutgoing"`
@@ -159,11 +159,11 @@ func (m *VCallRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_VCallRequest proto.InternalMessageInfo
 
 type VCallResult struct {
-	Polymorph                   uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	CallType                    CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
-	CallFlags                   CallRequestFlags                                                  `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallRequestFlags" json:"CallFlags"`
-	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"CallAsOf"`
-	Caller                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Caller"`
+	Polymorph uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	CallType  CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
+	CallFlags CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallFlags" json:"CallFlags"`
+	CallAsOf  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"CallAsOf"`
+	Caller    github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Caller"`
 	Callee                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Callee"`
 	ResultFlags                 []byte                                                            `protobuf:"bytes,25,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
 	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,26,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallOutgoing"`
@@ -225,7 +225,7 @@ type VStateRequest struct {
 	DelegationSpec        []byte                                                            `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec,omitempty"`
 	DelegatorSignature    []byte                                                            `protobuf:"bytes,26,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature,omitempty"`
 	ProducerSignature     []byte                                                            `protobuf:"bytes,27,opt,name=ProducerSignature,proto3" json:"ProducerSignature,omitempty"`
-	CallRequestFlags      int32                                                             `protobuf:"varint,28,opt,name=CallRequestFlags,proto3" json:"CallRequestFlags,omitempty"`
+	CallRequestFlags      int32                                                             `protobuf:"varint,28,opt,name=CallFlags,proto3" json:"CallFlags,omitempty"`
 }
 
 func (m *VStateRequest) Reset()      { *m = VStateRequest{} }
@@ -435,12 +435,12 @@ func (m *VPendingDelegationRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_VPendingDelegationRequest proto.InternalMessageInfo
 
 type VDelegatedRequestFinished struct {
-	Polymorph          uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	CallType           CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
-	CallFlags          CallRequestFlags                                                  `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallRequestFlags" json:"CallFlags"`
-	Callee             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Callee"`
-	ResultFlags        []byte                                                            `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
-	CallOutgoing       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallOutgoing"`
+	Polymorph    uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
+	CallType     CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType,omitempty"`
+	CallFlags    CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallFlags" json:"CallFlags"`
+	Callee       github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Callee"`
+	ResultFlags  []byte                                                            `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags,omitempty"`
+	CallOutgoing github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallOutgoing"`
 	CallIncoming       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Local" json:"CallIncoming"`
 	DelegationSpec     []byte                                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec,omitempty"`
 	DelegatorSignature []byte                                                            `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature,omitempty"`
@@ -1222,7 +1222,7 @@ func (this *VCallRequest) GoString() string {
 	s = append(s, "RegistrarSignature: "+fmt.Sprintf("%#v", this.RegistrarSignature)+",\n")
 	s = append(s, "RegistrarDelegationSpec: "+fmt.Sprintf("%#v", this.RegistrarDelegationSpec)+",\n")
 	s = append(s, "RegistrarDelegatorSignature: "+fmt.Sprintf("%#v", this.RegistrarDelegatorSignature)+",\n")
-	s = append(s, "CallRequestFlags: "+fmt.Sprintf("%#v", this.CallRequestFlags)+",\n")
+	s = append(s, "CallFlags: "+fmt.Sprintf("%#v", this.CallRequestFlags)+",\n")
 	s = append(s, "KnownCalleeIncoming: "+fmt.Sprintf("%#v", this.KnownCalleeIncoming)+",\n")
 	s = append(s, "EntryHeadHash: "+fmt.Sprintf("%#v", this.EntryHeadHash)+",\n")
 	s = append(s, "CallOutgoing: "+fmt.Sprintf("%#v", this.CallOutgoing)+",\n")
@@ -1281,7 +1281,7 @@ func (this *VStateRequest) GoString() string {
 	s = append(s, "DelegationSpec: "+fmt.Sprintf("%#v", this.DelegationSpec)+",\n")
 	s = append(s, "DelegatorSignature: "+fmt.Sprintf("%#v", this.DelegatorSignature)+",\n")
 	s = append(s, "ProducerSignature: "+fmt.Sprintf("%#v", this.ProducerSignature)+",\n")
-	s = append(s, "CallRequestFlags: "+fmt.Sprintf("%#v", this.CallRequestFlags)+",\n")
+	s = append(s, "CallFlags: "+fmt.Sprintf("%#v", this.CallRequestFlags)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -3195,7 +3195,7 @@ func (this *VCallRequest) String() string {
 		`RegistrarSignature:` + fmt.Sprintf("%v", this.RegistrarSignature) + `,`,
 		`RegistrarDelegationSpec:` + fmt.Sprintf("%v", this.RegistrarDelegationSpec) + `,`,
 		`RegistrarDelegatorSignature:` + fmt.Sprintf("%v", this.RegistrarDelegatorSignature) + `,`,
-		`CallRequestFlags:` + fmt.Sprintf("%v", this.CallRequestFlags) + `,`,
+		`CallFlags:` + fmt.Sprintf("%v", this.CallRequestFlags) + `,`,
 		`KnownCalleeIncoming:` + fmt.Sprintf("%v", this.KnownCalleeIncoming) + `,`,
 		`EntryHeadHash:` + fmt.Sprintf("%v", this.EntryHeadHash) + `,`,
 		`CallOutgoing:` + fmt.Sprintf("%v", this.CallOutgoing) + `,`,
@@ -3254,7 +3254,7 @@ func (this *VStateRequest) String() string {
 		`DelegationSpec:` + fmt.Sprintf("%v", this.DelegationSpec) + `,`,
 		`DelegatorSignature:` + fmt.Sprintf("%v", this.DelegatorSignature) + `,`,
 		`ProducerSignature:` + fmt.Sprintf("%v", this.ProducerSignature) + `,`,
-		`CallRequestFlags:` + fmt.Sprintf("%v", this.CallRequestFlags) + `,`,
+		`CallFlags:` + fmt.Sprintf("%v", this.CallRequestFlags) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -3450,7 +3450,7 @@ func (m *VCallRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallFlags |= CallRequestFlags(b&0x7F) << shift
+				m.CallFlags |= CallFlags(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4029,7 +4029,7 @@ func (m *VCallRequest) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 40:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
 			}
 			m.CallRequestFlags = 0
 			for shift := uint(0); ; shift += 7 {
@@ -4454,7 +4454,7 @@ func (m *VCallResult) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallFlags |= CallRequestFlags(b&0x7F) << shift
+				m.CallFlags |= CallFlags(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5414,7 +5414,7 @@ func (m *VStateRequest) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 28:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CallFlags", wireType)
 			}
 			m.CallRequestFlags = 0
 			for shift := uint(0); ; shift += 7 {
@@ -6798,7 +6798,7 @@ func (m *VDelegatedRequestFinished) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallFlags |= CallRequestFlags(b&0x7F) << shift
+				m.CallFlags |= CallFlags(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

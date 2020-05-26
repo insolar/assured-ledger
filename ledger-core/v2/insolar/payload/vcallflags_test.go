@@ -26,7 +26,7 @@ func TestCallRequestFlags_BitStorageIsEngough(t *testing.T) {
 
 func TestCallRequestFlags(t *testing.T) {
 	t.Run("tolerance", func(t *testing.T) {
-		flags := CallRequestFlags(0)
+		flags := CallFlags(0)
 
 		assert.Equal(t, contract.InterferenceFlag(0), flags.GetInterference())
 
@@ -36,25 +36,25 @@ func TestCallRequestFlags(t *testing.T) {
 	})
 
 	t.Run("state", func(t *testing.T) {
-		flags := CallRequestFlags(0)
+		flags := CallFlags(0)
 
 		assert.Equal(t, contract.StateFlag(0), flags.GetState())
 
 		flags = flags.WithState(contract.CallValidated)
 
-		assert.Equal(t, CallRequestFlags(8), flags, "%b", flags)
+		assert.Equal(t, CallFlags(8), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallValidated, flags.GetState())
 
 		flags = flags.WithState(contract.CallDirty)
 
-		assert.Equal(t, CallRequestFlags(4), flags, "%b", flags)
+		assert.Equal(t, CallFlags(4), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallDirty, flags.GetState())
 	})
 
 	t.Run("mixed", func(t *testing.T) {
-		flags := CallRequestFlags(0)
+		flags := CallFlags(0)
 
 		assert.Equal(t, contract.InterferenceFlag(0), flags.GetInterference())
 
@@ -62,7 +62,7 @@ func TestCallRequestFlags(t *testing.T) {
 
 		flags = flags.WithInterference(contract.CallTolerable)
 
-		assert.Equal(t, CallRequestFlags(2), flags, "%b", flags)
+		assert.Equal(t, CallFlags(2), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 
@@ -70,25 +70,25 @@ func TestCallRequestFlags(t *testing.T) {
 
 		flags = flags.WithState(contract.CallValidated)
 
-		assert.Equal(t, CallRequestFlags(10), flags, "%b", flags)
+		assert.Equal(t, CallFlags(10), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 
 		flags = flags.WithInterference(contract.CallIntolerable)
 
-		assert.Equal(t, CallRequestFlags(9), flags, "%b", flags)
+		assert.Equal(t, CallFlags(9), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallValidated, flags.GetState())
 
 		flags = flags.WithInterference(contract.CallTolerable)
 
-		assert.Equal(t, CallRequestFlags(10), flags, "%b", flags)
+		assert.Equal(t, CallFlags(10), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
 
 		flags = flags.WithState(contract.CallDirty)
 
-		assert.Equal(t, CallRequestFlags(6), flags, "%b", flags)
+		assert.Equal(t, CallFlags(6), flags, "%b", flags)
 
 		assert.Equal(t, contract.CallDirty, flags.GetState())
 	})
