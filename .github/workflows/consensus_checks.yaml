@@ -1,4 +1,4 @@
-name: linux-checks
+name: consensus-checks
 on:
   push:
     branches:
