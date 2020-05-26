@@ -29,8 +29,8 @@ import (
 {{- end }}
 )
 
-func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
-    return map[string]XXX_insolar.ContractWrapper{
+func InitializeContractMethods() map[string]XXX_contract.Wrapper {
+    return map[string]XXX_contract.Wrapper{
 {{- range $contract := .Contracts }}
         "{{ $contract.Name }}": {{ $contract.ImportName }}.Initialize(),
 {{- end }}
@@ -40,7 +40,7 @@ func InitializeContractMethods() map[string]XXX_insolar.ContractWrapper {
 func shouldLoadRef(strRef string) XXX_reference.Global {
     ref, err := XXX_reference.GlobalFromString(strRef)
     if err != nil {
-        panic(errors.Wrap(err, "Unexpected error, bailing out"))
+        panic(throw.W(err, "Unexpected error, bailing out"))
     }
     return ref
 }

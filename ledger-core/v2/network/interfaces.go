@@ -11,16 +11,18 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
 type Report struct {
-	PulseNumber     insolar.PulseNumber
+	PulseNumber     pulse.Number
 	MemberPower     member.Power
 	MemberMode      member.OpMode
 	IsJoiner        bool
@@ -89,7 +91,7 @@ type Future interface {
 //Deprecated: network internal usage only
 type OriginProvider interface {
 	// GetOrigin get origin node information(self).
-	GetOrigin() insolar.NetworkNode
+	GetOrigin() node.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeNetwork -o ../testutils/network -s _mock.go -g
@@ -99,7 +101,7 @@ type NodeNetwork interface {
 	OriginProvider
 
 	// GetAccessor get accessor to the internal snapshot for the current pulse
-	GetAccessor(insolar.PulseNumber) Accessor
+	GetAccessor(pulse.Number) Accessor
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeKeeper -o ../testutils/network -s _mock.go -g
@@ -109,11 +111,11 @@ type NodeKeeper interface {
 	NodeNetwork
 
 	// SetInitialSnapshot set initial snapshot for nodekeeper
-	SetInitialSnapshot(nodes []insolar.NetworkNode)
+	SetInitialSnapshot(nodes []node.NetworkNode)
 	// Sync move unsync -> sync
-	Sync(context.Context, insolar.PulseNumber, []insolar.NetworkNode)
+	Sync(context.Context, pulse.Number, []node.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
-	MoveSyncToActive(context.Context, insolar.PulseNumber)
+	MoveSyncToActive(context.Context, pulse.Number)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.RoutingTable -o ../testutils/network -s _mock.go -g
@@ -129,18 +131,18 @@ type RoutingTable interface {
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
 	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetWorkingNode(ref reference.Global) insolar.NetworkNode
+	GetWorkingNode(ref reference.Global) node.NetworkNode
 	// GetWorkingNodes returns sorted list of all working nodes.
-	GetWorkingNodes() []insolar.NetworkNode
+	GetWorkingNodes() []node.NetworkNode
 
 	// GetActiveNode returns active node.
-	GetActiveNode(ref reference.Global) insolar.NetworkNode
+	GetActiveNode(ref reference.Global) node.NetworkNode
 	// GetActiveNodes returns unsorted list of all active nodes.
-	GetActiveNodes() []insolar.NetworkNode
+	GetActiveNodes() []node.NetworkNode
 	// GetActiveNodeByShortID get active node by short ID. Returns nil if node is not found.
-	GetActiveNodeByShortID(shortID insolar.ShortNodeID) insolar.NetworkNode
+	GetActiveNodeByShortID(shortID node.ShortNodeID) node.NetworkNode
 	// GetActiveNodeByAddr get active node by addr. Returns nil if node is not found.
-	GetActiveNodeByAddr(address string) insolar.NetworkNode
+	GetActiveNodeByAddr(address string) node.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gatewayer -o ../testutils/network -s _mock.go -g
@@ -148,39 +150,39 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse)
+	SwitchState(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gateway -o ../testutils/network -s _mock.go -g
 
 // Gateway responds for whole network state
 type Gateway interface {
-	NewGateway(context.Context, insolar.NetworkState) Gateway
+	NewGateway(context.Context, node.NetworkState) Gateway
 
-	BeforeRun(ctx context.Context, pulse insolar.Pulse)
-	Run(ctx context.Context, pulse insolar.Pulse)
+	BeforeRun(ctx context.Context, pulse pulsestor.Pulse)
+	Run(ctx context.Context, pulse pulsestor.Pulse)
 
-	GetState() insolar.NetworkState
+	GetState() node.NetworkState
 
-	OnPulseFromConsensus(context.Context, insolar.Pulse)
+	OnPulseFromConsensus(context.Context, pulsestor.Pulse)
 	OnConsensusFinished(ctx context.Context, report Report)
 
-	UpdateState(ctx context.Context, pulseNumber insolar.PulseNumber, nodes []insolar.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
 
 	Auther() Auther
 	Bootstrapper() Bootstrapper
 
-	EphemeralMode(nodes []insolar.NetworkNode) bool
+	EphemeralMode(nodes []node.NetworkNode) bool
 
 	FailState(ctx context.Context, reason string)
 }
 
 type Auther interface {
 	// GetCert returns certificate object by node reference, using discovery nodes for signing
-	GetCert(context.Context, reference.Global) (insolar.Certificate, error)
+	GetCert(context.Context, reference.Global) (node.Certificate, error)
 	// ValidateCert checks certificate signature
 	// TODO make this cert.validate()
-	ValidateCert(context.Context, insolar.AuthorizationCertificate) (bool, error)
+	ValidateCert(context.Context, node.AuthorizationCertificate) (bool, error)
 }
 
 // Bootstrapper interface used to change behavior of handlers in different network states
@@ -204,7 +206,7 @@ type Aborter interface {
 // TerminationHandler handles such node events as graceful stop, abort, etc.
 type TerminationHandler interface {
 	// Leave locks until network accept leaving claim
-	Leave(context.Context, insolar.PulseNumber)
+	Leave(context.Context, pulse.Number)
 	OnLeaveApproved(context.Context)
 	// Terminating is an accessor
 	Terminating() bool

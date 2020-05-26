@@ -14,6 +14,7 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
@@ -30,7 +31,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph2ctl"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/chaser"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
@@ -237,7 +237,7 @@ outer:
 			briefCount, fullCount := pop.GetDynamicCounts()
 			addedCount, ascentCount := pop.GetPurgatoryCounts()
 
-			updID := insolar.AbsentShortNodeID
+			updID := node.AbsentShortNodeID
 			if upd.UpdatedNode != nil {
 				updID = upd.UpdatedNode.GetNodeID()
 			}

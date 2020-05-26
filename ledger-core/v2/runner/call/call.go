@@ -6,7 +6,7 @@
 package call
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
 
@@ -17,7 +17,7 @@ type ID uint64
 // shouldn't be used in core components.
 type LogicContext struct {
 	ID   ID
-	Mode insolar.CallMode // either "execution" or "validation"
+	Mode Mode // either "execution" or "validation"
 
 	Request reference.Global // reference of incoming request record
 
@@ -29,9 +29,8 @@ type LogicContext struct {
 	Caller          reference.Global // Contract that made the call
 	CallerPrototype reference.Global // Prototype (base class) of the caller
 
-	TraceID   string        // trace mark for Jaeger and friends
-	Pulse     insolar.Pulse // pre-fetched pulse for call context
-	Unordered bool
+	TraceID string          // trace mark for Jaeger and friends
+	Pulse   pulsestor.Pulse // pre-fetched pulse for call context
 }
 
 type ContractCallType uint8
@@ -54,5 +53,24 @@ func (t ContractCallType) String() string {
 		return "Saga"
 	default:
 		return "Unknown"
+	}
+}
+
+// Mode indicates whether we execute or validate
+type Mode int
+
+const (
+	Execute Mode = iota
+	Validate
+)
+
+func (m Mode) String() string {
+	switch m {
+	case Execute:
+		return "execute"
+	case Validate:
+		return "validate"
+	default:
+		return "unknown"
 	}
 }

@@ -9,8 +9,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 const entriesCount = 10
@@ -18,15 +19,15 @@ const entriesCount = 10
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		entries:         make([]insolar.Pulse, 0),
-		snapshotEntries: make(map[insolar.PulseNumber]*node.Snapshot),
+		entries:         make([]pulsestor.Pulse, 0),
+		snapshotEntries: make(map[pulse.Number]*node.Snapshot),
 	}
 }
 
 type MemoryStorage struct {
 	lock            sync.RWMutex
-	entries         []insolar.Pulse
-	snapshotEntries map[insolar.PulseNumber]*node.Snapshot
+	entries         []pulsestor.Pulse
+	snapshotEntries map[pulse.Number]*node.Snapshot
 }
 
 // truncate deletes all entries except Count
@@ -42,7 +43,7 @@ func (m *MemoryStorage) truncate(count int) {
 	}
 }
 
-func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse insolar.Pulse) error {
+func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulsestor.Pulse) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -51,7 +52,7 @@ func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse insolar.Pulse) er
 	return nil
 }
 
-func (m *MemoryStorage) GetPulse(ctx context.Context, number insolar.PulseNumber) (insolar.Pulse, error) {
+func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (pulsestor.Pulse, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -61,20 +62,20 @@ func (m *MemoryStorage) GetPulse(ctx context.Context, number insolar.PulseNumber
 		}
 	}
 
-	return *insolar.GenesisPulse, ErrNotFound
+	return *pulsestor.GenesisPulse, ErrNotFound
 }
 
-func (m *MemoryStorage) GetLatestPulse(ctx context.Context) (insolar.Pulse, error) {
+func (m *MemoryStorage) GetLatestPulse(ctx context.Context) (pulsestor.Pulse, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
 	if len(m.entries) == 0 {
-		return *insolar.GenesisPulse, ErrNotFound
+		return *pulsestor.GenesisPulse, ErrNotFound
 	}
 	return m.entries[len(m.entries)-1], nil
 }
 
-func (m *MemoryStorage) Append(pulse insolar.PulseNumber, snapshot *node.Snapshot) error {
+func (m *MemoryStorage) Append(pulse pulse.Number, snapshot *node.Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -82,7 +83,7 @@ func (m *MemoryStorage) Append(pulse insolar.PulseNumber, snapshot *node.Snapsho
 	return nil
 }
 
-func (m *MemoryStorage) ForPulseNumber(pulse insolar.PulseNumber) (*node.Snapshot, error) {
+func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*node.Snapshot, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 

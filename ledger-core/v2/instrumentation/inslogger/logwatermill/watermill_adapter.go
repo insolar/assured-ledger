@@ -25,7 +25,7 @@ type WatermillLogAdapter struct {
 func (w *WatermillLogAdapter) event(fields watermill.LogFields, level log.Level, msg string) {
 	// don't use w.Debug() etc, value of the "file=..." field would be incorrect
 	if fn := w.log.Embeddable().NewEventStruct(level); fn != nil {
-		fn(logfmt.LogObjectFields{Msg: msg, Fields: fields}, nil)
+		fn(logfmt.LogFields{Msg: msg, Fields: fields}, nil)
 	}
 }
 

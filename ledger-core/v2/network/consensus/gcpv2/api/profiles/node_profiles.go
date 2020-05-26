@@ -8,7 +8,7 @@ package profiles
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -28,12 +28,12 @@ type Host interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.StaticProfileExtension -o . -s _mock.go -g
 
 type StaticProfileExtension interface {
-	GetIntroducedNodeID() insolar.ShortNodeID
+	GetIntroducedNodeID() node.ShortNodeID
 	CandidateProfileExtension
 }
 
 type staticProfile interface {
-	GetStaticNodeID() insolar.ShortNodeID
+	GetStaticNodeID() node.ShortNodeID
 	GetPrimaryRole() member.PrimaryRole
 	GetSpecialRoles() member.SpecialRole
 	GetNodePublicKey() cryptkit.SignatureKeyHolder
@@ -53,7 +53,7 @@ type StaticProfile interface { // brief intro
 
 type BaseNode interface {
 	// StaticProfile
-	GetNodeID() insolar.ShortNodeID
+	GetNodeID() node.ShortNodeID
 
 	/*
 		As dynamic nodes may update static part info, code inside consenus logic MUST access static profile
@@ -100,7 +100,7 @@ type CandidateProfileExtension interface {
 
 	GetIssuedAtPulse() pulse.Number // =0 when a node was connected during zeronet
 	GetIssuedAtTime() time.Time
-	GetIssuerID() insolar.ShortNodeID
+	GetIssuerID() node.ShortNodeID
 	GetIssuerSignature() cryptkit.SignatureHolder
 }
 

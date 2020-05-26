@@ -8,21 +8,22 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // NodeNetworkMock implements network.NodeNetwork
 type NodeNetworkMock struct {
 	t minimock.Tester
 
-	funcGetAccessor          func(p1 insolar.PulseNumber) (a1 mm_network.Accessor)
-	inspectFuncGetAccessor   func(p1 insolar.PulseNumber)
+	funcGetAccessor          func(n1 pulse.Number) (a1 mm_network.Accessor)
+	inspectFuncGetAccessor   func(n1 pulse.Number)
 	afterGetAccessorCounter  uint64
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeNetworkMockGetAccessor
 
-	funcGetOrigin          func() (n1 insolar.NetworkNode)
+	funcGetOrigin          func() (n1 node.NetworkNode)
 	inspectFuncGetOrigin   func()
 	afterGetOriginCounter  uint64
 	beforeGetOriginCounter uint64
@@ -63,7 +64,7 @@ type NodeNetworkMockGetAccessorExpectation struct {
 
 // NodeNetworkMockGetAccessorParams contains parameters of the NodeNetwork.GetAccessor
 type NodeNetworkMockGetAccessorParams struct {
-	p1 insolar.PulseNumber
+	n1 pulse.Number
 }
 
 // NodeNetworkMockGetAccessorResults contains results of the NodeNetwork.GetAccessor
@@ -72,7 +73,7 @@ type NodeNetworkMockGetAccessorResults struct {
 }
 
 // Expect sets up expected params for NodeNetwork.GetAccessor
-func (mmGetAccessor *mNodeNetworkMockGetAccessor) Expect(p1 insolar.PulseNumber) *mNodeNetworkMockGetAccessor {
+func (mmGetAccessor *mNodeNetworkMockGetAccessor) Expect(n1 pulse.Number) *mNodeNetworkMockGetAccessor {
 	if mmGetAccessor.mock.funcGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("NodeNetworkMock.GetAccessor mock is already set by Set")
 	}
@@ -81,7 +82,7 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) Expect(p1 insolar.PulseNumber)
 		mmGetAccessor.defaultExpectation = &NodeNetworkMockGetAccessorExpectation{}
 	}
 
-	mmGetAccessor.defaultExpectation.params = &NodeNetworkMockGetAccessorParams{p1}
+	mmGetAccessor.defaultExpectation.params = &NodeNetworkMockGetAccessorParams{n1}
 	for _, e := range mmGetAccessor.expectations {
 		if minimock.Equal(e.params, mmGetAccessor.defaultExpectation.params) {
 			mmGetAccessor.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetAccessor.defaultExpectation.params)
@@ -92,7 +93,7 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) Expect(p1 insolar.PulseNumber)
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeNetwork.GetAccessor
-func (mmGetAccessor *mNodeNetworkMockGetAccessor) Inspect(f func(p1 insolar.PulseNumber)) *mNodeNetworkMockGetAccessor {
+func (mmGetAccessor *mNodeNetworkMockGetAccessor) Inspect(f func(n1 pulse.Number)) *mNodeNetworkMockGetAccessor {
 	if mmGetAccessor.mock.inspectFuncGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.GetAccessor")
 	}
@@ -116,7 +117,7 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) Return(a1 mm_network.Accessor)
 }
 
 //Set uses given function f to mock the NodeNetwork.GetAccessor method
-func (mmGetAccessor *mNodeNetworkMockGetAccessor) Set(f func(p1 insolar.PulseNumber) (a1 mm_network.Accessor)) *NodeNetworkMock {
+func (mmGetAccessor *mNodeNetworkMockGetAccessor) Set(f func(n1 pulse.Number) (a1 mm_network.Accessor)) *NodeNetworkMock {
 	if mmGetAccessor.defaultExpectation != nil {
 		mmGetAccessor.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetAccessor method")
 	}
@@ -131,14 +132,14 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) Set(f func(p1 insolar.PulseNum
 
 // When sets expectation for the NodeNetwork.GetAccessor which will trigger the result defined by the following
 // Then helper
-func (mmGetAccessor *mNodeNetworkMockGetAccessor) When(p1 insolar.PulseNumber) *NodeNetworkMockGetAccessorExpectation {
+func (mmGetAccessor *mNodeNetworkMockGetAccessor) When(n1 pulse.Number) *NodeNetworkMockGetAccessorExpectation {
 	if mmGetAccessor.mock.funcGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("NodeNetworkMock.GetAccessor mock is already set by Set")
 	}
 
 	expectation := &NodeNetworkMockGetAccessorExpectation{
 		mock:   mmGetAccessor.mock,
-		params: &NodeNetworkMockGetAccessorParams{p1},
+		params: &NodeNetworkMockGetAccessorParams{n1},
 	}
 	mmGetAccessor.expectations = append(mmGetAccessor.expectations, expectation)
 	return expectation
@@ -151,15 +152,15 @@ func (e *NodeNetworkMockGetAccessorExpectation) Then(a1 mm_network.Accessor) *No
 }
 
 // GetAccessor implements network.NodeNetwork
-func (mmGetAccessor *NodeNetworkMock) GetAccessor(p1 insolar.PulseNumber) (a1 mm_network.Accessor) {
+func (mmGetAccessor *NodeNetworkMock) GetAccessor(n1 pulse.Number) (a1 mm_network.Accessor) {
 	mm_atomic.AddUint64(&mmGetAccessor.beforeGetAccessorCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetAccessor.afterGetAccessorCounter, 1)
 
 	if mmGetAccessor.inspectFuncGetAccessor != nil {
-		mmGetAccessor.inspectFuncGetAccessor(p1)
+		mmGetAccessor.inspectFuncGetAccessor(n1)
 	}
 
-	mm_params := &NodeNetworkMockGetAccessorParams{p1}
+	mm_params := &NodeNetworkMockGetAccessorParams{n1}
 
 	// Record call args
 	mmGetAccessor.GetAccessorMock.mutex.Lock()
@@ -176,7 +177,7 @@ func (mmGetAccessor *NodeNetworkMock) GetAccessor(p1 insolar.PulseNumber) (a1 mm
 	if mmGetAccessor.GetAccessorMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmGetAccessor.GetAccessorMock.defaultExpectation.Counter, 1)
 		mm_want := mmGetAccessor.GetAccessorMock.defaultExpectation.params
-		mm_got := NodeNetworkMockGetAccessorParams{p1}
+		mm_got := NodeNetworkMockGetAccessorParams{n1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmGetAccessor.t.Errorf("NodeNetworkMock.GetAccessor got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -188,9 +189,9 @@ func (mmGetAccessor *NodeNetworkMock) GetAccessor(p1 insolar.PulseNumber) (a1 mm
 		return (*mm_results).a1
 	}
 	if mmGetAccessor.funcGetAccessor != nil {
-		return mmGetAccessor.funcGetAccessor(p1)
+		return mmGetAccessor.funcGetAccessor(n1)
 	}
-	mmGetAccessor.t.Fatalf("Unexpected call to NodeNetworkMock.GetAccessor. %v", p1)
+	mmGetAccessor.t.Fatalf("Unexpected call to NodeNetworkMock.GetAccessor. %v", n1)
 	return
 }
 
@@ -275,7 +276,7 @@ type NodeNetworkMockGetOriginExpectation struct {
 
 // NodeNetworkMockGetOriginResults contains results of the NodeNetwork.GetOrigin
 type NodeNetworkMockGetOriginResults struct {
-	n1 insolar.NetworkNode
+	n1 node.NetworkNode
 }
 
 // Expect sets up expected params for NodeNetwork.GetOrigin
@@ -303,7 +304,7 @@ func (mmGetOrigin *mNodeNetworkMockGetOrigin) Inspect(f func()) *mNodeNetworkMoc
 }
 
 // Return sets up results that will be returned by NodeNetwork.GetOrigin
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 insolar.NetworkNode) *NodeNetworkMock {
+func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 node.NetworkNode) *NodeNetworkMock {
 	if mmGetOrigin.mock.funcGetOrigin != nil {
 		mmGetOrigin.mock.t.Fatalf("NodeNetworkMock.GetOrigin mock is already set by Set")
 	}
@@ -316,7 +317,7 @@ func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 insolar.NetworkNode) *No
 }
 
 //Set uses given function f to mock the NodeNetwork.GetOrigin method
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 insolar.NetworkNode)) *NodeNetworkMock {
+func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 node.NetworkNode)) *NodeNetworkMock {
 	if mmGetOrigin.defaultExpectation != nil {
 		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetOrigin method")
 	}
@@ -330,7 +331,7 @@ func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 insolar.NetworkNo
 }
 
 // GetOrigin implements network.NodeNetwork
-func (mmGetOrigin *NodeNetworkMock) GetOrigin() (n1 insolar.NetworkNode) {
+func (mmGetOrigin *NodeNetworkMock) GetOrigin() (n1 node.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
 

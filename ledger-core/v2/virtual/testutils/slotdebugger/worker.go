@@ -1,0 +1,74 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package slotdebugger
+
+import (
+	"math"
+	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+)
+
+type worker struct {
+	slotMachine    *StepController
+	stepController chan struct{}
+	finished chan struct{}
+}
+
+func newWorker(parent *StepController) *worker {
+	return &worker{
+		slotMachine:    parent,
+		stepController: make(chan struct{}),
+		finished: make(chan struct{}),
+	}
+}
+
+func (w *worker) finishedSignal() synckit.SignalChannel {
+	return w.finished
+}
+
+func (w *worker) Start() {
+	var (
+		workerFactory = sworker.NewAttachableSimpleSlotWorker()
+	)
+
+	go func() {
+		defer close(w.finished)
+
+		machine := w.slotMachine.slotMachine
+		for {
+			var (
+				repeatNow    bool
+				nextPollTime time.Time
+			)
+			eventMark := w.slotMachine.internalSignal.Mark()
+			fn := func(worker smachine.AttachedSlotWorker) {
+				repeatNow, nextPollTime = machine.ScanOnce(0, worker)
+			}
+			workerFactory.AttachTo(machine, w.slotMachine.externalSignal.Mark(), math.MaxUint32, fn)
+
+			if !machine.IsActive() {
+				break
+			}
+
+			if repeatNow || eventMark.HasSignal() {
+				continue
+			}
+
+			select {
+			case <-eventMark.Channel():
+			case <-func() <-chan time.Time {
+				if !nextPollTime.IsZero() {
+					return time.After(time.Until(nextPollTime))
+				}
+				return nil
+			}():
+			}
+		}
+	}()
+}

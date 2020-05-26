@@ -11,14 +11,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/rpc/v2"
 	"github.com/insolar/rpc/v2/json2"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/instrumenter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
@@ -64,7 +64,7 @@ func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs,
 
 	p, err := s.runner.PulseAccessor.Latest(context.Background())
 	if err != nil {
-		return errors.Wrap(err, "couldn't receive pulse")
+		return errors.W(err, "couldn't receive pulse")
 	}
 	s.runner.SeedManager.Add(*seed, p.PulseNumber)
 
@@ -99,7 +99,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 
 	err := s.getSeed(ctx, r, args, reply)
 	if err != nil {
-		if strings.Contains(err.Error(), pulse.ErrNotFound.Error()) {
+		if strings.Contains(err.Error(), pulsestor.ErrNotFound.Error()) {
 			logger.Warn("[ NodeService.getSeed ] failed to execute: ", err.Error())
 
 			instr.SetError(errors.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)
@@ -119,7 +119,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 			Code:    InternalError,
 			Message: InternalErrorMessage,
 			Data: requester.Data{
-				Trace:   strings.Split(err.Error(), ": "),
+				Trace:   strings.Split(err.Error(), ";\t"),
 				TraceID: instr.TraceID(),
 			},
 		}

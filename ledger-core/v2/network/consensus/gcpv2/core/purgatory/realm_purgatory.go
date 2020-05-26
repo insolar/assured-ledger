@@ -10,12 +10,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/packetdispatch"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/misbehavior"
@@ -37,7 +37,7 @@ func NewRealmPurgatory(population population.RealmPopulation, _ profiles.Factory
 
 type AnnouncingMember interface {
 	IsJoiner() bool
-	GetNodeID() insolar.ShortNodeID
+	GetNodeID() node.ShortNodeID
 	Blames() misbehavior.BlameFactory
 	Frauds() misbehavior.FraudFactory
 	GetReportProfile() profiles.BaseNode
@@ -65,7 +65,7 @@ type RealmPurgatory struct {
 	*/
 	rw sync.RWMutex
 
-	phantomByID map[insolar.ShortNodeID]*NodePhantom
+	phantomByID map[node.ShortNodeID]*NodePhantom
 
 	// phantomByEP map[string]*NodePhantom
 }
@@ -75,14 +75,14 @@ type RealmPurgatory struct {
 // const PurgatoryDuplicatePK PurgatoryNodeState = -1
 // const PurgatoryExistingMember PurgatoryNodeState = -2
 
-func (p *RealmPurgatory) GetPhantomNode(id insolar.ShortNodeID) *NodePhantom {
+func (p *RealmPurgatory) GetPhantomNode(id node.ShortNodeID) *NodePhantom {
 	p.rw.RLock()
 	defer p.rw.RUnlock()
 
 	return p.phantomByID[id]
 }
 
-func (p *RealmPurgatory) getPhantomNode(id insolar.ShortNodeID) (*NodePhantom, bool) {
+func (p *RealmPurgatory) getPhantomNode(id node.ShortNodeID) (*NodePhantom, bool) {
 	p.rw.RLock()
 	defer p.rw.RUnlock()
 
@@ -90,7 +90,7 @@ func (p *RealmPurgatory) getPhantomNode(id insolar.ShortNodeID) (*NodePhantom, b
 	return np, ok
 }
 
-func (p *RealmPurgatory) getOrCreatePhantom(id insolar.ShortNodeID) AnnouncingMember {
+func (p *RealmPurgatory) getOrCreatePhantom(id node.ShortNodeID) AnnouncingMember {
 
 	p.rw.Lock()
 	defer p.rw.Unlock()
@@ -109,7 +109,7 @@ func (p *RealmPurgatory) getOrCreatePhantom(id insolar.ShortNodeID) AnnouncingMe
 	}
 
 	if p.phantomByID == nil {
-		p.phantomByID = make(map[insolar.ShortNodeID]*NodePhantom)
+		p.phantomByID = make(map[node.ShortNodeID]*NodePhantom)
 	}
 	limiter := p.population.CreatePacketLimiter(false /* doesnt matter here */)
 	np = NewNodePhantom(p, id, limiter)
@@ -117,7 +117,7 @@ func (p *RealmPurgatory) getOrCreatePhantom(id insolar.ShortNodeID) AnnouncingMe
 	return np
 }
 
-func (p *RealmPurgatory) getOrCreateMember(id insolar.ShortNodeID) AnnouncingMember {
+func (p *RealmPurgatory) getOrCreateMember(id node.ShortNodeID) AnnouncingMember {
 
 	na := p.population.GetNodeAppearance(id)
 	if na != nil { // main path
@@ -143,12 +143,12 @@ func (p *RealmPurgatory) getOrCreateMember(id insolar.ShortNodeID) AnnouncingMem
 	return na
 }
 
-func (p *RealmPurgatory) FindMember(id insolar.ShortNodeID, introducedBy insolar.ShortNodeID) AnnouncingMember {
+func (p *RealmPurgatory) FindMember(id node.ShortNodeID, introducedBy node.ShortNodeID) AnnouncingMember {
 	am, _ := p.getMember(id, introducedBy)
 	return am
 }
 
-func (p *RealmPurgatory) getMember(id insolar.ShortNodeID, introducedBy insolar.ShortNodeID) (AnnouncingMember, *population.NodeAppearance) {
+func (p *RealmPurgatory) getMember(id node.ShortNodeID, introducedBy node.ShortNodeID) (AnnouncingMember, *population.NodeAppearance) {
 
 	na := p.population.GetNodeAppearance(id)
 	if na != nil { // main path
@@ -173,7 +173,7 @@ func (p *RealmPurgatory) getMember(id insolar.ShortNodeID, introducedBy insolar.
 }
 
 func (p *RealmPurgatory) ascendFromPurgatory(ctx context.Context, phantom *NodePhantom, nsp profiles.StaticProfile,
-	rank member.Rank, sv cryptkit.SignatureVerifier, announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) {
+	rank member.Rank, sv cryptkit.SignatureVerifier, announcerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) {
 
 	if sv == nil {
 		sv = p.svFactory.CreateSignatureVerifierWithPKS(nsp.GetPublicKeyStore())
@@ -212,7 +212,7 @@ func (p *RealmPurgatory) IsJoinerSecretRequired() bool {
 	return false
 }
 
-func (p *RealmPurgatory) FindJoinerProfile(nodeID insolar.ShortNodeID, introducedBy insolar.ShortNodeID) profiles.StaticProfile {
+func (p *RealmPurgatory) FindJoinerProfile(nodeID node.ShortNodeID, introducedBy node.ShortNodeID) profiles.StaticProfile {
 	am, _ := p.getMember(nodeID, introducedBy)
 	if am != nil && am.IsJoiner() {
 		return am.GetStatic()
@@ -220,7 +220,7 @@ func (p *RealmPurgatory) FindJoinerProfile(nodeID insolar.ShortNodeID, introduce
 	return nil
 }
 
-func (p *RealmPurgatory) GetJoinerAnnouncement(nodeID insolar.ShortNodeID, introducedBy insolar.ShortNodeID) *transport.JoinerAnnouncement {
+func (p *RealmPurgatory) GetJoinerAnnouncement(nodeID node.ShortNodeID, introducedBy node.ShortNodeID) *transport.JoinerAnnouncement {
 	am, na := p.getMember(nodeID, introducedBy)
 	if am != nil && !am.IsJoiner() {
 		return nil
@@ -239,7 +239,7 @@ func (p *RealmPurgatory) onNodeUpdated(n *NodePhantom, flags population.UpdateFl
 
 // WARNING! Is called under NodeAppearance lock
 func (p *RealmPurgatory) AddJoinerAndEnsureAscendancy(
-	ctx context.Context, announcement profiles.JoinerAnnouncement, announcedByID insolar.ShortNodeID) error {
+	ctx context.Context, announcement profiles.JoinerAnnouncement, announcedByID node.ShortNodeID) error {
 
 	jp := announcement.JoinerProfile
 	joinerID := jp.GetStaticNodeID()
@@ -284,13 +284,13 @@ func (p *RealmPurgatory) UnknownFromNeighbourhood(ctx context.Context, rank memb
 	return m.DispatchAnnouncement(ctx, rank, nil, announcement)
 }
 
-func (p *RealmPurgatory) UnknownJoinerFromNeighbourhood(ctx context.Context, joinerID, announcedByID insolar.ShortNodeID) error {
+func (p *RealmPurgatory) UnknownJoinerFromNeighbourhood(ctx context.Context, joinerID, announcedByID node.ShortNodeID) error {
 
 	m := p.getOrCreateMember(joinerID)
 	return m.DispatchAnnouncement(ctx, member.JoinerRank, nil, profiles.NewJoinerIDAnnouncement(joinerID, announcedByID))
 }
 
-func (p *RealmPurgatory) UnknownAsSelfFromMemberAnnouncement(ctx context.Context, id insolar.ShortNodeID,
+func (p *RealmPurgatory) UnknownAsSelfFromMemberAnnouncement(ctx context.Context, id node.ShortNodeID,
 	profile profiles.StaticProfile, rank member.Rank, announcement profiles.MemberAnnouncement) (bool, error) {
 
 	err := p.getOrCreateMember(id).DispatchAnnouncement(ctx, rank, profile, announcement)

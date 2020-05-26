@@ -11,27 +11,30 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/pkg/errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
 type Requester interface {
-	Authorize(context.Context, insolar.Certificate) (*packet.Permit, error)
-	Bootstrap(context.Context, *packet.Permit, adapters.Candidate, *insolar.Pulse) (*packet.BootstrapResponse, error)
-	UpdateSchedule(context.Context, *packet.Permit, insolar.PulseNumber) (*packet.UpdateScheduleResponse, error)
+	Authorize(context.Context, node.Certificate) (*packet.Permit, error)
+	Bootstrap(context.Context, *packet.Permit, adapters.Candidate, *pulsestor.Pulse) (*packet.BootstrapResponse, error)
+	UpdateSchedule(context.Context, *packet.Permit, pulse.Number) (*packet.UpdateScheduleResponse, error)
 	Reconnect(context.Context, *host.Host, *packet.Permit) (*packet.ReconnectResponse, error)
 }
 
@@ -40,14 +43,14 @@ func NewRequester(options *network.Options) Requester {
 }
 
 type requester struct {
-	HostNetwork         network.HostNetwork         `inject:""`
-	OriginProvider      network.OriginProvider      `inject:""` // nolint:staticcheck
-	CryptographyService insolar.CryptographyService `inject:""`
+	HostNetwork         network.HostNetwork    `inject:""`
+	OriginProvider      network.OriginProvider `inject:""` // nolint:staticcheck
+	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options
 }
 
-func (ac *requester) Authorize(ctx context.Context, cert insolar.Certificate) (*packet.Permit, error) {
+func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*packet.Permit, error) {
 	logger := inslogger.FromContext(ctx)
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
@@ -97,10 +100,10 @@ func (ac *requester) Authorize(ctx context.Context, cert insolar.Certificate) (*
 		return bestResult.Permit, nil
 	}
 
-	return nil, errors.New("failed to authorize to any discovery node")
+	return nil, throw.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorize(ctx context.Context, host *host.Host, cert insolar.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
+func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
 	inslogger.FromContext(ctx).Infof("Authorizing on host: %s", host.String())
 
 	ctx, span := instracer.StartSpan(ctx, "AuthorizationController.Authorize")
@@ -108,9 +111,9 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert insola
 		log.String("node", host.NodeID.String()),
 	)
 	defer span.Finish()
-	serializedCert, err := certificate.Serialize(cert)
+	serializedCert, err := mandates.Serialize(cert)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error serializing certificate")
+		return nil, throw.W(err, "Error serializing certificate")
 	}
 
 	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: ac.OriginProvider.GetOrigin().Version()}
@@ -123,9 +126,9 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert insola
 	case packet.Success:
 		return response, nil
 	case packet.WrongMandate:
-		return response, errors.New("failed to authorize, wrong mandate")
+		return response, throw.New("failed to authorize, wrong mandate")
 	case packet.WrongVersion:
-		return response, errors.New("failed to authorize, wrong version")
+		return response, throw.New("failed to authorize, wrong version")
 	}
 
 	// retry with received timestamp
@@ -140,68 +143,68 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 
 	data, err := authData.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal permit")
+		return nil, throw.W(err, "failed to marshal permit")
 	}
 
 	signature, err := ac.CryptographyService.Sign(data)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign permit")
+		return nil, throw.W(err, "failed to sign permit")
 	}
 
 	req := &packet.AuthorizeRequest{AuthorizeData: authData, Signature: signature.Bytes()}
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Authorize, req, h)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending Authorize request")
+		return nil, throw.W(err, "Error sending Authorize request")
 	}
 	response, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for Authorize request")
+		return nil, throw.W(err, "Error getting response for Authorize request")
 	}
 
 	if response.GetResponse().GetError() != nil {
-		return nil, errors.New(response.GetResponse().GetError().Error)
+		return nil, throw.New(response.GetResponse().GetError().Error)
 	}
 
 	if response.GetResponse() == nil || response.GetResponse().GetAuthorize() == nil {
-		return nil, errors.Errorf("Authorize failed: got incorrect response: %s", response)
+		return nil, throw.Errorf("Authorize failed: got incorrect response: %s", response)
 	}
 
 	return response.GetResponse().GetAuthorize(), nil
 }
 
-func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate, p *insolar.Pulse) (*packet.BootstrapResponse, error) {
+func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate, p *pulsestor.Pulse) (*packet.BootstrapResponse, error) {
 
 	req := &packet.BootstrapRequest{
 		CandidateProfile: candidate.Profile(),
-		Pulse:            *pulse.ToProto(p),
+		Pulse:            *pulsestor.ToProto(p),
 		Permit:           permit,
 	}
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending Bootstrap request")
+		return nil, throw.W(err, "Error sending Bootstrap request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for Bootstrap request")
+		return nil, throw.W(err, "Error getting response for Bootstrap request")
 	}
 
 	respData := resp.GetResponse().GetBootstrap()
 	if respData == nil {
-		return nil, errors.New("bad response for bootstrap")
+		return nil, throw.New("bad response for bootstrap")
 	}
 
 	switch respData.Code {
 	case packet.UpdateShortID:
-		return respData, errors.New("Bootstrap got UpdateShortID")
+		return respData, throw.New("Bootstrap got UpdateShortID")
 	case packet.UpdateSchedule:
-		// ac.UpdateSchedule(ctx, permit, p.PulseNumber)
+		// ac.UpdateSchedule(ctx, permit, p.Number)
 		// panic("call bootstrap again")
-		return respData, errors.New("Bootstrap got UpdateSchedule")
+		return respData, throw.New("Bootstrap got UpdateSchedule")
 	case packet.Reject:
-		return respData, errors.New("Bootstrap request rejected")
+		return respData, throw.New("Bootstrap request rejected")
 	}
 
 	// case Accepted
@@ -209,7 +212,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 
 }
 
-func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, pulse insolar.PulseNumber) (*packet.UpdateScheduleResponse, error) {
+func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, pulse pulse.Number) (*packet.UpdateScheduleResponse, error) {
 
 	req := &packet.UpdateScheduleRequest{
 		LastNodePulse: pulse,
@@ -218,12 +221,12 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, 
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.UpdateSchedule, req, permit.Payload.ReconnectTo)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending UpdateSchedule request")
+		return nil, throw.W(err, "Error sending UpdateSchedule request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for UpdateSchedule request")
+		return nil, throw.W(err, "Error getting response for UpdateSchedule request")
 	}
 
 	return resp.GetResponse().GetUpdateSchedule(), nil
@@ -237,12 +240,12 @@ func (ac *requester) Reconnect(ctx context.Context, h *host.Host, permit *packet
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Reconnect, req, h)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error sending Reconnect request")
+		return nil, throw.W(err, "Error sending Reconnect request")
 	}
 
 	resp, err := f.WaitResponse(ac.options.PacketTimeout)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error getting response for Reconnect request")
+		return nil, throw.W(err, "Error getting response for Reconnect request")
 	}
 
 	return resp.GetResponse().GetReconnect(), nil

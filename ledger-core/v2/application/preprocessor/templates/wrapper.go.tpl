@@ -20,6 +20,10 @@
 package {{ .Package }}
 
 import (
+{{ range $name, $path := .CustomImports }}
+	{{ $name }} {{ $path }}
+{{- end }}
+
 {{- range $import, $i := .Imports }}
 	{{ $import }}
 {{- end }}
@@ -44,7 +48,7 @@ func INS_META_INFO() ([] map[string]string) {
 }
 
 func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	self := new({{ $.ContractType }})
 
 	if len(object) == 0 {
@@ -70,7 +74,7 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 }
 
 func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	self := new({{ $.ContractType }})
 
 	if len(object) == 0 {
@@ -97,7 +101,7 @@ func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) 
 
 {{ range $method := .Methods }}
 func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	self := new({{ $.ContractType }})
@@ -134,8 +138,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute method (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -181,7 +184,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 
 {{ range $f := .Functions }}
 func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx
+	ph := common.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	{{ $f.ArgumentsZeroList }}
@@ -205,8 +208,7 @@ func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []by
 		if !needRecover {
 			return
 		}
-		if r := recover(); r != nil {
-			recoveredError := errors.Wrap(errors.Errorf("%v", r), "Failed to execute constructor (panic)")
+		if recoveredError := throw.RW(recover(), nil, "Failed to execute constructor (panic)"); recoveredError != nil {
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
@@ -242,7 +244,7 @@ func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []by
 	}
 
 	if ret1 != nil {
-		// logical error, the result should be registered with type RequestSideEffectNone
+		// logical error, the result should be registered with type SideEffectNone
 		state = nil
 		return
 	}
@@ -257,19 +259,22 @@ func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []by
 {{ end }}
 
 {{ if $.GenerateInitialize -}}
-func Initialize() insolar.ContractWrapper {
-	return insolar.ContractWrapper{
+func Initialize() XXX_contract.Wrapper {
+	return XXX_contract.Wrapper{
 		GetCode: INSMETHOD_GetCode,
 		GetPrototype: INSMETHOD_GetPrototype,
-		Methods: insolar.ContractMethods{
+		Methods: XXX_contract.Methods{
 			{{ range $method := .Methods -}}
-					"{{ $method.Name }}": insolar.ContractMethod{
+					"{{ $method.Name }}": XXX_contract.Method{
 					    Func: INSMETHOD_{{ $method.Name }},
-					    Unordered: {{ $method.Immutable }},
+						Isolation: XXX_contract.MethodIsolation {
+							Interference: {{ $method.Interference }},
+							State: {{ $method.State }},
+						},
 					},
 			{{ end }}
 		},
-		Constructors: insolar.ContractConstructors{
+		Constructors: XXX_contract.Constructors{
 			{{ range $f := .Functions -}}
 					"{{ $f.Name }}": INSCONSTRUCTOR_{{ $f.Name }},
 			{{ end }}

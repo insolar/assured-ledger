@@ -7,7 +7,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
 )
@@ -34,7 +34,7 @@ type LocalNodeMock struct {
 	beforeGetIndexCounter uint64
 	GetIndexMock          mLocalNodeMockGetIndex
 
-	funcGetNodeID          func() (s1 insolar.ShortNodeID)
+	funcGetNodeID          func() (s1 node.ShortNodeID)
 	inspectFuncGetNodeID   func()
 	afterGetNodeIDCounter  uint64
 	beforeGetNodeIDCounter uint64
@@ -576,7 +576,7 @@ type LocalNodeMockGetNodeIDExpectation struct {
 
 // LocalNodeMockGetNodeIDResults contains results of the LocalNode.GetNodeID
 type LocalNodeMockGetNodeIDResults struct {
-	s1 insolar.ShortNodeID
+	s1 node.ShortNodeID
 }
 
 // Expect sets up expected params for LocalNode.GetNodeID
@@ -604,7 +604,7 @@ func (mmGetNodeID *mLocalNodeMockGetNodeID) Inspect(f func()) *mLocalNodeMockGet
 }
 
 // Return sets up results that will be returned by LocalNode.GetNodeID
-func (mmGetNodeID *mLocalNodeMockGetNodeID) Return(s1 insolar.ShortNodeID) *LocalNodeMock {
+func (mmGetNodeID *mLocalNodeMockGetNodeID) Return(s1 node.ShortNodeID) *LocalNodeMock {
 	if mmGetNodeID.mock.funcGetNodeID != nil {
 		mmGetNodeID.mock.t.Fatalf("LocalNodeMock.GetNodeID mock is already set by Set")
 	}
@@ -617,7 +617,7 @@ func (mmGetNodeID *mLocalNodeMockGetNodeID) Return(s1 insolar.ShortNodeID) *Loca
 }
 
 //Set uses given function f to mock the LocalNode.GetNodeID method
-func (mmGetNodeID *mLocalNodeMockGetNodeID) Set(f func() (s1 insolar.ShortNodeID)) *LocalNodeMock {
+func (mmGetNodeID *mLocalNodeMockGetNodeID) Set(f func() (s1 node.ShortNodeID)) *LocalNodeMock {
 	if mmGetNodeID.defaultExpectation != nil {
 		mmGetNodeID.mock.t.Fatalf("Default expectation is already set for the LocalNode.GetNodeID method")
 	}
@@ -631,7 +631,7 @@ func (mmGetNodeID *mLocalNodeMockGetNodeID) Set(f func() (s1 insolar.ShortNodeID
 }
 
 // GetNodeID implements LocalNode
-func (mmGetNodeID *LocalNodeMock) GetNodeID() (s1 insolar.ShortNodeID) {
+func (mmGetNodeID *LocalNodeMock) GetNodeID() (s1 node.ShortNodeID) {
 	mm_atomic.AddUint64(&mmGetNodeID.beforeGetNodeIDCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeID.afterGetNodeIDCounter, 1)
 

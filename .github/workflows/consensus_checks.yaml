@@ -33,6 +33,7 @@ jobs:
         run: echo "::add-path::${{env.GOPATH}}/bin"
       - name: get kubeval
         run: |
+          mkdir bin
           curl -L -s --create-dirs https://github.com/instrumenta/kubeval/releases/download/$KUBEVAL_VERSION/kubeval-linux-amd64.tar.gz | tar xvz --exclude='LICENSE' --exclude='README.md' -C $GITHUB_WORKSPACE/bin
           chmod +x $GITHUB_WORKSPACE/bin/kubeval
       - name: add workspace/bin to path

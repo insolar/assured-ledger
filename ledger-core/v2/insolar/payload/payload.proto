@@ -10,7 +10,7 @@ message Meta {
     bytes Payload = 20;
     bytes Sender = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     bytes Receiver = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
-    bytes Pulse = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar.PulseNumber", (gogoproto.nullable) = false];
+    bytes Pulse = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
     bytes ID = 24;
     bytes OriginHash = 25 [(gogoproto.customtype) = "MessageHash", (gogoproto.nullable) = false];
 }

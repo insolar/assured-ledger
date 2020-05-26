@@ -6,8 +6,12 @@
 package logcommon
 
 import (
+	"reflect"
+
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
 )
+
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon.EmbeddedLogger -s _mock.go -g
 
 /*
 	This interface provides methods with -1 call levels.
@@ -22,6 +26,8 @@ import (
 
 	Is(Level) bool
 	Copy() EmbeddedLoggerBuilder
+
+	FieldsOf(reflect.Value) logfmt.LogObjectMarshaller
 }
 
 type EmbeddedLoggerBuilder interface {

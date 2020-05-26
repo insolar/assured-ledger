@@ -12,10 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opencensus.io/zpages"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -106,7 +107,7 @@ func (m *Metrics) Start(ctx context.Context) error {
 				return errors.Wrapf(ErrBind, "addr=%v", m.server.Addr)
 			}
 		}
-		return errors.Wrap(err, "Failed to listen at address")
+		return errors.W(err, "Failed to listen at address")
 	}
 	m.listener = listener
 	inslog.Info("Started metrics server: ", m.listener.Addr().String())
@@ -133,7 +134,7 @@ func (m *Metrics) Stop(ctx context.Context) error {
 	defer cancel()
 
 	err := m.server.Shutdown(ctxWithTimeout)
-	return errors.Wrap(err, "Can't gracefully stop metrics server")
+	return errors.W(err, "Can't gracefully stop metrics server")
 }
 
 // errorLogger wrapper for error logs.

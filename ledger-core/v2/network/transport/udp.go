@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/resolver"
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 const (
@@ -52,13 +52,13 @@ func (t *udpTransport) SendDatagram(ctx context.Context, address string, data []
 
 	udpAddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return errors.Wrap(err, "failed to resolve UDP address")
+		return errors.W(err, "failed to resolve UDP address")
 	}
 
 	_, err = t.conn.WriteTo(data, udpAddr)
 	if err != nil {
 		// TODO: may be try to send second time if error
-		return errors.Wrap(err, "failed to write data")
+		return errors.W(err, "failed to write data")
 	}
 	return nil
 }
@@ -79,12 +79,12 @@ func (t *udpTransport) Start(ctx context.Context) error {
 		var err error
 		t.conn, err = net.ListenPacket("udp", t.address)
 		if err != nil {
-			return errors.Wrap(err, "failed to listen UDP")
+			return errors.W(err, "failed to listen UDP")
 		}
 
 		t.address, err = resolver.Resolve(t.fixedPublicAddress, t.conn.LocalAddr().String())
 		if err != nil {
-			return errors.Wrap(err, "failed to resolve public address")
+			return errors.W(err, "failed to resolve public address")
 		}
 
 		logger.Info("[ Start ] Start UDP transport")

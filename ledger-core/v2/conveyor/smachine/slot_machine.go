@@ -7,6 +7,7 @@ package smachine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -237,7 +238,11 @@ func (m *SlotMachine) allocateSlot() *Slot {
 /* -- Methods to dispose/reuse slots ------------------------------ */
 
 func (m *SlotMachine) Cleanup(worker FixedSlotWorker) {
-	m.slotPool.ScanAndCleanup(true, worker, m.recycleSlot, m.verifyPage)
+	m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
+		m.recycleSlot(slot, worker)
+	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
+		return m.verifyPage(slots, worker)
+	})
 	m.syncQueue.CleanupDetachQueues()
 }
 
@@ -762,8 +767,9 @@ func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, 
 
 	canRecover := false
 	area := StateArea
-	if se, ok := err.(SlotPanicError); ok && se.Area != 0 {
-		area = se.Area
+	var slotError SlotPanicError
+	if errors.As(err, &slotError) && slotError.Area != 0 {
+		area = slotError.Area
 	}
 
 	canRecover = area.CanRecoverByHandler()

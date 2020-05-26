@@ -11,11 +11,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	network2 "github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
@@ -48,11 +49,11 @@ func (w mockResponseWriter) WriteHeader(statusCode int) {
 	w.header["status"] = []string{strconv.Itoa(statusCode)}
 }
 
-func randomNodeList(t *testing.T, size int) []insolar.DiscoveryNode {
-	list := make([]insolar.DiscoveryNode, size)
+func randomNodeList(t *testing.T, size int) []node.DiscoveryNode {
+	list := make([]node.DiscoveryNode, size)
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
-		r := gen.Reference()
+		r := gen.UniqueReference()
 		dn.GetNodeRefMock.Set(func() reference.Global {
 			return r
 		})
@@ -61,11 +62,11 @@ func randomNodeList(t *testing.T, size int) []insolar.DiscoveryNode {
 	return list
 }
 
-func mockCertManager(t *testing.T, nodeList []insolar.DiscoveryNode) *testutils.CertificateManagerMock {
+func mockCertManager(t *testing.T, nodeList []node.DiscoveryNode) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
-	cm.GetCertificateMock.Set(func() insolar.Certificate {
+	cm.GetCertificateMock.Set(func() node.Certificate {
 		c := testutils.NewCertificateMock(t)
-		c.GetDiscoveryNodesMock.Set(func() []insolar.DiscoveryNode {
+		c.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode {
 			return nodeList
 		})
 		return c
@@ -73,32 +74,32 @@ func mockCertManager(t *testing.T, nodeList []insolar.DiscoveryNode) *testutils.
 	return cm
 }
 
-func mockNodeNetwork(t *testing.T, nodeList []insolar.DiscoveryNode) *network.NodeNetworkMock {
+func mockNodeNetwork(t *testing.T, nodeList []node.DiscoveryNode) *network.NodeNetworkMock {
 	nn := network.NewNodeNetworkMock(t)
-	nodeMap := make(map[reference.Global]insolar.DiscoveryNode)
+	nodeMap := make(map[reference.Global]node.DiscoveryNode)
 	for _, node := range nodeList {
 		nodeMap[node.GetNodeRef()] = node
 	}
 
 	accessorMock := network.NewAccessorMock(t)
-	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) insolar.NetworkNode {
+	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) node.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return network.NewNetworkNodeMock(t)
 		}
 		return nil
 	})
 
-	nn.GetAccessorMock.Set(func(p1 insolar.PulseNumber) network2.Accessor {
+	nn.GetAccessorMock.Set(func(p1 pulse.Number) network2.Accessor {
 		return accessorMock
 	})
 
 	return nn
 }
 
-func mockPulseAccessor(t *testing.T) *pulse.AccessorMock {
-	pa := pulse.NewAccessorMock(t)
-	pa.LatestMock.Set(func(context.Context) (insolar.Pulse, error) {
-		return *insolar.GenesisPulse, nil
+func mockPulseAccessor(t *testing.T) *pulsestor.AccessorMock {
+	pa := pulsestor.NewAccessorMock(t)
+	pa.LatestMock.Set(func(context.Context) (pulsestor.Pulse, error) {
+		return *pulsestor.GenesisPulse, nil
 	})
 	return pa
 }

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package small
+package integration
 
 import (
 	"context"
@@ -15,11 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
@@ -43,12 +42,14 @@ func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global,
 }
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4861")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
@@ -61,11 +62,11 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 			server.SendMessage(context.Background(), msg)
 		}
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
@@ -92,12 +93,14 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 }
 
 func TestVirtual_VStateRequest_WithBody(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4862")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
@@ -110,11 +113,11 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 			server.SendMessage(context.Background(), msg)
 		}
 		return nil
-	}
+	})
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
@@ -147,11 +150,14 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 }
 
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4863")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
 	reportChan := make(chan *payload.VStateUnavailable, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			pl, err := payload.UnmarshalFromMeta(msg.Payload)
 			require.NoError(t, err)
@@ -164,9 +170,9 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 			server.SendMessage(context.Background(), msg)
 		}
 		return nil
-	}
+	})
 
-	objectRef := gen.Reference()
+	objectRef := gen.UniqueReference()
 
 	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 

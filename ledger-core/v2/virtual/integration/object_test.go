@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package small
+package integration
 
 import (
 	"testing"
@@ -13,28 +13,31 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
 func TestInitViaCTMethod(t *testing.T) {
-	server := utils.NewServer(t)
-	ctx := inslogger.TestContext(t)
+	t.Log("C4867")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
 
 	// Call method on non-existent object, expect calling of VStateRequest
 	pl := payload.VCallRequest{
 		Polymorph: uint32(payload.TypeVCallRequest),
 		CallType:  payload.CTMethod,
 		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
+		CallFlags: payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
 	}
 	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
 	require.NoError(t, err)
 
 	requestIsDone := make(chan struct{}, 0)
 
-	server.PublisherMock.Checker = func(topic string, messages ...*message.Message) error {
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		defer func() { requestIsDone <- struct{}{} }()
 
 		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
@@ -51,7 +54,7 @@ func TestInitViaCTMethod(t *testing.T) {
 		}
 
 		return nil
-	}
+	})
 
 	server.SendMessage(ctx, msg)
 

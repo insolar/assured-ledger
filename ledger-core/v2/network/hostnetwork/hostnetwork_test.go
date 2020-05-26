@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fortytw2/leaktest"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
@@ -28,24 +28,25 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 var id1, id2, id3, idunknown string
 
 func init() {
-	id1 = gen.Reference().String()
-	id2 = gen.Reference().String()
-	id3 = gen.Reference().String()
-	idunknown = gen.Reference().String()
+	id1 = gen.UniqueReference().String()
+	id2 = gen.UniqueReference().String()
+	id3 = gen.UniqueReference().String()
+	idunknown = gen.UniqueReference().String()
 }
 
 type MockResolver struct {
 	mu       sync.RWMutex
 	mapping  map[reference.Global]*host.Host
-	smapping map[insolar.ShortNodeID]*host.Host
+	smapping map[node.ShortNodeID]*host.Host
 }
 
-func (m *MockResolver) ResolveConsensus(id insolar.ShortNodeID) (*host.Host, error) {
+func (m *MockResolver) ResolveConsensus(id node.ShortNodeID) (*host.Host, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -99,7 +100,7 @@ func (m *MockResolver) addMappingHost(h *host.Host) {
 func newMockResolver() *MockResolver {
 	return &MockResolver{
 		mapping:  make(map[reference.Global]*host.Host),
-		smapping: make(map[insolar.ShortNodeID]*host.Host),
+		smapping: make(map[node.ShortNodeID]*host.Host),
 	}
 }
 
@@ -119,8 +120,10 @@ type hostSuite struct {
 }
 
 func newHostSuite(t *testing.T) *hostSuite {
-	ctx1 := inslogger.ContextWithTrace(context.Background(), "AAA")
-	ctx2 := inslogger.ContextWithTrace(context.Background(), "BBB")
+	ctx := inslogger.TestContext(t)
+
+	ctx1 := inslogger.ContextWithTrace(ctx, "AAA")
+	ctx2 := inslogger.ContextWithTrace(ctx, "BBB")
 	resolver := newMockResolver()
 
 	cm1 := component.NewManager(nil)
@@ -170,7 +173,7 @@ func (s *hostSuite) Stop() {
 }
 
 func TestNewHostNetwork(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -200,7 +203,7 @@ func TestNewHostNetwork(t *testing.T) {
 
 func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	m := newMockResolver()
-	ctx := context.Background()
+	ctx := inslogger.TestContext(t)
 
 	n1, err := NewHostNetwork(id1)
 	require.NoError(t, err)
@@ -237,37 +240,6 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	f, err = n1.SendRequest(ctx, types.Pulse, &packet.PulseRequest{}, ref)
 	require.Error(t, err)
 	assert.Nil(t, f)
-}
-
-func TestHostNetwork_SendRequestPacket2(t *testing.T) {
-	defer leaktest.Check(t)()
-	s := newHostSuite(t)
-	defer s.Stop()
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
-		defer wg.Done()
-		inslogger.FromContext(ctx).Info("handler triggered")
-		ref, err := reference.GlobalFromString(id1)
-		require.NoError(t, err)
-		require.Equal(t, ref, r.GetSender())
-		require.Equal(t, s.n1.PublicAddress(), r.GetSenderHost().Address.String())
-		return s.n2.BuildResponse(ctx, r, &packet.RPCResponse{}), nil
-	}
-
-	s.n2.RegisterRequestHandler(types.RPC, handler)
-
-	s.Start()
-
-	ref, err := reference.GlobalFromString(id2)
-	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
-	require.NoError(t, err)
-	f.Cancel()
-
-	wg.Wait()
 }
 
 func TestHostNetwork_SendRequestPacket3(t *testing.T) {
@@ -333,7 +305,7 @@ func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
 }
 
 func TestHostNetwork_WrongHandler(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -362,7 +334,7 @@ func TestHostNetwork_WrongHandler(t *testing.T) {
 }
 
 func TestStartStopSend(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -393,7 +365,7 @@ func TestStartStopSend(t *testing.T) {
 	require.NoError(t, err)
 	<-time.After(time.Millisecond * 10)
 
-	s.ctx1 = context.Background()
+	s.ctx1 = inslogger.TestContext(t)
 	err = s.cm1.Start(s.ctx1)
 	require.NoError(t, err)
 
@@ -402,12 +374,14 @@ func TestStartStopSend(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestToHost_NotStarted(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t)
+
+	ctx := inslogger.TestContext(t)
 
 	hn, err := NewHostNetwork(id1)
 	require.NoError(t, err)
 
-	f, err := hn.SendRequestToHost(context.Background(), types.Unknown, nil, nil)
+	f, err := hn.SendRequestToHost(ctx, types.Unknown, nil, nil)
 	require.EqualError(t, err, "host network is not started")
 	assert.Nil(t, f)
 }

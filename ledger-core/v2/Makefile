@@ -75,12 +75,11 @@ generate-proto-options:
 	protoc -I./vendor -I./ --gogofaster_out=Mgoogle/protobuf/descriptor.proto=github.com/gogo/protobuf/protoc-gen-gogo/descriptor:./ insproto/ins.proto
 
 .PHONY: generate-protobuf
-generate-protobuf: ## generate protobuf structs
-	protoc -I./vendor -I./ --gogoslick_out=./ network/node/internal/node/node.proto
-	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node.proto
+generate-protobuf: protoc-gen-ins ## generate protobuf structs
+	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node/node.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.r0.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.proto
-	protoc -I./vendor -I./ --gogoslick_out=./ insolar/pulse/pulse.proto
+	protoc -I./vendor -I./ --gogoslick_out=./ insolar/pulsestor/pulse.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src network/hostnetwork/packet/packet.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src network/consensus/adapters/candidate/profile.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ network/servicenetwork/watermillmessage.proto
@@ -115,18 +114,6 @@ prepare-inrospector-proto: ## install tools required for grpc development
 .PHONY: application-git-config
 application-git-config: ## change remote repo url from HTTPS to SSH in 'application' submodule
 	perl -i.bak -pe 's!url\s*=\s*https?://github.com/!url = git\@github.com:!' .git/modules/application/config
-
-.PHONY: docker-build
-docker-build: ## build image with binaries and files required for kubernetes deployment.
-	docker build -t insolar/assured-ledger:$(DOCKER_IMAGE_TAG) \
-		--build-arg BUILD_DATE="$(BUILD_DATE)" \
-		--build-arg BUILD_TIME="$(BUILD_TIME)" \
-		--build-arg BUILD_NUMBER="$(BUILD_NUMBER)" \
-		--build-arg BUILD_HASH="$(BUILD_HASH)" \
-		--build-arg BUILD_VERSION="$(BUILD_VERSION)" \
-		-f Dockerfile .
-	docker tag insolar/assured-ledger:$(DOCKER_IMAGE_TAG) insolar/assured-ledger:latest
-	docker images "insolar/assured-ledger"
 
 $(ARTIFACTS_DIR):
 	mkdir -p $(ARTIFACTS_DIR)

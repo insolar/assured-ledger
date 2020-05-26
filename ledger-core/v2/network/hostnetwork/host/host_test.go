@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestNewHost(t *testing.T) {
@@ -32,7 +32,7 @@ func TestNewHost_Error(t *testing.T) {
 }
 
 func TestNewHostN(t *testing.T) {
-	ref := gen.Reference()
+	ref := gen.UniqueReference()
 
 	actualHost, _ := NewHostN("127.0.0.1:31337", ref)
 	expectedHost, _ := NewHostN("127.0.0.1:31337", ref)
@@ -44,14 +44,14 @@ func TestNewHostN(t *testing.T) {
 }
 
 func TestNewHostN_Error(t *testing.T) {
-	_, err := NewHostN("invalid_addr", gen.Reference())
+	_, err := NewHostN("invalid_addr", gen.UniqueReference())
 
 	require.Error(t, err)
 }
 
 func TestNewHostNS(t *testing.T) {
-	ref := gen.Reference()
-	shortID := insolar.ShortNodeID(123)
+	ref := gen.UniqueReference()
+	shortID := node.ShortNodeID(123)
 
 	actualHost, _ := NewHostNS("127.0.0.1:31337", ref, shortID)
 	expectedHost, _ := NewHostNS("127.0.0.1:31337", ref, shortID)
@@ -63,22 +63,22 @@ func TestNewHostNS(t *testing.T) {
 }
 
 func TestNewHostNS_Error(t *testing.T) {
-	_, err := NewHostNS("invalid_addr", gen.Reference(), insolar.ShortNodeID(123))
+	_, err := NewHostNS("invalid_addr", gen.UniqueReference(), node.ShortNodeID(123))
 
 	require.Error(t, err)
 }
 
 func TestHost_String(t *testing.T) {
 	nd, _ := NewHost("127.0.0.1:31337")
-	nd.NodeID = gen.Reference()
+	nd.NodeID = gen.UniqueReference()
 	string := "id: " + fmt.Sprintf("%d", nd.ShortID) + " ref: " + nd.NodeID.String() + " addr: " + nd.Address.String()
 
 	require.Equal(t, string, nd.String())
 }
 
 func TestHost_Equal(t *testing.T) {
-	id1 := gen.Reference()
-	id2 := gen.Reference()
+	id1 := gen.UniqueReference()
+	id2 := gen.UniqueReference()
 	idNil := reference.Global{}
 	addr1, _ := NewAddress("127.0.0.1:31337")
 	addr2, _ := NewAddress("10.10.11.11:12345")
@@ -126,8 +126,8 @@ func marshalUnmarshalHost(t *testing.T, h *Host) *Host {
 }
 
 func TestHost_Marshal(t *testing.T) {
-	ref := gen.Reference()
-	sid := insolar.ShortNodeID(137)
+	ref := gen.UniqueReference()
+	sid := node.ShortNodeID(137)
 	h := Host{}
 	h.NodeID = ref
 	h.ShortID = sid
@@ -140,8 +140,8 @@ func TestHost_Marshal(t *testing.T) {
 }
 
 func TestHost_Marshal2(t *testing.T) {
-	ref := gen.Reference()
-	sid := insolar.ShortNodeID(138)
+	ref := gen.UniqueReference()
+	sid := node.ShortNodeID(138)
 	ip := []byte{10, 11, 0, 56}
 	port := 5432
 	zone := "what is it for?"

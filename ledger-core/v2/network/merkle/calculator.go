@@ -9,10 +9,11 @@ import (
 	"context"
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type stater interface {
@@ -20,10 +21,10 @@ type stater interface {
 }
 
 type calculator struct {
-	Stater                     stater                             `inject:""`
-	OriginProvider             network.OriginProvider             `inject:""` // nolint
-	PlatformCryptographyScheme insolar.PlatformCryptographyScheme `inject:""`
-	CryptographyService        insolar.CryptographyService        `inject:""`
+	Stater                     stater                                  `inject:""`
+	OriginProvider             network.OriginProvider                  `inject:""` // nolint
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
+	CryptographyService        cryptography.Service                    `inject:""`
 
 	merkleHelper *merkleHelper
 }
@@ -37,7 +38,7 @@ func (c *calculator) Init(ctx context.Context) error {
 	return nil
 }
 
-func (c *calculator) getStateHash(_ insolar.StaticRole) OriginHash {
+func (c *calculator) getStateHash(_ node.StaticRole) OriginHash {
 	// TODO: do something with role
 	return c.Stater.State()
 }
@@ -51,7 +52,7 @@ func (c *calculator) GetPulseProof(entry *PulseEntry) (OriginHash, *PulseProof, 
 
 	signature, err := c.CryptographyService.Sign(nodeInfoHash)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "[ GetPulseProof ] Failed to sign node info hash")
+		return nil, nil, errors.W(err, "[ GetPulseProof ] Failed to sign node info hash")
 	}
 
 	return pulseHash, &PulseProof{
@@ -65,7 +66,7 @@ func (c *calculator) GetPulseProof(entry *PulseEntry) (OriginHash, *PulseProof, 
 func (c *calculator) GetGlobuleProof(entry *GlobuleEntry) (OriginHash, *GlobuleProof, error) {
 	nodeRoot, err := entry.hash(c.merkleHelper)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "[ GetGlobuleProof ] Failed to calculate node root")
+		return nil, nil, errors.W(err, "[ GetGlobuleProof ] Failed to calculate node root")
 	}
 
 	nodeCount := uint32(len(entry.ProofSet))
@@ -74,7 +75,7 @@ func (c *calculator) GetGlobuleProof(entry *GlobuleEntry) (OriginHash, *GlobuleP
 
 	signature, err := c.CryptographyService.Sign(globuleHash)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "[ GetGlobuleProof ] Failed to sign globule hash")
+		return nil, nil, errors.W(err, "[ GetGlobuleProof ] Failed to sign globule hash")
 	}
 
 	return globuleHash, &GlobuleProof{
@@ -91,12 +92,12 @@ func (c *calculator) GetGlobuleProof(entry *GlobuleEntry) (OriginHash, *GlobuleP
 func (c *calculator) GetCloudProof(entry *CloudEntry) (OriginHash, *CloudProof, error) {
 	cloudHash, err := entry.hash(c.merkleHelper)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "[ GetCloudProof ] Failed to calculate cloud hash")
+		return nil, nil, errors.W(err, "[ GetCloudProof ] Failed to calculate cloud hash")
 	}
 
 	signature, err := c.CryptographyService.Sign(cloudHash)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "[ GetCloudProof ] Failed to sign cloud hash")
+		return nil, nil, errors.W(err, "[ GetCloudProof ] Failed to sign cloud hash")
 	}
 
 	return cloudHash, &CloudProof{

@@ -9,7 +9,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -28,11 +28,11 @@ func (b *PulsarPacketBody) String(ctx PacketContext) string {
 
 func (b *PulsarPacketBody) SerializeTo(_ SerializeContext, writer io.Writer) error {
 	if err := write(writer, b.PulseNumber); err != nil {
-		return errors.Wrap(err, "failed to serialize PulseNumber")
+		return errors.W(err, "failed to serialize PulseNumber")
 	}
 
 	if err := write(writer, b.PulseDataExt); err != nil {
-		return errors.Wrap(err, "failed to serialize PulseDataExt")
+		return errors.W(err, "failed to serialize PulseDataExt")
 	}
 
 	return nil
@@ -40,11 +40,11 @@ func (b *PulsarPacketBody) SerializeTo(_ SerializeContext, writer io.Writer) err
 
 func (b *PulsarPacketBody) DeserializeFrom(_ DeserializeContext, reader io.Reader) error {
 	if err := read(reader, &b.PulseNumber); err != nil {
-		return errors.Wrap(err, "failed to deserialize PulseNumber")
+		return errors.W(err, "failed to deserialize PulseNumber")
 	}
 
 	if err := read(reader, &b.PulseDataExt); err != nil {
-		return errors.Wrap(err, "failed to deserialize PulseDataExt")
+		return errors.W(err, "failed to deserialize PulseDataExt")
 	}
 
 	return nil

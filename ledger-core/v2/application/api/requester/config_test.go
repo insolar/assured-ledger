@@ -13,12 +13,12 @@ import (
 
 func TestReadFile_BadFile(t *testing.T) {
 	err := readFile("zzz", nil)
-	require.Contains(t, err.Error(), "[ readFile ] Problem with reading config: open zzz:")
+	require.Contains(t, err.Error(), "[ readFile ] Problem with reading config;\topen zzz:")
 }
 
 func TestReadFile_NotJson(t *testing.T) {
 	err := readFile("testdata/bad_json.json", nil)
-	require.EqualError(t, err, "[ readFile ] Problem with unmarshaling config: invalid character ']' after object key")
+	require.EqualError(t, err, "[ readFile ] Problem with unmarshaling config;\tinvalid character ']' after object key")
 }
 
 func TestReadRequestConfigFromFile(t *testing.T) {

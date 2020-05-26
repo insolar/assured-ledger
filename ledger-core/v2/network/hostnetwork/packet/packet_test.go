@@ -14,15 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func testRPCPacket() *Packet {
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.Reference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.Reference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
 
 	result := NewPacket(sender, receiver, types.RPC, 123)
 	result.TraceID = "d6b44f62-7b5e-4249-90c7-ccae194a5baa"

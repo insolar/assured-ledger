@@ -9,9 +9,9 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/nodeset"
 )
 
@@ -146,7 +146,7 @@ func (p *RealmVectorProjection) ScanSortedWithFilter(parentFilter uint32, apply 
 	var skipped []postponedEntry
 	unorderedSkipped := false
 
-	prevID := insolar.AbsentShortNodeID
+	prevID := node.AbsentShortNodeID
 
 	for _, se := range p.poweredSorted {
 		joiner, valueEntry := se.chooseEntry(p.indexedRefs, p.joinersRefs)
@@ -213,7 +213,7 @@ func (p *RealmVectorHelper) CreateUnsafeProjection() RealmVectorProjection {
 }
 
 func (p *RealmVectorHelper) setNodes(nodeIndex []*NodeAppearance,
-	dynamicNodes map[insolar.ShortNodeID]*NodeAppearance, populationVersion uint32) {
+	dynamicNodes map[node.ShortNodeID]*NodeAppearance, populationVersion uint32) {
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -287,7 +287,7 @@ func (p *RealmVectorHelper) setNodes(nodeIndex []*NodeAppearance,
 	}
 }
 
-func (p *VectorEntry) setValues(n *NodeAppearance) insolar.ShortNodeID {
+func (p *VectorEntry) setValues(n *NodeAppearance) node.ShortNodeID {
 
 	np := n.GetProfile()
 	p.Profile = np

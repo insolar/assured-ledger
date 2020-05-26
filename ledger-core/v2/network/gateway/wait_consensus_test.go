@@ -11,10 +11,13 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
 func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
@@ -31,7 +34,7 @@ func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
 	waitConsensus.bootstrapETA = time.Millisecond
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 
-	waitConsensus.Run(context.Background(), *insolar.EphemeralPulse)
+	waitConsensus.Run(context.Background(), *pulsestor.EphemeralPulse)
 }
 
 func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
@@ -40,21 +43,21 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state insolar.NetworkState, pulse insolar.Pulse) {
-		assert.Equal(t, insolar.WaitMajority, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
+		assert.Equal(t, node.WaitMajority, state)
 	})
 
 	waitConsensus := newWaitConsensus(&Base{})
-	assert.Equal(t, insolar.WaitConsensus, waitConsensus.GetState())
+	assert.Equal(t, node.WaitConsensus, waitConsensus.GetState())
 	waitConsensus.Gatewayer = gatewayer
 	accessorMock := mock.NewPulseAccessorMock(mc)
-	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 insolar.PulseNumber) (p2 insolar.Pulse, err error) {
-		return *insolar.EphemeralPulse, nil
+	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
+		return *pulsestor.EphemeralPulse, nil
 	})
 	waitConsensus.PulseAccessor = accessorMock
 	waitConsensus.bootstrapETA = time.Second
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 	waitConsensus.OnConsensusFinished(context.Background(), network.Report{})
 
-	waitConsensus.Run(context.Background(), *insolar.EphemeralPulse)
+	waitConsensus.Run(context.Background(), *pulsestor.EphemeralPulse)
 }

@@ -105,12 +105,6 @@ type ShadowMigrator interface {
 type StateMachineDeclTemplate struct {
 }
 
-//var _ StateMachineDeclaration = &StateMachineDeclTemplate{}
-//
-//func (s *StateMachineDeclTemplate) GetInitStateFor(StateMachine) InitFunc {
-//	panic("implement me")
-//}
-
 func (s *StateMachineDeclTemplate) GetStepDeclaration(StateFunc) *StepDeclaration {
 	return nil
 }

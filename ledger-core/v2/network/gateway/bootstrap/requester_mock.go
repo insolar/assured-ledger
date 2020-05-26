@@ -9,24 +9,26 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 )
 
 // RequesterMock implements Requester
 type RequesterMock struct {
 	t minimock.Tester
 
-	funcAuthorize          func(ctx context.Context, c2 insolar.Certificate) (pp1 *packet.Permit, err error)
-	inspectFuncAuthorize   func(ctx context.Context, c2 insolar.Certificate)
+	funcAuthorize          func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error)
+	inspectFuncAuthorize   func(ctx context.Context, c2 node.Certificate)
 	afterAuthorizeCounter  uint64
 	beforeAuthorizeCounter uint64
 	AuthorizeMock          mRequesterMockAuthorize
 
-	funcBootstrap          func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) (bp1 *packet.BootstrapResponse, err error)
-	inspectFuncBootstrap   func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse)
+	funcBootstrap          func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error)
+	inspectFuncBootstrap   func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse)
 	afterBootstrapCounter  uint64
 	beforeBootstrapCounter uint64
 	BootstrapMock          mRequesterMockBootstrap
@@ -37,8 +39,8 @@ type RequesterMock struct {
 	beforeReconnectCounter uint64
 	ReconnectMock          mRequesterMockReconnect
 
-	funcUpdateSchedule          func(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber) (up1 *packet.UpdateScheduleResponse, err error)
-	inspectFuncUpdateSchedule   func(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber)
+	funcUpdateSchedule          func(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number) (up1 *packet.UpdateScheduleResponse, err error)
+	inspectFuncUpdateSchedule   func(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number)
 	afterUpdateScheduleCounter  uint64
 	beforeUpdateScheduleCounter uint64
 	UpdateScheduleMock          mRequesterMockUpdateSchedule
@@ -86,7 +88,7 @@ type RequesterMockAuthorizeExpectation struct {
 // RequesterMockAuthorizeParams contains parameters of the Requester.Authorize
 type RequesterMockAuthorizeParams struct {
 	ctx context.Context
-	c2  insolar.Certificate
+	c2  node.Certificate
 }
 
 // RequesterMockAuthorizeResults contains results of the Requester.Authorize
@@ -96,7 +98,7 @@ type RequesterMockAuthorizeResults struct {
 }
 
 // Expect sets up expected params for Requester.Authorize
-func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 insolar.Certificate) *mRequesterMockAuthorize {
+func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 node.Certificate) *mRequesterMockAuthorize {
 	if mmAuthorize.mock.funcAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("RequesterMock.Authorize mock is already set by Set")
 	}
@@ -116,7 +118,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 insol
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Authorize
-func (mmAuthorize *mRequesterMockAuthorize) Inspect(f func(ctx context.Context, c2 insolar.Certificate)) *mRequesterMockAuthorize {
+func (mmAuthorize *mRequesterMockAuthorize) Inspect(f func(ctx context.Context, c2 node.Certificate)) *mRequesterMockAuthorize {
 	if mmAuthorize.mock.inspectFuncAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("Inspect function is already set for RequesterMock.Authorize")
 	}
@@ -140,7 +142,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Return(pp1 *packet.Permit, err error
 }
 
 //Set uses given function f to mock the Requester.Authorize method
-func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 insolar.Certificate) (pp1 *packet.Permit, err error)) *RequesterMock {
+func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error)) *RequesterMock {
 	if mmAuthorize.defaultExpectation != nil {
 		mmAuthorize.mock.t.Fatalf("Default expectation is already set for the Requester.Authorize method")
 	}
@@ -155,7 +157,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 i
 
 // When sets expectation for the Requester.Authorize which will trigger the result defined by the following
 // Then helper
-func (mmAuthorize *mRequesterMockAuthorize) When(ctx context.Context, c2 insolar.Certificate) *RequesterMockAuthorizeExpectation {
+func (mmAuthorize *mRequesterMockAuthorize) When(ctx context.Context, c2 node.Certificate) *RequesterMockAuthorizeExpectation {
 	if mmAuthorize.mock.funcAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("RequesterMock.Authorize mock is already set by Set")
 	}
@@ -175,7 +177,7 @@ func (e *RequesterMockAuthorizeExpectation) Then(pp1 *packet.Permit, err error) 
 }
 
 // Authorize implements Requester
-func (mmAuthorize *RequesterMock) Authorize(ctx context.Context, c2 insolar.Certificate) (pp1 *packet.Permit, err error) {
+func (mmAuthorize *RequesterMock) Authorize(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error) {
 	mm_atomic.AddUint64(&mmAuthorize.beforeAuthorizeCounter, 1)
 	defer mm_atomic.AddUint64(&mmAuthorize.afterAuthorizeCounter, 1)
 
@@ -305,7 +307,7 @@ type RequesterMockBootstrapParams struct {
 	ctx context.Context
 	pp1 *packet.Permit
 	c2  adapters.Candidate
-	pp2 *insolar.Pulse
+	pp2 *pulsestor.Pulse
 }
 
 // RequesterMockBootstrapResults contains results of the Requester.Bootstrap
@@ -315,7 +317,7 @@ type RequesterMockBootstrapResults struct {
 }
 
 // Expect sets up expected params for Requester.Bootstrap
-func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) *mRequesterMockBootstrap {
+func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) *mRequesterMockBootstrap {
 	if mmBootstrap.mock.funcBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("RequesterMock.Bootstrap mock is already set by Set")
 	}
@@ -335,7 +337,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *pac
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Bootstrap
-func (mmBootstrap *mRequesterMockBootstrap) Inspect(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse)) *mRequesterMockBootstrap {
+func (mmBootstrap *mRequesterMockBootstrap) Inspect(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse)) *mRequesterMockBootstrap {
 	if mmBootstrap.mock.inspectFuncBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("Inspect function is already set for RequesterMock.Bootstrap")
 	}
@@ -359,7 +361,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Return(bp1 *packet.BootstrapResponse
 }
 
 //Set uses given function f to mock the Requester.Bootstrap method
-func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) (bp1 *packet.BootstrapResponse, err error)) *RequesterMock {
+func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error)) *RequesterMock {
 	if mmBootstrap.defaultExpectation != nil {
 		mmBootstrap.mock.t.Fatalf("Default expectation is already set for the Requester.Bootstrap method")
 	}
@@ -374,7 +376,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 
 
 // When sets expectation for the Requester.Bootstrap which will trigger the result defined by the following
 // Then helper
-func (mmBootstrap *mRequesterMockBootstrap) When(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) *RequesterMockBootstrapExpectation {
+func (mmBootstrap *mRequesterMockBootstrap) When(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) *RequesterMockBootstrapExpectation {
 	if mmBootstrap.mock.funcBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("RequesterMock.Bootstrap mock is already set by Set")
 	}
@@ -394,7 +396,7 @@ func (e *RequesterMockBootstrapExpectation) Then(bp1 *packet.BootstrapResponse, 
 }
 
 // Bootstrap implements Requester
-func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *insolar.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error) {
 	mm_atomic.AddUint64(&mmBootstrap.beforeBootstrapCounter, 1)
 	defer mm_atomic.AddUint64(&mmBootstrap.afterBootstrapCounter, 1)
 
@@ -741,7 +743,7 @@ type RequesterMockUpdateScheduleExpectation struct {
 type RequesterMockUpdateScheduleParams struct {
 	ctx context.Context
 	pp1 *packet.Permit
-	p1  insolar.PulseNumber
+	n1  pulse.Number
 }
 
 // RequesterMockUpdateScheduleResults contains results of the Requester.UpdateSchedule
@@ -751,7 +753,7 @@ type RequesterMockUpdateScheduleResults struct {
 }
 
 // Expect sets up expected params for Requester.UpdateSchedule
-func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Expect(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber) *mRequesterMockUpdateSchedule {
+func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Expect(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number) *mRequesterMockUpdateSchedule {
 	if mmUpdateSchedule.mock.funcUpdateSchedule != nil {
 		mmUpdateSchedule.mock.t.Fatalf("RequesterMock.UpdateSchedule mock is already set by Set")
 	}
@@ -760,7 +762,7 @@ func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Expect(ctx context.Context
 		mmUpdateSchedule.defaultExpectation = &RequesterMockUpdateScheduleExpectation{}
 	}
 
-	mmUpdateSchedule.defaultExpectation.params = &RequesterMockUpdateScheduleParams{ctx, pp1, p1}
+	mmUpdateSchedule.defaultExpectation.params = &RequesterMockUpdateScheduleParams{ctx, pp1, n1}
 	for _, e := range mmUpdateSchedule.expectations {
 		if minimock.Equal(e.params, mmUpdateSchedule.defaultExpectation.params) {
 			mmUpdateSchedule.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateSchedule.defaultExpectation.params)
@@ -771,7 +773,7 @@ func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Expect(ctx context.Context
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.UpdateSchedule
-func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Inspect(f func(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber)) *mRequesterMockUpdateSchedule {
+func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Inspect(f func(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number)) *mRequesterMockUpdateSchedule {
 	if mmUpdateSchedule.mock.inspectFuncUpdateSchedule != nil {
 		mmUpdateSchedule.mock.t.Fatalf("Inspect function is already set for RequesterMock.UpdateSchedule")
 	}
@@ -795,7 +797,7 @@ func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Return(up1 *packet.UpdateS
 }
 
 //Set uses given function f to mock the Requester.UpdateSchedule method
-func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Set(f func(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber) (up1 *packet.UpdateScheduleResponse, err error)) *RequesterMock {
+func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Set(f func(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number) (up1 *packet.UpdateScheduleResponse, err error)) *RequesterMock {
 	if mmUpdateSchedule.defaultExpectation != nil {
 		mmUpdateSchedule.mock.t.Fatalf("Default expectation is already set for the Requester.UpdateSchedule method")
 	}
@@ -810,14 +812,14 @@ func (mmUpdateSchedule *mRequesterMockUpdateSchedule) Set(f func(ctx context.Con
 
 // When sets expectation for the Requester.UpdateSchedule which will trigger the result defined by the following
 // Then helper
-func (mmUpdateSchedule *mRequesterMockUpdateSchedule) When(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber) *RequesterMockUpdateScheduleExpectation {
+func (mmUpdateSchedule *mRequesterMockUpdateSchedule) When(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number) *RequesterMockUpdateScheduleExpectation {
 	if mmUpdateSchedule.mock.funcUpdateSchedule != nil {
 		mmUpdateSchedule.mock.t.Fatalf("RequesterMock.UpdateSchedule mock is already set by Set")
 	}
 
 	expectation := &RequesterMockUpdateScheduleExpectation{
 		mock:   mmUpdateSchedule.mock,
-		params: &RequesterMockUpdateScheduleParams{ctx, pp1, p1},
+		params: &RequesterMockUpdateScheduleParams{ctx, pp1, n1},
 	}
 	mmUpdateSchedule.expectations = append(mmUpdateSchedule.expectations, expectation)
 	return expectation
@@ -830,15 +832,15 @@ func (e *RequesterMockUpdateScheduleExpectation) Then(up1 *packet.UpdateSchedule
 }
 
 // UpdateSchedule implements Requester
-func (mmUpdateSchedule *RequesterMock) UpdateSchedule(ctx context.Context, pp1 *packet.Permit, p1 insolar.PulseNumber) (up1 *packet.UpdateScheduleResponse, err error) {
+func (mmUpdateSchedule *RequesterMock) UpdateSchedule(ctx context.Context, pp1 *packet.Permit, n1 pulse.Number) (up1 *packet.UpdateScheduleResponse, err error) {
 	mm_atomic.AddUint64(&mmUpdateSchedule.beforeUpdateScheduleCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdateSchedule.afterUpdateScheduleCounter, 1)
 
 	if mmUpdateSchedule.inspectFuncUpdateSchedule != nil {
-		mmUpdateSchedule.inspectFuncUpdateSchedule(ctx, pp1, p1)
+		mmUpdateSchedule.inspectFuncUpdateSchedule(ctx, pp1, n1)
 	}
 
-	mm_params := &RequesterMockUpdateScheduleParams{ctx, pp1, p1}
+	mm_params := &RequesterMockUpdateScheduleParams{ctx, pp1, n1}
 
 	// Record call args
 	mmUpdateSchedule.UpdateScheduleMock.mutex.Lock()
@@ -855,7 +857,7 @@ func (mmUpdateSchedule *RequesterMock) UpdateSchedule(ctx context.Context, pp1 *
 	if mmUpdateSchedule.UpdateScheduleMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmUpdateSchedule.UpdateScheduleMock.defaultExpectation.Counter, 1)
 		mm_want := mmUpdateSchedule.UpdateScheduleMock.defaultExpectation.params
-		mm_got := RequesterMockUpdateScheduleParams{ctx, pp1, p1}
+		mm_got := RequesterMockUpdateScheduleParams{ctx, pp1, n1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmUpdateSchedule.t.Errorf("RequesterMock.UpdateSchedule got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -867,9 +869,9 @@ func (mmUpdateSchedule *RequesterMock) UpdateSchedule(ctx context.Context, pp1 *
 		return (*mm_results).up1, (*mm_results).err
 	}
 	if mmUpdateSchedule.funcUpdateSchedule != nil {
-		return mmUpdateSchedule.funcUpdateSchedule(ctx, pp1, p1)
+		return mmUpdateSchedule.funcUpdateSchedule(ctx, pp1, n1)
 	}
-	mmUpdateSchedule.t.Fatalf("Unexpected call to RequesterMock.UpdateSchedule. %v %v %v", ctx, pp1, p1)
+	mmUpdateSchedule.t.Fatalf("Unexpected call to RequesterMock.UpdateSchedule. %v %v %v", ctx, pp1, n1)
 	return
 }
 

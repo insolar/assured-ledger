@@ -20,12 +20,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 
 	"github.com/stretchr/testify/require"
 
@@ -37,13 +39,12 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
@@ -124,9 +125,9 @@ func (s *consensusSuite) Setup() {
 	suiteLogger.Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
-		role := insolar.StaticRoleVirtual
+		role := node2.StaticRoleVirtual
 		if i == 0 {
-			role = insolar.StaticRoleHeavyMaterial
+			role = node2.StaticRoleHeavyMaterial
 		}
 		s.bootstrapNodes = append(s.bootstrapNodes, s.newNetworkNodeWithRole(fmt.Sprintf("bootstrap_%d", i), role))
 	}
@@ -143,7 +144,7 @@ func (s *consensusSuite) Setup() {
 	suiteLogger.Info("Setup bootstrap nodes")
 	s.SetupNodesNetwork(s.bootstrapNodes)
 	if UseFakeBootstrap {
-		bnodes := make([]insolar.NetworkNode, 0)
+		bnodes := make([]node2.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
 			o := n.serviceNetwork.NodeKeeper.GetOrigin()
 			dig, sig := o.(node.MutableNode).GetSignature()
@@ -155,11 +156,11 @@ func (s *consensusSuite) Setup() {
 		for _, n := range s.bootstrapNodes {
 			n.serviceNetwork.BaseGateway.ConsensusMode = consensus.ReadyNetwork
 			n.serviceNetwork.NodeKeeper.SetInitialSnapshot(bnodes)
-			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, *insolar.GenesisPulse)
+			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, *pulsestor.GenesisPulse)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, insolar.CompleteNetworkState, *insolar.GenesisPulse)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState, *pulsestor.GenesisPulse)
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
 	}
@@ -300,8 +301,8 @@ func (s *consensusSuite) waitForNodeLeave(ref reference.Global, pulsesCount int)
 	return false
 }
 
-func (s *consensusSuite) waitForConsensus(consensusCount int) insolar.PulseNumber {
-	var p insolar.PulseNumber
+func (s *consensusSuite) waitForConsensus(consensusCount int) pulsestor.Number {
+	var p pulsestor.Number
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
 			select {
@@ -320,11 +321,11 @@ func (s *consensusSuite) waitForConsensus(consensusCount int) insolar.PulseNumbe
 	return p
 }
 
-func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
-	var nodes []insolar.NetworkNode
+func (s *consensusSuite) assertNetworkInConsistentState(p pulsestor.Number) {
+	var nodes []node2.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
-		require.Equal(s.t, insolar.CompleteNetworkState.String(),
+		require.Equal(s.t, node2.CompleteNetworkState.String(),
 			n.serviceNetwork.Gatewayer.Gateway().GetState().String(),
 			"Node not in CompleteNetworkState",
 		)
@@ -339,8 +340,8 @@ func (s *consensusSuite) assertNetworkInConsistentState(p insolar.PulseNumber) {
 	}
 }
 
-func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) insolar.PulseNumber {
-	var p insolar.PulseNumber
+func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) pulsestor.Number {
+	var p pulsestor.Number
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
 			if n.id.Equal(exception) {
@@ -365,7 +366,7 @@ func (s *testSuite) getNodesCount() int {
 	return len(s.bootstrapNodes) // + len(s.networkNodes)
 }
 
-func (s *testSuite) isNodeInActiveLists(ref reference.Global, p insolar.PulseNumber) bool {
+func (s *testSuite) isNodeInActiveLists(ref reference.Global, p pulsestor.Number) bool {
 	for _, n := range s.bootstrapNodes {
 		a := n.serviceNetwork.NodeKeeper.GetAccessor(p)
 		if a.GetActiveNode(ref) == nil {
@@ -409,20 +410,20 @@ func (s *testSuite) GracefulStop(node *networkNode) {
 
 type networkNode struct {
 	id                  reference.Global
-	role                insolar.StaticRole
+	role                node2.StaticRole
 	privateKey          crypto.PrivateKey
-	cryptographyService insolar.CryptographyService
+	cryptographyService cryptography.Service
 	host                string
 	ctx                 context.Context
 
 	componentManager   *component.Manager
 	serviceNetwork     *servicenetwork.ServiceNetwork
 	terminationHandler *testutils.TerminationHandlerMock
-	consensusResult    chan insolar.PulseNumber
+	consensusResult    chan pulsestor.Number
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
-	return s.newNetworkNodeWithRole(name, insolar.StaticRoleVirtual)
+	return s.newNetworkNodeWithRole(name, node2.StaticRoleVirtual)
 }
 func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 	testNode := s.newNetworkNode(name)
@@ -433,18 +434,18 @@ func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 }
 
 // newNetworkNode returns networkNode initialized only with id, host address and key pair
-func (s *testSuite) newNetworkNodeWithRole(name string, role insolar.StaticRole) *networkNode {
+func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *networkNode {
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(s.t, err)
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
 
 	n := &networkNode{
-		id:                  gen.Reference(),
+		id:                  gen.UniqueReference(),
 		role:                role,
 		privateKey:          key,
-		cryptographyService: cryptography.NewKeyBoundCryptographyService(key),
+		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),
 		host:                address,
-		consensusResult:     make(chan insolar.PulseNumber, 1),
+		consensusResult:     make(chan pulsestor.Number, 1),
 	}
 
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
@@ -460,7 +461,7 @@ func incrementTestPort() int {
 	return int(result)
 }
 
-func (n *networkNode) GetActiveNodes() []insolar.NetworkNode {
+func (n *networkNode) GetActiveNodes() []node2.NetworkNode {
 	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
 	if err != nil {
 		panic(err)
@@ -468,7 +469,7 @@ func (n *networkNode) GetActiveNodes() []insolar.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNodes()
 }
 
-func (n *networkNode) GetWorkingNodes() []insolar.NetworkNode {
+func (n *networkNode) GetWorkingNodes() []node2.NetworkNode {
 	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
 	if err != nil {
 		panic(err)
@@ -476,7 +477,7 @@ func (n *networkNode) GetWorkingNodes() []insolar.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
 }
 
-func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManager, insolar.CryptographyService) {
+func (s *testSuite) initCrypto(node *networkNode) (*mandates.CertificateManager, cryptography.Service) {
 	pubKey, err := node.cryptographyService.GetPublicKey()
 	require.NoError(s.t, err)
 
@@ -486,11 +487,11 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 	publicKey, err := proc.ExportPublicKeyPEM(pubKey)
 	require.NoError(s.t, err)
 
-	cert := &certificate.Certificate{}
+	cert := &mandates.Certificate{}
 	cert.PublicKey = string(publicKey[:])
 	cert.Reference = node.id.String()
 	cert.Role = node.role.String()
-	cert.BootstrapNodes = make([]certificate.BootstrapNode, 0)
+	cert.BootstrapNodes = make([]mandates.BootstrapNode, 0)
 	cert.MinRoles.HeavyMaterial = 1
 	cert.MinRoles.Virtual = 1
 
@@ -499,7 +500,7 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 		pubKeyBuf, err := proc.ExportPublicKeyPEM(pubKey)
 		require.NoError(s.t, err)
 
-		bootstrapNode := certificate.NewBootstrapNode(
+		bootstrapNode := mandates.NewBootstrapNode(
 			pubKey,
 			string(pubKeyBuf[:]),
 			b.host,
@@ -507,7 +508,7 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 			b.role.String(),
 		)
 
-		sign, err := certificate.SignCert(b.cryptographyService, cert.PublicKey, cert.Role, cert.Reference)
+		sign, err := mandates.SignCert(b.cryptographyService, cert.PublicKey, cert.Role, cert.Reference)
 		require.NoError(s.t, err)
 		bootstrapNode.NodeSign = sign.Bytes()
 
@@ -518,9 +519,9 @@ func (s *testSuite) initCrypto(node *networkNode) (*certificate.CertificateManag
 	jsonCert, err := cert.Dump()
 	require.NoError(s.t, err)
 
-	cert, err = certificate.ReadCertificateFromReader(pubKey, proc, strings.NewReader(jsonCert))
+	cert, err = mandates.ReadCertificateFromReader(pubKey, proc, strings.NewReader(jsonCert))
 	require.NoError(s.t, err)
-	return certificate.NewCertificateManager(cert), node.cryptographyService
+	return mandates.NewCertificateManager(cert), node.cryptographyService
 }
 
 type PublisherMock struct{}
@@ -559,8 +560,8 @@ func (s *testSuite) preInitNode(node *networkNode) {
 		node.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 	}
 
-	pulseManager := testutils.NewPulseManagerMock(s.t)
-	pulseManager.SetMock.Set(func(ctx context.Context, pulse insolar.Pulse) (err error) {
+	pulseManager := pulsestor.NewManagerMock(s.t)
+	pulseManager.SetMock.Set(func(ctx context.Context, pulse pulsestor.Pulse) (err error) {
 		return nil
 	})
 	node.componentManager.Inject(

@@ -12,25 +12,27 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/gen"
+	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 )
 
 func TestMemoryStorage(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStorage()
-	startPulse := *insolar.GenesisPulse
+	startPulse := *pulsestor.GenesisPulse
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
-	n := node.NewNode(gen.Reference(), insolar.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
-	nodes := []insolar.NetworkNode{n}
+	n := node.NewNode(gen.UniqueReference(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	nodes := []node2.NetworkNode{n}
 
 	for i := 0; i < entriesCount+2; i++ {
 		p := startPulse
-		p.PulseNumber += insolar.PulseNumber(i)
+		p.PulseNumber += pulse.Number(i)
 
 		snap := node.NewSnapshot(p.PulseNumber, nodes)
 		err = s.Append(p.PulseNumber, snap)
@@ -54,7 +56,7 @@ func TestMemoryStorage(t *testing.T) {
 
 	p2, err := s.GetPulse(ctx, startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Equal(t, p2, *insolar.GenesisPulse)
+	assert.Equal(t, p2, *pulsestor.GenesisPulse)
 
 	snap2, err := s.ForPulseNumber(startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())

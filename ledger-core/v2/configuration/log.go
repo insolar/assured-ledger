@@ -9,9 +9,10 @@ package configuration
 type Log struct {
 	// Default level for logger
 	Level string
-	//// Default level for global filtering
-	//GlobalLevel string
-	// Logging adapter - only zerolog by now
+	// // Default level for global filtering
+	// GlobalLevel string
+
+	// Logging adapter - zerolog (json, text) or bilog (json, text, pbuf)
 	Adapter string
 	// Log output format - e.g. json or text
 	Formatter string

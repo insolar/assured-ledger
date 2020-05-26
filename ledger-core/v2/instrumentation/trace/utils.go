@@ -10,8 +10,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type traceIDKey struct{}
@@ -26,11 +27,15 @@ func ID(ctx context.Context) string {
 }
 
 func SetID(ctx context.Context, traceid string) (context.Context, error) {
-	if ID(ctx) != "" {
+	switch id := ID(ctx); {
+	case id == "":
+		return context.WithValue(ctx, traceIDKey{}, traceid), nil
+	case id == traceid:
+		return ctx, nil
+	default:
 		return context.WithValue(ctx, traceIDKey{}, traceid),
 			errors.Errorf("TraceID already set: old: %s new: %s", ID(ctx), traceid)
 	}
-	return context.WithValue(ctx, traceIDKey{}, traceid), nil
 }
 
 // RandID returns random traceID in uuid format.

@@ -11,30 +11,52 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
+
+const (
+	mLog   = "LOG"
+	mError = "ERR"
+	mWarning = "WRN"
+	mTrace   = "TRC"
+	mActiveTrace = "TRA"
+	mFatal = "FTL"
+)
+
+var _ smachine.SlotMachineLogger = MachineLogger{}
 type MachineLogger struct {
 	EchoToGlobal bool
 }
 
 func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg string) {
-	fmt.Printf("[MACHINE][LOG] %s[%3d]: %03d @ %03d: internal %s%s\n", data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, formatErrorStack(data.Error))
+	if data.Error != nil {
+		l.LogMachineCritical(data, msg)
+		return
+	}
+
+	printMachineData(data, mLog, msg)
+
 	if l.EchoToGlobal {
 		global.Infom(throw.E(msg, data))
 	}
 }
 
 func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
-	fmt.Printf("[MACHINE][ERR] %s[%3d]: %03d @ %03d: internal %s%s\n", data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, formatErrorStack(data.Error))
+	printMachineData(data, mError, msg)
+
+	if data.Error == nil {
+		data.Error = throw.New("error is missing")
+	}
+
 	global.Errorm(throw.W(data.Error, msg, data))
 }
 
@@ -66,7 +88,203 @@ func (v conveyorStepLogger) CreateAsyncLogger(_ context.Context, _ *smachine.Ste
 	return v.ctxWithTrace, v
 }
 
-func getStepName(step interface{}) string {
+func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine.StepLoggerUpdateData) {
+	level, levelName := MapBasicLogLevel(data)
+
+	PrepareStepName(&data.CurrentStep)
+	PrepareStepName(&upd.NextStep)
+
+	durations := ""
+	if upd.InactivityNano > 0 || upd.ActivityNano > 0 {
+		durations = fmt.Sprintf(" timing=%s/%s", upd.InactivityNano, upd.ActivityNano)
+	}
+
+	msg := data.FormatForLog(upd.UpdateType)
+	printStepData(data, levelName, msg,
+		fmt.Sprintf("next=%v%s payload=%T tracer=%v", upd.NextStep.GetStepName(), durations, v.sm, v.tracer))
+
+	if !v.echoToGlobal && level < log.ErrorLevel {
+		return
+	}
+
+	if err := data.Error; err != nil {
+		data.Error = nil
+		global.Eventm(level, throw.W(err, msg, data, upd))
+	} else {
+		global.Event(level, msg, data, upd)
+	}
+}
+
+func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
+	level, levelName := MapBasicLogLevel(data)
+
+	PrepareStepName(&data.CurrentStep)
+
+	msgText := data.FormatForLog("internal " + updateType)
+	printStepData(data, levelName, msgText,
+		fmt.Sprintf("payload=%T tracer=%v", v.sm, v.tracer))
+
+	if !v.echoToGlobal && level < log.ErrorLevel {
+		return
+	}
+
+	if err := data.Error; err != nil {
+		data.Error = nil
+		global.Eventm(level, throw.W(err, msgText, data))
+	} else {
+		global.Event(level, msgText, data)
+	}
+}
+
+func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
+	level, levelName := MapCustomLogLevel(data)
+
+	PrepareStepName(&data.CurrentStep)
+
+	printStepData(data, levelName, fmt.Sprintf("custom %+v", customEvent),
+		fmt.Sprintf("payload=%T tracer=%v", v.sm, v.tracer))
+
+	if !v.echoToGlobal && level < log.ErrorLevel {
+		return
+	}
+
+	if err, ok := customEvent.(error); ok && err == nil {
+		msgText := data.FormatForLog("custom")
+		global.Eventm(level, throw.W(err, msgText, data), fields...)
+	} else if err = data.Error; err != nil {
+		data.Error = nil
+		msgText := data.FormatForLog("custom")
+		global.Eventm(level, throw.W(err, msgText, data), fields...)
+	} else {
+		dm := global.Logger().FieldsOf(data)
+		global.Eventm(level, customEvent, logfmt.JoinFields(fields, dm)...)
+	}
+
+	if data.EventType == smachine.StepLoggerFatal {
+		panic("os.Exit(1)")
+	}
+}
+
+func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
+	level, levelName := MapBasicLogLevel(data)
+
+	msg := data.FormatForLog("")
+
+	printStepData(data, levelName, msg,
+		fmt.Sprintf("adapter=%v/0x%x payload=%T tracer=%v", adapterID, callID, v.sm, v.tracer))
+
+	if !v.echoToGlobal && level < log.ErrorLevel {
+		return
+	}
+
+	extra := struct { AdapterID smachine.AdapterID; CallID uint64 }{ adapterID, callID }
+
+	if err := data.Error; err != nil {
+		data.Error = nil
+		global.Eventm(level, throw.W(err, msg, data, extra), fields...)
+	} else {
+		dm := global.Logger().FieldsOf(data)
+		em := global.Logger().FieldsOf(extra)
+		global.Eventm(level, msg, logfmt.JoinFields(fields, dm, em)...)
+	}
+}
+
+const StackMinimizePackage = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+
+func formatErrorStack(err error) string {
+	if err == nil {
+		return ""
+	}
+	st := throw.DeepestStackTraceOf(err)
+	st = throw.MinimizeStackTrace(st, StackMinimizePackage, true)
+	return throw.JoinStackText(" " + logoutput.ErrorMsgFieldName + "=" + err.Error(), st)
+}
+
+func printTimestamp() string {
+	return time.Now().Format(inslogger.TimestampFormat)
+}
+
+func printMachineData(data smachine.SlotMachineData, level, msg string) {
+	fmt.Printf("%s %s %s[%3d] [MACHINE] %03d @ %03d: internal %s%s\n", printTimestamp(),
+		level, data.StepNo.MachineID(), data.CycleNo,
+		data.StepNo.SlotID(), data.StepNo.StepNo(), msg, formatErrorStack(data.Error))
+}
+
+func printStepData(data smachine.StepLoggerData, level, msg, extra string) {
+	switch {
+	case data.Error != nil:
+		if level == "" {
+			level = mError
+		}
+	case level == "":
+		level = mLog
+	}
+
+	fmt.Printf("%s %s %s[%3d] %03d @ %03d: %s current=%v %s%s\n", printTimestamp(),
+		level, data.StepNo.MachineID(), data.CycleNo,
+		data.StepNo.SlotID(), data.StepNo.StepNo(),
+		msg,
+		data.CurrentStep.GetStepName(), extra,
+		formatErrorStack(data.Error))
+}
+
+func MapCustomLogLevel(data smachine.StepLoggerData) (log.Level, string) {
+	return _mapLogLevel(data.EventType, data)
+}
+
+func MapBasicLogLevel(data smachine.StepLoggerData) (log.Level, string) {
+	if data.EventType >= smachine.StepLoggerTrace {
+		panic(throw.IllegalValue())
+	}
+	return _mapLogLevel(data.EventType, data)
+}
+
+func _mapLogLevel(eventType smachine.StepLoggerEvent, data smachine.StepLoggerData) (log.Level, string) {
+	switch {
+	case data.Error != nil:
+		return MapLogEvent(eventType, smachine.StepLogLevelError)
+	case data.IsElevated():
+		return MapLogEvent(eventType, smachine.StepLogLevelElevated)
+	default:
+		return MapLogEvent(eventType, smachine.StepLogLevelDefault)
+	}
+}
+
+func MapLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) (log.Level, string) {
+	switch eventType {
+	case smachine.StepLoggerError:
+		return log.ErrorLevel, mError
+	case smachine.StepLoggerFatal:
+		return log.FatalLevel, mFatal
+	}
+
+	switch stepLevel {
+	case smachine.StepLogLevelDefault:
+		switch eventType {
+		case smachine.StepLoggerTrace:
+			return log.DebugLevel, mTrace
+		case smachine.StepLoggerActiveTrace:
+			return log.InfoLevel, mActiveTrace
+		case smachine.StepLoggerWarn:
+			return log.WarnLevel, mWarning
+		case smachine.StepLoggerUpdate, smachine.StepLoggerMigrate, smachine.StepLoggerInternal, smachine.StepLoggerAdapterCall:
+			return log.DebugLevel, mLog
+		}
+	case smachine.StepLogLevelError:
+		return log.ErrorLevel, mError
+	default:
+		if eventType < smachine.StepLoggerWarn {
+			return log.InfoLevel, mLog
+		}
+		if eventType == smachine.StepLoggerWarn {
+			return log.WarnLevel, mWarning
+		}
+	}
+
+	return log.InfoLevel, fmt.Sprintf("U%d", eventType)
+}
+
+func GetStepName(step interface{}) string {
 	fullName := runtime.FuncForPC(reflect.ValueOf(step).Pointer()).Name()
 	if lastIndex := strings.LastIndex(fullName, "/"); lastIndex >= 0 {
 		fullName = fullName[lastIndex+1:]
@@ -81,171 +299,10 @@ func getStepName(step interface{}) string {
 	return fullName
 }
 
-func (v conveyorStepLogger) prepareStepName(sd *smachine.StepDeclaration) {
+func PrepareStepName(sd *smachine.StepDeclaration) {
 	if !sd.IsNameless() {
 		return
 	}
-	sd.Name = getStepName(sd.Transition)
+	sd.Name = GetStepName(sd.Transition)
 }
 
-func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine.StepLoggerUpdateData) {
-	special := ""
-
-	switch data.EventType {
-	case smachine.StepLoggerUpdate:
-	case smachine.StepLoggerMigrate:
-		special = "migrate "
-	default:
-		panic("illegal value")
-	}
-
-	v.prepareStepName(&data.CurrentStep)
-	v.prepareStepName(&upd.NextStep)
-
-	detached := ""
-	if data.Flags&smachine.StepLoggerDetached != 0 {
-		detached = "(detached)"
-	}
-
-	durations := ""
-	if upd.InactivityNano > 0 || upd.ActivityNano > 0 {
-		durations = fmt.Sprintf(" timing=%s/%s", upd.InactivityNano, upd.ActivityNano)
-	}
-
-	if data.Error == nil {
-		fmt.Printf("[LOG] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v\n", data.StepNo.MachineID(), data.CycleNo,
-			data.StepNo.SlotID(), data.StepNo.StepNo(),
-			special, upd.UpdateType, detached, durations,
-			data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(), v.sm, v.tracer)
-
-		if v.echoToGlobal {
-			global.Infom(throw.E(special+upd.UpdateType+detached, data,
-				struct{ CurrentStep, NextStep string }{
-					data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(),
-				}))
-		}
-		return
-	}
-
-	errSpecial := ""
-	switch data.Flags & smachine.StepLoggerErrorMask {
-	case smachine.StepLoggerUpdateErrorMuted:
-		errSpecial = "muted "
-	case smachine.StepLoggerUpdateErrorRecovered:
-		errSpecial = "recovered "
-	case smachine.StepLoggerUpdateErrorRecoveryDenied:
-		errSpecial = "recover-denied "
-	}
-
-	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: %s%s%s%s current=%v next=%v payload=%T tracer=%v%s\n", data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(),
-		special, errSpecial, upd.UpdateType, detached, data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(), v.sm, v.tracer,
-		formatErrorStack(data.Error))
-
-	global.Errorm(throw.W(data.Error, special+errSpecial+upd.UpdateType+detached, data,
-		struct{ CurrentStep, NextStep string }{
-			data.CurrentStep.GetStepName(), upd.NextStep.GetStepName(),
-		}))
-}
-
-func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
-	v.prepareStepName(&data.CurrentStep)
-
-	fmt.Printf("[ERR] %s[%3d]: %03d @ %03d: internal %s current=%v payload=%T tracer=%v%s\n", data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(),
-		updateType, data.CurrentStep.GetStepName(), v.sm, v.tracer, formatErrorStack(data.Error))
-
-	global.Errorm(throw.W(data.Error, updateType, data,
-		struct{ CurrentStep string }{data.CurrentStep.GetStepName()}))
-}
-
-func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
-	special := ""
-
-	v.prepareStepName(&data.CurrentStep)
-
-	var level log.Level
-	switch data.EventType {
-	case smachine.StepLoggerTrace:
-		special = "TRC"
-		level = log.DebugLevel
-	case smachine.StepLoggerActiveTrace:
-		special = "TRA"
-		level = log.InfoLevel
-	case smachine.StepLoggerWarn:
-		special = "WRN"
-		level = log.WarnLevel
-	case smachine.StepLoggerError:
-		special = "ERR"
-		level = log.ErrorLevel
-	case smachine.StepLoggerFatal:
-		special = "FTL"
-		level = log.FatalLevel
-	default:
-		special = fmt.Sprintf("U%d", data.EventType)
-		level = log.WarnLevel
-	}
-	fmt.Printf("[%s] %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v custom=%v\n", special, data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(),
-		data.CurrentStep.GetStepName(), v.sm, v.tracer, customEvent)
-
-	if !v.echoToGlobal && level < log.ErrorLevel {
-		return
-	}
-
-	err := data.Error
-	if e, ok := customEvent.(error); ok && err == nil {
-		err = e
-	}
-
-	if err != nil {
-		global.Eventm(level,
-			throw.WithDetails(err, data, struct {
-				CurrentStep string
-				CustomEvent interface{}
-			}{data.CurrentStep.GetStepName(), customEvent}),
-			fields...)
-	} else {
-		global.Eventm(level, customEvent, fields...)
-	}
-
-	if data.EventType == smachine.StepLoggerFatal {
-		panic("os.Exit(1)")
-	}
-}
-
-func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
-	// case smachine.StepLoggerAdapterCall:
-	s := "?"
-	switch data.Flags & smachine.StepLoggerAdapterMask {
-	case smachine.StepLoggerAdapterSyncCall:
-		s = "sync-call"
-	case smachine.StepLoggerAdapterAsyncCall:
-		s = "async-call"
-	case smachine.StepLoggerAdapterAsyncResult:
-		s = "async-result"
-	case smachine.StepLoggerAdapterAsyncCancel:
-		s = "async-cancel"
-	}
-	fmt.Printf("[ADP] %s %s[%3d]: %03d @ %03d: current=%v payload=%T tracer=%v adapter=%v/%v\n", s, data.StepNo.MachineID(), data.CycleNo,
-		data.StepNo.SlotID(), data.StepNo.StepNo(),
-		data.CurrentStep.GetStepName(), v.sm, v.tracer, adapterID, callID)
-
-	if v.echoToGlobal {
-		global.Infom(struct{ msg, CurrentStep string }{s, data.CurrentStep.GetStepName()})
-	}
-}
-
-const StackMinimizePackage = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
-
-func formatErrorStack(err error) string {
-	if err == nil {
-		return ""
-	}
-	st := throw.DeepestStackTraceOf(err)
-	if st == nil {
-		return " err=" + err.Error()
-	}
-	st = throw.MinimizeStackTrace(st, StackMinimizePackage, true)
-	return throw.JoinStackText(" err="+err.Error(), st)
-}

@@ -8,9 +8,8 @@ package population
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type RealmPopulation interface {
@@ -21,9 +20,9 @@ type RealmPopulation interface {
 	GetSealedCapacity() (int, bool)
 	SealIndexed(indexedCapacity int) bool
 
-	GetNodeAppearance(id insolar.ShortNodeID) *NodeAppearance
-	GetActiveNodeAppearance(id insolar.ShortNodeID) *NodeAppearance
-	GetJoinerNodeAppearance(id insolar.ShortNodeID) *NodeAppearance
+	GetNodeAppearance(id node.ShortNodeID) *NodeAppearance
+	GetActiveNodeAppearance(id node.ShortNodeID) *NodeAppearance
+	GetJoinerNodeAppearance(id node.ShortNodeID) *NodeAppearance
 	GetNodeAppearanceByIndex(idx int) *NodeAppearance
 
 	GetShuffledOtherNodes() []*NodeAppearance /* excludes joiners and self */
@@ -34,8 +33,8 @@ type RealmPopulation interface {
 	GetSelf() *NodeAppearance
 
 	// CreateNodeAppearance(ctx context.Context, inp profiles.ActiveNode) *NodeAppearance
-	AddReservation(id insolar.ShortNodeID) (bool, *NodeAppearance)
-	FindReservation(id insolar.ShortNodeID) (bool, *NodeAppearance)
+	AddReservation(id node.ShortNodeID) (bool, *NodeAppearance)
+	FindReservation(id node.ShortNodeID) (bool, *NodeAppearance)
 
 	AddToDynamics(ctx context.Context, n *NodeAppearance) (*NodeAppearance, error)
 	GetAnyNodes(includeIndexed bool, shuffle bool) []*NodeAppearance

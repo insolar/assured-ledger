@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
@@ -33,7 +33,7 @@ type ConsensusController interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api.CandidateControlFeeder -o . -s _mock.go -g
 type CandidateControlFeeder interface {
 	PickNextJoinCandidate() (profiles.CandidateProfile /* joinerSecret */, cryptkit.DigestHolder)
-	RemoveJoinCandidate(candidateAdded bool, nodeID insolar.ShortNodeID) bool
+	RemoveJoinCandidate(candidateAdded bool, nodeID node.ShortNodeID) bool
 }
 
 type TrafficControlFeeder interface {

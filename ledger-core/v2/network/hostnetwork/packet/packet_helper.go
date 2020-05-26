@@ -11,7 +11,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
@@ -92,7 +92,7 @@ func (p *Packet) IsResponse() bool {
 func SerializePacket(p *Packet) ([]byte, error) {
 	data, err := p.Marshal()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to serialize packet")
+		return nil, errors.W(err, "Failed to serialize packet")
 	}
 
 	var lengthBytes [8]byte
@@ -120,13 +120,13 @@ func DeserializePacketRaw(conn io.Reader) (*ReceivedPacket, uint64, error) {
 
 	buf := make([]byte, length)
 	if _, err := io.ReadFull(reader, buf); err != nil {
-		return nil, 0, errors.Wrap(err, "failed to read packet")
+		return nil, 0, errors.W(err, "failed to read packet")
 	}
 
 	msg := &Packet{}
 	err = msg.Unmarshal(buf)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "failed to decode packet")
+		return nil, 0, errors.W(err, "failed to decode packet")
 	}
 
 	receivedPacket := NewReceivedPacket(msg, reader.Captured())

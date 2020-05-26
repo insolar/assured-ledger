@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 var globalLogger = struct {
@@ -31,9 +31,10 @@ var globalLogger = struct {
 
 func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 	zc := logcommon.Config{}
+	defFmt := logcommon.TextFormat
 
 	var err error
-	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, "")
+	zc.BareOutput, err = logoutput.OpenLogBareOutput(logoutput.StdErrOutput, defFmt, "")
 	if err != nil {
 		return log.LoggerBuilder{}, err
 	}
@@ -41,9 +42,7 @@ func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 		panic("output is nil")
 	}
 
-	zc.Output = logcommon.OutputConfig{
-		Format: logcommon.TextFormat,
-	}
+	zc.Output = logcommon.OutputConfig{	Format: defFmt }
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.CallerMode = logcommon.CallerField
 	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField | logcommon.LogMetricsTimestamp
@@ -56,13 +55,13 @@ func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 func initDefault() {
 	switch b, err := globalLogger.defInit(); {
 	case err != nil:
-		panic(errors.Wrap(err, "default global logger initializer has failed"))
+		panic(errors.W(err, "default global logger initializer has failed"))
 	case b.IsZero():
 		panic("default global logger initializer has returned zero builder")
 	default:
 		switch logger, err := b.Build(); {
 		case err != nil:
-			panic(errors.Wrap(err, "default global logger builder has failed"))
+			panic(errors.W(err, "default global logger builder has failed"))
 		default:
 			globalLogger.logger = &logger
 		}
@@ -242,13 +241,10 @@ func GetFilter() log.Level {
 	return log.MinLevel
 }
 
-//func EnforceOutput(outFn func())
-
-/*
-We use EmbeddedLog functions here to avoid SkipStackFrame corrections
-*/
-
 func g() logcommon.EmbeddedLogger {
+	/*
+	   We use EmbeddedLog functions here to avoid SkipStackFrame corrections
+	*/
 	return Logger().Embeddable()
 }
 

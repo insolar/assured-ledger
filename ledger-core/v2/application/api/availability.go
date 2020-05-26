@@ -16,6 +16,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/application/api.AvailabilityChecker -s _mock.go -g
+
+// AvailabilityChecker component checks if insolar network can't process any new requests
+type AvailabilityChecker interface {
+	IsAvailable(context.Context) bool
+}
+
+
 type keeperResponse struct {
 	Available bool `json:"available"`
 }

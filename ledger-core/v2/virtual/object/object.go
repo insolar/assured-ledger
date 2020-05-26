@@ -12,9 +12,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
@@ -46,6 +48,9 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
+	KnownRequests map[reference.Global]struct{}
+	PendingTable  PendingTable
+
 	ActiveImmutablePendingCount    uint8
 	ActiveMutablePendingCount      uint8
 	PotentialImmutablePendingCount uint8
@@ -66,19 +71,25 @@ func (i *Info) GetState() State {
 	return i.objectState
 }
 
-func (i *Info) IncrementPotentialPendingCounter(isOrdered bool) {
-	if isOrdered {
-		i.PotentialMutablePendingCount++
-	} else {
+func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
+	switch isolation.Interference {
+	case contract.CallIntolerable:
 		i.PotentialImmutablePendingCount++
+	case contract.CallTolerable:
+		i.PotentialMutablePendingCount++
+	default:
+		panic(throw.Unsupported())
 	}
 }
 
-func (i *Info) DecrementPotentialPendingCounter(isOrdered bool) {
-	if isOrdered {
-		i.PotentialMutablePendingCount--
-	} else {
+func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolation) {
+	switch isolation.Interference {
+	case contract.CallIntolerable:
 		i.PotentialImmutablePendingCount--
+	case contract.CallTolerable:
+		i.PotentialMutablePendingCount--
+	default:
+		panic(throw.Unsupported())
 	}
 }
 
@@ -101,10 +112,22 @@ type SharedState struct {
 func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
-			Info: Info{Reference: objectReference},
+			Info: Info{
+				Reference:     objectReference,
+				KnownRequests: make(map[reference.Global]struct{}),
+				PendingTable:  NewPendingTable(),
+			},
 		},
 	}
 }
+
+type smObjectMigrateState int
+
+const (
+	stateWasNotSend smObjectMigrateState = iota
+	stateSent
+	readyToStop
+)
 
 type SMObject struct {
 	smachine.StateMachineDeclTemplate
@@ -115,6 +138,8 @@ type SMObject struct {
 	migrateTransition smachine.StateFunc
 
 	waitGetStateUntil time.Time
+
+	migrateState smObjectMigrateState
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -153,7 +178,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.initWaitGetStateUntil()
 
-	ctx.SetDefaultMigration(sm.migrateDuringExecution)
+	ctx.SetDefaultMigration(sm.migrate)
 
 	return ctx.Jump(sm.stepGetState)
 }
@@ -191,7 +216,7 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 	ref := sm.Reference
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, ref, prevPulse)
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, ref, prevPulse)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)
@@ -223,11 +248,15 @@ func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.Stat
 }
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !sm.hasPendingExecution() && sm.migrateState == readyToStop {
+		return ctx.Stop()
+	}
+
 	return ctx.Sleep().ThenRepeat()
 }
 
 func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
-	syncSM := AwaitOrderedPendingSM{
+	syncSM := SMAwaitDelegate{
 		sync: sm.MutableExecute,
 	}
 
@@ -240,6 +269,14 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 }
 
 func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	switch sm.migrateState {
+	case stateWasNotSend:
+		sm.migrateState = stateSent
+	case stateSent:
+		sm.migrateState = readyToStop
+		return ctx.Jump(sm.migrateTransition)
+	}
+
 	var (
 		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
 	)
@@ -264,7 +301,43 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 	}
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, insolar.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send state", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
+
+	return ctx.Jump(sm.migrateTransition)
+}
+
+func (sm *SMObject) hasPendingExecution() bool {
+	return sm.PotentialImmutablePendingCount > 0 ||
+		sm.PotentialMutablePendingCount > 0
+}
+
+func (sm *SMObject) stepSendVStateUnavailable(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
+		failReason  payload.VStateUnavailable_ReasonType
+	)
+	switch sm.GetState() {
+	case Missing:
+		failReason = payload.Missing
+	case Inactive:
+		failReason = payload.Inactive
+	default:
+		panic(throw.IllegalState())
+	}
+
+	msg := payload.VStateUnavailable{
+		Reason:   failReason,
+		Lifeline: sm.SharedState.Info.Reference,
+	}
+
+	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.SharedState.Info.Reference, pulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)
@@ -274,7 +347,25 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 	return ctx.Jump(sm.migrateTransition)
 }
 
-func (sm *SMObject) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	sm.migrateTransition = ctx.AffectedStep().Transition
-	return ctx.Jump(sm.stepSendVStateReport)
+	switch sm.GetState() {
+	case Unknown:
+		ctx.Log().Warn("SMObject migration happened when object is not ready yet")
+		return ctx.Stay()
+	case Missing:
+		fallthrough
+	case Inactive:
+		return ctx.Jump(sm.stepSendVStateUnavailable)
+	case Empty:
+		if sm.PotentialMutablePendingCount == uint8(0) && sm.PotentialImmutablePendingCount == uint8(0) {
+			// SMObject construction was interrupted by migration. Counters was not incremented yet
+			panic(throw.NotImplemented())
+		}
+		fallthrough
+	case HasState:
+		return ctx.Jump(sm.stepSendVStateReport)
+	default:
+		panic(throw.IllegalState())
+	}
 }

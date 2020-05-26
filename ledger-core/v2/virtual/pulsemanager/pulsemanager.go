@@ -9,24 +9,25 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/flow/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-// PulseManager implements insolar.PulseManager.
+// Manager implements insolar.Manager.
 type PulseManager struct {
-	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
-	NodeSetter    node.Modifier       `inject:""`
-	PulseAccessor pulse.Accessor      `inject:""`
-	PulseAppender pulse.Appender      `inject:""`
+	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
+	NodeSetter    nodestorage.Modifier `inject:""`
+	PulseAccessor pulsestor.Accessor   `inject:""`
+	PulseAppender pulsestor.Appender   `inject:""`
 	dispatchers   []dispatcher.Dispatcher
 
 	// setLock locks Set method call.
@@ -35,7 +36,7 @@ type PulseManager struct {
 	stopped bool
 }
 
-// NewPulseManager creates PulseManager instance.
+// NewPulseManager creates Manager instance.
 func NewPulseManager() *PulseManager {
 	return &PulseManager{}
 }
@@ -51,23 +52,23 @@ func (m *PulseManager) AddDispatcher(d ...dispatcher.Dispatcher) {
 
 type messageNewPulse struct {
 	*log.Msg `txt:"received pulse"`
-	OldPulse insolar.PulseNumber
-	NewPulse insolar.PulseNumber
+	OldPulse pulse.Number
+	NewPulse pulse.Number
 }
 
 // Set set's new pulse.
-func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
+func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error {
 	m.setLock.Lock()
 	defer m.setLock.Unlock()
 	if m.stopped {
-		return errors.New("can't call Set method on PulseManager after stop")
+		return errors.New("can't call Set method on Manager after stop")
 	}
 
 	storagePulse, err := m.PulseAccessor.Latest(ctx)
-	if err == pulse.ErrNotFound {
-		storagePulse = *insolar.GenesisPulse
+	if err == pulsestor.ErrNotFound {
+		storagePulse = *pulsestor.GenesisPulse
 	} else if err != nil {
-		return errors.Wrap(err, "call of GetLatestPulseNumber failed")
+		return errors.W(err, "call of GetLatestPulseNumber failed")
 	}
 
 	logger := inslogger.FromContext(ctx)
@@ -79,9 +80,9 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 			logger.Errorf("received zero nodes for pulse %d", newPulse.PulseNumber)
 			return nil
 		}
-		toSet := make([]insolar.Node, 0, len(fromNetwork))
+		toSet := make([]node.Node, 0, len(fromNetwork))
 		for _, n := range fromNetwork {
-			toSet = append(toSet, insolar.Node{ID: n.ID(), Role: n.Role()})
+			toSet = append(toSet, node.Node{ID: n.ID(), Role: n.Role()})
 		}
 		err := m.NodeSetter.Set(newPulse.PulseNumber, toSet)
 		if err != nil {
@@ -94,7 +95,7 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse) error {
 	}
 
 	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
-		return errors.Wrap(err, "call of AddPulse failed")
+		return errors.W(err, "call of AddPulse failed")
 	}
 
 	for _, d := range m.dispatchers {
@@ -109,7 +110,7 @@ func (m *PulseManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops PulseManager.
+// Stop stops Manager.
 func (m *PulseManager) Stop(ctx context.Context) error {
 	// There should not to be any Set call after Stop call
 	m.setLock.Lock()

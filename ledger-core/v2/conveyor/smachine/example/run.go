@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
 )
 
 func RunExample() {
@@ -27,7 +28,7 @@ func RunExample() {
 		BoostNewSlotDuration: 0,
 		ScanCountLimit:       scanCountLimit,
 		LogAdapterCalls:      true,
-		SlotMachineLogger:    MachineLogger{},
+		SlotMachineLogger:    convlog.MachineLogger{},
 	}, signal.NextBroadcast, signal.NextBroadcast, nil)
 
 	/*** Add injectables ***/

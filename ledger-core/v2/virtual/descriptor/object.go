@@ -6,7 +6,7 @@
 package descriptor
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 )
@@ -30,7 +30,11 @@ type Object interface {
 }
 
 func NewObject(
-	head reference.Global, state reference.Local, prototype reference.Global, memory []byte, parent reference.Global,
+	head reference.Global,
+	state reference.Local,
+	prototype reference.Global,
+	memory []byte,
+	parent reference.Global,
 ) Object {
 	return &object{
 		head:      head,

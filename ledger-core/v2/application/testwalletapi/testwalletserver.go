@@ -12,18 +12,19 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 )
 
 type TestWalletServer struct {
 	server   *http.Server
 	feeder   conveyor.EventInputer
-	accessor pulse.Accessor
+	accessor pulsestor.Accessor
 	mux      *http.ServeMux
 
 	jsonCodec jsoniter.API
@@ -37,7 +38,7 @@ const (
 	transfer   = "Transfer"   // Transfer money between wallets
 )
 
-func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulse.Accessor) *TestWalletServer {
+func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulsestor.Accessor) *TestWalletServer {
 	return &TestWalletServer{
 		server:    &http.Server{Addr: api.Address},
 		mux:       http.NewServeMux(),
@@ -61,7 +62,7 @@ func (s *TestWalletServer) Start(ctx context.Context) error {
 
 	listener, err := net.Listen("tcp", s.server.Addr)
 	if err != nil {
-		return errors.Wrap(err, "Can't start listening")
+		return errors.W(err, "Can't start listening")
 	}
 
 	go func() {
@@ -80,7 +81,7 @@ func (s *TestWalletServer) Stop(ctx context.Context) error {
 	defer cancel()
 	err := s.server.Shutdown(ctxWithTimeout)
 	if err != nil {
-		return errors.Wrap(err, "Can't gracefully stop API server")
+		return errors.W(err, "Can't gracefully stop API server")
 	}
 	return nil
 }

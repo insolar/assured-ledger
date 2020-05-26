@@ -17,6 +17,7 @@ generate_pulsar_keys() {
 }
 generate_root_member_keys() {
     echo "generate members keys in dir: $CONFIGS_DIR"
+<<<<<<< HEAD
     ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}root_member_keys.json
     ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}fee_member_keys.json
     ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}migration_admin_member_keys.json
@@ -35,11 +36,35 @@ generate_root_member_keys() {
     ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}funds_0_member_keys.json
     for b in {0..7}; do
         ${INSOLAR_BIN} gen-key-pair > ${CONFIGS_DIR}enterprise_${b}_member_keys.json
+=======
+    ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"root_member_keys.json
+    ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"fee_member_keys.json
+    ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"migration_admin_member_keys.json
+    for b in {0..9}; do
+        ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"migration_daemon_${b}_member_keys.json
+    done
+    for b in {0..139}; do
+        ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"network_incentives_${b}_member_keys.json
+    done
+    for b in {0..39}; do
+        ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"application_incentives_${b}_member_keys.json
+    done
+    for b in {0..39}; do
+        ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"foundation_${b}_member_keys.json
+    done
+    ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"funds_0_member_keys.json
+    for b in {0..7}; do
+        ${INSOLAR_BIN} gen-key-pair > "${CONFIGS_DIR}"enterprise_${b}_member_keys.json
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
     done
 }
 generate_migration_addresses() {
     echo "generate migration addresses: ${CONFIGS_DIR}migration_addresses.json"
+<<<<<<< HEAD
     ${INSOLAR_BIN} gen-migration-addresses > ${CONFIGS_DIR}migration_addresses.json
+=======
+    ${INSOLAR_BIN} gen-migration-addresses > "${CONFIGS_DIR}"migration_addresses.json
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 }
 bootstrap() {
     echo "bootstrap start"
@@ -47,10 +72,17 @@ bootstrap() {
     generate_root_member_keys
     generate_migration_addresses
 }
+<<<<<<< HEAD
 mkdir -p ${CONFIGS_DIR} /var/data/bootstrap/certs
 mkdir -p ${CONFIGS_DIR} /var/data/bootstrap/discovery-keys
 bootstrap
 $INSOLAR_BIN bootstrap -c $BOOTSTRAP_CONFIG --propernames=true
+=======
+mkdir -p "${CONFIGS_DIR}" /var/data/bootstrap/certs
+mkdir -p "${CONFIGS_DIR}" /var/data/bootstrap/discovery-keys
+bootstrap
+${INSOLAR_BIN} bootstrap -c "$BOOTSTRAP_CONFIG" --propernames=true
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 MY_BIN_DIR=$( dirname "${BASH_SOURCE[0]}" )
 cd /var/data/bootstrap
 #todo fix cert path configuration in insolar

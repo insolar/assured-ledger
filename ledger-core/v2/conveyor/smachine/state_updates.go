@@ -40,7 +40,7 @@ var stateUpdateTypes []StateUpdateType
 func init() {
 	stateUpdateTypes = []StateUpdateType{
 		stateUpdNoChange: {
-			name:   "noChange",
+			name:   "noop",
 			filter: updCtxMigrate | updCtxBargeIn | updCtxAsyncCallback,
 
 			safeWithSubroutine: true,
@@ -161,7 +161,6 @@ func init() {
 
 				nextStep := stateUpdate.step.Transition
 				if nextStep == nil {
-					slot.setNextStep(stateUpdate.step, nil)
 					return false // the same step won't be short-looped
 				}
 

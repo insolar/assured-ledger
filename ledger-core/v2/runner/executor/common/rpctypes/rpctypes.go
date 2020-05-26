@@ -6,8 +6,7 @@
 package rpctypes
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
@@ -24,13 +23,13 @@ type DownCallMethodReq struct {
 	Code      reference.Global
 	Data      []byte
 	Method    string
-	Arguments insolar.Arguments
+	Arguments Arguments
 }
 
 // DownCallMethodResp is response from CallMethod RPC in the runner
 type DownCallMethodResp struct {
 	Data []byte
-	Ret  insolar.Arguments
+	Ret  Arguments
 }
 
 // DownCallConstructorReq is a set of arguments for CallConstructor RPC
@@ -39,18 +38,18 @@ type DownCallConstructorReq struct {
 	Context   *call.LogicContext
 	Code      reference.Global
 	Name      string
-	Arguments insolar.Arguments
+	Arguments Arguments
 }
 
 // DownCallConstructorResp is response from CallConstructor RPC in the runner
 type DownCallConstructorResp struct {
 	Data []byte
-	Ret  insolar.Arguments
+	Ret  Arguments
 }
 
 // UpBaseReq  is a base type for all insgorund -> logicrunner requests
 type UpBaseReq struct {
-	Mode            insolar.CallMode
+	Mode            call.Mode
 	Callee          reference.Global
 	CalleePrototype reference.Global
 	Request         reference.Global
@@ -75,18 +74,18 @@ type UpGetCodeResp struct {
 // UpCallMethodReq is a set of arguments for Send RPC in goplugin
 type UpCallMethodReq struct {
 	UpBaseReq
-	Tolerance payload.ToleranceFlag
-	Isolation payload.StateFlag
-	Saga      bool
-	Object    reference.Global
-	Method    string
-	Arguments insolar.Arguments
-	Prototype reference.Global
+	Interference contract.InterferenceFlag
+	Isolation    contract.StateFlag
+	Saga         bool
+	Object       reference.Global
+	Method       string
+	Arguments    Arguments
+	Prototype    reference.Global
 }
 
 // UpCallMethodResp is response from Send RPC in goplugin
 type UpCallMethodResp struct {
-	Result insolar.Arguments
+	Result Arguments
 }
 
 // UpCallConstructorReq is a set of arguments for CallConstructor RPC in goplugin
@@ -100,7 +99,7 @@ type UpCallConstructorReq struct {
 
 // UpCallConstructorResp is a set of arguments for CallConstructor RPC in goplugin
 type UpCallConstructorResp struct {
-	Result insolar.Arguments
+	Result Arguments
 }
 
 // UpDeactivateObjectReq is a set of arguments for DeactivateObject RPC in goplugin

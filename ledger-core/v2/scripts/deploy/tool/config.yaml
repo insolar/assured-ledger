@@ -1,2 +1,9 @@
 nodescount: 5
+<<<<<<< HEAD
 manifestspath: ./../scripts/deploy/kube/local/
+=======
+env: local
+kuberootpath: /../scripts/deploy/kube/
+manifestsrelpath: manifests/
+bootstrapconfigrelpath: manifests/configuration/
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a

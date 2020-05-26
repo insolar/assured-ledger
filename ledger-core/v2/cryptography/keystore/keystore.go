@@ -10,10 +10,11 @@ import (
 	"crypto"
 
 	"github.com/insolar/component-manager"
-	"github.com/pkg/errors"
 
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore/internal/privatekey"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 )
 
 type keyStore struct {
@@ -28,14 +29,14 @@ func (ks *keyStore) GetPrivateKey(identifier string) (crypto.PrivateKey, error) 
 func (ks *keyStore) Start(ctx context.Context) error {
 	// TODO: ugly hack; do proper checks
 	if _, err := ks.GetPrivateKey(""); err != nil {
-		return errors.Wrap(err, "[ Start ] Failed to start keyStore")
+		return errors.W(err, "[ Start ] Failed to start keyStore")
 	}
 
 	return nil
 }
 
 type cachedKeyStore struct {
-	keyStore insolar.KeyStore
+	keyStore cryptography.KeyStore
 
 	privateKey crypto.PrivateKey
 }
@@ -50,7 +51,7 @@ func (ks *cachedKeyStore) getCachedPrivateKey() crypto.PublicKey {
 func (ks *cachedKeyStore) loadPrivateKey(identifier string) (crypto.PrivateKey, error) {
 	privateKey, err := ks.keyStore.GetPrivateKey(identifier)
 	if err != nil {
-		return nil, errors.Wrap(err, "[ loadPrivateKey ] Can't GetPrivateKey")
+		return nil, errors.W(err, "[ loadPrivateKey ] Can't GetPrivateKey")
 	}
 
 	ks.privateKey = privateKey
@@ -66,13 +67,13 @@ func (ks *cachedKeyStore) GetPrivateKey(_ string) (crypto.PrivateKey, error) {
 func (ks *cachedKeyStore) Start(ctx context.Context) error {
 	// TODO: ugly hack; do proper checks
 	if _, err := ks.loadPrivateKey(""); err != nil {
-		return errors.Wrap(err, "[ Start ] Failed to start keyStore")
+		return errors.W(err, "[ Start ] Failed to start keyStore")
 	}
 
 	return nil
 }
 
-func NewKeyStore(path string) (insolar.KeyStore, error) {
+func NewKeyStore(path string) (cryptography.KeyStore, error) {
 	keyStore := &keyStore{
 		file: path,
 	}
@@ -89,7 +90,7 @@ func NewKeyStore(path string) (insolar.KeyStore, error) {
 	)
 
 	if err := manager.Start(context.Background()); err != nil {
-		return nil, errors.Wrap(err, "[ NewKeyStore ] Failed to create keyStore")
+		return nil, errors.W(err, "[ NewKeyStore ] Failed to create keyStore")
 	}
 
 	return cachedKeyStore, nil
@@ -103,6 +104,6 @@ func (ipks *inPlaceKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ipks.privateKey, nil
 }
 
-func NewInplaceKeyStore(privateKey crypto.PrivateKey) insolar.KeyStore {
+func NewInplaceKeyStore(privateKey crypto.PrivateKey) cryptography.KeyStore {
 	return &inPlaceKeyStore{privateKey: privateKey}
 }

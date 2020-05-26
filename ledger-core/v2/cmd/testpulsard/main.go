@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -99,7 +98,7 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) *pul
 		panic(err)
 	}
 	cryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
-	cryptographyService := cryptography.NewCryptographyService()
+	cryptographyService := platformpolicy.NewCryptographyService()
 	keyProcessor := platformpolicy.NewKeyProcessor()
 
 	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor)

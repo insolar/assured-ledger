@@ -62,26 +62,3 @@ type LogObjectWriter interface {
 	AddErrorField(msg string, stack throw.StackTrace, severity throw.Severity, hasPanic bool)
 }
 
-type LogObjectFields struct {
-	Msg    string
-	Fields map[string]interface{}
-}
-
-func (v LogObjectFields) MarshalLogObject(w LogObjectWriter, _ LogObjectMetricCollector) (string, bool) {
-	for k, v := range v.Fields {
-		w.AddIntfField(k, v, LogFieldFormat{})
-	}
-	return v.Msg, false
-}
-
-func (v LogObjectFields) MarshalLogFields(w LogObjectWriter) {
-	FieldMapMarshaller(v.Fields).MarshalLogFields(w)
-}
-
-type FieldMapMarshaller map[string]interface{}
-
-func (v FieldMapMarshaller) MarshalLogFields(w LogObjectWriter) {
-	for k, v := range v {
-		w.AddIntfField(k, v, LogFieldFormat{})
-	}
-}

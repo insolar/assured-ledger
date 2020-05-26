@@ -8,6 +8,10 @@ package main
 import (
 	"errors"
 	"fmt"
+<<<<<<< HEAD
+=======
+	"io/ioutil"
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,24 +25,75 @@ const Kubectl = "kubectl"
 
 func main() {
 	cfg := readConfig()
+<<<<<<< HEAD
 
 	err := startNetwork(cfg)
+=======
+	cfgGenerator := NewConfigGenerator(cfg.NodesCount)
+	netManager := NewInsolarNetManager()
+	err := generateBootstrapConfigs(cfg, cfgGenerator)
+	if err != nil {
+		panic(err)
+	}
+	os.Exit(0)
+
+	err = netManager.startNetwork(cfg)
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	if err != nil {
 		panic(err)
 	}
 	callCreated()
+<<<<<<< HEAD
 	err = waitForReady()
+=======
+	err = netManager.waitForReady()
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	if err != nil {
 		panic(err)
 	}
 	callReady()
+<<<<<<< HEAD
 	err = stopNetwork(cfg)
+=======
+	err = netManager.stopNetwork(cfg)
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	if err != nil {
 		panic(err)
 	}
 	callStopped()
 }
 
+<<<<<<< HEAD
+=======
+func generateBootstrapConfigs(cfg *KubeDeployToolConfig, generator *ConfigGenerator) error {
+	bootstrapConfig := generator.generateBootstrapConfig()
+	kustomizePatch := generator.generateKustomizePatch()
+	pwConfig := generator.generatePulsewatcherConfig()
+
+	fmt.Println("debug")
+	fmt.Println(bootstrapConfig)
+	fmt.Println(kustomizePatch)
+	fmt.Println(pwConfig)
+
+	bootstrapConfigPath := getExecutablePath() + cfg.KubeRootPath + cfg.BootstrapConfigRelPath
+	fmt.Println(bootstrapConfigPath)
+	err := ioutil.WriteFile(bootstrapConfigPath+"bootstrap-config.yaml", []byte(bootstrapConfig), 0644)
+	if err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+	err = ioutil.WriteFile(bootstrapConfigPath+"pulsewatcher-config.yaml", []byte(pwConfig), 0644)
+	if err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+	err = ioutil.WriteFile(getExecutablePath()+cfg.KubeRootPath+cfg.ManifestsRelPath+"nodes-patch.yaml", []byte(kustomizePatch), 0644)
+	if err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+
+	return nil
+}
+
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 func callStopped() {
 
 }
@@ -51,12 +106,28 @@ func callCreated() {
 
 }
 
+<<<<<<< HEAD
 func startNetwork(cfg *KubeDeployTool) error {
 	// fmt.Println(command)
 	out, _ := exec.Command("pwd").CombinedOutput()
 	fmt.Printf("path: %s\n", out)
 
 	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.ManifestsPath).CombinedOutput()
+=======
+type InsolarNetManager struct {
+	// todo add callbacks and cfg and interface
+}
+
+func NewInsolarNetManager() *InsolarNetManager {
+	return &InsolarNetManager{}
+}
+
+func (i *InsolarNetManager) startNetwork(cfg *KubeDeployToolConfig) error {
+	out, _ := exec.Command("pwd").CombinedOutput()
+	fmt.Printf("path: %s\n", out)
+
+	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.KubeRootPath+cfg.Env+"/").CombinedOutput()
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	if err != nil {
 		return fmt.Errorf("run failed: %s %w", string(out), err)
 	}
@@ -64,7 +135,11 @@ func startNetwork(cfg *KubeDeployTool) error {
 	return nil
 }
 
+<<<<<<< HEAD
 func waitForReady() error {
+=======
+func (i *InsolarNetManager) waitForReady() error {
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	for i := 0; i < 60; i++ {
 		args := []string{
 			"-n",
@@ -115,8 +190,13 @@ func waitForReady() error {
 	return errors.New("insolar has not been started")
 }
 
+<<<<<<< HEAD
 func stopNetwork(cfg *KubeDeployTool) error {
 	out, err := exec.Command(Kubectl, "delete", "-k", getExecutablePath()+cfg.ManifestsPath).CombinedOutput()
+=======
+func (i *InsolarNetManager) stopNetwork(cfg *KubeDeployToolConfig) error {
+	out, err := exec.Command(Kubectl, "delete", "-k", getExecutablePath()+cfg.KubeRootPath+cfg.Env+"/").CombinedOutput()
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	if err != nil {
 		fmt.Errorf("stop failed: %s %w", string(out), err)
 	}
@@ -124,8 +204,13 @@ func stopNetwork(cfg *KubeDeployTool) error {
 	return nil
 }
 
+<<<<<<< HEAD
 func readConfig() *KubeDeployTool {
 	cfg := KubeDeployTool{}
+=======
+func readConfig() *KubeDeployToolConfig {
+	cfg := KubeDeployToolConfig{}
+>>>>>>> 80ed601376d4994db1df8d7ba49dbd725b61259a
 	params := insconfig.Params{
 		EnvPrefix:        "kube-deploy-tool",
 		ConfigPathGetter: &insconfig.DefaultPathGetter{},

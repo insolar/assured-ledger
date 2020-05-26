@@ -11,7 +11,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
@@ -85,7 +85,7 @@ func NewEmptyNodeAppearance(np profiles.ActiveNode) NodeAppearance {
 }
 
 func NewLocalJoinerNodeAppearance(np profiles.ActiveNode,
-	announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) NodeAppearance {
+	announcerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) NodeAppearance {
 
 	if np == nil {
 		panic("illegal value")
@@ -101,7 +101,7 @@ func NewLocalJoinerNodeAppearance(np profiles.ActiveNode,
 }
 
 func NewAscendedNodeAppearance(np profiles.ActiveNode, limiter phases.PacketLimiter,
-	announcerID insolar.ShortNodeID, joinerSecret cryptkit.DigestHolder) NodeAppearance {
+	announcerID node.ShortNodeID, joinerSecret cryptkit.DigestHolder) NodeAppearance {
 
 	if np == nil {
 		panic("illegal value")
@@ -151,12 +151,12 @@ type NodeAppearance struct {
 
 	// statelessDigest cryptkit.DigestHolder
 
-	joinerIntroducedBy insolar.ShortNodeID
+	joinerIntroducedBy node.ShortNodeID
 	joinerSecret       cryptkit.DigestHolder
 
-	requestedJoinerID    insolar.ShortNodeID // one-time set
-	requestedLeave       bool                // one-time set
-	requestedLeaveReason uint32              // one-time set
+	requestedJoinerID    node.ShortNodeID // one-time set
+	requestedLeave       bool             // one-time set
+	requestedLeaveReason uint32           // one-time set
 
 	firstFraudDetails *misbehavior.FraudError
 
@@ -209,7 +209,7 @@ func (c *NodeAppearance) GetIndex() member.Index {
 	return c.profile.GetIndex()
 }
 
-func (c *NodeAppearance) GetNodeID() insolar.ShortNodeID {
+func (c *NodeAppearance) GetNodeID() node.ShortNodeID {
 	return c.profile.GetNodeID()
 }
 
@@ -649,7 +649,7 @@ type NodeRequestedState struct {
 	TrustLevel    member.TrustLevel
 	IsLeaving     bool
 	RequestedMode member.OpMode
-	JoinerID      insolar.ShortNodeID
+	JoinerID      node.ShortNodeID
 }
 
 func (c *NodeAppearance) GetRequestedState() NodeRequestedState {

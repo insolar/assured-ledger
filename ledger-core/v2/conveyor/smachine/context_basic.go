@@ -297,7 +297,7 @@ func (p *slotContext) _newLoggerAsync() (Logger, uint32) {
 	}
 	fsl.data.Flags |= StepLoggerDetached
 
-	logger.loggerFn = fsl
+	logger.logger = fsl
 	return logger, fsl.data.StepNo.step
 }
 

@@ -18,7 +18,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/insolar/rpc/v2/json2"
-	"github.com/pkg/errors"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
@@ -32,14 +33,14 @@ type RequestValidator struct {
 func NewRequestValidator(path string, next http.Handler) (*RequestValidator, error) {
 	swagger, err := openapi3.NewSwaggerLoader().LoadSwaggerFromFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load swagger file")
+		return nil, errors.W(err, "failed to load swagger file")
 	}
 	swagger.Servers = nil
 
 	router := openapi3filter.NewRouter()
 	err = router.AddSwagger(swagger)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to add swagger to router")
+		return nil, errors.W(err, "failed to add swagger to router")
 	}
 
 	return &RequestValidator{
@@ -79,7 +80,7 @@ func (rv *RequestValidator) ServeHTTP(w http.ResponseWriter, httpReq *http.Reque
 			ID: nil,
 		})
 		if err != nil {
-			inslogger.FromContext(httpReq.Context()).Panic(errors.Wrap(err, "failed to encode error message"))
+			inslogger.FromContext(httpReq.Context()).Panic(errors.W(err, "failed to encode error message"))
 		}
 
 		return
@@ -119,7 +120,7 @@ func (rv *RequestValidator) Validate(ctx context.Context, httpReq *http.Request)
 
 	reqURL, err := url.Parse(httpReq.URL.String())
 	if err != nil {
-		logger.Error(errors.Wrap(err, "couldn't clone URL"))
+		logger.Error(errors.W(err, "couldn't clone URL"))
 		return errors.New("invalid URL")
 	}
 
@@ -156,7 +157,7 @@ func (rv *RequestValidator) Validate(ctx context.Context, httpReq *http.Request)
 	}
 	err = openapi3filter.ValidateRequest(ctx, requestValidationInput)
 	if err != nil {
-		return errors.Wrap(err, "request don't pass OpenAPI schema validation")
+		return errors.W(err, "request don't pass OpenAPI schema validation")
 	}
 
 	return nil

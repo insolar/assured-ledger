@@ -11,22 +11,20 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/certificate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
 	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
 )
 
@@ -36,8 +34,8 @@ func TestRequester_Authorize(t *testing.T) {
 
 	options := network.ConfigureOptions(configuration.NewConfiguration())
 
-	cs := testutils.NewCryptographyServiceMock(t)
-	sig := insolar.SignatureFromBytes([]byte("lalal"))
+	cs := cryptography.NewServiceMock(t)
+	sig := cryptography.SignatureFromBytes([]byte("lalal"))
 	cs.SignMock.Return(&sig, nil)
 
 	r := NewRequester(options)
@@ -61,12 +59,12 @@ func TestRequester_Bootstrap(t *testing.T) {
 	// inject HostNetwork
 	r.(*requester).HostNetwork = hn
 
-	resp, err := r.Bootstrap(context.Background(), p, candidateProfile, insolar.GenesisPulse)
+	resp, err := r.Bootstrap(context.Background(), p, candidateProfile, pulsestor.GenesisPulse)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 }
 
-func GetTestCertificate() *certificate.Certificate {
+func GetTestCertificate() *mandates.Certificate {
 	buff := bytes.NewBufferString(`
 {
   "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+2RsLu5z3nFEimNiesiLDH2Kw1GM\nvgYylDXAmZxpbGjQZ5FqHuXF+DJrwKYzDyfBDEQz6Tu/aeA2CgRZvqbKug==\n-----END PUBLIC KEY-----\n",
@@ -124,7 +122,7 @@ func GetTestCertificate() *certificate.Certificate {
 	if err != nil {
 		panic(err)
 	}
-	c, err := certificate.ReadCertificateFromReader(publicKey, platformpolicy.NewKeyProcessor(), buff)
+	c, err := mandates.ReadCertificateFromReader(publicKey, platformpolicy.NewKeyProcessor(), buff)
 	if err != nil {
 		panic(err)
 	}

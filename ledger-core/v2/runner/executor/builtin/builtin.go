@@ -9,27 +9,28 @@ package builtin
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 // Runner is a contract runner engine
 type Runner struct {
 	DescriptorRegistry   map[reference.Global]interface{}
-	CodeRegistry         map[string]insolar.ContractWrapper
+	CodeRegistry         map[string]contract.Wrapper
 	CodeRefRegistry      map[reference.Global]string
 	PrototypeRefRegistry map[reference.Global]string
 }
 
 // New is an constructor
 func New(stub common.RunnerRPCStub) *Runner {
-	common.CurrentProxyCtx = NewProxyHelper(stub)
+	common.SetCurrentProxyCtx(NewProxyHelper(stub))
 
 	descriptorRegistry := make(map[reference.Global]interface{})
 
@@ -94,21 +95,26 @@ func (r *Runner) CallMethod(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	if methodObject.Unordered != callCtx.Unordered {
-		orderedUnordered := func(unordered bool) string {
-			if unordered {
-				return "Unordered"
-			}
-			return "Ordered"
-		}
+	return methodObject.Func(data, args)
+}
 
-		return nil, nil, errors.Errorf("calling %s method as %s",
-			orderedUnordered(methodObject.Unordered),
-			orderedUnordered(callCtx.Unordered),
-		)
+func (r *Runner) ClassifyMethod(_ context.Context,
+	codeRef reference.Global,
+	method string) (contract.MethodIsolation, error) {
+
+	contractName, ok := r.CodeRefRegistry[codeRef]
+	if !ok {
+		errInfo := struct{ Reference reference.Global }{Reference: codeRef}
+		return contract.MethodIsolation{}, throw.E("failed to find contract with reference", errInfo)
+	}
+	contractObj := r.CodeRegistry[contractName]
+
+	methodObject, ok := contractObj.Methods[method]
+	if !ok {
+		return contract.MethodIsolation{}, throw.E("failed to find contracts method")
 	}
 
-	return methodObject.Func(data, args)
+	return methodObject.Isolation, nil
 }
 
 func (r *Runner) GetDescriptor(ref reference.Global) (interface{}, error) {

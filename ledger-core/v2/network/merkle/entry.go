@@ -8,12 +8,14 @@ package merkle
 import (
 	"sort"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
-	"github.com/pkg/errors"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+
+	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type PulseEntry struct {
-	Pulse *insolar.Pulse
+	Pulse *pulsestor.Pulse
 }
 
 func (pe *PulseEntry) hash(helper *merkleHelper) []byte {
@@ -22,17 +24,17 @@ func (pe *PulseEntry) hash(helper *merkleHelper) []byte {
 
 type GlobuleEntry struct {
 	*PulseEntry
-	ProofSet      map[insolar.NetworkNode]*PulseProof
+	ProofSet      map[node.NetworkNode]*PulseProof
 	PulseHash     []byte
 	PrevCloudHash []byte
-	GlobuleID     insolar.GlobuleID
+	GlobuleID     node.GlobuleID
 }
 
 func (ge *GlobuleEntry) hash(helper *merkleHelper) ([]byte, error) {
 	neByRole := nodeEntryByRole(ge.PulseEntry, ge.ProofSet)
-	bucketHashes := make([][]byte, 0, len(insolar.AllStaticRoles))
+	bucketHashes := make([][]byte, 0, len(node.AllStaticRoles))
 
-	for _, role := range insolar.AllStaticRoles {
+	for _, role := range node.AllStaticRoles {
 		roleEntries, ok := neByRole[role]
 		if !ok {
 			continue
@@ -42,7 +44,7 @@ func (ge *GlobuleEntry) hash(helper *merkleHelper) ([]byte, error) {
 		bucketEntryRoot, err := roleEntryRoot(roleEntries, helper)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "[ hash ] Failed to create tree for bucket role entry")
+			return nil, errors.W(err, "[ hash ] Failed to create tree for bucket role entry")
 		}
 
 		bucketInfoHash := helper.bucketInfoHash(role, uint32(len(roleEntries)))
@@ -53,7 +55,7 @@ func (ge *GlobuleEntry) hash(helper *merkleHelper) ([]byte, error) {
 	tree, err := treeFromHashList(bucketHashes, helper.scheme.IntegrityHasher())
 
 	if err != nil {
-		return nil, errors.Wrap(err, "[ hash ] Failed to create tree for bucket hashes")
+		return nil, errors.W(err, "[ hash ] Failed to create tree for bucket hashes")
 	}
 
 	return tree.Root(), nil
@@ -75,7 +77,7 @@ func (ce *CloudEntry) hash(helper *merkleHelper) ([]byte, error) {
 
 	tree, err := treeFromHashList(result, helper.scheme.IntegrityHasher())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ hash ] Failed to create tree")
+		return nil, errors.W(err, "[ hash ] Failed to create tree")
 	}
 
 	return tree.Root(), nil
@@ -84,7 +86,7 @@ func (ce *CloudEntry) hash(helper *merkleHelper) ([]byte, error) {
 type nodeEntry struct {
 	*PulseEntry
 	PulseProof *PulseProof
-	Node       insolar.NetworkNode
+	Node       node.NetworkNode
 }
 
 func (ne *nodeEntry) hash(helper *merkleHelper) []byte {
@@ -93,8 +95,8 @@ func (ne *nodeEntry) hash(helper *merkleHelper) []byte {
 	return helper.nodeHash(ne.PulseProof.Signature.Bytes(), nodeInfoHash)
 }
 
-func nodeEntryByRole(pulseEntry *PulseEntry, nodeProofs map[insolar.NetworkNode]*PulseProof) map[insolar.StaticRole][]*nodeEntry {
-	roleMap := make(map[insolar.StaticRole][]*nodeEntry)
+func nodeEntryByRole(pulseEntry *PulseEntry, nodeProofs map[node.NetworkNode]*PulseProof) map[node.StaticRole][]*nodeEntry {
+	roleMap := make(map[node.StaticRole][]*nodeEntry)
 	for node, pulseProof := range nodeProofs {
 		role := node.Role()
 		roleMap[role] = append(roleMap[role], &nodeEntry{
@@ -121,7 +123,7 @@ func roleEntryRoot(roleEntries []*nodeEntry, helper *merkleHelper) ([]byte, erro
 
 	tree, err := treeFromHashList(roleEntriesHashes, helper.scheme.IntegrityHasher())
 	if err != nil {
-		return nil, errors.Wrap(err, "[ hash ] Failed to create tree")
+		return nil, errors.W(err, "[ hash ] Failed to create tree")
 	}
 
 	return tree.Root(), nil
