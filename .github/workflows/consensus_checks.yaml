@@ -60,7 +60,7 @@ jobs:
       - name: wait for traefik to be up and running
         run: kubectl -n kube-system rollout status deploy/traefik-ingress-controller --timeout=80s
       - name: wait for prometheus to be up and running
-        run: kubectl -n prometheus rollout status deploy/prometheus --timeout=80s
+        run: kubectl -n prometheus rollout status sts/prometheus --timeout=80s
       - name: no nice way to check ingress availability
         run: sleep 5
       - name: build images
