@@ -234,11 +234,12 @@ func waitForNetworkState(state node.NetworkState) error {
 }
 
 func runPulsar() error {
-	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard -o -c .artifacts/launchnet/pulsar.yaml")
-	output, err := pulsarCmd.CombinedOutput()
-	fmt.Println("Pulsar launch output: ", string(output))
-
-	return errors.W(err, "failed to launch pulsar")
+	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard -c .artifacts/launchnet/pulsar.yaml")
+	if err := pulsarCmd.Start(); err != nil {
+		return errors.W(err, "failed to launch pulsar")
+	}
+	fmt.Println("Pulsar launched")
+	return nil
 }
 
 func waitForNet() error {
