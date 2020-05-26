@@ -29,7 +29,7 @@ func (w StateMachineHelper) SlotLink() smachine.SlotLink {
 	return w.slotLink
 }
 
-func (w StateMachineHelper) TilStep(fn smachine.StateFunc) func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) BeforeStep(fn smachine.StateFunc) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		if event.Data.EventType != smachine.StepLoggerUpdate || w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
 			return false
@@ -38,25 +38,34 @@ func (w StateMachineHelper) TilStep(fn smachine.StateFunc) func(testUtilsCommon.
 	}
 }
 
-func (w StateMachineHelper) TilAnyStep() func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterStep(fn smachine.StateFunc) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		if event.Data.EventType != smachine.StepLoggerUpdate || w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
+			return false
+		}
+		return utils.CmpStateFuncs(fn, event.Data.CurrentStep.Transition)
+	}
+}
+
+func (w StateMachineHelper) AfterAnyStep() func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		return event.Data.EventType == smachine.StepLoggerUpdate && w.slotLink.SlotID() == event.Data.StepNo.SlotID()
 	}
 }
 
-func (w StateMachineHelper) TilAnyMigrate() func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterAnyMigrate() func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		return event.Data.EventType == smachine.StepLoggerMigrate && w.slotLink.SlotID() == event.Data.StepNo.SlotID()
 	}
 }
 
-func (w StateMachineHelper) TilStop() func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterStop() func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		return !w.slotLink.IsValid()
 	}
 }
 
-func (w StateMachineHelper) TilMigrate(fn smachine.MigrateFunc) func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterMigrate(fn smachine.MigrateFunc) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		if event.Data.EventType != smachine.StepLoggerMigrate || w.slotLink.SlotID() != event.Data.StepNo.SlotID() {
 			return false
@@ -65,22 +74,39 @@ func (w StateMachineHelper) TilMigrate(fn smachine.MigrateFunc) func(testUtilsCo
 	}
 }
 
-func (w StateMachineHelper) TilStepExt(s smachine.SlotStep) func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) BeforeStepExt(s smachine.SlotStep) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
+		step := event.Update.NextStep
 		switch {
 		case event.Data.EventType != smachine.StepLoggerUpdate:
 		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
-		case s.Transition != nil && !utils.CmpStateFuncs(s.Transition, event.Update.NextStep.Transition):
-		case s.Migration != nil && !utils.CmpStateFuncs(s.Migration, event.Update.NextStep.Migration):
-		case s.Handler != nil && !utils.CmpStateFuncs(s.Handler, event.Update.NextStep.Handler):
+		case s.Transition != nil && !utils.CmpStateFuncs(s.Transition, step.Transition):
+		case s.Migration != nil && !utils.CmpStateFuncs(s.Migration, step.Migration):
+		case s.Handler != nil && !utils.CmpStateFuncs(s.Handler, step.Handler):
 		default:
-			return event.Update.NextStep.Flags&s.Flags == s.Flags
+			return step.Flags&s.Flags == s.Flags
 		}
 		return false
 	}
 }
 
-func (w StateMachineHelper) TilCustomEvent(fn func(interface{}) bool) func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterStepExt(s smachine.SlotStep) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		step := event.Data.CurrentStep
+		switch {
+		case event.Data.EventType != smachine.StepLoggerUpdate:
+		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
+		case s.Transition != nil && !utils.CmpStateFuncs(s.Transition, step.Transition):
+		case s.Migration != nil && !utils.CmpStateFuncs(s.Migration, step.Migration):
+		case s.Handler != nil && !utils.CmpStateFuncs(s.Handler, step.Handler):
+		default:
+			return step.Flags&s.Flags == s.Flags
+		}
+		return false
+	}
+}
+
+func (w StateMachineHelper) AfterCustomEvent(fn func(interface{}) bool) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		switch {
 		case !event.Data.EventType.IsEvent():
@@ -92,7 +118,7 @@ func (w StateMachineHelper) TilCustomEvent(fn func(interface{}) bool) func(testU
 	}
 }
 
-func (w StateMachineHelper) TilAsyncCall(id smachine.AdapterID) func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterAsyncCall(id smachine.AdapterID) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		switch {
 		case event.Data.EventType != smachine.StepLoggerAdapterCall:
@@ -106,7 +132,7 @@ func (w StateMachineHelper) TilAsyncCall(id smachine.AdapterID) func(testUtilsCo
 	}
 }
 
-func (w StateMachineHelper) TilResultOfFirstAsyncCall(id smachine.AdapterID) func(testUtilsCommon.UpdateEvent) bool {
+func (w StateMachineHelper) AfterResultOfFirstAsyncCall(id smachine.AdapterID) func(testUtilsCommon.UpdateEvent) bool {
 	hasCall := false
 	callID := uint64(0)
 	return func(event testUtilsCommon.UpdateEvent) bool {

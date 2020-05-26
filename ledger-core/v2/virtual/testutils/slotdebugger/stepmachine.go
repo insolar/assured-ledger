@@ -110,7 +110,7 @@ func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
 	return rv
 }
 
-func (c *StepController) Run(predicate func(event testUtilsCommon.UpdateEvent) bool) {
+func (c *StepController) RunTil(predicate func(event testUtilsCommon.UpdateEvent) bool) {
 	for {
 		switch event := c.NextStep(); {
 		case event.IsEmpty():
@@ -125,6 +125,7 @@ func (c *StepController) Stop() {
 	c.watchdog.Stop()
 	c.debugLogger.Stop()
 	c.slotMachine.Stop()
+	c.debugLogger.FlushEvents(c.worker.finishedSignal())
 }
 
 func (c *StepController) Migrate() {

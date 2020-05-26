@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -154,7 +155,19 @@ func (v *DebugMachineLogger) SetPredicate(fn LoggerSlotPredicateFn) {
 
 func (v *DebugMachineLogger) Stop() {
 	close(v.continueExecution)
-	v.events <- UpdateEvent{}
+}
+
+func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel) {
+	for {
+		ok := false
+		select {
+		case _, ok = <- v.events:
+		case _, ok = <- flushDone:
+		}
+		if !ok {
+			return
+		}
+	}
 }
 
 func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) *DebugMachineLogger {

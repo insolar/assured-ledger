@@ -11,18 +11,25 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/sworker"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 )
 
 type worker struct {
 	slotMachine    *StepController
 	stepController chan struct{}
+	finished chan struct{}
 }
 
 func newWorker(parent *StepController) *worker {
 	return &worker{
 		slotMachine:    parent,
 		stepController: make(chan struct{}),
+		finished: make(chan struct{}),
 	}
+}
+
+func (w *worker) finishedSignal() synckit.SignalChannel {
+	return w.finished
 }
 
 func (w *worker) Start() {
@@ -31,6 +38,8 @@ func (w *worker) Start() {
 	)
 
 	go func() {
+		defer close(w.finished)
+
 		machine := w.slotMachine.slotMachine
 		for {
 			var (

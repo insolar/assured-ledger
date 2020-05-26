@@ -178,7 +178,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 
 	require.Equal(t, 1, slotMachine.GetOccupiedSlotCount())
 
-	slotMachine.Run(smWrapper.TilStep(smObject.stepReadyToWork))
+	slotMachine.RunTil(smWrapper.BeforeStep(smObject.stepReadyToWork))
 
 	require.Equal(t, 2, slotMachine.GetOccupiedSlotCount())
 
