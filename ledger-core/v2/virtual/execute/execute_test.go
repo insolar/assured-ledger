@@ -43,7 +43,7 @@ func TestSMExecute_IncreasePendingCounter(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
@@ -127,7 +127,7 @@ func TestSMExecute_UpdateKnownRequests(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
@@ -228,7 +228,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		Payload: &payload.VCallRequest{
 			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:              caller,
