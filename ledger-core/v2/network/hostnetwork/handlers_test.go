@@ -19,6 +19,8 @@ import (
 func TestNewStreamHandler(t *testing.T) {
 	defer testutils.LeakTester(t)
 
+	ctx := inslogger.TestContext(t)
+
 	requestHandler := func(ctx context.Context, p *packet.ReceivedPacket) {
 		inslogger.FromContext(ctx).Info("requestHandler")
 	}
@@ -28,7 +30,7 @@ func TestNewStreamHandler(t *testing.T) {
 	con1, _ := net.Pipe()
 
 	done := make(chan struct{})
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		h.HandleStream(ctx, "127.0.0.1:8080", con1)
 		done <- struct{}{}
