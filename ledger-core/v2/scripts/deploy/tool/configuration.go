@@ -5,7 +5,8 @@
 
 package main
 
-type KubeDeployTool struct {
-	NodesCount    uint
-	ManifestsPath string
+type KubeDeployToolConfig struct {
+	NodesCount             uint
+	ManifestsPath          string
+	BootstrapConfigRelPath string
 }

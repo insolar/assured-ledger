@@ -1,2 +1,3 @@
-nodescount: 5
+nodescount: 3
 manifestspath: ./../scripts/deploy/kube/local/
+bootstrapconfigrelpath: configuration/
