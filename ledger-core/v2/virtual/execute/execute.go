@@ -456,7 +456,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingWasSent = true
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.JumpExt(
+	return ctx.Sleep().ThenJumpExt(
 		smachine.SlotStep{
 			Transition: s.stepExecuteContinue,
 			Migration:  s.migrateDuringSendOutgoing,
