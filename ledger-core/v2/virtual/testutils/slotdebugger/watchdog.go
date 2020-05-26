@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package slotmachine
+package slotdebugger
 
 import (
 	"time"
@@ -59,12 +59,15 @@ func (w *watchdog) Extend(duration time.Duration) {
 	}
 }
 
-func (w *watchdog) Stop() bool {
-	if timer := w.timer; timer == nil {
-		panic(throw.IllegalState())
-	} else {
+func (w *watchdog) Stop() {
+	switch {
+	case w == nil:
+	case w.timer != nil:
+		timer := w.timer
 		w.timer = nil
-		return timer.Stop()
+		timer.Stop()
+	default:
+		panic(throw.IllegalState())
 	}
 }
 
