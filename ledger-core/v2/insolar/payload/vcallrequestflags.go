@@ -1,0 +1,65 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package payload
+
+import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+)
+
+type CallRequestFlags uint32
+
+func (f CallRequestFlags) Equal(r CallRequestFlags) bool {
+	return f == r
+}
+
+const (
+	bitSendResultFullFlagCount = 1
+	bitRepeatedCallFlagCount   = 1
+
+	bitSendResultFullOffset = 0
+	bitRepeatedCallOffset   = bitSendResultFullOffset + bitSendResultFullFlagCount
+)
+
+const (
+	bitSendResultFullMask = ((1 << bitSendResultFullFlagCount) - 1) << bitSendResultFullOffset
+)
+
+func (f CallRequestFlags) WithSendResultFull(t contract.SendResultFullFlag) CallRequestFlags {
+	if t == 0 {
+		panic(throw.IllegalValue())
+	}
+	if t > contract.SendResultFullFlagCount {
+		panic(throw.IllegalValue())
+	}
+	return (f &^ bitSendResultFullMask) | (CallRequestFlags(t) << bitSendResultFullOffset)
+}
+
+func (f CallRequestFlags) GetSendResult() contract.SendResultFullFlag {
+	return contract.SendResultFullFlag(f&bitSendResultFullMask) >> bitSendResultFullOffset
+}
+
+const (
+	bitRepeatedCallMask = ((1 << bitRepeatedCallFlagCount) - 1) << bitRepeatedCallOffset
+)
+
+func (f CallRequestFlags) WithRepeatedCall(s contract.RepeatedCallFlag) CallRequestFlags {
+	if s == 0 {
+		panic(throw.IllegalValue())
+	}
+	if s > contract.RepeatedCallFlagCount {
+		panic(throw.IllegalValue())
+	}
+	return (f &^ bitRepeatedCallMask) | (CallRequestFlags(s) << bitRepeatedCallOffset)
+}
+
+func (f CallRequestFlags) GetRepeatedCall() contract.StateFlag {
+	return contract.StateFlag(f&bitRepeatedCallMask) >> bitRepeatedCallOffset
+}
+
+func BuildCallRequestFlags(sendResultFull contract.SendResultFullFlag, repeatedCall contract.RepeatedCallFlag) CallRequestFlags {
+	return CallRequestFlags(0).WithSendResultFull(sendResultFull).WithRepeatedCall(repeatedCall)
+}

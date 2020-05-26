@@ -58,6 +58,10 @@ type SMExecute struct {
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 
+	outgoing                  *payload.VCallRequest
+	outgoingObject            reference.Global
+	outgoingBargeInRegistered bool
+
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
@@ -394,51 +398,22 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		msg    *payload.VCallRequest
-		object reference.Global
-
-		pulseNumber = s.pulseSlot.PulseData().PulseNumber
-	)
-
-	switch outgoing := s.executionNewState.Outgoing.(type) {
-	case executionevent.GetCode:
-		panic(throw.Unsupported())
-	case executionevent.Deactivate:
-		s.deactivate = true
-	case executionevent.CallConstructor:
-		msg = outgoing.ConstructVCallRequest(s.execution)
-		msg.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
-		object = reference.NewSelf(msg.CallOutgoing)
-	case executionevent.CallMethod:
-		msg = outgoing.ConstructVCallRequest(s.execution)
-		msg.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
-		object = msg.Callee
-	default:
-		panic(throw.IllegalValue())
+	if s.outgoing == nil && s.deactivate == false {
+		s.prepareOutgoing()
 	}
 
-	if msg != nil {
-		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-			res, ok := param.(*payload.VCallResult)
-			if !ok || res == nil {
-				panic(throw.IllegalValue())
+	if s.outgoing != nil {
+		if !s.outgoingBargeInRegistered {
+			err := s.prepareOutgoingBargeIn(ctx)
+			if err != nil {
+				return ctx.Error(errors.New("failed to publish bargeInCallback"))
 			}
-			s.outgoingResult = res.ReturnArguments
-
-			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				return ctx.WakeUp()
-			}
-		})
-
-		outgoingRef := reference.NewRecordOf(msg.Caller, msg.CallOutgoing)
-
-		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-			return ctx.Error(errors.New("failed to publish bargeInCallback"))
+		} else {
+			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(contract.SendResultDefault, contract.RepeatedCall)
 		}
 
 		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-			err := svc.SendRole(goCtx, msg, node.DynamicRoleVirtualExecutor, object, pulseNumber)
+			err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.PulseData().PulseNumber)
 			return func(ctx smachine.AsyncResultContext) {
 				if err != nil {
 					ctx.Log().Error("failed to send message", err)
@@ -446,10 +421,69 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			}
 		}).WithoutAutoWakeUp().Start()
 
-		return ctx.Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
+		// we'll wait for barge-in WakeUp here, not adapter
+		return ctx.JumpExt(
+			smachine.SlotStep{
+				Transition: s.stepExecuteContinue,
+				Migration:  s.migrateDuringExecuteOutgoing,
+			})
 	}
 
 	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMExecute) prepareOutgoing() {
+	pulseNumber := s.pulseSlot.PulseData().PulseNumber
+
+	switch outgoing := s.executionNewState.Outgoing.(type) {
+	case executionevent.GetCode:
+		panic(throw.Unsupported())
+	case executionevent.Deactivate:
+		s.deactivate = true
+	case executionevent.CallConstructor:
+		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
+		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
+	case executionevent.CallMethod:
+		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
+		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoingObject = s.outgoing.Callee
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
+func (s *SMExecute) prepareOutgoingBargeIn(ctx smachine.ExecutionContext) error {
+	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+		res, ok := param.(*payload.VCallResult)
+		if !ok || res == nil {
+			panic(throw.IllegalValue())
+		}
+		s.outgoingResult = res.ReturnArguments
+
+		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			return ctx.WakeUp()
+		}
+	})
+
+	outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
+
+	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
+		return errors.New("failed to publish bargeInCallback")
+	}
+
+	s.outgoingBargeInRegistered = true
+	return nil
+}
+
+func (s *SMExecute) migrateDuringExecuteOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.migrationHappened = true
+
+	if s.outgoingBargeInRegistered {
+		return ctx.Jump(s.stepExecuteOutgoing)
+	}
+
+	return ctx.Stay()
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
