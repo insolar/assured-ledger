@@ -18,7 +18,7 @@ type Metadata struct {
 
 type Spec struct {
 	Selector Selector
-	Replicas string
+	Replicas int
 }
 
 type Selector struct {
