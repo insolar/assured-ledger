@@ -48,11 +48,20 @@ jobs:
           custom_registry: true
           registries_yaml_path: "ledger-core/v2/scripts/deploy/kube/ci/registries.yaml"
           kubectl_version: "v1.18.2"
-      - name: deploy traefik, private registry, prometheus
-        run: |
-          kubectl apply -k ledger-core/v2/scripts/deploy/kube/traefik
-          kubectl apply -k ledger-core/v2/scripts/deploy/kube/k3s-registry
-          kubectl apply -k ledger-core/v2/scripts/deploy/kube/prometheus
+      - name: deploy traefik
+        run: kubectl apply -k traefik
+      - name: deploy k3s-registry
+        run: kubectl apply -k k3s-registry
+      - name: deploy prometheus
+        run: kubectl apply -k prometheus
+      - name: wait for registry to be up and running
+        run: kubectl -n registry rollout status deploy/registry --timeout=80s
+      - name: wait for traefik to be up and running
+        run: kubectl -n kube-system rollout status deploy/traefik-ingress-controller --timeout=80s
+      - name: wait for prometheus to be up and running
+        run: kubectl -n prometheus rollout status deploy/prometheus --timeout=80s
+      - name: no nice way to check ingress availability
+        run: sleep 5
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
@@ -62,8 +71,6 @@ jobs:
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
           docker tag insolar/assured-ledger:latest ci:5000/assured-ledger:latest
           docker push localhost/assured-ledger:latest
-      - name: wait for ingress
-        run: (for attempt in {1..60}; do if kubectl get pods -n ingress-nginx | grep controller | grep -v svclb | grep Running; then exit; elif [ "$attempt" -eq 60 ]; then exit 1; else sleep 1; echo -n '.'; fi; done)
       - name: run insolar net
         run: |
           go mod download
