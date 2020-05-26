@@ -5,7 +5,6 @@
 
 package slotdebugger
 
-import "C"
 import (
 	"context"
 	"testing"
