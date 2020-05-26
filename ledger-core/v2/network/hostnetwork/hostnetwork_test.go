@@ -242,37 +242,6 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	assert.Nil(t, f)
 }
 
-func TestHostNetwork_SendRequestPacket2(t *testing.T) {
-	defer testutils.LeakTester(t)
-	s := newHostSuite(t)
-	defer s.Stop()
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
-		defer wg.Done()
-		inslogger.FromContext(ctx).Info("handler triggered")
-		ref, err := reference.GlobalFromString(id1)
-		require.NoError(t, err)
-		require.Equal(t, ref, r.GetSender())
-		require.Equal(t, s.n1.PublicAddress(), r.GetSenderHost().Address.String())
-		return s.n2.BuildResponse(ctx, r, &packet.RPCResponse{}), nil
-	}
-
-	s.n2.RegisterRequestHandler(types.RPC, handler)
-
-	s.Start()
-
-	ref, err := reference.GlobalFromString(id2)
-	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
-	require.NoError(t, err)
-	f.Cancel()
-
-	wg.Wait()
-}
-
 func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 	s := newHostSuite(t)
 	defer s.Stop()
