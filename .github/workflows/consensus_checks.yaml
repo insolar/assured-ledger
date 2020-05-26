@@ -76,7 +76,7 @@ jobs:
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
           go mod download
-          make vendor install-build-tools kube_start_net
+          make vendor install-build-tools kube_start_net || kubectl -n insolar logs -f deploy/pulsewatcher
         working-directory: ${{env.V2_PATH}}
       - name: run tests
         run: make test_func_kubernetes_ci
