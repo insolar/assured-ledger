@@ -36,7 +36,7 @@ func newZerologAdapter(level logcommon.Level) (logm.Logger, error) {
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.SkipFrameCountBaseline = ZerologSkipFrameCount
 
-	zb := logm.NewBuilder(NewFactory(), zc, level)
+	zb := logm.NewBuilder(NewFactory(), zc, level).WithCaller(logcommon.CallerField)
 	return zb.Build()
 }
 
@@ -95,6 +95,7 @@ func TestZeroLogAdapter_InheritFields(t *testing.T) {
 	s := buf2.String()
 	require.Contains(t, s, "value1")
 	require.Contains(t, s, "value2")
+	require.Contains(t, s, "caller")
 }
 
 func TestZeroLogAdapter_ChangeLevel(t *testing.T) {
@@ -137,6 +138,7 @@ func TestZeroLogAdapter_BuildFields(t *testing.T) {
 	s := buf.String()
 	require.Contains(t, s, "value0")
 	require.Contains(t, s, "value1")
+	require.Contains(t, s, "caller")
 	buf.Reset()
 
 	log, err = log.Copy().WithoutInheritedFields().WithField("test2", "value2").Build()
@@ -146,6 +148,7 @@ func TestZeroLogAdapter_BuildFields(t *testing.T) {
 	s = buf.String()
 	require.NotContains(t, s, "value0")
 	require.NotContains(t, s, "value1")
+	require.Contains(t, s, "caller")
 	require.Contains(t, s, "value2")
 }
 
@@ -175,6 +178,7 @@ func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
 	require.Contains(t, s, "static0")
 	require.Contains(t, s, "value0")
 	require.Contains(t, s, "value1")
+	require.Contains(t, s, "caller")
 
 	buf.Reset()
 	log, err = log.Copy().WithoutInheritedDynFields().WithDynamicField("test2", func() interface{} { return "value2" }).Build()
@@ -186,6 +190,7 @@ func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
 	require.NotContains(t, s, "value0")
 	require.NotContains(t, s, "value1")
 	require.Contains(t, s, "value2")
+	require.Contains(t, s, "caller")
 
 	buf.Reset()
 	log, err = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value3" }).Build()
@@ -198,6 +203,7 @@ func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
 	require.NotContains(t, s, "value1")
 	require.NotContains(t, s, "value2")
 	require.Contains(t, s, "value3")
+	require.Contains(t, s, "caller")
 
 	buf.Reset()
 	log, err = log.Copy().WithoutInheritedFields().WithDynamicField("test3", func() interface{} { return "value-3" }).Build()
@@ -211,6 +217,7 @@ func TestZeroLogAdapter_BuildDynFields(t *testing.T) {
 	require.NotContains(t, s, "value2")
 	require.NotContains(t, s, "value3")
 	require.Contains(t, s, "value-3")
+	require.Contains(t, s, "caller")
 }
 
 func TestZeroLogAdapter_Fatal(t *testing.T) {
