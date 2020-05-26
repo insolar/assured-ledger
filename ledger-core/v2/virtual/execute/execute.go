@@ -418,7 +418,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	}
 
 	if s.outgoing != nil {
-		ctx.Jump(s.stepSendOutgoing)
+		return ctx.Jump(s.stepSendOutgoing)
 	}
 
 	return ctx.Jump(s.stepExecuteContinue)
