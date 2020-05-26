@@ -26,9 +26,6 @@ func (p *Polymorph) Init(g *generator.Generator, imports generator.PluginImports
 }
 
 func (p *Polymorph) GenerateMsg(file *generator.FileDescriptor, message *generator.Descriptor, ccTypeName string, isHead bool) {
-	if !insproto.HasPolymorphID(message.DescriptorProto) {
-		return
-	}
 	id := insproto.GetPolymorphID(message.DescriptorProto)
 	if id == 0 {
 		return

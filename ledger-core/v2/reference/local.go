@@ -120,7 +120,7 @@ func (v Local) asEncoderReader(limit uint8) *byteReader {
 	return &byteReader{v: v, s: limit}
 }
 
-//DEPRICATED
+// deprecated
 func (v Local) ProtoSize() int {
 	return BinarySizeLocal(v)
 }
