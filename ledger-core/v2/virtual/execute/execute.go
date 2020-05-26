@@ -58,9 +58,9 @@ type SMExecute struct {
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 
-	outgoing                  *payload.VCallRequest
-	outgoingObject            reference.Global
-	outgoingBargeInRegistered bool
+	outgoing        *payload.VCallRequest
+	outgoingObject  reference.Global
+	outgoingWasSent bool
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
@@ -398,41 +398,6 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.outgoing == nil && s.deactivate == false {
-		s.prepareOutgoing()
-	}
-
-	if s.outgoing != nil {
-		if !s.outgoingBargeInRegistered {
-			err := s.prepareOutgoingBargeIn(ctx)
-			if err != nil {
-				return ctx.Error(errors.New("failed to publish bargeInCallback"))
-			}
-		} else {
-			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(contract.SendResultDefault, contract.RepeatedCall)
-		}
-
-		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-			err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.PulseData().PulseNumber)
-			return func(ctx smachine.AsyncResultContext) {
-				if err != nil {
-					ctx.Log().Error("failed to send message", err)
-				}
-			}
-		}).WithoutAutoWakeUp().Start()
-
-		// we'll wait for barge-in WakeUp here, not adapter
-		return ctx.JumpExt(
-			smachine.SlotStep{
-				Transition: s.stepExecuteContinue,
-				Migration:  s.migrateDuringExecuteOutgoing,
-			})
-	}
-
-	return ctx.Jump(s.stepExecuteContinue)
-}
-
-func (s *SMExecute) prepareOutgoing() {
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
@@ -451,39 +416,61 @@ func (s *SMExecute) prepareOutgoing() {
 	default:
 		panic(throw.IllegalValue())
 	}
-}
 
-func (s *SMExecute) prepareOutgoingBargeIn(ctx smachine.ExecutionContext) error {
-	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VCallResult)
-		if !ok || res == nil {
-			panic(throw.IllegalValue())
-		}
-		s.outgoingResult = res.ReturnArguments
-
-		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			return ctx.WakeUp()
-		}
-	})
-
-	outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
-
-	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-		return errors.New("failed to publish bargeInCallback")
+	if s.outgoing != nil {
+		ctx.Jump(s.stepSendOutgoing)
 	}
 
-	s.outgoingBargeInRegistered = true
-	return nil
+	return ctx.Jump(s.stepExecuteContinue)
 }
 
-func (s *SMExecute) migrateDuringExecuteOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !s.outgoingWasSent {
+		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+			res, ok := param.(*payload.VCallResult)
+			if !ok || res == nil {
+				panic(throw.IllegalValue())
+			}
+			s.outgoingResult = res.ReturnArguments
+
+			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				return ctx.WakeUp()
+			}
+		})
+
+		outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
+
+		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
+			return ctx.Error(errors.New("failed to publish bargeInCallback"))
+		}
+	}
+
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.PulseData().PulseNumber)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
+
+	s.outgoingWasSent = true
+	// we'll wait for barge-in WakeUp here, not adapter
+	return ctx.JumpExt(
+		smachine.SlotStep{
+			Transition: s.stepExecuteContinue,
+			Migration:  s.migrateDuringSendOutgoing,
+		})
+}
+
+func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
 	s.migrationHappened = true
 
-	if s.outgoingBargeInRegistered {
-		return ctx.Jump(s.stepExecuteOutgoing)
+	if s.outgoingWasSent {
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(contract.SendResultDefault, contract.RepeatedCall)
 	}
 
-	return ctx.Stay()
+	return ctx.Jump(s.stepSendOutgoing)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
