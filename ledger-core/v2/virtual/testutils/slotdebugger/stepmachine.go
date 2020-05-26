@@ -38,6 +38,7 @@ type StepController struct {
 
 	slotMachine *smachine.SlotMachine
 	debugLogger *testUtilsCommon.DebugMachineLogger
+	stepIsWaiting bool
 	watchdog    *watchdog
 
 	worker *worker
@@ -105,8 +106,11 @@ func (c *StepController) Start() {
 }
 
 func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
+	if c.stepIsWaiting {
+		c.debugLogger.Continue()
+	}
 	rv := c.debugLogger.GetEvent()
-	c.debugLogger.Continue()
+	c.stepIsWaiting = !rv.IsEmpty()
 	return rv
 }
 
