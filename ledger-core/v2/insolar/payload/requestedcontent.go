@@ -13,8 +13,8 @@ const (
 	RequestLatestDirtyState
 	RequestLatestValidatedCode
 	RequestLatestDirtyCode
-	RequestMutableQueue
-	RequestImmutableQueue
+	RequestOrderedQueue
+	RequestUnorderedQueue
 )
 
 // Equal required by protobuf custom type
