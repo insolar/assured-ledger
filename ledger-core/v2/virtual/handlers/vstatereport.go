@@ -83,8 +83,8 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 			return false
 		}
 
-		state.ActiveImmutablePendingCount = uint8(s.Payload.ImmutablePendingCount)
-		state.ActiveMutablePendingCount = uint8(s.Payload.MutablePendingCount)
+		state.ActiveUnorderedPendingCount = uint8(s.Payload.UnorderedPendingCount)
+		state.ActiveOrderedPendingCount = uint8(s.Payload.OrderedPendingCount)
 
 		state.SetDescriptor(objectDescriptor)
 		state.SetState(object.HasState)

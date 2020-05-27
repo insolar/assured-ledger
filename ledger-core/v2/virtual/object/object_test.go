@@ -111,7 +111,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 		smObject.Init(initCtx)
 	}
 
-	smObject.SharedState.ActiveMutablePendingCount = 1
+	smObject.SharedState.ActiveOrderedPendingCount = 1
 	smObject.SharedState.SetState(HasState)
 
 	{ // we should be able to start
@@ -127,7 +127,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 			resultSM := cb1(constructionCtxMock)
 			if assert.IsType(t, resultSM, &SMAwaitDelegate{}) &&
-				assert.Equal(t, smObject.MutableExecute, resultSM.(*SMAwaitDelegate).sync) {
+				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync) {
 
 				cb2()
 			}
@@ -160,7 +160,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	)
 
 	smObject.SetState(HasState)
-	smObject.ActiveMutablePendingCount = 1
+	smObject.ActiveOrderedPendingCount = 1
 
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.InitEmptyMessageSender(mc)

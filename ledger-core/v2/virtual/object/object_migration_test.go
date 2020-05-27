@@ -300,8 +300,8 @@ func TestSMObject_StopIfVStateReportWasSendAndNoPendingExecution(t *testing.T) {
 
 	{ // stepWaitIndefinitely continue if not migrated and no pending exist
 		smObject.migrateState = stateWasNotSend
-		smObject.PotentialMutablePendingCount = 0
-		smObject.PotentialImmutablePendingCount = 0
+		smObject.PotentialOrderedPendingCount = 0
+		smObject.PotentialUnorderedPendingCount = 0
 
 		cb := smachine.NewStateConditionalBuilderMock(mc).
 			ThenRepeatMock.Return(smachine.StateUpdate{})
@@ -313,8 +313,8 @@ func TestSMObject_StopIfVStateReportWasSendAndNoPendingExecution(t *testing.T) {
 
 	{ // stepWaitIndefinitely continue if not migrated and no pending exist
 		smObject.migrateState = stateSent
-		smObject.PotentialMutablePendingCount = 0
-		smObject.PotentialImmutablePendingCount = 0
+		smObject.PotentialOrderedPendingCount = 0
+		smObject.PotentialUnorderedPendingCount = 0
 
 		cb := smachine.NewStateConditionalBuilderMock(mc).
 			ThenRepeatMock.Return(smachine.StateUpdate{})
@@ -326,8 +326,8 @@ func TestSMObject_StopIfVStateReportWasSendAndNoPendingExecution(t *testing.T) {
 
 	{ // stepWaitIndefinitely continue if migrated and pending exist
 		smObject.migrateState = readyToStop
-		smObject.PotentialMutablePendingCount = 1
-		smObject.PotentialImmutablePendingCount = 0
+		smObject.PotentialOrderedPendingCount = 1
+		smObject.PotentialUnorderedPendingCount = 0
 
 		cb := smachine.NewStateConditionalBuilderMock(mc).
 			ThenRepeatMock.Return(smachine.StateUpdate{})
@@ -339,8 +339,8 @@ func TestSMObject_StopIfVStateReportWasSendAndNoPendingExecution(t *testing.T) {
 
 	{ // stepWaitIndefinitely continue if not migrated and no pending exist
 		smObject.migrateState = readyToStop
-		smObject.PotentialMutablePendingCount = 0
-		smObject.PotentialImmutablePendingCount = 1
+		smObject.PotentialOrderedPendingCount = 0
+		smObject.PotentialUnorderedPendingCount = 1
 
 		cb := smachine.NewStateConditionalBuilderMock(mc).
 			ThenRepeatMock.Return(smachine.StateUpdate{})
@@ -352,8 +352,8 @@ func TestSMObject_StopIfVStateReportWasSendAndNoPendingExecution(t *testing.T) {
 
 	{ // stepWaitIndefinitely call ctx.Stop if migrated and no pending exist
 		smObject.migrateState = readyToStop
-		smObject.PotentialMutablePendingCount = 0
-		smObject.PotentialImmutablePendingCount = 0
+		smObject.PotentialOrderedPendingCount = 0
+		smObject.PotentialUnorderedPendingCount = 0
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			StopMock.Return(smachine.StateUpdate{})

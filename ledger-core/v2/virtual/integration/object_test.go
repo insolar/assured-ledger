@@ -46,7 +46,7 @@ func TestInitViaCTMethod(t *testing.T) {
 		switch request := pl.(type) {
 		case *payload.VStateRequest:
 			for _, flag := range []payload.StateRequestContentFlags{payload.RequestLatestValidatedState, payload.RequestLatestDirtyState,
-				payload.RequestMutableQueue, payload.RequestImmutableQueue} {
+				payload.RequestOrderedQueue, payload.RequestUnorderedQueue} {
 				assert.True(t, request.RequestedContent.Contains(flag))
 			}
 		default:
