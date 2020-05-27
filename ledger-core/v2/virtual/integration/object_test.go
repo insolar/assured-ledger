@@ -30,7 +30,7 @@ func TestInitViaCTMethod(t *testing.T) {
 		Polymorph: uint32(payload.TypeVCallRequest),
 		CallType:  payload.CTMethod,
 		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
-		CallFlags: payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 	}
 	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
 	require.NoError(t, err)

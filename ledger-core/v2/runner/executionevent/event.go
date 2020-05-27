@@ -123,7 +123,7 @@ func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *pay
 
 	return &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallRequestFlags(execution.Isolation.Interference, execution.Isolation.State),
+		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              reference.Global{},
 		CallSiteDeclaration: e.prototype,
@@ -183,7 +183,7 @@ func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.
 
 	return &payload.VCallRequest{
 		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallRequestFlags(execution.Isolation.Interference, execution.Isolation.State),
+		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              e.object,
 		CallSiteDeclaration: e.prototype,

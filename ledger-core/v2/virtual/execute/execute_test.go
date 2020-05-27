@@ -65,7 +65,7 @@ func TestSMExecute_Init(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -113,7 +113,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -196,7 +196,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		Payload: &payload.VCallRequest{
 			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:              caller,
@@ -269,7 +269,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		Payload: &payload.VCallRequest{
 			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:              caller,
@@ -344,7 +344,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		Payload: &payload.VCallRequest{
 			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:              caller,
