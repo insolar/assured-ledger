@@ -6,59 +6,59 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/insolar/insconfig"
 )
 
-const Kubectl = "kubectl"
-
 func main() {
 	cfg := readConfig()
-	cfgGenerator := NewConfigGenerator(cfg.NodesCount)
-	netManager := NewInsolarNetManager()
-	err := generateBootstrapConfigs(cfg, cfgGenerator)
-	if err != nil {
-		panic(err)
-	}
-	os.Exit(0)
+	callbacks := NewConsensusTestCallbacks()
+	netManager := NewInsolarNetManager(
+		cfg.KubeParams,
+		callbacks.started,
+		callbacks.ready,
+		callbacks.stopped,
+	)
 
-	err = netManager.startNetwork(cfg)
-	if err != nil {
-		panic(err)
-	}
-	callCreated()
-	err = netManager.waitForReady()
-	if err != nil {
-		panic(err)
-	}
-	callReady()
-	err = netManager.stopNetwork(cfg)
-	if err != nil {
-		panic(err)
-	}
-	callStopped()
+	startTest(cfg, netManager)
 }
 
-func generateBootstrapConfigs(cfg *KubeDeployToolConfig, generator *ConfigGenerator) error {
+func startTest(cfg *KubeDeployToolConfig, netManager *InsolarNetManager) {
+	for _, net := range cfg.NetParams {
+		cfgGenerator := NewConfigGenerator(net.NodesCount)
+		err := rewriteBootstrapConfigs(cfg.KubeParams, cfgGenerator)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = netManager.startNetwork(net)
+		if err != nil {
+			panic(err)
+		}
+		err = netManager.waitForReady(net)
+		if err != nil {
+			panic(err)
+		}
+		time.Sleep(net.WaitInReady)
+		err = netManager.stopNetwork(net)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func rewriteBootstrapConfigs(cfg KubeParams, generator *ConfigGenerator) error {
 	bootstrapConfig := generator.generateBootstrapConfig()
 	kustomizePatch := generator.generateKustomizePatch()
 	pwConfig := generator.generatePulsewatcherConfig()
 
-	fmt.Println("debug")
-	fmt.Println(bootstrapConfig)
-	fmt.Println(kustomizePatch)
-	fmt.Println(pwConfig)
-
 	bootstrapConfigPath := getExecutablePath() + cfg.KubeRootPath + cfg.BootstrapConfigRelPath
-	fmt.Println(bootstrapConfigPath)
 	err := ioutil.WriteFile(bootstrapConfigPath+"bootstrap-config.yaml", []byte(bootstrapConfig), 0644)
 	if err != nil {
 		return fmt.Errorf("write config failed: %w", err)
@@ -72,98 +72,6 @@ func generateBootstrapConfigs(cfg *KubeDeployToolConfig, generator *ConfigGenera
 		return fmt.Errorf("write config failed: %w", err)
 	}
 
-	return nil
-}
-
-func callStopped() {
-
-}
-
-func callReady() {
-
-}
-
-func callCreated() {
-
-}
-
-type InsolarNetManager struct {
-	// todo add callbacks and cfg and interface
-}
-
-func NewInsolarNetManager() *InsolarNetManager {
-	return &InsolarNetManager{}
-}
-
-func (i *InsolarNetManager) startNetwork(cfg *KubeDeployToolConfig) error {
-	out, _ := exec.Command("pwd").CombinedOutput()
-	fmt.Printf("path: %s\n", out)
-
-	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+cfg.KubeRootPath+cfg.Env+"/").CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("run failed: %s %w", string(out), err)
-	}
-	fmt.Printf("Output: %s\n", out)
-	return nil
-}
-
-func (i *InsolarNetManager) waitForReady() error {
-	for i := 0; i < 60; i++ {
-		args := []string{
-			"-n",
-			"insolar",
-			"get",
-			"po",
-			"bootstrap",
-			"-o",
-			"jsonpath=\"{.status.phase}\"",
-		}
-		cmd := exec.Command(Kubectl, args...)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("bootstrap check failed: %s %w", string(out), err)
-		}
-		if string(out) == "\"Succeeded\"" {
-			fmt.Println("bootstrap finished")
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	for i := 0; i < 60; i++ {
-		args := []string{
-			"-n",
-			"insolar",
-			"exec",
-			"-i",
-			"deploy/pulsewatcher",
-			"--",
-			`pulsewatcher`,
-			"-c",
-			"/etc/pulsewatcher/pulsewatcher.yaml",
-			`-s`,
-		}
-		cmd := exec.Command(Kubectl, args...)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("insolar ready check failed: %s %w", string(out), err)
-		}
-		if strings.Contains(string(out), "READY") && !strings.Contains(string(out), "NOT") {
-			fmt.Println("insolar has been started")
-			return nil
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	return errors.New("insolar has not been started")
-}
-
-func (i *InsolarNetManager) stopNetwork(cfg *KubeDeployToolConfig) error {
-	out, err := exec.Command(Kubectl, "delete", "-k", getExecutablePath()+cfg.KubeRootPath+cfg.Env+"/").CombinedOutput()
-	if err != nil {
-		fmt.Errorf("stop failed: %s %w", string(out), err)
-	}
-	fmt.Printf("Output: %s\n", out)
 	return nil
 }
 

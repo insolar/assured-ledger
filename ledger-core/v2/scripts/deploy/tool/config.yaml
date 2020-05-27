@@ -1,5 +1,10 @@
-nodescount: 5
-env: local
-kuberootpath: /../scripts/deploy/kube/
-manifestsrelpath: manifests/
-bootstrapconfigrelpath: manifests/configuration/
+netparams:
+- nodescount: 3
+  waitinready: 30s
+- nodescount: 4
+- nodescount: 5
+kubeparams:
+  env: local
+  kuberootpath: /../scripts/deploy/kube/
+  manifestsrelpath: manifests/
+  bootstrapconfigrelpath: manifests/configuration/
