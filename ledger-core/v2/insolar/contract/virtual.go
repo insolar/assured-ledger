@@ -79,27 +79,3 @@ const (
 func (f InterferenceFlag) IsZero() bool {
 	return f == 0
 }
-
-type SendResultFullFlag byte
-
-const (
-	SendResultDefault SendResultFullFlag = iota
-	SendResultFull
-	SendResultFullFlagCount = iota - 1
-)
-
-func (f SendResultFullFlag) IsZero() bool {
-	return f == 0
-}
-
-type RepeatedCallFlag byte
-
-const (
-	CallDefault RepeatedCallFlag = iota
-	RepeatedCall
-	RepeatedCallFlagCount = iota - 1
-)
-
-func (f RepeatedCallFlag) IsZero() bool {
-	return f == 0
-}
