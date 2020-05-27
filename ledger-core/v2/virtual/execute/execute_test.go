@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 )
 
@@ -142,7 +143,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	{ // updateCounters after
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(CallSharedDataAccessor).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			SetDefaultMigrationMock.Return().
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteStart))
 
@@ -158,7 +159,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	{ // update known requests panics
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(CallSharedDataAccessor)
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor)
 
 		checkerFunc := func() {
 			smExecute.stepStartRequestProcessing(execCtx)
@@ -208,9 +209,9 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			Sender: caller,
 		},
 	}
+	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var catalog object.Catalog = catalogWrapper.Mock()
 		slotMachine.AddInterfaceDependency(&catalog)
 
@@ -218,6 +219,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
 	slotMachine.Start()
@@ -233,6 +235,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	require.Equal(t, uint8(1), sharedState.PotentialOrderedPendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
+	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
 }
 
@@ -275,9 +278,9 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			Sender: caller,
 		},
 	}
+	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var catalog object.Catalog = catalogWrapper.Mock()
 		slotMachine.AddInterfaceDependency(&catalog)
 
@@ -285,6 +288,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
 	slotMachine.Start()
@@ -302,6 +306,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
+	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
 }
 
@@ -344,9 +349,9 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			Sender: caller,
 		},
 	}
+	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var catalog object.Catalog = catalogWrapper.Mock()
 		slotMachine.AddInterfaceDependency(&catalog)
 
@@ -354,6 +359,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
 	slotMachine.Start()
@@ -371,5 +377,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	assert.True(t, smExecute.migrationHappened)
 
+	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
 }

@@ -106,25 +106,31 @@ func (i *Info) Descriptor() descriptor.Object {
 }
 
 func (i *Info) BuildStateReport() payload.VStateReport {
-	objDescriptor := i.Descriptor()
+	var latestDirtyState reference.Global
+	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+		latestDirtyState = objDescriptor.HeadRef()
+	}
 	return payload.VStateReport{
 		Callee:                i.Reference,
 		UnorderedPendingCount: int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
 		OrderedPendingCount:   int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
-		LatestDirtyState:      objDescriptor.HeadRef(),
+		LatestDirtyState:      latestDirtyState,
+		ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},
 	}
 }
 
 func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
-	objDescriptor := i.Descriptor()
-	prototype, _ := objDescriptor.Prototype()
-	return &payload.ObjectState{
-		Reference:   objDescriptor.StateID(),
-		Parent:      objDescriptor.Parent(),
-		Prototype:   prototype,
-		State:       objDescriptor.Memory(),
-		Deactivated: i.Deactivated,
+	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+		prototype, _ := objDescriptor.Prototype()
+		return &payload.ObjectState{
+			Reference:   objDescriptor.StateID(),
+			Parent:      objDescriptor.Parent(),
+			Prototype:   prototype,
+			State:       objDescriptor.Memory(),
+			Deactivated: i.Deactivated,
+		}
 	}
+	return nil
 }
 
 type SharedState struct {
@@ -305,9 +311,7 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 
 	msg := sm.BuildStateReport()
 	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
-	msg.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: sm.BuildLatestDirtyState(),
-	}
+	msg.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
