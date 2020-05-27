@@ -10,86 +10,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 )
 
-func TestCallRequestFlags_BitStorageIsEngough(t *testing.T) {
-	t.Run("interference", func(t *testing.T) {
-		require.True(t, contract.InterferenceFlagCount <= 1<<bitInterferenceFlagCount)
-	})
-
-	t.Run("state", func(t *testing.T) {
-		require.True(t, contract.StateFlagCount <= 1<<bitStateFlagCount)
-	})
-}
-
 func TestCallRequestFlags(t *testing.T) {
-	t.Run("tolerance", func(t *testing.T) {
-		flags := CallRequestFlags(0)
+	require.Equal(t, CallRequestFlags(0x0), BuildCallRequestFlags(SendResultDefault, CallDefault))
+	require.Equal(t, CallRequestFlags(0x1), BuildCallRequestFlags(SendResultFull, CallDefault))
+	require.Equal(t, CallRequestFlags(0x2), BuildCallRequestFlags(SendResultDefault, RepeatedCall))
+	require.Equal(t, CallRequestFlags(0x3), BuildCallRequestFlags(SendResultFull, RepeatedCall))
 
-		assert.Equal(t, contract.InterferenceFlag(0), flags.GetInterference())
+	assert.Panics(t, func() { BuildCallRequestFlags(bitSendResultFullFlagCount+1, CallDefault) })
+	assert.Panics(t, func() { BuildCallRequestFlags(SendResultDefault, 2) })
+	assert.Panics(t, func() { BuildCallRequestFlags(bitRepeatedCallFlagCount+1, 2) })
 
-		flags = flags.WithInterference(contract.CallTolerable)
-
-		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
-	})
-
-	t.Run("state", func(t *testing.T) {
-		flags := CallRequestFlags(0)
-
-		assert.Equal(t, contract.StateFlag(0), flags.GetState())
-
-		flags = flags.WithState(contract.CallValidated)
-
-		assert.Equal(t, CallRequestFlags(8), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallValidated, flags.GetState())
-
-		flags = flags.WithState(contract.CallDirty)
-
-		assert.Equal(t, CallRequestFlags(4), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallDirty, flags.GetState())
-	})
-
-	t.Run("mixed", func(t *testing.T) {
-		flags := CallRequestFlags(0)
-
-		assert.Equal(t, contract.InterferenceFlag(0), flags.GetInterference())
-
-		assert.Equal(t, contract.StateFlag(0), flags.GetState())
-
-		flags = flags.WithInterference(contract.CallTolerable)
-
-		assert.Equal(t, CallRequestFlags(2), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
-
-		assert.Equal(t, contract.StateFlag(0), flags.GetState())
-
-		flags = flags.WithState(contract.CallValidated)
-
-		assert.Equal(t, CallRequestFlags(10), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
-
-		flags = flags.WithInterference(contract.CallIntolerable)
-
-		assert.Equal(t, CallRequestFlags(9), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallValidated, flags.GetState())
-
-		flags = flags.WithInterference(contract.CallTolerable)
-
-		assert.Equal(t, CallRequestFlags(10), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallTolerable, flags.GetInterference())
-
-		flags = flags.WithState(contract.CallDirty)
-
-		assert.Equal(t, CallRequestFlags(6), flags, "%b", flags)
-
-		assert.Equal(t, contract.CallDirty, flags.GetState())
-	})
+	flags := BuildCallRequestFlags(SendResultDefault, CallDefault)
+	flags.WithRepeatedCall(RepeatedCall)
+	flags.WithSendResultFull(SendResultFull)
+	flags.Equal(CallRequestFlags(0x3))
+	flags.Equal(BuildCallRequestFlags(SendResultFull, RepeatedCall))
 }

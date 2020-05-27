@@ -84,7 +84,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:              gen.UniqueReference(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 		CallSiteDeclaration: testwallet.GetPrototype(),
@@ -178,7 +178,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
@@ -254,7 +254,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
+		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -340,7 +340,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,
