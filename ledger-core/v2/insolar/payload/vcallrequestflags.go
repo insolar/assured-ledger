@@ -21,7 +21,6 @@ type SendResultFullFlag byte
 const (
 	SendResultDefault SendResultFullFlag = iota
 	SendResultFull
-	sendResultFullFlagCount = iota
 )
 
 func (f SendResultFullFlag) IsZero() bool {
@@ -33,7 +32,6 @@ type RepeatedCallFlag byte
 const (
 	CallDefault RepeatedCallFlag = iota
 	RepeatedCall
-	repeatedCallFlagCount = iota
 )
 
 func (f RepeatedCallFlag) IsZero() bool {
@@ -53,10 +51,7 @@ const (
 )
 
 func (f CallRequestFlags) WithSendResultFull(t SendResultFullFlag) CallRequestFlags {
-	if t == 0 {
-		panic(throw.IllegalValue())
-	}
-	if t > sendResultFullFlagCount {
+	if t > bitSendResultFullFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return (f &^ bitSendResultFullMask) | (CallRequestFlags(t) << bitSendResultFullOffset)
@@ -71,10 +66,7 @@ const (
 )
 
 func (f CallRequestFlags) WithRepeatedCall(s RepeatedCallFlag) CallRequestFlags {
-	if s == 0 {
-		panic(throw.IllegalValue())
-	}
-	if s > repeatedCallFlagCount {
+	if s > bitRepeatedCallFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return (f &^ bitRepeatedCallMask) | (CallRequestFlags(s) << bitRepeatedCallOffset)
@@ -85,5 +77,6 @@ func (f CallRequestFlags) GetRepeatedCall() contract.StateFlag {
 }
 
 func BuildCallRequestFlags(sendResultFull SendResultFullFlag, repeatedCall RepeatedCallFlag) CallRequestFlags {
+
 	return CallRequestFlags(0).WithSendResultFull(sendResultFull).WithRepeatedCall(repeatedCall)
 }

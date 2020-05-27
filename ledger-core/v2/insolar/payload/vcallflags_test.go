@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 )
 
-func TestCallRequestFlags_BitStorageIsEngough(t *testing.T) {
+func TestCallFlags_BitStorageIsEngough(t *testing.T) {
 	t.Run("interference", func(t *testing.T) {
 		require.True(t, contract.InterferenceFlagCount <= 1<<bitInterferenceFlagCount)
 	})
@@ -24,7 +24,7 @@ func TestCallRequestFlags_BitStorageIsEngough(t *testing.T) {
 	})
 }
 
-func TestCallRequestFlags(t *testing.T) {
+func TestCallFlags(t *testing.T) {
 	t.Run("tolerance", func(t *testing.T) {
 		flags := CallFlags(0)
 
