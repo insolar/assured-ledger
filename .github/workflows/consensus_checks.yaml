@@ -81,6 +81,8 @@ jobs:
         working-directory: ${{env.V2_PATH}}
       - name: check prometheus contents
         run: curl -s 'http://localhost/prometheus/api/v1/status/tsdb' | jq .
+      - name: sample prom data
+        run: curl 'http://localhost/prometheus/api/v1/query?query=insolar_consensus_packets_recv' | jq .
       - name: collect artifacts
         if: always()
         run: |
