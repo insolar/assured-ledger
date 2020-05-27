@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
-kubectl apply -k traefik
+#!/bin/bash -e
+kubectl apply -k scripts/deploy/kube/traefik
 kubectl -n kube-system rollout status deploy/traefik-ingress-controller --timeout=80s
-echo "ingress installed"
