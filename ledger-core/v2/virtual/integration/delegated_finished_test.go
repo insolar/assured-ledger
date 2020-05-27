@@ -38,8 +38,9 @@ func makeEmptyResult(t *testing.T) []byte {
 }
 
 type callMethodFunc = func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error)
+type callConstructorFunc = func(ctx context.Context, callContext *call.LogicContext, code reference.Global, name string, args []byte) (objectState []byte, result []byte, err error)
 
-func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc) {
+func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc, constructorFunc callConstructorFunc) {
 	builtinExecutor, err := server.Runner.Manager.GetExecutor(machine.Builtin)
 	require.NoError(t, err)
 
@@ -48,7 +49,12 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc)
 	require.NoError(t, err)
 
 	executorMock := machine.NewExecutorMock(t)
-	executorMock.CallMethodMock.Set(callMethod)
+	if callMethod != nil {
+		executorMock.CallMethodMock.Set(callMethod)
+	}
+	if constructorFunc != nil {
+		executorMock.CallConstructorMock.Set(constructorFunc)
+	}
 	executorMock.ClassifyMethodMock.Set(builtinExecutor.ClassifyMethod)
 	manager := machine.NewManager()
 	err = manager.RegisterExecutor(machine.Builtin, executorMock)
@@ -121,7 +127,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 		return newRawWalletState, emptyResult, nil
 	}
 
-	mockExecutor(t, server, callMethod)
+	mockExecutor(t, server, callMethod, nil)
 
 	code, _ := server.CallAPIAddAmount(ctx, objectRef, additionalBalance)
 	require.Equal(t, 200, code)
@@ -141,4 +147,56 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	}
 
 	require.Equal(t, 1, countVCallResult)
+}
+
+func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) {
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	testBalance := uint32(333)
+	// generate new state since it will be changed by CallAPIAddAmount
+	rawWalletState := makeRawWalletState(t, testBalance)
+	callConstructor := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, name string, args []byte) (objectState []byte, result []byte, err error) {
+		// we want to change pulse during execution
+		server.IncrementPulse(ctx)
+
+		emptyResult := makeEmptyResult(t)
+		return rawWalletState, emptyResult, nil
+	}
+
+	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
+		require.Len(t, messages, 1)
+
+		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
+		require.NoError(t, err)
+
+		switch payLoadData := pl.(type) {
+		case *payload.VDelegatedRequestFinished:
+			gotDelegatedRequestFinished <- payLoadData
+		default:
+			fmt.Printf("Going message: %T", payLoadData)
+		}
+
+		server.SendMessage(ctx, messages[0])
+		return nil
+	})
+
+	mockExecutor(t, server, nil, callConstructor)
+	code, _ := server.CallAPICreateWallet(ctx)
+	require.Equal(t, 200, code)
+
+	select {
+	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
+		callFlags := payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+
+		require.NotEmpty(t, delegateFinishedMsg.Callee)
+		require.Equal(t, payload.CTConstructor, delegateFinishedMsg.CallType)
+		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
+
+		latestState := delegateFinishedMsg.LatestState
+		require.Equal(t, rawWalletState, latestState.State)
+	case <-time.After(10 * time.Second):
+		require.Failf(t, "", "timeout")
+	}
 }

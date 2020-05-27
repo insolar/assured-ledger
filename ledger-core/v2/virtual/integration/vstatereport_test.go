@@ -53,7 +53,7 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 		return newRawWalletState, emptyResult, nil
 	}
 
-	mockExecutor(t, server, callMethod)
+	mockExecutor(t, server, callMethod, nil)
 
 	var (
 		countVStateReport int
