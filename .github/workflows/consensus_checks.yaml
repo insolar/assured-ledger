@@ -79,6 +79,8 @@ jobs:
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
+      - name: check prometheus contents
+        run: curl -s 'http://localhost/prometheus/api/v1/status/tsdb' | jq .
       - name: collect artifacts
         if: always()
         run: |
