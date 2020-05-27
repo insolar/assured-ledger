@@ -134,7 +134,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 
 	select {
 	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
-		callFlags := payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
 		require.Equal(t, objectRef, delegateFinishedMsg.Callee)
 		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)

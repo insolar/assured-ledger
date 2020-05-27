@@ -62,7 +62,7 @@ func TestVirtual_Method_API(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	t.Run("AddAmount", func(t *testing.T) {
+	{
 		code, byteBuffer := server.CallAPIAddAmount(ctx, walletReference1, 500)
 		require.Equal(t, 200, code, string(byteBuffer))
 
@@ -70,9 +70,9 @@ func TestVirtual_Method_API(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, response.Err)
 		assert.NotEmpty(t, response.TraceID)
-	})
+	}
 
-	t.Run("GetBalance", func(t *testing.T) {
+	{
 		code, byteBuffer := server.CallAPIGetBalance(ctx, walletReference1)
 		require.Equal(t, 200, code, string(byteBuffer))
 
@@ -81,9 +81,9 @@ func TestVirtual_Method_API(t *testing.T) {
 		assert.Empty(t, response.Err)
 		assert.NotEmpty(t, response.TraceID)
 		assert.Equal(t, uint(1000000500), response.Amount)
-	})
+	}
 
-	t.Run("Transfer", func(t *testing.T) {
+	{
 		{ // Transfer request
 			code, byteBuffer := server.CallAPITransfer(ctx, walletReference1, walletReference2, 500)
 			require.Equal(t, 200, code, string(byteBuffer))
@@ -103,5 +103,5 @@ func TestVirtual_Method_API(t *testing.T) {
 			assert.NotEmpty(t, response.TraceID)
 			assert.Equal(t, uint(1000000000), response.Amount)
 		}
-	})
+	}
 }
