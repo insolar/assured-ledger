@@ -52,14 +52,14 @@ jobs:
         run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/k3s-registry
       - name: wait for registry to be up and running
         run: kubectl -n registry rollout status deploy/registry --timeout=80s
-      - name: build images
-        run: make docker-build
-        working-directory: ${{env.V2_PATH}}
       - name: deploy ingress
         run: make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
       - name: deploy prometheus
         run: make kube_apply_prometheus
+        working-directory: ${{env.V2_PATH}}
+      - name: build images
+        run: make docker-build
         working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
