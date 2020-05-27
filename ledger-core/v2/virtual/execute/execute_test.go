@@ -189,7 +189,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
@@ -218,12 +218,6 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-	}
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
 	}
 
 	slotMachine.Start()
@@ -262,7 +256,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
@@ -291,12 +285,6 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-	}
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
 	}
 
 	slotMachine.Start()
@@ -337,7 +325,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
@@ -366,12 +354,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-	}
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
 	}
 
 	slotMachine.Start()

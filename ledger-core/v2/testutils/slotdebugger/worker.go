@@ -17,14 +17,15 @@ import (
 type worker struct {
 	slotMachine    *StepController
 	stepController chan struct{}
-	finished chan struct{}
+	finished       chan struct{}
+	started        bool
 }
 
 func newWorker(parent *StepController) *worker {
 	return &worker{
 		slotMachine:    parent,
 		stepController: make(chan struct{}),
-		finished: make(chan struct{}),
+		finished:       make(chan struct{}),
 	}
 }
 
@@ -33,6 +34,10 @@ func (w *worker) finishedSignal() synckit.SignalChannel {
 }
 
 func (w *worker) Start() {
+	if w.started {
+		return
+	}
+	w.started = true
 	var (
 		workerFactory = sworker.NewAttachableSimpleSlotWorker()
 	)
@@ -40,7 +45,7 @@ func (w *worker) Start() {
 	go func() {
 		defer close(w.finished)
 
-		machine := w.slotMachine.slotMachine
+		machine := w.slotMachine.SlotMachine
 		for {
 			var (
 				repeatNow    bool
