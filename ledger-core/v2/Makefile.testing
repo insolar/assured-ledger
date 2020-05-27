@@ -55,7 +55,7 @@ kube_apply_ingress: ## apply ingress manifests
 	./scripts/deploy/kube/apply_ingress.sh
 
 .PHONY: kube_apply_prometheus
-kube_apply_ingress: ## apply prometheus manifests
+kube_apply_prometheus: ## apply prometheus manifests
 	./scripts/deploy/kube/apply_prometheus.sh
 
 .PHONY: kube_collect_artifacts
