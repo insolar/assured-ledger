@@ -16,6 +16,30 @@ func (f CallRequestFlags) Equal(r CallRequestFlags) bool {
 	return f == r
 }
 
+type SendResultFullFlag byte
+
+const (
+	SendResultDefault SendResultFullFlag = iota
+	SendResultFull
+	sendResultFullFlagCount = iota - 1
+)
+
+func (f SendResultFullFlag) IsZero() bool {
+	return f == 0
+}
+
+type RepeatedCallFlag byte
+
+const (
+	CallDefault RepeatedCallFlag = iota
+	RepeatedCall
+	repeatedCallFlagCount = iota - 1
+)
+
+func (f RepeatedCallFlag) IsZero() bool {
+	return f == 0
+}
+
 const (
 	bitSendResultFullFlagCount = 1
 	bitRepeatedCallFlagCount   = 1
@@ -28,23 +52,23 @@ const (
 	bitSendResultFullMask = ((1 << bitSendResultFullFlagCount) - 1) << bitSendResultFullOffset
 )
 
-func (f CallRequestFlags) WithSendResultFull(t contract.SendResultFullFlag) CallRequestFlags {
-	if t > contract.SendResultFullFlagCount {
+func (f CallRequestFlags) WithSendResultFull(t SendResultFullFlag) CallRequestFlags {
+	if t > sendResultFullFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return (f &^ bitSendResultFullMask) | (CallRequestFlags(t) << bitSendResultFullOffset)
 }
 
-func (f CallRequestFlags) GetSendResult() contract.SendResultFullFlag {
-	return contract.SendResultFullFlag(f&bitSendResultFullMask) >> bitSendResultFullOffset
+func (f CallRequestFlags) GetSendResult() SendResultFullFlag {
+	return SendResultFullFlag(f&bitSendResultFullMask) >> bitSendResultFullOffset
 }
 
 const (
 	bitRepeatedCallMask = ((1 << bitRepeatedCallFlagCount) - 1) << bitRepeatedCallOffset
 )
 
-func (f CallRequestFlags) WithRepeatedCall(s contract.RepeatedCallFlag) CallRequestFlags {
-	if s > contract.RepeatedCallFlagCount {
+func (f CallRequestFlags) WithRepeatedCall(s RepeatedCallFlag) CallRequestFlags {
+	if s > repeatedCallFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return (f &^ bitRepeatedCallMask) | (CallRequestFlags(s) << bitRepeatedCallOffset)
@@ -54,6 +78,7 @@ func (f CallRequestFlags) GetRepeatedCall() contract.StateFlag {
 	return contract.StateFlag(f&bitRepeatedCallMask) >> bitRepeatedCallOffset
 }
 
-func BuildCallRequestFlags(sendResultFull contract.SendResultFullFlag, repeatedCall contract.RepeatedCallFlag) CallRequestFlags {
+func BuildCallRequestFlags(sendResultFull SendResultFullFlag, repeatedCall RepeatedCallFlag) CallRequestFlags {
+
 	return CallRequestFlags(0).WithSendResultFull(sendResultFull).WithRepeatedCall(repeatedCall)
 }

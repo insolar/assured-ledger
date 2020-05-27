@@ -11,19 +11,21 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/fortytw2/leaktest"
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/rpc/v2"
 	"github.com/insolar/rpc/v2/json2"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 )
 
 func TestNodeService_GetSeed(t *testing.T) {
-	defer leaktest.Check(t)()
+	defer testutils.LeakTester(t,
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager.NewSpecified.func1"))
 
 	availableFlag := false
 	mc := minimock.NewController(t)

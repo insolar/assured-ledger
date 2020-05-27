@@ -247,6 +247,125 @@ func TestSMObject_SendNothingAfterMigration_IfStateUnknown(t *testing.T) {
 	}
 }
 
+func TestSMObject_DoNotSendVStateReportTwiceButIncMigrationCounter(t *testing.T) {
+	var (
+		mc = minimock.NewController(t)
+
+		smObject             = newSMObjectWithPulseAndDescriptor()
+		msgVStateReportCount = 0
+	)
+	smObject.SetState(HasState)
+
+	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
+	checkMessageFn := func(msg payload.Marshaler) {
+		_, ok := msg.(*payload.VStateReport)
+		require.True(t, ok)
+		msgVStateReportCount++
+	}
+	messageService.SendRole.SetCheckMessage(checkMessageFn)
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
+
+	smObject.messageSender = messageSender.Mock()
+
+	{ // first call send VStateReport and increment stateSentCount
+		require.Equal(t, stateWasNotSend, smObject.migrateState)
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Return(smachine.StateUpdate{})
+
+		smObject.stepSendVStateReport(execCtx)
+		require.Equal(t, 1, msgVStateReportCount)
+		require.Equal(t, stateSent, smObject.migrateState)
+	}
+
+	{ // next calls do not send VStateReport but increment stateSentCount
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Return(smachine.StateUpdate{})
+
+		smObject.stepSendVStateReport(execCtx)
+		require.Equal(t, 1, msgVStateReportCount)
+		require.Equal(t, readyToStop, smObject.migrateState)
+	}
+
+	{ // finish test
+		mc.Finish()
+	}
+}
+
+func TestSMObject_StopIfVStateReportWasSendAndNoPendingExecution(t *testing.T) {
+	var (
+		mc = minimock.NewController(t)
+
+		smObject = newSMObjectWithPulseAndDescriptor()
+	)
+
+	{ // stepWaitIndefinitely continue if not migrated and no pending exist
+		smObject.migrateState = stateWasNotSend
+		smObject.PotentialMutablePendingCount = 0
+		smObject.PotentialImmutablePendingCount = 0
+
+		cb := smachine.NewStateConditionalBuilderMock(mc).
+			ThenRepeatMock.Return(smachine.StateUpdate{})
+		execCtx := smachine.NewExecutionContextMock(mc).
+			SleepMock.Return(cb)
+
+		smObject.stepWaitIndefinitely(execCtx)
+	}
+
+	{ // stepWaitIndefinitely continue if not migrated and no pending exist
+		smObject.migrateState = stateSent
+		smObject.PotentialMutablePendingCount = 0
+		smObject.PotentialImmutablePendingCount = 0
+
+		cb := smachine.NewStateConditionalBuilderMock(mc).
+			ThenRepeatMock.Return(smachine.StateUpdate{})
+		execCtx := smachine.NewExecutionContextMock(mc).
+			SleepMock.Return(cb)
+
+		smObject.stepWaitIndefinitely(execCtx)
+	}
+
+	{ // stepWaitIndefinitely continue if migrated and pending exist
+		smObject.migrateState = readyToStop
+		smObject.PotentialMutablePendingCount = 1
+		smObject.PotentialImmutablePendingCount = 0
+
+		cb := smachine.NewStateConditionalBuilderMock(mc).
+			ThenRepeatMock.Return(smachine.StateUpdate{})
+		execCtx := smachine.NewExecutionContextMock(mc).
+			SleepMock.Return(cb)
+
+		smObject.stepWaitIndefinitely(execCtx)
+	}
+
+	{ // stepWaitIndefinitely continue if not migrated and no pending exist
+		smObject.migrateState = readyToStop
+		smObject.PotentialMutablePendingCount = 0
+		smObject.PotentialImmutablePendingCount = 1
+
+		cb := smachine.NewStateConditionalBuilderMock(mc).
+			ThenRepeatMock.Return(smachine.StateUpdate{})
+		execCtx := smachine.NewExecutionContextMock(mc).
+			SleepMock.Return(cb)
+
+		smObject.stepWaitIndefinitely(execCtx)
+	}
+
+	{ // stepWaitIndefinitely call ctx.Stop if migrated and no pending exist
+		smObject.migrateState = readyToStop
+		smObject.PotentialMutablePendingCount = 0
+		smObject.PotentialImmutablePendingCount = 0
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			StopMock.Return(smachine.StateUpdate{})
+
+		smObject.stepWaitIndefinitely(execCtx)
+	}
+
+	{ // finish test
+		mc.Finish()
+	}
+}
+
 func newSMObjectWithPulseAndDescriptor() *SMObject {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
