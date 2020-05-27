@@ -55,6 +55,12 @@ jobs:
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
+      - name: deploy ingress
+        run: make kube_apply_ingress
+        working-directory: ${{env.V2_PATH}}
+      - name: deploy prometheus
+        run: make kube_apply_prometheus
+        working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
@@ -63,7 +69,7 @@ jobs:
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
           go mod download
-          make vendor install-build-tools kube_apply_ingress kube_apply_prometheus kube_start_net
+          make vendor install-build-tools kube_start_net
         working-directory: ${{env.V2_PATH}}
       - name: run tests
         run: make test_func_kubernetes_ci 

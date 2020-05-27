@@ -145,6 +145,12 @@ jobs:
         run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/k3s-registry
       - name: wait for registry to be up and running
         run: kubectl -n registry rollout status deploy/registry --timeout=80s
+      - name: deploy ingress
+        run: make kube_apply_ingress
+        working-directory: ${{env.V2_PATH}}
+      - name: deploy prometheus
+        run: make kube_apply_prometheus
+        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
@@ -156,7 +162,7 @@ jobs:
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
           go mod download
-          make vendor install-build-tools kube_apply_ingress kube_apply_prometheus kube_start_net
+          make vendor install-build-tools kube_start_net
           kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
       - name: run tests
