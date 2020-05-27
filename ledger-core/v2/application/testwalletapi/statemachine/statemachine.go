@@ -27,6 +27,8 @@ type SMTestAPICall struct {
 	requestPayload  payload.VCallRequest
 	responsePayload payload.VCallResult
 
+	messageAlreadySent bool
+
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
 	messageSender messageSenderAdapter.MessageSender
@@ -58,28 +60,20 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 	return testAPICallSMDeclarationInstance
 }
 
-func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (s *SMTestAPICall) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Jump(s.stepSendRequest)
 }
 
-func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pulseNumber := s.pulseSlot.PulseData().PulseNumber
+func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(s.migrationDefault)
 
 	s.requestPayload.Caller = APICaller
-	s.requestPayload.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+	s.requestPayload.CallOutgoing = gen.UniqueIDWithPulse(s.pulseSlot.PulseData().PulseNumber)
 
-	var obj reference.Global
-	switch s.requestPayload.CallType {
-	case payload.CTMethod:
-		obj = s.requestPayload.Callee
+	return ctx.Jump(s.stepRegisterBargeIn)
+}
 
-	case payload.CTConstructor:
-		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
-
-	default:
-		panic(throw.IllegalValue())
-	}
-
+func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 		res, ok := param.(*payload.VCallResult)
 		if !ok || res == nil {
@@ -96,12 +90,32 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
+	return ctx.Jump(s.stepSendRequest)
+}
+
+func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var obj reference.Global
+	switch s.requestPayload.CallType {
+	case payload.CTMethod:
+		obj = s.requestPayload.Callee
+	case payload.CTConstructor:
+		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	payloadData := s.requestPayload
+	if s.messageAlreadySent {
+		payloadData.CallRequestFlags.WithRepeatedCall(payload.RepeatedCall)
+	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &s.requestPayload, node.DynamicRoleVirtualExecutor, obj, pulseNumber)
+		err := svc.SendRole(goCtx, &payloadData, node.DynamicRoleVirtualExecutor, obj, s.pulseSlot.PulseData().PulseNumber)
+		s.messageAlreadySent = true
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
+				return
 			}
 		}
 	}).WithoutAutoWakeUp().Start()

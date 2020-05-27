@@ -56,6 +56,7 @@ func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepControll
 		ScanCountLimit:    1e5,
 		LogAdapterCalls:   true,
 		SlotMachineLogger: debugLogger,
+		SlotAliasRegistry: &conveyor.GlobalAliases{},
 	}
 
 	w := &StepController{
