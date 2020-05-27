@@ -16,50 +16,74 @@ func (f CallRequestFlags) Equal(r CallRequestFlags) bool {
 	return f == r
 }
 
-const (
-	bitInterferenceFlagCount = 2
-	bitStateFlagCount        = 2
+type SendResultFullFlag byte
 
-	bitInterferenceFlagOffset = 0
-	bitStateFlagOffset        = bitInterferenceFlagOffset + bitInterferenceFlagCount
+const (
+	SendResultDefault SendResultFullFlag = iota
+	SendResultFull
+	sendResultFullFlagCount = iota
+)
+
+func (f SendResultFullFlag) IsZero() bool {
+	return f == 0
+}
+
+type RepeatedCallFlag byte
+
+const (
+	CallDefault RepeatedCallFlag = iota
+	RepeatedCall
+	repeatedCallFlagCount = iota
+)
+
+func (f RepeatedCallFlag) IsZero() bool {
+	return f == 0
+}
+
+const (
+	bitSendResultFullFlagCount = 1
+	bitRepeatedCallFlagCount   = 1
+
+	bitSendResultFullOffset = 0
+	bitRepeatedCallOffset   = bitSendResultFullOffset + bitSendResultFullFlagCount
 )
 
 const (
-	bitInterferenceMask = ((1 << bitInterferenceFlagCount) - 1) << bitInterferenceFlagOffset
+	bitSendResultFullMask = ((1 << bitSendResultFullFlagCount) - 1) << bitSendResultFullOffset
 )
 
-func (f CallRequestFlags) WithInterference(t contract.InterferenceFlag) CallRequestFlags {
+func (f CallRequestFlags) WithSendResultFull(t SendResultFullFlag) CallRequestFlags {
 	if t == 0 {
 		panic(throw.IllegalValue())
 	}
-	if t > contract.InterferenceFlagCount {
+	if t > sendResultFullFlagCount {
 		panic(throw.IllegalValue())
 	}
-	return (f &^ bitInterferenceMask) | (CallRequestFlags(t) << bitInterferenceFlagOffset)
+	return (f &^ bitSendResultFullMask) | (CallRequestFlags(t) << bitSendResultFullOffset)
 }
 
-func (f CallRequestFlags) GetInterference() contract.InterferenceFlag {
-	return contract.InterferenceFlag(f&bitInterferenceMask) >> bitInterferenceFlagOffset
+func (f CallRequestFlags) GetSendResult() SendResultFullFlag {
+	return SendResultFullFlag(f&bitSendResultFullMask) >> bitSendResultFullOffset
 }
 
 const (
-	bitStateFlagMask = ((1 << bitStateFlagCount) - 1) << bitStateFlagOffset
+	bitRepeatedCallMask = ((1 << bitRepeatedCallFlagCount) - 1) << bitRepeatedCallOffset
 )
 
-func (f CallRequestFlags) WithState(s contract.StateFlag) CallRequestFlags {
+func (f CallRequestFlags) WithRepeatedCall(s RepeatedCallFlag) CallRequestFlags {
 	if s == 0 {
 		panic(throw.IllegalValue())
 	}
-	if s > contract.StateFlagCount {
+	if s > repeatedCallFlagCount {
 		panic(throw.IllegalValue())
 	}
-	return (f &^ bitStateFlagMask) | (CallRequestFlags(s) << bitStateFlagOffset)
+	return (f &^ bitRepeatedCallMask) | (CallRequestFlags(s) << bitRepeatedCallOffset)
 }
 
-func (f CallRequestFlags) GetState() contract.StateFlag {
-	return contract.StateFlag(f&bitStateFlagMask) >> bitStateFlagOffset
+func (f CallRequestFlags) GetRepeatedCall() contract.StateFlag {
+	return contract.StateFlag(f&bitRepeatedCallMask) >> bitRepeatedCallOffset
 }
 
-func BuildCallRequestFlags(interference contract.InterferenceFlag, state contract.StateFlag) CallRequestFlags {
-	return CallRequestFlags(0).WithInterference(interference).WithState(state)
+func BuildCallRequestFlags(sendResultFull SendResultFullFlag, repeatedCall RepeatedCallFlag) CallRequestFlags {
+	return CallRequestFlags(0).WithSendResultFull(sendResultFull).WithRepeatedCall(repeatedCall)
 }
