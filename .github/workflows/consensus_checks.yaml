@@ -61,8 +61,6 @@ jobs:
         run: kubectl -n kube-system rollout status deploy/traefik-ingress-controller --timeout=80s
       - name: wait for prometheus to be up and running
         run: kubectl -n prometheus rollout status sts/prometheus --timeout=80s
-      - name: check registries
-        run: docker exec -i k3s cat /etc/rancher/k3s/registries.yaml
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
