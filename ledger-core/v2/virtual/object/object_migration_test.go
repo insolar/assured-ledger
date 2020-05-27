@@ -19,10 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
+	messageSenderWrapper "github.com/insolar/assured-ledger/ledger-core/v2/testutils/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
-	messageSenderWrapper "github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/messagesender"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/utils"
 )
 

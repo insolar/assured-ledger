@@ -12,6 +12,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/utils"
 )
 
+func NewStateMachineHelper(sm smachine.StateMachine, slotLink smachine.SlotLink) StateMachineHelper {
+	return StateMachineHelper{sm: sm, slotLink: slotLink}
+}
+
 type StateMachineHelper struct {
 	sm       smachine.StateMachine
 	slotLink smachine.SlotLink
@@ -180,4 +184,3 @@ func (w StateMachineHelper) AfterResultOfFirstAsyncCall(id smachine.AdapterID) f
 		return false
 	}
 }
-
