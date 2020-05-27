@@ -112,7 +112,6 @@ jobs:
     env:
       GOPATH: /home/runner/work/
       V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core/v2
-      INSOLAR_IMAGE: ci:5000/assured-ledger
       USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
       KUBEVAL_VERSION: 0.15.0
@@ -155,9 +154,7 @@ jobs:
         working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
-          # this tags is for local registry that k3s works with. 2 tags for properly working checks, see scripts/deploy/kube/run.sh
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
-          docker tag insolar/assured-ledger:latest ci:5000/assured-ledger:latest
           docker push localhost/assured-ledger:latest
       - name: run insolar net
         run: |
