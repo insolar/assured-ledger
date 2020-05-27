@@ -16,21 +16,12 @@ check_dependencies() {
     exit 1
   }
   check_docker_images
-  check_ingress_installation
 }
 
 # Delete this after image templating will be done, and images will be in insolar hub
 check_docker_images() {
   if [ "$(docker images "$INSOLAR_IMAGE" -q)" = "" ]; then
     echo >&2 "make sure you made 'make docker-build'"
-    exit 1
-  fi
-}
-
-# todo remove ingress
-check_ingress_installation() {
-  if [ "$($KUBECTL get pods -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx | grep -c Running)" = "0" ]; then
-    echo >&2 "make sure you made 'make kube_apply_ingress'"
     exit 1
   fi
 }
