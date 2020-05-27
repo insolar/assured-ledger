@@ -105,6 +105,28 @@ func (i *Info) Descriptor() descriptor.Object {
 	return i.descriptor
 }
 
+func (i *Info) BuildStateReport() payload.VStateReport {
+	objDescriptor := i.Descriptor()
+	return payload.VStateReport{
+		Callee:                i.Reference,
+		ImmutablePendingCount: int32(i.ActiveImmutablePendingCount) + int32(i.PotentialImmutablePendingCount),
+		MutablePendingCount:   int32(i.ActiveMutablePendingCount) + int32(i.PotentialMutablePendingCount),
+		LatestDirtyState:      objDescriptor.HeadRef(),
+	}
+}
+
+func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
+	objDescriptor := i.Descriptor()
+	prototype, _ := objDescriptor.Prototype()
+	return &payload.ObjectState{
+		Reference:   objDescriptor.StateID(),
+		Parent:      objDescriptor.Parent(),
+		Prototype:   prototype,
+		State:       objDescriptor.Memory(),
+		Deactivated: i.Deactivated,
+	}
+}
+
 type SharedState struct {
 	Info
 }
@@ -278,30 +300,17 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 	}
 
 	var (
-		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
+		currentPulseNumber = sm.pulseSlot.CurrentPulseNumber()
 	)
 
-	objDescriptor := sm.Descriptor()
-	prototype, _ := objDescriptor.Prototype()
-	msg := payload.VStateReport{
-		AsOf:                  sm.pulseSlot.PulseData().PulseNumber,
-		Callee:                sm.SharedState.Info.Reference,
-		ImmutablePendingCount: int32(sm.ActiveImmutablePendingCount) + int32(sm.PotentialImmutablePendingCount),
-		MutablePendingCount:   int32(sm.ActiveMutablePendingCount) + int32(sm.PotentialMutablePendingCount),
-		LatestDirtyState:      objDescriptor.HeadRef(),
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference:   objDescriptor.StateID(),
-				Parent:      objDescriptor.Parent(),
-				Prototype:   prototype,
-				State:       objDescriptor.Memory(),
-				Deactivated: sm.Deactivated,
-			},
-		},
+	msg := sm.BuildStateReport()
+	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
+	msg.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
+		LatestDirtyState: sm.BuildLatestDirtyState(),
 	}
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)
