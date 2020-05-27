@@ -36,18 +36,11 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		// catalog         = object.NewCatalogMockWrapper(mc)
 		smObjectID = gen.UniqueIDWithPulse(pd.PulseNumber)
-		// smGlobalRef     = reference.NewSelf(smObjectID)
-		// smObject        = object.NewStateMachineObject(smGlobalRef)
-		// sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
-
-	// smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	// catalog.AddObject(smGlobalRef, smObjectAccessor)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -59,7 +52,6 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			CallOutgoing:        smObjectID,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
-		// objectCatalog: catalog.Mock(),
 		pulseSlot: &pulseSlot,
 		executionNewState: &executionupdate.ContractExecutionStateUpdate{
 			Outgoing: executionevent.CallMethod{},
@@ -83,9 +75,10 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
 
 	{
-		execCtx := smachine.NewExecutionContextMock(mc).
-			GetContextMock.Return(ctx).JumpMock.Set(stepChecker.CheckJumpW(t))
-		smExecute.Init(execCtx)
+		initCtx := smachine.NewInitializationContextMock(mc).
+			GetContextMock.Return(ctx).JumpMock.Set(stepChecker.CheckJumpW(t)).
+			SetDefaultMigrationMock.Return()
+		smExecute.Init(initCtx)
 	}
 
 	{
@@ -120,19 +113,18 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	{ // check migration is successful
 		migrationCtx := smachine.NewMigrationContextMock(mc).
-			// AffectedStepMock.Return(smachine.SlotStep{Transition: smExecute.stepSendOutgoing}).
 			JumpMock.Set(stepChecker.CheckJumpW(t))
 
 		smExecute.migrateDuringSendOutgoing(migrationCtx)
 
 		require.Equal(t, true, smExecute.migrationHappened)
 		require.Equal(t,
-			payload.BuildCallRequestFlags(contract.SendResultDefault, contract.RepeatedCall),
+			payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall),
 			smExecute.outgoing.CallRequestFlags,
 		)
 	}
 
-	{
+	{ // check step after migration
 		execCtx := smachine.NewExecutionContextMock(mc).
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {

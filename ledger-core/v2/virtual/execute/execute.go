@@ -438,7 +438,7 @@ func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) sma
 	s.migrationHappened = true
 
 	if s.outgoingWasSent {
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(contract.SendResultDefault, contract.RepeatedCall)
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
 	return ctx.Jump(s.stepSendOutgoing)
