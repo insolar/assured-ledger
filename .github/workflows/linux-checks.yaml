@@ -161,6 +161,7 @@ jobs:
           docker push localhost/assured-ledger:latest
       - name: run insolar net
         run: |
+          export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
           go mod download
           make vendor install-build-tools kube_start_net
         working-directory: ${{env.V2_PATH}}
@@ -169,7 +170,9 @@ jobs:
         working-directory: ${{env.V2_PATH}}
       - name: collect artifacts
         if: always()
-        run: make kube_collect_artifacts
+        run: |
+          export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
+          make kube_collect_artifacts
         working-directory: ${{env.V2_PATH}}
       - name: Aggregate logs into a single archive
         if: always()
