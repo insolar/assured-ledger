@@ -447,6 +447,12 @@ func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) sma
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	outgoingResult := s.outgoingResult
 
+	// unset all outgoing fields in case we have new outgoing request
+	s.outgoingWasSent = false
+	s.outgoingObject = reference.Global{}
+	s.outgoing = nil
+	s.outgoingResult = []byte{}
+
 	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
 }
 

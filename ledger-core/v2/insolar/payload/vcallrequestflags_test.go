@@ -18,9 +18,9 @@ func TestCallRequestFlags(t *testing.T) {
 	require.Equal(t, CallRequestFlags(0x2), BuildCallRequestFlags(SendResultDefault, RepeatedCall))
 	require.Equal(t, CallRequestFlags(0x3), BuildCallRequestFlags(SendResultFull, RepeatedCall))
 
-	assert.Panics(t, func() { BuildCallRequestFlags(2, CallDefault) })
+	assert.Panics(t, func() { BuildCallRequestFlags(bitSendResultFullFlagCount+1, CallDefault) })
 	assert.Panics(t, func() { BuildCallRequestFlags(SendResultDefault, 2) })
-	assert.Panics(t, func() { BuildCallRequestFlags(2, 2) })
+	assert.Panics(t, func() { BuildCallRequestFlags(bitRepeatedCallFlagCount+1, 2) })
 
 	flags := BuildCallRequestFlags(SendResultDefault, CallDefault)
 	flags.WithRepeatedCall(RepeatedCall)
