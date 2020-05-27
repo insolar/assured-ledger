@@ -146,10 +146,10 @@ jobs:
       - name: wait for registry to be up and running
         run: kubectl -n registry rollout status deploy/registry --timeout=80s
       - name: deploy ingress
-        run: make kube_apply_ingress
+        run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
       - name: deploy prometheus
-        run: make kube_apply_prometheus
+        run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_prometheus
         working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
