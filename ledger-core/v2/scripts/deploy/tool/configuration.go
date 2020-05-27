@@ -5,10 +5,31 @@
 
 package main
 
+import (
+	"time"
+)
+
 type KubeDeployToolConfig struct {
-	NodesCount             uint
-	Env                    string
-	KubeRootPath           string
-	ManifestsRelPath       string
+	NetParams  []NetParams
+	KubeParams KubeParams
+}
+
+type NetParams struct {
+	// number of nodes
+	NodesCount uint
+	// not working now
+	Latency time.Duration
+	// time waiting in ready state
+	WaitInReady time.Duration
+}
+
+type KubeParams struct {
+	// local/ci to manage kustomizing for local an ci environment
+	Env string
+	// path to kube dir
+	KubeRootPath string
+	// relative path to pure manifests
+	ManifestsRelPath string
+	// relative path to bootstrap configs, by default in manifests/configuration
 	BootstrapConfigRelPath string
 }
