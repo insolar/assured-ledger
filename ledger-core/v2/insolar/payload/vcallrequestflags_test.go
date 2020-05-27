@@ -22,8 +22,6 @@ func TestCallRequestFlags(t *testing.T) {
 	assert.Panics(t, func() { BuildCallRequestFlags(SendResultDefault, 2) })
 	assert.Panics(t, func() { BuildCallRequestFlags(2, 2) })
 
-	// assert.Equal(t, CallFlags(6), flags, "%b", flags)
-
 	flags := BuildCallRequestFlags(SendResultDefault, CallDefault)
 	flags.WithRepeatedCall(RepeatedCall)
 	flags.WithSendResultFull(SendResultFull)
