@@ -29,9 +29,6 @@ const (
 )
 
 func (f CallRequestFlags) WithSendResultFull(t contract.SendResultFullFlag) CallRequestFlags {
-	if t == 0 {
-		panic(throw.IllegalValue())
-	}
 	if t > contract.SendResultFullFlagCount {
 		panic(throw.IllegalValue())
 	}
@@ -47,9 +44,6 @@ const (
 )
 
 func (f CallRequestFlags) WithRepeatedCall(s contract.RepeatedCallFlag) CallRequestFlags {
-	if s == 0 {
-		panic(throw.IllegalValue())
-	}
 	if s > contract.RepeatedCallFlagCount {
 		panic(throw.IllegalValue())
 	}

@@ -85,7 +85,7 @@ type SendResultFullFlag byte
 const (
 	SendResultDefault SendResultFullFlag = iota
 	SendResultFull
-	SendResultFullFlagCount = iota
+	SendResultFullFlagCount = iota - 1
 )
 
 func (f SendResultFullFlag) IsZero() bool {
@@ -97,7 +97,7 @@ type RepeatedCallFlag byte
 const (
 	CallDefault RepeatedCallFlag = iota
 	RepeatedCall
-	RepeatedCallFlagCount = iota
+	RepeatedCallFlagCount = iota - 1
 )
 
 func (f RepeatedCallFlag) IsZero() bool {
