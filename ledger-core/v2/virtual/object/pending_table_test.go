@@ -1,3 +1,8 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
 package object
 
 import (
@@ -5,11 +10,35 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
+
+func TestPendingTable(t *testing.T) {
+	pt := NewPendingTable()
+
+	require.Panics(t, func() {pt.GetList(contract.InterferenceFlagCount)})
+
+	require.Equal(t, 0, len(pt.GetList(contract.CallIntolerable).requests))
+	require.Equal(t, 0, len(pt.GetList(contract.CallIntolerable).requests))
+
+	require.Equal(t, pulse.Number(0), pt.GetList(contract.CallIntolerable).oldestPulse)
+	require.Equal(t, pulse.Number(0), pt.GetList(contract.CallIntolerable).oldestPulse)
+
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+	currentPulse := pd.PulseNumber
+
+	object := gen.UniqueIDWithPulse(currentPulse)
+	ref := reference.NewSelf(object)
+
+	intolerableList := pt.GetList(contract.CallIntolerable)
+	intolerableList.Add(ref)
+
+	require.Equal(t, 1, len(pt.GetList(contract.CallIntolerable).requests))
+}
 
 func TestPendingList(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -24,28 +53,28 @@ func TestPendingList(t *testing.T) {
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	pt := NewPendingList()
-	require.Equal(t, 0, pt.Count())
-	require.Equal(t, 0, pt.CountFinish())
-	require.Equal(t, pulse.Number(0), pt.oldestPulse)
+	pl := NewPendingList()
+	require.Equal(t, 0, pl.Count())
+	require.Equal(t, 0, pl.CountFinish())
+	require.Equal(t, pulse.Number(0), pl.oldestPulse)
 
-	require.Equal(t, true, pt.Add(RefOne))
-	require.Equal(t, 1, pt.Count())
-	require.Equal(t, nextPulseNumber, pt.oldestPulse)
+	require.Equal(t, true, pl.Add(RefOne))
+	require.Equal(t, 1, pl.Count())
+	require.Equal(t, nextPulseNumber, pl.oldestPulse)
 
-	require.Equal(t, false, pt.Add(RefOne))
-	require.Equal(t, 1, pt.Count())
-	require.Equal(t, nextPulseNumber, pt.oldestPulse)
+	require.Equal(t, false, pl.Add(RefOne))
+	require.Equal(t, 1, pl.Count())
+	require.Equal(t, nextPulseNumber, pl.oldestPulse)
 
-	require.Equal(t, true, pt.Add(RefOld))
-	require.Equal(t, 2, pt.Count())
-	require.Equal(t, pd.PulseNumber, pt.oldestPulse)
+	require.Equal(t, true, pl.Add(RefOld))
+	require.Equal(t, 2, pl.Count())
+	require.Equal(t, pd.PulseNumber, pl.oldestPulse)
 
-	require.Equal(t, true, pt.Add(RefTwo))
-	require.Equal(t, 3, pt.Count())
-	require.Equal(t, pd.PulseNumber, pt.oldestPulse)
-	require.Equal(t, 0, pt.CountFinish())
+	require.Equal(t, true, pl.Add(RefTwo))
+	require.Equal(t, 3, pl.Count())
+	require.Equal(t, pd.PulseNumber, pl.oldestPulse)
+	require.Equal(t, 0, pl.CountFinish())
 
-	pt.Finish(RefOld)
-	require.Equal(t, 1, pt.CountFinish())
+	pl.Finish(RefOld)
+	require.Equal(t, 1, pl.CountFinish())
 }
