@@ -7,6 +7,7 @@ on:
   schedule:
     - cron: '0 2,4,6 * * *'
 env:
+  KUBECONFIG: k3s.yaml
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
@@ -115,13 +116,9 @@ jobs:
     env:
       GOPATH: /home/runner/work/
       V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core/v2
-      INSOLAR_IMAGE: ci:5000/assured-ledger
       USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
-      KUBECTL: kubectl --kubeconfig=/tmp/k3s.yaml
-      KUBECTL_VERSION: v1.18.2
       KUBEVAL_VERSION: 0.15.0
-      K3S_TAG: v1.17.4-k3s1
     steps:
       - name: Checkout code
         uses: actions/checkout@master
@@ -131,12 +128,9 @@ jobs:
           go-version: ${{env.GO_VERSION}}
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
-      - name: get kubectl
-        run: |
-          curl -L -s --create-dirs https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl -o bin/kubectl
-          chmod +x $GITHUB_WORKSPACE/bin/kubectl
       - name: get kubeval
         run: |
+          mkdir -p bin
           curl -L -s --create-dirs https://github.com/instrumenta/kubeval/releases/download/$KUBEVAL_VERSION/kubeval-linux-amd64.tar.gz | tar xvz --exclude='LICENSE' --exclude='README.md' -C $GITHUB_WORKSPACE/bin
           chmod +x $GITHUB_WORKSPACE/bin/kubeval
       - name: add workspace/bin to path
@@ -145,55 +139,44 @@ jobs:
         run: |
           sudo lscpu
           free -h
-      - name: fire up k3s
-        run: |
-          touch /tmp/k3s.yaml
-          docker run -d --name=k3s --net=host --privileged --tmpfs /run --tmpfs /var/run -p 6443:6443 -v "$PWD"/scripts/deploy/kube/ci/registries.yaml:/etc/rancher/k3s/registries.yaml -v /tmp/k3s.yaml:/etc/rancher/k3s/k3s.yaml rancher/k3s:$K3S_TAG server --disable traefik
+      - name: k3s
+        uses: insolar/k3s-gha@master
+        with:
+          custom_registry: true
+          registries_yaml_path: "ledger-core/v2/scripts/deploy/kube/ci/registries.yaml"
+          kubectl_version: "v1.18.2"
+      - name: deploy k3s-registry
+        run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/k3s-registry
+      - name: wait for registry to be up and running
+        run: kubectl -n registry rollout status deploy/registry --timeout=80s
+      - name: deploy ingress
+        run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
-      - name: launch registry
-        run: docker run -d -p 5000:5000 --restart=always --name registry registry:2
-      - name: wait for k3s
-        run: |
-          for try in {0..60}; do
-            if $KUBECTL version; then
-              echo "k3s started"
-              exit 0
-            fi
-            sleep 2s
-          done
-
-          echo "failed to start k3s server"
-          docker logs k3s
-          exit 1
-      - name: describe node
-        run: |
-          ${{env.KUBECTL}} get no
-          ${{env.KUBECTL}} describe no
-          docker ps
-        working-directory: ${{env.V2_PATH}}
-      - name: install ingress
-        run: make kube_apply_ingress
+      - name: deploy prometheus
+        run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_prometheus
         working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
-          # this tags is for local registry that k3s works with. 2 tags for properly working checks, see scripts/deploy/kube/run.sh
-          docker tag insolar/assured-ledger:latest localhost:5000/assured-ledger:latest
-          docker tag insolar/assured-ledger:latest ci:5000/assured-ledger:latest
-          docker push localhost:5000/assured-ledger:latest
+          docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
+          docker push localhost/assured-ledger:latest
       - name: run insolar net
         run: |
+          export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
           go mod download
           make vendor install-build-tools kube_start_net
+          kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
       - name: collect artifacts
         if: always()
-        run: make kube_collect_artifacts
+        run: |
+          export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
+          make kube_collect_artifacts
         working-directory: ${{env.V2_PATH}}
       - name: Aggregate logs into a single archive
         if: always()
