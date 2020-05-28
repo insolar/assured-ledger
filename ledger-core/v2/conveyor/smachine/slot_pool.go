@@ -28,7 +28,7 @@ type slotPage = []Slot
 type SlotPool struct {
 	mutex sync.RWMutex
 
-	slotPages   []slotPage // LOCK specifics. This slice has mixed access - see ScanAndCleanup
+	slotPages []slotPage // LOCK specifics. This slice has mixed access - see ScanAndCleanup
 
 	unusedSlots SlotQueue
 	emptyPages  []slotPage
@@ -108,6 +108,7 @@ func (p *SlotPool) RecycleSlot(slot *Slot) {
 }
 
 type SlotPageScanFunc func([]Slot) (isPageEmptyOrWeak, hasWeakSlots bool)
+type SlotPageDumpFunc func(*Slot)
 type SlotDisposeFunc func(*Slot)
 
 // ScanAndCleanup is safe and non-blocking for parallel calls of AllocateSlot(),
@@ -139,6 +140,22 @@ func (p *SlotPool) ScanAndCleanup(cleanupWeak bool, disposeWeakFn SlotDisposeFun
 	return p.cleanup(len(partialPage), len(fullPages), firstNil, cleanupAll, disposeWeakFn)
 }
 
+func (p *SlotPool) scanSlotPage(page slotPage, scanPageFn SlotPageDumpFunc) {
+	for _, slot := range page {
+		scanPageFn(&slot)
+	}
+}
+
+func (p *SlotPool) Scan(scanPageFn SlotPageDumpFunc) {
+	partialPage, fullPages := p.getScanPages()
+
+	p.scanSlotPage(partialPage, scanPageFn)
+
+	for _, page := range fullPages {
+		p.scanSlotPage(page, scanPageFn)
+	}
+}
+
 func (p *SlotPool) getScanPages() (partial slotPage, full []slotPage) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
@@ -157,7 +174,7 @@ func (p *SlotPool) cleanup(partialCount, fullCount, firstNil int, cleanupAll boo
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if cleanupAll && fullCount + 1 == len(p.slotPages) && p.slotPgPos == uint16(partialCount) {
+	if cleanupAll && fullCount+1 == len(p.slotPages) && p.slotPgPos == uint16(partialCount) {
 		// As AllocateSlot() can run in parallel, there can be new slots and slot pages
 		// so, full cleanup can only be applied when there were no additions
 		for i, slotPage := range p.slotPages {

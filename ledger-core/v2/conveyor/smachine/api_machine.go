@@ -29,8 +29,9 @@ type MachineCallContext interface {
 	Migrate(beforeFn func())
 	Cleanup()
 	Stop()
+	Dump(dumpFn SlotVisitor)
 
-	//See SynchronizationContext
+	// See SynchronizationContext
 	ApplyAdjustment(SyncAdjustment) bool
 	Check(SyncLink) BoolDecision
 }

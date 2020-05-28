@@ -17,6 +17,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 )
 
+type SlotVisitor interface {
+	Visit(SlotInfo)
+}
+
 type MigrationFunc func(migrationCount uint32)
 
 type SlotMachineConfig struct {

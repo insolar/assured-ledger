@@ -40,6 +40,21 @@ type Slot struct {
 	slotData
 }
 
+type SlotInfo struct {
+	SlotID SlotID
+	StepID uint32
+
+	ParentSlotID SlotID
+	TraceID      string
+
+	LastTouchNano  int64
+	MigrationCount uint32
+	AsyncCallCount uint16
+
+	Transition StateFunc
+	Migration  MigrateFunc
+}
+
 // stateMachineData contains details about specific StateMachine instance
 type stateMachineData struct {
 	declaration     StateMachineHelper
@@ -731,4 +746,9 @@ func (s *Slot) _addTerminationCallback(link SlotLink, fn TerminationCallbackFunc
 			prevTermFn(data, worker)
 		}
 	}
+}
+
+func (s *Slot) Dump(dumpVisitor SlotVisitor) {
+	dumpVisitor.Visit(SlotInfo{})
+	// dumpFn("statemachine %s", reflect.TypeOf(s.declaration))
 }

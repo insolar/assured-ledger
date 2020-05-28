@@ -140,3 +140,15 @@ func (p *machineCallContext) executeCall(fn MachineCallFunc) (err error) {
 	fn(p)
 	return nil
 }
+
+func (p *machineCallContext) Dump(dumpFn SlotVisitor) {
+	p.m.slotPool.Scan(func(slot *Slot) {
+		isEmpty, isStarted, _ := slot._tryStartSlot(1)
+		if isEmpty || !isStarted {
+			return
+		}
+		defer slot.stopWorking()
+
+		slot.Dump(dumpFn)
+	})
+}
