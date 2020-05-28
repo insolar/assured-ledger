@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
@@ -41,7 +42,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	}
 
 	payloadBytes := payloadMeta.Payload
-	payloadType, err := payload.UnmarshalType(payloadBytes)
+	payloadType, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
 		panic(err)
 	}
@@ -49,71 +50,47 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
-	logger.Info(logProcessing{messageType: payloadType.String()})
+	logger.Info(logProcessing{messageType: string(payloadType)})
 
-	switch payloadType {
-	case payload.TypeVCallRequest:
-		pl := payload.VCallRequest{}
-		if err := pl.Unmarshal(payloadBytes); err != nil {
-			panic(err)
-		}
+	switch obj := payloadObj.(type) {
+	case *payload.VCallRequest:
 		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
-			return &SMVCallRequest{Meta: payloadMeta, Payload: &pl}
+			return &SMVCallRequest{Meta: payloadMeta, Payload: obj}
 		}
 
-	case payload.TypeVCallResult:
-		pl := payload.VCallResult{}
-		if err := pl.Unmarshal(payloadBytes); err != nil {
-			panic(err)
-		}
+	case *payload.VCallResult:
 		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
-			return &SMVCallResult{Meta: payloadMeta, Payload: &pl}
+			return &SMVCallResult{Meta: payloadMeta, Payload: obj}
 		}
-	case payload.TypeVStateRequest:
-		pl := payload.VStateRequest{}
-		if err := pl.Unmarshal(payloadBytes); err != nil {
-			panic(err)
-		}
-		return pl.AsOf, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+	case *payload.VStateRequest:
+		return obj.AsOf, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
-			return &SMVStateRequest{Meta: payloadMeta, Payload: &pl}
+			return &SMVStateRequest{Meta: payloadMeta, Payload: obj}
 		}
-	case payload.TypeVStateReport:
-		pl := payload.VStateReport{}
-		if err := pl.Unmarshal(payloadBytes); err != nil {
-			panic(err)
-		}
+	case *payload.VStateReport:
 		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
-			return &SMVStateReport{Meta: payloadMeta, Payload: &pl}
+			return &SMVStateReport{Meta: payloadMeta, Payload: obj}
 		}
-	case payload.TypeVStateUnavailable:
-		pl := payload.VStateUnavailable{}
-		if err := pl.Unmarshal(payloadBytes); err != nil {
-			panic(err)
-		}
+	case *payload.VStateUnavailable:
 		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
-			return &SMVStateUnavailable{Meta: payloadMeta, Payload: &pl}
+			return &SMVStateUnavailable{Meta: payloadMeta, Payload: obj}
 		}
-	case payload.TypeVDelegatedRequestFinished:
-		pl := payload.VDelegatedRequestFinished{}
-		if err := pl.Unmarshal(payloadBytes); err != nil {
-			panic(err)
-		}
+	case *payload.VDelegatedRequestFinished:
 		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)
 			ctx.SetTracerID(traceID)
-			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: &pl}
+			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
 		}
 	default:
-		panic(errNoHandler{MessageType: payloadType})
+		panic(errNoHandler{MessageType: payload.Type(payloadType)})
 	}
 }
