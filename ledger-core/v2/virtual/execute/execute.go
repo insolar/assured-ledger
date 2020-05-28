@@ -331,7 +331,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			return
 		}
 
-		if pendingList.Exist(s.execution.Object) {
+		if pendingList.Exist(s.execution.Outgoing) {
 			deduplicationState = duplicatePending
 			return
 		}

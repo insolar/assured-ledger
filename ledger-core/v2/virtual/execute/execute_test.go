@@ -157,8 +157,49 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	_, ok := smObject.KnownRequests[smExecute.execution.Outgoing]
 	assert.True(t, ok)
 
-	{ // update known requests with duplicate lead to SM stop
+	mc.Finish()
+}
+
+func TestSMExecute_Deduplication(t *testing.T) {
+	var (
+		ctx = inslogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		Polymorph:           uint32(payload.TypeVCallRequest),
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        smObjectID,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		// update known requests with duplicate
+		// expect SM stop
+		smObject.KnownRequests[smExecute.execution.Outgoing] = struct{}{}
 		wasStoped := false
+
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			LogMock.Return(smachine.Logger{}).
@@ -170,6 +211,42 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 		smExecute.stepStartRequestProcessing(execCtx)
 		assert.Equal(t, true, wasStoped)
+	}
+
+	{
+		// start processing request before getting all pending requests
+		// expecting going sleep
+		smObject.KnownRequests = make(map[reference.Global]struct{})
+		smObject.ActiveUnorderedPendingCount = 1
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			SleepMock.Return(smachine.NewStateConditionalBuilderMock(mc).ThenRepeatMock.Return(smachine.StateUpdate{}))
+
+		smExecute.stepStartRequestProcessing(execCtx)
+	}
+
+	{
+		// duplicate pending request exists
+		// expect SM stop
+		smObject.KnownRequests = make(map[reference.Global]struct{})
+		smObject.ActiveUnorderedPendingCount = 1
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		wasStoped := false
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			LogMock.Return(smachine.Logger{}).
+			StopMock.Set(
+			func() (s1 smachine.StateUpdate) {
+				wasStoped = true
+				return smachine.StateUpdate{}
+			})
+
+		smExecute.stepStartRequestProcessing(execCtx)
+		require.Equal(t, true, wasStoped)
 	}
 
 	mc.Finish()
