@@ -85,19 +85,23 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 	)
 
 	action := func(state *object.SharedState) {
-		if !state.IsReady() {
+		switch state.GetState() {
+		case object.Unknown:
 			stateNotReady = true
 			return
-		}
-
-		objectState := state.GetState()
-		switch objectState {
 		case object.Missing:
 			s.failReason = payload.Missing
 			return
 		case object.Inactive:
 			s.failReason = payload.Inactive
 			return
+		case object.Empty:
+			if state.PotentialOrderedPendingCount == uint8(0) && state.PotentialUnorderedPendingCount == uint8(0) {
+				// SMObject construction was interrupted by migration. Counters was not incremented yet
+				// TODO: maybe better set stateNotReady = true and return
+				panic(throw.NotImplemented())
+			}
+			// ok case
 		case object.HasState:
 		// ok case
 		default:
@@ -110,9 +114,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		s.objectStateReport = &report
 
 		if s.Payload.RequestedContent.Contains(payload.RequestLatestDirtyState) {
-			report.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: state.BuildLatestDirtyState(),
-			}
+			report.ProvidedContent.LatestDirtyState = state.BuildLatestDirtyState()
 		}
 	}
 
@@ -137,7 +139,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalState())
 	}
 
-	if s.failReason > 0 {
+	if s.failReason > payload.Unknown {
 		return ctx.Jump(s.stepReturnStateUnavailable)
 	}
 

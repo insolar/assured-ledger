@@ -21,30 +21,30 @@ func TestStateRequestContentFlags(t *testing.T) {
 
 		assert.True(t, flags.Contains(RequestLatestValidatedCode))
 
-		assert.False(t, flags.Contains(RequestImmutableQueue))
+		assert.False(t, flags.Contains(RequestUnorderedQueue))
 	})
 
 	t.Run("two flags one by one", func(t *testing.T) {
 		flags := StateRequestContentFlags(0)
 		flags.Set(RequestLatestValidatedCode)
 
-		flags.Set(RequestImmutableQueue)
+		flags.Set(RequestUnorderedQueue)
 
-		assert.Equal(t, RequestLatestValidatedCode|RequestImmutableQueue, flags)
+		assert.Equal(t, RequestLatestValidatedCode|RequestUnorderedQueue, flags)
 
 		assert.True(t, flags.Contains(RequestLatestValidatedCode))
 
-		assert.True(t, flags.Contains(RequestImmutableQueue))
+		assert.True(t, flags.Contains(RequestUnorderedQueue))
 	})
 
 	t.Run("two flags in one go", func(t *testing.T) {
 		flags := StateRequestContentFlags(0)
-		flags.Set(RequestLatestValidatedCode, RequestImmutableQueue)
+		flags.Set(RequestLatestValidatedCode, RequestUnorderedQueue)
 
-		assert.Equal(t, RequestLatestValidatedCode|RequestImmutableQueue, flags)
+		assert.Equal(t, RequestLatestValidatedCode|RequestUnorderedQueue, flags)
 
 		assert.True(t, flags.Contains(RequestLatestValidatedCode))
 
-		assert.True(t, flags.Contains(RequestImmutableQueue))
+		assert.True(t, flags.Contains(RequestUnorderedQueue))
 	})
 }
