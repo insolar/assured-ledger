@@ -3,6 +3,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 NUM_DISCOVERY_NODES=5
 NUM_DISCOVERY_NODES=${NUM_DISCOVERY_NODES:-5}
 KUBECTL=${KUBECTL:-"kubectl"}
+# possible values ci/local
 USE_MANIFESTS=${USE_MANIFESTS:-"local"}
 INSOLAR_IMAGE=${INSOLAR_IMAGE:-"insolar/assured-ledger:latest"}
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-"/tmp/insolar"}
@@ -16,6 +17,7 @@ check_dependencies() {
     exit 1
   }
   check_docker_images
+  check_ingress_installation
 }
 
 # Delete this after image templating will be done, and images will be in insolar hub
@@ -24,6 +26,13 @@ check_docker_images() {
     echo >&2 "make sure you made 'make docker-build'"
     exit 1
   fi
+}
+
+check_ingress_installation() {
+  $KUBECTL -n kube-system rollout status deploy/traefik-ingress-controller 2>&1 || {
+    echo >&2 "traefik ingress controller not found, use 'make kube_apply_ingress'."
+    exit 1
+  }
 }
 
 run_network() {
