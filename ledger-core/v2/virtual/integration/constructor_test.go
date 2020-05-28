@@ -56,7 +56,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 	pl := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
+		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
 		Caller:              reference.Global{},
 		Callee:              gen.UniqueReference(),
@@ -132,7 +132,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		pl := payload.VCallRequest{
 			CallType:            payload.CTConstructor,
-			CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
+			CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 			CallAsOf:            0,
 			Caller:              reference.Global{},
 			Callee:              gen.UniqueReference(),

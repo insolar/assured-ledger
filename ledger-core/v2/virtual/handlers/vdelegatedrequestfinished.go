@@ -132,10 +132,15 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetDescriptor(s.latestState())
 	}
 
+	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
+	if !pendingList.Finish(objectRef) {
+		panic(throw.E("delegated request was not registered"))
+	}
+
 	switch s.Payload.CallFlags.GetInterference() {
 	case contract.CallIntolerable:
-		if state.ActiveImmutablePendingCount > 0 {
-			state.ActiveImmutablePendingCount--
+		if state.ActiveUnorderedPendingCount > 0 {
+			state.ActiveUnorderedPendingCount--
 		} else {
 			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
 				Reference: objectRef.String(),
@@ -143,10 +148,10 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 			})
 		}
 	case contract.CallTolerable:
-		if state.ActiveMutablePendingCount > 0 {
-			state.ActiveMutablePendingCount--
+		if state.ActiveOrderedPendingCount > 0 {
+			state.ActiveOrderedPendingCount--
 
-			if state.ActiveMutablePendingCount == 0 {
+			if state.ActiveOrderedPendingCount == 0 {
 				// If we do not have pending ordered, release sync object.
 				if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
 					ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")

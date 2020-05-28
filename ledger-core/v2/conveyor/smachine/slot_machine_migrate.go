@@ -105,8 +105,9 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker
 						fixedWorker: worker,
 					}
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
+
 					activityNano := slot.touch(time.Now().UnixNano())
-					slot.logStepMigrate(stateUpdate, inactivityNano, activityNano)
+					slot.logStepMigrate(stateUpdate, migrateFn, inactivityNano, activityNano)
 					inactivityNano = durationUnknownOrTooShortNano
 
 					switch {

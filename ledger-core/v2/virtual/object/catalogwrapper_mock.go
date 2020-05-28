@@ -19,14 +19,39 @@ type CatalogMockWrapper struct {
 	childMock *CatalogMock
 }
 
+type CatalogMockAccessType int
+
+const (
+	CatalogMockAccessGetOrCreate CatalogMockAccessType = iota
+	CatalogMockAccessTryGet
+)
+
 func NewCatalogMockWrapper(t minimock.Tester) *CatalogMockWrapper {
-	mock := CatalogMockWrapper{
+	return &CatalogMockWrapper{
 		t:         t,
 		objects:   make(map[reference.Global]*catalogMockWrapperEntry),
 		childMock: NewCatalogMock(t),
 	}
-	mock.childMock.GetOrCreateMock.Set(mock.mockGetOrCreate)
-	return &mock
+}
+
+func (m *CatalogMockWrapper) AllowAccessMode(mode CatalogMockAccessType) {
+	switch mode {
+	case CatalogMockAccessGetOrCreate:
+		m.childMock.GetOrCreateMock.Set(m.mockGetOrCreate)
+	case CatalogMockAccessTryGet:
+		m.childMock.TryGetMock.Set(m.mockTryGet)
+	default:
+		m.t.Fatal(throw.NotImplemented())
+	}
+}
+
+func (m *CatalogMockWrapper) CheckDone() error {
+	for _, entry := range m.objects {
+		if !entry.wasAccessed {
+			return throw.New("not all object from catalog was used")
+		}
+	}
+	return nil
 }
 
 func (m *CatalogMockWrapper) Mock() *CatalogMock {
@@ -45,4 +70,13 @@ func (m *CatalogMockWrapper) mockGetOrCreate(_ smachine.ExecutionContext, ref re
 	}
 	entry.wasAccessed = true
 	return entry.accessor
+}
+
+func (m *CatalogMockWrapper) mockTryGet(_ smachine.ExecutionContext, ref reference.Global) (SharedStateAccessor, bool) {
+	entry, ok := m.objects[ref]
+	if !ok {
+		return SharedStateAccessor{}, false
+	}
+	entry.wasAccessed = true
+	return entry.accessor, true
 }

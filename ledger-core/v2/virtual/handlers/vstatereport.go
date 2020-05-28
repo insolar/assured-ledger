@@ -58,20 +58,21 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		deactivated *bool
 	)
 
-	if s.Payload.ProvidedContent == nil || s.Payload.ProvidedContent.LatestDirtyState == nil {
+	if s.Payload.ProvidedContent == nil {
 		panic(throw.IllegalValue())
 	}
 
-	dirtyState := s.Payload.ProvidedContent.LatestDirtyState
-	objectDescriptor = descriptor.NewObject(
-		objectRef,
-		dirtyState.Reference,
-		dirtyState.Prototype,
-		dirtyState.State,
-		dirtyState.Parent,
-	)
-
-	deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
+	if s.Payload.ProvidedContent.LatestDirtyState != nil {
+		dirtyState := s.Payload.ProvidedContent.LatestDirtyState
+		objectDescriptor = descriptor.NewObject(
+			objectRef,
+			dirtyState.Reference,
+			dirtyState.Prototype,
+			dirtyState.State,
+			dirtyState.Parent,
+		)
+		deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
+	}
 
 	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
@@ -83,11 +84,18 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 			return false
 		}
 
-		state.ActiveImmutablePendingCount = uint8(s.Payload.ImmutablePendingCount)
-		state.ActiveMutablePendingCount = uint8(s.Payload.MutablePendingCount)
+		state.ActiveUnorderedPendingCount = uint8(s.Payload.UnorderedPendingCount)
+		state.ActiveOrderedPendingCount = uint8(s.Payload.OrderedPendingCount)
 
-		state.SetDescriptor(objectDescriptor)
-		state.SetState(object.HasState)
+		state.OrderedPendingEarliestPulse = s.Payload.OrderedPendingEarliestPulse
+		state.UnorderedPendingEarliestPulse = s.Payload.UnorderedPendingEarliestPulse
+
+		if objectDescriptor != nil {
+			state.SetDescriptor(objectDescriptor)
+			state.SetState(object.HasState)
+		} else {
+			state.SetState(object.Empty)
+		}
 
 		if deactivated != nil {
 			state.Deactivated = *deactivated

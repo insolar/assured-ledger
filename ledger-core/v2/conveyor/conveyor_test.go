@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fortytw2/leaktest"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 )
@@ -113,7 +113,7 @@ func TestNewPulseConveyor(t *testing.T) {
 
 func TestPulseConveyor_AddInput(t *testing.T) {
 	t.Run("no pulse yet", func(t *testing.T) {
-		defer leaktest.Check(t)()
+		defer testutils.LeakTester(t)
 
 		machineConfig := smachine.SlotMachineConfig{
 			PollingPeriod:   500 * time.Millisecond,

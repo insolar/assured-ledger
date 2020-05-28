@@ -57,7 +57,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 
 	pl := payload.VCallRequest{
 		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallRequestFlags(isolation.Interference, isolation.State),
+		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
 		Callee:              reference.Global{},
@@ -124,7 +124,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	{
 		pl := payload.VCallRequest{
 			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
@@ -233,7 +233,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			pl := payload.VCallRequest{
 				CallType:            payload.CTMethod,
-				CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
+				CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
@@ -285,7 +285,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		pl := payload.VCallRequest{
 			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallRequestFlags(contract.CallIntolerable, contract.CallValidated),
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,

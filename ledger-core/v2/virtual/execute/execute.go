@@ -58,6 +58,10 @@ type SMExecute struct {
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 
+	outgoing        *payload.VCallRequest
+	outgoingObject  reference.Global
+	outgoingWasSent bool
+
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
@@ -116,8 +120,14 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 	}
 }
 
+func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.prepareExecution(ctx.GetContext())
+
+	ctx.SetDefaultMigration(s.migrationDefault)
 
 	return ctx.Jump(s.stepCheckRequest)
 }
@@ -157,50 +167,6 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 		}
 	}
 
-	return ctx.Jump(s.stepUpdateKnownRequests)
-}
-
-func (s *SMExecute) stepUpdateKnownRequests(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	action := func(state *object.SharedState) {
-		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
-			// found duplicate request, todo: deduplication algorithm
-			panic(throw.NotImplemented())
-		} else {
-			state.KnownRequests[s.execution.Outgoing] = struct{}{}
-		}
-	}
-
-	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		panic(throw.NotImplemented())
-	case smachine.Passed:
-		// go further
-	default:
-		panic(throw.Impossible())
-	}
-
-	return ctx.Jump(s.stepUpdatePendingCounters)
-}
-
-func (s *SMExecute) stepUpdatePendingCounters(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	action := func(state *object.SharedState) {
-		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-	}
-
-	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		panic(throw.NotImplemented())
-	case smachine.Passed:
-		// go further
-	default:
-		panic(throw.Impossible())
-	}
-
-	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	return ctx.Jump(s.stepWaitObjectReady)
 }
 
@@ -221,8 +187,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	action := func(state *object.SharedState) {
 		semaphoreReadyToWork = state.ReadyToWork
 
-		semaphoreOrdered = state.MutableExecute
-		semaphoreUnordered = state.ImmutableExecute
+		semaphoreOrdered = state.OrderedExecute
+		semaphoreUnordered = state.UnorderedExecute
 
 		objectDescriptor = state.Descriptor()
 		objectDescriptorIsEmpty = objectDescriptor == nil
@@ -257,7 +223,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		// default isolation for constructors
 		s.methodIsolation = contract.ConstructorIsolation()
 	}
-	// TODO[bigbes]: we're ready to execute here, so lets execute
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
 
@@ -329,13 +294,22 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	return ctx.Jump(s.stepGetObjectDescriptor)
+	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
-func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var objectDescriptor descriptor.Object
 
 	action := func(state *object.SharedState) {
+		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+			// found duplicate request, todo: deduplication algorithm
+			panic(throw.NotImplemented())
+		} else {
+			state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		}
+
+		state.IncrementPotentialPendingCounter(s.execution.Isolation)
+
 		objectDescriptor = state.Descriptor()
 	}
 
@@ -345,10 +319,11 @@ func (s *SMExecute) stepGetObjectDescriptor(ctx smachine.ExecutionContext) smach
 	case smachine.Impossible:
 		panic(throw.NotImplemented())
 	case smachine.Passed:
-		// go further
 	default:
-		panic(throw.Impossible())
+		panic(throw.NotImplemented())
 	}
+
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.execution.ObjectDescriptor = objectDescriptor
 
@@ -394,12 +369,7 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		msg    *payload.VCallRequest
-		object reference.Global
-
-		pulseNumber = s.pulseSlot.PulseData().PulseNumber
-	)
+	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case executionevent.GetCode:
@@ -407,18 +377,26 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	case executionevent.Deactivate:
 		s.deactivate = true
 	case executionevent.CallConstructor:
-		msg = outgoing.ConstructVCallRequest(s.execution)
-		msg.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
-		object = reference.NewSelf(msg.CallOutgoing)
+		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
+		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 	case executionevent.CallMethod:
-		msg = outgoing.ConstructVCallRequest(s.execution)
-		msg.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
-		object = msg.Callee
+		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
+		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoingObject = s.outgoing.Callee
 	default:
 		panic(throw.IllegalValue())
 	}
 
-	if msg != nil {
+	if s.outgoing != nil {
+		return ctx.Jump(s.stepSendOutgoing)
+	}
+
+	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !s.outgoingWasSent {
 		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 			res, ok := param.(*payload.VCallResult)
 			if !ok || res == nil {
@@ -431,29 +409,49 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			}
 		})
 
-		outgoingRef := reference.NewRecordOf(msg.Caller, msg.CallOutgoing)
+		outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
 
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
-
-		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-			err := svc.SendRole(goCtx, msg, node.DynamicRoleVirtualExecutor, object, pulseNumber)
-			return func(ctx smachine.AsyncResultContext) {
-				if err != nil {
-					ctx.Log().Error("failed to send message", err)
-				}
-			}
-		}).WithoutAutoWakeUp().Start()
-
-		return ctx.Sleep().ThenJump(s.stepExecuteContinue) // we'll wait for barge-in WakeUp here, not adapter
 	}
 
-	return ctx.Jump(s.stepExecuteContinue)
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.PulseData().PulseNumber)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
+
+	s.outgoingWasSent = true
+	// we'll wait for barge-in WakeUp here, not adapter
+	return ctx.Sleep().ThenJumpExt(
+		smachine.SlotStep{
+			Transition: s.stepExecuteContinue,
+			Migration:  s.migrateDuringSendOutgoing,
+		})
+}
+
+func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.migrationHappened = true
+
+	if s.outgoingWasSent {
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
+	}
+
+	return ctx.Jump(s.stepSendOutgoing)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	outgoingResult := s.outgoingResult
+
+	// unset all outgoing fields in case we have new outgoing request
+	s.outgoingWasSent = false
+	s.outgoingObject = reference.Global{}
+	s.outgoing = nil
+	s.outgoingResult = []byte{}
 
 	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
 }
@@ -582,6 +580,8 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			memory,
 			parentReference,
 		))
+
+		s.execution.ObjectDescriptor = state.Descriptor()
 
 		s.decrementCounters(state)
 		state.SetState(object.HasState)

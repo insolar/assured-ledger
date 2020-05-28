@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -20,6 +21,9 @@ type UpdateEvent struct {
 	SM       smachine.StateMachine
 	Data     smachine.StepLoggerData
 	Update   smachine.StepLoggerUpdateData
+	CustomEvent interface{}
+	AdapterID smachine.AdapterID
+	CallID   uint64
 }
 
 func (e UpdateEvent) IsEmpty() bool {
@@ -34,26 +38,62 @@ type DebugStepLogger struct {
 	continueSig <-chan struct{}
 }
 
-func (c DebugStepLogger) CanLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) bool {
+func (c DebugStepLogger) CanLogEvent(smachine.StepLoggerEvent, smachine.StepLogLevel) bool {
 	return true
 }
 
-func (c DebugStepLogger) CreateAsyncLogger(ctx context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
+func (c DebugStepLogger) CreateAsyncLogger(context.Context, *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
 	return c.GetLoggerContext(), c
 }
 
-func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, msg interface{}, fields []logfmt.LogFieldMarshaller) {
-	c.StepLogger.LogEvent(data, msg, fields)
-}
-
-func (c DebugStepLogger) LogUpdate(stepLoggerData smachine.StepLoggerData, stepLoggerUpdateData smachine.StepLoggerUpdateData) {
-	c.StepLogger.LogUpdate(stepLoggerData, stepLoggerUpdateData)
+func (c DebugStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
+	c.StepLogger.LogInternal(data, updateType)
 
 	c.events <- UpdateEvent{
 		notEmpty: true,
 		SM:       c.sm,
-		Data:     stepLoggerData,
-		Update:   stepLoggerUpdateData,
+		Data:     data,
+		Update:   smachine.StepLoggerUpdateData{UpdateType: updateType},
+	}
+
+	<-c.continueSig
+}
+
+func (c DebugStepLogger) LogUpdate(data smachine.StepLoggerData, update smachine.StepLoggerUpdateData) {
+	c.StepLogger.LogUpdate(data, update)
+
+	c.events <- UpdateEvent{
+		notEmpty: true,
+		SM:       c.sm,
+		Data:     data,
+		Update:   update,
+	}
+
+	<-c.continueSig
+}
+
+func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
+	c.StepLogger.LogEvent(data, customEvent, fields)
+
+	c.events <- UpdateEvent{
+		notEmpty: true,
+		SM:       c.sm,
+		Data:     data,
+		CustomEvent: customEvent,
+	}
+
+	<-c.continueSig
+}
+
+func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
+	c.StepLogger.LogAdapter(data, adapterID, callID, fields)
+
+	c.events <- UpdateEvent{
+		notEmpty: true,
+		SM:       c.sm,
+		Data:     data,
+		AdapterID: adapterID,
+		CallID: callID,
 	}
 
 	<-c.continueSig
@@ -114,7 +154,20 @@ func (v *DebugMachineLogger) SetPredicate(fn LoggerSlotPredicateFn) {
 }
 
 func (v *DebugMachineLogger) Stop() {
-	v.events <- UpdateEvent{}
+	close(v.continueExecution)
+}
+
+func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel) {
+	for {
+		ok := false
+		select {
+		case _, ok = <- v.events:
+		case _, ok = <- flushDone:
+		}
+		if !ok {
+			return
+		}
+	}
 }
 
 func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) *DebugMachineLogger {
