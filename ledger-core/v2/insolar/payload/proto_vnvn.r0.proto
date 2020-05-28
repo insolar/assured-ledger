@@ -8,6 +8,9 @@ import "github.com/insolar/assured-ledger/ledger-core/v2/insproto/ins.proto";
 option (insproto.notation_all) = true;
 option (insproto.zeroable_all) = true;
 option (gogoproto.goproto_enum_prefix_all) = false;
+option (insproto.context_all) = "MessageContext";
+option (insproto.message_ctx_apply_all) = "Message";
+option (insproto.register_all) = "RegisterMessageType";
 
 enum CallTypeNew {
     CTInboundAPICall  = 0;
