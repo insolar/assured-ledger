@@ -32,4 +32,9 @@ type KubeParams struct {
 	ManifestsRelPath string
 	// relative path to bootstrap configs, by default in manifests/configuration
 	BootstrapConfigRelPath string
+	// todo add context specify penv-167
+	// you can specify the context for kubectl
+	// KubeContext string
+	// or you can set the path to your kubectl config
+	// KubeConfigPath string
 }

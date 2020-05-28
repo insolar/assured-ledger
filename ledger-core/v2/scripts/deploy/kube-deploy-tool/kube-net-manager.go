@@ -42,11 +42,11 @@ func NewInsolarNetManager(
 
 func (m *InsolarNetManager) startNetwork(netParams NetParams) error {
 	startedAt := time.Now()
-	out, err := exec.Command(Kubectl, "apply", "-k", getExecutablePath()+m.kubeParams.KubeRootPath+m.kubeParams.Env+"/").CombinedOutput()
+	pathToKustomize := getExecutablePath() + m.kubeParams.KubeRootPath + m.kubeParams.Env + "/"
+	out, err := exec.Command(Kubectl, "apply", "-k", pathToKustomize).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("run failed: %s %w", string(out), err)
 	}
-	// fmt.Printf("Output: %s\n", out)
 	m.callStarted(netParams, eventTiming{
 		startedAt: startedAt,
 		stoppedAt: time.Now(),
@@ -112,11 +112,11 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 
 func (m *InsolarNetManager) stopNetwork(netParams NetParams) error {
 	startedAt := time.Now()
-	out, err := exec.Command(Kubectl, "delete", "-k", getExecutablePath()+m.kubeParams.KubeRootPath+m.kubeParams.Env+"/").CombinedOutput()
+	pathToKustomize := getExecutablePath() + m.kubeParams.KubeRootPath + m.kubeParams.Env + "/"
+	out, err := exec.Command(Kubectl, "delete", "-k", pathToKustomize).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("stop failed: %s %w", string(out), err)
 	}
-	fmt.Printf("Output: %s\n", out)
 	m.callStopped(netParams, eventTiming{
 		startedAt: startedAt,
 		stoppedAt: time.Now(),

@@ -19,7 +19,6 @@ spec:
       serviceAccountName: insolar-bootstrap
       initContainers:
         - name: wait
-          # todo create custom image
           image: "insolar/kubectl:1.18.0"
           command: ["/bin/wait-for-bootstrap.sh"]
           volumeMounts:
