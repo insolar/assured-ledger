@@ -297,20 +297,49 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
-func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var objectDescriptor descriptor.Object
+type deduplicationPossibleStates uint8
 
+const (
+	unknown deduplicationPossibleStates = iota
+	noDuplicates
+	duplicateKnown
+	waitFillPendingList
+	duplicatePending
+)
+
+func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		deduplicationState deduplicationPossibleStates
+		objectDescriptor   descriptor.Object
+	)
 	action := func(state *object.SharedState) {
 		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
-			// found duplicate request, todo: deduplication algorithm
-			panic(throw.NotImplemented())
-		} else {
-			state.KnownRequests[s.execution.Outgoing] = struct{}{}
+			deduplicationState = duplicateKnown
+			return
 		}
 
-		state.IncrementPotentialPendingCounter(s.execution.Isolation)
+		var activePendingCount uint8
+		if s.execution.Isolation.Interference == contract.CallIntolerable {
+			activePendingCount = state.ActiveUnorderedPendingCount
+		} else {
+			activePendingCount = state.ActiveOrderedPendingCount
+		}
 
+		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
+		if pendingList.CountActive() < activePendingCount {
+			deduplicationState = waitFillPendingList
+			return
+		}
+
+		if pendingList.Exist(s.execution.Object) {
+			deduplicationState = duplicatePending
+			return
+		}
+
+		state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
+		deduplicationState = noDuplicates
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -321,6 +350,19 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	case smachine.Passed:
 	default:
 		panic(throw.NotImplemented())
+	}
+
+	switch deduplicationState {
+	case unknown:
+		panic(throw.NotImplemented())
+	case duplicateKnown:
+		ctx.Log().Warn("duplicate found as known request")
+		return ctx.Stop()
+	case duplicatePending:
+		ctx.Log().Warn("duplicate found as pending request")
+		return ctx.Stop()
+	case waitFillPendingList:
+		return ctx.Sleep().ThenRepeat()
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)

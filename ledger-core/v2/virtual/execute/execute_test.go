@@ -157,14 +157,19 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	_, ok := smObject.KnownRequests[smExecute.execution.Outgoing]
 	assert.True(t, ok)
 
-	{ // update known requests panics
+	{ // update known requests with duplicate lead to SM stop
+		wasStoped := false
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor)
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			LogMock.Return(smachine.Logger{}).
+			StopMock.Set(
+			func() (s1 smachine.StateUpdate) {
+				wasStoped = true
+				return smachine.StateUpdate{}
+			})
 
-		checkerFunc := func() {
-			smExecute.stepStartRequestProcessing(execCtx)
-		}
-		assert.Panics(t, checkerFunc, "panic with not implemented deduplication algorithm should be here")
+		smExecute.stepStartRequestProcessing(execCtx)
+		assert.Equal(t, true, wasStoped)
 	}
 
 	mc.Finish()
