@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-kubectl delete -k traefik
+kubectl delete -k scripts/deploy/kube/traefik
