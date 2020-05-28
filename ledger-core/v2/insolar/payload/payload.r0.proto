@@ -203,13 +203,24 @@ message VDelegatedCallRequest {
     bytes RecordHead = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     bytes RefOut = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     bytes RefIn = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
-    bytes DelegationSpec = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload.CallDelegationToken", (gogoproto.nullable) = false];
+    bytes DelegationSpec = 25 [(gogoproto.customtype) = "CallDelegationToken", (gogoproto.nullable) = false];
     bytes DelegatorSignature = 26;
 }
 
 message VDelegatedCallResponse {
     uint32 Polymorph = 16;
     bytes RefIn = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
-    bytes DelegationSpec = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload.CallDelegationToken", (gogoproto.nullable) = false];
+    bytes DelegationSpec = 25 [(gogoproto.customtype) = "CallDelegationToken", (gogoproto.nullable) = false];
     bytes DelegatorSignature = 26;
+}
+
+message CallDelegationToken {
+    uint32 TokenTypeAndFlags = 20 [(gogoproto.customtype) = "CallDelegationTokenType", (gogoproto.nullable) = false];
+    bytes Approver = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes DelegateTo = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes PulseNumber = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
+    bytes Callee = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes Caller = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes Outgoing = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+	bytes ApproverSignature = 27;
 }
