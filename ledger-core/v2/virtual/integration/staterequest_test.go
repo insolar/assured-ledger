@@ -83,7 +83,6 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 			AsOf:             server.GetPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
-			ProvidedContent:  &payload.VStateReport_ProvidedContentBody{},
 		}, data)
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")

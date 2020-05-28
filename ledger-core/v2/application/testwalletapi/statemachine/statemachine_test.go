@@ -32,7 +32,6 @@ func TestSMTestAPICall_Migrate(t *testing.T) {
 	)
 
 	request := payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTMethod,
 		Callee:              gen.UniqueReference(),
 		Caller:              APICaller,

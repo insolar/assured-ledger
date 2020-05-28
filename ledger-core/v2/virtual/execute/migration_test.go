@@ -44,7 +44,6 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
 			CallFlags:           callFlags,
 			CallSiteDeclaration: testwallet.GetPrototype(),

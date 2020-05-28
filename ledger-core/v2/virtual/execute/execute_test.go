@@ -118,13 +118,13 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-			CallType:            payload.CTConstructor,
-			CallFlags:           callFlags,
-			CallSiteDeclaration: testwallet.GetPrototype(),
-			CallSiteMethod:      "New",
-			CallOutgoing:        smObjectID,
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        smObjectID,
 
-		Arguments:           insolar.MustSerialize([]interface{}{}),
+		Arguments: insolar.MustSerialize([]interface{}{}),
 	}
 
 	smExecute := SMExecute{
@@ -262,7 +262,6 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
@@ -333,7 +332,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
