@@ -82,7 +82,8 @@ func TestPendingList(t *testing.T) {
 	require.Equal(t, pd.PulseNumber, pl.OldestPulse())
 	require.Equal(t, uint8(0), pl.CountFinish())
 
-	pl.Finish(RefOld)
+	pl.Finish(RefOne)
+	require.Equal(t, pd.PulseNumber, pl.OldestPulse()) // doesn't change
 	require.Equal(t, uint8(1), pl.CountFinish())
 	require.Equal(t, uint8(2), pl.CountActive())
 
