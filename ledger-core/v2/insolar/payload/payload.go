@@ -10,8 +10,17 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
+
+// aliases for more convenient using in .proto file (no need to use full path)
+// because alias in the same package
+type MessageContext = rms.MessageContext
+
+func RegisterMessageType(id uint64, special string, t proto.Message) {
+	rms.RegisterMessageType(id, special, t)
+}
 
 type Type uint32
 
@@ -95,6 +104,11 @@ func (h *MessageHash) IsZero() bool {
 	return true
 }
 
+// deprecated
+func (h MessageHash) ProtoSize() int {
+	return h.Size()
+}
+
 // UnmarshalType decodes payload type from given binary.
 func UnmarshalType(data []byte) (Type, error) {
 	buf := proto.NewBuffer(data)
@@ -128,77 +142,13 @@ func MarshalType(t Type) ([]byte, error) {
 }
 
 func Marshal(payload Payload) ([]byte, error) {
-	switch pl := payload.(type) {
-	case *Meta:
-		pl.Polymorph = uint32(TypeMeta)
-		return pl.Marshal()
-	case *VCallRequest:
-		pl.Polymorph = uint32(TypeVCallRequest)
-		return pl.Marshal()
-	case *VCallResult:
-		pl.Polymorph = uint32(TypeVCallResult)
-		return pl.Marshal()
-	case *VStateRequest:
-		pl.Polymorph = uint32(TypeVStateRequest)
-		return pl.Marshal()
-	case *VStateReport:
-		pl.Polymorph = uint32(TypeVStateReport)
-		return pl.Marshal()
-	case *VStateUnavailable:
-		pl.Polymorph = uint32(TypeVStateUnavailable)
-		return pl.Marshal()
-	case *VPendingDelegationRequest:
-		pl.Polymorph = uint32(TypeVPendingDelegationRequest)
-		return pl.Marshal()
-	case *VDelegatedRequestFinished:
-		pl.Polymorph = uint32(TypeVDelegatedRequestFinished)
-		return pl.Marshal()
-	}
-
-	return nil, errors.New("unknown payload type")
+	return payload.Marshal()
 }
 
 func Unmarshal(data []byte) (Payload, error) {
-	tp, err := UnmarshalType(data)
-	if err != nil {
-		return nil, err
-	}
-	switch tp {
-	case TypeMeta:
-		pl := Meta{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVCallRequest:
-		pl := VCallRequest{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVCallResult:
-		pl := VCallResult{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVStateRequest:
-		pl := VStateRequest{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVStateReport:
-		pl := VStateReport{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVStateUnavailable:
-		pl := VStateUnavailable{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVPendingDelegationRequest:
-		pl := VPendingDelegationRequest{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVDelegatedRequestFinished:
-		pl := VDelegatedRequestFinished{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	}
+	_, payload, err := rms.Unmarshal(data)
 
-	return nil, errors.New("unknown payload type")
+	return payload.(Payload), err
 }
 
 // UnmarshalFromMeta reads only payload skipping meta decoding. Use this instead of regular Unmarshal if you don't need

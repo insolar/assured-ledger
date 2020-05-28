@@ -4,17 +4,15 @@
 package payload
 
 import (
-	bytes "bytes"
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	_ "github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	github_com_insolar_assured_ledger_ledger_core_v2_pulse "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	io "io"
 	math "math"
 	math_bits "math/bits"
-	reflect "reflect"
-	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -29,17 +27,17 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Meta struct {
-	Polymorph  uint32                                                            `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph,omitempty"`
-	Payload    []byte                                                            `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	Payload    []byte                                                            `protobuf:"bytes,20,opt,name=Payload,proto3" json:"Payload"`
 	Sender     github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Sender"`
 	Receiver   github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Receiver"`
-	Pulse      github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"bytes,23,opt,name=Pulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"Pulse"`
-	ID         []byte                                                            `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID,omitempty"`
+	Pulse      github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,23,opt,name=Pulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"Pulse"`
+	ID         []byte                                                            `protobuf:"bytes,24,opt,name=ID,proto3" json:"ID"`
 	OriginHash MessageHash                                                       `protobuf:"bytes,25,opt,name=OriginHash,proto3,customtype=MessageHash" json:"OriginHash"`
 }
 
-func (m *Meta) Reset()      { *m = Meta{} }
-func (*Meta) ProtoMessage() {}
+func (m *Meta) Reset()         { *m = Meta{} }
+func (m *Meta) String() string { return proto.CompactTextString(m) }
+func (*Meta) ProtoMessage()    {}
 func (*Meta) Descriptor() ([]byte, []int) {
 	return fileDescriptor_33334fec96407f54, []int{0}
 }
@@ -47,22 +45,18 @@ func (m *Meta) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *Meta) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Meta.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *Meta) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Meta.Merge(m, src)
 }
 func (m *Meta) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *Meta) XXX_DiscardUnknown() {
 	xxx_messageInfo_Meta.DiscardUnknown(m)
@@ -70,18 +64,18 @@ func (m *Meta) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Meta proto.InternalMessageInfo
 
-func (m *Meta) GetPolymorph() uint32 {
-	if m != nil {
-		return m.Polymorph
-	}
-	return 0
-}
-
 func (m *Meta) GetPayload() []byte {
 	if m != nil {
 		return m.Payload
 	}
 	return nil
+}
+
+func (m *Meta) GetPulse() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+	if m != nil {
+		return m.Pulse
+	}
+	return 0
 }
 
 func (m *Meta) GetID() []byte {
@@ -98,100 +92,47 @@ func init() {
 func init() { proto.RegisterFile("insolar/payload/payload.proto", fileDescriptor_33334fec96407f54) }
 
 var fileDescriptor_33334fec96407f54 = []byte{
-	// 358 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x91, 0xbd, 0x4e, 0xf3, 0x30,
-	0x18, 0x85, 0xe3, 0x7e, 0x1f, 0x2d, 0x98, 0x1f, 0x21, 0xf3, 0x67, 0x10, 0xb8, 0x15, 0x53, 0x97,
-	0x26, 0x12, 0x65, 0x65, 0xa0, 0x2a, 0x82, 0x0e, 0x85, 0x2a, 0x8c, 0x4c, 0x4e, 0xf2, 0x36, 0x8d,
-	0x94, 0xc6, 0x91, 0xd3, 0x54, 0xea, 0xc6, 0x25, 0x70, 0x19, 0x88, 0x2b, 0xe9, 0xd8, 0xb1, 0x62,
-	0xa8, 0x68, 0xba, 0x30, 0xf6, 0x12, 0x50, 0x9d, 0x14, 0xba, 0x22, 0x31, 0xbd, 0x3e, 0x3e, 0xf6,
-	0x79, 0x8e, 0x6c, 0x7c, 0xe6, 0x05, 0x91, 0xf0, 0xb9, 0x34, 0x42, 0x3e, 0xf0, 0x05, 0x77, 0x96,
-	0x53, 0x0f, 0xa5, 0xe8, 0x09, 0x52, 0xc8, 0xe4, 0x49, 0xc5, 0xf5, 0x7a, 0x9d, 0xd8, 0xd2, 0x6d,
-	0xd1, 0x35, 0x5c, 0xe1, 0x0a, 0x43, 0xf9, 0x56, 0xdc, 0x56, 0x4a, 0x09, 0xb5, 0x4a, 0xef, 0x9d,
-	0xbf, 0xfd, 0xc3, 0xff, 0x9b, 0xd0, 0xe3, 0xe4, 0x14, 0x6f, 0xb4, 0x84, 0x3f, 0xe8, 0x0a, 0x19,
-	0x76, 0xe8, 0x6e, 0x09, 0x95, 0xb7, 0xcd, 0x9f, 0x0d, 0x42, 0x71, 0xa1, 0x95, 0x02, 0xe8, 0x7e,
-	0x09, 0x95, 0xb7, 0xcc, 0xa5, 0x24, 0x1c, 0xe7, 0x1f, 0x21, 0x70, 0x40, 0xd2, 0x83, 0x85, 0x51,
-	0x6b, 0x0c, 0x27, 0x45, 0xed, 0x7d, 0x52, 0xbc, 0x5e, 0xe9, 0xb1, 0xac, 0xce, 0xa3, 0x28, 0x96,
-	0xe0, 0x54, 0x7c, 0x70, 0x5c, 0x90, 0x46, 0x3a, 0x2a, 0xb6, 0x90, 0x60, 0xf4, 0x2f, 0x0c, 0x09,
-	0x6d, 0x90, 0x10, 0xd8, 0xa0, 0xdf, 0xfa, 0xc2, 0xe2, 0xbe, 0x99, 0x05, 0x13, 0xc0, 0xeb, 0x26,
-	0xd8, 0xe0, 0xf5, 0x41, 0xd2, 0xc3, 0xbf, 0x86, 0x7c, 0x47, 0x93, 0x27, 0xbc, 0xd6, 0x8a, 0xfd,
-	0x08, 0xe8, 0x91, 0x62, 0xdc, 0x64, 0x8c, 0xab, 0x5f, 0x33, 0xc2, 0x45, 0x8a, 0x7e, 0x1f, 0x77,
-	0x2d, 0x90, 0x66, 0x9a, 0x49, 0x76, 0x70, 0xae, 0x51, 0xa7, 0x54, 0xbd, 0x5d, 0xae, 0x51, 0x27,
-	0x55, 0x8c, 0x1f, 0xa4, 0xe7, 0x7a, 0xc1, 0x1d, 0x8f, 0x3a, 0xf4, 0x58, 0x11, 0xf7, 0x32, 0xe2,
-	0x66, 0x13, 0xa2, 0x88, 0xbb, 0xb0, 0xb0, 0xcc, 0x95, 0x63, 0xb5, 0xcb, 0xd1, 0x94, 0x69, 0xe3,
-	0x29, 0xd3, 0xe6, 0x53, 0x86, 0x9e, 0x13, 0x86, 0x5e, 0x13, 0x86, 0x86, 0x09, 0x43, 0xa3, 0x84,
-	0xa1, 0x8f, 0x84, 0xa1, 0xcf, 0x84, 0x69, 0xf3, 0x84, 0xa1, 0x97, 0x19, 0xd3, 0x46, 0x33, 0xa6,
-	0x8d, 0x67, 0x4c, 0xb3, 0xf2, 0xea, 0xa7, 0xab, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x72, 0x8f,
-	0x37, 0x3c, 0x42, 0x02, 0x00, 0x00,
+	// 404 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0xcd, 0xcc, 0x2b, 0xce,
+	0xcf, 0x49, 0x2c, 0xd2, 0x2f, 0x48, 0xac, 0xcc, 0xc9, 0x4f, 0x4c, 0x81, 0xd1, 0x7a, 0x05, 0x45,
+	0xf9, 0x25, 0xf9, 0x42, 0xec, 0x50, 0xae, 0x94, 0x6e, 0x7a, 0x66, 0x49, 0x46, 0x69, 0x92, 0x5e,
+	0x72, 0x7e, 0xae, 0x7e, 0x7a, 0x7e, 0x7a, 0xbe, 0x3e, 0x58, 0x3e, 0xa9, 0x34, 0x0d, 0xcc, 0x03,
+	0x73, 0xc0, 0x2c, 0x88, 0x3e, 0x29, 0x67, 0x24, 0xe5, 0x30, 0x1b, 0x12, 0x8b, 0x8b, 0x4b, 0x8b,
+	0x52, 0x53, 0x74, 0x73, 0x52, 0x53, 0xd2, 0x53, 0x8b, 0xf4, 0x21, 0x94, 0x6e, 0x72, 0x7e, 0x51,
+	0xaa, 0x7e, 0x99, 0x11, 0x48, 0x15, 0xc4, 0x94, 0xcc, 0xbc, 0x62, 0x88, 0x21, 0x4a, 0xeb, 0x99,
+	0xb9, 0x58, 0x7c, 0x53, 0x4b, 0x12, 0x85, 0xe4, 0xb8, 0xd8, 0x03, 0x20, 0xee, 0x90, 0x10, 0x51,
+	0x60, 0xd4, 0xe0, 0x71, 0x62, 0x39, 0x71, 0x4f, 0x9e, 0x21, 0x08, 0x26, 0x28, 0x94, 0xca, 0xc5,
+	0x16, 0x9c, 0x9a, 0x97, 0x92, 0x5a, 0x24, 0x21, 0x0a, 0x96, 0xf6, 0x05, 0x49, 0xdf, 0xba, 0x27,
+	0xef, 0x48, 0xb2, 0x2b, 0x8a, 0x52, 0xd3, 0x52, 0x8b, 0x52, 0xf3, 0x92, 0x53, 0xf5, 0xdc, 0x73,
+	0xf2, 0x93, 0x12, 0x73, 0x3e, 0x4c, 0x53, 0x60, 0x08, 0x82, 0x1a, 0x2e, 0x94, 0xc9, 0xc5, 0x11,
+	0x94, 0x9a, 0x9c, 0x9a, 0x59, 0x96, 0x5a, 0x24, 0x21, 0x46, 0x0b, 0x8b, 0xe0, 0xc6, 0x0b, 0xc5,
+	0x73, 0xb1, 0x06, 0x94, 0xe6, 0x14, 0xa7, 0x4a, 0x88, 0x2b, 0x30, 0x6a, 0xf0, 0x3a, 0x79, 0x82,
+	0xec, 0xf9, 0x75, 0x4f, 0xde, 0x96, 0x64, 0x7b, 0x0a, 0x40, 0xa6, 0xe8, 0xf9, 0x95, 0xe6, 0x26,
+	0xa5, 0x16, 0x81, 0xed, 0x80, 0x98, 0x2b, 0x24, 0xc2, 0xc5, 0xe4, 0xe9, 0x22, 0x21, 0x81, 0x14,
+	0x9a, 0x4c, 0x9e, 0x2e, 0x42, 0xe6, 0x5c, 0x5c, 0xfe, 0x45, 0x99, 0xe9, 0x99, 0x79, 0x1e, 0x89,
+	0xc5, 0x19, 0x12, 0x92, 0x60, 0x59, 0x71, 0xa8, 0x1f, 0xb9, 0x7d, 0x53, 0x8b, 0x8b, 0x13, 0xd3,
+	0x53, 0x41, 0x52, 0x60, 0x93, 0x90, 0x94, 0x5a, 0xb1, 0x1e, 0xb8, 0x21, 0xff, 0x92, 0xdd, 0x29,
+	0xe6, 0xc4, 0x23, 0x39, 0xc6, 0x0b, 0x8f, 0xe4, 0x18, 0x6f, 0x3c, 0x92, 0x63, 0x7c, 0xf0, 0x48,
+	0x8e, 0x61, 0xc2, 0x63, 0x39, 0x86, 0x05, 0x8f, 0xe5, 0x18, 0x2f, 0x3c, 0x96, 0x63, 0xb8, 0xf1,
+	0x58, 0x8e, 0xe1, 0xc5, 0x4c, 0x79, 0xc6, 0x0f, 0x33, 0xe5, 0x19, 0x7f, 0xcd, 0x94, 0x67, 0x87,
+	0x9a, 0xb7, 0x6a, 0x96, 0xbc, 0x70, 0x50, 0x6a, 0x7a, 0x66, 0x71, 0x49, 0x6a, 0x11, 0x54, 0x28,
+	0xa4, 0xb2, 0x20, 0x75, 0xd3, 0x2c, 0x79, 0x3e, 0x28, 0xd7, 0x39, 0x3f, 0xaf, 0x24, 0xb5, 0xa2,
+	0x24, 0x89, 0x0d, 0x9c, 0x2c, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0xca, 0x02, 0xe4, 0xfd,
+	0xb4, 0x02, 0x00, 0x00,
 }
 
-func (this *Meta) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
+func (m *Meta) SetupContext(ctx MessageContext) error {
+	return ctx.Message(m, 1001)
+}
 
-	that1, ok := that.(*Meta)
-	if !ok {
-		that2, ok := that.(Meta)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Polymorph != that1.Polymorph {
-		return false
-	}
-	if !bytes.Equal(this.Payload, that1.Payload) {
-		return false
-	}
-	if !this.Sender.Equal(that1.Sender) {
-		return false
-	}
-	if !this.Receiver.Equal(that1.Receiver) {
-		return false
-	}
-	if !this.Pulse.Equal(that1.Pulse) {
-		return false
-	}
-	if !bytes.Equal(this.ID, that1.ID) {
-		return false
-	}
-	if !this.OriginHash.Equal(that1.OriginHash) {
-		return false
-	}
-	return true
+const TypeMetaPolymorthID = 1001
+
+func (*Meta) GetDefaultPolymorphID() uint64 {
+	return 1001
 }
-func (this *Meta) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 11)
-	s = append(s, "&payload.Meta{")
-	s = append(s, "Polymorph: "+fmt.Sprintf("%#v", this.Polymorph)+",\n")
-	s = append(s, "Payload: "+fmt.Sprintf("%#v", this.Payload)+",\n")
-	s = append(s, "Sender: "+fmt.Sprintf("%#v", this.Sender)+",\n")
-	s = append(s, "Receiver: "+fmt.Sprintf("%#v", this.Receiver)+",\n")
-	s = append(s, "Pulse: "+fmt.Sprintf("%#v", this.Pulse)+",\n")
-	s = append(s, "ID: "+fmt.Sprintf("%#v", this.ID)+",\n")
-	s = append(s, "OriginHash: "+fmt.Sprintf("%#v", this.OriginHash)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func valueToGoStringPayload(v interface{}, typ string) string {
-	rv := reflect.ValueOf(v)
-	if rv.IsNil() {
-		return "nil"
-	}
-	pv := reflect.Indirect(rv).Interface()
-	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
-}
+
 func (m *Meta) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -201,17 +142,17 @@ func (m *Meta) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Meta) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
 func (m *Meta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l int
-	_ = l
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
 	{
-		size := m.OriginHash.Size()
+		size := m.OriginHash.ProtoSize()
 		i -= size
 		if _, err := m.OriginHash.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
@@ -225,26 +166,23 @@ func (m *Meta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if len(m.ID) > 0 {
 		i -= len(m.ID)
 		copy(dAtA[i:], m.ID)
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.ID)))
+		i--
+		dAtA[i] = 132
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.ID)+1))
 		i--
 		dAtA[i] = 0x1
 		i--
 		dAtA[i] = 0xc2
 	}
-	{
-		size := m.Pulse.Size()
-		i -= size
-		if _, err := m.Pulse.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPayload(dAtA, i, uint64(size))
+	if m.Pulse != 0 {
+		i = encodeVarintPayload(dAtA, i, uint64(m.Pulse))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb8
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xba
 	{
-		size := m.Receiver.Size()
+		size := m.Receiver.ProtoSize()
 		i -= size
 		if _, err := m.Receiver.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
@@ -256,7 +194,7 @@ func (m *Meta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0xb2
 	{
-		size := m.Sender.Size()
+		size := m.Sender.ProtoSize()
 		i -= size
 		if _, err := m.Sender.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
@@ -270,19 +208,19 @@ func (m *Meta) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if len(m.Payload) > 0 {
 		i -= len(m.Payload)
 		copy(dAtA[i:], m.Payload)
-		i = encodeVarintPayload(dAtA, i, uint64(len(m.Payload)))
+		i--
+		dAtA[i] = 132
+		i = encodeVarintPayload(dAtA, i, uint64(len(m.Payload)+1))
 		i--
 		dAtA[i] = 0x1
 		i--
 		dAtA[i] = 0xa2
 	}
-	if m.Polymorph != 0 {
-		i = encodeVarintPayload(dAtA, i, uint64(m.Polymorph))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
-	}
+	i = encodeVarintPayload(dAtA, i, uint64(1001))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
 	return len(dAtA) - i, nil
 }
 
@@ -297,31 +235,37 @@ func encodeVarintPayload(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *Meta) Size() (n int) {
+
+func init() {
+	RegisterMessageType(1001, "", (*Meta)(nil))
+}
+
+func (m *Meta) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.Polymorph != 0 {
-		n += 2 + sovPayload(uint64(m.Polymorph))
-	}
 	l = len(m.Payload)
 	if l > 0 {
+		l++
 		n += 2 + l + sovPayload(uint64(l))
 	}
-	l = m.Sender.Size()
+	l = m.Sender.ProtoSize()
 	n += 2 + l + sovPayload(uint64(l))
-	l = m.Receiver.Size()
+	l = m.Receiver.ProtoSize()
 	n += 2 + l + sovPayload(uint64(l))
-	l = m.Pulse.Size()
-	n += 2 + l + sovPayload(uint64(l))
+	if m.Pulse != 0 {
+		n += 2 + sovPayload(uint64(m.Pulse))
+	}
 	l = len(m.ID)
 	if l > 0 {
+		l++
 		n += 2 + l + sovPayload(uint64(l))
 	}
-	l = m.OriginHash.Size()
+	l = m.OriginHash.ProtoSize()
 	n += 2 + l + sovPayload(uint64(l))
+	n += 2 + sovPayload(1001)
 	return n
 }
 
@@ -331,31 +275,10 @@ func sovPayload(x uint64) (n int) {
 func sozPayload(x uint64) (n int) {
 	return sovPayload(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *Meta) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&Meta{`,
-		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
-		`Payload:` + fmt.Sprintf("%v", this.Payload) + `,`,
-		`Sender:` + fmt.Sprintf("%v", this.Sender) + `,`,
-		`Receiver:` + fmt.Sprintf("%v", this.Receiver) + `,`,
-		`Pulse:` + fmt.Sprintf("%v", this.Pulse) + `,`,
-		`ID:` + fmt.Sprintf("%v", this.ID) + `,`,
-		`OriginHash:` + fmt.Sprintf("%v", this.OriginHash) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func valueToStringPayload(v interface{}) string {
-	rv := reflect.ValueOf(v)
-	if rv.IsNil() {
-		return "nil"
-	}
-	pv := reflect.Indirect(rv).Interface()
-	return fmt.Sprintf("*%v", pv)
-}
 func (m *Meta) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipPayload)
+}
+func (m *Meta) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -384,25 +307,6 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: Meta: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 16:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
-			}
-			m.Polymorph = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPayload
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Polymorph |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 20:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
@@ -431,6 +335,12 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
+			}
+			if byteLen > 0 {
+				if dAtA[iNdEx] != 132 {
+					return ErrExpectedBinaryMarkerPayload
+				}
+				iNdEx++
 			}
 			m.Payload = append(m.Payload[:0], dAtA[iNdEx:postIndex]...)
 			if m.Payload == nil {
@@ -504,10 +414,10 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 23:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Pulse", wireType)
 			}
-			var byteLen int
+			m.Pulse = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowPayload
@@ -517,25 +427,11 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				m.Pulse |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
-				return ErrInvalidLengthPayload
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthPayload
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 24:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
@@ -564,6 +460,12 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
+			}
+			if byteLen > 0 {
+				if dAtA[iNdEx] != 132 {
+					return ErrExpectedBinaryMarkerPayload
+				}
+				iNdEx++
 			}
 			m.ID = append(m.ID[:0], dAtA[iNdEx:postIndex]...)
 			if m.ID == nil {
@@ -605,12 +507,18 @@ func (m *Meta) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipPayload(dAtA[iNdEx:])
+			skippy, err := skipFn(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				return ErrInvalidLengthPayload
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipPayload(dAtA[iNdEx:]); err != nil {
+					return err
+				}
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPayload
@@ -710,4 +618,5 @@ var (
 	ErrInvalidLengthPayload        = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowPayload          = fmt.Errorf("proto: integer overflow")
 	ErrUnexpectedEndOfGroupPayload = fmt.Errorf("proto: unexpected end of group")
+	ErrExpectedBinaryMarkerPayload = fmt.Errorf("proto: binary marker was expected")
 )
