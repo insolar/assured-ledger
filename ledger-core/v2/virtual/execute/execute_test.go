@@ -139,7 +139,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Empty(t, smObject.KnownRequests)
+	assert.Zero(t, smObject.KnownRequests.Len())
 
 	{ // updateCounters after
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -153,9 +153,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Len(t, smObject.KnownRequests, 1)
-	_, ok := smObject.KnownRequests[smExecute.execution.Outgoing]
-	assert.True(t, ok)
+	assert.Equal(t, smObject.KnownRequests.Len(), 1)
+	assert.True(t, smObject.KnownRequests.GetList(contract.CallTolerable).Exist(smExecute.execution.Outgoing))
 
 	{ // update known requests panics
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -182,7 +181,8 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				KnownRequests:  make(map[reference.Global]struct{}),
+				PendingTable:   object.NewRequestTable(),
+				KnownRequests:  object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -251,7 +251,8 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				KnownRequests:  make(map[reference.Global]struct{}),
+				PendingTable:   object.NewRequestTable(),
+				KnownRequests:  object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -322,7 +323,8 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				KnownRequests:  make(map[reference.Global]struct{}),
+				PendingTable:   object.NewRequestTable(),
+				KnownRequests:  object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},

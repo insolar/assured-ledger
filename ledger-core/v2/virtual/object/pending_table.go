@@ -12,72 +12,86 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type PendingTable struct {
-	lists map[contract.InterferenceFlag]PendingList
+type RequestTable struct {
+	lists map[contract.InterferenceFlag]RequestList
 }
 
-func NewPendingTable() PendingTable {
-	var pt PendingTable
-	pt.lists = make(map[contract.InterferenceFlag]PendingList)
+func NewRequestTable() RequestTable {
+	var rt RequestTable
+	rt.lists = make(map[contract.InterferenceFlag]RequestList)
 
-	pt.lists[contract.CallTolerable] = NewPendingList()
-	pt.lists[contract.CallIntolerable] = NewPendingList()
-	return pt
+	rt.lists[contract.CallTolerable] = NewRequestList()
+	rt.lists[contract.CallIntolerable] = NewRequestList()
+	return rt
 }
 
-func (pt *PendingTable) GetList(flag contract.InterferenceFlag) PendingList {
-	if flag != contract.CallTolerable && flag != contract.CallIntolerable {
+func (rt *RequestTable) GetList(flag contract.InterferenceFlag) *RequestList {
+	if flag.IsZero() {
 		panic(throw.IllegalValue())
 	}
-	return pt.lists[flag]
+	list := rt.lists[flag]
+	return &list
+}
+
+func (rt *RequestTable) Len() int {
+	size := 0
+	for _, list := range rt.lists {
+		size += list.Count()
+	}
+	return size
 }
 
 type isActive bool
 
-type PendingList struct {
-	oldestPulse pulse.Number
-	requests    map[reference.Global]isActive
+type RequestList struct {
+	earliestPulse pulse.Number
+	requests      map[reference.Global]isActive
 }
 
-func NewPendingList() PendingList {
-	return PendingList{
+func NewRequestList() RequestList {
+	return RequestList{
 		requests: make(map[reference.Global]isActive),
 	}
 }
 
-// Add adds reference.Global and update OldestPulse if needed
+func (rl RequestList) Exist(ref reference.Global) bool {
+	_, exist := rl.requests[ref]
+	return exist
+}
+
+// Add adds reference.Global and update EarliestPulse if needed
 // returns true if added and false if already exists
-func (pt *PendingList) Add(ref reference.Global) bool {
-	if _, exist := pt.requests[ref]; exist {
+func (rl *RequestList) Add(ref reference.Global) bool {
+	if _, exist := rl.requests[ref]; exist {
 		return false
 	}
 
-	pt.requests[ref] = true
+	rl.requests[ref] = true
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
-	if pt.oldestPulse == 0 || requestPulseNumber < pt.oldestPulse {
-		pt.oldestPulse = requestPulseNumber
+	if rl.earliestPulse == 0 || requestPulseNumber < rl.earliestPulse {
+		rl.earliestPulse = requestPulseNumber
 	}
 
 	return true
 }
 
-func (pt *PendingList) Finish(ref reference.Global) bool {
-	if _, exist := pt.requests[ref]; !exist {
+func (rl *RequestList) Finish(ref reference.Global) bool {
+	if _, exist := rl.requests[ref]; !exist {
 		return false
 	}
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
-	pt.requests[ref] = false
+	rl.requests[ref] = false
 
-	if requestPulseNumber != pt.oldestPulse {
+	if requestPulseNumber != rl.earliestPulse {
 		return true
 	}
 
 	min := pulse.Unknown
-	for ref := range pt.requests {
+	for ref := range rl.requests {
 		// skip finished
-		if !pt.requests[ref] {
+		if !rl.requests[ref] {
 			continue
 		}
 		refPulseNumber := ref.GetLocal().GetPulseNumber()
@@ -86,18 +100,18 @@ func (pt *PendingList) Finish(ref reference.Global) bool {
 		}
 	}
 
-	pt.oldestPulse = min
+	rl.earliestPulse = min
 
 	return true
 }
 
-func (pt *PendingList) Count() int {
-	return len(pt.requests)
+func (rl *RequestList) Count() int {
+	return len(rl.requests)
 }
 
-func (pt *PendingList) CountFinish() int {
+func (rl *RequestList) CountFinish() int {
 	var count int
-	for _, requestIsActive := range pt.requests {
+	for _, requestIsActive := range rl.requests {
 		if !requestIsActive {
 			count++
 		}
@@ -105,6 +119,6 @@ func (pt *PendingList) CountFinish() int {
 	return count
 }
 
-func (pt *PendingList) OldestPulse() pulse.Number {
-	return pt.oldestPulse
+func (rl *RequestList) EarliestPulse() pulse.Number {
+	return rl.earliestPulse
 }
