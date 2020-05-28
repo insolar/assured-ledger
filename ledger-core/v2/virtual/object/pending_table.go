@@ -26,10 +26,10 @@ func NewPendingTable() PendingTable {
 }
 
 func (pt *PendingTable) GetList(flag contract.InterferenceFlag) PendingList {
-	if flag == contract.CallTolerable || flag == contract.CallIntolerable {
-		return pt.lists[flag]
+	if flag != contract.CallTolerable && flag != contract.CallIntolerable {
+		panic(throw.IllegalValue())
 	}
-	panic(throw.IllegalValue())
+	return pt.lists[flag]
 }
 
 type isActive bool
