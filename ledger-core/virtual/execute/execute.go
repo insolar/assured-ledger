@@ -68,9 +68,9 @@ type SMExecute struct {
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
-	// todo: remove nolint in PLAT-309
-	// nolint
-	delegationToken payload.CallDelegationToken
+	delegationTokenSpec payload.CallDelegationToken
+	delegationTokenSign []byte
+	stepAfterTokenGet   smachine.SlotStep
 }
 
 /* -------- Declaration ------------- */
@@ -395,7 +395,45 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
 	s.migrationHappened = true
-	return ctx.Stay()
+
+	s.stepAfterTokenGet = ctx.AffectedStep()
+
+	return ctx.Jump(s.stepGetDelegationToken)
+}
+
+func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	bargeIn := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+		res, ok := param.(*payload.VDelegatedCallResponse)
+		if !ok || res == nil {
+			panic(throw.IllegalValue())
+		}
+		s.delegationTokenSpec = res.DelegationSpec
+		s.delegationTokenSign = res.DelegatorSignature
+
+		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			return ctx.WakeUp()
+		}
+	})
+
+	var bargeInRef = gen.UniqueReference()
+	if !ctx.PublishGlobalAliasAndBargeIn(bargeInRef, bargeIn) {
+		panic(throw.E("publish global BargeIn failed"))
+	}
+
+	var requestPayload = payload.VDelegatedCallRequest{
+		Callee:             s.Payload.Callee,
+		CallFlags:          s.Payload.CallFlags,
+		RequestReference:   s.Payload.CallReason,
+		RefOut:             reference.Global{}, // docs say that this is required field?
+		RefIn:              bargeInRef,
+		DelegationSpec:     s.delegationTokenSpec,
+		DelegatorSignature: s.delegationTokenSign,
+	}
+
+	subroutineSM := &SMVDelegatedCallRequest{Meta: s.Meta, RequestPayload: requestPayload}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		return ctx.Jump(s.stepAfterTokenGet.Transition)
+	})
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
