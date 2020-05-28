@@ -72,7 +72,26 @@ func (pl *PendingList) Finish(ref reference.Global) bool {
 		return false
 	}
 
+	requestPulseNumber := ref.GetLocal().GetPulseNumber()
 	pl.requests[ref] = false
+
+	if requestPulseNumber != pl.oldestPulse {
+		return true
+	}
+
+	min := pulse.Unknown
+	for ref := range pl.requests {
+		// skip finished
+		if !pl.requests[ref] {
+			continue
+		}
+		refPulseNumber := ref.GetLocal().GetPulseNumber()
+		if min == pulse.Unknown || refPulseNumber < min {
+			min = refPulseNumber
+		}
+	}
+
+	pl.oldestPulse = min
 
 	return true
 }

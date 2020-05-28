@@ -90,3 +90,31 @@ func TestPendingList(t *testing.T) {
 	nonExistRefFinished := pl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
 	require.Equal(t, false, nonExistRefFinished)
 }
+
+func TestPendingList_Finish(t *testing.T) {
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+	currentPulse := pd.PulseNumber
+
+	objectOne := gen.UniqueIDWithPulse(currentPulse)
+	RefOne := reference.NewSelf(objectOne)
+
+	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
+
+	objectTwo := gen.UniqueIDWithPulse(nextPulseNumber)
+	RefTwo := reference.NewSelf(objectTwo)
+
+	pt := NewPendingList()
+
+	require.Equal(t, true, pt.Add(RefOne))
+	require.Equal(t, uint8(1), pt.Count())
+	require.Equal(t, currentPulse, pt.oldestPulse)
+
+	require.Equal(t, true, pt.Add(RefTwo))
+	require.Equal(t, uint8(2), pt.Count())
+	require.Equal(t, currentPulse, pt.oldestPulse)
+	require.Equal(t, uint8(0), pt.CountFinish())
+
+	pt.Finish(RefOne)
+	require.Equal(t, uint8(1), pt.CountFinish())
+	require.Equal(t, nextPulseNumber, pt.oldestPulse)
+}
