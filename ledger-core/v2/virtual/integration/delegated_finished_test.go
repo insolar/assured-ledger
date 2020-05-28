@@ -154,10 +154,9 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) 
 	defer server.Stop()
 
 	testBalance := uint32(333)
-	// generate new state since it will be changed by CallAPIAddAmount
 	rawWalletState := makeRawWalletState(t, testBalance)
 	callConstructor := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, name string, args []byte) (objectState []byte, result []byte, err error) {
-		// we want to change pulse during execution
+		// we want to change pulse during construction
 		server.IncrementPulse(ctx)
 
 		emptyResult := makeEmptyResult(t)
