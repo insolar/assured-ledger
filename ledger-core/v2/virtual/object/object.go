@@ -49,8 +49,8 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
-	KnownRequests map[reference.Global]struct{}
-	PendingTable  PendingTable
+	KnownRequests RequestTable
+	PendingTable  RequestTable
 
 	// Active means pendings on other executors
 	ActiveUnorderedPendingCount uint8
@@ -112,17 +112,29 @@ func (i *Info) Descriptor() descriptor.Object {
 	return i.descriptor
 }
 
+func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
+	minPulse := i.PendingTable.GetList(tolerance).EarliestPulse()
+	knownPulse := i.KnownRequests.GetList(tolerance).EarliestPulse()
+	if knownPulse != pulse.Unknown && knownPulse < minPulse {
+		minPulse = knownPulse
+	}
+	return minPulse
+}
+
 func (i *Info) BuildStateReport() payload.VStateReport {
 	var latestDirtyState reference.Global
 	if objDescriptor := i.Descriptor(); objDescriptor != nil {
 		latestDirtyState = objDescriptor.HeadRef()
 	}
+
 	return payload.VStateReport{
-		Callee:                i.Reference,
-		UnorderedPendingCount: int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
-		OrderedPendingCount:   int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
-		LatestDirtyState:      latestDirtyState,
-		ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},
+		Callee:                        i.Reference,
+		UnorderedPendingCount:         int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
+		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
+		OrderedPendingCount:           int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
+		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
+		LatestDirtyState:              latestDirtyState,
+		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
 }
 
@@ -149,8 +161,8 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 		SharedState: SharedState{
 			Info: Info{
 				Reference:     objectReference,
-				KnownRequests: make(map[reference.Global]struct{}),
-				PendingTable:  NewPendingTable(),
+				KnownRequests: NewRequestTable(),
+				PendingTable:  NewRequestTable(),
 			},
 		},
 	}

@@ -301,12 +301,13 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	var objectDescriptor descriptor.Object
 
 	action := func(state *object.SharedState) {
-		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+		requestList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+		if requestList.Exist(s.execution.Outgoing) {
 			// found duplicate request, todo: deduplication algorithm
 			panic(throw.NotImplemented())
-		} else {
-			state.KnownRequests[s.execution.Outgoing] = struct{}{}
 		}
+
+		requestList.Add(s.execution.Outgoing)
 
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 
