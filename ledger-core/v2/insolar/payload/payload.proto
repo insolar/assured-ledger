@@ -10,7 +10,6 @@ option (insproto.zeroable_all) = true;
 option (insproto.context_all) = "MessageContext";
 option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
-option (insproto.projection_names) = "Head";
 
 message Meta {
     option (insproto.id) = 1008;
