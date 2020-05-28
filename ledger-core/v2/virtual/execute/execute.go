@@ -581,6 +581,8 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			parentReference,
 		))
 
+		s.execution.ObjectDescriptor = state.Descriptor()
+
 		s.decrementCounters(state)
 		state.SetState(object.HasState)
 	}
