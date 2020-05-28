@@ -45,40 +45,45 @@ func NewPendingList() PendingList {
 	}
 }
 
+func (pl *PendingList) Exist(ref reference.Global) bool {
+	_, exist := pl.requests[ref]
+	return exist
+}
+
 // Add adds reference.Global and update OldestPulse if needed
 // returns true if added and false if already exists
-func (pt *PendingList) Add(ref reference.Global) bool {
-	if _, exist := pt.requests[ref]; exist {
+func (pl *PendingList) Add(ref reference.Global) bool {
+	if pl.Exist(ref) {
 		return false
 	}
 
-	pt.requests[ref] = true
+	pl.requests[ref] = true
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
-	if pt.oldestPulse == 0 || requestPulseNumber < pt.oldestPulse {
-		pt.oldestPulse = requestPulseNumber
+	if pl.oldestPulse == 0 || requestPulseNumber < pl.oldestPulse {
+		pl.oldestPulse = requestPulseNumber
 	}
 
 	return true
 }
 
-func (pt *PendingList) Finish(ref reference.Global) bool {
-	if _, exist := pt.requests[ref]; !exist {
+func (pl *PendingList) Finish(ref reference.Global) bool {
+	if !pl.Exist(ref) {
 		return false
 	}
 
-	pt.requests[ref] = false
+	pl.requests[ref] = false
 
 	return true
 }
 
-func (pt *PendingList) Count() int {
-	return len(pt.requests)
+func (pl *PendingList) Count() uint8 {
+	return uint8(len(pl.requests))
 }
 
-func (pt *PendingList) CountFinish() int {
-	var count int
-	for _, requestIsActive := range pt.requests {
+func (pl *PendingList) CountFinish() uint8 {
+	var count uint8
+	for _, requestIsActive := range pl.requests {
 		if !requestIsActive {
 			count++
 		}
@@ -86,6 +91,16 @@ func (pt *PendingList) CountFinish() int {
 	return count
 }
 
-func (pt *PendingList) OldestPulse() pulse.Number {
-	return pt.oldestPulse
+func (pl *PendingList) CountActive() uint8 {
+	var count uint8
+	for _, requestIsActive := range pl.requests {
+		if requestIsActive {
+			count++
+		}
+	}
+	return count
+}
+
+func (pl *PendingList) OldestPulse() pulse.Number {
+	return pl.oldestPulse
 }

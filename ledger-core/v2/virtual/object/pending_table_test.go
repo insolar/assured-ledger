@@ -54,27 +54,39 @@ func TestPendingList(t *testing.T) {
 	RefTwo := reference.NewSelf(objectTwo)
 
 	pl := NewPendingList()
-	require.Equal(t, 0, pl.Count())
-	require.Equal(t, 0, pl.CountFinish())
-	require.Equal(t, pulse.Number(0), pl.oldestPulse)
+	require.Equal(t, uint8(0), pl.Count())
+	require.Equal(t, uint8(0), pl.CountFinish())
+	require.Equal(t, pulse.Number(0), pl.OldestPulse())
 
 	require.Equal(t, true, pl.Add(RefOne))
-	require.Equal(t, 1, pl.Count())
-	require.Equal(t, nextPulseNumber, pl.oldestPulse)
+	require.Equal(t, true, pl.Exist(RefOne))
+	require.Equal(t, uint8(1), pl.Count())
+	require.Equal(t, nextPulseNumber, pl.OldestPulse())
 
 	require.Equal(t, false, pl.Add(RefOne))
-	require.Equal(t, 1, pl.Count())
-	require.Equal(t, nextPulseNumber, pl.oldestPulse)
+	require.Equal(t, true, pl.Exist(RefOne))
+	require.Equal(t, uint8(1), pl.Count())
+	require.Equal(t, nextPulseNumber, pl.OldestPulse())
 
 	require.Equal(t, true, pl.Add(RefOld))
-	require.Equal(t, 2, pl.Count())
-	require.Equal(t, pd.PulseNumber, pl.oldestPulse)
+	require.Equal(t, true, pl.Exist(RefOne))
+	require.Equal(t, true, pl.Exist(RefOld))
+	require.Equal(t, uint8(2), pl.Count())
+	require.Equal(t, pd.PulseNumber, pl.OldestPulse())
 
 	require.Equal(t, true, pl.Add(RefTwo))
-	require.Equal(t, 3, pl.Count())
-	require.Equal(t, pd.PulseNumber, pl.oldestPulse)
-	require.Equal(t, 0, pl.CountFinish())
+	require.Equal(t, true, pl.Exist(RefOne))
+	require.Equal(t, true, pl.Exist(RefOld))
+	require.Equal(t, true, pl.Exist(RefTwo))
+	require.Equal(t, uint8(3), pl.Count())
+	require.Equal(t, pd.PulseNumber, pl.OldestPulse())
+	require.Equal(t, uint8(0), pl.CountFinish())
 
 	pl.Finish(RefOld)
-	require.Equal(t, 1, pl.CountFinish())
+	require.Equal(t, uint8(1), pl.CountFinish())
+	require.Equal(t, uint8(2), pl.CountActive())
+
+
+	nonExistRefFinished := pl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
+	require.Equal(t, false, nonExistRefFinished)
 }
