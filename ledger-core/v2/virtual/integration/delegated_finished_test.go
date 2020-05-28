@@ -150,6 +150,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 }
 
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) {
+	t.Skip("skipped until PLAT-304")
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
@@ -187,7 +188,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) 
 
 	select {
 	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
-		callFlags := payload.BuildCallRequestFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
 		require.NotEmpty(t, delegateFinishedMsg.Callee)
 		require.Equal(t, payload.CTConstructor, delegateFinishedMsg.CallType)
