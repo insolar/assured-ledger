@@ -32,6 +32,9 @@ func (p *Polymorph) GenerateMsg(file *generator.FileDescriptor, message *generat
 	}
 	idStr := strconv.FormatUint(id, 10)
 
+	p.P(`const Type`, ccTypeName, `PolymorthID = `, idStr)
+	p.P()
+
 	p.P(`func (*`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)
 	p.In()
 	p.P(`return `, idStr)
