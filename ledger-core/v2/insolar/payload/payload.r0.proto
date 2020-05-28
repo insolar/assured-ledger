@@ -193,3 +193,23 @@ message VStateUnavailable {
     ReasonType Reason = 20;
     bytes Lifeline = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
 }
+
+
+message VDelegatedCallRequest {
+    uint32 Polymorph = 16;
+
+    bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes RequestReference = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes RecordHead = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes RefOut = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes RefIn = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes DelegationSpec = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload.CallDelegationToken", (gogoproto.nullable) = false];
+    bytes DelegatorSignature = 26;
+}
+
+message VDelegatedCallResponse {
+    uint32 Polymorph = 16;
+    bytes RefIn = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes DelegationSpec = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload.CallDelegationToken", (gogoproto.nullable) = false];
+    bytes DelegatorSignature = 26;
+}
