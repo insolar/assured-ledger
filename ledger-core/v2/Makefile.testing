@@ -51,8 +51,12 @@ kube_drop_ingress: ## drop ingress from local cluster
 	./scripts/deploy/kube/drop_ingress.sh
 
 .PHONY: kube_apply_ingress
-kube_apply_ingress: ## drop ingress from local cluster
+kube_apply_ingress: ## apply ingress manifests
 	./scripts/deploy/kube/apply_ingress.sh
+
+.PHONY: kube_apply_prometheus
+kube_apply_prometheus: ## apply prometheus manifests
+	./scripts/deploy/kube/apply_prometheus.sh
 
 .PHONY: kube_collect_artifacts
 kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
