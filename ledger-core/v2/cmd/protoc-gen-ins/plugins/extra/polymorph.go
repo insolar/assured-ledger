@@ -26,11 +26,14 @@ func (p *Polymorph) Init(g *generator.Generator, imports generator.PluginImports
 }
 
 func (p *Polymorph) GenerateMsg(file *generator.FileDescriptor, message *generator.Descriptor, ccTypeName string, isHead bool) {
-	if !insproto.HasPolymorphID(message.DescriptorProto) {
+	id := insproto.GetPolymorphID(message.DescriptorProto)
+	if id == 0 {
 		return
 	}
-	id := insproto.GetPolymorphID(message.DescriptorProto)
 	idStr := strconv.FormatUint(id, 10)
+
+	p.P(`const Type`, ccTypeName, `PolymorthID = `, idStr)
+	p.P()
 
 	p.P(`func (*`, ccTypeName, `) GetDefaultPolymorphID() uint64 {`)
 	p.In()
