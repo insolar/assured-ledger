@@ -187,8 +187,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	action := func(state *object.SharedState) {
 		semaphoreReadyToWork = state.ReadyToWork
 
-		semaphoreOrdered = state.MutableExecute
-		semaphoreUnordered = state.ImmutableExecute
+		semaphoreOrdered = state.OrderedExecute
+		semaphoreUnordered = state.UnorderedExecute
 
 		objectDescriptor = state.Descriptor()
 		objectDescriptorIsEmpty = objectDescriptor == nil

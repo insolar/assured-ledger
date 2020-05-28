@@ -135,8 +135,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
-	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
 	assert.Empty(t, smObject.KnownRequests)
 
@@ -149,8 +149,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)
-	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
+	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
 	assert.Len(t, smObject.KnownRequests, 1)
 	_, ok := smObject.KnownRequests[smExecute.execution.Outgoing]
@@ -183,7 +183,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			Info: object.Info{
 				KnownRequests:  make(map[reference.Global]struct{}),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
@@ -225,13 +225,13 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialMutablePendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 
-	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+	require.Equal(t, uint8(1), sharedState.PotentialOrderedPendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
 	mc.Finish()
 }
@@ -250,7 +250,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			Info: object.Info{
 				KnownRequests:  make(map[reference.Global]struct{}),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
@@ -319,7 +319,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			Info: object.Info{
 				KnownRequests:  make(map[reference.Global]struct{}),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)

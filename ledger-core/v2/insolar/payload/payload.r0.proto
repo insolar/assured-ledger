@@ -115,11 +115,11 @@ message VStateReport {
     bytes DelegationSpec = 23;
     bytes DelegatorSignature = 24;
 
-    int32 ImmutablePendingCount = 25;
-    bytes ImmutablePendingEarliestPulse = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
+    int32 UnorderedPendingCount = 25;
+    bytes UnorderedPendingEarliestPulse = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
 
-    int32 MutablePendingCount = 27;
-    bytes MutablePendingEarliestPulse = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
+    int32 OrderedPendingCount = 27;
+    bytes OrderedPendingEarliestPulse = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
 
     int32 PreRegisteredQueueCount = 29;
     bytes PreRegisteredEarliestPulse = 30 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
@@ -137,8 +137,8 @@ message VStateReport {
         ObjectState LatestDirtyState = 25;
         ObjectState LatestValidatedCode = 26;
         ObjectState LatestDirtyCode = 27;
-        repeated bytes MutableQueue = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
-        repeated bytes ImmutableQueue = 29 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+        repeated bytes OrderedQueue = 28 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+        repeated bytes UnorderedQueue = 29 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
     }
 
     ProvidedContentBody ProvidedContent = 36;
