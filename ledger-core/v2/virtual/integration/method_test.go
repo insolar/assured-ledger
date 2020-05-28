@@ -7,6 +7,7 @@ package integration
 
 import (
 	"context"
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"testing"
 	"time"
 
@@ -37,7 +38,6 @@ func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*messa
 	}
 
 	msg, err := payload.NewMessage(&payload.Meta{
-		Polymorph:  uint32(payload.TypeMeta),
 		Payload:    plBytes,
 		Sender:     reference.Global{},
 		Receiver:   reference.Global{},
@@ -56,7 +56,6 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 	isolation := contract.ConstructorIsolation()
 
 	pl := payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 		CallAsOf:            0,
@@ -124,7 +123,6 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 
 	{
 		pl := payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTMethod,
 			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
@@ -234,7 +232,6 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 		for i := 0; i < 2; i++ {
 			pl := payload.VCallRequest{
-				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTMethod,
 				CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 				CallAsOf:            0,
@@ -286,9 +283,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
-
 		pl := payload.VCallRequest{
-			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTMethod,
 			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 			CallAsOf:            0,
@@ -311,7 +306,6 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		require.NoError(t, err)
 
 		msg := payload.MustNewMessage(&payload.Meta{
-			Polymorph:  uint32(payload.TypeMeta),
 			Payload:    plBytes,
 			Sender:     reference.Global{},
 			Receiver:   reference.Global{},
@@ -330,21 +324,18 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 				metaPl = messages[0].Payload
 			)
 
-			metaPlType, err := payload.UnmarshalType(metaPl)
-			assert.NoError(t, err)
-			assert.Equal(t, payload.TypeMeta, metaPlType)
+			metaType, metaPayload, err := rms.Unmarshal(metaPl)
 
-			metaPayload, err := payload.Unmarshal(metaPl)
+			assert.NoError(t, err)
+			assert.Equal(t, uint64(payload.TypeMetaPolymorthID), metaType)
 			assert.NoError(t, err)
 			assert.IsType(t, &payload.Meta{}, metaPayload)
 
 			callResultPl := metaPayload.(*payload.Meta).Payload
-			callResultPlType, err := payload.UnmarshalType(callResultPl)
-			assert.NoError(t, err)
-			assert.Equal(t, payload.TypeVCallResult, callResultPlType)
+			callResultType, callResultPayload, err := rms.Unmarshal(callResultPl)
 
-			callResultPayload, err := payload.Unmarshal(callResultPl)
 			assert.NoError(t, err)
+			assert.Equal(t, uint64(payload.TypeVCallResultPolymorthID), callResultType)
 			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
 
 			testIsDone <- struct{}{}

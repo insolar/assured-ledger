@@ -152,7 +152,6 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			)
 
 			request := &payload.VCallRequest{
-				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTConstructor,
 				CallFlags:           payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
 				CallSiteDeclaration: testwallet.GetClass(),

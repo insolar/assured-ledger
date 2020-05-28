@@ -36,8 +36,7 @@ func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global,
 	return &statemachine.DispatcherMessage{
 		MessageMeta: message.Metadata{},
 		PayloadMeta: &payload.Meta{
-			Polymorph: uint32(payload.TypeMeta),
-			Payload:   rawPayLoad},
+			Payload: rawPayLoad},
 	}
 }
 
@@ -81,11 +80,9 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
-			Polymorph:        uint32(payload.TypeVStateReport),
 			AsOf:             server.GetPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
-			ProvidedContent:  &payload.VStateReport_ProvidedContentBody{},
 		}, data)
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
@@ -133,7 +130,6 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
-			Polymorph:        uint32(payload.TypeVStateReport),
 			AsOf:             server.GetPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
@@ -182,9 +178,8 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateUnavailable{
-			Polymorph: uint32(payload.TypeVStateUnavailable),
-			Reason:    payload.Missing,
-			Lifeline:  objectRef,
+			Reason:   payload.Missing,
+			Lifeline: objectRef,
 		}, data)
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
