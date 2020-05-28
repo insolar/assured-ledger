@@ -6,7 +6,7 @@
 package main
 
 type VirtualNodePatch struct {
-	ApiVersion string `yaml:"apiVersion"`
+	APIVersion string `yaml:"apiVersion"`
 	Kind       string
 	Metadata   Metadata
 	Spec       Spec

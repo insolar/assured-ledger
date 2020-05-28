@@ -16,7 +16,7 @@ import (
 )
 
 var transportPort = 13831
-var adminApiPort = 19001
+var adminAPIPort = 19001
 var hostTemplate = "virtual-%d.platform-network.insolar:%d"
 var certNameTemplate = "virtual-%d.json"
 
@@ -65,7 +65,7 @@ func (c *ConfigGenerator) generateBootstrapConfig() string {
 
 func (c *ConfigGenerator) generateKustomizePatch() string {
 	cfg := VirtualNodePatch{
-		ApiVersion: "apps/v1",
+		APIVersion: "apps/v1",
 		Kind:       "StatefulSet",
 		Metadata: Metadata{
 			Name: "virtual",
@@ -90,7 +90,7 @@ func (c *ConfigGenerator) generatePulsewatcherConfig() string {
 	}
 
 	for i := 0; i < int(c.numNodes); i++ {
-		cfg.Nodes = append(cfg.Nodes, fmt.Sprintf(hostTemplate, i, adminApiPort))
+		cfg.Nodes = append(cfg.Nodes, fmt.Sprintf(hostTemplate, i, adminAPIPort))
 	}
 
 	return c.toYaml(cfg)
@@ -98,7 +98,6 @@ func (c *ConfigGenerator) generatePulsewatcherConfig() string {
 
 // ToYaml returns yaml marshalled struct
 func (c *ConfigGenerator) toYaml(cfg interface{}) string {
-	// todo clean password
 	out, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Sprintf("failed to marshal config structure: %v", err)
