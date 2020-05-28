@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package execute
+package shareddata
 
 import (
 	"reflect"
@@ -12,12 +12,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 )
 
-type SharedDataAccessorWrapper struct {
+type AccessorWrapper struct {
 	a *smachine.SharedDataAccessor
 }
 
-func NewSharedDataAccessorWrapper(a *smachine.SharedDataAccessor) SharedDataAccessorWrapper {
-	return SharedDataAccessorWrapper{a: a}
+func NewSharedDataAccessorWrapper(a *smachine.SharedDataAccessor) AccessorWrapper {
+	return AccessorWrapper{a: a}
 }
 
 func getFieldAsInterface(val reflect.Value, fieldPos int) interface{} {
@@ -25,16 +25,16 @@ func getFieldAsInterface(val reflect.Value, fieldPos int) interface{} {
 	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
 }
 
-func (w SharedDataAccessorWrapper) getLink() *smachine.SharedDataLink {
+func (w AccessorWrapper) getLink() *smachine.SharedDataLink {
 	return getFieldAsInterface(reflect.ValueOf(w.a).Elem(), 0).(*smachine.SharedDataLink)
 }
 
-func (w SharedDataAccessorWrapper) getAccessFn() smachine.SharedDataFunc {
+func (w AccessorWrapper) getAccessFn() smachine.SharedDataFunc {
 	reflectValue := reflect.ValueOf(w.a).Elem()
 	return getFieldAsInterface(reflectValue, 1).(smachine.SharedDataFunc)
 }
 
-func (w SharedDataAccessorWrapper) getAccessFnData() interface{} {
+func (w AccessorWrapper) getAccessFnData() interface{} {
 	reflectValue := reflect.ValueOf(w.getLink()).Elem()
 	return getFieldAsInterface(reflectValue, 1)
 }
