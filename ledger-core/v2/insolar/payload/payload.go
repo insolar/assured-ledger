@@ -14,9 +14,11 @@ import (
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-var RegisterMessageType = rms.RegisterMessageType
-
 type MessageContext = rms.MessageContext
+
+func RegisterMessageType(id uint64, special string, t proto.Message) {
+	rms.RegisterMessageType(id, special, t)
+}
 
 type Type uint32
 
