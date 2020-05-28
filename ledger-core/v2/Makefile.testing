@@ -25,13 +25,10 @@ test_func: ## run functest FUNCTEST_COUNT times
 	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
-.PHONY: test_func_very_slow
-test_func_very_slow: ## run functest 100 times with enabled pulse 3 sec
-	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=3000 TEST_ARGS='-timeout 1200s -failfast' make test_func
-
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
-	FUNCTEST_COUNT=1000 TEST_ARGS='-timeout 1200s -failfast' make test_func
+	pgrep insolard | xargs kill -9 # dirty hack to terminate all insolard processes
+	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' make test_func
 
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag
