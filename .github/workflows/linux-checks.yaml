@@ -152,9 +152,6 @@ jobs:
       - name: deploy ingress
         run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
-      - name: deploy prometheus
-        run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_prometheus
-        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}

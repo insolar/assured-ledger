@@ -57,4 +57,12 @@ On github actions we use k3s cluster (https://k3s.io/) with a local registry.
 As a further improvement, we can run tests inside the cluster on one image.
 
 ##Deployment tool
-Firstly it provides management 
+Provides management of insolar network in k8s for consensus test.
+Default behaviour is to start/stop insolar net according to config
+Simple usage and config template is in ./scripts/deploy/kube-deploy-tool path.
+```
+go build -o ./bin/kube-deploy-tool ./scripts/deploy/kube-deploy-tool && ./bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml
+```
+
+Deploy tool modifies bootstrap files in ledger-core/v2/scripts/deploy/kube/manifests/configuration. 
+This files has default config for 5-node network for CI and local runs, so if you use the tool locally be careful, don't commit changes in this dir, if you don't know why you doing this.

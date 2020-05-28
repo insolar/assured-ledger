@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: api-proxy
   annotations:
-    nginx.ingress.kubernetes.io/affinity: cookie
+    traefik.ingress.kubernetes.io/service.sticky: "true"
 spec:
   rules:
     - host: localhost

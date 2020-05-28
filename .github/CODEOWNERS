@@ -10,3 +10,4 @@ network/**                              @dmitry-panchenko
 pulsar/**                               @egorikas
 vm/**                                   @Vany
 insolar/**                              @andreyromancev
+ledger-core/v2/scripts/deploy/kube/manifests/configuration @ita-sammann
