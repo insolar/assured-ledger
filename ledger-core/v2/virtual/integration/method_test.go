@@ -7,6 +7,7 @@ package integration
 
 import (
 	"context"
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"testing"
 	"time"
 
@@ -323,21 +324,18 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 				metaPl = messages[0].Payload
 			)
 
-			metaPlType, err := payload.UnmarshalType(metaPl)
-			assert.NoError(t, err)
-			assert.Equal(t, payload.TypeMeta, metaPlType)
+			metaType, metaPayload, err := rms.Unmarshal(metaPl)
 
-			metaPayload, err := payload.Unmarshal(metaPl)
+			assert.NoError(t, err)
+			assert.Equal(t, uint64(payload.TypeMetaPolymorthID), metaType)
 			assert.NoError(t, err)
 			assert.IsType(t, &payload.Meta{}, metaPayload)
 
 			callResultPl := metaPayload.(*payload.Meta).Payload
-			callResultPlType, err := payload.UnmarshalType(callResultPl)
-			assert.NoError(t, err)
-			assert.Equal(t, payload.TypeVCallResult, callResultPlType)
+			callResultType, callResultPayload, err := rms.Unmarshal(callResultPl)
 
-			callResultPayload, err := payload.Unmarshal(callResultPl)
 			assert.NoError(t, err)
+			assert.Equal(t, uint64(payload.TypeVCallResultPolymorthID), callResultType)
 			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
 
 			testIsDone <- struct{}{}
