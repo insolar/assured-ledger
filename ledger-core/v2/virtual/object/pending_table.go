@@ -1,27 +1,42 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
 package object
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
 type PendingTable struct {
-	Ordered   PendingList
-	Unordered PendingList
+	lists map[contract.InterferenceFlag]PendingList
 }
 
-type PendingList struct {
-	oldestPulse pulse.Number
-	requests    map[reference.Global]isActive
+func NewPendingTable() PendingTable {
+	var pt PendingTable
+	pt.lists = make(map[contract.InterferenceFlag]PendingList)
+
+	pt.lists[contract.CallTolerable] = NewPendingList()
+	pt.lists[contract.CallIntolerable] = NewPendingList()
+	return pt
+}
+
+func (pt *PendingTable) GetList(flag contract.InterferenceFlag) PendingList {
+	if flag != contract.CallTolerable && flag != contract.CallIntolerable {
+		panic(throw.IllegalValue())
+	}
+	return pt.lists[flag]
 }
 
 type isActive bool
 
-func NewPendingTable() PendingTable {
-	return PendingTable{
-		Ordered:   NewPendingList(),
-		Unordered: NewPendingList(),
-	}
+type PendingList struct {
+	oldestPulse pulse.Number
+	requests    map[reference.Global]isActive
 }
 
 func NewPendingList() PendingList {
@@ -52,7 +67,26 @@ func (pt *PendingList) Finish(ref reference.Global) bool {
 		return false
 	}
 
+	requestPulseNumber := ref.GetLocal().GetPulseNumber()
 	pt.requests[ref] = false
+
+	if requestPulseNumber != pt.oldestPulse {
+		return true
+	}
+
+	min := pulse.Unknown
+	for ref := range pt.requests {
+		// skip finished
+		if !pt.requests[ref] {
+			continue
+		}
+		refPulseNumber := ref.GetLocal().GetPulseNumber()
+		if min == pulse.Unknown || refPulseNumber < min {
+			min = refPulseNumber
+		}
+	}
+
+	pt.oldestPulse = min
 
 	return true
 }

@@ -54,6 +54,10 @@ jobs:
         if: always()
         run: make test_func_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests many times on `master` with reduced pulse time
+        if: ${{ github.event_name == 'push' }}
+        run: make test_func_slow
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Install testrail-cli
         if: ${{ github.event_name == 'push' }}
         run: |
