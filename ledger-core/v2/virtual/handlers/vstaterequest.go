@@ -85,49 +85,36 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 	)
 
 	action := func(state *object.SharedState) {
-		if !state.IsReady() {
+		switch state.GetState() {
+		case object.Unknown:
 			stateNotReady = true
 			return
-		}
-
-		objectState := state.GetState()
-		switch objectState {
 		case object.Missing:
 			s.failReason = payload.Missing
 			return
 		case object.Inactive:
 			s.failReason = payload.Inactive
 			return
+		case object.Empty:
+			if state.PotentialOrderedPendingCount == uint8(0) && state.PotentialUnorderedPendingCount == uint8(0) {
+				// SMObject construction was interrupted by migration. Counters was not incremented yet
+				// TODO: maybe better set stateNotReady = true and return
+				panic(throw.NotImplemented())
+			}
+			// ok case
 		case object.HasState:
 		// ok case
 		default:
 			panic(throw.NotImplemented())
 		}
 
-		descriptor := state.Descriptor()
-		s.objectStateReport = &payload.VStateReport{
-			AsOf:                  s.Payload.AsOf,
-			Callee:                s.Payload.Callee,
-			LatestDirtyState:      descriptor.HeadRef(),
-			ImmutablePendingCount: int32(state.ActiveImmutablePendingCount),
-			MutablePendingCount:   int32(state.ActiveMutablePendingCount),
-		}
+		report := state.BuildStateReport()
+		report.AsOf = s.Payload.AsOf
+
+		s.objectStateReport = &report
 
 		if s.Payload.RequestedContent.Contains(payload.RequestLatestDirtyState) {
-			proto, err := descriptor.Prototype()
-			if err != nil {
-				panic(throw.W(err, "failed to get prototype from descriptor", nil))
-			}
-
-			s.objectStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					Reference:   descriptor.StateID(),
-					Parent:      descriptor.Parent(),
-					Prototype:   proto,
-					State:       descriptor.Memory(),
-					Deactivated: state.Deactivated,
-				},
-			}
+			report.ProvidedContent.LatestDirtyState = state.BuildLatestDirtyState()
 		}
 	}
 
@@ -152,7 +139,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalState())
 	}
 
-	if s.failReason > 0 {
+	if s.failReason > payload.Unknown {
 		return ctx.Jump(s.stepReturnStateUnavailable)
 	}
 

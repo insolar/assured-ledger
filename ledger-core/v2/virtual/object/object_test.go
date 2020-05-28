@@ -19,9 +19,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 )
 
 func Test_Delay(t *testing.T) {
@@ -111,7 +111,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 		smObject.Init(initCtx)
 	}
 
-	smObject.SharedState.ActiveMutablePendingCount = 1
+	smObject.SharedState.ActiveOrderedPendingCount = 1
 	smObject.SharedState.SetState(HasState)
 
 	{ // we should be able to start
@@ -127,7 +127,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 			resultSM := cb1(constructionCtxMock)
 			if assert.IsType(t, resultSM, &SMAwaitDelegate{}) &&
-				assert.Equal(t, smObject.MutableExecute, resultSM.(*SMAwaitDelegate).sync) {
+				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync) {
 
 				cb2()
 			}
@@ -160,16 +160,10 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	)
 
 	smObject.SetState(HasState)
-	smObject.ActiveMutablePendingCount = 1
+	smObject.ActiveOrderedPendingCount = 1
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
-	}
+	slotMachine.InitEmptyMessageSender(mc)
 
 	smWrapper := slotMachine.AddStateMachine(ctx, smObject)
 
