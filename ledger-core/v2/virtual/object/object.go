@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
@@ -51,10 +52,16 @@ type Info struct {
 	KnownRequests map[reference.Global]struct{}
 	PendingTable  PendingTable
 
-	ActiveUnorderedPendingCount    uint8
-	ActiveOrderedPendingCount      uint8
+	// Active means pendings on other executors
+	ActiveUnorderedPendingCount uint8
+	ActiveOrderedPendingCount   uint8
+
+	// Potential means pendings on this executor
 	PotentialUnorderedPendingCount uint8
 	PotentialOrderedPendingCount   uint8
+
+	UnorderedPendingEarliestPulse pulse.Number
+	OrderedPendingEarliestPulse   pulse.Number
 
 	objectState State
 }
