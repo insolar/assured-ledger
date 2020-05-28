@@ -132,6 +132,11 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetDescriptor(s.latestState())
 	}
 
+	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
+	if !pendingList.Finish(objectRef) {
+		panic(throw.E("delegated request was not registered"))
+	}
+
 	switch s.Payload.CallFlags.GetInterference() {
 	case contract.CallIntolerable:
 		if state.ActiveUnorderedPendingCount > 0 {
