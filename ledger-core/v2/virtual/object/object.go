@@ -42,8 +42,8 @@ type Info struct {
 	descriptor  descriptor.Object
 	Deactivated bool
 
-	ImmutableExecute smachine.SyncLink
-	MutableExecute   smachine.SyncLink
+	UnorderedExecute smachine.SyncLink
+	OrderedExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
 
 	AwaitPendingOrdered smachine.BargeIn
@@ -51,10 +51,10 @@ type Info struct {
 	KnownRequests map[reference.Global]struct{}
 	PendingTable  PendingTable
 
-	ActiveImmutablePendingCount    uint8
-	ActiveMutablePendingCount      uint8
-	PotentialImmutablePendingCount uint8
-	PotentialMutablePendingCount   uint8
+	ActiveUnorderedPendingCount    uint8
+	ActiveOrderedPendingCount      uint8
+	PotentialUnorderedPendingCount uint8
+	PotentialOrderedPendingCount   uint8
 
 	objectState State
 }
@@ -74,9 +74,9 @@ func (i *Info) GetState() State {
 func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
 	switch isolation.Interference {
 	case contract.CallIntolerable:
-		i.PotentialImmutablePendingCount++
+		i.PotentialUnorderedPendingCount++
 	case contract.CallTolerable:
-		i.PotentialMutablePendingCount++
+		i.PotentialOrderedPendingCount++
 	default:
 		panic(throw.Unsupported())
 	}
@@ -85,9 +85,9 @@ func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolati
 func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolation) {
 	switch isolation.Interference {
 	case contract.CallIntolerable:
-		i.PotentialImmutablePendingCount--
+		i.PotentialUnorderedPendingCount--
 	case contract.CallTolerable:
-		i.PotentialMutablePendingCount--
+		i.PotentialOrderedPendingCount--
 	default:
 		panic(throw.Unsupported())
 	}
@@ -103,6 +103,34 @@ func (i *Info) Deactivate() {
 
 func (i *Info) Descriptor() descriptor.Object {
 	return i.descriptor
+}
+
+func (i *Info) BuildStateReport() payload.VStateReport {
+	var latestDirtyState reference.Global
+	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+		latestDirtyState = objDescriptor.HeadRef()
+	}
+	return payload.VStateReport{
+		Callee:                i.Reference,
+		UnorderedPendingCount: int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
+		OrderedPendingCount:   int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
+		LatestDirtyState:      latestDirtyState,
+		ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},
+	}
+}
+
+func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
+	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+		prototype, _ := objDescriptor.Prototype()
+		return &payload.ObjectState{
+			Reference:   objDescriptor.StateID(),
+			Parent:      objDescriptor.Parent(),
+			Prototype:   prototype,
+			State:       objDescriptor.Memory(),
+			Deactivated: i.Deactivated,
+		}
+	}
+	return nil
 }
 
 type SharedState struct {
@@ -168,8 +196,8 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.readyToWorkCtl = smsync.NewConditionalBool(false, "readyToWork")
 	sm.ReadyToWork = sm.readyToWorkCtl.SyncLink()
 
-	sm.ImmutableExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
-	sm.MutableExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
+	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
+	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
@@ -206,7 +234,7 @@ func (sm *SMObject) stepGetState(ctx smachine.ExecutionContext) smachine.StateUp
 func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	flags := payload.StateRequestContentFlags(0)
 	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
-		payload.RequestMutableQueue, payload.RequestImmutableQueue)
+		payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
 	msg := payload.VStateRequest{
 		Callee:           sm.Reference,
 		RequestedContent: flags,
@@ -236,7 +264,7 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.ActiveMutablePendingCount > 0 {
+	if sm.ActiveOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
 	}
 	return ctx.Jump(sm.stepReadyToWork)
@@ -257,10 +285,10 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 
 func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	syncSM := SMAwaitDelegate{
-		sync: sm.MutableExecute,
+		sync: sm.OrderedExecute,
 	}
 
-	// syncSM acquire MutableExecute semaphore in init step.
+	// syncSM acquire OrderedExecute semaphore in init step.
 	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &syncSM
 	}, func() {
@@ -278,30 +306,15 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 	}
 
 	var (
-		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
+		currentPulseNumber = sm.pulseSlot.CurrentPulseNumber()
 	)
 
-	objDescriptor := sm.Descriptor()
-	prototype, _ := objDescriptor.Prototype()
-	msg := payload.VStateReport{
-		AsOf:                  sm.pulseSlot.PulseData().PulseNumber,
-		Callee:                sm.SharedState.Info.Reference,
-		ImmutablePendingCount: int32(sm.ActiveImmutablePendingCount) + int32(sm.PotentialImmutablePendingCount),
-		MutablePendingCount:   int32(sm.ActiveMutablePendingCount) + int32(sm.PotentialMutablePendingCount),
-		LatestDirtyState:      objDescriptor.HeadRef(),
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference:   objDescriptor.StateID(),
-				Parent:      objDescriptor.Parent(),
-				Prototype:   prototype,
-				State:       objDescriptor.Memory(),
-				Deactivated: sm.Deactivated,
-			},
-		},
-	}
+	msg := sm.BuildStateReport()
+	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
+	msg.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, pulseNumber)
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)
@@ -313,8 +326,8 @@ func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine
 }
 
 func (sm *SMObject) hasPendingExecution() bool {
-	return sm.PotentialImmutablePendingCount > 0 ||
-		sm.PotentialMutablePendingCount > 0
+	return sm.PotentialUnorderedPendingCount > 0 ||
+		sm.PotentialOrderedPendingCount > 0
 }
 
 func (sm *SMObject) stepSendVStateUnavailable(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -358,7 +371,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	case Inactive:
 		return ctx.Jump(sm.stepSendVStateUnavailable)
 	case Empty:
-		if sm.PotentialMutablePendingCount == uint8(0) && sm.PotentialImmutablePendingCount == uint8(0) {
+		if sm.PotentialOrderedPendingCount == uint8(0) && sm.PotentialUnorderedPendingCount == uint8(0) {
 			// SMObject construction was interrupted by migration. Counters was not incremented yet
 			panic(throw.NotImplemented())
 		}

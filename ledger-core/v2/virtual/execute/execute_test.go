@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 )
 
@@ -135,22 +136,22 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	assert.Equal(t, uint8(0), smObject.PotentialMutablePendingCount)
-	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
 	assert.Empty(t, smObject.KnownRequests)
 
 	{ // updateCounters after
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(CallSharedDataAccessor).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			SetDefaultMigrationMock.Return().
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteStart))
 
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	assert.Equal(t, uint8(1), smObject.PotentialMutablePendingCount)
-	assert.Equal(t, uint8(0), smObject.PotentialImmutablePendingCount)
+	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
+	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
 	assert.Len(t, smObject.KnownRequests, 1)
 	_, ok := smObject.KnownRequests[smExecute.execution.Outgoing]
@@ -158,7 +159,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	{ // update known requests panics
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(CallSharedDataAccessor)
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor)
 
 		checkerFunc := func() {
 			smExecute.stepStartRequestProcessing(execCtx)
@@ -183,13 +184,13 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			Info: object.Info{
 				KnownRequests:  make(map[reference.Global]struct{}),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
@@ -208,9 +209,9 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			Sender: caller,
 		},
 	}
+	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var catalog object.Catalog = catalogWrapper.Mock()
 		slotMachine.AddInterfaceDependency(&catalog)
 
@@ -218,12 +219,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-	}
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
+		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
 	slotMachine.Start()
@@ -231,14 +227,15 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialMutablePendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 
-	require.Equal(t, uint8(1), sharedState.PotentialMutablePendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialImmutablePendingCount)
+	require.Equal(t, uint8(1), sharedState.PotentialOrderedPendingCount)
+	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
+	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
 }
 
@@ -256,13 +253,13 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			Info: object.Info{
 				KnownRequests:  make(map[reference.Global]struct{}),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
@@ -281,9 +278,9 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			Sender: caller,
 		},
 	}
+	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var catalog object.Catalog = catalogWrapper.Mock()
 		slotMachine.AddInterfaceDependency(&catalog)
 
@@ -291,12 +288,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-	}
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
+		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
 	slotMachine.Start()
@@ -314,6 +306,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	require.False(t, smExecute.migrationHappened)
 
+	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
 }
 
@@ -331,13 +324,13 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			Info: object.Info{
 				KnownRequests:  make(map[reference.Global]struct{}),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				MutableExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	smExecute := SMExecute{
@@ -356,9 +349,9 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			Sender: caller,
 		},
 	}
+	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var catalog object.Catalog = catalogWrapper.Mock()
 		slotMachine.AddInterfaceDependency(&catalog)
 
@@ -366,12 +359,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-	}
-
-	{
-		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		slotMachine.AddDependency(&pulseSlot)
+		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
 	slotMachine.Start()
@@ -389,5 +377,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	assert.True(t, smExecute.migrationHappened)
 
+	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
 }

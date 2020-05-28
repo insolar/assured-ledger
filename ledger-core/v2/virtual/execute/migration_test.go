@@ -25,8 +25,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/stepchecker"
 )
 
 func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
@@ -34,8 +34,8 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		pd         = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot  = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID = gen.UniqueIDWithPulse(pd.PulseNumber)
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
