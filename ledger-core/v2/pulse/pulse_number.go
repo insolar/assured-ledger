@@ -205,24 +205,6 @@ func (n Number) String() string {
 }
 
 // deprecated
-func (n Number) MarshalTo(data []byte) (int, error) {
-	if len(data) < NumberSize {
-		return 0, errors.New("not enough bytes to marshal pulse.Number")
-	}
-	binary.BigEndian.PutUint32(data, uint32(n))
-	return NumberSize, nil
-}
-
-// deprecated
-func (n *Number) Unmarshal(data []byte) error {
-	if len(data) < NumberSize {
-		return errors.New("not enough bytes to unmarshal pulse.Number")
-	}
-	*n = Number(binary.BigEndian.Uint32(data))
-	return nil
-}
-
-// deprecated
 func (n Number) Equal(other Number) bool {
 	return n == other
 }

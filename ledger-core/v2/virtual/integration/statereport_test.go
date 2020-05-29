@@ -23,7 +23,7 @@ import (
 )
 
 func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemachine.DispatcherMessage {
-	rawPayLoad, err := payload.Marshal(payLoadMeta)
+	rawPayLoad, err := payLoadMeta.Marshal()
 	require.NoError(t, err)
 
 	return &statemachine.DispatcherMessage{
