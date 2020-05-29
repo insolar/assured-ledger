@@ -56,6 +56,9 @@ type Info struct {
 	PotentialUnorderedPendingCount uint8
 	PotentialOrderedPendingCount   uint8
 
+	OrderedPendingListFilled   smachine.SyncLink
+	UnorderedPendingListFilled smachine.SyncLink
+
 	objectState State
 }
 
@@ -169,6 +172,9 @@ type SMObject struct {
 
 	migrateState smObjectMigrateState
 
+	orderedPendingListFilledCtl   smsync.BoolConditionalLink
+	unorderedPendingListFilledCtl smsync.BoolConditionalLink
+
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
@@ -198,6 +204,12 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
+
+	sm.orderedPendingListFilledCtl = smsync.NewConditionalBool(false, "orderedPendingListFilled")
+	sm.OrderedPendingListFilled = sm.orderedPendingListFilledCtl.SyncLink()
+
+	sm.unorderedPendingListFilledCtl = smsync.NewConditionalBool(false, "unorderedPendingListFilledCtl")
+	sm.UnorderedPendingListFilled = sm.unorderedPendingListFilledCtl.SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {

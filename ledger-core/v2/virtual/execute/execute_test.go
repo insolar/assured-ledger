@@ -157,6 +157,24 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	_, ok := smObject.KnownRequests[smExecute.execution.Outgoing]
 	assert.True(t, ok)
 
+	{
+		// call same request
+		// expect duplicate detection and SM stop
+		wasStoped := false
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			LogMock.Return(smachine.Logger{}).
+			StopMock.Set(
+			func() (s1 smachine.StateUpdate) {
+				wasStoped = true
+				return smachine.StateUpdate{}
+			})
+
+		smExecute.stepStartRequestProcessing(execCtx)
+		assert.Equal(t, true, wasStoped)
+	}
+
 	mc.Finish()
 }
 
@@ -195,42 +213,8 @@ func TestSMExecute_Deduplication(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
-		// update known requests with duplicate
-		// expect SM stop
-		smObject.KnownRequests[smExecute.execution.Outgoing] = struct{}{}
-		wasStoped := false
-
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			LogMock.Return(smachine.Logger{}).
-			StopMock.Set(
-			func() (s1 smachine.StateUpdate) {
-				wasStoped = true
-				return smachine.StateUpdate{}
-			})
-
-		smExecute.stepStartRequestProcessing(execCtx)
-		assert.Equal(t, true, wasStoped)
-	}
-
-	{
-		// start processing request before getting all pending requests
-		// expecting going sleep
-		smObject.KnownRequests = make(map[reference.Global]struct{})
-		smObject.ActiveUnorderedPendingCount = 1
-
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			SleepMock.Return(smachine.NewStateConditionalBuilderMock(mc).ThenRepeatMock.Return(smachine.StateUpdate{}))
-
-		smExecute.stepStartRequestProcessing(execCtx)
-	}
-
-	{
 		// duplicate pending request exists
 		// expect SM stop
-		smObject.KnownRequests = make(map[reference.Global]struct{})
-		smObject.ActiveUnorderedPendingCount = 1
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -245,8 +229,32 @@ func TestSMExecute_Deduplication(t *testing.T) {
 				return smachine.StateUpdate{}
 			})
 
-		smExecute.stepStartRequestProcessing(execCtx)
+		smExecute.stepDeduplication(execCtx)
 		require.Equal(t, true, wasStoped)
+	}
+
+	{
+		// start deduplication before getting all pending requests
+		// expecting going sleep
+		smObject.PendingTable = object.NewPendingTable()
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			AcquireForThisStepMock.Return(false).
+			SleepMock.Return(smachine.NewStateConditionalBuilderMock(mc).ThenRepeatMock.Return(smachine.StateUpdate{}))
+
+		smExecute.stepDeduplication(execCtx)
+	}
+
+	{
+		// start deduplication after getting all pending requests
+		// expecting jump
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			AcquireForThisStepMock.Return(true).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepStartRequestProcessing))
+
+		smExecute.stepDeduplication(execCtx)
 	}
 
 	mc.Finish()
@@ -390,6 +398,51 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
+}
+
+func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag(t *testing.T) {
+	var (
+		ctx = inslogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		Polymorph:           uint32(payload.TypeVCallRequest),
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        smObjectID,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+		CallRequestFlags:    payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall),
+	}
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			AcquireMock.Return(true).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplication))
+
+		smExecute.stepTakeLock(execCtx)
+	}
 }
 
 func TestSMExecute_MigrateAfterLock(t *testing.T) {

@@ -294,52 +294,31 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	if s.Payload.CallRequestFlags.GetRepeatedCall() == payload.RepeatedCall {
+		return ctx.Jump(s.stepDeduplication)
+	}
+
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
-type deduplicationPossibleStates uint8
-
-const (
-	unknown deduplicationPossibleStates = iota
-	noDuplicates
-	duplicateKnown
-	waitFillPendingList
-	duplicatePending
-)
-
-func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepDeduplication(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		deduplicationState deduplicationPossibleStates
-		objectDescriptor   descriptor.Object
+		isDuplicate       bool
+		pendingListFilled smachine.SyncLink
 	)
 	action := func(state *object.SharedState) {
-		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
-			deduplicationState = duplicateKnown
-			return
-		}
-
-		var activePendingCount uint8
 		if s.execution.Isolation.Interference == contract.CallIntolerable {
-			activePendingCount = state.ActiveUnorderedPendingCount
+			pendingListFilled = state.UnorderedPendingListFilled
 		} else {
-			activePendingCount = state.ActiveOrderedPendingCount
+			pendingListFilled = state.OrderedPendingListFilled
 		}
 
 		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
-		if pendingList.CountActive() < activePendingCount {
-			deduplicationState = waitFillPendingList
-			return
-		}
 
 		if pendingList.Exist(s.execution.Outgoing) {
-			deduplicationState = duplicatePending
+			isDuplicate = true
 			return
 		}
-
-		state.KnownRequests[s.execution.Outgoing] = struct{}{}
-		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-		objectDescriptor = state.Descriptor()
-		deduplicationState = noDuplicates
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -352,21 +331,50 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		panic(throw.NotImplemented())
 	}
 
-	switch deduplicationState {
-	case unknown:
-		panic(throw.NotImplemented())
-	case duplicateKnown:
-		ctx.Log().Warn("duplicate found as known request")
-		return ctx.Stop()
-	case duplicatePending:
+	if isDuplicate {
 		ctx.Log().Warn("duplicate found as pending request")
 		return ctx.Stop()
-	case waitFillPendingList:
+	}
+
+	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	ctx.SetDefaultMigration(s.migrateDuringExecution)
+	return ctx.Jump(s.stepStartRequestProcessing)
+}
 
+func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		isDuplicate      bool
+		objectDescriptor descriptor.Object
+	)
+	action := func(state *object.SharedState) {
+		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+			isDuplicate = true
+			return
+		}
+
+		state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		state.IncrementPotentialPendingCounter(s.execution.Isolation)
+		objectDescriptor = state.Descriptor()
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
+	if isDuplicate {
+		ctx.Log().Warn("duplicate found as known request")
+		return ctx.Stop()
+	}
+
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	s.execution.ObjectDescriptor = objectDescriptor
 
 	return ctx.Jump(s.stepExecuteStart)
