@@ -54,27 +54,41 @@ func TestPendingList(t *testing.T) {
 	pl := NewRequestList()
 	require.Equal(t, 0, pl.Count())
 	require.Equal(t, 0, pl.CountFinish())
-	require.Equal(t, pulse.Number(0), pl.earliestPulse)
+	require.Equal(t, pulse.Number(0), pl.EarliestPulse())
 
 	require.Equal(t, true, pl.Add(RefOne))
+	require.Equal(t, true, pl.Exist(RefOne))
 	require.Equal(t, 1, pl.Count())
-	require.Equal(t, nextPulseNumber, pl.earliestPulse)
+	require.Equal(t, nextPulseNumber, pl.EarliestPulse())
 
 	require.Equal(t, false, pl.Add(RefOne))
+	require.Equal(t, true, pl.Exist(RefOne))
 	require.Equal(t, 1, pl.Count())
-	require.Equal(t, nextPulseNumber, pl.earliestPulse)
+	require.Equal(t, nextPulseNumber, pl.EarliestPulse())
 
 	require.Equal(t, true, pl.Add(RefOld))
+	require.Equal(t, true, pl.Exist(RefOne))
+	require.Equal(t, true, pl.Exist(RefOld))
 	require.Equal(t, 2, pl.Count())
-	require.Equal(t, pd.PulseNumber, pl.earliestPulse)
+	require.Equal(t, pd.PulseNumber, pl.EarliestPulse())
 
 	require.Equal(t, true, pl.Add(RefTwo))
+	require.Equal(t, true, pl.Exist(RefOne))
+	require.Equal(t, true, pl.Exist(RefOld))
+	require.Equal(t, true, pl.Exist(RefTwo))
 	require.Equal(t, 3, pl.Count())
-	require.Equal(t, pd.PulseNumber, pl.earliestPulse)
+	require.Equal(t, pd.PulseNumber, pl.EarliestPulse())
 	require.Equal(t, 0, pl.CountFinish())
 
-	pl.Finish(RefOld)
+	pl.Finish(RefOne)
+	require.Equal(t, pd.PulseNumber, pl.EarliestPulse()) // doesn't change
 	require.Equal(t, 1, pl.CountFinish())
+	require.Equal(t, 2, pl.CountActive())
+
+
+	// try to finish ref that not in list
+	successFinish := pl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
+	require.Equal(t, false, successFinish)
 }
 
 func TestPendingList_Finish(t *testing.T) {

@@ -294,23 +294,70 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	if s.Payload.CallRequestFlags.GetRepeatedCall() == payload.RepeatedCall {
+		return ctx.Jump(s.stepDeduplicate)
+	}
+
+	return ctx.Jump(s.stepStartRequestProcessing)
+}
+
+func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		isDuplicate       bool
+		pendingListFilled smachine.SyncLink
+	)
+	action := func(state *object.SharedState) {
+		if s.execution.Isolation.Interference == contract.CallIntolerable {
+			pendingListFilled = state.UnorderedPendingListFilled
+		} else {
+			pendingListFilled = state.OrderedPendingListFilled
+		}
+
+		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
+
+		if pendingList.Exist(s.execution.Outgoing) {
+			isDuplicate = true
+			return
+		}
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+	default:
+		panic(throw.NotImplemented())
+	}
+
+	if isDuplicate {
+		ctx.Log().Warn("duplicate found as pending request")
+		return ctx.Stop()
+	}
+
+	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var objectDescriptor descriptor.Object
-
+	var (
+		isDuplicate      bool
+		objectDescriptor descriptor.Object
+	)
 	action := func(state *object.SharedState) {
 		requestList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
 		if requestList.Exist(s.execution.Outgoing) {
 			// found duplicate request, todo: deduplication algorithm
-			panic(throw.NotImplemented())
+			isDuplicate = true
+			return
 		}
 
 		requestList.Add(s.execution.Outgoing)
-
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-
 		objectDescriptor = state.Descriptor()
 	}
 
@@ -324,8 +371,12 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		panic(throw.NotImplemented())
 	}
 
-	ctx.SetDefaultMigration(s.migrateDuringExecution)
+	if isDuplicate {
+		ctx.Log().Warn("duplicate found as known request")
+		return ctx.Stop()
+	}
 
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	s.execution.ObjectDescriptor = objectDescriptor
 
 	return ctx.Jump(s.stepExecuteStart)

@@ -77,7 +77,7 @@ func (rl *RequestList) Add(ref reference.Global) bool {
 }
 
 func (rl *RequestList) Finish(ref reference.Global) bool {
-	if _, exist := rl.requests[ref]; !exist {
+	if !rl.Exist(ref) {
 		return false
 	}
 
@@ -101,7 +101,6 @@ func (rl *RequestList) Finish(ref reference.Global) bool {
 	}
 
 	rl.earliestPulse = min
-
 	return true
 }
 
@@ -113,6 +112,17 @@ func (rl *RequestList) CountFinish() int {
 	var count int
 	for _, requestIsActive := range rl.requests {
 		if !requestIsActive {
+			count++
+		}
+	}
+	return count
+}
+
+
+func (rl *RequestList) CountActive() int {
+	var count int
+	for _, requestIsActive := range rl.requests {
+		if requestIsActive {
 			count++
 		}
 	}

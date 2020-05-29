@@ -23,6 +23,14 @@ func TestCallRequestFlags(t *testing.T) {
 	assert.Panics(t, func() { BuildCallRequestFlags(bitRepeatedCallFlagCount+1, 2) })
 
 	flags := BuildCallRequestFlags(SendResultDefault, CallDefault)
+	sendResultFlag := flags.GetSendResult()
+	require.Equal(t, SendResultDefault, sendResultFlag)
+	require.Equal(t, true, sendResultFlag.IsZero())
+
+	repeatedCallFlag := flags.GetRepeatedCall()
+	require.Equal(t, CallDefault, repeatedCallFlag)
+	require.Equal(t, true, repeatedCallFlag.IsZero())
+
 	flags.WithRepeatedCall(RepeatedCall)
 	flags.WithSendResultFull(SendResultFull)
 	flags.Equal(CallRequestFlags(0x3))

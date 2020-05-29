@@ -6,7 +6,6 @@
 package payload
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -72,8 +71,8 @@ func (f CallRequestFlags) WithRepeatedCall(s RepeatedCallFlag) CallRequestFlags 
 	return (f &^ bitRepeatedCallMask) | (CallRequestFlags(s) << bitRepeatedCallOffset)
 }
 
-func (f CallRequestFlags) GetRepeatedCall() contract.StateFlag {
-	return contract.StateFlag(f&bitRepeatedCallMask) >> bitRepeatedCallOffset
+func (f CallRequestFlags) GetRepeatedCall() RepeatedCallFlag {
+	return RepeatedCallFlag(f&bitRepeatedCallMask) >> bitRepeatedCallOffset
 }
 
 func BuildCallRequestFlags(sendResultFull SendResultFullFlag, repeatedCall RepeatedCallFlag) CallRequestFlags {

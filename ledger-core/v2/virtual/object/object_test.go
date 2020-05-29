@@ -136,7 +136,8 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			InitChildWithPostInitMock.Set(checkTypeAndCall)
+			InitChildWithPostInitMock.Set(checkTypeAndCall).
+			ApplyAdjustmentMock.Return(true)
 
 		smObject.stepGotState(execCtx)
 	}
@@ -177,4 +178,50 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	require.Equal(t, 2, slotMachine.GetOccupiedSlotCount())
 
 	mc.Finish()
+}
+
+func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
+	var (
+		mc          = minimock.NewController(t)
+		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
+		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef = reference.NewSelf(smObjectID)
+	)
+
+	smObject := NewStateMachineObject(smGlobalRef)
+	smObject.pulseSlot = &pulseSlot
+	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
+
+	sm := SMObject{}
+	stepChecker := stepchecker.New()
+	stepChecker.AddStep(sm.stepGetState)
+	stepChecker.AddStep(sm.stepReadyToWork)
+
+	defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
+
+	{ // initialization
+		initCtx := smachine.NewInitializationContextMock(mc).
+			ShareMock.Return(sharedStateData).
+			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			JumpMock.Set(stepChecker.CheckJumpW(t)).
+			SetDefaultMigrationMock.Return()
+
+		smObject.Init(initCtx)
+	}
+
+	{
+
+		smObject.SharedState.ActiveOrderedPendingCount = 0
+		smObject.SharedState.ActiveUnorderedPendingCount = 0
+		expectedApplyAdjustmentCount := 2
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(stepChecker.CheckJumpW(t)).
+			ApplyAdjustmentMock.Return(true)
+
+		smObject.stepGotState(execCtx)
+
+		require.Equal(t, expectedApplyAdjustmentCount, int(execCtx.ApplyAdjustmentAfterCounter()))
+	}
 }
