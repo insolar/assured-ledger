@@ -117,6 +117,7 @@ func TestSMVDelegatedCallRequest_OK(t *testing.T) {
 }
 
 func TestSMVDelegatedCallRequest_TooOld(t *testing.T) {
+	t.Log("C4984")
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
@@ -183,6 +184,7 @@ func TestSMVDelegatedCallRequest_TooOld(t *testing.T) {
 }
 
 func TestSMVDelegatedCallRequest_Unexpected(t *testing.T) {
+	t.Log("C4985")
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
@@ -248,6 +250,7 @@ func TestSMVDelegatedCallRequest_Unexpected(t *testing.T) {
 }
 
 func TestSMVDelegatedCallRequest_FullTable(t *testing.T) {
+	t.Log("C4986")
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
