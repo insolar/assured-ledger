@@ -132,12 +132,6 @@ func (p *executionContext) executeNextStep() (stateUpdate StateUpdate, sut State
 	return stateUpdate, sut, p.countAsyncCalls
 }
 
-func (p *executionContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {
-	p.ensure(updCtxExec)
-	nextStep := p.s.prepareSubroutineStart(ssm, exitFn, migrateFn)
-	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
-}
-
 /* ========================================================================= */
 
 var _ ConditionalBuilder = &conditionalUpdate{}

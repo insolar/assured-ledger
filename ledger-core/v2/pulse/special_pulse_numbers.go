@@ -9,7 +9,7 @@ package pulse
 //
 // Special values:
 //     0 				Unknown
-//     1 .. 256			RESERVED. Аor package internal usage
+//     1 .. 256			RESERVED. For package internal usage
 //
 //   257 .. 65279		Available for platform-wide usage
 //

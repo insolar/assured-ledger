@@ -344,6 +344,12 @@ func (p *slotContext) CallBargeIn(b BargeIn) bool {
 	return b.callInline(p.s.machine, p.w)
 }
 
+func (p *slotContext) CallSubroutine(ssm SubroutineStateMachine, migrateFn MigrateFunc, exitFn SubroutineExitFunc) StateUpdate {
+	p.ensureAny2(updCtxExec, updCtxMigrate)
+	nextStep := p.s.prepareSubroutineStart(ssm, exitFn, migrateFn)
+	return p.template(stateUpdSubroutineStart).newStepOnly(nextStep)
+}
+
 func (p *slotContext) Check(link SyncLink) BoolDecision {
 	p.ensureAtLeast(updCtxInit)
 
