@@ -45,8 +45,8 @@ type Constructors map[string]Constructor
 
 // Wrapper stores all needed about contract wrapper (it's methods/constructors)
 type Wrapper struct {
-	GetCode      MethodFunc
-	GetPrototype MethodFunc
+	GetCode  MethodFunc
+	GetClass MethodFunc
 
 	Methods      Methods
 	Constructors Constructors

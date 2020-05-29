@@ -129,8 +129,8 @@ func (cb *contractsBuilder) prepare(ctx context.Context, names ...string) error 
 			if err != nil {
 				return errors.W(err, "can't open proxy file")
 			}
-			protoRef := genesisrefs.GenesisRef(name + genesisrefs.PrototypeSuffix)
-			err = code.WriteProxy(protoRef.String(), proxy)
+			classRef := genesisrefs.GenesisRef(name + genesisrefs.ClassSuffix)
+			err = code.WriteProxy(classRef.String(), proxy)
 			closeAndCheck(proxy)
 			if err != nil {
 				return errors.W(err, "can't write proxy")

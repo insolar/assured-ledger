@@ -461,9 +461,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	var (
 		executionNewState = s.executionNewState.Result
 
-		memory    []byte
-		prototype reference.Global
-		action    func(state *object.SharedState)
+		memory []byte
+		class  reference.Global
+		action func(state *object.SharedState)
 	)
 
 	if s.deactivate {
@@ -482,11 +482,11 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
-		_, prototype, memory = executionNewState.Activate()
-		action = s.setNewState(prototype, memory)
+		_, class, memory = executionNewState.Activate()
+		action = s.setNewState(class, memory)
 	case requestresult.SideEffectAmend:
-		_, prototype, memory = executionNewState.Amend()
-		action = s.setNewState(prototype, memory)
+		_, class, memory = executionNewState.Amend()
+		action = s.setNewState(class, memory)
 	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
@@ -515,16 +515,16 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	var lastState *payload.ObjectState = nil
 
 	if s.execution.Isolation.Interference == contract.CallTolerable {
-		prototype, err := s.execution.ObjectDescriptor.Prototype()
+		class, err := s.execution.ObjectDescriptor.Class()
 		if err != nil {
-			panic(throw.W(err, "failed to get prototype from descriptor", nil))
+			panic(throw.W(err, "failed to get class from descriptor", nil))
 		}
 
 		lastState = &payload.ObjectState{
 			Reference: s.executionNewState.Result.ObjectStateID,
 			State:     s.executionNewState.Result.Memory,
 			Parent:    s.executionNewState.Result.ParentReference,
-			Prototype: prototype,
+			Class:     class,
 		}
 	}
 
@@ -559,7 +559,7 @@ func (s *SMExecute) decrementCounters(state *object.SharedState) {
 	}
 }
 
-func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(state *object.SharedState) {
+func (s *SMExecute) setNewState(class reference.Global, memory []byte) func(state *object.SharedState) {
 	return func(state *object.SharedState) {
 
 		parentReference := reference.Global{}
@@ -577,7 +577,7 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 		state.Info.SetDescriptor(descriptor.NewObject(
 			s.execution.Object,
 			stateID,
-			prototype,
+			class,
 			memory,
 			parentReference,
 		))

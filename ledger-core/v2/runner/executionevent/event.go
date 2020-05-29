@@ -26,20 +26,20 @@ func (r Builder) Deactivate() Deactivate {
 	}
 }
 
-func (r Builder) CallConstructor(prototype reference.Global, constructor string, arguments []byte) CallConstructor {
+func (r Builder) CallConstructor(class reference.Global, constructor string, arguments []byte) CallConstructor {
 	return CallConstructor{
 		parentRequestReference: r.request,
 		parentObjectReference:  r.object,
 
 		constructor: constructor,
 		arguments:   arguments,
-		prototype:   prototype,
+		class:       class,
 	}
 }
 
 func (r Builder) CallMethod(
 	object reference.Global,
-	prototype reference.Global,
+	class reference.Global,
 	method string,
 	arguments []byte,
 ) CallMethod {
@@ -50,7 +50,7 @@ func (r Builder) CallMethod(
 		object:    object,
 		method:    method,
 		arguments: arguments,
-		prototype: prototype,
+		class:     class,
 	}
 }
 
@@ -95,11 +95,11 @@ type CallConstructor struct {
 
 	constructor string
 	arguments   []byte
-	prototype   reference.Global
+	class       reference.Global
 }
 
-func (e CallConstructor) Prototype() reference.Global {
-	return e.prototype
+func (e CallConstructor) Class() reference.Global {
+	return e.class
 }
 
 func (e CallConstructor) Arguments() []byte {
@@ -126,7 +126,7 @@ func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *pay
 		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              reference.Global{},
-		CallSiteDeclaration: e.prototype,
+		CallSiteDeclaration: e.class,
 		CallSiteMethod:      e.constructor,
 		CallSequence:        execution.Sequence,
 		CallReason:          e.parentRequestReference,
@@ -145,7 +145,7 @@ type CallMethod struct {
 	method       string
 	arguments    []byte
 	object       reference.Global
-	prototype    reference.Global
+	class        reference.Global
 	interference contract.InterferenceFlag
 	isolation    contract.StateFlag
 }
@@ -154,8 +154,8 @@ func (e CallMethod) Interference() contract.InterferenceFlag {
 	return e.interference
 }
 
-func (e CallMethod) Prototype() reference.Global {
-	return e.prototype
+func (e CallMethod) Class() reference.Global {
+	return e.class
 }
 
 func (e CallMethod) Object() reference.Global {
@@ -186,7 +186,7 @@ func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.
 		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              e.object,
-		CallSiteDeclaration: e.prototype,
+		CallSiteDeclaration: e.class,
 		CallSiteMethod:      e.method,
 		CallSequence:        execution.Sequence,
 		CallReason:          e.parentRequestReference,

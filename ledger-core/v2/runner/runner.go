@@ -117,7 +117,7 @@ func generateCallContext(
 	ctx context.Context,
 	id call.ID,
 	execution execution.Context,
-	protoDesc descriptor.Prototype,
+	classDesc descriptor.Class,
 	codeDesc descriptor.Code,
 ) *call.LogicContext {
 	request := execution.Request
@@ -126,11 +126,11 @@ func generateCallContext(
 		Mode: call.Execute,
 
 		// Callee:    reference.Global{}, // is assigned below
-		Prototype: protoDesc.HeadRef(),
-		Code:      codeDesc.Ref(),
+		Class: classDesc.HeadRef(),
+		Code:  codeDesc.Ref(),
 
-		Caller:          request.Caller,
-		CallerPrototype: request.CallSiteDeclaration,
+		Caller:      request.Caller,
+		CallerClass: request.CallSiteDeclaration,
 
 		Request: execution.Incoming,
 
@@ -163,15 +163,15 @@ func (r *DefaultService) executeMethod(
 		objectDescriptor = executionContext.ObjectDescriptor
 	)
 
-	prototypeReference, err := objectDescriptor.Prototype()
+	classReference, err := objectDescriptor.Class()
 	if err != nil {
-		return nil, errors.W(err, "couldn't get prototype reference")
+		return nil, errors.W(err, "couldn't get class reference")
 	}
-	if prototypeReference.IsEmpty() {
+	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
 	}
 
-	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, prototypeReference)
+	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, classReference)
 	if err != nil {
 		return nil, errors.W(err, "couldn't get descriptors")
 	}
@@ -181,7 +181,7 @@ func (r *DefaultService) executeMethod(
 		return nil, errors.W(err, "couldn't get executor")
 	}
 
-	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
+	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
 
 	newData, result, err := codeExecutor.CallMethod(
 		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
@@ -218,7 +218,7 @@ func (r *DefaultService) executeConstructor(
 		request          = executionContext.Request
 	)
 
-	prototypeDescriptor, codeDescriptor, err := r.Cache.ByPrototypeRef(ctx, request.CallSiteDeclaration)
+	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.CallSiteDeclaration)
 	if err != nil {
 		return nil, errors.W(err, "couldn't get descriptors")
 	}
@@ -228,7 +228,7 @@ func (r *DefaultService) executeConstructor(
 		return nil, errors.W(err, "couldn't get executor")
 	}
 
-	logicContext := generateCallContext(ctx, id, executionContext, prototypeDescriptor, codeDescriptor)
+	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
 
 	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
@@ -306,15 +306,15 @@ func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (
 		objectDescriptor = executionContext.ObjectDescriptor
 	)
 
-	prototypeReference, err := objectDescriptor.Prototype()
+	classReference, err := objectDescriptor.Class()
 	if err != nil {
-		return contract.MethodIsolation{}, throw.W(err, "couldn't get prototype reference")
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get class reference")
 	}
-	if prototypeReference.IsEmpty() {
+	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
 	}
 
-	_, codeDescriptor, err := r.Cache.ByPrototypeRef(executionContext.Context, prototypeReference)
+	_, codeDescriptor, err := r.Cache.ByClassRef(executionContext.Context, classReference)
 	if err != nil {
 		return contract.MethodIsolation{}, throw.W(err, "couldn't get descriptors")
 	}

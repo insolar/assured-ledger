@@ -179,7 +179,7 @@ func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
 	return descriptor.NewObject(
 		s.Payload.Callee,
 		state.Reference,
-		state.Prototype,
+		state.Class,
 		state.State,
 		state.Parent,
 	)

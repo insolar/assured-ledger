@@ -74,7 +74,7 @@ func TestSMExecute_Init(t *testing.T) {
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
-		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
 		CallOutgoing:        smObjectID,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -122,7 +122,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
-		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
 		CallOutgoing:        smObjectID,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -174,7 +174,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		prototype   = gen.UniqueReference()
+		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
 		callee      = gen.UniqueReference()
 		outgoing    = gen.UniqueID()
@@ -202,7 +202,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 			Caller:              caller,
 			Callee:              callee,
-			CallSiteDeclaration: prototype,
+			CallSiteDeclaration: class,
 			CallSiteMethod:      "New",
 		},
 		Meta: &payload.Meta{
@@ -244,7 +244,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		prototype   = gen.UniqueReference()
+		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
 		callee      = gen.UniqueReference()
 		outgoing    = gen.UniqueID()
@@ -272,7 +272,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 			Caller:              caller,
 			Callee:              callee,
-			CallSiteDeclaration: prototype,
+			CallSiteDeclaration: class,
 			CallSiteMethod:      "New",
 		},
 		Meta: &payload.Meta{
@@ -316,7 +316,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		prototype   = gen.UniqueReference()
+		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
 		callee      = gen.UniqueReference()
 		outgoing    = gen.UniqueID()
@@ -344,7 +344,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 			Caller:              caller,
 			Callee:              callee,
-			CallSiteDeclaration: prototype,
+			CallSiteDeclaration: class,
 			CallSiteMethod:      "New",
 		},
 		Meta: &payload.Meta{

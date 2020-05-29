@@ -37,7 +37,7 @@ func TestSMTestAPICall_Migrate(t *testing.T) {
 		Callee:              gen.UniqueReference(),
 		Caller:              APICaller,
 		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
 		CallOutgoing:        gen.UniqueID(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),

@@ -55,11 +55,11 @@ func InitializeCodeRefs() map[XXX_reference.Global]string {
     return rv
 }
 
-func InitializePrototypeRefs() map[XXX_reference.Global]string {
+func InitializeClassRefs() map[XXX_reference.Global]string {
     rv := make(map[XXX_reference.Global]string, {{ len .Contracts }})
 
     {{ range $contract := .Contracts -}}
-    rv[shouldLoadRef("{{ $contract.PrototypeReference }}")] = "{{ $contract.Name }}"
+    rv[shouldLoadRef("{{ $contract.ClassReference }}")] = "{{ $contract.Name }}"
     {{ end }}
 
     return rv
@@ -79,14 +79,14 @@ func InitializeCodeDescriptors() []XXX_descriptor.Code {
     return rv
 }
 
-func InitializePrototypeDescriptors() []XXX_descriptor.Prototype {
-    rv := make([]XXX_descriptor.Prototype, 0, {{ len .Contracts }})
+func InitializeClassDescriptors() []XXX_descriptor.Class {
+    rv := make([]XXX_descriptor.Class, 0, {{ len .Contracts }})
 
     {{ range $contract := .Contracts }}
     { // {{ $contract.Name }}
-        pRef := shouldLoadRef("{{ $contract.PrototypeReference }}")
+        pRef := shouldLoadRef("{{ $contract.ClassReference }}")
         cRef := shouldLoadRef("{{ $contract.CodeReference }}")
-        rv = append(rv, XXX_descriptor.NewPrototype(
+        rv = append(rv, XXX_descriptor.NewClass(
             /* head:         */ pRef,
             /* state:        */ pRef.GetLocal(),
             /* code:         */ cRef,

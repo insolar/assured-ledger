@@ -31,10 +31,10 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	prototype := gen.UniqueReference()
+	class := gen.UniqueReference()
 
 	requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
-	requestResult.SetActivate(gen.UniqueReference(), prototype, []byte("234"))
+	requestResult.SetActivate(gen.UniqueReference(), class, []byte("234"))
 
 	executorMock := machine.NewExecutorMock(t)
 	executorMock.CallConstructorMock.Return(nil, []byte("345"), nil)
@@ -45,8 +45,8 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
-	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototype(gen.UniqueReference(), gen.UniqueID(), gen.UniqueReference()),
+	cacheMock.ByClassRefMock.Return(
+		descriptor.NewClass(gen.UniqueReference(), gen.UniqueID(), gen.UniqueReference()),
 		descriptor.NewCode(nil, machine.Builtin, gen.UniqueReference()),
 		nil,
 	)
@@ -60,7 +60,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		CallAsOf:            0,
 		Caller:              reference.Global{},
 		Callee:              gen.UniqueReference(),
-		CallSiteDeclaration: prototype,
+		CallSiteDeclaration: class,
 		CallSiteMethod:      "test",
 		CallSequence:        0,
 		CallReason:          reference.Global{},
@@ -141,7 +141,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			CallAsOf:            0,
 			Caller:              reference.Global{},
 			Callee:              gen.UniqueReference(),
-			CallSiteDeclaration: testwallet.GetPrototype(),
+			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "New",
 			CallSequence:        0,
 			CallReason:          reference.Global{},

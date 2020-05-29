@@ -26,14 +26,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
 )
 
-// PrototypeReference to prototype of this contract
+// ClassReference to class of this contract
 // error checking hides in generator
-var PrototypeReference, _ = reference.GlobalFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+var ClassReference, _ = reference.GlobalFromString("insolar:0AAABAqiF7kGalgYGa1bKDmA33RKr0lfmdtIZr73_tMU")
 
 // Wallet holds proxy type
 type Wallet struct {
 	Reference reference.Global
-	Prototype reference.Global
+	Class     reference.Global
 	Code      reference.Global
 }
 
@@ -46,7 +46,7 @@ type ContractConstructorHolder struct {
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, error) {
 	var ph = common.CurrentProxyCtx()
-	ret, err := ph.CallConstructor(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
+	ret, err := ph.CallConstructor(objRef, ClassReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,9 @@ func GetObject(ref reference.Global) *Wallet {
 	return &Wallet{Reference: ref}
 }
 
-// GetPrototype returns reference to the prototype
-func GetPrototype() reference.Global {
-	return PrototypeReference
+// GetClass returns reference to the class
+func GetClass() reference.Global {
+	return ClassReference
 }
 
 // New is constructor
@@ -103,10 +103,10 @@ func (r *Wallet) GetReference() reference.Global {
 	return r.Reference
 }
 
-// GetPrototype returns reference to the code
-func (r *Wallet) GetPrototype() (reference.Global, error) {
+// GetClass returns reference to the code
+func (r *Wallet) GetClass() (reference.Global, error) {
 	var ph = common.CurrentProxyCtx()
-	if r.Prototype.IsEmpty() {
+	if r.Class.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
 		ret[0] = &ret0
@@ -114,7 +114,7 @@ func (r *Wallet) GetPrototype() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetPrototype", make([]byte, 0), PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -128,10 +128,10 @@ func (r *Wallet) GetPrototype() (reference.Global, error) {
 			return ret0, ret1
 		}
 
-		r.Prototype = ret0
+		r.Class = ret0
 	}
 
-	return r.Prototype, nil
+	return r.Class, nil
 
 }
 
@@ -146,7 +146,7 @@ func (r *Wallet) GetCode() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -185,7 +185,7 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 		return ret0, err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "GetBalance", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "GetBalance", argsSerialized, ClassReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -227,7 +227,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetBalance", argsSerialized, PrototypeReference)
+		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetBalance", argsSerialized, ClassReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -267,7 +267,7 @@ func (r *Wallet) Accept(amount uint32) error {
 		return err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Accept", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Accept", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Accept", argsSerialized, PrototypeReference)
+		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Accept", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 		return err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Transfer", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Transfer", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -391,7 +391,7 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Transfer", argsSerialized, PrototypeReference)
+		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Transfer", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -430,7 +430,7 @@ func (r *Wallet) Destroy() error {
 		return err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Destroy", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Destroy", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -470,7 +470,7 @@ func (r *Wallet) DestroyAsImmutable() error {
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Destroy", argsSerialized, PrototypeReference)
+		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Destroy", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
