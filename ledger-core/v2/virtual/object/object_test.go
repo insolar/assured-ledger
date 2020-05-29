@@ -210,13 +210,6 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 		smObject.Init(initCtx)
 	}
 
-	type testCase struct {
-		name                         string
-		activeOrderedPendingCount    uint8
-		activeUnorderedPendingCount  uint8
-		expectedApplyAdjustmentCount uint
-	}
-
 	{
 
 		smObject.SharedState.ActiveOrderedPendingCount = 0
