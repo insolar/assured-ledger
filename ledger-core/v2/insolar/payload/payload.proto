@@ -12,7 +12,7 @@ option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 
 message Meta {
-    option (insproto.id) = 1001;
+    option (insproto.id) = 1000;
 
     bytes Payload = 20;
     bytes Sender = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];

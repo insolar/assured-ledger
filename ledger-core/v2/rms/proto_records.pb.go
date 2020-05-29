@@ -184,7 +184,7 @@ func (m *RecordExample) SetupContext(ctx RecordContext) error {
 	return ctx.Record(m, 999999999)
 }
 
-const TypeRecordExamplePolymorthID = 999999999
+const TypeRecordExamplePolymorthID uint64 = 999999999
 
 func (*RecordExample) GetDefaultPolymorphID() uint64 {
 	return 999999999
