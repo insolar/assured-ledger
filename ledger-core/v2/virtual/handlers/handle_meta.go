@@ -31,7 +31,7 @@ type logProcessing struct {
 type errNoHandler struct {
 	*log.Msg `txt:"no handler for message type"`
 
-	messageTypeId uint64
+	messageTypeID uint64
 	messageType   reflect.Type
 }
 
@@ -45,18 +45,18 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	}
 
 	payloadBytes := payloadMeta.Payload
-	payloadTypeId, payloadObj, err := rms.Unmarshal(payloadBytes)
+	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
 		panic(err)
 	}
 
-	payloadType := rms.GetRegistry().Get(payloadTypeId)
+	payloadType := rms.GetRegistry().Get(payloadTypeID)
 
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
 	logger.Info(logProcessing{
-		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeId, payloadType.String()),
+		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
 	})
 
 	switch obj := payloadObj.(type) {
@@ -99,7 +99,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 		}
 	default:
 		panic(errNoHandler{
-			messageTypeId: payloadTypeId,
+			messageTypeID: payloadTypeID,
 			messageType:   payloadType,
 		})
 	}
