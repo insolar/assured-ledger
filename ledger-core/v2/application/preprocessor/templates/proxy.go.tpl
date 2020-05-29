@@ -33,15 +33,15 @@ import (
 	{{- $typeStruct }}
 {{ end }}
 
-// PrototypeReference to prototype of this contract
+// ClassReference to class of this contract
 // error checking hides in generator
-var PrototypeReference, _ = reference.GlobalFromString("{{ .ClassReference }}")
+var ClassReference, _ = reference.GlobalFromString("{{ .ClassReference }}")
 
 
 // {{ .ContractType }} holds proxy type
 type {{ .ContractType }} struct {
 	Reference reference.Global
-	Prototype reference.Global
+	Class reference.Global
 	Code reference.Global
 }
 
@@ -54,7 +54,7 @@ type ContractConstructorHolder struct {
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*{{ .ContractType }}, error) {
 	var ph = common.CurrentProxyCtx()
-	ret, err := ph.CallConstructor(objRef, PrototypeReference, r.constructorName, r.argsSerialized)
+	ret, err := ph.CallConstructor(objRef, ClassReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +88,9 @@ func GetObject(ref reference.Global) *{{ .ContractType }} {
 	return &{{ .ContractType }}{Reference: ref}
 }
 
-// GetPrototype returns reference to the prototype
-func GetPrototype() reference.Global {
-	return PrototypeReference
+// GetClass returns reference to the class
+func GetClass() reference.Global {
+	return ClassReference
 }
 
 {{ range $func := .ConstructorsProxies }}
@@ -113,10 +113,10 @@ func (r *{{ $.ContractType }}) GetReference() reference.Global {
 	return r.Reference
 }
 
-// GetPrototype returns reference to the code
-func (r *{{ $.ContractType }}) GetPrototype() (reference.Global, error) {
+// GetClass returns reference to the code
+func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
 	var ph = common.CurrentProxyCtx()
-	if r.Prototype.IsEmpty() {
+	if r.Class.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
 		ret[0] = &ret0
@@ -124,7 +124,7 @@ func (r *{{ $.ContractType }}) GetPrototype() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetPrototype", make([]byte, 0), PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -138,10 +138,10 @@ func (r *{{ $.ContractType }}) GetPrototype() (reference.Global, error) {
 			return ret0, ret1
 		}
 
-		r.Prototype = ret0
+		r.Class = ret0
 	}
 
-	return r.Prototype, nil
+	return r.Class, nil
 
 }
 
@@ -156,7 +156,7 @@ func (r *{{ $.ContractType }}) GetCode() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -193,12 +193,12 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{/* Saga call doesn't has a reply (it's `nil`), thus we shouldn't try to deserialize it. */}}
 	{{if $method.SagaInfo.IsSaga }}
-	_, err = ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
+	_, err = ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
 	{{else}}
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, PrototypeReference)
+	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
@@ -239,7 +239,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 	}
 
 	res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "{{ $method.Name }}", argsSerialized, PrototypeReference)
+			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}

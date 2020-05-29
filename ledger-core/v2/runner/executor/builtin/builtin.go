@@ -22,10 +22,10 @@ import (
 
 // Runner is a contract runner engine
 type Runner struct {
-	DescriptorRegistry   map[reference.Global]interface{}
-	CodeRegistry         map[string]contract.Wrapper
-	CodeRefRegistry      map[reference.Global]string
-	PrototypeRefRegistry map[reference.Global]string
+	DescriptorRegistry map[reference.Global]interface{}
+	CodeRegistry       map[string]contract.Wrapper
+	CodeRefRegistry    map[reference.Global]string
+	ClassRefRegistry   map[reference.Global]string
 }
 
 // New is an constructor
@@ -34,18 +34,18 @@ func New(stub common.RunnerRPCStub) *Runner {
 
 	descriptorRegistry := make(map[reference.Global]interface{})
 
-	for _, prototypeDescriptor := range builtin.InitializePrototypeDescriptors() {
-		descriptorRegistry[prototypeDescriptor.HeadRef()] = prototypeDescriptor
+	for _, classDescriptor := range builtin.InitializeClassDescriptors() {
+		descriptorRegistry[classDescriptor.HeadRef()] = classDescriptor
 	}
 	for _, codeDescriptor := range builtin.InitializeCodeDescriptors() {
 		descriptorRegistry[codeDescriptor.Ref()] = codeDescriptor
 	}
 
 	return &Runner{
-		DescriptorRegistry:   descriptorRegistry,
-		CodeRegistry:         builtin.InitializeContractMethods(),
-		CodeRefRegistry:      builtin.InitializeCodeRefs(),
-		PrototypeRefRegistry: builtin.InitializePrototypeRefs(),
+		DescriptorRegistry: descriptorRegistry,
+		CodeRegistry:       builtin.InitializeContractMethods(),
+		CodeRefRegistry:    builtin.InitializeCodeRefs(),
+		ClassRefRegistry:   builtin.InitializeClassRefs(),
 	}
 }
 

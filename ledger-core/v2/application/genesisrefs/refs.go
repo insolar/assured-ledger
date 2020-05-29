@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	PrototypeType    = "prototype"
-	PrototypeSuffix  = "_proto"
+	ClassType        = "class"
+	ClassSuffix      = "_class"
 	FundsDepositName = "genesis_deposit"
 )
 
 // deprecated
-// Generate reference from hash code.
-func GenerateProtoReferenceFromCode(pulse pulse.Number, code []byte) reference.Global {
+// Generate class reference from hash code.
+func GenerateClassReferenceFromCode(pulse pulse.Number, code []byte) reference.Global {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	codeHash := reference.BytesToLocalHash(hasher.Hash(code))
 	id := reference.NewRecordID(pulse, codeHash)
@@ -29,14 +29,14 @@ func GenerateProtoReferenceFromCode(pulse pulse.Number, code []byte) reference.G
 }
 
 // deprecated
-// Generate prototype reference from contract id.
-func GenerateProtoReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
+// Generate class reference from contract id.
+func GenerateClassReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
-	return GenerateProtoReferenceFromCode(pulse.BuiltinContract, []byte(contractID))
+	return GenerateClassReferenceFromCode(pulse.BuiltinContract, []byte(contractID))
 }
 
 // deprecated
-// Generate contract reference from contract id.
+// Generate code reference from contract id.
 func GenerateCodeReferenceFromContractID(typeContractID string, name string, version int) reference.Global {
 	contractID := fmt.Sprintf("%s::%s::v%02d", typeContractID, name, version)
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()

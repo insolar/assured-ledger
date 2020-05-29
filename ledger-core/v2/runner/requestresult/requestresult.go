@@ -58,8 +58,8 @@ func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
 	s.Memory = memory
 	s.ObjectStateID = object.StateID()
 
-	prototype, _ := object.Prototype()
-	s.ObjectImage = prototype
+	class, _ := object.Class()
+	s.ObjectImage = class
 }
 
 func (s *RequestResult) SetDeactivate(object descriptor.Object) {

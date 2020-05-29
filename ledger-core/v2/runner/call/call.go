@@ -21,13 +21,13 @@ type LogicContext struct {
 
 	Request reference.Global // reference of incoming request record
 
-	Callee    reference.Global // Contract that is called
-	Parent    reference.Global // Parent of the callee
-	Prototype reference.Global // Prototype (base class) of the callee
-	Code      reference.Global // Code reference of the callee
+	Callee reference.Global // Contract that is called
+	Parent reference.Global // Parent of the callee
+	Class  reference.Global // Class (base class) of the callee
+	Code   reference.Global // Code reference of the callee
 
-	Caller          reference.Global // Contract that made the call
-	CallerPrototype reference.Global // Prototype (base class) of the caller
+	Caller      reference.Global // Contract that made the call
+	CallerClass reference.Global // Class (base class) of the caller
 
 	TraceID string          // trace mark for Jaeger and friends
 	Pulse   pulsestor.Pulse // pre-fetched pulse for call context

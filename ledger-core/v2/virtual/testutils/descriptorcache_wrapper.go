@@ -20,61 +20,61 @@ import (
 )
 
 type descriptorPair struct {
-	proto descriptor.Prototype
+	class descriptor.Class
 	code  descriptor.Code
 }
 
 type DescriptorCacheMockWrapper struct {
 	childMock      *descriptor.CacheMock
 	T              *testing.T
-	Prototypes     map[reference.Global]descriptorPair
+	Classes        map[reference.Global]descriptorPair
 	IntenselyPanic bool
 }
 
 func NewDescriptorsCacheMockWrapper(mc *minimock.Controller) *DescriptorCacheMockWrapper {
 	mock := DescriptorCacheMockWrapper{
 		childMock:      descriptor.NewCacheMock(mc),
-		Prototypes:     make(map[reference.Global]descriptorPair),
+		Classes:        make(map[reference.Global]descriptorPair),
 		IntenselyPanic: false,
 	}
 
 	return &mock
 }
 
-func (w *DescriptorCacheMockWrapper) byPrototypeRefImpl(
+func (w *DescriptorCacheMockWrapper) byClassRefImpl(
 	_ context.Context,
-	protoRef reference.Global,
+	classRef reference.Global,
 ) (
-	descriptor.Prototype,
+	descriptor.Class,
 	descriptor.Code,
 	error,
 ) {
-	if pair, ok := w.Prototypes[protoRef]; ok {
-		return pair.proto, pair.code, nil
+	if pair, ok := w.Classes[classRef]; ok {
+		return pair.class, pair.code, nil
 	}
 
 	if w.IntenselyPanic {
-		panic(throw.E("object not found", struct{ id string }{id: protoRef.String()}))
+		panic(throw.E("object not found", struct{ id string }{id: classRef.String()}))
 	}
 
 	return nil, nil, errors.New("object not found")
 }
 
-func (w *DescriptorCacheMockWrapper) AddPrototypeCodeDescriptor(
+func (w *DescriptorCacheMockWrapper) AddClassCodeDescriptor(
 	head reference.Global,
 	state reference.Local,
 	code reference.Global,
 ) {
-	if _, ok := w.Prototypes[head]; ok {
+	if _, ok := w.Classes[head]; ok {
 		panic("already exists")
 	}
 
-	w.Prototypes[head] = descriptorPair{
-		proto: descriptor.NewPrototype(head, state, code),
+	w.Classes[head] = descriptorPair{
+		class: descriptor.NewClass(head, state, code),
 		code:  descriptor.NewCode(gen.UniqueReference().AsBytes(), machine.Builtin, code),
 	}
 
-	w.childMock.ByPrototypeRefMock.Set(w.byPrototypeRefImpl)
+	w.childMock.ByClassRefMock.Set(w.byClassRefImpl)
 }
 
 func (w *DescriptorCacheMockWrapper) Mock() *descriptor.CacheMock {

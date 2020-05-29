@@ -45,7 +45,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc,
 	require.NoError(t, err)
 
 	cache := server.Runner.Cache
-	_, walletCodeRef, err := cache.ByPrototypeRef(context.Background(), testwallet.GetPrototype())
+	_, walletCodeRef, err := cache.ByClassRef(context.Background(), testwallet.GetClass())
 	require.NoError(t, err)
 
 	executorMock := machine.NewExecutorMock(t)
@@ -63,8 +63,8 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc,
 
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
-	cacheMock.ByPrototypeRefMock.Return(
-		descriptor.NewPrototype(gen.UniqueReference(), gen.UniqueID(), testwallet.GetPrototype()),
+	cacheMock.ByClassRefMock.Return(
+		descriptor.NewClass(gen.UniqueReference(), gen.UniqueID(), testwallet.GetClass()),
 		descriptor.NewCode(nil, machine.Builtin, walletCodeRef.Ref()),
 		nil,
 	)

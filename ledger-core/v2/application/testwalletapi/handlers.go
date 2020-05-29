@@ -87,7 +87,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		Callee:              gen.UniqueReference(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
-		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      create,
 	}
 

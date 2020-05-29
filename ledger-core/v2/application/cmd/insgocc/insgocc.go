@@ -329,7 +329,7 @@ func main() {
 				output := newOutputFlag("")
 				err := openDefaultProxyPath(output, machine.Builtin, contract.Parsed)
 				checkError(err)
-				reference := genesisrefs.GenerateProtoReferenceFromContractID(preprocessor.PrototypeType, contract.Name, contract.Version)
+				reference := genesisrefs.GenerateClassReferenceFromContractID(preprocessor.ClassType, contract.Name, contract.Version)
 				err = contract.Parsed.WriteProxy(reference.String(), output.writer)
 				checkError(err)
 

@@ -33,13 +33,13 @@ func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemach
 }
 
 func makeVStateReportEvent(t *testing.T, objectRef reference.Global, stateRef reference.Local, rawState []byte) *statemachine.DispatcherMessage {
-	proto := testwalletProxy.GetPrototype()
+	class := testwalletProxy.GetClass()
 	payLoadMeta := &payload.VStateReport{
 		Callee: objectRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
 				Reference: stateRef,
-				Prototype: proto,
+				Class:     class,
 				State:     rawState,
 			},
 		},

@@ -52,7 +52,7 @@ func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*messa
 	return msg, nil
 }
 
-func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype reference.Global, object reference.Local) error {
+func Method_PrepareObject(ctx context.Context, server *utils.Server, class reference.Global, object reference.Local) error {
 	isolation := contract.ConstructorIsolation()
 
 	pl := payload.VCallRequest{
@@ -62,7 +62,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, prototype r
 		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
 		Callee:              reference.Global{},
-		CallSiteDeclaration: prototype,
+		CallSiteDeclaration: class,
 		CallSiteMethod:      "New",
 		CallSequence:        0,
 		CallReason:          reference.Global{},
@@ -115,11 +115,11 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	prototype := testwallet.GetPrototype()
+	class := testwallet.GetClass()
 	objectLocal := server.RandomLocalWithPulse()
 	objectGlobal := reference.NewSelf(objectLocal)
 
-	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
+	err := Method_PrepareObject(ctx, server, class, objectLocal)
 	require.NoError(t, err)
 
 	{
@@ -130,7 +130,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
-			CallSiteDeclaration: prototype,
+			CallSiteDeclaration: class,
 			CallSiteMethod:      "GetBalance",
 			CallRequestFlags:    0,
 			CallOutgoing:        server.RandomLocalWithPulse(),
@@ -205,14 +205,14 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	require.NoError(t, err)
 	server.ReplaceMachinesManager(manager)
 
-	prototype := gen.UniqueReference()
+	class := gen.UniqueReference()
 	cacheMock := testutils.NewDescriptorsCacheMockWrapper(mc)
-	cacheMock.AddPrototypeCodeDescriptor(prototype, gen.UniqueID(), gen.UniqueReference())
+	cacheMock.AddClassCodeDescriptor(class, gen.UniqueID(), gen.UniqueReference())
 	cacheMock.IntenselyPanic = true
 	server.ReplaceCache(cacheMock.Mock())
 
 	objectLocal := gen.UniqueID()
-	err = Method_PrepareObject(ctx, server, prototype, objectLocal)
+	err = Method_PrepareObject(ctx, server, class, objectLocal)
 	require.NoError(t, err)
 
 	{
@@ -240,7 +240,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              reference.NewSelf(objectLocal),
-				CallSiteDeclaration: prototype,
+				CallSiteDeclaration: class,
 				CallSiteMethod:      "GetBalance",
 				CallRequestFlags:    0,
 				CallOutgoing:        server.RandomLocalWithPulse(),
@@ -278,11 +278,11 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	prototype := testwallet.GetPrototype()
+	class := testwallet.GetClass()
 	objectLocal := server.RandomLocalWithPulse()
 	objectGlobal := reference.NewSelf(objectLocal)
 
-	err := Method_PrepareObject(ctx, server, prototype, objectLocal)
+	err := Method_PrepareObject(ctx, server, class, objectLocal)
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
@@ -294,7 +294,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectGlobal,
-			CallSiteDeclaration: prototype,
+			CallSiteDeclaration: class,
 			CallSiteMethod:      "GetBalance",
 			CallSequence:        0,
 			CallReason:          reference.Global{},
