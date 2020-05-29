@@ -228,7 +228,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 				return smachine.StateUpdate{}
 			})
 
-		smExecute.stepDeduplication(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 		require.Equal(t, true, wasStoped)
 	}
 
@@ -242,7 +242,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 			AcquireForThisStepMock.Return(false).
 			SleepMock.Return(smachine.NewStateConditionalBuilderMock(mc).ThenRepeatMock.Return(smachine.StateUpdate{}))
 
-		smExecute.stepDeduplication(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	{
@@ -253,7 +253,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 			AcquireForThisStepMock.Return(true).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepStartRequestProcessing))
 
-		smExecute.stepDeduplication(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	mc.Finish()
@@ -440,7 +440,7 @@ func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			AcquireMock.Return(true).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplication))
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
 
 		smExecute.stepTakeLock(execCtx)
 	}

@@ -295,13 +295,13 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 	}
 
 	if s.Payload.CallRequestFlags.GetRepeatedCall() == payload.RepeatedCall {
-		return ctx.Jump(s.stepDeduplication)
+		return ctx.Jump(s.stepDeduplicate)
 	}
 
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
-func (s *SMExecute) stepDeduplication(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		isDuplicate       bool
 		pendingListFilled smachine.SyncLink
