@@ -349,12 +349,14 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		if _, ok := state.KnownRequests[s.execution.Outgoing]; ok {
+		requestList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+		if requestList.Exist(s.execution.Outgoing) {
+			// found duplicate request, todo: deduplication algorithm
 			isDuplicate = true
 			return
 		}
 
-		state.KnownRequests[s.execution.Outgoing] = struct{}{}
+		requestList.Add(s.execution.Outgoing)
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -630,6 +632,8 @@ func (s *SMExecute) setNewState(prototype reference.Global, memory []byte) func(
 			memory,
 			parentReference,
 		))
+
+		s.execution.ObjectDescriptor = state.Descriptor()
 
 		s.decrementCounters(state)
 		state.SetState(object.HasState)

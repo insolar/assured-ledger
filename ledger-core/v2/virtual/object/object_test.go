@@ -136,7 +136,8 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			InitChildWithPostInitMock.Set(checkTypeAndCall)
+			InitChildWithPostInitMock.Set(checkTypeAndCall).
+			ApplyAdjustmentMock.Return(true)
 
 		smObject.stepGotState(execCtx)
 	}
