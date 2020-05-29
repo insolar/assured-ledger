@@ -51,6 +51,12 @@ type MigrationContextMock struct {
 	beforeApplyAdjustmentCounter uint64
 	ApplyAdjustmentMock          mMigrationContextMockApplyAdjustment
 
+	funcCallSubroutine          func(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc) (s3 StateUpdate)
+	inspectFuncCallSubroutine   func(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc)
+	afterCallSubroutineCounter  uint64
+	beforeCallSubroutineCounter uint64
+	CallSubroutineMock          mMigrationContextMockCallSubroutine
+
 	funcCheck          func(s1 SyncLink) (b1 BoolDecision)
 	inspectFuncCheck   func(s1 SyncLink)
 	afterCheckCounter  uint64
@@ -297,6 +303,9 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 
 	m.ApplyAdjustmentMock = mMigrationContextMockApplyAdjustment{mock: m}
 	m.ApplyAdjustmentMock.callArgs = []*MigrationContextMockApplyAdjustmentParams{}
+
+	m.CallSubroutineMock = mMigrationContextMockCallSubroutine{mock: m}
+	m.CallSubroutineMock.callArgs = []*MigrationContextMockCallSubroutineParams{}
 
 	m.CheckMock = mMigrationContextMockCheck{mock: m}
 	m.CheckMock.callArgs = []*MigrationContextMockCheckParams{}
@@ -1615,6 +1624,223 @@ func (m *MigrationContextMock) MinimockApplyAdjustmentInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcApplyAdjustment != nil && mm_atomic.LoadUint64(&m.afterApplyAdjustmentCounter) < 1 {
 		m.t.Error("Expected call to MigrationContextMock.ApplyAdjustment")
+	}
+}
+
+type mMigrationContextMockCallSubroutine struct {
+	mock               *MigrationContextMock
+	defaultExpectation *MigrationContextMockCallSubroutineExpectation
+	expectations       []*MigrationContextMockCallSubroutineExpectation
+
+	callArgs []*MigrationContextMockCallSubroutineParams
+	mutex    sync.RWMutex
+}
+
+// MigrationContextMockCallSubroutineExpectation specifies expectation struct of the MigrationContext.CallSubroutine
+type MigrationContextMockCallSubroutineExpectation struct {
+	mock    *MigrationContextMock
+	params  *MigrationContextMockCallSubroutineParams
+	results *MigrationContextMockCallSubroutineResults
+	Counter uint64
+}
+
+// MigrationContextMockCallSubroutineParams contains parameters of the MigrationContext.CallSubroutine
+type MigrationContextMockCallSubroutineParams struct {
+	s1 SubroutineStateMachine
+	m1 MigrateFunc
+	s2 SubroutineExitFunc
+}
+
+// MigrationContextMockCallSubroutineResults contains results of the MigrationContext.CallSubroutine
+type MigrationContextMockCallSubroutineResults struct {
+	s3 StateUpdate
+}
+
+// Expect sets up expected params for MigrationContext.CallSubroutine
+func (mmCallSubroutine *mMigrationContextMockCallSubroutine) Expect(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc) *mMigrationContextMockCallSubroutine {
+	if mmCallSubroutine.mock.funcCallSubroutine != nil {
+		mmCallSubroutine.mock.t.Fatalf("MigrationContextMock.CallSubroutine mock is already set by Set")
+	}
+
+	if mmCallSubroutine.defaultExpectation == nil {
+		mmCallSubroutine.defaultExpectation = &MigrationContextMockCallSubroutineExpectation{}
+	}
+
+	mmCallSubroutine.defaultExpectation.params = &MigrationContextMockCallSubroutineParams{s1, m1, s2}
+	for _, e := range mmCallSubroutine.expectations {
+		if minimock.Equal(e.params, mmCallSubroutine.defaultExpectation.params) {
+			mmCallSubroutine.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCallSubroutine.defaultExpectation.params)
+		}
+	}
+
+	return mmCallSubroutine
+}
+
+// Inspect accepts an inspector function that has same arguments as the MigrationContext.CallSubroutine
+func (mmCallSubroutine *mMigrationContextMockCallSubroutine) Inspect(f func(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc)) *mMigrationContextMockCallSubroutine {
+	if mmCallSubroutine.mock.inspectFuncCallSubroutine != nil {
+		mmCallSubroutine.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.CallSubroutine")
+	}
+
+	mmCallSubroutine.mock.inspectFuncCallSubroutine = f
+
+	return mmCallSubroutine
+}
+
+// Return sets up results that will be returned by MigrationContext.CallSubroutine
+func (mmCallSubroutine *mMigrationContextMockCallSubroutine) Return(s3 StateUpdate) *MigrationContextMock {
+	if mmCallSubroutine.mock.funcCallSubroutine != nil {
+		mmCallSubroutine.mock.t.Fatalf("MigrationContextMock.CallSubroutine mock is already set by Set")
+	}
+
+	if mmCallSubroutine.defaultExpectation == nil {
+		mmCallSubroutine.defaultExpectation = &MigrationContextMockCallSubroutineExpectation{mock: mmCallSubroutine.mock}
+	}
+	mmCallSubroutine.defaultExpectation.results = &MigrationContextMockCallSubroutineResults{s3}
+	return mmCallSubroutine.mock
+}
+
+//Set uses given function f to mock the MigrationContext.CallSubroutine method
+func (mmCallSubroutine *mMigrationContextMockCallSubroutine) Set(f func(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc) (s3 StateUpdate)) *MigrationContextMock {
+	if mmCallSubroutine.defaultExpectation != nil {
+		mmCallSubroutine.mock.t.Fatalf("Default expectation is already set for the MigrationContext.CallSubroutine method")
+	}
+
+	if len(mmCallSubroutine.expectations) > 0 {
+		mmCallSubroutine.mock.t.Fatalf("Some expectations are already set for the MigrationContext.CallSubroutine method")
+	}
+
+	mmCallSubroutine.mock.funcCallSubroutine = f
+	return mmCallSubroutine.mock
+}
+
+// When sets expectation for the MigrationContext.CallSubroutine which will trigger the result defined by the following
+// Then helper
+func (mmCallSubroutine *mMigrationContextMockCallSubroutine) When(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc) *MigrationContextMockCallSubroutineExpectation {
+	if mmCallSubroutine.mock.funcCallSubroutine != nil {
+		mmCallSubroutine.mock.t.Fatalf("MigrationContextMock.CallSubroutine mock is already set by Set")
+	}
+
+	expectation := &MigrationContextMockCallSubroutineExpectation{
+		mock:   mmCallSubroutine.mock,
+		params: &MigrationContextMockCallSubroutineParams{s1, m1, s2},
+	}
+	mmCallSubroutine.expectations = append(mmCallSubroutine.expectations, expectation)
+	return expectation
+}
+
+// Then sets up MigrationContext.CallSubroutine return parameters for the expectation previously defined by the When method
+func (e *MigrationContextMockCallSubroutineExpectation) Then(s3 StateUpdate) *MigrationContextMock {
+	e.results = &MigrationContextMockCallSubroutineResults{s3}
+	return e.mock
+}
+
+// CallSubroutine implements MigrationContext
+func (mmCallSubroutine *MigrationContextMock) CallSubroutine(s1 SubroutineStateMachine, m1 MigrateFunc, s2 SubroutineExitFunc) (s3 StateUpdate) {
+	mm_atomic.AddUint64(&mmCallSubroutine.beforeCallSubroutineCounter, 1)
+	defer mm_atomic.AddUint64(&mmCallSubroutine.afterCallSubroutineCounter, 1)
+
+	if mmCallSubroutine.inspectFuncCallSubroutine != nil {
+		mmCallSubroutine.inspectFuncCallSubroutine(s1, m1, s2)
+	}
+
+	mm_params := &MigrationContextMockCallSubroutineParams{s1, m1, s2}
+
+	// Record call args
+	mmCallSubroutine.CallSubroutineMock.mutex.Lock()
+	mmCallSubroutine.CallSubroutineMock.callArgs = append(mmCallSubroutine.CallSubroutineMock.callArgs, mm_params)
+	mmCallSubroutine.CallSubroutineMock.mutex.Unlock()
+
+	for _, e := range mmCallSubroutine.CallSubroutineMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.s3
+		}
+	}
+
+	if mmCallSubroutine.CallSubroutineMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCallSubroutine.CallSubroutineMock.defaultExpectation.Counter, 1)
+		mm_want := mmCallSubroutine.CallSubroutineMock.defaultExpectation.params
+		mm_got := MigrationContextMockCallSubroutineParams{s1, m1, s2}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCallSubroutine.t.Errorf("MigrationContextMock.CallSubroutine got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCallSubroutine.CallSubroutineMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCallSubroutine.t.Fatal("No results are set for the MigrationContextMock.CallSubroutine")
+		}
+		return (*mm_results).s3
+	}
+	if mmCallSubroutine.funcCallSubroutine != nil {
+		return mmCallSubroutine.funcCallSubroutine(s1, m1, s2)
+	}
+	mmCallSubroutine.t.Fatalf("Unexpected call to MigrationContextMock.CallSubroutine. %v %v %v", s1, m1, s2)
+	return
+}
+
+// CallSubroutineAfterCounter returns a count of finished MigrationContextMock.CallSubroutine invocations
+func (mmCallSubroutine *MigrationContextMock) CallSubroutineAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCallSubroutine.afterCallSubroutineCounter)
+}
+
+// CallSubroutineBeforeCounter returns a count of MigrationContextMock.CallSubroutine invocations
+func (mmCallSubroutine *MigrationContextMock) CallSubroutineBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCallSubroutine.beforeCallSubroutineCounter)
+}
+
+// Calls returns a list of arguments used in each call to MigrationContextMock.CallSubroutine.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCallSubroutine *mMigrationContextMockCallSubroutine) Calls() []*MigrationContextMockCallSubroutineParams {
+	mmCallSubroutine.mutex.RLock()
+
+	argCopy := make([]*MigrationContextMockCallSubroutineParams, len(mmCallSubroutine.callArgs))
+	copy(argCopy, mmCallSubroutine.callArgs)
+
+	mmCallSubroutine.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCallSubroutineDone returns true if the count of the CallSubroutine invocations corresponds
+// the number of defined expectations
+func (m *MigrationContextMock) MinimockCallSubroutineDone() bool {
+	for _, e := range m.CallSubroutineMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CallSubroutineMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCallSubroutineCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCallSubroutine != nil && mm_atomic.LoadUint64(&m.afterCallSubroutineCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCallSubroutineInspect logs each unmet expectation
+func (m *MigrationContextMock) MinimockCallSubroutineInspect() {
+	for _, e := range m.CallSubroutineMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MigrationContextMock.CallSubroutine with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CallSubroutineMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCallSubroutineCounter) < 1 {
+		if m.CallSubroutineMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MigrationContextMock.CallSubroutine")
+		} else {
+			m.t.Errorf("Expected call to MigrationContextMock.CallSubroutine with params: %#v", *m.CallSubroutineMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCallSubroutine != nil && mm_atomic.LoadUint64(&m.afterCallSubroutineCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.CallSubroutine")
 	}
 }
 
@@ -8517,6 +8743,8 @@ func (m *MigrationContextMock) MinimockFinish() {
 
 		m.MinimockApplyAdjustmentInspect()
 
+		m.MinimockCallSubroutineInspect()
+
 		m.MinimockCheckInspect()
 
 		m.MinimockErrorInspect()
@@ -8619,6 +8847,7 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockAcquireForThisStepAndReleaseDone() &&
 		m.MinimockAffectedStepDone() &&
 		m.MinimockApplyAdjustmentDone() &&
+		m.MinimockCallSubroutineDone() &&
 		m.MinimockCheckDone() &&
 		m.MinimockErrorDone() &&
 		m.MinimockErrorfDone() &&

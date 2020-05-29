@@ -114,7 +114,7 @@ func init() {
 
 		stateUpdSubroutineStart: {
 			name:   "subroutineStart",
-			filter: updCtxExec,
+			filter: updCtxExec|updCtxMigrate,
 			params: updParamStep,
 
 			stepDeclaration: &defaultSubroutineStartDecl,
