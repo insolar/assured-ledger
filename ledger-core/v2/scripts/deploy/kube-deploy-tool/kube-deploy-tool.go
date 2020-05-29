@@ -60,26 +60,26 @@ func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
 			panic(err)
 		}
 
-		startAndReady := func() error {
+		startAndReady := func(net NetParams) error {
 			err := insolarManager.start(net)
 			if err != nil {
-				return fmt.Errorf("failed to start insolar: %w\n Nodes count: %d\n", err, net.NodesCount)
+				return fmt.Errorf("failed to start insolar: %w\n nodes count: %d", err, net.NodesCount)
 			}
 
 			err = insolarManager.waitForReady(net)
 			if err != nil {
-				return fmt.Errorf("failed to wait insolar ready: %w\n Nodes count: %d\n", err, net.NodesCount)
+				return fmt.Errorf("failed to wait insolar ready: %w\n nodes count: %d", err, net.NodesCount)
 			}
 
 			time.Sleep(net.WaitInReadyState)
 			return nil
 		}
 
-		startAndReadyError := startAndReady()
+		startAndReadyError := startAndReady(net)
 		if cfg.KubeParams.LogCollector.Enabled {
 			err := insolarManager.collectLogs(net)
 			if err != nil {
-				fmt.Printf("failed to collect logs: %s\n Nodes count: %d\n", err.Error(), net.NodesCount)
+				fmt.Printf("failed to collect logs: %s\n nodes count: %d", err.Error(), net.NodesCount)
 			}
 		}
 

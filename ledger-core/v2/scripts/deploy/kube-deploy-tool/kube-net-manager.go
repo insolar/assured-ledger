@@ -180,18 +180,20 @@ func (m *InsolarNetManager) stop(netParams NetParams) error {
 
 func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
 	for i := 0; i < int(netParams.NodesCount); i++ {
-		fname := fmt.Sprintf(m.kubeParams.LogCollector.PathToSave+logFileTemplate, netParams.NodesCount, i)
+		podName := "virtual-" + strconv.Itoa(i)
 		out, err := exec.Command(
 			Kubectl,
 			"-n",
 			"insolar",
 			"logs",
-			"virtual-"+strconv.Itoa(i),
+			podName,
 		).CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("collect log failed: %s %w", string(out), err)
 		}
-		err = ioutil.WriteFile(fname, out, 0644)
+
+		fileName := fmt.Sprintf(m.kubeParams.LogCollector.PathToSave+logFileTemplate, netParams.NodesCount, i)
+		err = ioutil.WriteFile(fileName, out, 0644)
 		if err != nil {
 			return fmt.Errorf("write log failed: %w", err)
 		}
