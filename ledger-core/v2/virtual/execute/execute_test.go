@@ -157,21 +157,12 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.True(t, smObject.KnownRequests.GetList(contract.CallTolerable).Exist(smExecute.execution.Outgoing))
 
 	{
-		// call same request
-		// expect duplicate detection and SM stop
-		wasStoped := false
-
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			LogMock.Return(smachine.Logger{}).
-			StopMock.Set(
-			func() (s1 smachine.StateUpdate) {
-				wasStoped = true
-				return smachine.StateUpdate{}
-			})
+			StopMock.Return(smachine.StateUpdate{})
 
 		smExecute.stepStartRequestProcessing(execCtx)
-		assert.Equal(t, true, wasStoped)
 	}
 
 	mc.Finish()
@@ -197,7 +188,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
-		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
 		CallOutgoing:        smObjectID,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -217,19 +208,12 @@ func TestSMExecute_Deduplication(t *testing.T) {
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
-		wasStoped := false
-
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			LogMock.Return(smachine.Logger{}).
-			StopMock.Set(
-			func() (s1 smachine.StateUpdate) {
-				wasStoped = true
-				return smachine.StateUpdate{}
-			})
+			StopMock.Return(smachine.StateUpdate{})
 
 		smExecute.stepDeduplicate(execCtx)
-		require.Equal(t, true, wasStoped)
 	}
 
 	{
@@ -421,7 +405,7 @@ func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag
 		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
-		CallSiteDeclaration: testwallet.GetPrototype(),
+		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
 		CallOutgoing:        smObjectID,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
