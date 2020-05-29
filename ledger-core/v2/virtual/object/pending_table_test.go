@@ -86,8 +86,8 @@ func TestPendingList(t *testing.T) {
 	require.Equal(t, 2, pl.CountActive())
 
 
-	nonExistRefFinished := pl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
-	require.Equal(t, false, nonExistRefFinished)
+	tryTooFinishRefThatNotInList := pl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
+	require.Equal(t, false, tryTooFinishRefThatNotInList)
 }
 
 func TestPendingList_Finish(t *testing.T) {
