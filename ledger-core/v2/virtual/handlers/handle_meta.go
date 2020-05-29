@@ -7,6 +7,8 @@ package handlers
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/google/uuid"
 
@@ -29,7 +31,8 @@ type logProcessing struct {
 type errNoHandler struct {
 	*log.Msg `txt:"no handler for message type"`
 
-	MessageType payload.Type
+	messageTypeId uint64
+	messageType   reflect.Type
 }
 
 func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachine.CreateFunc) {
@@ -42,15 +45,19 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	}
 
 	payloadBytes := payloadMeta.Payload
-	payloadType, payloadObj, err := rms.Unmarshal(payloadBytes)
+	payloadTypeId, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
 		panic(err)
 	}
 
+	payloadType := rms.GetRegistry().Get(payloadTypeId)
+
 	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
-	logger.Info(logProcessing{messageType: string(payloadType)})
+	logger.Info(logProcessing{
+		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeId, payloadType.String()),
+	})
 
 	switch obj := payloadObj.(type) {
 	case *payload.VCallRequest:
@@ -91,6 +98,9 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
 		}
 	default:
-		panic(errNoHandler{MessageType: payload.Type(payloadType)})
+		panic(errNoHandler{
+			messageTypeId: payloadTypeId,
+			messageType:   payloadType,
+		})
 	}
 }
