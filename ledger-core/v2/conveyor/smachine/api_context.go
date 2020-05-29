@@ -255,6 +255,8 @@ type InitializationContext interface {
 
 type PostInitStepContext interface {
 	InOrderStepContext
+
+	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.ExecutionContext -o ./ -s _mock.go -g
@@ -310,8 +312,6 @@ type ExecutionContext interface {
 
 	CallBargeInWithParam(b BargeInWithParam, param interface{}) bool
 	CallBargeIn(b BargeIn) bool
-
-	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
 
 	// UseShared applies the accessor produced by a SharedDataLink.
 	// SharedDataLink can be used across different SlotMachines.
