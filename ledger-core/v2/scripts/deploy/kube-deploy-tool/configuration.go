@@ -21,6 +21,10 @@ type NetParams struct {
 	Latency time.Duration
 	// time waiting in ready state
 	WaitInReady time.Duration
+	// timeout bootstrap finished
+	WaitBootstrap time.Duration
+	// timeout get "ready" state
+	WaitReady time.Duration
 }
 
 type KubeParams struct {
@@ -32,9 +36,18 @@ type KubeParams struct {
 	ManifestsRelPath string
 	// relative path to bootstrap configs, by default in manifests/configuration
 	BootstrapConfigRelPath string
+	// start prometheus before test and stop after
+	Prometheus Prometheus
 	// todo add context specify penv-167
 	// you can specify the context for kubectl
 	// KubeContext string
 	// or you can set the path to your kubectl config
 	// KubeConfigPath string
+}
+
+type Prometheus struct {
+	// start prometheus before test and stop after
+	Enabled bool
+	// path to prom manifests from KubeRootPath
+	ManifestsRelPath string
 }

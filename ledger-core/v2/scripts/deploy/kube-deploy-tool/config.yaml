@@ -1,10 +1,21 @@
 netparams:
 - nodescount: 3
-  waitinready: 30s
+  waitinready: 1s
+  waitbootstrap: 30s
+  waitready: 60s
 - nodescount: 4
+  waitinready: 1s
+  waitbootstrap: 30s
+  waitready: 60s
 - nodescount: 5
+  waitinready: 1s
+  waitbootstrap: 30s
+  waitready: 60s
 kubeparams:
   env: local
   kuberootpath: /../scripts/deploy/kube/
   manifestsrelpath: manifests/
   bootstrapconfigrelpath: manifests/configuration/
+  prometheus:
+    enabled: true
+    manifestsrelpath: prometheus/

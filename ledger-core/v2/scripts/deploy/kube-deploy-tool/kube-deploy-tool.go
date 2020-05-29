@@ -18,17 +18,34 @@ import (
 func main() {
 	cfg := readConfig()
 	callbacks := NewConsensusTestCallbacks()
-	netManager := NewInsolarNetManager(
+	insolarManager := NewInsolarNetManager(
 		cfg.KubeParams,
 		callbacks.started,
 		callbacks.ready,
 		callbacks.stopped,
 	)
 
-	startTest(cfg, netManager)
+	if cfg.KubeParams.Prometheus.Enabled {
+		promManager := NewPrometheusManager(cfg.KubeParams)
+		err := promManager.start()
+		if err != nil {
+			panic(err)
+		}
+		defer func() {
+			err := promManager.stop()
+			if err != nil {
+				fmt.Print(err.Error())
+			}
+		}()
+	}
+	err := insolarManager.checkDependencies()
+	if err != nil {
+		panic(err)
+	}
+	startTest(cfg, insolarManager)
 }
 
-func startTest(cfg *KubeDeployToolConfig, netManager *InsolarNetManager) {
+func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
 	for _, net := range cfg.NetParams {
 		cfgGenerator := NewConfigGenerator(net.NodesCount)
 		err := rewriteBootstrapConfigs(cfg.KubeParams, cfgGenerator)
@@ -37,16 +54,16 @@ func startTest(cfg *KubeDeployToolConfig, netManager *InsolarNetManager) {
 			panic(err)
 		}
 
-		err = netManager.startNetwork(net)
+		err = insolarManager.start(net)
 		if err != nil {
 			panic(err)
 		}
-		err = netManager.waitForReady(net)
+		err = insolarManager.waitForReady(net)
 		if err != nil {
 			panic(err)
 		}
 		time.Sleep(net.WaitInReady)
-		err = netManager.stopNetwork(net)
+		err = insolarManager.stop(net)
 		if err != nil {
 			panic(err)
 		}
