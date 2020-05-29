@@ -71,7 +71,6 @@ func TestSMExecute_Init(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
@@ -119,7 +118,6 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
@@ -195,7 +193,6 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
@@ -265,7 +262,6 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
@@ -337,7 +333,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			Polymorph:    uint32(payload.TypeVCallRequest),
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,

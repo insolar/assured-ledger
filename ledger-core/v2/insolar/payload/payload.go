@@ -10,40 +10,17 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
-type Type uint32
+// aliases for more convenient using in .proto file (no need to use full path)
+// because alias in the same package
+type MessageContext = rms.MessageContext
 
-//go:generate stringer -type=Type
-// xgo:generate protoc -I=. -I=$GOPATH/src --gogoslick_out=./ payload.proto
-
-const (
-	TypeUnknown Type = iota
-
-	TypeMeta
-
-	// New virtual message types
-	TypeVCallRequest
-	TypeVCallResult
-	TypeVStateReport
-	TypeVStateUnavailable
-	TypeVStateRequest
-	TypeVPendingDelegationRequest
-	TypeVDelegatedRequestFinished
-
-	// should be the last (required by TypesMap)
-	_latestType
-)
-
-// TypesMap contains Type name (gen by stringer) to type mapping.
-var TypesMap = func() map[string]Type {
-	m := map[string]Type{}
-	for i := TypeUnknown; i < _latestType; i++ {
-		m[i.String()] = i
-	}
-	return m
-}()
+func RegisterMessageType(id uint64, special string, t proto.Message) {
+	rms.RegisterMessageType(id, special, t)
+}
 
 // Payload represents any kind of data that can be encoded in consistent manner.
 type Payload interface {
@@ -95,110 +72,9 @@ func (h *MessageHash) IsZero() bool {
 	return true
 }
 
-// UnmarshalType decodes payload type from given binary.
-func UnmarshalType(data []byte) (Type, error) {
-	buf := proto.NewBuffer(data)
-	fieldNumType, err := buf.DecodeVarint()
-	if err != nil {
-		return TypeUnknown, errors.W(err, "failed to decode polymorph")
-	}
-	// First 3 bits is a field type (see protobuf wire protocol docs), key is always varint
-	if fieldNumType != MorphFieldNum<<3|MorpyFieldType {
-		return TypeUnknown, errors.Errorf("wrong polymorph field number %d", fieldNumType)
-	}
-	morph, err := buf.DecodeVarint()
-	if err != nil {
-		return TypeUnknown, errors.W(err, "failed to decode polymorph")
-	}
-	return Type(morph), nil
-}
-
-// MarshalType encodes payload type into binary.
-func MarshalType(t Type) ([]byte, error) {
-	buf := proto.NewBuffer(nil)
-	err := buf.EncodeVarint(MorphFieldNum<<3 | MorpyFieldType)
-	if err != nil {
-		return nil, errors.W(err, "failed to encode polymorph")
-	}
-	err = buf.EncodeVarint(uint64(t))
-	if err != nil {
-		return nil, errors.W(err, "failed to encode polymorph")
-	}
-	return buf.Bytes(), nil
-}
-
-func Marshal(payload Payload) ([]byte, error) {
-	switch pl := payload.(type) {
-	case *Meta:
-		pl.Polymorph = uint32(TypeMeta)
-		return pl.Marshal()
-	case *VCallRequest:
-		pl.Polymorph = uint32(TypeVCallRequest)
-		return pl.Marshal()
-	case *VCallResult:
-		pl.Polymorph = uint32(TypeVCallResult)
-		return pl.Marshal()
-	case *VStateRequest:
-		pl.Polymorph = uint32(TypeVStateRequest)
-		return pl.Marshal()
-	case *VStateReport:
-		pl.Polymorph = uint32(TypeVStateReport)
-		return pl.Marshal()
-	case *VStateUnavailable:
-		pl.Polymorph = uint32(TypeVStateUnavailable)
-		return pl.Marshal()
-	case *VPendingDelegationRequest:
-		pl.Polymorph = uint32(TypeVPendingDelegationRequest)
-		return pl.Marshal()
-	case *VDelegatedRequestFinished:
-		pl.Polymorph = uint32(TypeVDelegatedRequestFinished)
-		return pl.Marshal()
-	}
-
-	return nil, errors.New("unknown payload type")
-}
-
-func Unmarshal(data []byte) (Payload, error) {
-	tp, err := UnmarshalType(data)
-	if err != nil {
-		return nil, err
-	}
-	switch tp {
-	case TypeMeta:
-		pl := Meta{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVCallRequest:
-		pl := VCallRequest{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVCallResult:
-		pl := VCallResult{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVStateRequest:
-		pl := VStateRequest{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVStateReport:
-		pl := VStateReport{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVStateUnavailable:
-		pl := VStateUnavailable{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVPendingDelegationRequest:
-		pl := VPendingDelegationRequest{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	case TypeVDelegatedRequestFinished:
-		pl := VDelegatedRequestFinished{}
-		err := pl.Unmarshal(data)
-		return &pl, err
-	}
-
-	return nil, errors.New("unknown payload type")
+// deprecated
+func (h MessageHash) ProtoSize() int {
+	return h.Size()
 }
 
 // UnmarshalFromMeta reads only payload skipping meta decoding. Use this instead of regular Unmarshal if you don't need
@@ -210,10 +86,9 @@ func UnmarshalFromMeta(meta []byte) (Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	pl, err := Unmarshal(m.Payload)
+	_, pl, err := rms.Unmarshal(m.Payload)
 	if err != nil {
 		return nil, err
 	}
-
-	return pl, nil
+	return pl.(Payload), nil
 }
