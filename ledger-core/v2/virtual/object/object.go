@@ -278,7 +278,14 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.ActiveOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
+	} else {
+		ctx.ApplyAdjustment(sm.orderedPendingListFilledCtl.NewValue(true))
 	}
+
+	if sm.ActiveUnorderedPendingCount == 0 {
+		ctx.ApplyAdjustment(sm.unorderedPendingListFilledCtl.NewValue(true))
+	}
+
 	return ctx.Jump(sm.stepReadyToWork)
 }
 

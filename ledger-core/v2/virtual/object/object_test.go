@@ -178,3 +178,61 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 
 	mc.Finish()
 }
+
+func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
+	var (
+		mc          = minimock.NewController(t)
+		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
+		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef = reference.NewSelf(smObjectID)
+	)
+
+	smObject := NewStateMachineObject(smGlobalRef)
+	smObject.pulseSlot = &pulseSlot
+	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
+
+	sm := SMObject{}
+	stepChecker := stepchecker.New()
+	stepChecker.AddStep(sm.stepGetState)
+	stepChecker.AddStep(sm.stepReadyToWork)
+
+	defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
+
+	{ // initialization
+		initCtx := smachine.NewInitializationContextMock(mc).
+			ShareMock.Return(sharedStateData).
+			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			JumpMock.Set(stepChecker.CheckJumpW(t)).
+			SetDefaultMigrationMock.Return()
+
+		smObject.Init(initCtx)
+	}
+
+	type testCase struct {
+		name                         string
+		activeOrderedPendingCount    uint8
+		activeUnorderedPendingCount  uint8
+		expectedApplyAdjustmentCount uint
+	}
+
+	{
+
+		smObject.SharedState.ActiveOrderedPendingCount = 0
+		smObject.SharedState.ActiveUnorderedPendingCount = 0
+		expectedApplyAdjustmentCount := 2
+		applyAdjustmentCount := 0
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(stepChecker.CheckJumpW(t)).
+			ApplyAdjustmentMock.Set(
+			func(s1 smachine.SyncAdjustment) (b1 bool) {
+				applyAdjustmentCount++
+				return true
+			})
+
+		smObject.stepGotState(execCtx)
+
+		require.Equal(t, expectedApplyAdjustmentCount, applyAdjustmentCount)
+	}
+}
