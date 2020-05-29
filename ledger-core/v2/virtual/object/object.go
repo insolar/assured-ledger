@@ -140,11 +140,11 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 
 func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
 	if objDescriptor := i.Descriptor(); objDescriptor != nil {
-		prototype, _ := objDescriptor.Prototype()
+		class, _ := objDescriptor.Class()
 		return &payload.ObjectState{
 			Reference:   objDescriptor.StateID(),
 			Parent:      objDescriptor.Parent(),
-			Prototype:   prototype,
+			Class:       class,
 			State:       objDescriptor.Memory(),
 			Deactivated: i.Deactivated,
 		}

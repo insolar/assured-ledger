@@ -61,17 +61,17 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 	return state, ret, err
 }
 
-func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) {
+func INSMETHOD_GetClass(object []byte, data []byte) ([]byte, []byte, error) {
 	ph := common.CurrentProxyCtx()
 	self := new(Wallet)
 
 	if len(object) == 0 {
-		return nil, nil, &foundation.Error{S: "[ Fake GetPrototype ] ( Generated Method ) Object is nil"}
+		return nil, nil, &foundation.Error{S: "[ Fake GetClass ] ( Generated Method ) Object is nil"}
 	}
 
 	err := ph.Deserialize(object, self)
 	if err != nil {
-		e := &foundation.Error{S: "[ Fake GetPrototype ] ( Generated Method ) Can't deserialize args.Data: " + err.Error()}
+		e := &foundation.Error{S: "[ Fake GetClass ] ( Generated Method ) Can't deserialize args.Data: " + err.Error()}
 		return nil, nil, e
 	}
 
@@ -82,7 +82,7 @@ func INSMETHOD_GetPrototype(object []byte, data []byte) ([]byte, []byte, error) 
 	}
 
 	ret := []byte{}
-	err = ph.Serialize([]interface{}{self.GetPrototype().AsBytes()}, &ret)
+	err = ph.Serialize([]interface{}{self.GetClass().AsBytes()}, &ret)
 
 	return state, ret, err
 }
@@ -488,8 +488,8 @@ func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result
 
 func Initialize() XXX_contract.Wrapper {
 	return XXX_contract.Wrapper{
-		GetCode:      INSMETHOD_GetCode,
-		GetPrototype: INSMETHOD_GetPrototype,
+		GetCode:  INSMETHOD_GetCode,
+		GetClass: INSMETHOD_GetClass,
 		Methods: XXX_contract.Methods{
 			"GetBalance": XXX_contract.Method{
 				Func: INSMETHOD_GetBalance,

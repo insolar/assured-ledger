@@ -47,7 +47,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			Polymorph:           uint32(payload.TypeVCallRequest),
 			CallType:            payload.CTConstructor,
 			CallFlags:           callFlags,
-			CallSiteDeclaration: testwallet.GetPrototype(),
+			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "New",
 			CallOutgoing:        smObjectID,
 			Arguments:           insolar.MustSerialize([]interface{}{}),

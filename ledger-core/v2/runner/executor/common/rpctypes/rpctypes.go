@@ -49,11 +49,11 @@ type DownCallConstructorResp struct {
 
 // UpBaseReq  is a base type for all insgorund -> logicrunner requests
 type UpBaseReq struct {
-	Mode            call.Mode
-	Callee          reference.Global
-	CalleePrototype reference.Global
-	Request         reference.Global
-	ID              call.ID
+	Mode        call.Mode
+	Callee      reference.Global
+	CalleeClass reference.Global
+	Request     reference.Global
+	ID          call.ID
 }
 
 // UpRespIface interface for UpBaseReq descendant responses
@@ -80,7 +80,7 @@ type UpCallMethodReq struct {
 	Object       reference.Global
 	Method       string
 	Arguments    Arguments
-	Prototype    reference.Global
+	Class        reference.Global
 }
 
 // UpCallMethodResp is response from Send RPC in goplugin
@@ -92,7 +92,7 @@ type UpCallMethodResp struct {
 type UpCallConstructorReq struct {
 	UpBaseReq
 	Parent          reference.Global
-	Prototype       reference.Global
+	Class           reference.Global
 	ConstructorName string
 	ArgsSerialized  []byte
 }

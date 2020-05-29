@@ -15,9 +15,9 @@ type CacheCallbackType func(reference reference.Global) (interface{}, error)
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor.Cache -o ./ -s _mock.go -g
 
-// Cache provides convenient way to get prototype and code descriptors
+// Cache provides convenient way to get class and code descriptors
 // of objects without fetching them twice
 type Cache interface {
-	ByPrototypeRef(ctx context.Context, protoRef reference.Global) (Prototype, Code, error)
+	ByClassRef(ctx context.Context, classRef reference.Global) (Class, Code, error)
 	RegisterCallback(cb CacheCallbackType)
 }

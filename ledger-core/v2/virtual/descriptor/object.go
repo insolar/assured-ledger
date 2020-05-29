@@ -22,8 +22,8 @@ type Object interface {
 	// Memory fetches object memory from storage.
 	Memory() []byte
 
-	// Prototype returns prototype reference.
-	Prototype() (reference.Global, error)
+	// Class returns class reference.
+	Class() (reference.Global, error)
 
 	// Parent returns object's parent.
 	Parent() reference.Global
@@ -32,34 +32,34 @@ type Object interface {
 func NewObject(
 	head reference.Global,
 	state reference.Local,
-	prototype reference.Global,
+	class reference.Global,
 	memory []byte,
 	parent reference.Global,
 ) Object {
 	return &object{
-		head:      head,
-		state:     state,
-		prototype: prototype,
-		memory:    memory,
-		parent:    parent,
+		head:   head,
+		state:  state,
+		class:  class,
+		memory: memory,
+		parent: parent,
 	}
 }
 
 // Object represents meta info required to fetch all object data.
 type object struct {
-	head      reference.Global
-	state     reference.Local
-	prototype reference.Global
-	memory    []byte
-	parent    reference.Global
+	head   reference.Global
+	state  reference.Local
+	class  reference.Global
+	memory []byte
+	parent reference.Global
 }
 
-// Prototype returns prototype reference.
-func (d *object) Prototype() (reference.Global, error) {
-	if d.prototype.IsEmpty() {
-		return reference.Global{}, errors.New("object has no prototype")
+// Class returns class reference.
+func (d *object) Class() (reference.Global, error) {
+	if d.class.IsEmpty() {
+		return reference.Global{}, errors.New("object has no class")
 	}
-	return d.prototype, nil
+	return d.class, nil
 }
 
 // HeadRef returns reference to represented object record.

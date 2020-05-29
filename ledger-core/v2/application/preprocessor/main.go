@@ -489,7 +489,7 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 	}
 
 	if classReference == "" {
-		classReference = genesisrefs.GenerateProtoReferenceFromCode(0, pf.code).String()
+		classReference = genesisrefs.GenerateClassReferenceFromCode(0, pf.code).String()
 	}
 
 	_, err = reference.GlobalFromString(classReference)
@@ -1018,8 +1018,8 @@ type ContractListEntry struct {
 }
 
 const (
-	CodeType      = "code"
-	PrototypeType = "prototype"
+	CodeType  = "code"
+	ClassType = "class"
 )
 
 type ContractList []ContractListEntry
@@ -1028,11 +1028,11 @@ func generateContractList(contracts ContractList) interface{} {
 	importList := make([]interface{}, 0)
 	for _, contract := range contracts {
 		data := map[string]interface{}{
-			"Name":               contract.Name,
-			"ImportName":         contract.Name,
-			"ImportPath":         contract.ImportPath,
-			"CodeReference":      genesisrefs.GenerateCodeReferenceFromContractID(CodeType, contract.Name, contract.Version).String(),
-			"PrototypeReference": genesisrefs.GenerateProtoReferenceFromContractID(PrototypeType, contract.Name, contract.Version).String(),
+			"Name":           contract.Name,
+			"ImportName":     contract.Name,
+			"ImportPath":     contract.ImportPath,
+			"CodeReference":  genesisrefs.GenerateCodeReferenceFromContractID(CodeType, contract.Name, contract.Version).String(),
+			"ClassReference": genesisrefs.GenerateClassReferenceFromContractID(ClassType, contract.Name, contract.Version).String(),
 		}
 		importList = append(importList, data)
 	}

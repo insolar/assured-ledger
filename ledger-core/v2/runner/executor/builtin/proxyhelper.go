@@ -33,18 +33,18 @@ func (h *ProxyHelper) getUpBaseReq() rpctypes.UpBaseReq {
 	callContext := foundation.GetLogicalContext()
 
 	return rpctypes.UpBaseReq{
-		Mode:            callContext.Mode,
-		Callee:          callContext.Callee,
-		CalleePrototype: callContext.CallerPrototype,
-		Request:         callContext.Request,
-		ID:              callContext.ID,
+		Mode:        callContext.Mode,
+		Callee:      callContext.Callee,
+		CalleeClass: callContext.CallerClass,
+		Request:     callContext.Request,
+		ID:          callContext.ID,
 	}
 }
 
 func (h *ProxyHelper) CallMethod(
 	ref reference.Global, tolerance contract.InterferenceFlag, isolation contract.StateFlag,
 	_ bool, method string, args []byte,
-	proxyPrototype reference.Global,
+	proxyClass reference.Global,
 ) (
 	[]byte, error,
 ) {
@@ -61,7 +61,7 @@ func (h *ProxyHelper) CallMethod(
 		Isolation:    isolation,
 		Method:       method,
 		Arguments:    args,
-		Prototype:    proxyPrototype,
+		Class:        proxyClass,
 	}
 
 	err := h.methods.CallMethod(req, &res)
@@ -91,7 +91,7 @@ func (h *ProxyHelper) CallConstructor(
 		UpBaseReq: h.getUpBaseReq(),
 
 		Parent:          parentRef,
-		Prototype:       classRef,
+		Class:           classRef,
 		ConstructorName: constructorName,
 		ArgsSerialized:  argsSerialized,
 	}

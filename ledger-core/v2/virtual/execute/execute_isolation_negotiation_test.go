@@ -155,7 +155,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				Polymorph:           uint32(payload.TypeVCallRequest),
 				CallType:            payload.CTConstructor,
 				CallFlags:           payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
-				CallSiteDeclaration: testwallet.GetPrototype(),
+				CallSiteDeclaration: testwallet.GetClass(),
 				CallSiteMethod:      "New",
 				CallOutgoing:        smObjectID,
 				Arguments:           insolar.MustSerialize([]interface{}{}),

@@ -21,7 +21,7 @@ type descriptorsCache struct {
 	callbacks []descriptor.CacheCallbackType
 
 	codeCache  cache
-	protoCache cache
+	classCache cache
 }
 
 func NewDescriptorsCache() descriptor.Cache {
@@ -29,7 +29,7 @@ func NewDescriptorsCache() descriptor.Cache {
 		callbacks: make([]descriptor.CacheCallbackType, 0),
 
 		codeCache:  newSingleFlightCache(),
-		protoCache: newSingleFlightCache(),
+		classCache: newSingleFlightCache(),
 	}
 }
 
@@ -37,48 +37,48 @@ func (c *descriptorsCache) RegisterCallback(cb descriptor.CacheCallbackType) {
 	c.callbacks = append(c.callbacks, cb)
 }
 
-func (c *descriptorsCache) ByPrototypeRef(
-	ctx context.Context, protoRef reference.Global,
+func (c *descriptorsCache) ByClassRef(
+	ctx context.Context, classRef reference.Global,
 ) (
-	descriptor.Prototype, descriptor.Code, error,
+	descriptor.Class, descriptor.Code, error,
 ) {
-	protoDesc, err := c.GetPrototype(ctx, protoRef)
+	classDesc, err := c.GetClass(ctx, classRef)
 	if err != nil {
-		return nil, nil, errors.W(err, "couldn't get prototype descriptor")
+		return nil, nil, errors.W(err, "couldn't get class descriptor")
 	}
 
-	codeRef := protoDesc.Code()
+	codeRef := classDesc.Code()
 	codeDesc, err := c.GetCode(ctx, codeRef)
 	if err != nil {
 		return nil, nil, errors.W(err, "couldn't get code descriptor")
 	}
 
-	return protoDesc, codeDesc, nil
+	return classDesc, codeDesc, nil
 }
 
 func (c *descriptorsCache) ByObjectDescriptor(
 	ctx context.Context, obj descriptor.Object,
 ) (
-	descriptor.Prototype, descriptor.Code, error,
+	descriptor.Class, descriptor.Code, error,
 ) {
-	protoRef, err := obj.Prototype()
+	classRef, err := obj.Class()
 	if err != nil {
-		return nil, nil, errors.W(err, "couldn't get prototype reference")
+		return nil, nil, errors.W(err, "couldn't get class reference")
 	}
 
-	if protoRef.IsEmpty() {
-		return nil, nil, errors.New("Empty prototype")
+	if classRef.IsEmpty() {
+		return nil, nil, errors.New("Empty class")
 	}
 
-	return c.ByPrototypeRef(ctx, protoRef)
+	return c.ByClassRef(ctx, classRef)
 }
 
-func (c *descriptorsCache) GetPrototype(
+func (c *descriptorsCache) GetClass(
 	ctx context.Context, ref reference.Global,
 ) (
-	descriptor.Prototype, error,
+	descriptor.Class, error,
 ) {
-	rawResult, err := c.protoCache.get(ref, func() (interface{}, error) {
+	rawResult, err := c.classCache.get(ref, func() (interface{}, error) {
 		for _, cb := range c.callbacks {
 			object, err := cb(ref)
 			if object != nil || err != nil {
@@ -89,14 +89,14 @@ func (c *descriptorsCache) GetPrototype(
 	})
 
 	if err != nil {
-		return nil, errors.W(err, "couldn't get prototype")
+		return nil, errors.W(err, "couldn't get class")
 	} else if rawResult == nil {
-		return nil, errors.Errorf("failed to find prototype descriptor %s", ref.String())
+		return nil, errors.Errorf("failed to find class descriptor %s", ref.String())
 	}
 
-	result, ok := rawResult.(descriptor.Prototype)
+	result, ok := rawResult.(descriptor.Class)
 	if !ok {
-		return nil, errors.Errorf("unexpected type %T, expected Prototype", rawResult)
+		return nil, errors.Errorf("unexpected type %T, expected Class", rawResult)
 	}
 
 	return result, nil

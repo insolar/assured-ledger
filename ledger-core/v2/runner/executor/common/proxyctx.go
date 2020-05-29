@@ -27,7 +27,7 @@ type ProxyHelper interface {
 	CallMethod(
 		ref reference.Global,
 		tolerance contract.InterferenceFlag, isolation contract.StateFlag, saga bool,
-		method string, args []byte, proxyPrototype reference.Global,
+		method string, args []byte, proxyClass reference.Global,
 	) (result []byte, err error)
 	CallConstructor(
 		parentRef, classRef reference.Global, constructorName string, argsSerialized []byte,

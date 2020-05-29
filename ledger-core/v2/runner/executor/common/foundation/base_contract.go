@@ -19,14 +19,14 @@ type BaseContract struct {
 // ProxyInterface interface any proxy of a contract implements
 type ProxyInterface interface {
 	GetReference() reference.Global
-	GetPrototype() (reference.Global, error)
+	GetClass() (reference.Global, error)
 	GetCode() (reference.Global, error)
 }
 
 // BaseContractInterface is an interface to deal with any contract same way
 type BaseContractInterface interface {
 	GetReference() reference.Global
-	GetPrototype() reference.Global
+	GetClass() reference.Global
 	GetCode() reference.Global
 }
 
@@ -39,12 +39,12 @@ func (bc *BaseContract) GetReference() reference.Global {
 	return ctx.Callee
 }
 
-// GetPrototype - Returns prototype of contract
-func (bc *BaseContract) GetPrototype() reference.Global {
-	return bc.getContext().Prototype
+// GetClass - Returns class of contract
+func (bc *BaseContract) GetClass() reference.Global {
+	return bc.getContext().Class
 }
 
-// GetCode - Returns prototype of contract
+// GetCode - Returns code of contract
 func (bc *BaseContract) GetCode() reference.Global {
 	return bc.getContext().Code
 }

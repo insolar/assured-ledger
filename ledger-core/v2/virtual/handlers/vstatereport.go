@@ -67,7 +67,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		objectDescriptor = descriptor.NewObject(
 			objectRef,
 			dirtyState.Reference,
-			dirtyState.Prototype,
+			dirtyState.Class,
 			dirtyState.State,
 			dirtyState.Parent,
 		)

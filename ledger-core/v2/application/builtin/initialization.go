@@ -51,10 +51,10 @@ func InitializeCodeRefs() map[XXX_reference.Global]string {
 	return rv
 }
 
-func InitializePrototypeRefs() map[XXX_reference.Global]string {
+func InitializeClassRefs() map[XXX_reference.Global]string {
 	rv := make(map[XXX_reference.Global]string, 1)
 
-	rv[shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")] = "testwallet"
+	rv[shouldLoadRef("insolar:0AAABAqiF7kGalgYGa1bKDmA33RKr0lfmdtIZr73_tMU")] = "testwallet"
 
 	return rv
 }
@@ -72,13 +72,13 @@ func InitializeCodeDescriptors() []XXX_descriptor.Code {
 	return rv
 }
 
-func InitializePrototypeDescriptors() []XXX_descriptor.Prototype {
-	rv := make([]XXX_descriptor.Prototype, 0, 1)
+func InitializeClassDescriptors() []XXX_descriptor.Class {
+	rv := make([]XXX_descriptor.Class, 0, 1)
 
 	{ // testwallet
-		pRef := shouldLoadRef("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
+		pRef := shouldLoadRef("insolar:0AAABAqiF7kGalgYGa1bKDmA33RKr0lfmdtIZr73_tMU")
 		cRef := shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record")
-		rv = append(rv, XXX_descriptor.NewPrototype(
+		rv = append(rv, XXX_descriptor.NewClass(
 			/* head:         */ pRef,
 			/* state:        */ pRef.GetLocal(),
 			/* code:         */ cRef,
