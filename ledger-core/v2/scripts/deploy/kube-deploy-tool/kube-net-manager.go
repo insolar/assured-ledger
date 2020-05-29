@@ -7,13 +7,17 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const Kubectl = "kubectl"
 const DefaultInsolarImage = "insolar/assured-ledger:latest"
+const logFileTemplate = "%d-nodes-virtual-%d.log"
 
 type eventTiming struct {
 	startedAt time.Time
@@ -114,7 +118,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 	case <-bootstrapFinished:
 		fmt.Println("bootstrap finished")
 	case <-time.After(netParams.WaitBootstrap):
-		fmt.Println("bootstrap timed out")
+		fmt.Printf("bootstrap timed out after %s\n", netParams.WaitBootstrap.String())
 	}
 
 	netReady := make(chan bool, 1)
@@ -153,8 +157,8 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 			stoppedAt: time.Now(),
 		})
 		return nil
-	case <-time.After(netParams.WaitBootstrap):
-		fmt.Println("insolar ready wait timed out")
+	case <-time.After(netParams.WaitReady):
+		fmt.Printf("insolar ready wait timed out after %s\n", netParams.WaitReady)
 	}
 
 	return fmt.Errorf("insolar has not been started")
@@ -171,6 +175,39 @@ func (m *InsolarNetManager) stop(netParams NetParams) error {
 		startedAt: startedAt,
 		stoppedAt: time.Now(),
 	})
+	return nil
+}
+
+func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
+	for i := 0; i < int(netParams.NodesCount); i++ {
+		fname := fmt.Sprintf(m.kubeParams.LogCollector.PathToSave+logFileTemplate, netParams.NodesCount, i)
+		out, err := exec.Command(
+			Kubectl,
+			"-n",
+			"insolar",
+			"logs",
+			"virtual-"+strconv.Itoa(i),
+		).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("collect log failed: %s %w", string(out), err)
+		}
+		err = ioutil.WriteFile(fname, out, 0644)
+		if err != nil {
+			return fmt.Errorf("write log failed: %w", err)
+		}
+	}
+	return nil
+}
+
+func (m *InsolarNetManager) cleanLogDir() error {
+	err := os.RemoveAll(m.kubeParams.LogCollector.PathToSave)
+	if err != nil {
+		return fmt.Errorf("clearing log dir failed: %w", err)
+	}
+	err = os.MkdirAll(m.kubeParams.LogCollector.PathToSave, 0755)
+	if err != nil {
+		return fmt.Errorf("creating log dir failed: %w", err)
+	}
 	return nil
 }
 

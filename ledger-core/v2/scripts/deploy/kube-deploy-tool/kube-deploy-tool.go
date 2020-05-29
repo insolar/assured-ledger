@@ -46,23 +46,50 @@ func main() {
 }
 
 func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
+	if cfg.KubeParams.LogCollector.Enabled {
+		err := insolarManager.cleanLogDir()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	for _, net := range cfg.NetParams {
 		cfgGenerator := NewConfigGenerator(net.NodesCount)
 		err := rewriteBootstrapConfigs(cfg.KubeParams, cfgGenerator)
-
 		if err != nil {
 			panic(err)
 		}
 
-		err = insolarManager.start(net)
-		if err != nil {
-			panic(err)
+		startAndReady := func() error {
+			err := insolarManager.start(net)
+			if err != nil {
+				return fmt.Errorf("failed to start insolar: %w\n Nodes count: %d\n", err, net.NodesCount)
+			}
+
+			err = insolarManager.waitForReady(net)
+			if err != nil {
+				return fmt.Errorf("failed to wait insolar ready: %w\n Nodes count: %d\n", err, net.NodesCount)
+			}
+
+			time.Sleep(net.WaitInReadyState)
+			return nil
 		}
-		err = insolarManager.waitForReady(net)
-		if err != nil {
-			panic(err)
+
+		startAndReadyError := startAndReady()
+		if cfg.KubeParams.LogCollector.Enabled {
+			err := insolarManager.collectLogs(net)
+			if err != nil {
+				fmt.Printf("failed to collect logs: %s\n Nodes count: %d\n", err.Error(), net.NodesCount)
+			}
 		}
-		time.Sleep(net.WaitInReady)
+
+		if startAndReadyError != nil {
+			fmt.Print(startAndReadyError.Error())
+			if cfg.KubeParams.LeaveInsolarAliveIfFailed {
+				panic("LeaveInsolarAliveIfFailed is true, shutting down")
+			}
+		}
+
 		err = insolarManager.stop(net)
 		if err != nil {
 			panic(err)
@@ -76,6 +103,7 @@ func rewriteBootstrapConfigs(cfg KubeParams, generator *ConfigGenerator) error {
 	pwConfig := generator.generatePulsewatcherConfig()
 
 	bootstrapConfigPath := getExecutablePath() + cfg.KubeRootPath + cfg.BootstrapConfigRelPath
+	nodesPatchPath := getExecutablePath() + cfg.KubeRootPath + cfg.ManifestsRelPath
 	err := ioutil.WriteFile(bootstrapConfigPath+"bootstrap-config.yaml", []byte(bootstrapConfig), 0644)
 	if err != nil {
 		return fmt.Errorf("write config failed: %w", err)
@@ -84,7 +112,7 @@ func rewriteBootstrapConfigs(cfg KubeParams, generator *ConfigGenerator) error {
 	if err != nil {
 		return fmt.Errorf("write config failed: %w", err)
 	}
-	err = ioutil.WriteFile(getExecutablePath()+cfg.KubeRootPath+cfg.ManifestsRelPath+"nodes-patch.yaml", []byte(kustomizePatch), 0644)
+	err = ioutil.WriteFile(nodesPatchPath+"nodes-patch.yaml", []byte(kustomizePatch), 0644)
 	if err != nil {
 		return fmt.Errorf("write config failed: %w", err)
 	}

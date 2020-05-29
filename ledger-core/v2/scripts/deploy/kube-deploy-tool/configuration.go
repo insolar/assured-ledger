@@ -20,7 +20,7 @@ type NetParams struct {
 	// not working now
 	Latency time.Duration
 	// time waiting in ready state
-	WaitInReady time.Duration
+	WaitInReadyState time.Duration
 	// timeout bootstrap finished
 	WaitBootstrap time.Duration
 	// timeout get "ready" state
@@ -36,8 +36,10 @@ type KubeParams struct {
 	ManifestsRelPath string
 	// relative path to bootstrap configs, by default in manifests/configuration
 	BootstrapConfigRelPath string
-	// start prometheus before test and stop after
-	Prometheus Prometheus
+	// set to true if needed to leave insolar alive after fail, for debug purposes etc
+	LeaveInsolarAliveIfFailed bool
+	LogCollector              LogCollector
+	Prometheus                Prometheus
 	// todo add context specify penv-167
 	// you can specify the context for kubectl
 	// KubeContext string
@@ -50,4 +52,11 @@ type Prometheus struct {
 	Enabled bool
 	// path to prom manifests from KubeRootPath
 	ManifestsRelPath string
+}
+
+type LogCollector struct {
+	// collect logs from nodes after each test
+	Enabled bool
+	// writable path to save logs, will be cleaned before save
+	PathToSave string
 }

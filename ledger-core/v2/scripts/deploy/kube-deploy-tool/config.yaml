@@ -1,14 +1,14 @@
 netparams:
 - nodescount: 3
-  waitinready: 1s
+  waitinreadystate: 1s
   waitbootstrap: 30s
   waitready: 60s
 - nodescount: 4
-  waitinready: 1s
+  waitinreadystate: 1s
   waitbootstrap: 30s
   waitready: 60s
 - nodescount: 5
-  waitinready: 1s
+  waitinreadystate: 1s
   waitbootstrap: 30s
   waitready: 60s
 kubeparams:
@@ -16,6 +16,10 @@ kubeparams:
   kuberootpath: /../scripts/deploy/kube/
   manifestsrelpath: manifests/
   bootstrapconfigrelpath: manifests/configuration/
+  leaveinsolaraliveiffailed: true
   prometheus:
     enabled: true
     manifestsrelpath: prometheus/
+  logcollector:
+    enabled: true
+    pathtosave: /tmp/insolar/logs/
