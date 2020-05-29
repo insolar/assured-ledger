@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -119,7 +120,7 @@ type errUnknownPayload struct {
 }
 
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
-	pl, err := payload.Unmarshal(msg.Payload)
+	_, pl, err := rms.Unmarshal(msg.Payload)
 	if err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")
 	}

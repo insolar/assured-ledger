@@ -30,7 +30,7 @@ func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global,
 		RequestedContent: flags,
 	}
 
-	rawPayLoad, err := payload.Marshal(payLoadMeta)
+	rawPayLoad, err := payLoadMeta.Marshal()
 	require.NoError(t, err)
 
 	return &statemachine.DispatcherMessage{

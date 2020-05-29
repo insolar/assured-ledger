@@ -11,7 +11,7 @@ import (
 )
 
 func NewMessage(pl Payload) (*message.Message, error) {
-	buf, err := Marshal(pl)
+	buf, err := pl.Marshal()
 	if err != nil {
 		return nil, err
 	}
