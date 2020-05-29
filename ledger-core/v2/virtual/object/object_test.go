@@ -215,18 +215,13 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 		smObject.SharedState.ActiveOrderedPendingCount = 0
 		smObject.SharedState.ActiveUnorderedPendingCount = 0
 		expectedApplyAdjustmentCount := 2
-		applyAdjustmentCount := 0
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			ApplyAdjustmentMock.Set(
-			func(s1 smachine.SyncAdjustment) (b1 bool) {
-				applyAdjustmentCount++
-				return true
-			})
+			ApplyAdjustmentMock.Return(true)
 
 		smObject.stepGotState(execCtx)
 
-		require.Equal(t, expectedApplyAdjustmentCount, applyAdjustmentCount)
+		require.Equal(t, expectedApplyAdjustmentCount, int(execCtx.ApplyAdjustmentAfterCounter()))
 	}
 }
