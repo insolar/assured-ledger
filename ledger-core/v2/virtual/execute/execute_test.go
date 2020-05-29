@@ -183,7 +183,6 @@ func TestSMExecute_Deduplication(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		Polymorph:           uint32(payload.TypeVCallRequest),
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
