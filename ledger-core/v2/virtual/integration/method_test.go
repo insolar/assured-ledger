@@ -7,7 +7,6 @@ package integration
 
 import (
 	"context"
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"testing"
 	"time"
 
@@ -24,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
