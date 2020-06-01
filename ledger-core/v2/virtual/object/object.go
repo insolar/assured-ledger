@@ -238,10 +238,10 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
-	sm.orderedPendingListFilledCtl = smsync.NewConditionalBool(false, "orderedPendingListFilled")
+	sm.orderedPendingListFilledCtl = smsync.NewConditionalBool(true, "orderedPendingListFilled")
 	sm.OrderedPendingListFilled = sm.orderedPendingListFilledCtl.SyncLink()
 
-	sm.unorderedPendingListFilledCtl = smsync.NewConditionalBool(false, "unorderedPendingListFilledCtl")
+	sm.unorderedPendingListFilledCtl = smsync.NewConditionalBool(true, "unorderedPendingListFilledCtl")
 	sm.UnorderedPendingListFilled = sm.unorderedPendingListFilledCtl.SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)
@@ -312,14 +312,10 @@ func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUp
 	if sm.ActiveOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
 		sm.createWaitOrderedPendingTableSM(ctx)
-	} else {
-		ctx.ApplyAdjustment(sm.orderedPendingListFilledCtl.NewValue(true))
 	}
 
 	if sm.ActiveUnorderedPendingCount > 0 {
 		sm.createWaitUnorderedPendingTableSM(ctx)
-	} else {
-		ctx.ApplyAdjustment(sm.unorderedPendingListFilledCtl.NewValue(true))
 	}
 
 	return ctx.Jump(sm.stepReadyToWork)
@@ -349,6 +345,9 @@ func (sm *SMObject) createWaitOrderedPendingTableSM(ctx smachine.ExecutionContex
 	}, func() {
 		sm.OrderedPendingListFilledCallback = syncSM.stop
 	})
+	if sm.OrderedPendingListFilledCallback.IsZero() {
+		panic(throw.IllegalState())
+	}
 }
 
 func (sm *SMObject) createWaitUnorderedPendingTableSM(ctx smachine.ExecutionContext) {
@@ -362,6 +361,9 @@ func (sm *SMObject) createWaitUnorderedPendingTableSM(ctx smachine.ExecutionCont
 	}, func() {
 		sm.UnorderedPendingListFilledCallback = syncSM.stop
 	})
+	if sm.UnorderedPendingListFilledCallback.IsZero() {
+		panic(throw.IllegalState())
+	}
 }
 
 func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
@@ -375,6 +377,10 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}, func() {
 		sm.AwaitPendingOrdered = syncSM.stop
 	})
+
+	if sm.AwaitPendingOrdered.IsZero() {
+		panic(throw.IllegalState())
+	}
 }
 
 func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
