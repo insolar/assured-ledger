@@ -1,4 +1,4 @@
-name: windows-checks
+name: windows-checks # checks executed on Windows, on both pull requests and master branch
 on:
   push:
     branches:

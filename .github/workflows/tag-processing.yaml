@@ -19,3 +19,4 @@ jobs:
           JIRA_LOGIN: ${{ secrets.JIRA_LOGIN }}
           JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

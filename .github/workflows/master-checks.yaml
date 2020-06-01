@@ -1,6 +1,10 @@
-name: linux-checks # checks executed on Linux, only on pull requests
+name: master-checks # checks that should be executed only on master branch
 on:
-  pull_request:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 2,4,6 * * *'
 env:
   KUBECONFIG: k3s.yaml
   GO_VERSION: 1.14
@@ -8,8 +12,8 @@ env:
   INSOLAR_LOG_LEVEL: warn
   GOTEST: 'gotestsum --'
 jobs:
-  tests-on-linux:
-    name: checks # don't change, this name is used in repository restricts!
+  tests-on-master:
+    name: master-checks
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
@@ -35,13 +39,6 @@ jobs:
         if: always()
         run: scripts/gitstatus.sh -v
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
-      - name: Install golangci-lint
-        if: always()
-        run: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.23.6
-      - name: Run golangci-lint
-        if: always()
-        run: make lint
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Run unit and slow tests and check code coverage
         if: always()
         run: make test_with_coverage
@@ -49,6 +46,26 @@ jobs:
       - name: Run functional tests multiple times with race detector
         if: always()
         run: make test_func_race
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests many times on `master` with reduced pulse time
+        run: make test_func_slow
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Install testrail-cli
+        run: |
+          go get -v -u github.com/insolar/testrail-cli
+          cd testrail-cli && go install cmd/testrail-cli/testrail-cli.go
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar
+      - name: Run integration tests and send results to testrail
+        env:
+          TR_USER: ${{ secrets.TR_USER }}
+          TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
+        run: make publish_integration_tests
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests and send results to testrail
+        env:
+          TR_USER: ${{ secrets.TR_USER }}
+          TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
+        run: make publish_functest
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Aggregate logs into a single archive
         if: always()
@@ -73,8 +90,16 @@ jobs:
         with:
           name: coverage-out
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
-  func-test-kuber:
-    name: func-test-kuber # don't change, this name is used in repository restricts!
+      - name: Send failure notification to Slack
+        if: ${{ failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+  func-test-kuber-on-master:
+    name: func-test-kuber-on-master
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/
@@ -147,3 +172,11 @@ jobs:
         with:
           name: kube-nodes-output
           path: ${{env.V2_PATH}}/kube-nodes-output.tgz
+      - name: Send failure notification to Slack
+        if: ${{ failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
