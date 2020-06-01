@@ -66,6 +66,9 @@ type Info struct {
 	OrderedPendingListFilled   smachine.SyncLink
 	UnorderedPendingListFilled smachine.SyncLink
 
+	OrderedPendingListFilledCallback   smachine.BargeIn
+	UnorderedPendingListFilledCallback smachine.BargeIn
+
 	objectState State
 }
 
@@ -79,6 +82,17 @@ func (i *Info) SetState(state State) {
 
 func (i *Info) GetState() State {
 	return i.objectState
+}
+
+func (i *Info) SetPendingListFilled(ctx smachine.ExecutionContext, tolerance contract.InterferenceFlag) {
+	switch tolerance {
+	case contract.CallIntolerable:
+		ctx.CallBargeIn(i.UnorderedPendingListFilledCallback)
+	case contract.CallTolerable:
+		ctx.CallBargeIn(i.OrderedPendingListFilledCallback)
+	default:
+		panic(throw.IllegalValue())
+	}
 }
 
 func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
@@ -297,11 +311,14 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.ActiveOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
+		sm.createWaitOrderedPendingTableSM(ctx)
 	} else {
 		ctx.ApplyAdjustment(sm.orderedPendingListFilledCtl.NewValue(true))
 	}
 
-	if sm.ActiveUnorderedPendingCount == 0 {
+	if sm.ActiveUnorderedPendingCount > 0 {
+		sm.createWaitUnorderedPendingTableSM(ctx)
+	} else {
 		ctx.ApplyAdjustment(sm.unorderedPendingListFilledCtl.NewValue(true))
 	}
 
@@ -319,6 +336,32 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 	}
 
 	return ctx.Sleep().ThenRepeat()
+}
+
+func (sm *SMObject) createWaitOrderedPendingTableSM(ctx smachine.ExecutionContext) {
+	syncSM := SMAwaitTableFill{
+		sync: sm.OrderedPendingListFilled,
+	}
+
+	// syncSM acquire OrderedPendingListFilledCallback semaphore in init step.
+	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return &syncSM
+	}, func() {
+		sm.OrderedPendingListFilledCallback = syncSM.stop
+	})
+}
+
+func (sm *SMObject) createWaitUnorderedPendingTableSM(ctx smachine.ExecutionContext) {
+	syncSM := SMAwaitTableFill{
+		sync: sm.UnorderedPendingListFilled,
+	}
+
+	// syncSM acquire UnorderedPendingListFilledCallback semaphore in init step.
+	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return &syncSM
+	}, func() {
+		sm.UnorderedPendingListFilledCallback = syncSM.stop
+	})
 }
 
 func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {

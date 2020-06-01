@@ -97,6 +97,12 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			ctx.SetTracerID(traceID)
 			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
 		}
+	case *payload.VDelegatedCallRequest:
+		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
+		}
 	default:
 		panic(errNoHandler{
 			messageTypeID: payloadTypeID,

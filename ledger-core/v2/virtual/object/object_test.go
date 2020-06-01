@@ -126,10 +126,15 @@ func Test_PendingBlocksExecution(t *testing.T) {
 			constructionCtxMock := smachine.NewConstructionContextMock(t)
 
 			resultSM := cb1(constructionCtxMock)
-			if assert.IsType(t, resultSM, &SMAwaitDelegate{}) &&
-				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync) {
-
+			switch resultSM.(type) {
+			case *SMAwaitDelegate:
+				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync)
 				cb2()
+			case *SMAwaitTableFill:
+				assert.Equal(t, smObject.OrderedPendingListFilled, resultSM.(*SMAwaitTableFill).sync)
+				cb2()
+			default:
+				t.Error("unexpected InitChildWithPostInit call")
 			}
 			return smachine.SlotLink{}
 		}
