@@ -1,0 +1,9 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- 00-SA.yaml
+- 01-prometheus-ConfigMap.yaml
+- 02-prometheus.yaml
+- 04-prometheus-node-exporter.yaml
+- 05-prometheus-Ingress.yaml
