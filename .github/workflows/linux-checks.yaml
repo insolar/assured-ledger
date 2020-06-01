@@ -55,6 +55,30 @@ jobs:
         if: always()
         run: make test_func_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests many times on `master` with reduced pulse time
+        if: ${{ github.event_name == 'push' }}
+        run: make test_func_slow
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Install testrail-cli
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          go get -v -u github.com/insolar/testrail-cli
+          cd testrail-cli && go install cmd/testrail-cli/testrail-cli.go
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar
+      - name: Run integration tests and send results to testrail
+        env:
+          TR_USER: ${{ secrets.TR_USER }}
+          TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
+        if: ${{ github.event_name == 'push' }}
+        run: make publish_integration_tests
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests and send results to testrail
+        env:
+          TR_USER: ${{ secrets.TR_USER }}
+          TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
+        if: ${{ github.event_name == 'push' }}
+        run: make publish_functest
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
       - name: Aggregate logs into a single archive
         if: always()
         run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
@@ -78,6 +102,14 @@ jobs:
         with:
           name: coverage-out
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/coverage.out
+      - name: Send failure notification to Slack
+        if: ${{ github.event_name == 'push' && failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
   func-test-kuber:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
