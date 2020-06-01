@@ -1,0 +1,78 @@
+name: master-checks # checks that should be executed only on master branch
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 2,4,6 * * *'
+env:
+  GO_VERSION: 1.14
+  CI_GOMAXPROCS: 0
+  INSOLAR_LOG_LEVEL: warn
+  GOTEST: 'gotestsum --'
+jobs:
+  tests-on-master:
+    name: master-checks
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+        with:
+          path: go/src/github.com/insolar/assured-ledger
+      - name: Set up go ${{env.GO_VERSION}}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{env.GO_VERSION}}
+      - name: Install Protoc
+        uses: arduino/setup-protoc@master
+      - name: Add bin to path
+        run: echo "::add-path::${{env.GOPATH}}/bin"
+      - name: Fetch vendor and check succesful build
+        run: |
+          go mod download
+          make vendor install-build-tools pre-build proto build
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Check if working directory is clean after build
+        if: always()
+        run: scripts/gitstatus.sh -v
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests many times on `master` with reduced pulse time
+        run: make test_func_slow
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Install testrail-cli
+        run: |
+          go get -v -u github.com/insolar/testrail-cli
+          cd testrail-cli && go install cmd/testrail-cli/testrail-cli.go
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar
+      - name: Run integration tests and send results to testrail
+        env:
+          TR_USER: ${{ secrets.TR_USER }}
+          TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
+        run: make publish_integration_tests
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Run functional tests and send results to testrail
+        env:
+          TR_USER: ${{ secrets.TR_USER }}
+          TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
+        run: make publish_functest
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2
+      - name: Upload logs to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: nodes-output
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/v2/nodes-output.tgz
+      - name: Send failure notification to Slack
+        if: ${{ failure() }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
