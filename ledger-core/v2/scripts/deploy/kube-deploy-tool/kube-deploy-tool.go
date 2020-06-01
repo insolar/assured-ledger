@@ -86,7 +86,7 @@ func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
 		if startAndReadyError != nil {
 			fmt.Print(startAndReadyError.Error())
 			if cfg.KubeParams.LeaveInsolarAliveIfFailed {
-				panic("LeaveInsolarAliveIfFailed is true, shutting down")
+				panic("LeaveInsolarAliveIfFailed is true, stopping deploy tool")
 			}
 		}
 
