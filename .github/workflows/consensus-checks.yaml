@@ -1,4 +1,4 @@
-name: consensus-checks
+name: consensus-checks # consensus perfomance checks
 on:
   push:
     branches:
