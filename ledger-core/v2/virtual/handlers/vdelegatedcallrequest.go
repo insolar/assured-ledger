@@ -7,6 +7,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
@@ -145,6 +146,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 
 		// pendingList already full
 		if pendingList.Count() == int(pendingCount) && !pendingList.Exist(s.Payload.RequestReference) {
+			fmt.Println(pendingList.Count(), int(pendingCount), pendingList.Exist(s.Payload.RequestReference))
 			resultCheck = delegationFullTable
 			return
 		}
