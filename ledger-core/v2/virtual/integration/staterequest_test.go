@@ -70,6 +70,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
+			Status:           payload.Ready,
 			AsOf:             server.GetPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
@@ -119,6 +120,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
+			Status:           payload.Ready,
 			AsOf:             server.GetPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
@@ -141,7 +143,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	reportChan := make(chan *payload.VStateUnavailable, 0)
+	reportChan := make(chan *payload.VStateReport, 0)
 
 	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
@@ -149,7 +151,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 			require.NoError(t, err)
 
 			switch plData := pl.(type) {
-			case *payload.VStateUnavailable:
+			case *payload.VStateReport:
 				reportChan <- plData
 				continue
 			}
@@ -165,9 +167,10 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	select {
 	case data := <-reportChan:
-		assert.Equal(t, &payload.VStateUnavailable{
-			Reason:   payload.Missing,
-			Lifeline: objectRef,
+		assert.Equal(t, &payload.VStateReport{
+			Status: payload.Missing,
+			AsOf: server.GetPulse().PulseNumber,
+			Callee: objectRef,
 		}, data)
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")

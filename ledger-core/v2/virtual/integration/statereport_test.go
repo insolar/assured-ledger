@@ -26,6 +26,7 @@ func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global,
 	class := testwalletProxy.GetClass()
 
 	payload := &payload.VStateReport{
+		Status: payload.Ready,
 		Callee: objectRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
@@ -33,6 +34,19 @@ func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global,
 				Class:     class,
 				State:     rawState,
 			},
+		},
+	}
+
+	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
+}
+
+func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Global,
+	stateStatus payload.VStateReport_StateStatus, state *payload.ObjectState) *message.Message {
+	payload := &payload.VStateReport{
+		Status: stateStatus,
+		Callee: objectRef,
+		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: state,
 		},
 	}
 
@@ -103,6 +117,46 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, newStateID, makeRawWalletState(t, 444))
 		server.SendMessage(ctx, msg)
 
+	}
+
+	checkBalance(ctx, t, server, objectRef, testBalance)
+}
+
+func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
+	t.Log("C4864")
+
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
+	defer server.Stop()
+
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
+
+	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
+	for _, reason := range reasons {
+		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil)
+		server.SendMessage(ctx, msg)
+	}
+}
+
+func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
+	t.Log("C4865")
+
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
+	defer server.Stop()
+
+	testBalance := uint32(555)
+	rawWalletState := makeRawWalletState(t, testBalance)
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+	{
+		// send VStateReport: save wallet
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
+	}
+
+	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
+	for _, reason := range reasons {
+		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil)
+		server.SendMessage(ctx, msg)
 	}
 
 	checkBalance(ctx, t, server, objectRef, testBalance)
