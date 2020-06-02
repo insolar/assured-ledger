@@ -13,6 +13,28 @@ type BargeInHolder interface {
 	CallWithParam(interface{}) bool
 }
 
+func NewNoopBargeIn(link StepLink) BargeIn {
+	if link.IsZero() {
+		return BargeIn{}
+	}
+
+	return BargeIn{update: StateUpdate{
+		marker: ContextMarker(link.step),
+		link: link.s,
+		param0: uint32(link.id),
+	}}
+}
+
+func NewNoopBargeInWithParam(link StepLink) BargeInWithParam {
+	if link.IsZero() {
+		return BargeInWithParam{}
+	}
+
+	return BargeInWithParam{link:link, applyFn: func(interface{}) BargeInCallbackFunc {
+		return nil
+	}}
+}
+
 type BargeIn struct {
 	update StateUpdate
 	marker subroutineMarker
