@@ -12,34 +12,29 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/token"
 )
-
-var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 type SMVDelegatedCallRequest struct {
 	// input arguments
 	Meta    *payload.Meta
 	Payload *payload.VDelegatedCallRequest
 
-	node reference.Global
-
 	objectSharedState object.SharedStateAccessor
 
 	// dependencies
-	objectCatalog     object.Catalog
-	messageSender     messageSenderAdapter.MessageSender
-	jetAffinityHelper jet.AffinityHelper
-	pulseSlot         *conveyor.PulseSlot
+	objectCatalog object.Catalog
+	messageSender messageSenderAdapter.MessageSender
+	tokenService  token.Service
+	pulseSlot     *conveyor.PulseSlot
 }
 
 var dSMVDelegatedCallRequestInstance smachine.StateMachineDeclaration = &dSMVDelegatedCallRequest{}
@@ -54,7 +49,7 @@ func (*dSMVDelegatedCallRequest) InjectDependencies(sm smachine.StateMachine, _ 
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
-	injector.MustInject(&s.jetAffinityHelper)
+	injector.MustInject(&s.tokenService)
 }
 
 func (*dSMVDelegatedCallRequest) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -69,7 +64,6 @@ func (s *SMVDelegatedCallRequest) GetStateMachineDeclaration() smachine.StateMac
 }
 
 func (s *SMVDelegatedCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	s.node = s.jetAffinityHelper.Me()
 	return ctx.Jump(s.stepProcess)
 }
 
@@ -198,17 +192,11 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
+	token := s.tokenService.GetCallDelegationToken(s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
+
 	response := payload.VDelegatedCallResponse{
-		RefIn: s.Payload.RefIn,
-		DelegationSpec: payload.CallDelegationToken{
-			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-			Approver:          s.node,
-			DelegateTo:        s.Meta.Sender,
-			PulseNumber:       s.pulseSlot.PulseData().PulseNumber,
-			Callee:            s.Payload.Callee,
-			Caller:            s.Meta.Sender,
-			ApproverSignature: deadBeef[:],
-		},
+		RefIn:          s.Payload.RefIn,
+		DelegationSpec: token,
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

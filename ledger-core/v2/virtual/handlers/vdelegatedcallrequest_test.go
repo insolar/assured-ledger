@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
@@ -25,7 +24,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/token"
 )
+
+var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 func TestSMVDelegatedCallRequest(t *testing.T) {
 	oneRandomOrderedTable := object.NewRequestTable()
@@ -65,7 +67,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse: &payload.VDelegatedCallResponse{
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
 				},
 			},
@@ -80,7 +81,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse: &payload.VDelegatedCallResponse{
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
 				},
 			},
@@ -96,7 +96,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse: &payload.VDelegatedCallResponse{
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
 				},
 			},
@@ -213,21 +212,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 
-			expectedResponse := &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					Approver:          nodeRef,
-					DelegateTo:        caller,
-					PulseNumber:       pulse.OfNow(),
-					Callee:            objectRef,
-					Caller:            caller,
-					ApproverSignature: []byte{0xde, 0xad, 0xbe, 0xef},
-				},
-			}
+			var tokenService = token.NewService(ctx, nodeRef)
 
-			var jetMock jet.AffinityHelper = jet.NewAffinityHelperMock(mc).MeMock.Return(nodeRef)
-
-			slotMachine.AddInterfaceDependency(&jetMock)
+			slotMachine.AddInterfaceDependency(&tokenService)
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
 				Payload: &payload.VDelegatedCallRequest{
@@ -264,6 +251,13 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 				return
 			}
+
+			expectedResponse := tc.expectedResponse
+			expectedResponse.DelegationSpec.Approver = nodeRef
+			expectedResponse.DelegationSpec.DelegateTo = caller
+			expectedResponse.DelegationSpec.Caller = caller
+			expectedResponse.DelegationSpec.PulseNumber = pulse.OfNow()
+			expectedResponse.DelegationSpec.Callee = objectRef
 
 			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
 				res := msg.(*payload.VDelegatedCallResponse)
