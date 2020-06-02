@@ -17,13 +17,13 @@ import (
 var _ smachine.StepLogger = &DebugStepLogger{}
 
 type UpdateEvent struct {
-	notEmpty bool
-	SM       smachine.StateMachine
-	Data     smachine.StepLoggerData
-	Update   smachine.StepLoggerUpdateData
+	notEmpty    bool
+	SM          smachine.StateMachine
+	Data        smachine.StepLoggerData
+	Update      smachine.StepLoggerUpdateData
 	CustomEvent interface{}
-	AdapterID smachine.AdapterID
-	CallID   uint64
+	AdapterID   smachine.AdapterID
+	CallID      uint64
 }
 
 func (e UpdateEvent) IsEmpty() bool {
@@ -76,9 +76,9 @@ func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent inte
 	c.StepLogger.LogEvent(data, customEvent, fields)
 
 	c.events <- UpdateEvent{
-		notEmpty: true,
-		SM:       c.sm,
-		Data:     data,
+		notEmpty:    true,
+		SM:          c.sm,
+		Data:        data,
 		CustomEvent: customEvent,
 	}
 
@@ -89,11 +89,11 @@ func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smac
 	c.StepLogger.LogAdapter(data, adapterID, callID, fields)
 
 	c.events <- UpdateEvent{
-		notEmpty: true,
-		SM:       c.sm,
-		Data:     data,
+		notEmpty:  true,
+		SM:        c.sm,
+		Data:      data,
 		AdapterID: adapterID,
-		CallID: callID,
+		CallID:    callID,
 	}
 
 	<-c.continueSig
@@ -140,10 +140,7 @@ func (v DebugMachineLogger) GetEvent() UpdateEvent {
 }
 
 func (v DebugMachineLogger) Continue() {
-	select {
-	case v.continueExecution <- struct{}{}:
-	default:
-	}
+	v.continueExecution <- struct{}{}
 }
 
 func (v *DebugMachineLogger) SetPredicate(fn LoggerSlotPredicateFn) {
@@ -161,8 +158,8 @@ func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel) {
 	for {
 		ok := false
 		select {
-		case _, ok = <- v.events:
-		case _, ok = <- flushDone:
+		case _, ok = <-v.events:
+		case _, ok = <-flushDone:
 		}
 		if !ok {
 			return
