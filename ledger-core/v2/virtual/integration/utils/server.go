@@ -123,6 +123,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
+	virtualDispatcher.AffinityHelper = s.JetCoordinatorMock
 
 	if convlog.UseTextConvLog {
 		virtualDispatcher.MachineLogger = convlog.MachineLogger{}

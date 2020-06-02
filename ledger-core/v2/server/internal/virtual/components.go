@@ -128,6 +128,7 @@ func initComponents(
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
+	virtualDispatcher.AffinityHelper = jc
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
