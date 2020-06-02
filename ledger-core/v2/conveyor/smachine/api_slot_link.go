@@ -26,6 +26,16 @@ func NoStepLink() StepLink {
 	return StepLink{}
 }
 
+var deadSlot = Slot{}
+
+func DeadSlotLink() SlotLink {
+	return SlotLink{id: 1, s: &deadSlot}
+}
+
+func DeadStepLink() StepLink {
+	return StepLink{SlotLink: DeadSlotLink(), step: numberOfReservedSteps}
+}
+
 // A lazy-like link to a slot, that can detect if a slot is dead */
 type SlotLink struct {
 	id SlotID

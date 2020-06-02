@@ -13,7 +13,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
@@ -23,7 +22,6 @@ type VirtualStepController struct {
 
 	RunnerDescriptorCache *testutils.DescriptorCacheMockWrapper
 	MachineManager        machine.Manager
-	MessageSender         *messagesender.ServiceMockWrapper
 }
 
 func New(ctx context.Context, t *testing.T, suppressLogError bool) *VirtualStepController {

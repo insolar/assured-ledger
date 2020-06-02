@@ -126,18 +126,24 @@ func Test_PendingBlocksExecution(t *testing.T) {
 			constructionCtxMock := smachine.NewConstructionContextMock(t)
 
 			resultSM := cb1(constructionCtxMock)
-			if assert.IsType(t, resultSM, &SMAwaitDelegate{}) &&
-				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync) {
-
+			switch resultSM.(type) {
+			case *SMAwaitDelegate:
+				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync)
+				resultSM.(*SMAwaitDelegate).stop = smachine.NewNoopBargeIn(smachine.DeadStepLink())
 				cb2()
+			case *SMAwaitTableFill:
+				assert.Equal(t, smObject.OrderedPendingListFilled, resultSM.(*SMAwaitTableFill).sync)
+				resultSM.(*SMAwaitTableFill).stop = smachine.NewNoopBargeIn(smachine.DeadStepLink())
+				cb2()
+			default:
+				t.Error("unexpected InitChildWithPostInit call")
 			}
 			return smachine.SlotLink{}
 		}
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			InitChildWithPostInitMock.Set(checkTypeAndCall).
-			ApplyAdjustmentMock.Return(true)
+			InitChildWithPostInitMock.Set(checkTypeAndCall)
 
 		smObject.stepGotState(execCtx)
 	}
@@ -175,7 +181,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smObject.stepReadyToWork))
 
-	require.Equal(t, 2, slotMachine.GetOccupiedSlotCount())
+	require.Equal(t, 3, slotMachine.GetOccupiedSlotCount())
 
 	mc.Finish()
 }
@@ -214,14 +220,10 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 		smObject.SharedState.ActiveOrderedPendingCount = 0
 		smObject.SharedState.ActiveUnorderedPendingCount = 0
-		expectedApplyAdjustmentCount := 2
 
 		execCtx := smachine.NewExecutionContextMock(mc).
-			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			ApplyAdjustmentMock.Return(true)
+			JumpMock.Set(stepChecker.CheckJumpW(t))
 
 		smObject.stepGotState(execCtx)
-
-		require.Equal(t, expectedApplyAdjustmentCount, int(execCtx.ApplyAdjustmentAfterCounter()))
 	}
 }

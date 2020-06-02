@@ -18,3 +18,7 @@ const (
 func (t CallDelegationTokenType) Equal(other CallDelegationTokenType) bool {
 	return t == other
 }
+
+func (t CallDelegationToken) IsZero() bool {
+	return t.TokenTypeAndFlags == DelegationTokenTypeUninitialized
+}
