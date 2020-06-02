@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
@@ -30,27 +29,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
 )
-
-func wrapVCallRequest(pulseNumber pulse.Number, pl payload.VCallRequest) (*message.Message, error) {
-	plBytes, err := pl.Marshal()
-	if err != nil {
-		return nil, errors.W(err, "failed to marshal VCallRequest")
-	}
-
-	msg, err := payload.NewMessage(&payload.Meta{
-		Payload:    plBytes,
-		Sender:     reference.Global{},
-		Receiver:   reference.Global{},
-		Pulse:      pulseNumber,
-		ID:         nil,
-		OriginHash: payload.MessageHash{},
-	})
-	if err != nil {
-		return nil, errors.W(err, "failed to create new message")
-	}
-
-	return msg, nil
-}
 
 func Method_PrepareObject(ctx context.Context, server *utils.Server, class reference.Global, object reference.Local) error {
 	isolation := contract.ConstructorIsolation()
@@ -73,10 +51,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 		CallOutgoing:        object,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
-	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
-	if err != nil {
-		return errors.W(err, "failed to construct VCallRequest message")
-	}
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 
 	requestIsDone := make(chan error, 0)
 
@@ -134,8 +109,7 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
-		require.NoError(t, err)
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 
 		requestIsDone := make(chan struct{}, 0)
 
@@ -243,8 +217,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallOutgoing:        server.RandomLocalWithPulse(),
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
-			msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
-			require.NoError(t, err)
+			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 
 			server.SendMessage(ctx, msg)
 		}
@@ -302,18 +275,6 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
-		plBytes, err := pl.Marshal()
-		require.NoError(t, err)
-
-		msg := payload.MustNewMessage(&payload.Meta{
-			Payload:    plBytes,
-			Sender:     reference.Global{},
-			Receiver:   reference.Global{},
-			Pulse:      server.GetPulse().PulseNumber,
-			ID:         nil,
-			OriginHash: payload.MessageHash{},
-		})
-
 		testIsDone := make(chan struct{}, 0)
 
 		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
@@ -343,6 +304,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 			return nil
 		})
 
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 		server.SendMessage(ctx, msg)
 
 		<-testIsDone
@@ -393,8 +355,8 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
 	}
 
 	// Change pulse to force send VStateRequest

@@ -31,8 +31,6 @@ func TestInitViaCTMethod(t *testing.T) {
 		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
 		CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 	}
-	msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
-	require.NoError(t, err)
 
 	requestIsDone := make(chan struct{}, 0)
 
@@ -55,6 +53,7 @@ func TestInitViaCTMethod(t *testing.T) {
 		return nil
 	})
 
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 	server.SendMessage(ctx, msg)
 
 	select {

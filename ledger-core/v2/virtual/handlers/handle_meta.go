@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/uuid"
-
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -40,8 +38,8 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	messageMeta := message.MessageMeta
 
 	traceID := messageMeta.Get(defaults.TraceID)
-	if traceID == "" { // TODO[bigbes]: dirty hack, if we have no traceID - replace it with surrogate one
-		traceID = uuid.New().String()
+	if traceID == "" {
+		panic("TraceID is empty")
 	}
 
 	payloadBytes := payloadMeta.Payload
