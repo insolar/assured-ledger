@@ -113,11 +113,15 @@ func (m *SlotMachine) getPublished(key interface{}) (interface{}, bool) {
 	if !isValidPublishKey(key) {
 		return nil, false
 	}
+	return m._getPublished(key)
+}
+
+func (m *SlotMachine) _getPublished(key interface{}) (interface{}, bool) {
 	return m.localRegistry.Load(key)
 }
 
 func (m *SlotMachine) getGlobalPublished(key interface{}) SlotAliasValue {
-	if v, ok := m.getPublished(globalAliasKey{key}); ok {
+	if v, ok := m._getPublished(globalAliasKey{key}); ok {
 		return v.(SlotAliasValue)
 	}
 	if sar := m.config.SlotAliasRegistry; sar != nil {
