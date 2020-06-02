@@ -18,7 +18,16 @@ func TestGlobalPublishWithoutRegistry(t *testing.T) {
 	ctx := slotContext{}
 	ctx.s = &slot
 	ctx.mode = updCtxExec
-	require.True(t, ctx.PublishGlobalAlias("test"))
-	link := ctx.GetPublishedGlobalAlias("test")
+
+	key := "test"
+	require.Nil(t, ctx.GetPublished(key))
+	link := ctx.GetPublishedGlobalAlias(key)
+	require.True(t, link.IsZero())
+
+	require.True(t, ctx.PublishGlobalAlias(key))
+
+	require.Nil(t, ctx.GetPublished(key))
+	link = ctx.GetPublishedGlobalAlias(key)
+	require.False(t, link.IsZero())
 	require.Equal(t, slot.NewLink(), link)
 }
