@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
@@ -52,8 +53,9 @@ type Dispatcher struct {
 	MachineLogger  smachine.SlotMachineLogger
 
 	// Components
-	Runner        *runner.DefaultService
-	MessageSender messagesender.Service
+	Runner         *runner.DefaultService
+	MessageSender  messagesender.Service
+	AffinityHelper jet.AffinityHelper
 
 	runnerAdapter        *runnerAdapter.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
@@ -104,6 +106,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
 	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(lr.Conveyor)
+	lr.Conveyor.AddInterfaceDependency(&lr.AffinityHelper)
 
 	return nil
 }
