@@ -15,7 +15,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file
-	go-acc --covermode=count --output=coverage.tmp.out $(PACKAGES) -- -tags=slowtest -count=1 $(TEST_ARGS) -json | tee "integration_test.log"
+	/Users/elsacramento/go/bin/go-acc --covermode=count --output=coverage.tmp.out $(PACKAGES) -- -tags=slowtest -count=1 $(TEST_ARGS) -json > "integration_test.log" 2>&1
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
