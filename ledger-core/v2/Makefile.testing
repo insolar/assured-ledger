@@ -15,7 +15,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file
-	go-acc --covermode=count --output=coverage.tmp.out $(PACKAGES) -- -tags=slowtest -count=1 $(TEST_ARGS)
+	go-acc --covermode=count --output=coverage.tmp.out --ignore ledger-v2 ./... -- -tags=slowtest -count=1 $(TEST_ARGS) -json > "integration_test.log"
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -89,12 +89,11 @@ test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes clus
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
 .PHONY: publish_integration_tests
-publish_integration_tests: ## run only integration tests and send results to testrail
-	go test -test.v $(TEST_ARGS) -json ./virtual/integration/ | tee "integration_test.log"
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FILE="integration_test.log"
+publish_integration_tests: ## send results to testrail
+	cat integration_test.log | grep "Test" > integration_test_clean.log
+	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FILE="integration_test_clean.log"
 
 .PHONY: publish_functest
-publish_functest: ## run functest and send results to testrail
-	kill -9 `pgrep insolar`
-	go test -test.v $(TEST_ARGS) -json -tags "functest" ./application/functest | tee "functional_test.log"
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=105 --SKIP-DESC=true --FILE="functional_test.log"
+publish_functest: ## send results to testrail
+	cat functional_test.log | grep "Test" > functional_test_clean.log
+	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=105 --SKIP-DESC=true --FILE="functional_test_clean.log"
