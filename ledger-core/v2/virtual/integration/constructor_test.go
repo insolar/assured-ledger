@@ -73,20 +73,6 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		Arguments:           nil,
 	}
 
-	plBytes, err := pl.Marshal()
-	require.NoError(t, err)
-
-	msg := payload.MustNewMessage(&payload.Meta{
-		Payload:    plBytes,
-		Sender:     reference.Global{},
-		Receiver:   reference.Global{},
-		Pulse:      server.GetPulse().PulseNumber,
-		ID:         nil,
-		OriginHash: payload.MessageHash{},
-	})
-
-	testIsDone := make(chan struct{}, 0)
-
 	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		assert.Len(t, messages, 1)
 
@@ -111,14 +97,13 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 		assert.Equal(t, callResultPayload.(*payload.VCallResult).ReturnArguments, []byte("345"))
 
-		testIsDone <- struct{}{}
-
 		return nil
 	})
 
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 	server.SendMessage(ctx, msg)
 
-	<-testIsDone
+	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
 }
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
@@ -149,20 +134,6 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
-		plBytes, err := pl.Marshal()
-		require.NoError(t, err)
-
-		msg := payload.MustNewMessage(&payload.Meta{
-			Payload:    plBytes,
-			Sender:     reference.Global{},
-			Receiver:   reference.Global{},
-			Pulse:      server.GetPulse().PulseNumber,
-			ID:         nil,
-			OriginHash: payload.MessageHash{},
-		})
-
-		testIsDone := make(chan struct{}, 0)
-
 		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 			assert.Len(t, messages, 1)
 
@@ -185,17 +156,12 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			assert.Equal(t, uint64(payload.TypeVCallResultPolymorthID), callResultType)
 			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
 
-			testIsDone <- struct{}{}
-
 			return nil
 		})
 
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 		server.SendMessage(ctx, msg)
 
-		select {
-		case <-time.After(10 * time.Second):
-			require.Failf(t, "", "timeout")
-		case <-testIsDone:
-		}
+		assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
 	}
 }

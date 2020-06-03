@@ -7,7 +7,6 @@ package virtual
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
@@ -19,18 +18,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/token"
 )
-
-// TODO[bigbes] commented until panics will show description
-// type errUnknownEvent struct {
-// 	*log.Msg
-//
-// 	InputType interface{} `fmt:"%T"`
-// }
 
 func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
@@ -39,9 +32,9 @@ func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputE
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
-		// TODO[bigbes] commented until panics will show description
-		// panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
-		panic(fmt.Sprintf("unknown event type %T", input))
+		panic(throw.E("unknown event type", struct {
+			InputType interface{} `fmt:"%T"`
+		}{InputType: input}))
 	}
 }
 

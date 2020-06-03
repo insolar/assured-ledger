@@ -209,8 +209,10 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	if (isConstructor && !objectDescriptorIsEmpty) || (!isConstructor && objectDescriptorIsEmpty) {
-		// TODO[bigbes]: handle different errors here correctly
+	switch {
+	case isConstructor && !objectDescriptorIsEmpty: // we're executing constructor and have not empty descriptor
+		panic(throw.NotImplemented())
+	case !isConstructor && objectDescriptorIsEmpty: // we're executing method and object descriptor is empty
 		panic(throw.NotImplemented())
 	}
 
@@ -521,7 +523,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		oldRequestResult := s.executionNewState.Result
 
 		// we should overwrite old side effect with new one - deactivation of object
-		// TODO[bigbes]: maybe we should move that logic to runner
 		s.executionNewState.Result = requestresult.New(oldRequestResult.Result(), oldRequestResult.ObjectReference())
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}

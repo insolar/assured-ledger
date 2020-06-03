@@ -39,8 +39,8 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 	{
 		// send VStateReport: save wallet
 		rawWalletState := makeRawWalletState(t, testBalance)
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
 	}
 
 	// generate new state since it will be changed by CallAPIAddAmount

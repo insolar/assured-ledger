@@ -8,7 +8,6 @@ package integration
 import (
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,15 +31,6 @@ func TestVirtual_Scenario1(t *testing.T) {
 		expectedBalance      = 1000000000 + uint(count)*amount
 		outChan              = make(chan error, count)
 	)
-
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		// verify and decode incoming message
-		assert.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-
-		return nil
-	})
 
 	var (
 		walletReference reference.Global
@@ -112,15 +102,6 @@ func TestVirtual_Scenario2(t *testing.T) {
 		amount          uint = 100
 		expectedBalance      = 1000000000 + uint(count)*amount
 	)
-
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		// verify and decode incoming message
-		assert.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-
-		return nil
-	})
 
 	var (
 		walletReference reference.Global
