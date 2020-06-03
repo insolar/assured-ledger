@@ -1,0 +1,54 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package handlers
+
+import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
+type SMVDelegatedCallResponse struct {
+	// input arguments
+	Meta    *payload.Meta
+	Payload *payload.VDelegatedCallResponse
+}
+
+var dSMVDelegatedCallResponseInstance smachine.StateMachineDeclaration = &dSMVDelegatedCallResponse{}
+
+type dSMVDelegatedCallResponse struct {
+	smachine.StateMachineDeclTemplate
+}
+
+func (*dSMVDelegatedCallResponse) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+}
+
+func (*dSMVDelegatedCallResponse) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+	s := sm.(*SMVDelegatedCallResponse)
+	return s.Init
+}
+
+/* -------- Instance ------------- */
+
+func (s *SMVDelegatedCallResponse) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return dSMVDelegatedCallResponseInstance
+}
+
+func (s *SMVDelegatedCallResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVDelegatedCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(s.Payload.RefIn)
+	if slotLink.IsZero() {
+		return ctx.Error(errors.New("bargeIn was not published"))
+	}
+	if !bargeInHolder.CallWithParam(s.Payload) {
+		return ctx.Error(errors.New("fail to call BargeIn"))
+	}
+	return ctx.Stop()
+}

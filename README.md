@@ -13,6 +13,6 @@ This project is currently under development. It's the next generation of [Insola
 To build the project run:
 
 ```
-cd ledger-core/v2
+cd ledger-core
 make vendor pre-build build
 ````
