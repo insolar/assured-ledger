@@ -68,7 +68,7 @@ func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
 
 			err = insolarManager.waitForReady(net)
 			if err != nil {
-				return fmt.Errorf("failed to wait insolar ready: %w\n nodes count: %d", err, net.NodesCount)
+				return fmt.Errorf("nodes count: %d, failed to wait insolar ready: %w", net.NodesCount, err)
 			}
 
 			time.Sleep(net.WaitInReadyState)

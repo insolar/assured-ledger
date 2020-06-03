@@ -9,6 +9,7 @@ spec:
       app: virtual
   replicas: 5
   serviceName: platform-network
+  podManagementPolicy: "Parallel"
   template:
     metadata:
       annotations:
@@ -78,12 +79,11 @@ spec:
             - name: virtual-config
               mountPath: /etc/insolar
               readOnly: true
-            - name: node-certs
-              mountPath: /etc/insolar/certs
-              readOnly: true
             - name: node-keys
               mountPath: /etc/insolar/keys
               readOnly: true
+            - name: certs-data
+              mountPath: /etc/insolar/certs
       volumes:
         - name: virtual-config
           configMap:
@@ -91,10 +91,10 @@ spec:
         - name: node-keys
           secret:
             secretName: node-keys
-        - name: node-certs
-          secret:
-            secretName: node-certs
         - name: wait-script
           configMap:
             defaultMode: 0550
             name: wait-script
+        - name: certs-data
+          persistentVolumeClaim:
+            claimName: certs-volume
