@@ -31,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/token"
 )
 
 type Server struct {
@@ -106,7 +107,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 	s.pulseGenerator = testutils.NewPulseGenerator(10)
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
-		MeMock.Return(gen.UniqueReference()).
+		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
 
 	s.PublisherMock = &mock.PublisherMock{}
@@ -123,6 +124,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
+	virtualDispatcher.TokenService = token.NewService(ctx, s.caller)
 
 	if convlog.UseTextConvLog {
 		virtualDispatcher.MachineLogger = convlog.MachineLogger{}

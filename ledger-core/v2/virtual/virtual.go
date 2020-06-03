@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/token"
 )
 
 // TODO[bigbes] commented until panics will show description
@@ -54,6 +55,7 @@ type Dispatcher struct {
 	// Components
 	Runner        *runner.DefaultService
 	MessageSender messagesender.Service
+	TokenService  token.Service
 
 	runnerAdapter        *runnerAdapter.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
@@ -96,6 +98,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
+	lr.Conveyor.AddInterfaceDependency(&lr.TokenService)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
