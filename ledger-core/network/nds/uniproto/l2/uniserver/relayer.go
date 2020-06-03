@@ -8,7 +8,7 @@ package uniserver
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 )
 
 type Relayer interface {

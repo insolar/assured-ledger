@@ -9,8 +9,8 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func BucketConfigByThroughput(bytePerS int, refillUnit uint64, burst int, quantum uint32) BucketConfig {

@@ -5,7 +5,7 @@
 
 package uniserver
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 
 // TODO
 type Stats struct {

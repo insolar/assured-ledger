@@ -6,7 +6,7 @@
 package uniserver
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 type BlacklistManager interface {

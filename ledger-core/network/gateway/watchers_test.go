@@ -11,8 +11,9 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func TestPulseWatchdog(t *testing.T) {

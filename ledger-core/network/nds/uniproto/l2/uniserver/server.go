@@ -13,11 +13,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l1"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 type ServerConfig struct {

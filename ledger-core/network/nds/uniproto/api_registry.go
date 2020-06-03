@@ -6,8 +6,9 @@
 package uniproto
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 type RegisterControllerFunc func(ProtocolType, Descriptor, Controller, Receiver)

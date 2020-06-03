@@ -6,9 +6,10 @@
 package msgdelivery
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
 )
 
 func newRetryMsgWorker(sender *msgSender, parallel, postponed int) *retryMsgWorker {

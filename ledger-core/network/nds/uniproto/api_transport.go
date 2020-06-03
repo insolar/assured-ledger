@@ -6,7 +6,7 @@
 package uniproto
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l1"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
 )
 
 type OutFunc func(l1.BasicOutTransport) (canRetry bool, err error)

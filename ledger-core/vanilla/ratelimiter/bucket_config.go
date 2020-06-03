@@ -8,7 +8,7 @@ package ratelimiter
 import (
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type BucketConfig struct {

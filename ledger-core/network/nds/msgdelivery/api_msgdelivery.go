@@ -5,7 +5,7 @@
 
 package msgdelivery
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
+import "github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 
 type Service interface {
 	ShipTo(to DeliveryAddress, shipment Shipment) error

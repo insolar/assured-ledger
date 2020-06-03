@@ -8,7 +8,7 @@ package msgdelivery
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type DedupID uint32

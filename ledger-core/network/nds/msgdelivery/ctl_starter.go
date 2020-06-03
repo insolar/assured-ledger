@@ -6,10 +6,11 @@
 package msgdelivery
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 )
 
 type protoStarter struct {

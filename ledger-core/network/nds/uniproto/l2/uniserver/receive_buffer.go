@@ -9,11 +9,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 func NewReceiveBuffer(regularLimit, priorityLimit, largeLimit int, dispatcher uniproto.Dispatcher) ReceiveBuffer {

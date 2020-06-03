@@ -8,7 +8,7 @@ package uniserver
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l1"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
 )
 
 var _ l1.BasicOutTransport = &outFacade{}

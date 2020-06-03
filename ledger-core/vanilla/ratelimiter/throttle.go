@@ -9,8 +9,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewController(trafficUnit uint32, refillPeriod time.Duration) *Controller {

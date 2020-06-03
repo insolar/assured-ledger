@@ -6,8 +6,8 @@
 package ratelimiter
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RefillQuota struct {

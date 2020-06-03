@@ -71,26 +71,27 @@ func (t *udpTransport) Address() string {
 func (t *udpTransport) Start(ctx context.Context) error {
 	logger := inslogger.FromContext(ctx)
 
-	if atomic.CompareAndSwapUint32(&t.started, 0, 1) {
-
-		t.mutex.Lock()
-		defer t.mutex.Unlock()
-
-		var err error
-		t.conn, err = net.ListenPacket("udp", t.address)
-		if err != nil {
-			return errors.W(err, "failed to listen UDP")
-		}
-
-		t.address, err = resolver.Resolve(t.fixedPublicAddress, t.conn.LocalAddr().String())
-		if err != nil {
-			return errors.W(err, "failed to resolve public address")
-		}
-
-		logger.Info("[ Start ] Start UDP transport")
-		ctx, t.cancel = context.WithCancel(ctx)
-		go t.loop(ctx)
+	if !atomic.CompareAndSwapUint32(&t.started, 0, 1) {
+		return nil
 	}
+
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	var err error
+	t.conn, err = net.ListenPacket("udp", t.address)
+	if err != nil {
+		return errors.W(err, "failed to listen UDP")
+	}
+
+	t.address, err = resolver.Resolve(t.fixedPublicAddress, t.conn.LocalAddr().String())
+	if err != nil {
+		return errors.W(err, "failed to resolve public address")
+	}
+
+	logger.Info("[ Start ] Start UDP transport")
+	ctx, t.cancel = context.WithCancel(ctx)
+	go t.loop(ctx)
 
 	return nil
 }

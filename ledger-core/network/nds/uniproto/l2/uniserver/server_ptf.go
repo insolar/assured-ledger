@@ -6,11 +6,12 @@
 package uniserver
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto/l1"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 var _ PeerTransportFactory = &peerTransportFactory{}

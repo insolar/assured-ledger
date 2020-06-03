@@ -8,7 +8,7 @@ package nwapi
 import (
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func FromUDPAddr(a *net.UDPAddr) Address {

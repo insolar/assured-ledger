@@ -8,8 +8,8 @@ package ratelimiter
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewPeriodManager(scale uint32) (*PeriodManager, func(uint)) {

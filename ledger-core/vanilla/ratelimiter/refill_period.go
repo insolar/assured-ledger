@@ -8,7 +8,7 @@ package ratelimiter
 import (
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 )
 
 /****************************************************/

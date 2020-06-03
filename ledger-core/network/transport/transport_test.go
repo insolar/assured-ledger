@@ -11,11 +11,13 @@ import (
 	"log"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+
 	"github.com/insolar/component-manager"
+
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 type suiteTest struct {

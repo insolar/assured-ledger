@@ -6,11 +6,12 @@
 package msgdelivery
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/iokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 // Flags for StatePacket

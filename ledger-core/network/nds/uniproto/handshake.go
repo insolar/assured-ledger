@@ -6,7 +6,7 @@
 package uniproto
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 /*

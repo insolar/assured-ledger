@@ -8,8 +8,8 @@ package uniproto
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func SerializePulseNumber(pn pulse.Number, w io.Writer) error {

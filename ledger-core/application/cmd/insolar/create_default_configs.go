@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"path"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/bootstrap"
 	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/cmd/pulsewatcher/config"

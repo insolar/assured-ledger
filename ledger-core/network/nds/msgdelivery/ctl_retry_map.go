@@ -8,7 +8,7 @@ package msgdelivery
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
 )
 
 type ttlMap struct {

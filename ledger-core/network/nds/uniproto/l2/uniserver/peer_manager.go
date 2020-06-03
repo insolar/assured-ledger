@@ -9,11 +9,12 @@ import (
 	"math"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
 )
 
 func NewPeerManager(factory PeerTransportFactory, local nwapi.Address, localFn func(*Peer)) *PeerManager {

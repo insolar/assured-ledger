@@ -9,7 +9,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // HostID is a protocol-independent locally unique id of a peer. This id wll change after de-registration of a peer.

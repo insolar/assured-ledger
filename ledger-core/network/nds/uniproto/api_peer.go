@@ -8,8 +8,9 @@ package uniproto
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 type Peer interface {

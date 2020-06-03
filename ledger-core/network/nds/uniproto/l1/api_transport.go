@@ -10,8 +10,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
 )
 
 type SessionfulTransport interface {

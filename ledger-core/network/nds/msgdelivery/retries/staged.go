@@ -8,7 +8,7 @@ package retries
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const RetryStages = 3

@@ -9,8 +9,9 @@ import (
 	"context"
 	"net"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi/nwaddr"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi/nwaddr"
 )
 
 type BasicAddressResolver interface {

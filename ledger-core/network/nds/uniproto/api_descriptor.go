@@ -5,7 +5,7 @@
 
 package uniproto
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
 type Descriptor struct {
 	// TLS config

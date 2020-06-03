@@ -9,9 +9,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/ratelimiter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/capacity"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
 )
 
 type TrafficConfig struct {

@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nds/msgdelivery/retries"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery/retries"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 type stateSender struct {

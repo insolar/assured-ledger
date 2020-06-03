@@ -5,7 +5,7 @@
 
 package uniproto
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/network/nwapi"
+import "github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 
 var _ nwapi.DeserializationContext = packetContext{}
 

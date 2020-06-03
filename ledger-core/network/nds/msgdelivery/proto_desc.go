@@ -5,7 +5,7 @@
 
 package msgdelivery
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/network/nds/uniproto"
+import "github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 
 const Protocol = uniproto.ProtocolTypeMessageDelivery
 
