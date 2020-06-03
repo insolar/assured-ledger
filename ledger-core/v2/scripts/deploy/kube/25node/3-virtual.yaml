@@ -7,7 +7,7 @@ spec:
   selector:
     matchLabels:
       app: virtual
-  replicas: 5
+  replicas: 25
   serviceName: platform-network
   template:
     metadata:
@@ -85,9 +85,10 @@ spec:
               mountPath: /etc/insolar/keys
               readOnly: true
       volumes:
+        - $patch: replace
         - name: node-certs
-          secret:
-            secretName: node-certs
+          persistentVolumeClaim:
+            claimName: node-certs
         - name: virtual-config
           configMap:
             name: virtual-config
