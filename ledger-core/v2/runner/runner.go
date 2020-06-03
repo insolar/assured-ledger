@@ -218,7 +218,7 @@ func (r *DefaultService) executeConstructor(
 		request          = executionContext.Request
 	)
 
-	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.CallSiteDeclaration)
+	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.Callee)
 	if err != nil {
 		return nil, errors.W(err, "couldn't get descriptors")
 	}
@@ -226,6 +226,10 @@ func (r *DefaultService) executeConstructor(
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
 		return nil, errors.W(err, "couldn't get executor")
+	}
+
+	if request.CallSiteDeclaration.IsZero() {
+		request.CallSiteDeclaration = request.Callee
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)

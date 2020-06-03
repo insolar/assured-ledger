@@ -25,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/log"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 )
 
@@ -88,12 +87,11 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	defer func() { s.mustWriteResult(w, result) }()
 
 	walletReq := payload.VCallRequest{
-		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Callee:              gen.UniqueReference(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-		CallSiteDeclaration: testwallet.GetClass(),
-		CallSiteMethod:      create,
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Callee:         testwallet.GetClass(),
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallSiteMethod: create,
 	}
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
