@@ -108,7 +108,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 	}
 }
 
-func TestVirtual_Method_WithoutExecutor(t *testing.T) {
+func TestVirtual_Method_WithoutExecutor(t *testing.T) { // todo why the test have a name "without executor"?
 	t.Log("C4923")
 
 	server, ctx := utils.NewServer(nil, t)
