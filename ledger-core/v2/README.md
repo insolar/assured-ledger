@@ -2,13 +2,9 @@
 
 # Insolar Assured Ledger
 
-## Introduction
-
 Insolar Assured Ledger is the most secure, scalable, and comprehensive business-ready blockchain platform.
 
-It provides:
-
-* Environment for running native Insolar and 3rd party applications.
+It provides an environment for running native Insolar and 3rd party applications.
 
 To learn what distinguishes Insolar from other blockchain projects, go through the [list of our features](https://insolar.io/platform?utm_source=Github). 
 
@@ -21,13 +17,15 @@ To join the Insolar network, download the [latest release](https://github.com/in
 You can test Assured Ledger locally:
 
 1. Install everything from the **Prerequisites** section.
-2. Install this platform.
+2. Install the platform.
 3. Deploy it locally.
-4. Run tests
+4. Run tests.
 
 ### Prerequisites
 
-Install v1.14 version of the [Golang programming tools](https://golang.org/doc/install#install). Set the [$GOPATH environment variable](https://github.com/golang/go/wiki/SettingGOPATH).
+Install v1.14 version of the [Golang programming tools](https://golang.org/doc/install#install).
+
+Set the [$GOPATH environment variable](https://github.com/golang/go/wiki/SettingGOPATH).
 
 ### Install
 
@@ -50,7 +48,7 @@ Install v1.14 version of the [Golang programming tools](https://golang.org/doc/i
    make
    ```
 
-## Deploy locally
+### Deploy locally
 
 1. In the directory where you downloaded the Assured Ledger package to, run the launcher:
 
