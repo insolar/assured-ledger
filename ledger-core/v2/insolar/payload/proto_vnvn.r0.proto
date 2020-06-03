@@ -13,14 +13,14 @@ option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 
 enum CallTypeNew {
-    CTInboundAPICall  = 0;
+    CTInboundAPICall = 0;
     CTOutboundAPICall = 1;
-    CTMethod          = 2;
-    CTConstructor     = 3;
-    CTNotifyCall      = 4;
-    CTSAGACall        = 5;
-    CTParallelCall    = 6;
-    CTScheduleCall    = 7;
+    CTMethod = 2;
+    CTConstructor = 3;
+    CTNotifyCall = 4;
+    CTSAGACall = 5;
+    CTParallelCall = 6;
+    CTScheduleCall = 7;
 }
 
 message VCallRequest {
@@ -53,8 +53,8 @@ message VCallRequest {
     int32 CallRequestFlags = 40 [(gogoproto.casttype) = "CallRequestFlags", (insproto.zeroable) = false];
     bytes KnownCalleeIncoming = 41 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
     bytes EntryHeadHash = 42;
-    bytes CallOutgoing = 43 [(gogoproto.customtype)  = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (insproto.zeroable) = false];
-    uint32 TXExpiry = 44 [(gogoproto.casttype)  = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (insproto.zeroable) = false];
+    bytes CallOutgoing = 43 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Local", (insproto.zeroable) = false];
+    uint32 TXExpiry = 44 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (insproto.zeroable) = false];
 
     bytes SecurityContext = 45;
     bytes TXContext = 46;
@@ -111,6 +111,16 @@ message VStateRequest {
 
 message VStateReport {
     option (insproto.id) = 1004;
+
+    enum StateStatus {
+        Unknown = 0;
+        Ready = 1;
+        Empty = 2;
+        Inactive = 3;
+        Missing = 4;
+    }
+    StateStatus Status = 37;
+
     uint32 AsOf = 20 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (insproto.zeroable) = false];
     bytes Callee = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
 
@@ -134,7 +144,7 @@ message VStateReport {
     bytes LatestDirtyState = 34 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
     bytes LatestDirtyCode = 35 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
 
-    message  ProvidedContentBody {
+    message ProvidedContentBody {
         option (insproto.id) = 0;
         ObjectState LatestValidatedState = 21 [(gogoproto.nullable) = true];
         ObjectState LatestDirtyState = 22 [(gogoproto.nullable) = true];
@@ -182,19 +192,6 @@ message VDelegatedRequestFinished {
     ObjectState LatestState = 29 [(gogoproto.nullable) = true];
 }
 
-message VStateUnavailable {
-    option (insproto.id) = 1007;
-    enum ReasonType {
-        Unknown = 0;
-        Missing = 1;
-        Inactive = 2;
-    }
-
-    ReasonType Reason = 20;
-    bytes Lifeline = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
-}
-
-
 message VDelegatedCallRequest {
     option (insproto.id) = 1008;
 
@@ -226,5 +223,5 @@ message CallDelegationToken {
     bytes Callee = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
     bytes Caller = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
     bytes Outgoing = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (insproto.zeroable) = false];
-	bytes ApproverSignature = 27;
+    bytes ApproverSignature = 27;
 }

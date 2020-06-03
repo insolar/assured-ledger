@@ -83,12 +83,6 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 			ctx.SetTracerID(traceID)
 			return &SMVStateReport{Meta: payloadMeta, Payload: obj}
 		}
-	case *payload.VStateUnavailable:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVStateUnavailable{Meta: payloadMeta, Payload: obj}
-		}
 	case *payload.VDelegatedRequestFinished:
 		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			ctx.SetContext(goCtx)

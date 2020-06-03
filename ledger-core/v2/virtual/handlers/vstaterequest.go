@@ -26,8 +26,7 @@ type SMVStateRequest struct {
 	Payload *payload.VStateRequest
 
 	objectStateReport *payload.VStateReport
-
-	failReason payload.VStateUnavailable_ReasonType
+	stateAccessor     object.SharedStateAccessor
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -70,42 +69,37 @@ func (s *SMVStateRequest) GetStateMachineDeclaration() smachine.StateMachineDecl
 }
 
 func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	return ctx.Jump(s.stepProcess)
+	return ctx.Jump(s.stepCheckCatalog)
 }
 
-func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	objectSharedState, stateFound := s.objectCatalog.TryGet(ctx, s.Payload.Callee)
 	if !stateFound {
-		s.failReason = payload.Missing
-		return ctx.Jump(s.stepReturnStateUnavailable)
+		return ctx.Jump(s.stepBuildMissing)
 	}
 
+	s.stateAccessor = objectSharedState
+	return ctx.Jump(s.stepBuildStateReport)
+}
+
+func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.objectStateReport = &payload.VStateReport{
+		Status: payload.Missing,
+		AsOf:   s.Payload.AsOf,
+		Callee: s.Payload.Callee,
+	}
+	return ctx.Jump(s.stepSendResult)
+}
+
+func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		stateNotReady bool
 	)
 
 	action := func(state *object.SharedState) {
-		switch state.GetState() {
-		case object.Unknown:
+		if state.GetState() == object.Unknown {
 			stateNotReady = true
 			return
-		case object.Missing:
-			s.failReason = payload.Missing
-			return
-		case object.Inactive:
-			s.failReason = payload.Inactive
-			return
-		case object.Empty:
-			if state.PotentialOrderedPendingCount == uint8(0) && state.PotentialUnorderedPendingCount == uint8(0) {
-				// SMObject construction was interrupted by migration. Counters was not incremented yet
-				// TODO: maybe better set stateNotReady = true and return
-				panic(throw.NotImplemented())
-			}
-			// ok case
-		case object.HasState:
-		// ok case
-		default:
-			panic(throw.NotImplemented())
 		}
 
 		report := state.BuildStateReport()
@@ -118,9 +112,9 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		}
 	}
 
-	switch objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	switch s.stateAccessor.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
-		return ctx.WaitShared(objectSharedState.SharedDataLink).ThenRepeat()
+		return ctx.WaitShared(s.stateAccessor.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
 		panic(throw.NotImplemented())
 	case smachine.Passed:
@@ -139,31 +133,7 @@ func (s *SMVStateRequest) stepProcess(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalState())
 	}
 
-	if s.failReason > payload.Unknown {
-		return ctx.Jump(s.stepReturnStateUnavailable)
-	}
-
 	return ctx.Jump(s.stepSendResult)
-}
-
-func (s *SMVStateRequest) stepReturnStateUnavailable(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	msg := &payload.VStateUnavailable{
-		Reason:   s.failReason,
-		Lifeline: s.Payload.Callee,
-	}
-
-	target := s.Meta.Sender
-
-	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendTarget(goCtx, msg, target)
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send message", err)
-			}
-		}
-	}).WithoutAutoWakeUp().Start()
-
-	return ctx.Stop()
 }
 
 func (s *SMVStateRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {

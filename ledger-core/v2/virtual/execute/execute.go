@@ -152,7 +152,9 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 
 	if s.isConstructor {
 		action := func(state *object.SharedState) {
-			state.SetState(object.Empty)
+			if state.GetState() == object.Unknown || state.GetState() == object.Missing {
+				state.SetState(object.Empty)
+			}
 		}
 
 		switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -177,11 +179,12 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	)
 
 	var (
-		semaphoreReadyToWork    smachine.SyncLink
-		objectDescriptor        descriptor.Object
-		objectDescriptorIsEmpty bool
-		semaphoreOrdered        smachine.SyncLink
-		semaphoreUnordered      smachine.SyncLink
+		semaphoreReadyToWork smachine.SyncLink
+		objectDescriptor     descriptor.Object
+		semaphoreOrdered     smachine.SyncLink
+		semaphoreUnordered   smachine.SyncLink
+
+		objectState object.State
 	)
 
 	action := func(state *object.SharedState) {
@@ -191,7 +194,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreUnordered = state.UnorderedExecute
 
 		objectDescriptor = state.Descriptor()
-		objectDescriptorIsEmpty = objectDescriptor == nil
+
+		objectState = state.GetState()
 	}
 
 	switch objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -209,11 +213,13 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	switch {
-	case isConstructor && !objectDescriptorIsEmpty: // we're executing constructor and have not empty descriptor
-		panic(throw.NotImplemented())
-	case !isConstructor && objectDescriptorIsEmpty: // we're executing method and object descriptor is empty
-		panic(throw.NotImplemented())
+	if isConstructor {
+		// it could be Empty or even has state, we ll deal with special cases in deduplication step
+		if objectState != object.Empty && objectState != object.HasState {
+			panic(throw.IllegalState())
+		}
+	} else if objectState != object.HasState {
+		panic(throw.IllegalState())
 	}
 
 	s.semaphoreOrdered = semaphoreOrdered
@@ -634,7 +640,9 @@ func (s *SMExecute) setNewState(class reference.Global, memory []byte) func(stat
 		s.execution.ObjectDescriptor = state.Descriptor()
 
 		s.decrementCounters(state)
-		state.SetState(object.HasState)
+		if state.GetState() == object.Empty {
+			state.SetState(object.HasState)
+		}
 	}
 }
 

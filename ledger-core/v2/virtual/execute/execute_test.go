@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
@@ -28,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/shareddata"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/slotdebugger"
 )
 
 func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
@@ -243,146 +241,6 @@ func TestSMExecute_Deduplication(t *testing.T) {
 	mc.Finish()
 }
 
-func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
-	var (
-		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
-
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
-		objectRef   = reference.NewSelf(outgoing)
-		sharedState = &object.SharedState{
-			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
-			},
-		}
-	)
-
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
-	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-			CallOutgoing: outgoing,
-
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
-		},
-		Meta: &payload.Meta{
-			Sender: caller,
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
-
-	{
-		var catalog object.Catalog = catalogWrapper.Mock()
-		slotMachine.AddInterfaceDependency(&catalog)
-
-		sharedStateData := smachine.NewUnboundSharedData(sharedState)
-		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
-	}
-
-	slotMachine.Start()
-	defer slotMachine.Stop()
-
-	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
-
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
-
-	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
-
-	require.Equal(t, uint8(1), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
-
-	require.NoError(t, catalogWrapper.CheckDone())
-	mc.Finish()
-}
-
-func TestSMExecute_MigrateBeforeLock(t *testing.T) {
-	var (
-		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
-
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
-		objectRef   = reference.NewSelf(outgoing)
-		sharedState = &object.SharedState{
-			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
-			},
-		}
-	)
-
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
-	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-			CallOutgoing: outgoing,
-
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
-		},
-		Meta: &payload.Meta{
-			Sender: caller,
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
-
-	{
-		var catalog object.Catalog = catalogWrapper.Mock()
-		slotMachine.AddInterfaceDependency(&catalog)
-
-		sharedStateData := smachine.NewUnboundSharedData(sharedState)
-		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
-	}
-
-	slotMachine.Start()
-	defer slotMachine.Stop()
-
-	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
-
-	require.False(t, smExecute.migrationHappened)
-
-	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepTakeLock))
-
-	slotMachine.Migrate()
-
-	slotMachine.RunTil(smWrapper.AfterStop())
-
-	require.False(t, smExecute.migrationHappened)
-
-	require.NoError(t, catalogWrapper.CheckDone())
-	mc.Finish()
-}
-
 func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag(t *testing.T) {
 	var (
 		ctx = inslogger.TestContext(t)
@@ -425,75 +283,4 @@ func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag
 
 		smExecute.stepTakeLock(execCtx)
 	}
-}
-
-func TestSMExecute_MigrateAfterLock(t *testing.T) {
-	var (
-		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
-
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
-		objectRef   = reference.NewSelf(outgoing)
-		sharedState = &object.SharedState{
-			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
-			},
-		}
-	)
-
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
-	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-			CallOutgoing: outgoing,
-
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
-		},
-		Meta: &payload.Meta{
-			Sender: caller,
-		},
-	}
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
-
-	{
-		var catalog object.Catalog = catalogWrapper.Mock()
-		slotMachine.AddInterfaceDependency(&catalog)
-
-		sharedStateData := smachine.NewUnboundSharedData(sharedState)
-		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
-		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
-	}
-
-	slotMachine.Start()
-	defer slotMachine.Stop()
-
-	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
-
-	require.False(t, smExecute.migrationHappened)
-
-	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
-
-	slotMachine.Migrate()
-
-	slotMachine.RunTil(smWrapper.AfterAnyMigrate())
-
-	assert.True(t, smExecute.migrationHappened)
-
-	require.NoError(t, catalogWrapper.CheckDone())
-	mc.Finish()
 }
