@@ -21,23 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
 )
 
-func wrapVDelegatedCallRequest(pl payload.VDelegatedCallRequest, number pulse.Number, sender reference.Global) (*message.Message, error) {
-	plBytes, err := pl.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	msg, err := payload.NewMessage(&payload.Meta{
-		Payload:    plBytes,
-		Sender:     sender,
-		Receiver:   reference.Global{},
-		Pulse:      number,
-		ID:         nil,
-		OriginHash: payload.MessageHash{},
-	})
-	return msg, err
-}
-
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	t.Log("C4983")
 
@@ -63,8 +46,8 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 				},
 			},
 		}
-		msg := makeDispatcherMessage(t, payloadMeta)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).Finalize()
+		server.SendMessage(ctx, msg)
 	}
 
 	pl := payload.VDelegatedCallRequest{
@@ -73,8 +56,9 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 	}
 	sender := gen.UniqueReference()
-	msg, err := wrapVDelegatedCallRequest(pl, server.GetPulse().PulseNumber, sender)
-	require.NoError(t, err)
+	msgWrapper := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl)
+	msgWrapper.SetSender(sender)
+	msg := msgWrapper.Finalize()
 
 	requestIsDone := make(chan struct{}, 0)
 
