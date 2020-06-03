@@ -8,6 +8,8 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
@@ -50,30 +52,22 @@ func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.State
 	return ctx.Jump(s.stepProcess)
 }
 
+type stateAlreadyExistsErrorMsg struct {
+	*log.Msg  `txt:"State already exists"`
+	Reference string
+	GotState  string
+}
+
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.Payload.Status == payload.Unknown {
+		return ctx.Error(throw.IllegalValue())
+	}
+
+	if s.Payload.Status >= payload.Empty && s.gotLatestDirty() {
+		return ctx.Error(throw.IllegalValue())
+	}
+
 	objectRef := s.Payload.Callee
-	var (
-		objectDescriptor descriptor.Object
-
-		deactivated *bool
-	)
-
-	if s.Payload.ProvidedContent == nil {
-		panic(throw.IllegalValue())
-	}
-
-	if s.Payload.ProvidedContent.LatestDirtyState != nil {
-		dirtyState := s.Payload.ProvidedContent.LatestDirtyState
-		objectDescriptor = descriptor.NewObject(
-			objectRef,
-			dirtyState.Reference,
-			dirtyState.Class,
-			dirtyState.State,
-			dirtyState.Parent,
-		)
-		deactivated = &s.Payload.ProvidedContent.LatestDirtyState.Deactivated
-	}
-
 	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
@@ -83,23 +77,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 			})
 			return false
 		}
-
-		state.ActiveUnorderedPendingCount = uint8(s.Payload.UnorderedPendingCount)
-		state.ActiveOrderedPendingCount = uint8(s.Payload.OrderedPendingCount)
-
-		state.OrderedPendingEarliestPulse = s.Payload.OrderedPendingEarliestPulse
-		state.UnorderedPendingEarliestPulse = s.Payload.UnorderedPendingEarliestPulse
-
-		if objectDescriptor != nil {
-			state.SetDescriptor(objectDescriptor)
-			state.SetState(object.HasState)
-		} else {
-			state.SetState(object.Empty)
-		}
-
-		if deactivated != nil {
-			state.Deactivated = *deactivated
-		}
+		s.updateSharedState(state)
 		return true
 	}
 
@@ -112,4 +90,64 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	}
 
 	return ctx.Stop()
+}
+
+func (s *SMVStateReport) updateSharedState(
+	state *object.SharedState,
+) {
+	objectRef := s.Payload.Callee
+
+	var objState object.State
+	switch s.Payload.Status {
+	case payload.Unknown:
+		panic(throw.IllegalValue())
+	case payload.Ready:
+		if !s.gotLatestDirty() {
+			panic(throw.IllegalState())
+		}
+		objState = object.HasState
+	case payload.Empty:
+		objState = object.Empty
+	case payload.Inactive:
+		objState = object.Inactive
+	case payload.Missing:
+		objState = object.Missing
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	if s.Payload.Status >= payload.Empty && s.gotLatestDirty() {
+		panic(throw.IllegalState())
+	}
+
+	state.ActiveUnorderedPendingCount = uint8(s.Payload.UnorderedPendingCount)
+	state.ActiveOrderedPendingCount = uint8(s.Payload.OrderedPendingCount)
+
+	state.OrderedPendingEarliestPulse = s.Payload.OrderedPendingEarliestPulse
+	state.UnorderedPendingEarliestPulse = s.Payload.UnorderedPendingEarliestPulse
+
+	if s.gotLatestDirty() {
+		dirty := *s.Payload.ProvidedContent.LatestDirtyState
+		desc := buildObjectDescriptor(objectRef, dirty)
+		state.SetDescriptor(desc)
+		state.Deactivated = dirty.Deactivated
+	}
+
+	state.SetState(objState)
+
+}
+
+func (s *SMVStateReport) gotLatestDirty() bool {
+	content := s.Payload.ProvidedContent
+	return content != nil && content.LatestDirtyState != nil
+}
+
+func buildObjectDescriptor(headRef reference.Global, state payload.ObjectState) descriptor.Object {
+	return descriptor.NewObject(
+		headRef,
+		state.Reference,
+		state.Class,
+		state.State,
+		state.Parent,
+	)
 }

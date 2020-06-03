@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
@@ -48,7 +49,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 	mc.Finish()
 }
 
-func TestSMObject_MigrationFail_IfStateIsEmptyAndNoCounters(t *testing.T) {
+func TestSMObject_Migration_IfStateIsEmptyAndNoCounters(t *testing.T) {
 	var (
 		mc = minimock.NewController(t)
 
@@ -59,24 +60,31 @@ func TestSMObject_MigrationFail_IfStateIsEmptyAndNoCounters(t *testing.T) {
 	smObject.SharedState.SetState(Empty)
 
 	migrationCtx := smachine.NewMigrationContextMock(mc).
+		JumpMock.
+		Inspect(assertRequiredMigration(t, smObject.stepSendVStateReport)).
+		Return(smachine.StateUpdate{}).
 		AffectedStepMock.Return(smachine.SlotStep{Transition: smObject.stepWaitIndefinitely})
 
-	require.Panics(t, func() { smObject.migrate(migrationCtx) })
+	smObject.migrate(migrationCtx)
 
 	mc.Finish()
 }
 
-func TestSMObject_MigrationJmpToStepSendVStateUnavailable_IfStateMissing(t *testing.T) {
-	var (
-		mc = minimock.NewController(t)
+func assertRequiredMigration(t *testing.T, expected smachine.StateFunc) func(gotJump smachine.StateFunc) {
+	return func(gotJump smachine.StateFunc) {
+		assert.True(t, utils.CmpStateFuncs(expected, gotJump))
+	}
+}
 
-		smObject = newSMObjectWithPulse()
-	)
+func TestSMObject_MigrationJmpToStepSendVStateUnavailable_IfStateMissing(t *testing.T) {
+	mc := minimock.NewController(t)
+
+	smObject := newSMObjectWithPulse()
 
 	stepChecker := stepchecker.New()
 	{
 		exec := SMObject{}
-		stepChecker.AddStep(exec.stepSendVStateUnavailable)
+		stepChecker.AddStep(exec.stepSendVStateReport)
 	}
 
 	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
@@ -140,41 +148,6 @@ func TestSMObject_MigrationJmpToStepSendVStateReport_IfStateEmptyAndCountersSet(
 	smObject.migrate(migrationCtx)
 
 	require.NoError(t, stepChecker.CheckDone())
-	mc.Finish()
-}
-
-func TestSMObject_SendVStateUnavailable(t *testing.T) {
-	var (
-		mc = minimock.NewController(t)
-
-		smObject             = newSMObjectWithPulse()
-		msgVStateUnavailable = 0
-	)
-
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
-	smObject.SharedState.SetState(Missing)
-	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
-		Interference: contract.CallIntolerable,
-		State:        contract.CallValidated,
-	})
-
-	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg payload.Marshaler) {
-		_, ok := msg.(*payload.VStateUnavailable)
-		require.True(t, ok)
-		msgVStateUnavailable++
-	}
-	messageService.SendRole.SetCheckMessage(checkMessageFn)
-	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
-
-	smObject.messageSender = messageSender.Mock()
-
-	execCtx := smachine.NewExecutionContextMock(mc).
-		JumpMock.Return(smachine.StateUpdate{})
-
-	smObject.stepSendVStateUnavailable(execCtx)
-	require.Equal(t, 1, msgVStateUnavailable)
-
 	mc.Finish()
 }
 

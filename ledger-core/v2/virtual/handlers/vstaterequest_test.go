@@ -26,7 +26,6 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	var (
 		mc               = minimock.NewController(t)
 		pd               = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		catalog          = object.NewCatalogMockWrapper(mc)
 		smObjectID       = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef      = reference.NewSelf(smObjectID)
 		smObject         = object.NewStateMachineObject(smGlobalRef)
@@ -34,30 +33,26 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	)
 
-	catalog.AddObject(smGlobalRef, smObjectAccessor)
-	catalog.AllowAccessMode(object.CatalogMockAccessTryGet)
-
 	smObject.SetState(object.Empty)
 	smObject.IncrementPotentialPendingCounter(contract.ConstructorIsolation())
 
-	smVStateReport := SMVStateRequest{
+	smVStateRequest := SMVStateRequest{
 		Payload: &payload.VStateRequest{
 			Callee: smGlobalRef,
 		},
-		objectCatalog: catalog.Mock(),
+		stateAccessor: smObjectAccessor,
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
 		UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 		JumpMock.Return(smachine.StateUpdate{})
 
-	smVStateReport.stepProcess(execCtx)
+	smVStateRequest.stepBuildStateReport(execCtx)
 
-	require.True(t, smVStateReport.objectStateReport.LatestDirtyState.IsZero())
-	require.Equal(t, int32(0), smVStateReport.objectStateReport.UnorderedPendingCount)
-	require.Equal(t, int32(1), smVStateReport.objectStateReport.OrderedPendingCount)
-	require.Nil(t, smVStateReport.objectStateReport.ProvidedContent.LatestDirtyState)
+	require.True(t, smVStateRequest.objectStateReport.LatestDirtyState.IsZero())
+	require.Equal(t, int32(0), smVStateRequest.objectStateReport.UnorderedPendingCount)
+	require.Equal(t, int32(1), smVStateRequest.objectStateReport.OrderedPendingCount)
+	require.Nil(t, smVStateRequest.objectStateReport.ProvidedContent.LatestDirtyState)
 
-	require.NoError(t, catalog.CheckDone())
 	mc.Finish()
 }

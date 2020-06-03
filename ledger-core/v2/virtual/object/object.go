@@ -139,20 +139,42 @@ func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number
 }
 
 func (i *Info) BuildStateReport() payload.VStateReport {
-	var latestDirtyState reference.Global
-	if objDescriptor := i.Descriptor(); objDescriptor != nil {
-		latestDirtyState = objDescriptor.HeadRef()
-	}
-
-	return payload.VStateReport{
+	res := payload.VStateReport{
 		Callee:                        i.Reference,
 		UnorderedPendingCount:         int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
 		OrderedPendingCount:           int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
-		LatestDirtyState:              latestDirtyState,
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
+
+	switch i.GetState() {
+	case Unknown:
+		panic(throw.IllegalState())
+	case Missing:
+		res.Status = payload.Missing
+	case Inactive:
+		res.Status = payload.Inactive
+	case Empty:
+		if i.PotentialOrderedPendingCount == uint8(0) {
+			// constructor has not started
+			res.Status = payload.Missing
+		} else {
+			res.Status = payload.Empty
+		}
+	case HasState:
+		// ok case
+		res.Status = payload.Ready
+	default:
+		panic(throw.IllegalValue())
+	}
+
+
+	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+		res.LatestDirtyState = objDescriptor.HeadRef()
+	}
+
+	return res
 }
 
 func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
@@ -417,55 +439,13 @@ func (sm *SMObject) hasPendingExecution() bool {
 		sm.PotentialOrderedPendingCount > 0
 }
 
-func (sm *SMObject) stepSendVStateUnavailable(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		pulseNumber = sm.pulseSlot.CurrentPulseNumber()
-		failReason  payload.VStateUnavailable_ReasonType
-	)
-	switch sm.GetState() {
-	case Missing:
-		failReason = payload.Missing
-	case Inactive:
-		failReason = payload.Inactive
-	default:
-		panic(throw.IllegalState())
-	}
-
-	msg := payload.VStateUnavailable{
-		Reason:   failReason,
-		Lifeline: sm.SharedState.Info.Reference,
-	}
-
-	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.SharedState.Info.Reference, pulseNumber)
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send state", err)
-			}
-		}
-	}).WithoutAutoWakeUp().Start()
-	return ctx.Jump(sm.migrateTransition)
-}
-
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	sm.migrateTransition = ctx.AffectedStep().Transition
 	switch sm.GetState() {
 	case Unknown:
 		ctx.Log().Warn("SMObject migration happened when object is not ready yet")
 		return ctx.Stay()
-	case Missing:
-		fallthrough
-	case Inactive:
-		return ctx.Jump(sm.stepSendVStateUnavailable)
-	case Empty:
-		if sm.PotentialOrderedPendingCount == uint8(0) && sm.PotentialUnorderedPendingCount == uint8(0) {
-			// SMObject construction was interrupted by migration. Counters was not incremented yet
-			panic(throw.NotImplemented())
-		}
-		fallthrough
-	case HasState:
-		return ctx.Jump(sm.stepSendVStateReport)
 	default:
-		panic(throw.IllegalState())
+		return ctx.Jump(sm.stepSendVStateReport)
 	}
 }
