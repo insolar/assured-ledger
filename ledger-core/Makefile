@@ -12,7 +12,7 @@ COVERPROFILE ?= coverage.txt
 
 BUILD_NUMBER := $(TRAVIS_BUILD_NUMBER)
 # skip git parsing commands if no git
-ifneq ("$(wildcard ../../.git)", "")
+ifneq ("$(wildcard ../.git)", "")
 	BUILD_DATE ?= $(shell ./scripts/dev/git-date-time.sh -d)
 	BUILD_TIME ?= $(shell ./scripts/dev/git-date-time.sh -t)
 	BUILD_HASH ?= $(shell git rev-parse --short HEAD)
