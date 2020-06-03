@@ -164,6 +164,57 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 	}
 }
 
+func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
+	t.Log("C4974")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	class := testwallet.GetClass()
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			CallAsOf:            0,
+			Caller:              server.GlobalCaller(),
+			Callee:              reference.Global{},
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetBalance",
+			CallRequestFlags:    0,
+			CallOutgoing:        server.RandomLocalWithPulse(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		msg, err := wrapVCallRequest(server.GetPulse().PulseNumber, pl)
+		require.NoError(t, err)
+
+		requestIsDone := make(chan struct{}, 0)
+
+		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
+			defer func() { requestIsDone <- struct{}{} }()
+
+			pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
+			require.NoError(t, err)
+
+			switch pl.(type) {
+			case *payload.VCallResult:
+			default:
+				require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
+			}
+
+			return nil
+		})
+
+		server.SendMessage(ctx, msg)
+
+		select {
+		case <-requestIsDone:
+		case <-time.After(10 * time.Second):
+			require.Failf(t, "", "timeout")
+		}
+	}
+}
+
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	t.Log("C4930")
 
