@@ -9,6 +9,7 @@ spec:
       app: virtual
   replicas: 5
   serviceName: platform-network
+  # comment this to start pods successively
   podManagementPolicy: "Parallel"
   template:
     metadata:

@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/insolar/insconfig"
 )
@@ -70,12 +69,17 @@ func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
 			if err != nil {
 				return fmt.Errorf("nodes count: %d, failed to wait insolar ready: %w", net.NodesCount, err)
 			}
-
-			time.Sleep(net.WaitInReadyState)
 			return nil
 		}
 
 		startAndReadyError := startAndReady(net)
+		if startAndReadyError == nil {
+			err := insolarManager.waitInReady(net)
+			if err != nil {
+				fmt.Printf("failed to waitInReady: %s\n nodes count: %d", err.Error(), net.NodesCount)
+			}
+		}
+
 		if cfg.KubeParams.LogCollector.Enabled {
 			err := insolarManager.collectLogs(net)
 			if err != nil {

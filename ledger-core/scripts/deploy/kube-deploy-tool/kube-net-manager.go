@@ -90,28 +90,36 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 	startedAt := time.Now()
 
 	bootstrapFinished := make(chan bool, 1)
+	stopWaitingBootstrap := make(chan bool, 1)
+	defer func() { stopWaitingBootstrap <- true }()
+
 	go func() {
+	loop:
 		for {
-			args := []string{
-				"-n",
-				"insolar",
-				"get",
-				"po",
-				"bootstrap",
-				"-o",
-				"jsonpath=\"{.status.phase}\"",
+			select {
+			case <-stopWaitingBootstrap:
+				break loop
+			case <-time.After(time.Second):
+				args := []string{
+					"-n",
+					"insolar",
+					"get",
+					"po",
+					"bootstrap",
+					"-o",
+					"jsonpath=\"{.status.phase}\"",
+				}
+				cmd := exec.Command(Kubectl, args...)
+				out, err := cmd.CombinedOutput()
+				if err != nil {
+					fmt.Printf("bootstrap check failed: %s %s\n", string(out), err.Error())
+					break
+				}
+				if string(out) == "\"Succeeded\"" {
+					bootstrapFinished <- true
+					break
+				}
 			}
-			cmd := exec.Command(Kubectl, args...)
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				fmt.Printf("bootstrap check failed: %s %s\n", string(out), err.Error())
-				break
-			}
-			if string(out) == "\"Succeeded\"" {
-				bootstrapFinished <- true
-				break
-			}
-			time.Sleep(1 * time.Second)
 		}
 	}()
 	select {
@@ -122,31 +130,25 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 	}
 
 	netReady := make(chan bool, 1)
+	stopWaitingReady := make(chan bool, 1)
+	defer func() { stopWaitingReady <- true }()
+
 	go func() {
+	loop:
 		for {
-			args := []string{
-				"-n",
-				"insolar",
-				"exec",
-				"-i",
-				"deploy/pulsewatcher",
-				"--",
-				`pulsewatcher`,
-				"-c",
-				"/etc/pulsewatcher/pulsewatcher.yaml",
-				`-s`,
+			select {
+			case <-stopWaitingReady:
+				break loop
+			case <-time.After(time.Second):
+				ready, err := m.checkReady()
+				if err != nil {
+					fmt.Printf("insolar ready check failed: %s\n", err.Error())
+				}
+				if ready {
+					netReady <- true
+				}
 			}
-			cmd := exec.Command(Kubectl, args...)
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				fmt.Printf("insolar ready check failed: %s %s", string(out), err.Error())
-				break
-			}
-			if strings.Contains(string(out), "READY") && !strings.Contains(string(out), "NOT") {
-				netReady <- true
-				break
-			}
-			time.Sleep(1 * time.Second)
+
 		}
 	}()
 	select {
@@ -158,13 +160,14 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 		})
 		return nil
 	case <-time.After(netParams.WaitReady):
-		fmt.Printf("insolar ready wait timed out after %s\n", netParams.WaitReady)
+		fmt.Printf("ready waiting timed out after %s\n", netParams.WaitReady)
 	}
 
-	return fmt.Errorf("insolar has not been started")
+	return fmt.Errorf("insolar has not been started\n")
 }
 
 func (m *InsolarNetManager) stop(netParams NetParams) error {
+	fmt.Printf("stopping insolar\n")
 	startedAt := time.Now()
 	pathToKustomize := getExecutablePath() + m.kubeParams.KubeRootPath + m.kubeParams.Env + "/"
 	out, err := exec.Command(Kubectl, "delete", "-k", pathToKustomize).CombinedOutput()
@@ -179,6 +182,7 @@ func (m *InsolarNetManager) stop(netParams NetParams) error {
 }
 
 func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
+	fmt.Println("start collecting pod logs")
 	for i := 0; i < int(netParams.NodesCount); i++ {
 		podName := "virtual-" + strconv.Itoa(i)
 		out, err := exec.Command(
@@ -210,7 +214,52 @@ func (m *InsolarNetManager) cleanLogDir() error {
 	if err != nil {
 		return fmt.Errorf("creating log dir failed: %w", err)
 	}
+	fmt.Println("logs dir cleaned")
 	return nil
+}
+
+func (m *InsolarNetManager) checkReady() (bool, error) {
+	args := []string{
+		"-n",
+		"insolar",
+		"exec",
+		"-i",
+		"deploy/pulsewatcher",
+		"--",
+		`pulsewatcher`,
+		"-c",
+		"/etc/pulsewatcher/pulsewatcher.yaml",
+		`-s`,
+	}
+	cmd := exec.Command(Kubectl, args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("%s %w", string(out), err)
+	}
+	if strings.Contains(string(out), "READY") && !strings.Contains(string(out), "NOT") {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (m *InsolarNetManager) waitInReady(net NetParams) error {
+	fmt.Printf("waiting in ready state for %s\n", net.WaitInReadyState)
+	waitTimeout := time.After(net.WaitInReadyState)
+	for {
+		select {
+		case <-waitTimeout:
+			return nil
+		default:
+			ready, err := m.checkReady()
+			if err != nil {
+				fmt.Printf("insolar ready check failed: %s\n", err.Error())
+			}
+			if !ready {
+				return fmt.Errorf("insolar ready check returned 'false' during waiting in ready state")
+			}
+			time.Sleep(time.Second)
+		}
+	}
 }
 
 type PrometheusManager struct {
@@ -227,6 +276,7 @@ func (m *PrometheusManager) start() error {
 	if err != nil {
 		return fmt.Errorf("prometheus start failed: %s %w", string(out), err)
 	}
+	fmt.Println("prometheus started")
 	return nil
 }
 
@@ -236,5 +286,6 @@ func (m *PrometheusManager) stop() error {
 	if err != nil {
 		return fmt.Errorf("prometheus stop failed: %s %w", string(out), err)
 	}
+	fmt.Println("prometheus stopped")
 	return nil
 }
