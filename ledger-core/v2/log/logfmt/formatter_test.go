@@ -42,7 +42,7 @@ type stubStruct struct {
 }
 
 const sampleStructAsString = `f0:  99:int,f1:999:int,f2:test_raw,f3:test2:string,f4:nil,f5:stringer_test:ptr,` +
-	`f6:func_result:func,f7:stringerVal:struct,f8:stringerRef:ptr,f9:nil,f10:{}:logfmt.stubStruct,` +
+	`f6:func_result:func,f7:stringerVal:struct,f8:stringerRef:ptr,f9:nil,f10:{}:struct,` +
 	`f11:logfmt.createSampleStruct.func2:func,` +
 	`msg:message title`
 

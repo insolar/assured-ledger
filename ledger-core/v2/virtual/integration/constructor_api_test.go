@@ -8,7 +8,6 @@ package integration
 import (
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,21 +20,13 @@ func Test_API_Create(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		// verify and decode incoming message
-		assert.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-
-		return nil
-	})
-
 	code, byteBuffer := server.CallAPICreateWallet(ctx)
 	if !assert.Equal(t, 200, code) {
 		t.Log(string(byteBuffer))
 	} else {
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
 		require.NoError(t, err)
+
 		assert.Empty(t, walletResponse.Err)
 		assert.NotEmpty(t, walletResponse.Ref)
 		assert.NotEmpty(t, walletResponse.TraceID)

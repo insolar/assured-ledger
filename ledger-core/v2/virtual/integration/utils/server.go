@@ -110,7 +110,8 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
 
-	s.PublisherMock = &mock.PublisherMock{}
+	s.PublisherMock = mock.NewPublisherMock()
+	s.PublisherMock.SetResenderMode(ctx, &s)
 
 	runnerService := runner.NewService()
 	if err := runnerService.Init(); err != nil {

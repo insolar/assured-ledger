@@ -8,7 +8,6 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/execute"
 )
@@ -46,13 +45,7 @@ func (s *SMVCallRequest) Init(ctx smachine.InitializationContext) smachine.State
 }
 
 func (s *SMVCallRequest) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// TODO[bigbes]: get rid of inslogger.TraceID function that was introduced in past
-	//               probably in favor of statemachine one, not yet presented
-	traceID := inslogger.TraceID(ctx.GetContext())
-
 	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		ctx.SetTracerID(traceID)
-
 		return &execute.SMExecute{Meta: s.Meta, Payload: s.Payload}
 	})
 }

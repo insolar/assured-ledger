@@ -6,6 +6,7 @@
 package logfmt
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
@@ -128,26 +129,23 @@ func (f fieldFmtReceiver) ReceiveIface(t reflect.Kind, v interface{}) {
 }
 
 func (f fieldFmtReceiver) ReceiveElse(t reflect.Kind, v interface{}, isZero bool) {
-	if f.def(t) || f.receiver.fmtTag.IsOpt() && isZero {
-		return
-	}
-
-	if t == reflect.Func {
+	switch {
+	case f.def(t):
+	case f.receiver.fmtTag.IsOpt() && isZero:
+	case f.receiver.fmtTag.IsRaw():
+		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
+	case t == reflect.Func:
 		fn := runtime.FuncForPC(reflectkit.CodeOf(v))
 		s := "<nil>"
 		if fn != nil {
 			s = fn.Name()
 			s = s[strings.LastIndex(s, "/")+1:]
 		}
-		if !f.receiver.fmtTag.IsRaw() {
-			f.w.AddStrField(f.receiver.key, s, f.fmt(t))
-			return
-		}
-	}
-
-	if f.receiver.fmtTag.IsRaw() {
-		f.w.AddRawJSONField(f.receiver.key, v, f.fmt(t))
-	} else {
+		f.w.AddStrField(f.receiver.key, s, f.fmt(t))
+	case t == reflect.Struct:
+		s := fmt.Sprintf("%v", v)
+		f.w.AddStrField(f.receiver.key, s, f.fmt(t))
+	default:
 		f.w.AddIntfField(f.receiver.key, v, f.fmt(t))
 	}
 }
