@@ -64,7 +64,7 @@ func rootPath() string {
 		}
 		projectRoot = strings.TrimSpace(string(path))
 	})
-	return filepath.Join(projectRoot, "ledger-core", "v2")
+	return filepath.Join(projectRoot, "ledger-core")
 }
 
 // Method starts launchnet before execution of callback function (cb) and stops launchnet after.
