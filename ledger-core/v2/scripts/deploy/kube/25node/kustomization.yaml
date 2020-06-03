@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: "insolar"
+bases:
+  - ../manifests
+resources:
+  - 0-node-certs-PVC.yaml
+patchesStrategicMerge:
+  - 1-bootstrap.yaml
+  - 3-virtual.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: bootstrap-yaml
+    behavior: replace
+    files:
+      - bootstrap.yaml=configuration/bootstrap-config.yaml
+  - name: app-bootstrap
+    behavior: replace
+    files:
+      - run.sh=configuration/bootstrap.sh
+  - name: pulsar-config
+    behavior: replace
+    files:
+      - pulsard.yaml=configuration/pulsar-config.yaml
+  - name: pulsewatcher-config
+    behavior: replace
+    files:
+      - pulsewatcher.yaml=configuration/pulsewatcher-config.yaml
+images:
+  - name: insolar/assured-ledger
+    newName: ci:5000/assured-ledger
+    newTag: latest
