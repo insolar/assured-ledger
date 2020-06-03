@@ -534,7 +534,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	action = func(state *object.SharedState) {
-		s.decrementCounters(state)
+		s.finishRequestProcessing(state, s.execution.Outgoing)
 	}
 
 	switch s.executionNewState.Result.Type() {
@@ -608,9 +608,10 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	return ctx.Jump(s.stepSendCallResult)
 }
 
-func (s *SMExecute) decrementCounters(state *object.SharedState) {
+func (s *SMExecute) finishRequestProcessing(state *object.SharedState, req reference.Global) {
 	if !s.migrationHappened {
 		state.DecrementPotentialPendingCounter(s.execution.Isolation)
+		state.FinishRequest(s.execution.Isolation.Interference, req)
 	}
 }
 
@@ -639,7 +640,7 @@ func (s *SMExecute) setNewState(class reference.Global, memory []byte) func(stat
 
 		s.execution.ObjectDescriptor = state.Descriptor()
 
-		s.decrementCounters(state)
+		s.finishRequestProcessing(state, s.execution.Outgoing)
 		if state.GetState() == object.Empty {
 			state.SetState(object.HasState)
 		}

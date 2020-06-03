@@ -117,6 +117,10 @@ func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolati
 	}
 }
 
+func (i *Info) FinishRequest(tolerance contract.InterferenceFlag, requestRef reference.Global) {
+	i.KnownRequests.GetList(tolerance).Finish(requestRef)
+}
+
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
 	i.descriptor = objectDescriptor
 }
