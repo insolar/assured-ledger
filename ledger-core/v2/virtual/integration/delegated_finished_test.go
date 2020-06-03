@@ -110,8 +110,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	{
 		// send VStateReport: save wallet
 		rawWalletState := makeRawWalletState(t, testBalance)
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
 
 		server.IncrementPulse(ctx)
 	}
@@ -150,6 +150,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 }
 
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) {
+	t.Log("C4988")
 	t.Skip("skipped until PLAT-304")
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()

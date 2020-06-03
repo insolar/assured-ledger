@@ -15,26 +15,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/contract/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/v2/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-func makeDispatcherMessage(t *testing.T, payLoadMeta payload.Payload) *statemachine.DispatcherMessage {
-	rawPayLoad, err := payLoadMeta.Marshal()
-	require.NoError(t, err)
-
-	return &statemachine.DispatcherMessage{
-		MessageMeta: message.Metadata{},
-		PayloadMeta: &payload.Meta{Payload: rawPayLoad},
-	}
-}
-
-func makeVStateReportEvent(t *testing.T, objectRef reference.Global, stateRef reference.Local, rawState []byte) *statemachine.DispatcherMessage {
+func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global, stateRef reference.Local, rawState []byte) *message.Message {
 	class := testwalletProxy.GetClass()
-	payLoadMeta := &payload.VStateReport{
+
+	payload := &payload.VStateReport{
 		Callee: objectRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
@@ -44,7 +35,8 @@ func makeVStateReportEvent(t *testing.T, objectRef reference.Global, stateRef re
 			},
 		},
 	}
-	return makeDispatcherMessage(t, payLoadMeta)
+
+	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
 }
 
 func makeRawWalletState(t *testing.T, balance uint32) []byte {
@@ -74,21 +66,14 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	})
-
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
 	}
 
 	checkBalance(ctx, t, server, objectRef, testBalance)
@@ -100,29 +85,24 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
 
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	})
-
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
 	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
+
 	}
 
 	checkBalance(ctx, t, server, objectRef, testBalance)
 	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: one more time to simulate rewrite
-		msg := makeVStateReportEvent(t, objectRef, newStateID, makeRawWalletState(t, 444))
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, newStateID, makeRawWalletState(t, 444))
+		server.SendMessage(ctx, msg)
+
 	}
 
 	checkBalance(ctx, t, server, objectRef, testBalance)

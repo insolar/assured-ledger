@@ -8,7 +8,6 @@ package integration
 import (
 	"testing"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,15 +21,6 @@ func TestVirtual_Method_API(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		// verify and decode incoming message
-		assert.Len(t, messages, 1)
-
-		server.SendMessage(ctx, messages[0])
-
-		return nil
-	})
-
 	var (
 		walletReference1 reference.Global
 		walletReference2 reference.Global
@@ -41,6 +31,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
 		require.NoError(t, err)
+
 		assert.Empty(t, walletResponse.Err)
 		assert.NotEmpty(t, walletResponse.Ref)
 		assert.NotEmpty(t, walletResponse.TraceID)
@@ -54,6 +45,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 		walletResponse, err := utils.UnmarshalWalletCreateResponse(byteBuffer)
 		require.NoError(t, err)
+
 		assert.Empty(t, walletResponse.Err)
 		assert.NotEmpty(t, walletResponse.Ref)
 		assert.NotEmpty(t, walletResponse.TraceID)
@@ -68,6 +60,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 		response, err := utils.UnmarshalWalletAddAmountResponse(byteBuffer)
 		require.NoError(t, err)
+
 		assert.Empty(t, response.Err)
 		assert.NotEmpty(t, response.TraceID)
 	}
@@ -78,6 +71,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 		response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
 		require.NoError(t, err)
+
 		assert.Empty(t, response.Err)
 		assert.NotEmpty(t, response.TraceID)
 		assert.Equal(t, uint(1000000500), response.Amount)
@@ -90,6 +84,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 			response, err := utils.UnmarshalWalletTransferResponse(byteBuffer)
 			require.NoError(t, err)
+
 			assert.Empty(t, response.Err)
 			assert.NotEmpty(t, response.TraceID)
 		}
@@ -99,6 +94,7 @@ func TestVirtual_Method_API(t *testing.T) {
 
 			response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
 			require.NoError(t, err)
+
 			assert.Empty(t, response.Err)
 			assert.NotEmpty(t, response.TraceID)
 			assert.Equal(t, uint(1000000000), response.Amount)

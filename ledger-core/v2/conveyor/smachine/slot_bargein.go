@@ -7,6 +7,7 @@ package smachine
 
 import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.BargeInHolder -o ./ -s _mock.go -g
 type BargeInHolder interface {
 	StepLink() StepLink
 	IsValid() bool

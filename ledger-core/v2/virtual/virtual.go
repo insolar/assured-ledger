@@ -7,30 +7,23 @@ package virtual
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/v2/insolar/dispatcher"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
 	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/v2/runner"
+	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/token"
 )
-
-// TODO[bigbes] commented until panics will show description
-// type errUnknownEvent struct {
-// 	*log.Msg
-//
-// 	InputType interface{} `fmt:"%T"`
-// }
 
 func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
@@ -39,9 +32,9 @@ func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputE
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
-		// TODO[bigbes] commented until panics will show description
-		// panic(throw.E("unknown event type", errUnknownEvent{InputType: input}))
-		panic(fmt.Sprintf("unknown event type %T", input))
+		panic(throw.E("unknown event type", struct {
+			InputType interface{} `fmt:"%T"`
+		}{InputType: input}))
 	}
 }
 
@@ -53,9 +46,9 @@ type Dispatcher struct {
 	MachineLogger  smachine.SlotMachineLogger
 
 	// Components
-	Runner         *runner.DefaultService
-	MessageSender  messagesender.Service
-	AffinityHelper jet.AffinityHelper
+	Runner        *runner.DefaultService
+	MessageSender messagesender.Service
+	TokenService  token.Service
 
 	runnerAdapter        *runnerAdapter.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
@@ -98,6 +91,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.AddDependency(lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
+	lr.Conveyor.AddInterfaceDependency(&lr.TokenService)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
@@ -106,7 +100,6 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
 	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(lr.Conveyor)
-	lr.Conveyor.AddInterfaceDependency(&lr.AffinityHelper)
 
 	return nil
 }

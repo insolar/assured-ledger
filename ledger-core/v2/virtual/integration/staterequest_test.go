@@ -6,7 +6,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -20,24 +19,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/statemachine"
 )
 
-func makeVStateRequestEvent(t *testing.T, pn pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags) *statemachine.DispatcherMessage {
-	payLoadMeta := &payload.VStateRequest{
-		AsOf:             pn,
+func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags) *message.Message {
+	payload := &payload.VStateRequest{
+		AsOf:             pulseNumber,
 		Callee:           ref,
 		RequestedContent: flags,
 	}
 
-	rawPayLoad, err := payLoadMeta.Marshal()
-	require.NoError(t, err)
-
-	return &statemachine.DispatcherMessage{
-		MessageMeta: message.Metadata{},
-		PayloadMeta: &payload.Meta{
-			Payload: rawPayLoad},
-	}
+	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
 }
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
@@ -58,7 +49,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 				reportChan <- plData
 				continue
 			}
-			server.SendMessage(context.Background(), msg)
+			server.SendMessage(ctx, msg)
 		}
 		return nil
 	})
@@ -69,13 +60,12 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
 	}
 
-	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, 0)
-
-	require.NoError(t, server.AddInput(ctx, msg))
+	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, 0)
+	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
@@ -108,7 +98,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 				reportChan <- plData
 				continue
 			}
-			server.SendMessage(context.Background(), msg)
+			server.SendMessage(ctx, msg)
 		}
 		return nil
 	})
@@ -119,13 +109,12 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(t, objectRef, stateID, rawWalletState)
-		require.NoError(t, server.AddInput(ctx, msg))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		server.SendMessage(ctx, msg)
 	}
 
-	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
-
-	require.NoError(t, server.AddInput(ctx, msg))
+	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
+	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
@@ -164,16 +153,15 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 				reportChan <- plData
 				continue
 			}
-			server.SendMessage(context.Background(), msg)
+			server.SendMessage(ctx, msg)
 		}
 		return nil
 	})
 
 	objectRef := gen.UniqueReference()
 
-	msg := makeVStateRequestEvent(t, server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
-
-	require.NoError(t, server.AddInput(ctx, msg))
+	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
+	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:

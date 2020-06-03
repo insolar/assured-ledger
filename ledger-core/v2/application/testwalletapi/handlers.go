@@ -70,9 +70,14 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
-		logger  = inslogger.FromContext(ctx)
 	)
 
+	ctx, err := trace.SetID(ctx, traceID)
+	if err != nil {
+		panic(throw.W(err, "failed to set request TraceID"))
+	}
+
+	logger := inslogger.FromContext(ctx)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Create"})
 
 	result := TestWalletServerCreateResult{
@@ -128,12 +133,18 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
-		logger  = inslogger.FromContext(ctx)
 	)
+
+	ctx, err := trace.SetID(ctx, traceID)
+	if err != nil {
+		panic(throw.W(err, "failed to set request TraceID"))
+	}
+
+	logger := inslogger.FromContext(ctx)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Transfer"})
 
 	params := TransferParams{}
-	err := json.NewDecoder(req.Body).Decode(&params)
+	err = json.NewDecoder(req.Body).Decode(&params)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "Can't parse boby: "+err.Error(), traceID), http.StatusBadRequest)
 		return
@@ -214,13 +225,18 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
-		logger  = inslogger.FromContext(ctx)
 	)
 
+	ctx, err := trace.SetID(ctx, traceID)
+	if err != nil {
+		panic(throw.W(err, "failed to set request TraceID"))
+	}
+
+	logger := inslogger.FromContext(ctx)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance"})
 
 	params := GetBalanceParams{}
-	err := json.NewDecoder(req.Body).Decode(&params)
+	err = json.NewDecoder(req.Body).Decode(&params)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "Can't parse boby: "+err.Error(), traceID), http.StatusBadRequest)
 		return
@@ -296,13 +312,18 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
-		logger  = inslogger.FromContext(ctx)
 	)
 
+	ctx, err := trace.SetID(ctx, traceID)
+	if err != nil {
+		panic(throw.W(err, "failed to set request TraceID"))
+	}
+
+	logger := inslogger.FromContext(ctx)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "AddAmount"})
 
 	params := AddAmountParams{}
-	err := json.NewDecoder(req.Body).Decode(&params)
+	err = json.NewDecoder(req.Body).Decode(&params)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "Can't parse boby: "+err.Error(), traceID), http.StatusBadRequest)
 		return
@@ -396,6 +417,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 				res = resData
 			}
 		},
+		TracerID: trace.ID(ctx),
 	}
 
 	err = s.feeder.AddInputExt(ctx, latestPulse.PulseNumber, call, createDefaults)
