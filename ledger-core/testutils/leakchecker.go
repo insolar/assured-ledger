@@ -15,8 +15,8 @@ func LeakTester(t goleak.TestingT, extraOpts ...goleak.Option) {
 		// sometimes stack has full import path
 		goleak.IgnoreTopFunction("github.com/insolar/insolar/vendor/go.opencensus.io/stats/view.(*worker).start"),
 		goleak.IgnoreTopFunction("github.com/insolar/insolar/log/critlog.(*internalBackpressureBuffer).worker"),
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/v2/log/bpbuffer.(*internalBackpressureBuffer).worker"),
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit/SignalVersion.waitClose"))
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/log/bpbuffer.(*internalBackpressureBuffer).worker"),
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/vanilla/synckit/SignalVersion.waitClose"))
 	goleak.VerifyNone(t,
 		extraOpts...)
 }

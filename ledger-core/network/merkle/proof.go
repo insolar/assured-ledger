@@ -6,8 +6,8 @@
 package merkle
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 )
 
 type BaseProof struct {

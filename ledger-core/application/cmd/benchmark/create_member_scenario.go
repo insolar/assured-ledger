@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/sdk"
 )
 
 type createMemberScenario struct {

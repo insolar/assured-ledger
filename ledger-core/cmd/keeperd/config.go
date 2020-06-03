@@ -8,7 +8,7 @@ package main
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 type Config struct {

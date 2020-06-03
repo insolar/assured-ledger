@@ -14,18 +14,18 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/pulsartestutils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	network2 "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar/pulsartestutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	network2 "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 type calculatorErrorSuite struct {

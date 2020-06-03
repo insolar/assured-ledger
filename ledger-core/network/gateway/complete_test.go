@@ -14,18 +14,18 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
-	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func mockCryptographyService(t *testing.T, ok bool) cryptography.Service {

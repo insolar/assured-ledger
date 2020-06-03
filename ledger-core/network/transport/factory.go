@@ -8,7 +8,7 @@ package transport
 import (
 	"errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 // Factory interface provides methods for creating stream or datagram transports

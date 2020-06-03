@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func Test_API_Create(t *testing.T) {

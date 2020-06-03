@@ -26,17 +26,17 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var foundationPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
-var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
-var referencePath = "github.com/insolar/assured-ledger/ledger-core/v2/reference"
+var foundationPath = "github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
+var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
+var referencePath = "github.com/insolar/assured-ledger/ledger-core/reference"
 
 var immutableFlag = "ins:immutable"
 var sagaFlagStart = "ins:saga("
@@ -317,7 +317,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 	}
 
 	imports := pf.generateImports([]string{
-		"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw",
+		"github.com/insolar/assured-ledger/ledger-core/vanilla/throw",
 	})
 
 	for _, t := range pf.types {
@@ -336,7 +336,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		"FoundationPath": foundationPath,
 		"Imports":        imports,
 		"CustomImports": map[string]string{
-			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"`,
+			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
 		},
 		"GenerateInitialize":  pf.machineType == machine.Builtin,
 		"PanicIsLogicalError": pf.panicIsLogicalError,
@@ -556,7 +556,7 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 		"ConstructorsProxies": constructorProxies,
 		"ClassReference":      classReference,
 		"CustomImports": map[string]string{
-			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"`,
+			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
 		},
 		"Imports": pf.generateImports([]string{
 			referencePath}),
@@ -849,13 +849,13 @@ func GetRealApplicationDir(dir string) (string, error) {
 	}
 	contractsPath := ""
 	for _, p := range strings.Split(gopath, ":") {
-		contractsPath = path.Join(p, "src/github.com/insolar/assured-ledger/ledger-core/v2/application/", dir)
+		contractsPath = path.Join(p, "src/github.com/insolar/assured-ledger/ledger-core/application/", dir)
 		_, err := os.Stat(contractsPath)
 		if err == nil {
 			return contractsPath, nil
 		}
 	}
-	return "", errors.New("Not found github.com/insolar/assured-ledger/ledger-core/v2 in GOPATH")
+	return "", errors.New("Not found github.com/insolar/assured-ledger/ledger-core in GOPATH")
 }
 
 // GetRealContractsNames returns names of all real smart contracts
@@ -1044,11 +1044,11 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 		"Contracts": generateContractList(contracts),
 		"Package":   "builtin",
 		"CustomImports": map[string]string{
-			"XXX_contract":   `"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"`,
-			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"`,
-			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/v2/reference"`,
-			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"`,
-			"throw":          `"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"`,
+			"XXX_contract":   `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
+			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"`,
+			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/reference"`,
+			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/runner/machine"`,
+			"throw":          `"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"`,
 		},
 	}
 

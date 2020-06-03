@@ -9,7 +9,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 // Semaphore allows Acquire() call to pass through for a number of workers within the limit.

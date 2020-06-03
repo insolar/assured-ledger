@@ -8,7 +8,7 @@ package unsafekit
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 type MemoryMapModel uint8
@@ -36,11 +36,11 @@ type MMapType struct {
 
 func NewMMapType(t reflect.Type) (MMapType, bool) {
 	mm := MemoryModelDependencyOf(t)
-	if  mm == MemoryMapIncompatible {
+	if mm == MemoryMapIncompatible {
 		return MMapType{}, false
 	}
 
-	return MMapType{t:t,modelIndependent: mm == MemoryModelIndependent}, true
+	return MMapType{t: t, modelIndependent: mm == MemoryModelIndependent}, true
 }
 
 func MustMMapType(t reflect.Type, mustBeIndependent bool) MMapType {
@@ -68,7 +68,7 @@ func NewMMapSliceType(t reflect.Type) (MMapSliceType, bool) {
 		return MMapSliceType{}, false
 	}
 
-	return MMapSliceType{t:t, modelIndependent: mm == MemoryModelIndependent}, true
+	return MMapSliceType{t: t, modelIndependent: mm == MemoryModelIndependent}, true
 }
 
 func MustMMapSliceType(t reflect.Type, mustBeIndependent bool) MMapSliceType {

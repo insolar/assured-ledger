@@ -67,10 +67,10 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 	"github.com/gogo/protobuf/vanity"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/extra"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/cmd/protoc-gen-ins/plugins/extra"
+	"github.com/insolar/assured-ledger/ledger-core/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type marshalto struct {

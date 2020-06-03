@@ -8,7 +8,7 @@ package population
 import (
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 )
 
 var _ EventDispatcher = &AtomicEventStats{}

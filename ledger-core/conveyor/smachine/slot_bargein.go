@@ -5,9 +5,9 @@
 
 package smachine
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.BargeInHolder -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.BargeInHolder -o ./ -s _mock.go -g
 type BargeInHolder interface {
 	StepLink() StepLink
 	IsValid() bool
@@ -21,7 +21,7 @@ func NewNoopBargeIn(link StepLink) BargeIn {
 
 	return BargeIn{update: StateUpdate{
 		marker: ContextMarker(link.step),
-		link: link.s,
+		link:   link.s,
 		param0: uint32(link.id),
 	}}
 }
@@ -31,7 +31,7 @@ func NewNoopBargeInWithParam(link StepLink) BargeInWithParam {
 		return BargeInWithParam{}
 	}
 
-	return BargeInWithParam{link:link, applyFn: func(interface{}) BargeInCallbackFunc {
+	return BargeInWithParam{link: link, applyFn: func(interface{}) BargeInCallbackFunc {
 		return nil
 	}}
 }

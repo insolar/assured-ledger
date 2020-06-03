@@ -13,7 +13,7 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 // PublisherWrapper stub for message.Publisher introspection wrapper for binaries without introspection API.

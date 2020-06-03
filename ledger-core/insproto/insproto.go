@@ -8,12 +8,12 @@ package insproto
 import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const FieldMapFQN = `.insproto.FieldMap`
 const FieldMapFieldName = `FieldMap`
-const FieldMapPackage = `github.com/insolar/assured-ledger/ledger-core/v2/insproto`
+const FieldMapPackage = `github.com/insolar/assured-ledger/ledger-core/insproto`
 
 type FieldMapCallback interface {
 	OnMessage(*FieldMap)

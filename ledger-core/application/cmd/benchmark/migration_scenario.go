@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/sdk"
 )
 
 const (

@@ -17,7 +17,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 )
 
 const letterBytes = "abcdef0123456789"

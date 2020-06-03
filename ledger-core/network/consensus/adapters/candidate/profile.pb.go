@@ -6,16 +6,17 @@ package candidate
 import (
 	bytes "bytes"
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_assured_ledger_ledger_core_v2_insolar_node "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
-	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	io "io"
 	math "math"
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_insolar_assured_ledger_ledger_core_v2_insolar_node "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -31,10 +32,10 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Profile struct {
 	Address     string                                                                                          `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address,omitempty"`
-	Ref         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global                               `protobuf:"bytes,2,opt,name=Ref,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"Ref"`
-	ShortID     github_com_insolar_assured_ledger_ledger_core_v2_insolar_node.ShortNodeID                       `protobuf:"varint,3,opt,name=ShortID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.ShortNodeID" json:"ShortID"`
-	PrimaryRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.PrimaryRole `protobuf:"varint,4,opt,name=PrimaryRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.PrimaryRole" json:"PrimaryRole"`
-	SpecialRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.SpecialRole `protobuf:"varint,5,opt,name=SpecialRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member.SpecialRole" json:"SpecialRole"`
+	Ref         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global                               `protobuf:"bytes,2,opt,name=Ref,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Ref"`
+	ShortID     github_com_insolar_assured_ledger_ledger_core_v2_insolar_node.ShortNodeID                       `protobuf:"varint,3,opt,name=ShortID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/insolar/node.ShortNodeID" json:"ShortID"`
+	PrimaryRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.PrimaryRole `protobuf:"varint,4,opt,name=PrimaryRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member.PrimaryRole" json:"PrimaryRole"`
+	SpecialRole github_com_insolar_assured_ledger_ledger_core_v2_network_consensus_gcpv2_api_member.SpecialRole `protobuf:"varint,5,opt,name=SpecialRole,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member.SpecialRole" json:"SpecialRole"`
 	Digest      []byte                                                                                          `protobuf:"bytes,6,opt,name=Digest,proto3" json:"Digest,omitempty"`
 	Signature   []byte                                                                                          `protobuf:"bytes,7,opt,name=Signature,proto3" json:"Signature,omitempty"`
 	PublicKey   []byte                                                                                          `protobuf:"bytes,8,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`

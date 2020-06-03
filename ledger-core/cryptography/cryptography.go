@@ -21,7 +21,7 @@ func (s *Signature) Bytes() []byte {
 	return s.raw
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/cryptography.Service -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/cryptography.Service -s _mock.go -g
 type Service interface {
 	Signer
 	GetPublicKey() (crypto.PublicKey, error)

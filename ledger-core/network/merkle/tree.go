@@ -10,7 +10,7 @@ import (
 
 	"github.com/onrik/gomerkle"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type tree interface {

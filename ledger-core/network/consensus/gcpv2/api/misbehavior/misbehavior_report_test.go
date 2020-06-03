@@ -8,7 +8,7 @@ package misbehavior
 import (
 	"testing"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/stretchr/testify/require"
 )

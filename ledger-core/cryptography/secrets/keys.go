@@ -13,9 +13,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 )
 
 // KeyPair holds private/public keys pair.

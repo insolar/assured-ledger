@@ -13,11 +13,11 @@ import (
 	"os"
 	"path/filepath"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/secrets"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
 
 func keysToNodeInfo(kp *secrets.KeyPair) nodeInfo {

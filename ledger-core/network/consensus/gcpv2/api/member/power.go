@@ -9,7 +9,7 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/capacity"
 )
 
 type Power uint8

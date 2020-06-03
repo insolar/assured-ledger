@@ -19,7 +19,7 @@ type AdapterCallFunc func(ctx context.Context, arg interface{}) AsyncResultFunc
 type AdapterNotifyFunc func(ctx context.Context, arg interface{})
 type CreateFactoryFunc func(eventPayload interface{}) CreateFunc
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.AsyncCallRequester -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.AsyncCallRequester -o ./ -s _mock.go -g
 type AsyncCallRequester interface {
 	// Allocates and provides cancellation function. Repeated call returns same.
 	WithCancel(*context.CancelFunc) AsyncCallRequester
@@ -61,7 +61,7 @@ const (
 
 const AutoWakeUp = WakeUpOnResult | WakeUpOnCancel
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.NotifyRequester -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.NotifyRequester -o ./ -s _mock.go -g
 type NotifyRequester interface {
 	// Sets internal logging for the call. This mode is set automatically when tracing is active or StepElevatedLog is set.
 	WithLog(isLogging bool) NotifyRequester

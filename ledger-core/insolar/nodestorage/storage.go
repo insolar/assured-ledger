@@ -8,11 +8,11 @@ package nodestorage
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage.Accessor -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage.Accessor -o ./ -s _mock.go -g
 
 // Accessor provides info about active nodes.
 type Accessor interface {
@@ -20,7 +20,7 @@ type Accessor interface {
 	InRole(pulse pulse.Number, role node.StaticRole) ([]node.Node, error)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/nodestorage.Modifier -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage.Modifier -o ./ -s _mock.go -g
 
 // Modifier provides methods for setting active nodes.
 type Modifier interface {

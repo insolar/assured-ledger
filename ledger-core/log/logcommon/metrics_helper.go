@@ -11,7 +11,7 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 func NewMetricsHelper(recorder LogMetricsRecorder) *MetricsHelper {

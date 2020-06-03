@@ -6,7 +6,7 @@
 package dropbag
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag/dbcommon"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag/dbcommon"
 )
 
 type DropStorageBuilder interface {

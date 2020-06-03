@@ -10,8 +10,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/rms"
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // aliases for more convenient using in .proto file (no need to use full path)

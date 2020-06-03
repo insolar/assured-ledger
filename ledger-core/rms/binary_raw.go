@@ -12,8 +12,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewRawBytes(value []byte) (rb RawBinary) {

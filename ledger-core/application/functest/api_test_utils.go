@@ -18,9 +18,9 @@ import (
 	"strconv"
 	"time"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 )
 
 var (

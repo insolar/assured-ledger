@@ -10,23 +10,23 @@ import (
 	"net"
 	"sync"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/resolver"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/resolver"
+	"github.com/insolar/assured-ledger/ledger-core/network/node"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 
 	"go.opencensus.io/stats"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/version"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 // NewNodeNetwork create active node component

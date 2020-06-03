@@ -8,10 +8,10 @@ package endpoints
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 type Name string
@@ -32,7 +32,7 @@ func (addr Name) String() string {
 	return string(addr)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints.Outbound -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints.Outbound -o . -s _mock.go -g
 
 type Outbound interface {
 	GetEndpointType() NodeEndpointType
@@ -85,7 +85,7 @@ const (
 	RelayEndpoint
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints.Inbound -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints.Inbound -o . -s _mock.go -g
 
 type Inbound interface {
 	GetNameAddress() Name

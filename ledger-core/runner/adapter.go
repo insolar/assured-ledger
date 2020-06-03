@@ -8,12 +8,12 @@ package runner
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RunMode int

@@ -11,15 +11,15 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 const pkgRegexPrefix = "^.*instrumentation/inslogger/"
@@ -43,7 +43,7 @@ func TestExtLog_ZerologCaller(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains call place")
-	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core", lf.Caller, "log not contains package name")
 	assert.Equal(t, "", lf.Func, "log not contains func name")
 }
 
@@ -65,7 +65,7 @@ func TestExtLog_ZerologCallerWithFunc(t *testing.T) {
 
 	lf := logFields(t, b.Bytes())
 	assert.Regexp(t, pkgRegexPrefix+"caller_ext_test.go:"+strconv.Itoa(line+1), lf.Caller, "log contains proper caller place")
-	assert.NotContains(t, "ledger-core/v2", lf.Caller, "log not contains package name")
+	assert.NotContains(t, "ledger-core", lf.Caller, "log not contains package name")
 	assert.Equal(t, "TestExtLog_ZerologCallerWithFunc", lf.Func, "log contains func name")
 }
 

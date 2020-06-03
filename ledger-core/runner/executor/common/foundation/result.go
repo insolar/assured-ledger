@@ -6,9 +6,9 @@
 package foundation
 
 import (
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 )
 
 // Result struct that serialized and saved on ledger as result of request

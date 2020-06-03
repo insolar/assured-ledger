@@ -9,9 +9,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 type StatusReply struct {
@@ -33,21 +33,21 @@ type NetworkStatus interface {
 	GetNetworkStatus() StatusReply
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.Leaver -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.Leaver -o ../../testutils -s _mock.go -g
 
 type Leaver interface {
 	// Leave notify other nodes that this node want to leave and doesn't want to receive new tasks
 	Leave(ctx context.Context, ETA pulse.Number)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.CertificateGetter -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.CertificateGetter -o ../../testutils -s _mock.go -g
 
 type CertificateGetter interface {
 	// GetCert registers reference and returns new certificate for it
 	GetCert(context.Context, reference.Global) (Certificate, error)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.PulseDistributor -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.PulseDistributor -o ../../testutils -s _mock.go -g
 
 // PulseDistributor is interface for pulse distribution.
 type PulseDistributor interface {

@@ -8,9 +8,9 @@ package common
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/rpctypes"
 )
 
 type RunnerRPCStub interface {

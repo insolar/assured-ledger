@@ -11,12 +11,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/utils"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/utils"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 //go:generate stringer -type=StepDeclType

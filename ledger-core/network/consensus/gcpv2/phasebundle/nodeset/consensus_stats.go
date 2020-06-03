@@ -8,9 +8,9 @@ package nodeset
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/stats"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/stats"
 )
 
 type ConsensusStat uint8

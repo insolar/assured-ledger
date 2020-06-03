@@ -9,7 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_merkle "github.com/insolar/assured-ledger/ledger-core/v2/network/merkle"
+	mm_merkle "github.com/insolar/assured-ledger/ledger-core/network/merkle"
 )
 
 // CalculatorMock implements merkle.Calculator

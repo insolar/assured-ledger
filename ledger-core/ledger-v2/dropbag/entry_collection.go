@@ -5,7 +5,7 @@
 
 package dropbag
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 
 type FieldId uint16
 type FieldOffset int

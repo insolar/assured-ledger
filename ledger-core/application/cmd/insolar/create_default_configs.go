@@ -11,9 +11,9 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/bootstrap"
-	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/v2/cmd/pulsewatcher/config"
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/application/bootstrap"
+	pulsewatcher "github.com/insolar/assured-ledger/ledger-core/cmd/pulsewatcher/config"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 func writePulsarConfig(outputDir string) {

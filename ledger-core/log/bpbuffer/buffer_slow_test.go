@@ -22,9 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
+	"github.com/insolar/assured-ledger/ledger-core/log/logwriter"
 )
 
 func Test_BackpressureBuffer_Deviations(t *testing.T) {

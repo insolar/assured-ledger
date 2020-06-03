@@ -9,7 +9,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 )
 
 type DelayStrategyConf struct {

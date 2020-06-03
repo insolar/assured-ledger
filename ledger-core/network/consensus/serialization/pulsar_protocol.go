@@ -9,10 +9,10 @@ import (
 	"context"
 	"io"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 type PulsarPacketBody struct {

@@ -9,8 +9,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/injector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/reflectkit"
 )
 
 type StateMachine interface {

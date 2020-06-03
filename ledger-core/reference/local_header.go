@@ -8,7 +8,7 @@ package reference
 import (
 	"strconv"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 type LocalHeader uint32

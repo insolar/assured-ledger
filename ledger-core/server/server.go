@@ -6,8 +6,8 @@
 package server
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal/headless"
-	"github.com/insolar/assured-ledger/ledger-core/v2/server/internal/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
+	"github.com/insolar/assured-ledger/ledger-core/server/internal/virtual"
 )
 
 type Server interface {

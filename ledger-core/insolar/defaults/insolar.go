@@ -14,7 +14,7 @@ import (
 )
 
 // RootModule holds root module name.
-var RootModule = "github.com/insolar/assured-ledger/ledger-core/v2"
+var RootModule = "github.com/insolar/assured-ledger/ledger-core"
 
 // RootModuleDir returns abs path to root module for any package where it's called.
 func RootModuleDir() string {

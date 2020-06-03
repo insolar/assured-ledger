@@ -17,11 +17,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/genesisrefs"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/preprocessor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
+	"github.com/insolar/assured-ledger/ledger-core/application/preprocessor"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 )
 
 type outputFlag struct {
@@ -112,7 +112,7 @@ func getRootProjectDir() (string, error) {
 		}
 		contractsPath := ""
 		for _, p := range strings.Split(gopath, ":") {
-			contractsPath = path.Join(p, "src/github.com/insolar/assured-ledger/ledger-core/v2/")
+			contractsPath = path.Join(p, "src/github.com/insolar/assured-ledger/ledger-core/")
 			_, err := os.Stat(contractsPath)
 			if err == nil {
 				rootProjectDir, rootProjectError = contractsPath, nil
@@ -120,7 +120,7 @@ func getRootProjectDir() (string, error) {
 			}
 		}
 
-		rootProjectDir, rootProjectError = "", errors.New("Not found github.com/insolar/assured-ledger/ledger-core/v2 in GOPATH")
+		rootProjectDir, rootProjectError = "", errors.New("Not found github.com/insolar/assured-ledger/ledger-core in GOPATH")
 	})
 	return rootProjectDir, rootProjectError
 }
@@ -317,7 +317,7 @@ func main() {
 							Name:       file.Name(),
 							Path:       *contractPath,
 							Parsed:     parsedFile,
-							ImportPath: "github.com/insolar/assured-ledger/ledger-core/v2/" + contractDirPath[len(rootProjectDir)+1:],
+							ImportPath: "github.com/insolar/assured-ledger/ledger-core/" + contractDirPath[len(rootProjectDir)+1:],
 						}
 						contractList = append(contractList, contract)
 					}

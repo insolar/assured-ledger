@@ -8,7 +8,7 @@ package logwriter
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 )
 
 var _ logcommon.LoggerOutput = &ProxyLoggerOutput{}

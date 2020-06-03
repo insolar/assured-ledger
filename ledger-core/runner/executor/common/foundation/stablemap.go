@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 )
 
 // StableMap is a `map[string]string` that can be deterministically serialized.

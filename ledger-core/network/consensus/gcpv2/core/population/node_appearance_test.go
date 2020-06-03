@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
 )
 
 // func TestNewNodeAppearanceAsSelf(t *testing.T) {

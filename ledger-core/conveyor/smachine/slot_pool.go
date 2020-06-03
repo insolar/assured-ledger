@@ -8,7 +8,7 @@ package smachine
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // SlotPool by default recycles deallocated pages to mitigate possible memory leak through SlotLink references
@@ -28,7 +28,7 @@ type slotPage = []Slot
 type SlotPool struct {
 	mutex sync.RWMutex
 
-	slotPages   []slotPage // LOCK specifics. This slice has mixed access - see ScanAndCleanup
+	slotPages []slotPage // LOCK specifics. This slice has mixed access - see ScanAndCleanup
 
 	unusedSlots SlotQueue
 	emptyPages  []slotPage
@@ -157,7 +157,7 @@ func (p *SlotPool) cleanup(partialCount, fullCount, firstNil int, cleanupAll boo
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if cleanupAll && fullCount + 1 == len(p.slotPages) && p.slotPgPos == uint16(partialCount) {
+	if cleanupAll && fullCount+1 == len(p.slotPages) && p.slotPgPos == uint16(partialCount) {
 		// As AllocateSlot() can run in parallel, there can be new slots and slot pages
 		// so, full cleanup can only be applied when there were no additions
 		for i, slotPage := range p.slotPages {

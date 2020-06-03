@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 
 	"github.com/stretchr/testify/require"
 )

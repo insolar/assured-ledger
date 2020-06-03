@@ -13,10 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logwriter"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
 )
 
 type BackpressureBufferFlags uint8

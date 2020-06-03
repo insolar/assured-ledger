@@ -6,7 +6,7 @@
 package serialization
 
 import (
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func ErrPayloadLengthMismatch(expected, actual int64) error {

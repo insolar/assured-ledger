@@ -7,7 +7,7 @@ info:
     url: 'https://insolar.io/about#team'
     email: dev-support@insolar.io
   description: >
-    [Insolar](https://github.com/insolar/assured-ledger/ledger-core/v2) Platform JSON RPC 2.0 API
+    [Insolar](https://github.com/insolar/assured-ledger/ledger-core) Platform JSON RPC 2.0 API
     documentation.
 
 

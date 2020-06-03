@@ -11,8 +11,8 @@ import (
 
 	fuzz "github.com/google/gofuzz"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 var uniqueSeq uint32

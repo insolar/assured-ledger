@@ -10,25 +10,25 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/controller"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/gateway/bootstrap"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/nodenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/routing"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/storage"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/termination"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/controller"
+	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
+	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/network/routing"
+	"github.com/insolar/assured-ledger/ledger-core/network/storage"
+	"github.com/insolar/assured-ledger/ledger-core/network/termination"
+	"github.com/insolar/assured-ledger/ledger-core/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // ServiceNetwork is facade for network.

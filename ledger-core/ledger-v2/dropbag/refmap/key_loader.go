@@ -6,9 +6,9 @@
 package refmap
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/unsafekit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/unsafekit"
 )
 
 func newBucketKeyLoader(chunks []longbits.ByteString) bucketKeyLoader {

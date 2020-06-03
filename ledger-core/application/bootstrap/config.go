@@ -8,7 +8,7 @@ package bootstrap
 import (
 	"github.com/spf13/viper"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Node contains info about discovery nodes.
@@ -84,7 +84,7 @@ type Config struct {
 // hasMinimumRolesSet does basic check (it's not about majority rule).
 func hasMinimumRolesSet(conf *Config) error {
 	minRequiredRolesSet := map[string]bool{
-		"virtual":        true,
+		"virtual": true,
 	}
 
 	for _, discNode := range conf.DiscoveryNodes {

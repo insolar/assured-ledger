@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // DefaultTTL is default time period for deleting expired seeds

@@ -6,7 +6,7 @@
 package pulsartestutils
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 )
 
 // MockEntropy for pulsar's tests

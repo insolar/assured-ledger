@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"sort"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var lineRegex = regexp.MustCompile(`^([^ :]+):\d+:([^ ]*) `)

@@ -9,7 +9,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 )
 
 type PayloadFactory interface {

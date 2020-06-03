@@ -8,13 +8,13 @@ package packetdispatch
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/coreapi"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/coreapi"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/population"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 type MemberPacketReceiver interface {

@@ -8,14 +8,14 @@ package phasebundle
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/consensus"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/inspectors"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/pulsectl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/inspectors"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/pulsectl"
 )
 
 const loopingMinimalDelay = 2 * time.Millisecond

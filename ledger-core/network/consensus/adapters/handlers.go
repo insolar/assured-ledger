@@ -12,18 +12,18 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/errors"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/warning"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insmetrics"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/warning"
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 )
 
 type PacketProcessor interface {

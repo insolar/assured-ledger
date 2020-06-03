@@ -13,10 +13,10 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network"
-	mock "github.com/insolar/assured-ledger/ledger-core/v2/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func TestNewGatewayer(t *testing.T) {

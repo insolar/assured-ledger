@@ -6,8 +6,8 @@
 package requestresult
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
 type RequestResult struct {

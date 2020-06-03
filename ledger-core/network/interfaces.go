@@ -11,14 +11,14 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 type Report struct {
@@ -41,7 +41,7 @@ type BootstrapResult struct {
 // RequestHandler handler function to process incoming requests from network and return responses to these requests.
 type RequestHandler func(ctx context.Context, request ReceivedPacket) (response Packet, err error)
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.HostNetwork -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.HostNetwork -o ../testutils/network -s _mock.go -g
 
 // HostNetwork simple interface to send network requests and process network responses.
 type HostNetwork interface {
@@ -86,7 +86,7 @@ type Future interface {
 	Cancel()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.OriginProvider -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.OriginProvider -o ../testutils/network -s _mock.go -g
 
 //Deprecated: network internal usage only
 type OriginProvider interface {
@@ -94,7 +94,7 @@ type OriginProvider interface {
 	GetOrigin() node.NetworkNode
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeNetwork -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
 
 // Should be deprecated, but actually is still used everywhere todo: move GetWorkingNodes to ServiceNetwork facade
 type NodeNetwork interface {
@@ -104,7 +104,7 @@ type NodeNetwork interface {
 	GetAccessor(pulse.Number) Accessor
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.NodeKeeper -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeKeeper -o ../testutils/network -s _mock.go -g
 
 // NodeKeeper manages unsync, sync and active lists.
 type NodeKeeper interface {
@@ -118,7 +118,7 @@ type NodeKeeper interface {
 	MoveSyncToActive(context.Context, pulse.Number)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.RoutingTable -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g
 
 // RoutingTable contains all routing information of the network.
 type RoutingTable interface {
@@ -126,7 +126,7 @@ type RoutingTable interface {
 	Resolve(reference.Global) (*host.Host, error)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Accessor -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Accessor -o ../testutils/network -s _mock.go -g
 
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
@@ -145,7 +145,7 @@ type Accessor interface {
 	GetActiveNodeByAddr(address string) node.NetworkNode
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gatewayer -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g
 
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
@@ -153,7 +153,7 @@ type Gatewayer interface {
 	SwitchState(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Gateway -o ../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gateway -o ../testutils/network -s _mock.go -g
 
 // Gateway responds for whole network state
 type Gateway interface {
@@ -193,7 +193,7 @@ type Bootstrapper interface {
 	HandleReconnect(context.Context, Packet) (Packet, error)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.Aborter -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Aborter -o ./ -s _mock.go -g
 
 // Aborter provide method for immediately stop node
 type Aborter interface {
@@ -201,7 +201,7 @@ type Aborter interface {
 	Abort(ctx context.Context, reason string)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network.TerminationHandler -o ../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.TerminationHandler -o ../testutils -s _mock.go -g
 
 // TerminationHandler handles such node events as graceful stop, abort, etc.
 type TerminationHandler interface {

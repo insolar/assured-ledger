@@ -10,9 +10,9 @@ package inslogger
 import (
 	"os"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger/consprint"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/consprint"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func init() {

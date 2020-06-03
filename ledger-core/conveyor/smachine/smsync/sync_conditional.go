@@ -9,7 +9,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 // ConditionalBool allows Acquire() call to pass through when current value is >0

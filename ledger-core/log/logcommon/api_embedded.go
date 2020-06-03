@@ -8,10 +8,10 @@ package logcommon
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon.EmbeddedLogger -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/log/logcommon.EmbeddedLogger -s _mock.go -g
 
 /*
 	This interface provides methods with -1 call levels.

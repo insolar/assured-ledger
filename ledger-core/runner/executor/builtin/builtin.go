@@ -9,15 +9,15 @@ package builtin
 import (
 	"context"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/builtin"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/application/builtin"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Runner is a contract runner engine

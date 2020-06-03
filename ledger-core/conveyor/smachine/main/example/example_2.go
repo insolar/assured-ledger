@@ -8,9 +8,9 @@ package example
 import (
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 type StateMachine2 struct {

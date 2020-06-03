@@ -6,10 +6,10 @@
 package object
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RequestTable struct {
@@ -117,7 +117,6 @@ func (rl *RequestList) CountFinish() int {
 	}
 	return count
 }
-
 
 func (rl *RequestList) CountActive() int {
 	var count int

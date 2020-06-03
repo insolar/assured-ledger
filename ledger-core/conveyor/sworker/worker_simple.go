@@ -8,8 +8,8 @@ package sworker
 import (
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
 // Very simple implementation of a slot worker. No support for detachments.

@@ -10,8 +10,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"

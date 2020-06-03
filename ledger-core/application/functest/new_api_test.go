@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 )
 
 func customSend(data string) (map[string]interface{}, error) {

@@ -14,10 +14,10 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insmetrics"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 )
 
 type methodInstrumenterKey struct{}

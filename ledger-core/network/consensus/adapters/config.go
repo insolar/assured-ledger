@@ -10,9 +10,9 @@ import (
 	"crypto/ecdsa"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 var defaultRoundTimings = api.RoundTimings{

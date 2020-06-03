@@ -8,7 +8,7 @@ package entropygenerator
 import (
 	"crypto/rand"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 )
 
 // EntropyGenerator is the base interface for generation of entropy for pulses

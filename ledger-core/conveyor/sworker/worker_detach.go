@@ -6,8 +6,8 @@
 package sworker
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
 //var _ smachine.AttachableSlotWorker = &AttachableWorker{}

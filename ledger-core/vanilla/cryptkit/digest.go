@@ -8,7 +8,7 @@ package cryptkit
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 type DigestMethod string
@@ -57,7 +57,7 @@ type DigestFactory interface {
 	CreateForkingDigester() ForkingDigester
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit.DigestHolder -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.DigestHolder -o . -s _mock.go -g
 
 type DigestHolder interface {
 	longbits.FoldableReader

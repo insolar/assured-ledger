@@ -6,7 +6,7 @@
 package common
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 )
 
 type Serializer interface {

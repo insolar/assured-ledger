@@ -8,7 +8,7 @@ package member
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/capacity"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/capacity"
 
 	"github.com/stretchr/testify/require"
 )

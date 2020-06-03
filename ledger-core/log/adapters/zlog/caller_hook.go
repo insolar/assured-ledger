@@ -8,7 +8,7 @@ package zlog
 import (
 	"github.com/rs/zerolog"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
 
 type callerHook struct {

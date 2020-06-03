@@ -8,7 +8,7 @@ package functest
 import (
 	"encoding/json"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const startBalance uint = 1000000000 // nolint:unused,deadcode,varcheck

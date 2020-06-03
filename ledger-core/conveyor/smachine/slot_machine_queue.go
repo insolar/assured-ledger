@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
 func newSlotMachineSync(eventCallback, signalCallback func()) SlotMachineSync {

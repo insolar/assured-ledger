@@ -6,13 +6,14 @@ package rms
 import (
 	bytes "bytes"
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
-	proto "github.com/gogo/protobuf/proto"
-	_ "github.com/insolar/assured-ledger/ledger-core/v2/insproto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	github_com_gogo_protobuf_proto "github.com/gogo/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
+	_ "github.com/insolar/assured-ledger/ledger-core/insproto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

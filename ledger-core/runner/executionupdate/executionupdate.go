@@ -6,8 +6,8 @@
 package executionupdate
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 )
 
 //go:generate stringer -type=StateUpdateType

@@ -8,10 +8,10 @@ package example
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 func CreateCatalogC() CatalogC { // nolint:golint

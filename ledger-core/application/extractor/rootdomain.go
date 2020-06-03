@@ -8,9 +8,9 @@ package extractor
 import (
 	"encoding/json"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 )
 
 // InfoResponse represents response from Info() method of RootDomain contract

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/sdk"
 )
 
 func addMigrationAddresses(adminUrls []string, publicUrls []string, memberKeysDirPath string, addressesPath string, shardsCount int) {

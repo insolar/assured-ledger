@@ -8,7 +8,7 @@ package host
 import (
 	"net"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Address is host's real network address.

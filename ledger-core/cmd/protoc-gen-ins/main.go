@@ -25,12 +25,12 @@ import (
 
 	plugin "github.com/gogo/protobuf/protoc-gen-gogo/plugin"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/defaultcheck"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/gogobased"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/cmd/protoc-gen-ins/plugins/defaultcheck"
+	"github.com/insolar/assured-ledger/ledger-core/cmd/protoc-gen-ins/plugins/gogobased"
+	"github.com/insolar/assured-ledger/ledger-core/insproto"
 )
 
-// use: go install github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins
+// use: go install github.com/insolar/assured-ledger/ledger-core/cmd/protoc-gen-ins
 
 func main() {
 	resetDefaultPlugins()

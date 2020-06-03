@@ -10,7 +10,7 @@ import (
 
 	"github.com/ugorji/go/codec"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var mapType = reflect.TypeOf(map[string]interface{}(nil))

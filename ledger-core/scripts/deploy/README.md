@@ -93,7 +93,7 @@ Simple usage and config template is in ./scripts/deploy/kube-deploy-tool path.
 go build -o ./bin/kube-deploy-tool ./scripts/deploy/kube-deploy-tool && ./bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml
 ```
 
-Deploy tool modifies bootstrap files in ledger-core/v2/scripts/deploy/kube/manifests/configuration. 
+Deploy tool modifies bootstrap files in ledger-core/scripts/deploy/kube/manifests/configuration. 
 This files has default config for 5-node network for CI and local runs, so if you use the tool locally be careful, don't commit changes in this dir, if you don't know why you doing this.
 
 ## Debug

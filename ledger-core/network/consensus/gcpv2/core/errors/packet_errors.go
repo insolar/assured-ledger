@@ -8,10 +8,10 @@ package errors
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/warning"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/warning"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
 )
 
 func LimitExceeded(packetType phases.PacketType, sourceID node.ShortNodeID, sourceEndpoint endpoints.Inbound) error {

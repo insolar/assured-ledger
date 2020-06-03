@@ -8,8 +8,8 @@ package filaments
 import (
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 func NewLatest(entry *WriteEntry, lifelineRoot reference.Holder, filamentRoot reference.Holder,

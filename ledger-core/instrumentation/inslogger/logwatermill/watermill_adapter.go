@@ -8,8 +8,8 @@ package logwatermill
 import (
 	"github.com/ThreeDotsLabs/watermill"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 func NewWatermillLogAdapter(log log.Logger) *WatermillLogAdapter {

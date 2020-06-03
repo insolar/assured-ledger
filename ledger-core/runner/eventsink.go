@@ -6,11 +6,11 @@
 package runner
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/execution"
-	descriptor "github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionupdate"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	descriptor "github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 )
 
 type executionEventSink struct {

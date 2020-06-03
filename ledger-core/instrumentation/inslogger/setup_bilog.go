@@ -8,12 +8,12 @@ package inslogger
 import (
 	"errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog"
+	"github.com/insolar/assured-ledger/ledger-core/log/adapters/bilog"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
 
 func initBilog() {

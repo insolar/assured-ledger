@@ -9,7 +9,7 @@ import (
 	"math"
 	"math/bits"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
 )
 
 // PathBuilder allows to build a merkle-proof by a linear hashing log produced by StackedCalculator.

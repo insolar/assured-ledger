@@ -8,7 +8,7 @@ package smsync
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 func NewExclusive(name string) smachine.SyncLink {

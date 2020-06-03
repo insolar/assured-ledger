@@ -8,8 +8,8 @@ package dropbag
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag/dbcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag/dbsv1"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag/dbcommon"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag/dbsv1"
 )
 
 func OpenReadStorage(sr dbcommon.StorageSeqReader, config dbcommon.ReadConfig, payloadFactory dbcommon.PayloadFactory) (dbcommon.PayloadBuilder, error) {

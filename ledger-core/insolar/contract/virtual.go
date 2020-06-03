@@ -6,7 +6,7 @@
 package contract
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // MethodFunc is a typedef for wrapper contract header

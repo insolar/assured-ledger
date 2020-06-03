@@ -8,9 +8,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_node "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	mm_node "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // NetworkNodeMock implements node.NetworkNode

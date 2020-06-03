@@ -8,7 +8,7 @@ package hash
 import (
 	"golang.org/x/crypto/sha3"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 )
 
 type sha3Provider struct{}

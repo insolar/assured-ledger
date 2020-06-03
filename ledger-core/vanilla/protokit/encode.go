@@ -8,7 +8,7 @@ package protokit
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func SizeTag(fieldID int) int {

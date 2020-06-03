@@ -9,7 +9,7 @@ import (
 	"crypto/sha256"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 type TestDigester struct {

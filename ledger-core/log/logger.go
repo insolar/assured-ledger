@@ -8,8 +8,8 @@ package log
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 const DefaultOutputParallelLimit = 5

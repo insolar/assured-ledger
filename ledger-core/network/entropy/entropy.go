@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 )
 
 // SelectByEntropy selects value from list based on provided crypto scheme and entropy data.

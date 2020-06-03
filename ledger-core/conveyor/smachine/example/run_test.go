@@ -8,7 +8,7 @@ package example
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
 
 func TestExample(t *testing.T) {

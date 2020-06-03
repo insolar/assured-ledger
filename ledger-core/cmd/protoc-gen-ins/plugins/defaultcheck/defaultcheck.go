@@ -38,8 +38,8 @@ import (
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cmd/protoc-gen-ins/plugins/extra"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/cmd/protoc-gen-ins/plugins/extra"
+	"github.com/insolar/assured-ledger/ledger-core/insproto"
 )
 
 type plugin struct {

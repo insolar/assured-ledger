@@ -10,7 +10,7 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 )
 
 func NewAdapter(output io.Writer, protectedClose bool, flushFn, fatalFlushFn logcommon.LogFlushFunc) *Adapter {

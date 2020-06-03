@@ -9,7 +9,7 @@ import (
 	"io"
 	"regexp"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 )
 
 type LogLevelWriteCloser interface {

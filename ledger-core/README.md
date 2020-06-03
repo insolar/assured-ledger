@@ -12,7 +12,7 @@ To get a grip on how Insolar works, take a look at its [architecture overview](h
 
 ## Quick start
 
-To join the Insolar network, download the [latest release](https://github.com/insolar/assured-ledger/ledger-core/v2/releases) and follow the [integration instructions](https://docs.insolar.io/en/latest/integration.html).
+To join the Insolar network, download the [latest release](https://github.com/insolar/assured-ledger/ledger-core/releases) and follow the [integration instructions](https://docs.insolar.io/en/latest/integration.html).
 
 You can test Assured Ledger locally:
 
@@ -32,16 +32,16 @@ Set the [$GOPATH environment variable](https://github.com/golang/go/wiki/Setting
 1. Download the Assured Ledger package:
 
    ```
-   go get github.com/insolar/assured-ledger/ledger-core/v2
+   go get github.com/insolar/assured-ledger/ledger-core
    ```
 
 2. Go to the package directory:
 
    ```
-   cd $GOPATH/src/github.com/insolar/assured-ledger/ledger-core/v2
+   cd $GOPATH/src/github.com/insolar/assured-ledger/ledger-core
    ```
 
-3. Install dependencies and build binaries using [the makefile](https://github.com/insolar/assured-ledger/blob/PLAT-182-all-insolard-cli-commands/ledger-core/v2/Makefile) that automates this process:
+3. Install dependencies and build binaries using [the makefile](https://github.com/insolar/assured-ledger/blob/PLAT-182-all-insolard-cli-commands/ledger-core/Makefile) that automates this process:
 
    ```
    make vendor 
@@ -158,7 +158,7 @@ Thank you for your intention to contribute to the Insolar project. As a company 
 
 ## FAQ
 
-For more information, check out our [FAQ](https://github.com/insolar/assured-ledger/ledger-core/v2/wiki/FAQ).
+For more information, check out our [FAQ](https://github.com/insolar/assured-ledger/ledger-core/wiki/FAQ).
 
 ## Contacts
 

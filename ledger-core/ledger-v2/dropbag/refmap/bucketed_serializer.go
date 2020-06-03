@@ -10,7 +10,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 const headerBinarySize = 3 * 4

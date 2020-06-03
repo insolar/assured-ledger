@@ -90,7 +90,7 @@ func TestWrapPanicExt(t *testing.T) {
 	err := WrapPanicExt("test", 0)
 	st := OutermostStack(err).ShallowStackTrace()
 	s := st.StackTraceAsText()
-	methodName := "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.TestWrapPanicExt"
+	methodName := "github.com/insolar/assured-ledger/ledger-core/vanilla/throw.TestWrapPanicExt"
 	require.True(t, strings.HasPrefix(st.StackTraceAsText(), methodName), "missing method: %s", s)
 }
 
@@ -99,7 +99,7 @@ func TestStackOf(t *testing.T) {
 	st := DeepestStackTraceOf(errChain)
 	require.NotNil(t, st)
 	s := ErrorWithStack(errChain)
-	methodName := "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.TestStackOf"
+	methodName := "github.com/insolar/assured-ledger/ledger-core/vanilla/throw.TestStackOf"
 	require.Contains(t, s, methodName)
 }
 
@@ -172,6 +172,6 @@ func TestPrintTo(t *testing.T) {
 		PrintTo(IllegalValue(), true, &b)
 		_, fileName, fileLine, ok := runtime.Caller(0)
 		require.True(t, ok, "failed to get caller")
-		require.Equal(t, fmt.Sprintf("illegal value\nStack trace:\ngithub.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw.TestPrintTo.func6\n\t%s:%d\n", fileName, fileLine-1), b.String())
+		require.Equal(t, fmt.Sprintf("illegal value\nStack trace:\ngithub.com/insolar/assured-ledger/ledger-core/vanilla/throw.TestPrintTo.func6\n\t%s:%d\n", fileName, fileLine-1), b.String())
 	})
 }

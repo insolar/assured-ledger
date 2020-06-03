@@ -12,7 +12,7 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type traceIDKey struct{}

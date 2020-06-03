@@ -1,4 +1,4 @@
-module github.com/insolar/assured-ledger/ledger-core/v2
+module github.com/insolar/assured-ledger/ledger-core
 
 go 1.14
 
@@ -58,6 +58,6 @@ require (
 	gotest.tools/gotestsum v0.4.1
 )
 
-replace github.com/insolar/assured-ledger/ledger-core/v2 => ./
+replace github.com/insolar/assured-ledger/ledger-core => ./
 
 replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43

@@ -6,11 +6,11 @@
 package storage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/storage.SnapshotStorage -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/storage.SnapshotStorage -o ../../testutils/network -s _mock.go -g
 
 // SnapshotStorage provides methods for accessing Snapshot.
 type SnapshotStorage interface {

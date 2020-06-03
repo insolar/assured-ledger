@@ -8,14 +8,14 @@ package inspectors
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/population"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/proofs"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/nodeset"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/statevector"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/nodeset"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 func NewBypassInspector() VectorInspector {

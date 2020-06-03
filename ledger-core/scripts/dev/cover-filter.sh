@@ -7,7 +7,7 @@
 grep -v "_mock.go:" | \
     grep -v "_string.go:" | \
     grep -v "_gen.go:" | \
-    grep -v 'github.com/insolar/assured-ledger/ledger-core/v2/cmd/' | \
-    grep -v "github.com/insolar/assured-ledger/ledger-core/v2/testutils" | \
+    grep -v 'github.com/insolar/assured-ledger/ledger-core/cmd/' | \
+    grep -v "github.com/insolar/assured-ledger/ledger-core/testutils" | \
     grep -v "storage/storagetest" | \
     grep -v ".pb.go:"

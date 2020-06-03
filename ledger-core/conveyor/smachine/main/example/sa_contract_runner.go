@@ -8,7 +8,7 @@ package example
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 type ContractCallType uint8

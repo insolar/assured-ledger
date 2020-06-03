@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 type StepLoggerEvent uint8
@@ -75,25 +75,25 @@ type SlotMachineData struct {
 	// CycleNo is a cycle number of a SlotMachine when this event has happened
 	CycleNo uint32
 	// StepNo is an link to SM and step, the issue was related to. This SM is dead. Can be zero, when was not related to an SM.
-	StepNo  StepLink
-	Error   error
+	StepNo StepLink
+	Error  error
 }
 
 // StepLoggerData describes an event that is connected to a specific SM.
 type StepLoggerData struct {
 	// CycleNo is a cycle number of a SlotMachine when this event has happened.
-	CycleNo     uint32
+	CycleNo uint32
 	// StepNo is an link to SM and step, the issue was related to.
-	StepNo      StepLink
+	StepNo StepLink
 	// CurrentStep is a step and its declaration data the SM is currently at.
 	CurrentStep StepDeclaration
 	// Declaration is a declaration of SM
 	Declaration StateMachineHelper
 	Error       error
 	// EventType is a type of this event
-	EventType   StepLoggerEvent
+	EventType StepLoggerEvent
 	// Flags provide additional details about the event. Flags depend on (EventType)
-	Flags       StepLoggerFlags
+	Flags StepLoggerFlags
 }
 
 // StepLoggerUpdateData describes an StateUpdate event applied to a specific SM. Invoked after each step.
@@ -101,7 +101,7 @@ type StepLoggerUpdateData struct {
 	// UpdateType is a symbolic name of the update type, e.g. jump, sleep etc
 	UpdateType string
 	// NextStep is a step and its declaration data to be applied to SM.
-	NextStep   StepDeclaration
+	NextStep StepDeclaration
 
 	// AppliedMigrate is set on migration update
 	AppliedMigrate MigrateFunc
@@ -111,7 +111,7 @@ type StepLoggerUpdateData struct {
 	InactivityNano time.Duration
 	// ActivityNano is a duration spent during inside the last (current) step.
 	// Zero or negative value means that duration is not applicable / not valid.
-	ActivityNano   time.Duration
+	ActivityNano time.Duration
 }
 
 // SlotMachineLogger is a helper to facilitate reporting of SlotMachine operations into a log or console.
@@ -303,7 +303,7 @@ func (v StepLoggerData) FormatForLog(msg string) string {
 }
 
 func (v StepLoggerData) IsElevated() bool {
-	return v.Flags & StepLoggerElevated != 0
+	return v.Flags&StepLoggerElevated != 0
 }
 
 func (v StepLoggerFlags) FormatAdapterForLog() string {

@@ -3,8 +3,8 @@ syntax = "proto3";
 package packet;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor/pulse.proto";
-import "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters/candidate/profile.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/pulse.proto";
+import "github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate/profile.proto";
 
 option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.populate_all) = false;
@@ -12,8 +12,8 @@ option (gogoproto.populate_all) = false;
 message Packet {
     int32 polymorph = 16;
 
-    bytes Sender = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host"];
-    bytes Receiver = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host"];
+    bytes Sender = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host"];
+    bytes Receiver = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host"];
     uint64 RequestID = 22;
     string TraceID = 23;
     bytes TraceSpanData = 24;
@@ -62,12 +62,12 @@ message PulseRequest {
 }
 
 message UpdateScheduleRequest {
-    uint32 LastNodePulse = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number", (gogoproto.nullable) = false];
+    uint32 LastNodePulse = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
     Permit Permit = 2;
 }
 
 message ReconnectRequest {
-    bytes ReconnectTo = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host", (gogoproto.nullable) = false];
+    bytes ReconnectTo = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host", (gogoproto.nullable) = false];
     Permit Permit = 2;
 }
 
@@ -90,7 +90,7 @@ message AuthorizeRequest {
 
 
 message SignCertRequest {
-    bytes NodeRef = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes NodeRef = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (gogoproto.nullable) = false];
 }
 
 message RPCResponse {
@@ -113,8 +113,8 @@ message Permit {
 message PermitPayload {
     bytes JoinerPublicKey = 1;
 	int64 ExpireTimestamp = 2;
-    bytes ReconnectTo = 3 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host"];
-    bytes AuthorityNodeRef = 4 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/v2/reference.Global", (gogoproto.nullable) = false];
+    bytes ReconnectTo = 3 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host"];
+    bytes AuthorityNodeRef = 4 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (gogoproto.nullable) = false];
 }
 
 message BootstrapResponse {

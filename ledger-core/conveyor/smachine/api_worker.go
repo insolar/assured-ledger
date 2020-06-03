@@ -6,7 +6,7 @@
 package smachine
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
 type AttachedFunc func(AttachedSlotWorker)

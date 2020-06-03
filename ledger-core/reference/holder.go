@@ -5,7 +5,7 @@
 
 package reference
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 type LocalHolder interface {
 	// GetLocal returns local portion of a full reference

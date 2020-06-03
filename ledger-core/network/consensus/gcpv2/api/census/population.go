@@ -8,13 +8,13 @@ package census
 import (
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census.OfflinePopulation -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census.OfflinePopulation -o . -s _mock.go -g
 
 type OfflinePopulation interface {
 	FindRegisteredProfile(identity endpoints.Inbound) profiles.Host
@@ -104,7 +104,7 @@ func appendByBit(b *strings.Builder, v *RecoverableErrorTypes, s string) {
 	*v >>= 1
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census.EvictedPopulation -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census.EvictedPopulation -o . -s _mock.go -g
 
 type EvictedPopulation interface {
 	/* when the relevant online population is !IsValid() then not all nodes can be accessed by nodeID */

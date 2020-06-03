@@ -5,7 +5,7 @@
 
 package population
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+import "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 
 func NewPanicDispatcher(panicMsg string) EventDispatcher {
 	return NewSinkDispatcher(func(EventClosureFunc) {

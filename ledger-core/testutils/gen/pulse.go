@@ -8,7 +8,7 @@ package gen
 import (
 	fuzz "github.com/google/gofuzz"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // Number generates random pulse number (excluding special cases).

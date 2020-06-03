@@ -5,7 +5,7 @@
 
 package main
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/reference"
+import "github.com/insolar/assured-ledger/ledger-core/reference"
 
 // isObjectReferenceString checks the validity of the reference
 // deprecated

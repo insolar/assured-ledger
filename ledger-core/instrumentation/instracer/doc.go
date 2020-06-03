@@ -9,8 +9,8 @@ Package instracer contains helpers for opencesus tracer.
 Example:
 
 	import (
-		"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-		"github.com/insolar/assured-ledger/ledger-core/v2/log"
+		"github.com/insolar/assured-ledger/ledger-core/configuration"
+		"github.com/insolar/assured-ledger/ledger-core/log"
 	)
 
 	// on client side

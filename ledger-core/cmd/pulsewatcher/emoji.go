@@ -6,7 +6,7 @@
 package main
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 
 	"sync"
 )

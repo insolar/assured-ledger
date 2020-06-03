@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 type hFoldReader = longbits.FoldableReader

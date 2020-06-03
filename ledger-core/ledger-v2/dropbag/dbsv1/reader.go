@@ -12,9 +12,9 @@ import (
 	"io"
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag/dbcommon"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag/dbcommon"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 )
 
 const (

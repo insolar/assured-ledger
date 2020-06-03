@@ -8,7 +8,7 @@ package conveyor
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 var _ smachine.SlotAliasRegistry = &GlobalAliases{}

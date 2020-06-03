@@ -11,8 +11,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/insmetrics"
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insmetrics"
 )
 
 // This test file contains tests what always must be last in the package.

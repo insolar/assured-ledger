@@ -18,10 +18,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api"
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/application/api"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 func waitForStatus(t *testing.T, nc *api.NetworkChecker, expected bool) {
@@ -43,7 +43,7 @@ func TestAvailabilityChecker_UpdateStatus(t *testing.T) {
 	ctx, _ := inslogger.InitNodeLogger(context.Background(), cfg, "", "")
 
 	defer testutils.LeakTester(t,
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/v2/application/api/seedmanager.NewSpecified.func1"))
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager.NewSpecified.func1"))
 
 	counter := 0
 

@@ -6,7 +6,7 @@
 package pulsestor
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func FromProto(p *PulseProto) *Pulse {

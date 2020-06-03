@@ -10,11 +10,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 func TestRequestTable(t *testing.T) {
@@ -84,7 +84,6 @@ func TestRequestList(t *testing.T) {
 	require.Equal(t, pd.PulseNumber, rl.EarliestPulse()) // doesn't change
 	require.Equal(t, 1, rl.CountFinish())
 	require.Equal(t, 2, rl.CountActive())
-
 
 	// try to finish ref that not in list
 	successFinish := rl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))

@@ -66,8 +66,8 @@ import (
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 )
 
 type unmarshal struct {

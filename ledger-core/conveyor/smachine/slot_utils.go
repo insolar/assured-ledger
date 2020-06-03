@@ -5,7 +5,7 @@
 
 package smachine
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 func (s *Slot) activateSlot(worker FixedSlotWorker) {
 	s.machine.updateSlotQueue(s, worker, activateSlot)

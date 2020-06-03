@@ -8,7 +8,7 @@ package bilog
 import (
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 )
 
 var gLevel uint32

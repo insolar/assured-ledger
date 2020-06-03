@@ -8,7 +8,7 @@ package foundation
 import (
 	"github.com/insolar/gls"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/call"
+	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 )
 
 const glsCallContextKey = "callCtx"

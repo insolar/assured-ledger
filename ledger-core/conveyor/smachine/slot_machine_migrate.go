@@ -8,7 +8,7 @@ package smachine
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 /* -- Methods to migrate slots ------------------------------ */

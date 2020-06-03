@@ -8,8 +8,8 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const (
@@ -90,7 +90,7 @@ func testCloudCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "cloud",
 		Short: "Run single process in the single-process-cloud",
-		Long:  `Single-process-cloud mode implies no consensus and no pulsar service (pulses are still generated).
+		Long: `Single-process-cloud mode implies no consensus and no pulsar service (pulses are still generated).
 It is used for development and debugging of smart contracts`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
@@ -131,7 +131,7 @@ func testHeadlessCommand() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "headless",
 		Short: "Run node in the headless mode",
-		Long:  `Headless mode implies network communication and consensus but no running of smart contracts.
+		Long: `Headless mode implies network communication and consensus but no running of smart contracts.
 		It is used for testing of consensus and network algorithms.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			runHeadlessNetwork(cmd.Flag(configFlag).Value.String())

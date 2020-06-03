@@ -6,8 +6,8 @@
 package adapters
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 )
 
 func StaticRoleToPrimaryRole(staticRole node.StaticRole) member.PrimaryRole {

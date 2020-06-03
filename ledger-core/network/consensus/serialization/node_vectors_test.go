@@ -12,7 +12,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 
 	"github.com/stretchr/testify/require"
 )

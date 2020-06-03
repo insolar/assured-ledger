@@ -6,8 +6,8 @@
 package descriptor
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 )
 
 // Code represents meta info required to fetch all code data.

@@ -6,9 +6,9 @@
 package inslogger
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
@@ -30,7 +30,7 @@ func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, ad
 		panic(err)
 	}
 
-	return l.WithMetrics(logcommon.LogMetricsResetMode|logcommon.LogMetricsTimestamp).
+	return l.WithMetrics(logcommon.LogMetricsResetMode | logcommon.LogMetricsTimestamp).
 		WithCaller(logcommon.CallerField).
 		WithOutput(&logcommon.TestingLoggerOutput{Testing: target, Output: l.GetOutput(), SuppressTestError: suppressTestError}).
 		MustBuild()

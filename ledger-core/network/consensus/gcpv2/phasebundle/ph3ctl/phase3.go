@@ -14,26 +14,26 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core/population"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/metrics"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/population"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/consensus"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/inspectors"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/consensuskit"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/inspectors"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/consensuskit"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/phases"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/statevector"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/nodeset"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph2ctl"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/chaser"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/statevector"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/nodeset"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph2ctl"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/chaser"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
 )
 
 func NewPhase3Controller(loopingMinimalDelay time.Duration, packetPrepareOptions transport.PacketPrepareOptions,

@@ -8,7 +8,7 @@ package smsync
 import (
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 func NewInfiniteLock(name string) smachine.SyncLink {

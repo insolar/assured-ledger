@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/version"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 var statusTmpl = `

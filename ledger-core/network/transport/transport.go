@@ -31,7 +31,7 @@ type StreamHandler interface {
 	HandleStream(ctx context.Context, address string, stream io.ReadWriteCloser)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/transport.StreamTransport -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/transport.StreamTransport -o ../../testutils/network -s _mock.go -g
 
 // StreamTransport interface provides methods to send and receive data streams
 type StreamTransport interface {

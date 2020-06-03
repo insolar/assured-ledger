@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/uber/jaeger-client-go"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/instracer"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 )
 
 func TestSerialize(t *testing.T) {

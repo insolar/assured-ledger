@@ -6,9 +6,9 @@
 package pulsar
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulsar/entropygenerator"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // NewPulse creates a new pulse with using of custom GeneratedEntropy Generator

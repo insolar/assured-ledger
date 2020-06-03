@@ -12,7 +12,7 @@ Usage:
 	package main
 
 	import (
-		"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+		"github.com/insolar/assured-ledger/ledger-core/configuration"
 		"fmt"
 	)
 

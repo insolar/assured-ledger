@@ -8,8 +8,8 @@ package conveyor
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // This SM delays actual creation of an event handler when the event has arrived to early.

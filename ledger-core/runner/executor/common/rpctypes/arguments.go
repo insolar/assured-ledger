@@ -8,9 +8,9 @@ package rpctypes
 import (
 	"encoding/json"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 )
 
 // Arguments is a dedicated type for arguments, that represented as binary cbored blob

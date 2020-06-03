@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
 type AdapterCallbackFunc func(AsyncResultFunc, error) bool

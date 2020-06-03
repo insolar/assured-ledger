@@ -65,7 +65,7 @@ const (
 
 type TerminationCallbackFunc func(result interface{}, err error) AsyncResultFunc
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.ConstructionContext -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.ConstructionContext -o ./ -s _mock.go -g
 /* During construction SlotLink() will have correct SlotID, but MAY have INVALID status, as slot was not yet created */
 type ConstructionContext interface {
 	BasicContext
@@ -245,7 +245,7 @@ const (
 	SubroutineCleanupAliasesAndShares SubroutineCleanupMode = 3
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.InitializationContext -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.InitializationContext -o ./ -s _mock.go -g
 type InitializationContext interface {
 	InOrderStepContext
 
@@ -259,7 +259,7 @@ type PostInitStepContext interface {
 	CallSubroutine(SubroutineStateMachine, MigrateFunc, SubroutineExitFunc) StateUpdate
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.ExecutionContext -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.ExecutionContext -o ./ -s _mock.go -g
 type ExecutionContext interface {
 	PostInitStepContext
 
@@ -348,7 +348,7 @@ const (
 	IgnoreSignal
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.MigrationContext -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.MigrationContext -o ./ -s _mock.go -g
 type MigrationContext interface {
 	PostInitStepContext
 
@@ -364,7 +364,7 @@ type MigrationContext interface {
 	WakeUp() StateUpdate
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine.StateConditionalBuilder -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.StateConditionalBuilder -o ./ -s _mock.go -g
 type StateConditionalBuilder interface {
 	ConditionalBuilder
 	// Returns information about the condition being already satisfied

@@ -5,14 +5,15 @@ package node
 
 import (
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	io "io"
 	math "math"
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -28,7 +29,7 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Node struct {
 	Polymorph int32                                                             `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	ID        github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,20,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"ID"`
+	ID        github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,20,opt,name=ID,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ID"`
 	Role      StaticRole                                                        `protobuf:"varint,21,opt,name=Role,proto3,customtype=StaticRole" json:"Role"`
 }
 

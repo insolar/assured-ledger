@@ -8,8 +8,8 @@ package smachine
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 /* -------------- Methods to run state machines --------------- */
@@ -241,11 +241,11 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 			case !slot.needsReleaseOnStepping(prevStepNo):
 				//
 			case worker.NonDetachableCall(func(worker FixedSlotWorker) {
-					// MUST match SlotMachine.stopSlotWorking
-					released := slot._releaseAllDependency()
-					link := slot.NewLink()
-					m.activateDependants(released, link, worker)
-				}):
+				// MUST match SlotMachine.stopSlotWorking
+				released := slot._releaseAllDependency()
+				link := slot.NewLink()
+				m.activateDependants(released, link, worker)
+			}):
 			default:
 				// we need to release, but we were unable to synchronize with SlotMachine
 				// cant' short-loop further
@@ -306,7 +306,7 @@ func (m *SlotMachine) _executeSlotInitByCreator(slot *Slot, postInitFn PostInitF
 type postExecFlags uint8
 
 const (
-	wasAsyncExec postExecFlags = 1<<iota
+	wasAsyncExec postExecFlags = 1 << iota
 	wasInlineExec
 )
 
@@ -314,7 +314,7 @@ func (m *SlotMachine) slotPostExecution(slot *Slot, stateUpdate StateUpdate, wor
 	prevStepNo uint32, flags postExecFlags, inactivityNano time.Duration) (hasAsync bool) {
 
 	activityNano := durationNotApplicableNano
-	wasAsync := flags & wasAsyncExec != 0
+	wasAsync := flags&wasAsyncExec != 0
 	if !wasAsync && inactivityNano > durationNotApplicableNano {
 		activityNano = slot.touch(time.Now().UnixNano())
 	}

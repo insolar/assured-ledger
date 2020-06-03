@@ -6,7 +6,7 @@
 package payload
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type CallRequestFlags uint32

@@ -8,7 +8,7 @@ package rms
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewSerializableFromReader(s io.Reader, dataSize int) SerializableFromReader {

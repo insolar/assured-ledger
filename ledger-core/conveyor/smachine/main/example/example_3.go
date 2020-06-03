@@ -6,7 +6,7 @@
 package example
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
 type StateMachine3 struct {

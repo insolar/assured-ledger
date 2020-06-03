@@ -6,9 +6,9 @@
 package runner
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/rpctypes"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/rpctypes"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func (r *DefaultService) GetCode(_ rpctypes.UpGetCodeReq, _ *rpctypes.UpGetCodeResp) error {

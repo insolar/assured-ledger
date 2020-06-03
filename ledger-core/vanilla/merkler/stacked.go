@@ -6,9 +6,9 @@
 package merkler
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 var _ cryptkit.SequenceDigester = &StackedCalculator{}

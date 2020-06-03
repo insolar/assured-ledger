@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 )
 
 func TestMain(m *testing.M) {

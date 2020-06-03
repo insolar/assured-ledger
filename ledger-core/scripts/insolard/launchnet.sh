@@ -257,7 +257,7 @@ generate_migration_addresses()
 check_working_dir()
 {
     echo "check_working_dir() starts ..."
-    if ! pwd | grep -q "ledger-core/v2$"
+    if ! pwd | grep -q "ledger-core$"
     then
         echo "Run me from insolar root"
         exit 1

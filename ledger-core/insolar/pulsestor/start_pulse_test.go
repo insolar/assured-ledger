@@ -8,8 +8,8 @@ package pulsestor
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func ReadPulses(pulser StartPulse) func() {

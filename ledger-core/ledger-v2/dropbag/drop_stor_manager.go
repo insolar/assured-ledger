@@ -8,10 +8,10 @@ package dropbag
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/jetid"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/keyset"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/jetid"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/keyset"
 )
 
 type DropStorageManager interface {

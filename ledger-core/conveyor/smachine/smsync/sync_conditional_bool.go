@@ -5,7 +5,7 @@
 
 package smsync
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+import "github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 
 // ConditionalBool allows Acquire() call to pass through when current value is true
 func NewConditionalBool(isOpen bool, name string) BoolConditionalLink {

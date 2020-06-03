@@ -10,9 +10,9 @@ import (
 	"context"
 	"encoding/json"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 const (
@@ -49,7 +49,7 @@ func (entropy Entropy) Equal(other Entropy) bool {
 }
 
 // go:generate protoc -I$GOPATH/src -I./ --gogoslick_out=./ pulse.proto
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor.Manager -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor.Manager -s _mock.go -g
 
 // Manager provides Ledger's methods related to Pulse.
 type Manager interface {

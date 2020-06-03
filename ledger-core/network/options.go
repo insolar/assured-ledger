@@ -8,7 +8,7 @@ package network
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
 // Options contains configuration options for the local host.

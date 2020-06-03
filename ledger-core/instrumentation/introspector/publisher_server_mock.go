@@ -9,7 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_introproto "github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/introspector/introproto"
+	mm_introproto "github.com/insolar/assured-ledger/ledger-core/instrumentation/introspector/introproto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 )
 

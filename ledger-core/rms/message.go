@@ -8,9 +8,9 @@ package rms
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/protokit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {

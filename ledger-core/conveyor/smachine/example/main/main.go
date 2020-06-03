@@ -5,7 +5,7 @@
 
 package main
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine/example"
+import "github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/example"
 
 func main() {
 	example.RunExample()

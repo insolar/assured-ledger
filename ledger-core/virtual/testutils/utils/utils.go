@@ -6,7 +6,7 @@
 package utils
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/reflectkit"
 )
 
 func CmpStateFuncs(want, got interface{}) bool {

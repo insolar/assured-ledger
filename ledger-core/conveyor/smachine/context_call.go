@@ -8,7 +8,7 @@ package smachine
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
 const (

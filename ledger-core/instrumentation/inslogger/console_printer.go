@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
 
 var ConsoleWriterDefaults = ConsoleWriterConfig{

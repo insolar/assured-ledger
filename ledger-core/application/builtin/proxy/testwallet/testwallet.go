@@ -20,10 +20,10 @@
 package testwallet
 
 import (
-	XXX_contract "github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/executor/common/foundation"
+	XXX_contract "github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 )
 
 // ClassReference to class of this contract

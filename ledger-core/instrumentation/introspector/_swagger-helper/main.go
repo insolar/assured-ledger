@@ -17,9 +17,9 @@ import (
 	"path"
 	"strings"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 )
 
 var (
@@ -32,7 +32,7 @@ var inDir = flag.String("in", ".", "directory with swagger files")
 
 // copyFile copies file `fromName` to file `toName`. Sadly there is no such method in standard library.
 func copyFile(fromName, toName string) error {
- 	from, err := os.Open(fromName)
+	from, err := os.Open(fromName)
 	if err != nil {
 		return errors.W(err, "os.Open")
 	}

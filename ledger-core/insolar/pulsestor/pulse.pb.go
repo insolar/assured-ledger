@@ -6,14 +6,15 @@ package pulsestor
 import (
 	bytes "bytes"
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_insolar_assured_ledger_ledger_core_v2_pulse "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
 	io "io"
 	math "math"
 	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_insolar_assured_ledger_ledger_core_v2_pulse "github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -28,9 +29,9 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type PulseProto struct {
-	PulseNumber      github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,1,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"PulseNumber"`
-	PrevPulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,2,opt,name=PrevPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"PrevPulseNumber"`
-	NextPulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,3,opt,name=NextPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"NextPulseNumber"`
+	PulseNumber      github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,1,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PulseNumber"`
+	PrevPulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,2,opt,name=PrevPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PrevPulseNumber"`
+	NextPulseNumber  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,3,opt,name=NextPulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"NextPulseNumber"`
 	PulseTimestamp   int64                                                         `protobuf:"varint,4,opt,name=PulseTimestamp,proto3" json:"PulseTimestamp,omitempty"`
 	EpochPulseNumber int32                                                         `protobuf:"varint,5,opt,name=EpochPulseNumber,proto3" json:"EpochPulseNumber,omitempty"`
 	OriginID         []byte                                                        `protobuf:"bytes,6,opt,name=OriginID,proto3" json:"OriginID,omitempty"`
@@ -72,7 +73,7 @@ var xxx_messageInfo_PulseProto proto.InternalMessageInfo
 
 type PulseSenderConfirmationProto struct {
 	PublicKey       string                                                        `protobuf:"bytes,1,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
-	PulseNumber     github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,2,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"PulseNumber"`
+	PulseNumber     github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,2,opt,name=PulseNumber,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PulseNumber"`
 	ChosenPublicKey string                                                        `protobuf:"bytes,3,opt,name=ChosenPublicKey,proto3" json:"ChosenPublicKey,omitempty"`
 	Entropy         Entropy                                                       `protobuf:"bytes,4,opt,name=Entropy,proto3,customtype=Entropy" json:"Entropy"`
 	Signature       []byte                                                        `protobuf:"bytes,5,opt,name=Signature,proto3" json:"Signature,omitempty"`

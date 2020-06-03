@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/args"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/args"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog/msgencoder"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/adapters/bilog/msgencoder"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 func EncoderManager() msgencoder.EncoderFactory {

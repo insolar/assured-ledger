@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 )
 
 func TestCallFlags_BitStorageIsEngough(t *testing.T) {

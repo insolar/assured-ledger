@@ -8,7 +8,7 @@ package logwriter
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 )
 
 func NewDirectWriter(output *Adapter) *FatalDirectWriter {

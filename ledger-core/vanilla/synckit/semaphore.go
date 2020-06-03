@@ -8,7 +8,7 @@ package synckit
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewSemaphore(limit int) Semaphore {

@@ -12,10 +12,10 @@ import (
 	"io"
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logwriter"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/bpbuffer"
+	"github.com/insolar/assured-ledger/ledger-core/log/bpbuffer"
 )
 
 // NewBuilderWithTemplate returns new LoggerBuilder from given template

@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/sdk"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 )
 
 const defaultAdminURL = "http://localhost:19001/admin-api/rpc"

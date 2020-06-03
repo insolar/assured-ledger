@@ -8,14 +8,14 @@ package adapter
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 )
 
 type CallFunc func(ctx context.Context, svc messagesender.Service)
 type AsyncCallFunc func(ctx context.Context, svc messagesender.Service) smachine.AsyncResultFunc
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter.MessageSender -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter.MessageSender -o ./ -s _mock.go -g
 type MessageSender interface {
 	PrepareSync(ctx smachine.ExecutionContext, fn CallFunc) smachine.SyncCallRequester
 	PrepareAsync(ctx smachine.ExecutionContext, fn AsyncCallFunc) smachine.AsyncCallRequester

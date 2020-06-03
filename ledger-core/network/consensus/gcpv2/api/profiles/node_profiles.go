@@ -8,15 +8,15 @@ package profiles
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.Host -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.Host -o . -s _mock.go -g
 
 type Host interface {
 	GetDefaultEndpoint() endpoints.Outbound
@@ -25,7 +25,7 @@ type Host interface {
 	// GetHostType()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.StaticProfileExtension -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.StaticProfileExtension -o . -s _mock.go -g
 
 type StaticProfileExtension interface {
 	GetIntroducedNodeID() node.ShortNodeID
@@ -41,7 +41,7 @@ type staticProfile interface {
 	GetBriefIntroSignedDigest() cryptkit.SignedDigestHolder
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.StaticProfile -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.StaticProfile -o . -s _mock.go -g
 
 type StaticProfile interface { // brief intro
 	Host
@@ -49,7 +49,7 @@ type StaticProfile interface { // brief intro
 	GetExtension() StaticProfileExtension // must be always be not null for LocalNode, full intro, == nil when has no full
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.BaseNode -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.BaseNode -o . -s _mock.go -g
 
 type BaseNode interface {
 	// StaticProfile
@@ -64,7 +64,7 @@ type BaseNode interface {
 	GetOpMode() member.OpMode
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.ActiveNode -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.ActiveNode -o . -s _mock.go -g
 
 type ActiveNode interface {
 	BaseNode
@@ -90,7 +90,7 @@ type BriefCandidateProfile interface {
 	GetDefaultEndpoint() endpoints.Outbound
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.CandidateProfile -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.CandidateProfile -o . -s _mock.go -g
 
 type CandidateProfileExtension interface {
 	GetPowerLevels() member.PowerSet
@@ -109,7 +109,7 @@ type CandidateProfile interface {
 	CandidateProfileExtension
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.Factory -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.Factory -o . -s _mock.go -g
 
 type Factory interface {
 	CreateFullIntroProfile(candidate CandidateProfile) StaticProfile
@@ -118,7 +118,7 @@ type Factory interface {
 	TryConvertUpgradableIntroProfile(profile StaticProfile) (StaticProfile, bool)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/profiles.LocalNode -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles.LocalNode -o . -s _mock.go -g
 
 type LocalNode interface {
 	ActiveNode

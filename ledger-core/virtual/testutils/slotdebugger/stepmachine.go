@@ -11,10 +11,10 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner"
-	"github.com/insolar/assured-ledger/ledger-core/v2/runner/machine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/testutils/slotdebugger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/runner"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 type VirtualStepController struct {

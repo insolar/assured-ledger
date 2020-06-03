@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // ErrEOF indicates an end of file when trying to read from a memory mapped file

@@ -3,7 +3,7 @@ syntax = "proto3";
 package rms;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/insolar/assured-ledger/ledger-core/v2/insproto/ins.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
 import "rms.proto";
 import "proto_records.proto";
 

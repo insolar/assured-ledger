@@ -8,13 +8,13 @@ package statemachine
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 )
 
 var _ smachine.StepLogger = ConveyorLogger{}
@@ -85,7 +85,10 @@ func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smach
 	logMsg := c.logPrepare(data)
 	logMsg.Message = data.FormatForLog("")
 
-	extra := struct { AdapterID smachine.AdapterID; CallID uint64 }{ adapterID, callID }
+	extra := struct {
+		AdapterID smachine.AdapterID
+		CallID    uint64
+	}{adapterID, callID}
 
 	if err := data.Error; err != nil {
 		data.Error = nil
@@ -151,5 +154,3 @@ type LogStepInfo struct {
 	ExecutionTime  int64 `opt:""`
 	InactivityTime int64 `opt:""`
 }
-
-

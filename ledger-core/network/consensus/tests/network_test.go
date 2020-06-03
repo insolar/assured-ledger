@@ -11,7 +11,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 )
 
 type NetStrategy interface {

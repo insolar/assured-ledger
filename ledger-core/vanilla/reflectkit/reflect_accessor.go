@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit.TypedReceiver -o ./mocks -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/reflectkit.TypedReceiver -o ./mocks -s _mock.go -g
 type TypedReceiver interface {
 	ReceiveBool(reflect.Kind, bool)
 	ReceiveInt(reflect.Kind, int64)

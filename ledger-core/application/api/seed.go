@@ -11,15 +11,15 @@ import (
 	"net/http"
 	"strings"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/rpc/v2"
 	"github.com/insolar/rpc/v2/json2"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/instrumenter"
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/instrumenter"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
 
 // SeedArgs is arguments that Seed service accepts.

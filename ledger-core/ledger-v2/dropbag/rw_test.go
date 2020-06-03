@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/ledger-v2/dropbag/dbcommon"
+	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag/dbcommon"
 )
 
 func TestWriteRead(t *testing.T) {

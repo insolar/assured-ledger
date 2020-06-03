@@ -13,16 +13,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
-const insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/v2/"
+const insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/"
 const skipFrameBaselineAdjustment = 0
 
 func init() {

@@ -6,7 +6,7 @@
 package refmap
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 func NewRefLocatorMap() RefLocatorMap {

@@ -8,10 +8,10 @@ package rms
 import (
 	"github.com/gogo/protobuf/proto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/insproto"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/insproto"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Referencable interface {

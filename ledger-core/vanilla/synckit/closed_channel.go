@@ -5,7 +5,7 @@
 
 package synckit
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 type SignalChannel = <-chan struct{}
 

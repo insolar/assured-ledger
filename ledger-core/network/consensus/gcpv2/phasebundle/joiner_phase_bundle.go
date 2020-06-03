@@ -6,12 +6,12 @@
 package phasebundle
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/inspectors"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph01ctl"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph2ctl"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph3ctl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/inspectors"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph01ctl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph2ctl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph3ctl"
 )
 
 func NewJoinerPhaseBundle(factories BundleFactories, config BundleConfig) core.PhaseControllersBundle {

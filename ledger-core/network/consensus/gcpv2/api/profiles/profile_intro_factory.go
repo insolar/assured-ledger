@@ -6,7 +6,7 @@
 package profiles
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 func NewSimpleProfileIntroFactory(pksFactory cryptkit.KeyStoreFactory) Factory {

@@ -10,9 +10,9 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	messageSender "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender"
-	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/v2/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 )
 
 type AdapterMockWrapper struct {

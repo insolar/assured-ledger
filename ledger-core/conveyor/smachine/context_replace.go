@@ -6,7 +6,7 @@
 package smachine
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func (p *executionContext) Replace(fn CreateFunc) StateUpdate {

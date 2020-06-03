@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Presence of this interface indicates that this object can be used as a log event
@@ -61,4 +61,3 @@ type LogObjectWriter interface {
 	AddRawJSONField(key string, v interface{}, fmt LogFieldFormat)
 	AddErrorField(msg string, stack throw.StackTrace, severity throw.Severity, hasPanic bool)
 }
-

@@ -12,21 +12,21 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type StepLoggerSuite struct {
 	suite.Suite
 	LoggerFn func(log.Logger) smachine.StepLogger
-	Levels []LevelCase
+	Levels   []LevelCase
 }
 
-type LevelCase struct{
-	Event smachine.StepLoggerEvent
+type LevelCase struct {
+	Event                          smachine.StepLoggerEvent
 	LevelNorm, LevelElev, LevelErr log.Level
 }
 
@@ -40,7 +40,10 @@ func (s StepLoggerSuite) TestCanLogEvent() {
 	for level := log.Disabled; level < log.NoLevel; level++ {
 		for _, lc := range s.Levels {
 			levelCase := lc
-			for _, vc := range []struct { smachine.StepLogLevel; log.Level }{
+			for _, vc := range []struct {
+				smachine.StepLogLevel
+				log.Level
+			}{
 				{smachine.StepLogLevelDefault, levelCase.LevelNorm},
 				{smachine.StepLogLevelElevated, levelCase.LevelElev},
 				{smachine.StepLogLevelTracing, levelCase.LevelElev},
@@ -66,7 +69,10 @@ func (s StepLoggerSuite) TestLogEvent() {
 	for level := log.DebugLevel; level < log.FatalLevel; level++ {
 		for _, lc := range s.Levels {
 			levelCase := lc
-			for _, vc := range []struct { smachine.StepLogLevel; log.Level }{
+			for _, vc := range []struct {
+				smachine.StepLogLevel
+				log.Level
+			}{
 				{smachine.StepLogLevelDefault, levelCase.LevelNorm},
 				{smachine.StepLogLevelElevated, levelCase.LevelElev},
 				{smachine.StepLogLevelTracing, levelCase.LevelElev},

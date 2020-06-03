@@ -8,8 +8,8 @@ package node
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 const (
@@ -33,6 +33,7 @@ type Power uint8
 
 //go:generate stringer -type=State
 type State uint8
+
 const (
 	// Undefined node started but is not connected to network yet
 	Undefined State = iota
@@ -44,7 +45,7 @@ const (
 	Leaving
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/insolar/node.NetworkNode -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.NetworkNode -o ../../testutils/network -s _mock.go -g
 
 type NetworkNode interface {
 	// ID is the unique identifier of the node

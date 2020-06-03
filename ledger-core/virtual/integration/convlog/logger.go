@@ -13,26 +13,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-
 const (
-	mLog   = "LOG"
-	mError = "ERR"
-	mWarning = "WRN"
-	mTrace   = "TRC"
+	mLog         = "LOG"
+	mError       = "ERR"
+	mWarning     = "WRN"
+	mTrace       = "TRC"
 	mActiveTrace = "TRA"
-	mFatal = "FTL"
+	mFatal       = "FTL"
 )
 
 var _ smachine.SlotMachineLogger = MachineLogger{}
+
 type MachineLogger struct {
 	EchoToGlobal bool
 }
@@ -177,7 +177,10 @@ func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID s
 		return
 	}
 
-	extra := struct { AdapterID smachine.AdapterID; CallID uint64 }{ adapterID, callID }
+	extra := struct {
+		AdapterID smachine.AdapterID
+		CallID    uint64
+	}{adapterID, callID}
 
 	if err := data.Error; err != nil {
 		data.Error = nil
@@ -189,7 +192,7 @@ func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID s
 	}
 }
 
-const StackMinimizePackage = "github.com/insolar/assured-ledger/ledger-core/v2/conveyor"
+const StackMinimizePackage = "github.com/insolar/assured-ledger/ledger-core/conveyor"
 
 func formatErrorStack(err error) string {
 	if err == nil {
@@ -197,7 +200,7 @@ func formatErrorStack(err error) string {
 	}
 	st := throw.DeepestStackTraceOf(err)
 	st = throw.MinimizeStackTrace(st, StackMinimizePackage, true)
-	return throw.JoinStackText(" " + logoutput.ErrorMsgFieldName + "=" + err.Error(), st)
+	return throw.JoinStackText(" "+logoutput.ErrorMsgFieldName+"="+err.Error(), st)
 }
 
 func printTimestamp() string {
@@ -305,4 +308,3 @@ func PrepareStepName(sd *smachine.StepDeclaration) {
 	}
 	sd.Name = GetStepName(sd.Transition)
 }
-

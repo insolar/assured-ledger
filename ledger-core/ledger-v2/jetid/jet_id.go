@@ -8,7 +8,7 @@ package jetid
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 type JetPrefix = Prefix

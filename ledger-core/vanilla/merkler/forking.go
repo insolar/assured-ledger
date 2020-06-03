@@ -5,7 +5,7 @@
 
 package merkler
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/cryptkit"
+import "github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
 var _ cryptkit.ForkingDigester = &ForkingCalculator{}
 

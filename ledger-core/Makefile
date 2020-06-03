@@ -25,11 +25,11 @@ endif
 DOCKER_IMAGE_TAG ?= $(BUILD_VERSION)
 
 GOPATH ?= `go env GOPATH`
-LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.Version=${BUILD_VERSION}
-LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.BuildNumber=${BUILD_NUMBER}
-LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.BuildDate=${BUILD_DATE}
-LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.BuildTime=${BUILD_TIME}
-LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/v2/version.GitHash=${BUILD_HASH}
+LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/version.Version=${BUILD_VERSION}
+LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/version.BuildNumber=${BUILD_NUMBER}
+LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/version.BuildDate=${BUILD_DATE}
+LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/version.BuildTime=${BUILD_TIME}
+LDFLAGS += -X github.com/insolar/assured-ledger/ledger-core/version.GitHash=${BUILD_HASH}
 
 .PHONY: all
 all: vendor clean submodule pre-build build ## cleanup, install deps, (re)generate all code and build all binaries

@@ -8,7 +8,7 @@ package smachine
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
 type StepLoggerStub struct {

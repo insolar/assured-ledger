@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
 
 func stripPackageName(packageName string) string {
@@ -44,7 +44,7 @@ func TestLog_stripPackageName(t *testing.T) {
 		packageName string
 		result      string
 	}{
-		"insolar":    {"github.com/insolar/assured-ledger/ledger-core/v2/mypackage", "mypackage"},
+		"insolar":    {"github.com/insolar/assured-ledger/ledger-core/mypackage", "mypackage"},
 		"thirdParty": {"github.com/stretchr/testify/assert", "github.com/stretchr/testify/assert"},
 	}
 

@@ -12,7 +12,7 @@ docker run -it \
   --name $CONTAINER_NAME \
   --rm \
   -u $UID \
-  -v `pwd`:/go/src/github.com/insolar/assured-ledger/ledger-core/v2 \
+  -v `pwd`:/go/src/github.com/insolar/assured-ledger/ledger-core \
   -v `go env GOCACHE`:/var/gocache \
   -e GOCACHE=/var/gocache \
   $@ $IMAGE_NAME /bin/bash

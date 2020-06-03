@@ -8,12 +8,12 @@ package merkle
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 )
 
 type OriginHash []byte
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/network/merkle.Calculator -o ../../testutils/merkle -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/merkle.Calculator -o ../../testutils/merkle -s _mock.go -g
 type Calculator interface {
 	GetPulseProof(*PulseEntry) (OriginHash, *PulseProof, error)
 	GetGlobuleProof(*GlobuleEntry) (OriginHash, *GlobuleProof, error)

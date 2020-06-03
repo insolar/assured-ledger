@@ -8,10 +8,10 @@ package adapters
 import (
 	"context"
 
-	transport2 "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/api/transport"
+	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 )
 
 type PacketSender struct {

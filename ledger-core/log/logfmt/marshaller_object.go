@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/reflectkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/reflectkit"
 )
 
 type objectMarshaller struct {

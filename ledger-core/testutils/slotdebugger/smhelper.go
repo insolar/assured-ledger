@@ -6,10 +6,10 @@
 package slotdebugger
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/v2/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/v2/virtual/testutils/utils"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/utils"
 )
 
 func NewStateMachineHelper(sm smachine.StateMachine, slotLink smachine.SlotLink) StateMachineHelper {

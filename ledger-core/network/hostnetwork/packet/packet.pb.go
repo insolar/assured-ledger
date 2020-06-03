@@ -6,19 +6,20 @@ package packet
 import (
 	bytes "bytes"
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	pulsestor "github.com/insolar/assured-ledger/ledger-core/v2/insolar/pulsestor"
-	candidate "github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/adapters/candidate"
-	github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host "github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host"
-	github_com_insolar_assured_ledger_ledger_core_v2_pulse "github.com/insolar/assured-ledger/ledger-core/v2/pulse"
-	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/v2/reference"
 	io "io"
 	math "math"
 	math_bits "math/bits"
 	reflect "reflect"
 	strconv "strconv"
 	strings "strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	pulsestor "github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	candidate "github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate"
+	github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host "github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
+	github_com_insolar_assured_ledger_ledger_core_v2_pulse "github.com/insolar/assured-ledger/ledger-core/pulse"
+	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -88,8 +89,8 @@ func (AuthorizeResponseCode) EnumDescriptor() ([]byte, []int) {
 
 type Packet struct {
 	Polymorph     int32                                                                           `protobuf:"varint,16,opt,name=polymorph,proto3" json:"polymorph,omitempty"`
-	Sender        *github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,20,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host" json:"Sender,omitempty"`
-	Receiver      *github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,21,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host" json:"Receiver,omitempty"`
+	Sender        *github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,20,opt,name=Sender,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host" json:"Sender,omitempty"`
+	Receiver      *github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,21,opt,name=Receiver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host" json:"Receiver,omitempty"`
 	RequestID     uint64                                                                          `protobuf:"varint,22,opt,name=RequestID,proto3" json:"RequestID,omitempty"`
 	TraceID       string                                                                          `protobuf:"bytes,23,opt,name=TraceID,proto3" json:"TraceID,omitempty"`
 	TraceSpanData []byte                                                                          `protobuf:"bytes,24,opt,name=TraceSpanData,proto3" json:"TraceSpanData,omitempty"`
@@ -565,7 +566,7 @@ func (m *PulseRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_PulseRequest proto.InternalMessageInfo
 
 type UpdateScheduleRequest struct {
-	LastNodePulse github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,1,opt,name=LastNodePulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/pulse.Number" json:"LastNodePulse"`
+	LastNodePulse github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number `protobuf:"varint,1,opt,name=LastNodePulse,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"LastNodePulse"`
 	Permit        *Permit                                                       `protobuf:"bytes,2,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
@@ -602,7 +603,7 @@ func (m *UpdateScheduleRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_UpdateScheduleRequest proto.InternalMessageInfo
 
 type ReconnectRequest struct {
-	ReconnectTo github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,1,opt,name=ReconnectTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host" json:"ReconnectTo"`
+	ReconnectTo github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,1,opt,name=ReconnectTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host" json:"ReconnectTo"`
 	Permit      *Permit                                                                        `protobuf:"bytes,2,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
@@ -752,7 +753,7 @@ func (m *AuthorizeRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_AuthorizeRequest proto.InternalMessageInfo
 
 type SignCertRequest struct {
-	NodeRef github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,1,opt,name=NodeRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"NodeRef"`
+	NodeRef github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,1,opt,name=NodeRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"NodeRef"`
 }
 
 func (m *SignCertRequest) Reset()      { *m = SignCertRequest{} }
@@ -864,8 +865,8 @@ var xxx_messageInfo_Permit proto.InternalMessageInfo
 type PermitPayload struct {
 	JoinerPublicKey  []byte                                                                          `protobuf:"bytes,1,opt,name=JoinerPublicKey,proto3" json:"JoinerPublicKey,omitempty"`
 	ExpireTimestamp  int64                                                                           `protobuf:"varint,2,opt,name=ExpireTimestamp,proto3" json:"ExpireTimestamp,omitempty"`
-	ReconnectTo      *github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,3,opt,name=ReconnectTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/network/hostnetwork/host.Host" json:"ReconnectTo,omitempty"`
-	AuthorityNodeRef github_com_insolar_assured_ledger_ledger_core_v2_reference.Global               `protobuf:"bytes,4,opt,name=AuthorityNodeRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/v2/reference.Global" json:"AuthorityNodeRef"`
+	ReconnectTo      *github_com_insolar_assured_ledger_ledger_core_v2_network_hostnetwork_host.Host `protobuf:"bytes,3,opt,name=ReconnectTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host.Host" json:"ReconnectTo,omitempty"`
+	AuthorityNodeRef github_com_insolar_assured_ledger_ledger_core_v2_reference.Global               `protobuf:"bytes,4,opt,name=AuthorityNodeRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"AuthorityNodeRef"`
 }
 
 func (m *PermitPayload) Reset()      { *m = PermitPayload{} }

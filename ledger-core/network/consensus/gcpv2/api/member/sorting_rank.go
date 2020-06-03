@@ -6,7 +6,7 @@
 package member
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 )
 
 type SortingRank struct {

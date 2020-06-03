@@ -8,9 +8,9 @@ package platformpolicy
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/hash"
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography/platformpolicy/internal/sign"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy/internal/hash"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy/internal/sign"
 )
 
 type platformCryptographyScheme struct {

@@ -8,7 +8,7 @@ package sign
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 )
 
 type AlgorithmProvider interface {

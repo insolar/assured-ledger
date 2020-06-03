@@ -5,7 +5,7 @@
 
 package smsync
 
-import "github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
+import "github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 
 // methods of this interfaces can be protected by mutex
 type dependencyStackController interface {

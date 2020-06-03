@@ -6,11 +6,11 @@
 package phasebundle
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/core"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph01ctl"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph2ctl"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/ph3ctl"
-	"github.com/insolar/assured-ledger/ledger-core/v2/network/consensus/gcpv2/phasebundle/pulsectl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph01ctl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph2ctl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/ph3ctl"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/phasebundle/pulsectl"
 )
 
 var _ core.PhaseControllersBundle = &RegularPhaseBundle{}

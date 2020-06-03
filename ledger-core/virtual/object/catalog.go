@@ -8,15 +8,15 @@ package object
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/trace"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
-	"github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/v2/virtual/object.Catalog -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/object.Catalog -o ./ -s _mock.go -g
 type Catalog interface {
 	Get(ctx smachine.ExecutionContext, objectReference reference.Global) SharedStateAccessor
 	TryGet(ctx smachine.ExecutionContext, objectReference reference.Global) (SharedStateAccessor, bool)
@@ -75,7 +75,6 @@ func (p LocalCatalog) Create(ctx smachine.ExecutionContext, objectReference refe
 	if _, ok := p.TryGet(ctx, objectReference); ok {
 		panic(throw.E("", errEntryExists{ObjectReference: objectReference}))
 	}
-
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		p.initChildCtx(ctx, objectReference)

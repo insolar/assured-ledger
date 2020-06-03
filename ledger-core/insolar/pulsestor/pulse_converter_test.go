@@ -8,7 +8,7 @@ package pulsestor
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
 	"github.com/stretchr/testify/assert"
 )

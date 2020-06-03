@@ -19,10 +19,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/insolar/rpc/v2/json2"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
 
 type RequestValidator struct {

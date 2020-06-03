@@ -14,8 +14,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	"github.com/stretchr/testify/require"
 )

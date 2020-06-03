@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/reference"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 func TestBucketing(t *testing.T) {

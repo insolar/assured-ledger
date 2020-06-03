@@ -10,7 +10,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 type StartPulse interface {

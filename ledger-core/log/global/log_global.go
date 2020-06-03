@@ -10,14 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/log"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/adapters/bilog"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logfmt"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/v2/log/logwriter"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/adapters/bilog"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
+	"github.com/insolar/assured-ledger/ledger-core/log/logwriter"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var globalLogger = struct {
@@ -42,7 +42,7 @@ func _initDefaultWithBilog() (log.LoggerBuilder, error) {
 		panic("output is nil")
 	}
 
-	zc.Output = logcommon.OutputConfig{	Format: defFmt }
+	zc.Output = logcommon.OutputConfig{Format: defFmt}
 	zc.MsgFormat = logfmt.GetDefaultLogMsgFormatter()
 	zc.Instruments.CallerMode = logcommon.CallerField
 	zc.Instruments.MetricsMode = logcommon.LogMetricsWriteDelayField | logcommon.LogMetricsTimestamp

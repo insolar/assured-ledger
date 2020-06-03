@@ -7,7 +7,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_node "github.com/insolar/assured-ledger/ledger-core/v2/insolar/node"
+	mm_node "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 )
 
 // CertificateManagerMock implements node.CertificateManager

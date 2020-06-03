@@ -8,9 +8,9 @@ package main
 import (
 	"fmt"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/v2/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/v2/application/api/sdk"
+	"github.com/insolar/assured-ledger/ledger-core/application/api/sdk"
 )
 
 var shardsAtOneTime = 10
