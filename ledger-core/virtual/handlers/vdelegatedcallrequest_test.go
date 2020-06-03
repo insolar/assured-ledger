@@ -172,6 +172,26 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			callFlags:                     payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			expectedError:                 true,
 		},
+		{
+			name:                          "expected intolerable",
+			testRailCase:                  "C4989",
+			PendingRequestTable:           object.NewRequestTable(),
+			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
+			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
+			ActiveUnorderedPendingCount:   1,
+			callFlags:                     payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			expectedError:                 true,
+		},
+		{
+			name:                        "expected tolerable",
+			testRailCase:                "C4989",
+			PendingRequestTable:         object.NewRequestTable(),
+			requestRef:                  reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
+			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
+			ActiveOrderedPendingCount:   1,
+			callFlags:                   payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			expectedError:               true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.testRailCase != "" {
