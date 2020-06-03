@@ -5,15 +5,14 @@ package payload
 
 import (
 	fmt "fmt"
-	io "io"
-	math "math"
-	math_bits "math/bits"
-
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	_ "github.com/insolar/assured-ledger/ledger-core/insproto"
-	github_com_insolar_assured_ledger_ledger_core_v2_pulse "github.com/insolar/assured-ledger/ledger-core/pulse"
-	github_com_insolar_assured_ledger_ledger_core_v2_reference "github.com/insolar/assured-ledger/ledger-core/reference"
+	github_com_insolar_assured_ledger_ledger_core_pulse "github.com/insolar/assured-ledger/ledger-core/pulse"
+	github_com_insolar_assured_ledger_ledger_core_reference "github.com/insolar/assured-ledger/ledger-core/reference"
+	io "io"
+	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -105,36 +104,36 @@ func (VStateReport_StateStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type VCallRequest struct {
-	CallType                    CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
-	CallFlags                   CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"CallAsOf"`
-	Caller                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
-	Callee                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	CallSiteDeclaration         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,25,opt,name=CallSiteDeclaration,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallSiteDeclaration"`
-	CallSiteMethod              string                                                            `protobuf:"bytes,26,opt,name=CallSiteMethod,proto3" json:"CallSiteMethod"`
-	CallSequence                uint32                                                            `protobuf:"varint,27,opt,name=CallSequence,proto3" json:"CallSequence"`
-	CallReason                  github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,28,opt,name=CallReason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallReason"`
-	RootTX                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,29,opt,name=RootTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RootTX"`
-	CallTX                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,30,opt,name=CallTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallTX"`
-	ExpenseCenter               github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,31,opt,name=ExpenseCenter,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ExpenseCenter"`
-	ResourceCenter              github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,32,opt,name=ResourceCenter,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ResourceCenter"`
-	PayloadHash                 []byte                                                            `protobuf:"bytes,33,opt,name=PayloadHash,proto3" json:"PayloadHash"`
-	DelegationSpec              CallDelegationToken                                               `protobuf:"bytes,34,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature          []byte                                                            `protobuf:"bytes,35,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	ProducerSignature           []byte                                                            `protobuf:"bytes,36,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
-	RegistrarSignature          []byte                                                            `protobuf:"bytes,37,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
-	RegistrarDelegationSpec     CallDelegationToken                                               `protobuf:"bytes,38,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
-	RegistrarDelegatorSignature []byte                                                            `protobuf:"bytes,39,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature"`
-	CallRequestFlags            CallRequestFlags                                                  `protobuf:"varint,40,opt,name=CallRequestFlags,proto3,casttype=CallRequestFlags" json:"CallRequestFlags"`
-	KnownCalleeIncoming         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,41,opt,name=KnownCalleeIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"KnownCalleeIncoming"`
-	EntryHeadHash               []byte                                                            `protobuf:"bytes,42,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
-	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,43,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
-	TXExpiry                    github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,44,opt,name=TXExpiry,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"TXExpiry"`
-	SecurityContext             []byte                                                            `protobuf:"bytes,45,opt,name=SecurityContext,proto3" json:"SecurityContext"`
-	TXContext                   []byte                                                            `protobuf:"bytes,46,opt,name=TXContext,proto3" json:"TXContext"`
-	Arguments                   []byte                                                            `protobuf:"bytes,47,opt,name=Arguments,proto3" json:"Arguments"`
-	ExtensionHashes             []byte                                                            `protobuf:"bytes,48,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
-	Extensions                  []byte                                                            `protobuf:"bytes,49,opt,name=Extensions,proto3" json:"Extensions"`
+	CallType                    CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
+	CallFlags                   CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"CallAsOf"`
+	Caller                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
+	Callee                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	CallSiteDeclaration         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=CallSiteDeclaration,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallSiteDeclaration"`
+	CallSiteMethod              string                                                         `protobuf:"bytes,26,opt,name=CallSiteMethod,proto3" json:"CallSiteMethod"`
+	CallSequence                uint32                                                         `protobuf:"varint,27,opt,name=CallSequence,proto3" json:"CallSequence"`
+	CallReason                  github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,28,opt,name=CallReason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallReason"`
+	RootTX                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,29,opt,name=RootTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RootTX"`
+	CallTX                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,30,opt,name=CallTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallTX"`
+	ExpenseCenter               github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,31,opt,name=ExpenseCenter,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ExpenseCenter"`
+	ResourceCenter              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,32,opt,name=ResourceCenter,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ResourceCenter"`
+	PayloadHash                 []byte                                                         `protobuf:"bytes,33,opt,name=PayloadHash,proto3" json:"PayloadHash"`
+	DelegationSpec              CallDelegationToken                                            `protobuf:"bytes,34,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature          []byte                                                         `protobuf:"bytes,35,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	ProducerSignature           []byte                                                         `protobuf:"bytes,36,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
+	RegistrarSignature          []byte                                                         `protobuf:"bytes,37,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
+	RegistrarDelegationSpec     CallDelegationToken                                            `protobuf:"bytes,38,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
+	RegistrarDelegatorSignature []byte                                                         `protobuf:"bytes,39,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature"`
+	CallRequestFlags            CallRequestFlags                                               `protobuf:"varint,40,opt,name=CallRequestFlags,proto3,casttype=CallRequestFlags" json:"CallRequestFlags"`
+	KnownCalleeIncoming         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,41,opt,name=KnownCalleeIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"KnownCalleeIncoming"`
+	EntryHeadHash               []byte                                                         `protobuf:"bytes,42,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
+	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,43,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
+	TXExpiry                    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,44,opt,name=TXExpiry,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"TXExpiry"`
+	SecurityContext             []byte                                                         `protobuf:"bytes,45,opt,name=SecurityContext,proto3" json:"SecurityContext"`
+	TXContext                   []byte                                                         `protobuf:"bytes,46,opt,name=TXContext,proto3" json:"TXContext"`
+	Arguments                   []byte                                                         `protobuf:"bytes,47,opt,name=Arguments,proto3" json:"Arguments"`
+	ExtensionHashes             []byte                                                         `protobuf:"bytes,48,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
+	Extensions                  []byte                                                         `protobuf:"bytes,49,opt,name=Extensions,proto3" json:"Extensions"`
 }
 
 func (m *VCallRequest) Reset()         { *m = VCallRequest{} }
@@ -180,7 +179,7 @@ func (m *VCallRequest) GetCallFlags() CallFlags {
 	return 0
 }
 
-func (m *VCallRequest) GetCallAsOf() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VCallRequest) GetCallAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.CallAsOf
 	}
@@ -264,7 +263,7 @@ func (m *VCallRequest) GetEntryHeadHash() []byte {
 	return nil
 }
 
-func (m *VCallRequest) GetTXExpiry() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VCallRequest) GetTXExpiry() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.TXExpiry
 	}
@@ -307,27 +306,27 @@ func (m *VCallRequest) GetExtensions() []byte {
 }
 
 type VCallResult struct {
-	CallType                    CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
-	CallFlags                   CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"CallAsOf"`
-	Caller                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
-	Callee                      github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	ResultFlags                 []byte                                                            `protobuf:"bytes,25,opt,name=ResultFlags,proto3" json:"ResultFlags"`
-	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,26,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
-	CallIncoming                github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,27,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncoming"`
-	PayloadHash                 []byte                                                            `protobuf:"bytes,28,opt,name=PayloadHash,proto3" json:"PayloadHash"`
-	DelegationSpec              CallDelegationToken                                               `protobuf:"bytes,29,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature          []byte                                                            `protobuf:"bytes,30,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	CallIncomingResult          github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,31,opt,name=CallIncomingResult,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncomingResult"`
-	ProducerSignature           []byte                                                            `protobuf:"bytes,32,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
-	RegistrarSignature          []byte                                                            `protobuf:"bytes,33,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
-	RegistrarDelegationSpec     CallDelegationToken                                               `protobuf:"bytes,34,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
-	RegistrarDelegatorSignature []byte                                                            `protobuf:"bytes,35,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature"`
-	EntryHeadHash               []byte                                                            `protobuf:"bytes,36,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
-	SecurityContext             []byte                                                            `protobuf:"bytes,37,opt,name=SecurityContext,proto3" json:"SecurityContext"`
-	ReturnArguments             []byte                                                            `protobuf:"bytes,38,opt,name=ReturnArguments,proto3" json:"ReturnArguments"`
-	ExtensionHashes             []byte                                                            `protobuf:"bytes,39,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
-	Extensions                  []byte                                                            `protobuf:"bytes,40,opt,name=Extensions,proto3" json:"Extensions"`
+	CallType                    CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
+	CallFlags                   CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"CallAsOf"`
+	Caller                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
+	Callee                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	ResultFlags                 []byte                                                         `protobuf:"bytes,25,opt,name=ResultFlags,proto3" json:"ResultFlags"`
+	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,26,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
+	CallIncoming                github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,27,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncoming"`
+	PayloadHash                 []byte                                                         `protobuf:"bytes,28,opt,name=PayloadHash,proto3" json:"PayloadHash"`
+	DelegationSpec              CallDelegationToken                                            `protobuf:"bytes,29,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature          []byte                                                         `protobuf:"bytes,30,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	CallIncomingResult          github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,31,opt,name=CallIncomingResult,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncomingResult"`
+	ProducerSignature           []byte                                                         `protobuf:"bytes,32,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
+	RegistrarSignature          []byte                                                         `protobuf:"bytes,33,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
+	RegistrarDelegationSpec     CallDelegationToken                                            `protobuf:"bytes,34,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
+	RegistrarDelegatorSignature []byte                                                         `protobuf:"bytes,35,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature"`
+	EntryHeadHash               []byte                                                         `protobuf:"bytes,36,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
+	SecurityContext             []byte                                                         `protobuf:"bytes,37,opt,name=SecurityContext,proto3" json:"SecurityContext"`
+	ReturnArguments             []byte                                                         `protobuf:"bytes,38,opt,name=ReturnArguments,proto3" json:"ReturnArguments"`
+	ExtensionHashes             []byte                                                         `protobuf:"bytes,39,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
+	Extensions                  []byte                                                         `protobuf:"bytes,40,opt,name=Extensions,proto3" json:"Extensions"`
 }
 
 func (m *VCallResult) Reset()         { *m = VCallResult{} }
@@ -373,7 +372,7 @@ func (m *VCallResult) GetCallFlags() CallFlags {
 	return 0
 }
 
-func (m *VCallResult) GetCallAsOf() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VCallResult) GetCallAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.CallAsOf
 	}
@@ -472,15 +471,15 @@ func (m *VCallResult) GetExtensions() []byte {
 }
 
 type VStateRequest struct {
-	AsOf                  github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"AsOf"`
-	Callee                github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	RequestedContent      StateRequestContentFlags                                          `protobuf:"varint,22,opt,name=RequestedContent,proto3,customtype=StateRequestContentFlags" json:"RequestedContent"`
-	RequestedContentLimit []byte                                                            `protobuf:"bytes,23,opt,name=RequestedContentLimit,proto3" json:"RequestedContentLimit"`
-	SupportedExtensions   []byte                                                            `protobuf:"bytes,24,opt,name=SupportedExtensions,proto3" json:"SupportedExtensions"`
-	DelegationSpec        CallDelegationToken                                               `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature    []byte                                                            `protobuf:"bytes,26,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	ProducerSignature     []byte                                                            `protobuf:"bytes,27,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
-	CallRequestFlags      int32                                                             `protobuf:"varint,28,opt,name=CallRequestFlags,proto3" json:"CallRequestFlags"`
+	AsOf                  github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"AsOf"`
+	Callee                github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	RequestedContent      StateRequestContentFlags                                       `protobuf:"varint,22,opt,name=RequestedContent,proto3,customtype=StateRequestContentFlags" json:"RequestedContent"`
+	RequestedContentLimit []byte                                                         `protobuf:"bytes,23,opt,name=RequestedContentLimit,proto3" json:"RequestedContentLimit"`
+	SupportedExtensions   []byte                                                         `protobuf:"bytes,24,opt,name=SupportedExtensions,proto3" json:"SupportedExtensions"`
+	DelegationSpec        CallDelegationToken                                            `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature    []byte                                                         `protobuf:"bytes,26,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	ProducerSignature     []byte                                                         `protobuf:"bytes,27,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
+	CallRequestFlags      int32                                                          `protobuf:"varint,28,opt,name=CallRequestFlags,proto3" json:"CallRequestFlags"`
 }
 
 func (m *VStateRequest) Reset()         { *m = VStateRequest{} }
@@ -512,7 +511,7 @@ func (m *VStateRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VStateRequest proto.InternalMessageInfo
 
-func (m *VStateRequest) GetAsOf() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VStateRequest) GetAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.AsOf
 	}
@@ -562,23 +561,23 @@ func (m *VStateRequest) GetCallRequestFlags() int32 {
 }
 
 type VStateReport struct {
-	Status                        VStateReport_StateStatus                                          `protobuf:"varint,37,opt,name=Status,proto3,enum=payload.VStateReport_StateStatus" json:"Status"`
-	AsOf                          github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"AsOf"`
-	Callee                        github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	DelegationSpec                CallDelegationToken                                               `protobuf:"bytes,23,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature            []byte                                                            `protobuf:"bytes,24,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	UnorderedPendingCount         int32                                                             `protobuf:"varint,25,opt,name=UnorderedPendingCount,proto3" json:"UnorderedPendingCount"`
-	UnorderedPendingEarliestPulse github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,26,opt,name=UnorderedPendingEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"UnorderedPendingEarliestPulse"`
-	OrderedPendingCount           int32                                                             `protobuf:"varint,27,opt,name=OrderedPendingCount,proto3" json:"OrderedPendingCount"`
-	OrderedPendingEarliestPulse   github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,28,opt,name=OrderedPendingEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"OrderedPendingEarliestPulse"`
-	PreRegisteredQueueCount       int32                                                             `protobuf:"varint,29,opt,name=PreRegisteredQueueCount,proto3" json:"PreRegisteredQueueCount"`
-	PreRegisteredEarliestPulse    github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,30,opt,name=PreRegisteredEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PreRegisteredEarliestPulse"`
-	PriorityCallQueueCount        int32                                                             `protobuf:"varint,31,opt,name=PriorityCallQueueCount,proto3" json:"PriorityCallQueueCount"`
-	LatestValidatedState          github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,32,opt,name=LatestValidatedState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestValidatedState"`
-	LatestValidatedCode           github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,33,opt,name=LatestValidatedCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestValidatedCode"`
-	LatestDirtyState              github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,34,opt,name=LatestDirtyState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestDirtyState"`
-	LatestDirtyCode               github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,35,opt,name=LatestDirtyCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestDirtyCode"`
-	ProvidedContent               *VStateReport_ProvidedContentBody                                 `protobuf:"bytes,36,opt,name=ProvidedContent,proto3" json:"ProvidedContent,omitempty"`
+	Status                        VStateReport_StateStatus                                       `protobuf:"varint,37,opt,name=Status,proto3,enum=payload.VStateReport_StateStatus" json:"Status"`
+	AsOf                          github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"AsOf"`
+	Callee                        github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	DelegationSpec                CallDelegationToken                                            `protobuf:"bytes,23,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature            []byte                                                         `protobuf:"bytes,24,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	UnorderedPendingCount         int32                                                          `protobuf:"varint,25,opt,name=UnorderedPendingCount,proto3" json:"UnorderedPendingCount"`
+	UnorderedPendingEarliestPulse github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,26,opt,name=UnorderedPendingEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"UnorderedPendingEarliestPulse"`
+	OrderedPendingCount           int32                                                          `protobuf:"varint,27,opt,name=OrderedPendingCount,proto3" json:"OrderedPendingCount"`
+	OrderedPendingEarliestPulse   github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,28,opt,name=OrderedPendingEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"OrderedPendingEarliestPulse"`
+	PreRegisteredQueueCount       int32                                                          `protobuf:"varint,29,opt,name=PreRegisteredQueueCount,proto3" json:"PreRegisteredQueueCount"`
+	PreRegisteredEarliestPulse    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,30,opt,name=PreRegisteredEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PreRegisteredEarliestPulse"`
+	PriorityCallQueueCount        int32                                                          `protobuf:"varint,31,opt,name=PriorityCallQueueCount,proto3" json:"PriorityCallQueueCount"`
+	LatestValidatedState          github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,32,opt,name=LatestValidatedState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestValidatedState"`
+	LatestValidatedCode           github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,33,opt,name=LatestValidatedCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestValidatedCode"`
+	LatestDirtyState              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,34,opt,name=LatestDirtyState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestDirtyState"`
+	LatestDirtyCode               github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,35,opt,name=LatestDirtyCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestDirtyCode"`
+	ProvidedContent               *VStateReport_ProvidedContentBody                              `protobuf:"bytes,36,opt,name=ProvidedContent,proto3" json:"ProvidedContent,omitempty"`
 }
 
 func (m *VStateReport) Reset()         { *m = VStateReport{} }
@@ -617,7 +616,7 @@ func (m *VStateReport) GetStatus() VStateReport_StateStatus {
 	return Unknown
 }
 
-func (m *VStateReport) GetAsOf() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VStateReport) GetAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.AsOf
 	}
@@ -645,7 +644,7 @@ func (m *VStateReport) GetUnorderedPendingCount() int32 {
 	return 0
 }
 
-func (m *VStateReport) GetUnorderedPendingEarliestPulse() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VStateReport) GetUnorderedPendingEarliestPulse() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.UnorderedPendingEarliestPulse
 	}
@@ -659,7 +658,7 @@ func (m *VStateReport) GetOrderedPendingCount() int32 {
 	return 0
 }
 
-func (m *VStateReport) GetOrderedPendingEarliestPulse() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VStateReport) GetOrderedPendingEarliestPulse() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.OrderedPendingEarliestPulse
 	}
@@ -673,7 +672,7 @@ func (m *VStateReport) GetPreRegisteredQueueCount() int32 {
 	return 0
 }
 
-func (m *VStateReport) GetPreRegisteredEarliestPulse() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *VStateReport) GetPreRegisteredEarliestPulse() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.PreRegisteredEarliestPulse
 	}
@@ -695,12 +694,12 @@ func (m *VStateReport) GetProvidedContent() *VStateReport_ProvidedContentBody {
 }
 
 type VStateReport_ProvidedContentBody struct {
-	LatestValidatedState *ObjectState                                                        `protobuf:"bytes,21,opt,name=LatestValidatedState,proto3" json:"LatestValidatedState,omitempty"`
-	LatestDirtyState     *ObjectState                                                        `protobuf:"bytes,22,opt,name=LatestDirtyState,proto3" json:"LatestDirtyState,omitempty"`
-	LatestValidatedCode  *ObjectState                                                        `protobuf:"bytes,23,opt,name=LatestValidatedCode,proto3" json:"LatestValidatedCode,omitempty"`
-	LatestDirtyCode      *ObjectState                                                        `protobuf:"bytes,24,opt,name=LatestDirtyCode,proto3" json:"LatestDirtyCode,omitempty"`
-	OrderedQueue         []github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,25,rep,name=OrderedQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"OrderedQueue"`
-	UnorderedQueue       []github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,26,rep,name=UnorderedQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"UnorderedQueue"`
+	LatestValidatedState *ObjectState                                                     `protobuf:"bytes,21,opt,name=LatestValidatedState,proto3" json:"LatestValidatedState,omitempty"`
+	LatestDirtyState     *ObjectState                                                     `protobuf:"bytes,22,opt,name=LatestDirtyState,proto3" json:"LatestDirtyState,omitempty"`
+	LatestValidatedCode  *ObjectState                                                     `protobuf:"bytes,23,opt,name=LatestValidatedCode,proto3" json:"LatestValidatedCode,omitempty"`
+	LatestDirtyCode      *ObjectState                                                     `protobuf:"bytes,24,opt,name=LatestDirtyCode,proto3" json:"LatestDirtyCode,omitempty"`
+	OrderedQueue         []github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,rep,name=OrderedQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"OrderedQueue"`
+	UnorderedQueue       []github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,26,rep,name=UnorderedQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"UnorderedQueue"`
 }
 
 func (m *VStateReport_ProvidedContentBody) Reset()         { *m = VStateReport_ProvidedContentBody{} }
@@ -761,12 +760,12 @@ func (m *VStateReport_ProvidedContentBody) GetLatestDirtyCode() *ObjectState {
 }
 
 type ObjectState struct {
-	Reference     github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,20,opt,name=Reference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"Reference"`
-	Parent        github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Parent"`
-	Class         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Class,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Class"`
-	State         []byte                                                            `protobuf:"bytes,23,opt,name=State,proto3" json:"State"`
-	PreviousState []byte                                                            `protobuf:"bytes,24,opt,name=PreviousState,proto3" json:"PreviousState"`
-	Deactivated   bool                                                              `protobuf:"varint,25,opt,name=Deactivated,proto3" json:"Deactivated"`
+	Reference     github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,20,opt,name=Reference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"Reference"`
+	Parent        github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Parent"`
+	Class         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=Class,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Class"`
+	State         []byte                                                         `protobuf:"bytes,23,opt,name=State,proto3" json:"State"`
+	PreviousState []byte                                                         `protobuf:"bytes,24,opt,name=PreviousState,proto3" json:"PreviousState"`
+	Deactivated   bool                                                           `protobuf:"varint,25,opt,name=Deactivated,proto3" json:"Deactivated"`
 }
 
 func (m *ObjectState) Reset()         { *m = ObjectState{} }
@@ -820,10 +819,10 @@ func (m *ObjectState) GetDeactivated() bool {
 }
 
 type VPendingDelegationRequest struct {
-	Object             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,20,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Object"`
-	Request            github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Request"`
-	DelegationSpec     CallDelegationToken                                               `protobuf:"bytes,22,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                            `protobuf:"bytes,23,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	Object             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,20,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Object"`
+	Request            github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Request"`
+	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,22,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature []byte                                                         `protobuf:"bytes,23,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
 }
 
 func (m *VPendingDelegationRequest) Reset()         { *m = VPendingDelegationRequest{} }
@@ -870,16 +869,16 @@ func (m *VPendingDelegationRequest) GetDelegatorSignature() []byte {
 }
 
 type VDelegatedRequestFinished struct {
-	CallType           CallTypeNew                                                       `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
-	CallFlags          CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	Callee             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	ResultFlags        []byte                                                            `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags"`
-	CallOutgoing       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
-	CallIncoming       github_com_insolar_assured_ledger_ledger_core_v2_reference.Local  `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncoming"`
-	DelegationSpec     CallDelegationToken                                               `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                            `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	EntryHeadHash      []byte                                                            `protobuf:"bytes,28,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
-	LatestState        *ObjectState                                                      `protobuf:"bytes,29,opt,name=LatestState,proto3" json:"LatestState,omitempty"`
+	CallType           CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
+	CallFlags          CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	Callee             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	ResultFlags        []byte                                                         `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags"`
+	CallOutgoing       github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
+	CallIncoming       github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncoming"`
+	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature []byte                                                         `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	EntryHeadHash      []byte                                                         `protobuf:"bytes,28,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
+	LatestState        *ObjectState                                                   `protobuf:"bytes,29,opt,name=LatestState,proto3" json:"LatestState,omitempty"`
 }
 
 func (m *VDelegatedRequestFinished) Reset()         { *m = VDelegatedRequestFinished{} }
@@ -961,14 +960,14 @@ func (m *VDelegatedRequestFinished) GetLatestState() *ObjectState {
 }
 
 type VDelegatedCallRequest struct {
-	Callee             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,20,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	CallFlags          CallFlags                                                         `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallFlags" json:"CallFlags"`
-	RequestReference   github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=RequestReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RequestReference"`
-	RecordHead         github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,23,opt,name=RecordHead,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RecordHead"`
-	RefOut             github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,24,opt,name=RefOut,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefOut"`
-	RefIn              github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,25,opt,name=RefIn,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefIn"`
-	DelegationSpec     CallDelegationToken                                               `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                            `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	Callee             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,20,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	CallFlags          CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallFlags" json:"CallFlags"`
+	RequestReference   github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=RequestReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RequestReference"`
+	RecordHead         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,23,opt,name=RecordHead,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RecordHead"`
+	RefOut             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=RefOut,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefOut"`
+	RefIn              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=RefIn,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefIn"`
+	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature []byte                                                         `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
 }
 
 func (m *VDelegatedCallRequest) Reset()         { *m = VDelegatedCallRequest{} }
@@ -1015,9 +1014,9 @@ func (m *VDelegatedCallRequest) GetDelegatorSignature() []byte {
 }
 
 type VDelegatedCallResponse struct {
-	RefIn              github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,20,opt,name=RefIn,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefIn"`
-	DelegationSpec     CallDelegationToken                                               `protobuf:"bytes,21,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                            `protobuf:"bytes,22,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	RefIn              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,20,opt,name=RefIn,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefIn"`
+	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,21,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	DelegatorSignature []byte                                                         `protobuf:"bytes,22,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
 }
 
 func (m *VDelegatedCallResponse) Reset()         { *m = VDelegatedCallResponse{} }
@@ -1064,14 +1063,14 @@ func (m *VDelegatedCallResponse) GetDelegatorSignature() []byte {
 }
 
 type CallDelegationToken struct {
-	TokenTypeAndFlags CallDelegationTokenType                                           `protobuf:"varint,20,opt,name=TokenTypeAndFlags,proto3,customtype=CallDelegationTokenType" json:"TokenTypeAndFlags"`
-	Approver          github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,21,opt,name=Approver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Approver"`
-	DelegateTo        github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,22,opt,name=DelegateTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"DelegateTo"`
-	PulseNumber       github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number     `protobuf:"varint,23,opt,name=PulseNumber,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PulseNumber"`
-	Callee            github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	Caller            github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,25,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
-	Outgoing          github_com_insolar_assured_ledger_ledger_core_v2_reference.Global `protobuf:"bytes,26,opt,name=Outgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Outgoing"`
-	ApproverSignature []byte                                                            `protobuf:"bytes,27,opt,name=ApproverSignature,proto3" json:"ApproverSignature"`
+	TokenTypeAndFlags CallDelegationTokenType                                        `protobuf:"varint,20,opt,name=TokenTypeAndFlags,proto3,customtype=CallDelegationTokenType" json:"TokenTypeAndFlags"`
+	Approver          github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Approver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Approver"`
+	DelegateTo        github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=DelegateTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"DelegateTo"`
+	PulseNumber       github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,23,opt,name=PulseNumber,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PulseNumber"`
+	Callee            github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
+	Caller            github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
+	Outgoing          github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,26,opt,name=Outgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Outgoing"`
+	ApproverSignature []byte                                                         `protobuf:"bytes,27,opt,name=ApproverSignature,proto3" json:"ApproverSignature"`
 }
 
 func (m *CallDelegationToken) Reset()         { *m = CallDelegationToken{} }
@@ -1103,7 +1102,7 @@ func (m *CallDelegationToken) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CallDelegationToken proto.InternalMessageInfo
 
-func (m *CallDelegationToken) GetPulseNumber() github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number {
+func (m *CallDelegationToken) GetPulseNumber() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
 	if m != nil {
 		return m.PulseNumber
 	}
@@ -1138,139 +1137,139 @@ func init() {
 }
 
 var fileDescriptor_8a268ff04305613a = []byte{
-	// 2101 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x5a, 0x4d, 0x6c, 0x1b, 0xc7,
-	0x15, 0xe6, 0xda, 0xa2, 0x28, 0x3f, 0xca, 0x32, 0x3d, 0xfa, 0x5b, 0x51, 0x12, 0x49, 0x53, 0x8a,
-	0xa2, 0xb8, 0x31, 0xe5, 0x2a, 0x45, 0x0e, 0x46, 0xfa, 0x23, 0x51, 0x72, 0xac, 0x46, 0xb6, 0x18,
-	0x8a, 0x11, 0x54, 0xa0, 0x45, 0xbb, 0xe2, 0x8e, 0xa8, 0x8d, 0x57, 0x33, 0xcc, 0xec, 0xae, 0x6c,
-	0xa2, 0x05, 0x8a, 0x5e, 0x0a, 0xb4, 0x45, 0xd1, 0x9e, 0x0a, 0x38, 0xa7, 0x02, 0x45, 0x81, 0xa2,
-	0x40, 0x2f, 0x05, 0x7a, 0xcf, 0x31, 0x47, 0x1f, 0x85, 0xa0, 0x30, 0x5a, 0xfb, 0xd2, 0xdf, 0xc0,
-	0x0d, 0x7a, 0xca, 0xa9, 0xd8, 0x99, 0x5d, 0x72, 0xb8, 0x5c, 0x51, 0x8a, 0xbb, 0xab, 0x16, 0x45,
-	0x4f, 0xdc, 0x9d, 0xf7, 0xe6, 0x7d, 0xfb, 0x7e, 0xe6, 0xbd, 0xb7, 0x6f, 0x09, 0x73, 0x06, 0xb1,
-	0xa8, 0xa9, 0xb1, 0xa5, 0xa6, 0xd6, 0x32, 0xa9, 0xa6, 0x2f, 0x35, 0x19, 0xb5, 0xe9, 0x37, 0x8f,
-	0xc8, 0x11, 0x29, 0xb1, 0x9b, 0x25, 0x7e, 0x87, 0x52, 0x1e, 0x31, 0x7b, 0xa3, 0x61, 0xd8, 0x07,
-	0xce, 0x5e, 0xa9, 0x4e, 0x0f, 0x97, 0x1a, 0xb4, 0x41, 0x05, 0xf7, 0x9e, 0xb3, 0xcf, 0xef, 0xf8,
-	0x0d, 0xbf, 0x12, 0xfb, 0xb2, 0x65, 0x89, 0xdd, 0xc7, 0xd1, 0x2c, 0xcb, 0x61, 0x58, 0xbf, 0x61,
-	0x62, 0xbd, 0x81, 0xd9, 0x92, 0xf8, 0xb9, 0x51, 0xa7, 0x0c, 0x2f, 0x1d, 0x2d, 0xbb, 0x5c, 0x42,
-	0x8a, 0x41, 0x2c, 0x21, 0xa4, 0xf8, 0x63, 0x04, 0xc3, 0x3b, 0x65, 0xcd, 0x34, 0xab, 0xf8, 0x3d,
-	0x07, 0x5b, 0x36, 0x7a, 0x1d, 0x86, 0xdc, 0xdb, 0x5a, 0xab, 0x89, 0xd5, 0xb1, 0x82, 0xb2, 0x38,
-	0xb2, 0x3c, 0x56, 0xf2, 0x1e, 0xb0, 0xe4, 0x13, 0xee, 0xe1, 0x07, 0xab, 0x03, 0x1f, 0x3e, 0xc9,
-	0x27, 0xaa, 0x6d, 0x5e, 0xf4, 0x1a, 0x5c, 0x72, 0xaf, 0x6f, 0x9b, 0x5a, 0xc3, 0x52, 0xc7, 0x0b,
-	0xca, 0xe2, 0xe5, 0xd5, 0x71, 0x97, 0xe5, 0xd3, 0x27, 0xf9, 0x0e, 0xe1, 0xf9, 0xcf, 0x0a, 0x89,
-	0x6a, 0xe7, 0x16, 0x61, 0x01, 0xb6, 0x62, 0x6d, 0xed, 0xab, 0x13, 0x7c, 0xcf, 0x86, 0xb7, 0xe7,
-	0x8b, 0x9f, 0x59, 0xb9, 0xa6, 0x63, 0x5a, 0xb8, 0x74, 0xcf, 0x39, 0xdc, 0xc3, 0x8c, 0xe3, 0xb4,
-	0x45, 0x23, 0x0c, 0x83, 0xee, 0x35, 0x66, 0xea, 0x64, 0x41, 0x59, 0x1c, 0x5e, 0xbd, 0xeb, 0x82,
-	0x7c, 0xf4, 0x24, 0xbf, 0xf2, 0x99, 0x41, 0x18, 0xde, 0xc7, 0x0c, 0x93, 0x3a, 0x2e, 0xbd, 0x69,
-	0xd2, 0x3d, 0xcd, 0xe4, 0x40, 0x9e, 0xf0, 0x36, 0x0c, 0x56, 0xd5, 0xf8, 0x60, 0x30, 0xfa, 0x36,
-	0x8c, 0xba, 0x57, 0xdb, 0x86, 0x8d, 0xd7, 0x70, 0xdd, 0xd4, 0x98, 0x66, 0x1b, 0x94, 0xa8, 0x53,
-	0x1c, 0x73, 0x23, 0x32, 0xcc, 0x6a, 0x18, 0x0a, 0x7a, 0x15, 0x46, 0xfc, 0xe5, 0xbb, 0xd8, 0x3e,
-	0xa0, 0xba, 0x9a, 0x2d, 0x28, 0x8b, 0x97, 0xbc, 0x70, 0x08, 0xd0, 0xd0, 0x22, 0x0c, 0xf3, 0x15,
-	0x37, 0xb6, 0x48, 0x1d, 0xab, 0xd3, 0xdc, 0xc7, 0x82, 0xb7, 0x8b, 0x82, 0x0e, 0x01, 0x44, 0x14,
-	0x6a, 0x16, 0x25, 0xea, 0x4c, 0x1c, 0xf6, 0x93, 0x00, 0x5c, 0x57, 0x55, 0x29, 0xb5, 0x6b, 0xbb,
-	0xea, 0x6c, 0x2c, 0xae, 0x12, 0xc2, 0xfd, 0x88, 0xa8, 0xed, 0xaa, 0xb9, 0xd8, 0x22, 0xa2, 0xb6,
-	0x8b, 0x2c, 0xb8, 0xbc, 0xfe, 0xb0, 0x89, 0x89, 0x85, 0xcb, 0x98, 0xd8, 0x98, 0xa9, 0xf9, 0x38,
-	0xd0, 0xba, 0x31, 0x90, 0x03, 0x23, 0x55, 0x6c, 0x51, 0x87, 0xd5, 0x7d, 0xd4, 0x42, 0x1c, 0xa8,
-	0x01, 0x10, 0xb4, 0x00, 0xe9, 0x8a, 0x48, 0x47, 0x77, 0x34, 0xeb, 0x40, 0xbd, 0xc6, 0x31, 0x45,
-	0x44, 0xc9, 0x04, 0xf4, 0x55, 0x18, 0x59, 0xc3, 0x26, 0x6e, 0xf0, 0xb0, 0xdd, 0x6e, 0xe2, 0xba,
-	0x5a, 0x2c, 0x28, 0x8b, 0xe9, 0xe5, 0x99, 0xae, 0x6c, 0xd6, 0x61, 0xa9, 0xd1, 0xfb, 0x98, 0xf8,
-	0x61, 0xdc, 0xbd, 0x13, 0x7d, 0x01, 0x90, 0xb7, 0x42, 0xd9, 0xb6, 0xd1, 0x20, 0x9a, 0xed, 0x30,
-	0xac, 0xce, 0x49, 0xd0, 0x21, 0x74, 0xb4, 0x0c, 0x57, 0x2b, 0x8c, 0xea, 0x4e, 0x1d, 0x4b, 0x9b,
-	0xe6, 0xa5, 0x4d, 0xbd, 0x64, 0x17, 0xa9, 0x8a, 0x1b, 0x86, 0x65, 0x33, 0x4d, 0xda, 0xf4, 0x92,
-	0x8c, 0xd4, 0x4b, 0x47, 0x5f, 0x87, 0xc9, 0xf6, 0x6a, 0x40, 0xe9, 0x85, 0x33, 0x2b, 0x7d, 0x92,
-	0x08, 0x74, 0x1b, 0xa6, 0x83, 0x24, 0xd9, 0x0c, 0x2f, 0x4b, 0x0f, 0xd7, 0x8f, 0x11, 0xdd, 0x81,
-	0x8c, 0x54, 0x68, 0x44, 0xa1, 0x58, 0x2c, 0x28, 0x8b, 0xc9, 0xd5, 0x19, 0x2f, 0xe9, 0xf7, 0xd0,
-	0x79, 0x04, 0xf4, 0xac, 0xa2, 0xef, 0xc2, 0xe8, 0x5b, 0x84, 0x3e, 0x20, 0x22, 0x21, 0x6e, 0x90,
-	0x3a, 0x3d, 0x34, 0x48, 0x43, 0x7d, 0x25, 0x8e, 0xf8, 0x0b, 0x43, 0x42, 0xd7, 0xe1, 0xf2, 0x3a,
-	0xb1, 0x59, 0xeb, 0x0e, 0xf6, 0xc2, 0xf0, 0xba, 0x64, 0x84, 0x6e, 0x12, 0x6a, 0x8a, 0x1c, 0xb8,
-	0xe5, 0xd8, 0x0d, 0xea, 0x3e, 0xe5, 0xe7, 0x38, 0xeb, 0xa6, 0xf7, 0x94, 0x5f, 0xf9, 0x37, 0x9e,
-	0x72, 0x93, 0xd6, 0xbd, 0x87, 0xec, 0x42, 0x70, 0xab, 0x6a, 0x6d, 0x77, 0xfd, 0x61, 0xd3, 0x60,
-	0x2d, 0xf5, 0xd5, 0xc8, 0xab, 0xaa, 0x2f, 0x1a, 0x95, 0xe0, 0xca, 0x36, 0xae, 0x3b, 0xcc, 0xb0,
-	0x5b, 0x65, 0x4a, 0x6c, 0xfc, 0xd0, 0x56, 0x6f, 0x48, 0x66, 0x08, 0x12, 0x51, 0x11, 0x2e, 0xd5,
-	0x76, 0x7d, 0xce, 0x92, 0xc4, 0xd9, 0x59, 0x76, 0x79, 0x56, 0x58, 0xc3, 0x39, 0xc4, 0xc4, 0xb6,
-	0xd4, 0x25, 0x99, 0xa7, 0xbd, 0xec, 0xe2, 0xae, 0x3f, 0xb4, 0x31, 0xb1, 0x0c, 0x4a, 0x5c, 0x0b,
-	0x63, 0x4b, 0xbd, 0x29, 0xe3, 0x06, 0x88, 0x68, 0x1e, 0xa0, 0xbd, 0x64, 0xa9, 0x9f, 0x97, 0x58,
-	0xa5, 0xf5, 0x5b, 0xc9, 0x0f, 0x8e, 0xf3, 0x7f, 0x4e, 0x15, 0x7f, 0x9f, 0x86, 0xb4, 0xd7, 0x0f,
-	0x59, 0x8e, 0xf9, 0xff, 0x76, 0xe8, 0xbf, 0xbf, 0x1d, 0x5a, 0x80, 0xb4, 0xf0, 0x95, 0xb0, 0xf5,
-	0x94, 0x5c, 0x10, 0x24, 0x42, 0xcf, 0x39, 0xcc, 0xc6, 0x7e, 0x0e, 0x3d, 0xc4, 0x76, 0x7e, 0x9a,
-	0x8e, 0x0b, 0xb1, 0x9d, 0x97, 0x02, 0xc5, 0x71, 0xe6, 0xec, 0xc5, 0x71, 0x36, 0xe2, 0xe2, 0x98,
-	0x3b, 0xa5, 0x38, 0x7e, 0x07, 0x90, 0xfc, 0xe4, 0xc2, 0x51, 0x5e, 0xdf, 0x12, 0xad, 0x85, 0x42,
-	0x70, 0xc2, 0x4b, 0x73, 0xe1, 0x45, 0x4a, 0xf3, 0xb5, 0x17, 0x2f, 0xcd, 0xc5, 0xd8, 0x4b, 0xf3,
-	0xdc, 0x59, 0x4b, 0x73, 0x4f, 0x3d, 0x9b, 0x3f, 0xb9, 0x9e, 0x85, 0xa4, 0xfd, 0x97, 0xfa, 0xa5,
-	0xfd, 0x12, 0x5c, 0xa9, 0x62, 0xdb, 0x61, 0xa4, 0x93, 0xd8, 0x17, 0x64, 0xfe, 0x00, 0x31, 0x2c,
-	0xbd, 0xbf, 0x7c, 0xf6, 0xf4, 0xbe, 0xd8, 0x27, 0xbd, 0xff, 0x25, 0x55, 0xfc, 0x61, 0x12, 0x2e,
-	0xef, 0x6c, 0xdb, 0x9a, 0x8d, 0xfd, 0xf7, 0xdd, 0x6f, 0xc0, 0x00, 0xcf, 0xb7, 0x63, 0x51, 0xe7,
-	0xdb, 0x81, 0xae, 0x5c, 0x8b, 0x79, 0x11, 0x88, 0x2d, 0x09, 0x56, 0x20, 0xe3, 0x29, 0x84, 0x75,
-	0x6e, 0x78, 0x62, 0xf3, 0x0a, 0x92, 0x5c, 0x9d, 0xf7, 0x00, 0x55, 0x59, 0x6b, 0x8f, 0x45, 0xea,
-	0xb1, 0x82, 0xbb, 0xd1, 0x2d, 0x18, 0x0f, 0xae, 0x6d, 0x1a, 0x87, 0x86, 0xed, 0xd5, 0x0c, 0x61,
-	0xe1, 0x70, 0x16, 0xf4, 0x3a, 0x8c, 0x6e, 0x3b, 0xcd, 0x26, 0x65, 0x36, 0xd6, 0x25, 0xdf, 0xa8,
-	0xd2, 0xce, 0x30, 0x86, 0x90, 0xb4, 0x34, 0x15, 0x71, 0x5a, 0xca, 0xbe, 0x48, 0xcf, 0x3e, 0xdd,
-	0x3f, 0x31, 0xdc, 0x0c, 0xe9, 0x6b, 0x67, 0xb8, 0xed, 0xc5, 0x96, 0x1e, 0x2a, 0x0f, 0xc6, 0xbf,
-	0xa6, 0xc4, 0xec, 0xc5, 0x73, 0x8b, 0x6b, 0x0b, 0xf4, 0x65, 0x18, 0x74, 0x6f, 0x1d, 0x8b, 0x9f,
-	0xa8, 0x91, 0xe5, 0x6b, 0x6d, 0xbd, 0x65, 0xb6, 0x12, 0xbf, 0x16, 0x8c, 0x1e, 0x84, 0xb7, 0xed,
-	0x7f, 0x24, 0x98, 0x7b, 0xc3, 0x60, 0x32, 0xe2, 0x30, 0x50, 0x4f, 0x09, 0x83, 0x5b, 0x30, 0xfe,
-	0x0e, 0xa1, 0x4c, 0xc7, 0x0c, 0xeb, 0x15, 0x4c, 0x74, 0x83, 0x34, 0xca, 0xd4, 0x21, 0x36, 0x8f,
-	0x47, 0xdf, 0xaf, 0xe1, 0x2c, 0xe8, 0x27, 0x0a, 0xcc, 0x06, 0x29, 0xeb, 0x1a, 0x33, 0x0d, 0x6c,
-	0xd9, 0x15, 0xd7, 0xae, 0x3c, 0x08, 0x23, 0xf5, 0x4e, 0x7f, 0x3c, 0xf7, 0x38, 0x6e, 0x85, 0xe8,
-	0x32, 0x2d, 0xe9, 0x12, 0xc6, 0x80, 0x7e, 0xa4, 0xc0, 0xf4, 0x56, 0x1f, 0x3d, 0x66, 0xa2, 0xd6,
-	0xa3, 0x1f, 0x1a, 0xfa, 0x12, 0x4c, 0x56, 0x18, 0x16, 0x55, 0xcc, 0x65, 0x7a, 0xdb, 0xc1, 0x0e,
-	0x16, 0x9a, 0xcc, 0x4a, 0x9a, 0x9c, 0xc4, 0x84, 0x7e, 0xa0, 0x40, 0xb6, 0x8b, 0xd6, 0xad, 0x4c,
-	0x2e, 0x6a, 0x65, 0xfa, 0x80, 0xa1, 0x37, 0x60, 0xa2, 0xc2, 0x0c, 0xca, 0xcb, 0xa4, 0x66, 0x9a,
-	0x92, 0x2a, 0x79, 0x49, 0x95, 0x13, 0x78, 0xd0, 0xf7, 0x14, 0x18, 0xdb, 0xd4, 0x6c, 0x6c, 0xd9,
-	0x3b, 0x9a, 0x69, 0xe8, 0x9a, 0x8d, 0x75, 0x9e, 0x12, 0xe2, 0x19, 0xc0, 0x84, 0x42, 0xb9, 0xaf,
-	0xe0, 0x81, 0xf5, 0x32, 0xd5, 0xfd, 0x76, 0x28, 0xea, 0x57, 0xf0, 0x10, 0x24, 0xd4, 0x82, 0x8c,
-	0x58, 0x5e, 0x33, 0x98, 0xdd, 0x12, 0xfa, 0x17, 0xe3, 0x40, 0xef, 0x81, 0x41, 0x0f, 0xe0, 0x8a,
-	0xb4, 0xc6, 0xf5, 0x9e, 0x8b, 0x03, 0x39, 0x88, 0x82, 0xbe, 0x06, 0x57, 0x2a, 0x8c, 0x1e, 0x19,
-	0x7a, 0xa7, 0xc8, 0xcf, 0xf3, 0xcc, 0xf8, 0x4a, 0x78, 0xa1, 0x08, 0x30, 0xaf, 0x52, 0xbd, 0xc5,
-	0x43, 0x4b, 0xa9, 0x06, 0xe5, 0x64, 0x7f, 0x33, 0x00, 0xa3, 0x21, 0xec, 0xe8, 0xde, 0x09, 0xa1,
-	0x36, 0xce, 0x71, 0x3b, 0xef, 0xc2, 0x5b, 0x7b, 0xef, 0xe2, 0xba, 0xcd, 0x69, 0x1e, 0x44, 0x78,
-	0xdc, 0xdc, 0x0e, 0x71, 0xdb, 0xc4, 0xa9, 0xb2, 0x7a, 0x7d, 0xb0, 0x19, 0x1e, 0x7f, 0x93, 0xa7,
-	0x8a, 0x0a, 0x0d, 0xa6, 0xb5, 0x5e, 0x8f, 0xaa, 0xa7, 0x4a, 0xea, 0x71, 0xcf, 0x21, 0x0c, 0x7b,
-	0x09, 0x8c, 0x1f, 0x56, 0x75, 0xaa, 0x70, 0x31, 0xda, 0x89, 0x7c, 0x97, 0x78, 0xf4, 0x1e, 0x8c,
-	0xb4, 0xf3, 0xbe, 0x00, 0xcc, 0x46, 0x0d, 0x18, 0x00, 0xb8, 0x35, 0xf4, 0xab, 0xe3, 0xbc, 0xf2,
-	0xc1, 0x71, 0x3e, 0x51, 0x7c, 0x0b, 0xd2, 0x52, 0x1b, 0x82, 0xd2, 0x90, 0x7a, 0x87, 0xdc, 0x27,
-	0xf4, 0x01, 0xc9, 0x24, 0xd0, 0x25, 0x48, 0x56, 0xb1, 0xa6, 0xb7, 0x32, 0x8a, 0x7b, 0xb9, 0x7e,
-	0xd8, 0xb4, 0x5b, 0x99, 0x0b, 0x68, 0x18, 0x86, 0x36, 0x88, 0x56, 0xb7, 0x8d, 0x23, 0x9c, 0xb9,
-	0xe8, 0x6e, 0xb8, 0x6b, 0x58, 0x96, 0x41, 0x1a, 0x99, 0x01, 0xde, 0x0f, 0xfd, 0x2d, 0x55, 0xfc,
-	0xdd, 0x45, 0x48, 0x4b, 0x66, 0x46, 0xef, 0xc2, 0xa5, 0xaa, 0xff, 0x44, 0xbc, 0xa5, 0x89, 0xfa,
-	0xd5, 0xb0, 0x23, 0xde, 0x6d, 0x6d, 0x2a, 0x1a, 0x73, 0x4f, 0x54, 0x3c, 0xad, 0x8d, 0x10, 0x8e,
-	0xea, 0x90, 0x2c, 0x9b, 0x9a, 0x65, 0xf1, 0x98, 0x8f, 0x1c, 0x45, 0xc8, 0x46, 0x59, 0x48, 0x8a,
-	0x83, 0x25, 0xb7, 0xea, 0x62, 0xc9, 0x7d, 0xd3, 0xab, 0x30, 0x7c, 0x64, 0x50, 0xc7, 0x12, 0x3c,
-	0x72, 0x2b, 0xd4, 0x4d, 0x42, 0x0b, 0x90, 0x5e, 0xc3, 0xdc, 0x63, 0xee, 0x41, 0xe1, 0xbd, 0xcf,
-	0x90, 0x3f, 0x4d, 0x90, 0x08, 0xc5, 0x7f, 0x5e, 0x80, 0xa9, 0x1d, 0xaf, 0x66, 0x77, 0xda, 0x2f,
-	0xff, 0x05, 0x0b, 0xc3, 0xa0, 0x70, 0xaa, 0xe7, 0xc2, 0xa8, 0x2d, 0x2b, 0x84, 0xa3, 0x06, 0xa4,
-	0x3c, 0xc4, 0x78, 0x3c, 0xe8, 0x4b, 0x0f, 0xe9, 0x4e, 0x27, 0x22, 0xee, 0x4e, 0x27, 0xfb, 0x77,
-	0xa7, 0xfc, 0xb8, 0xfc, 0x3d, 0x55, 0xfc, 0x38, 0x09, 0x53, 0x3b, 0x1e, 0x19, 0xeb, 0xfe, 0x0b,
-	0x86, 0x41, 0x0c, 0xeb, 0x00, 0xeb, 0xe7, 0x3d, 0xb8, 0xf4, 0x5f, 0x0c, 0x26, 0xce, 0x71, 0xd4,
-	0x37, 0x79, 0xd6, 0x51, 0x9f, 0x7a, 0xee, 0xa3, 0xbe, 0xa9, 0xd8, 0x47, 0x7d, 0xbd, 0x61, 0x98,
-	0x8d, 0x38, 0x0c, 0xa7, 0x4f, 0x79, 0x49, 0xea, 0x19, 0x1a, 0xcd, 0x9c, 0x3c, 0x34, 0x7a, 0x03,
-	0xd2, 0xa2, 0x5a, 0x8a, 0xa4, 0x33, 0x7b, 0x6a, 0x71, 0x95, 0xd9, 0x79, 0xc0, 0x7f, 0x9c, 0x2a,
-	0x7e, 0x92, 0x84, 0xf1, 0x4e, 0xc0, 0xcb, 0x7f, 0x5a, 0xe8, 0xc4, 0xdf, 0x58, 0x9c, 0xf1, 0x77,
-	0xd2, 0xd9, 0xf8, 0xa8, 0xdf, 0xd9, 0x68, 0xb5, 0x47, 0x33, 0x9d, 0x62, 0x16, 0xcb, 0x29, 0xe9,
-	0x81, 0x41, 0x87, 0x00, 0x55, 0x5c, 0xa7, 0x4c, 0x77, 0xfd, 0x10, 0xcf, 0xb0, 0x5f, 0x02, 0xe0,
-	0x1f, 0xd5, 0xf1, 0xfe, 0x96, 0x63, 0xc7, 0x34, 0xf0, 0x17, 0xc2, 0xdd, 0x1a, 0x5a, 0xc5, 0xfb,
-	0x1b, 0xfe, 0x3f, 0x1e, 0xa2, 0xae, 0xa1, 0x5c, 0xf6, 0x7f, 0xfe, 0x78, 0xf1, 0xa0, 0x7f, 0x9e,
-	0x2a, 0x7e, 0xff, 0x02, 0x4c, 0x04, 0x83, 0xde, 0x6a, 0x52, 0x62, 0xe1, 0x8e, 0x21, 0xc6, 0xce,
-	0xd5, 0x10, 0xe3, 0x11, 0x1b, 0x62, 0xe2, 0x0c, 0x86, 0xf8, 0x47, 0xaa, 0xf8, 0x8b, 0x41, 0xf1,
-	0xbf, 0x97, 0x00, 0x14, 0x7a, 0x1b, 0xae, 0xf2, 0x0b, 0xb7, 0x7a, 0xad, 0x10, 0x5d, 0x1c, 0x4e,
-	0x31, 0x00, 0x9b, 0xf3, 0x2c, 0x32, 0x19, 0xb2, 0xcf, 0x65, 0xe7, 0x7a, 0xf6, 0xee, 0x46, 0x06,
-	0x0c, 0xad, 0x34, 0x9b, 0x8c, 0x1e, 0x61, 0x16, 0x4f, 0x33, 0xd1, 0x16, 0xef, 0x1e, 0x51, 0xdf,
-	0xb9, 0x35, 0x1a, 0x4f, 0x5e, 0x90, 0x00, 0xd0, 0x7d, 0x48, 0xf3, 0x09, 0x84, 0x98, 0x53, 0xf0,
-	0x94, 0x10, 0xe9, 0xd0, 0x43, 0x96, 0x7e, 0x5e, 0x1f, 0x00, 0x3b, 0x9f, 0x33, 0xa7, 0xe2, 0xfc,
-	0x9c, 0x69, 0xc0, 0x50, 0xe0, 0xdb, 0x61, 0xd4, 0x41, 0xd1, 0xee, 0x26, 0x96, 0xe1, 0xaa, 0x1f,
-	0x20, 0x27, 0x4c, 0xa1, 0x7b, 0xc8, 0xfc, 0x94, 0x7c, 0x92, 0xba, 0xfe, 0x4b, 0x05, 0xd2, 0x52,
-	0x7b, 0x87, 0xc6, 0x20, 0x53, 0xae, 0x6d, 0x90, 0x3d, 0xea, 0x10, 0x7d, 0xa5, 0xb2, 0xe1, 0x92,
-	0x32, 0x09, 0x34, 0x0e, 0x57, 0xcb, 0xb5, 0x2d, 0xc7, 0xee, 0x5a, 0x56, 0xdc, 0x57, 0xb4, 0x72,
-	0x4d, 0xfc, 0x75, 0x2b, 0x73, 0x01, 0x5d, 0x85, 0xcb, 0xe5, 0x5a, 0x99, 0x12, 0xcb, 0x66, 0x4e,
-	0xdd, 0xa6, 0x2c, 0x73, 0x11, 0x65, 0x60, 0xb8, 0x5c, 0xbb, 0x47, 0x6d, 0x63, 0x9f, 0xcf, 0xa4,
-	0x32, 0x03, 0x68, 0x04, 0xa0, 0x5c, 0xdb, 0x5e, 0x79, 0x73, 0x85, 0xdf, 0x27, 0x11, 0x82, 0x91,
-	0x72, 0xad, 0xa2, 0x31, 0xd7, 0x66, 0x26, 0x5f, 0x1b, 0x14, 0x6b, 0xdb, 0xf5, 0x03, 0xac, 0x3b,
-	0x26, 0xe6, 0x6b, 0xa9, 0xd5, 0x6f, 0x3d, 0xfe, 0x63, 0x2e, 0xf1, 0xe1, 0xd3, 0x9c, 0xf2, 0xf8,
-	0x69, 0x4e, 0x39, 0x7e, 0x9a, 0x53, 0xfe, 0xf0, 0x34, 0x97, 0xf8, 0xe9, 0xb3, 0x5c, 0xe2, 0xe7,
-	0xcf, 0x72, 0xca, 0xe3, 0x67, 0xb9, 0xc4, 0xf1, 0xb3, 0x5c, 0xe2, 0x4f, 0x8f, 0xf2, 0xca, 0xf3,
-	0x47, 0x79, 0xe5, 0xd3, 0x47, 0xf9, 0xd4, 0x5d, 0x6c, 0x59, 0x5a, 0x03, 0xff, 0xfa, 0xfd, 0xfc,
-	0xa8, 0x3f, 0x55, 0xf3, 0x96, 0x5c, 0x55, 0x7f, 0xfb, 0x7e, 0x7e, 0xc4, 0xbb, 0xf5, 0xbe, 0x3b,
-	0xed, 0x0d, 0xf2, 0x3f, 0x38, 0xbe, 0xf6, 0xaf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x5e, 0x9a, 0xdf,
-	0xf0, 0x84, 0x29, 0x00, 0x00,
+	// 2100 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x5a, 0x4f, 0x6f, 0x1b, 0xd7,
+	0x11, 0xe7, 0xda, 0xa2, 0x28, 0x0d, 0x25, 0x99, 0x7a, 0xfa, 0xb7, 0xa2, 0x24, 0x92, 0xa6, 0x14,
+	0x45, 0x71, 0x63, 0xca, 0x55, 0x8a, 0x1c, 0x84, 0x34, 0xad, 0x44, 0x49, 0xb1, 0x12, 0xdb, 0x62,
+	0x28, 0x46, 0x50, 0x8b, 0x02, 0xcd, 0x92, 0xfb, 0x44, 0xad, 0x43, 0xbd, 0xc7, 0xbe, 0xdd, 0x95,
+	0x45, 0xa0, 0xe8, 0xa5, 0x45, 0xd1, 0x43, 0x0f, 0xed, 0xa5, 0x80, 0x73, 0xea, 0xa5, 0x68, 0x51,
+	0xf4, 0xd4, 0x4f, 0x90, 0x63, 0xd0, 0x93, 0x8f, 0x42, 0x0e, 0x46, 0x6b, 0xa1, 0x40, 0xd3, 0xb4,
+	0x81, 0xdb, 0x63, 0x4e, 0xc5, 0xbe, 0xb7, 0x4b, 0x3e, 0x2e, 0x57, 0x94, 0x62, 0x2c, 0xd5, 0x16,
+	0xc8, 0x89, 0xbb, 0x33, 0xf3, 0xe6, 0xb7, 0x33, 0x6f, 0xde, 0xcc, 0xec, 0x2c, 0x61, 0xde, 0x20,
+	0x26, 0xad, 0x69, 0x6c, 0xb9, 0xae, 0x35, 0x6a, 0x54, 0xd3, 0x97, 0xeb, 0x8c, 0x5a, 0xf4, 0xfb,
+	0xc7, 0xe4, 0x98, 0xe4, 0xd8, 0x9d, 0x1c, 0xbf, 0x43, 0x31, 0x97, 0x99, 0xbc, 0x5d, 0x35, 0xac,
+	0x43, 0xbb, 0x9c, 0xab, 0xd0, 0xa3, 0xe5, 0x2a, 0xad, 0x52, 0x21, 0x5d, 0xb6, 0x0f, 0xf8, 0x1d,
+	0xbf, 0xe1, 0x57, 0x62, 0x5d, 0xf2, 0xdb, 0x92, 0xb8, 0x87, 0xa3, 0x99, 0xa6, 0xcd, 0xb0, 0x7e,
+	0xbb, 0x86, 0xf5, 0x2a, 0x66, 0xcb, 0xe2, 0xe7, 0x76, 0x85, 0x32, 0xec, 0x88, 0x08, 0x15, 0x06,
+	0x31, 0x85, 0x86, 0xec, 0xa7, 0xa3, 0x30, 0xb4, 0x97, 0xd7, 0x6a, 0xb5, 0x22, 0xfe, 0x81, 0x8d,
+	0x4d, 0x0b, 0xbd, 0x0e, 0x03, 0xce, 0x6d, 0xa9, 0x51, 0xc7, 0xea, 0x78, 0x46, 0x59, 0x1a, 0x59,
+	0x19, 0xcf, 0xb9, 0x4f, 0x97, 0xf3, 0x18, 0x0f, 0xf0, 0xa3, 0xf5, 0xbe, 0x8f, 0x9f, 0xa6, 0x23,
+	0xc5, 0xa6, 0x2c, 0x7a, 0x0d, 0x06, 0x9d, 0xeb, 0xad, 0x9a, 0x56, 0x35, 0xd5, 0x89, 0x8c, 0xb2,
+	0x34, 0xbc, 0x3e, 0xe1, 0x88, 0x7c, 0xf1, 0x34, 0xdd, 0x62, 0x3c, 0xff, 0x55, 0x26, 0x52, 0x6c,
+	0xdd, 0xa2, 0xb2, 0x00, 0x5b, 0x33, 0x77, 0x0e, 0xd4, 0x49, 0xbe, 0x66, 0xcb, 0x5d, 0xb3, 0xfa,
+	0xe5, 0x2c, 0xab, 0xdb, 0x35, 0x13, 0xe7, 0x1e, 0xd8, 0x47, 0x65, 0xcc, 0x38, 0x48, 0x53, 0x2f,
+	0x2a, 0x43, 0xbf, 0x73, 0x8d, 0x99, 0x3a, 0x95, 0x51, 0x96, 0x86, 0xd6, 0xdf, 0x76, 0x10, 0x3e,
+	0x79, 0x9a, 0x7e, 0xf3, 0xcb, 0x21, 0x30, 0x7c, 0x80, 0x19, 0x26, 0x15, 0x9c, 0x7b, 0xab, 0x46,
+	0xcb, 0x5a, 0x8d, 0xa3, 0xb8, 0x9a, 0x9b, 0x18, 0x58, 0x55, 0x7b, 0x84, 0x81, 0xd1, 0x09, 0x8c,
+	0x39, 0x57, 0xbb, 0x86, 0x85, 0x37, 0x70, 0xa5, 0xa6, 0x31, 0xcd, 0x32, 0x28, 0x51, 0xa7, 0x39,
+	0xe0, 0x56, 0x38, 0x80, 0xc5, 0x20, 0x08, 0xf4, 0x2a, 0x8c, 0x78, 0xe4, 0xfb, 0xd8, 0x3a, 0xa4,
+	0xba, 0x9a, 0xcc, 0x28, 0x4b, 0x83, 0x6e, 0x08, 0xf8, 0x78, 0x68, 0x09, 0x86, 0x38, 0xc5, 0x89,
+	0x27, 0x52, 0xc1, 0xea, 0x0c, 0xdf, 0x57, 0x21, 0xdb, 0xc6, 0x41, 0x0f, 0x01, 0x44, 0xe4, 0x69,
+	0x26, 0x25, 0xea, 0x6c, 0xe8, 0x9e, 0x93, 0xb4, 0x3b, 0x3b, 0x54, 0xa4, 0xd4, 0x2a, 0xed, 0xab,
+	0x73, 0xe1, 0xef, 0x90, 0xd0, 0xec, 0x45, 0x41, 0x69, 0x5f, 0x4d, 0xf5, 0x26, 0x0a, 0x4a, 0xfb,
+	0xa8, 0x0e, 0xc3, 0x9b, 0x27, 0x75, 0x4c, 0x4c, 0x9c, 0xc7, 0xc4, 0xc2, 0x4c, 0x4d, 0x87, 0x0e,
+	0xd5, 0x0e, 0x80, 0x18, 0x8c, 0x14, 0xb1, 0x49, 0x6d, 0x56, 0xf1, 0x20, 0x33, 0xa1, 0x43, 0xfa,
+	0x10, 0xd0, 0x22, 0xc4, 0x0b, 0x22, 0xe7, 0xdc, 0xd5, 0xcc, 0x43, 0xf5, 0x26, 0x07, 0x14, 0x21,
+	0x24, 0x33, 0xd0, 0xdb, 0x30, 0xb2, 0x81, 0x6b, 0xb8, 0xca, 0xe3, 0x74, 0xb7, 0x8e, 0x2b, 0x6a,
+	0x36, 0xa3, 0x2c, 0xc5, 0x57, 0x66, 0xdb, 0x52, 0x56, 0x4b, 0xa4, 0x44, 0x3f, 0xc0, 0xc4, 0x8b,
+	0xdb, 0xf6, 0x95, 0xe8, 0x1b, 0x80, 0x5c, 0x0a, 0x65, 0xbb, 0x46, 0x95, 0x68, 0x96, 0xcd, 0xb0,
+	0x3a, 0x2f, 0x41, 0x07, 0xf0, 0xd1, 0x0a, 0x8c, 0x16, 0x18, 0xd5, 0xed, 0x0a, 0x96, 0x16, 0x2d,
+	0x48, 0x8b, 0x3a, 0xd9, 0x0e, 0x52, 0x11, 0x57, 0x0d, 0xd3, 0x62, 0x9a, 0xb4, 0xe8, 0x25, 0x19,
+	0xa9, 0x93, 0x8f, 0xbe, 0x07, 0x53, 0x4d, 0xaa, 0xcf, 0xe8, 0xc5, 0x4b, 0x1b, 0x7d, 0x9e, 0x0a,
+	0xb4, 0x05, 0x33, 0x7e, 0x96, 0xec, 0x86, 0x97, 0xa5, 0x87, 0xeb, 0x26, 0x88, 0xee, 0x42, 0x42,
+	0xaa, 0x26, 0xa2, 0x1a, 0x2c, 0x65, 0x94, 0xa5, 0xe8, 0xfa, 0xac, 0x9b, 0xd9, 0x3b, 0xf8, 0x3c,
+	0x02, 0x3a, 0xa8, 0xe8, 0x87, 0x30, 0xf6, 0x0e, 0xa1, 0x8f, 0x88, 0x48, 0x7f, 0xdb, 0xa4, 0x42,
+	0x8f, 0x0c, 0x52, 0x55, 0x5f, 0x09, 0x3d, 0xf8, 0x82, 0x60, 0xd0, 0x2d, 0x18, 0xde, 0x24, 0x16,
+	0x6b, 0xdc, 0xc5, 0x6e, 0x0c, 0xde, 0x92, 0x3c, 0xd0, 0xce, 0x42, 0x47, 0x22, 0xe3, 0xed, 0xd8,
+	0x56, 0x95, 0x3a, 0x8f, 0xf8, 0x35, 0x2e, 0xba, 0xed, 0x3e, 0xe2, 0x37, 0x5f, 0xf4, 0x11, 0xef,
+	0xd1, 0x8a, 0xfb, 0x84, 0x6d, 0xea, 0x9d, 0xa2, 0x59, 0xda, 0xdf, 0x3c, 0xa9, 0x1b, 0xac, 0xa1,
+	0xbe, 0x1a, 0x6e, 0xd1, 0xf4, 0xf4, 0xa2, 0x1c, 0xdc, 0xd8, 0xc5, 0x15, 0x9b, 0x19, 0x56, 0x23,
+	0x4f, 0x89, 0x85, 0x4f, 0x2c, 0xf5, 0xb6, 0xe4, 0x00, 0x3f, 0x13, 0x65, 0x61, 0xb0, 0xb4, 0xef,
+	0x49, 0xe6, 0x24, 0xc9, 0x16, 0xd9, 0x91, 0x59, 0x63, 0x55, 0xfb, 0x08, 0x13, 0xcb, 0x54, 0x97,
+	0x65, 0x99, 0x26, 0xd9, 0xc1, 0xdd, 0x3c, 0xb1, 0x30, 0x31, 0x0d, 0x4a, 0x1c, 0xdf, 0x62, 0x53,
+	0xbd, 0x23, 0xe3, 0xfa, 0x98, 0x68, 0x01, 0xa0, 0x49, 0x32, 0xd5, 0xaf, 0x4b, 0xa2, 0x12, 0x7d,
+	0x35, 0xfa, 0xd1, 0x69, 0xfa, 0xd3, 0x58, 0xf6, 0x4f, 0x71, 0x88, 0xbb, 0xbd, 0x8e, 0x69, 0xd7,
+	0xbe, 0x6a, 0x75, 0xfe, 0x67, 0x5b, 0x9d, 0x45, 0x88, 0x8b, 0x2d, 0x12, 0x2e, 0x9e, 0x96, 0xd3,
+	0xbf, 0xc4, 0xe8, 0x38, 0x78, 0xc9, 0xde, 0x1e, 0x3c, 0x17, 0xae, 0x99, 0x8a, 0x66, 0x7a, 0x02,
+	0xd7, 0x4c, 0x41, 0xbe, 0x22, 0x38, 0x7b, 0xf9, 0x22, 0x38, 0x17, 0x72, 0x11, 0x4c, 0x5d, 0x50,
+	0x04, 0x1b, 0x80, 0xe4, 0x27, 0x17, 0x5b, 0xe4, 0x76, 0x26, 0x21, 0xba, 0x27, 0x00, 0x24, 0xb8,
+	0xfe, 0x66, 0x5e, 0xa4, 0xfe, 0xde, 0x7c, 0xf1, 0xfa, 0x9b, 0xed, 0x79, 0xfd, 0x9d, 0xbf, 0x6c,
+	0xfd, 0xed, 0xa8, 0x5b, 0x0b, 0xe7, 0xd7, 0xad, 0x80, 0x24, 0xff, 0x52, 0xb7, 0x24, 0x9f, 0x83,
+	0x1b, 0x45, 0x6c, 0xd9, 0x8c, 0xb4, 0xd2, 0xf8, 0xa2, 0x2c, 0xef, 0x63, 0x06, 0x25, 0xf3, 0x97,
+	0x2f, 0x9f, 0xcc, 0x97, 0xba, 0x24, 0xf3, 0xbf, 0xc7, 0xb2, 0x3f, 0x89, 0xc2, 0xf0, 0xde, 0xae,
+	0xa5, 0x59, 0xd8, 0x7b, 0x73, 0xfd, 0x2e, 0xf4, 0xf1, 0xec, 0x3a, 0x1e, 0x6a, 0x76, 0xed, 0x6b,
+	0xcb, 0xac, 0x98, 0xe7, 0xfb, 0xde, 0x64, 0xbd, 0x02, 0x24, 0x5c, 0x53, 0xb0, 0xce, 0x5d, 0x4e,
+	0x2c, 0x5e, 0x29, 0xa2, 0xeb, 0x0b, 0x2e, 0x9a, 0x2a, 0xdb, 0xeb, 0x8a, 0x48, 0x2d, 0x94, 0x7f,
+	0x35, 0x5a, 0x85, 0x09, 0x3f, 0xed, 0x9e, 0x71, 0x64, 0x58, 0x6e, 0x79, 0x10, 0xbe, 0x0d, 0x16,
+	0x41, 0xaf, 0xc3, 0xd8, 0xae, 0x5d, 0xaf, 0x53, 0x66, 0x61, 0x5d, 0xda, 0x15, 0x55, 0x5a, 0x19,
+	0x24, 0x10, 0x90, 0x8d, 0xa6, 0x43, 0xce, 0x46, 0xc9, 0x17, 0x69, 0xc9, 0x67, 0xba, 0xa7, 0x84,
+	0x3b, 0x01, 0x6d, 0xeb, 0x2c, 0xf7, 0xbd, 0x58, 0xd2, 0xc1, 0xe5, 0x61, 0xf8, 0x59, 0x2c, 0xfb,
+	0xd9, 0x28, 0x0c, 0x79, 0x61, 0xe8, 0xf8, 0x02, 0x7d, 0x0b, 0xfa, 0x9d, 0x5b, 0xdb, 0xe4, 0x67,
+	0x69, 0x64, 0xe5, 0x66, 0xd3, 0x6e, 0x59, 0x2c, 0xc7, 0xaf, 0x85, 0xa0, 0x0b, 0xe1, 0x2e, 0xfb,
+	0xbf, 0x0f, 0xe3, 0xce, 0x00, 0x98, 0x0a, 0x39, 0x00, 0xd4, 0x0b, 0x02, 0x60, 0x15, 0x26, 0xde,
+	0x23, 0x94, 0xe9, 0x98, 0x61, 0xbd, 0x80, 0x89, 0x6e, 0x90, 0x6a, 0x9e, 0xda, 0xc4, 0xe2, 0x91,
+	0xe8, 0xed, 0x68, 0xb0, 0x08, 0xfa, 0xb9, 0x02, 0x73, 0x7e, 0xce, 0xa6, 0xc6, 0x6a, 0x06, 0x36,
+	0xad, 0x82, 0xe3, 0x54, 0x1e, 0x7e, 0xe1, 0xed, 0x4b, 0x77, 0x30, 0xe7, 0x14, 0xee, 0x04, 0x18,
+	0x32, 0x23, 0x19, 0x12, 0x24, 0x80, 0x7e, 0xa6, 0xc0, 0xcc, 0x4e, 0x17, 0x23, 0x66, 0x43, 0x35,
+	0xa2, 0x1b, 0x14, 0x7a, 0x13, 0xa6, 0x0a, 0x0c, 0x8b, 0x9a, 0xe5, 0x08, 0xbd, 0x6b, 0x63, 0x1b,
+	0x0b, 0x33, 0xe6, 0x24, 0x33, 0xce, 0x13, 0x42, 0x3f, 0x55, 0x20, 0xd9, 0xc6, 0x6b, 0xb7, 0x24,
+	0x15, 0xaa, 0x25, 0x5d, 0x90, 0xd0, 0x1b, 0x30, 0x59, 0x60, 0x06, 0xe5, 0x15, 0x51, 0xab, 0xd5,
+	0x24, 0x3b, 0xd2, 0x92, 0x1d, 0xe7, 0xc8, 0xa0, 0x1f, 0xc1, 0xf8, 0x3d, 0xcd, 0xc2, 0xa6, 0xb5,
+	0xa7, 0xd5, 0x0c, 0x5d, 0xb3, 0xb0, 0xce, 0x53, 0x40, 0x0f, 0x86, 0x29, 0x81, 0x38, 0xce, 0xeb,
+	0xb4, 0x8f, 0x9e, 0xa7, 0xba, 0xd7, 0xf5, 0x84, 0xfa, 0x3a, 0x1d, 0x00, 0x83, 0x8e, 0x21, 0x21,
+	0xc8, 0x1b, 0x06, 0xb3, 0x1a, 0xc2, 0xf2, 0x6c, 0xe8, 0xd0, 0x1d, 0x18, 0xc8, 0x82, 0x1b, 0x12,
+	0x8d, 0x5b, 0x3c, 0x1f, 0x3a, 0xac, 0x1f, 0x02, 0x7d, 0x07, 0x6e, 0x14, 0x18, 0x3d, 0x36, 0xf4,
+	0x56, 0x21, 0x5f, 0xe0, 0x39, 0xf0, 0x95, 0xe0, 0x62, 0xe0, 0x13, 0x5e, 0xa7, 0x7a, 0x83, 0x47,
+	0x93, 0x52, 0xf4, 0xeb, 0x49, 0xfe, 0xb6, 0x0f, 0xc6, 0x02, 0xc4, 0xd1, 0x83, 0x73, 0xc2, 0x6b,
+	0x82, 0xe3, 0xb6, 0xde, 0x6b, 0x77, 0xca, 0x0f, 0x71, 0xc5, 0xe2, 0x3c, 0x17, 0x22, 0x38, 0x5c,
+	0xb6, 0x02, 0x36, 0x6c, 0xf2, 0x42, 0x5d, 0x9d, 0x1b, 0x70, 0x2f, 0x38, 0xec, 0xa6, 0x2e, 0x54,
+	0x15, 0x18, 0x46, 0x1b, 0x9d, 0xdb, 0xa9, 0x5e, 0xa8, 0xa9, 0x63, 0x7b, 0x1e, 0xc2, 0x90, 0x9b,
+	0xb0, 0xf8, 0xf9, 0x54, 0xa7, 0x33, 0xd7, 0x43, 0x1c, 0xa1, 0xb7, 0xe9, 0x46, 0x04, 0x46, 0x9a,
+	0x19, 0x5e, 0xa0, 0x25, 0x43, 0x45, 0xf3, 0x69, 0x5f, 0x1d, 0xf8, 0xdd, 0x69, 0x5a, 0xf9, 0xe8,
+	0x34, 0x1d, 0xc9, 0xbe, 0x03, 0x71, 0xa9, 0xc9, 0x40, 0x71, 0x88, 0xbd, 0x47, 0x3e, 0x20, 0xf4,
+	0x11, 0x49, 0x44, 0xd0, 0x20, 0x44, 0x8b, 0x58, 0xd3, 0x1b, 0x09, 0xc5, 0xb9, 0xdc, 0x3c, 0xaa,
+	0x5b, 0x8d, 0xc4, 0x35, 0x34, 0x04, 0x03, 0xdb, 0x44, 0xab, 0x58, 0xc6, 0x31, 0x4e, 0x5c, 0x77,
+	0x16, 0xdc, 0x37, 0x4c, 0xd3, 0x20, 0xd5, 0x44, 0x1f, 0xef, 0x76, 0xfe, 0x11, 0xcb, 0xfe, 0xe1,
+	0x3a, 0xc4, 0x25, 0x07, 0xa3, 0x2a, 0x0c, 0x16, 0xbd, 0x27, 0xe2, 0x0d, 0x4b, 0xa8, 0xef, 0x7b,
+	0x2d, 0xdd, 0x4e, 0xe3, 0x52, 0xd0, 0x98, 0x73, 0x90, 0x7a, 0xd0, 0xb8, 0x08, 0xcd, 0xe8, 0x7d,
+	0x88, 0xe6, 0x6b, 0x9a, 0x69, 0xf2, 0x38, 0x0f, 0x17, 0x42, 0x28, 0x46, 0x49, 0x88, 0x8a, 0x93,
+	0x24, 0xf7, 0xdf, 0x82, 0xe4, 0xbc, 0xb8, 0x15, 0x18, 0x3e, 0x36, 0xa8, 0x6d, 0x0a, 0x19, 0xb9,
+	0xcb, 0x69, 0x67, 0xa1, 0x45, 0x88, 0x6f, 0x60, 0xbe, 0x51, 0xce, 0xc9, 0xe0, 0x6d, 0xcd, 0x80,
+	0x37, 0x19, 0x90, 0x18, 0xd9, 0xcf, 0xaf, 0xc1, 0xf4, 0x9e, 0x5b, 0x94, 0x5b, 0x9d, 0x95, 0xf7,
+	0xbe, 0x54, 0x86, 0x7e, 0xb1, 0x97, 0xee, 0xce, 0x85, 0xea, 0x53, 0xa1, 0x19, 0xe9, 0x10, 0x73,
+	0xe1, 0x7a, 0xb0, 0x71, 0x9e, 0xea, 0x80, 0x96, 0x73, 0x32, 0xe4, 0x96, 0x73, 0xaa, 0x7b, 0xcb,
+	0xc9, 0xcf, 0xc7, 0x3f, 0x63, 0xd9, 0xbf, 0x46, 0x61, 0x7a, 0xcf, 0x65, 0x63, 0xdd, 0x7b, 0x5f,
+	0x30, 0x88, 0x61, 0x1e, 0x62, 0xfd, 0xaa, 0xe7, 0x8d, 0x5e, 0xab, 0x3f, 0x79, 0x55, 0x73, 0xba,
+	0xa9, 0xcb, 0xce, 0xe9, 0xd4, 0xab, 0x9d, 0xd3, 0x4d, 0xf7, 0x76, 0x4e, 0xd7, 0x19, 0x7d, 0xc9,
+	0x90, 0xa3, 0x6f, 0xe6, 0x82, 0x17, 0x9e, 0x8e, 0xa1, 0xcf, 0xec, 0xf9, 0x43, 0x9f, 0x37, 0x20,
+	0x2e, 0xea, 0xa1, 0xc8, 0x32, 0x73, 0x17, 0x96, 0x4f, 0x59, 0x9c, 0xc7, 0xf9, 0xe7, 0xb1, 0xec,
+	0x59, 0x14, 0x26, 0x5a, 0x71, 0x2e, 0xff, 0x7d, 0xa0, 0x15, 0x76, 0xe3, 0x3d, 0x0b, 0xbb, 0xf3,
+	0xce, 0xc3, 0x27, 0xdd, 0xce, 0xc3, 0x71, 0x73, 0xba, 0xd2, 0xaa, 0x58, 0xe1, 0x9f, 0x8c, 0x0e,
+	0x0c, 0xf4, 0x10, 0xa0, 0x88, 0x2b, 0x94, 0xe9, 0xce, 0x0e, 0xf4, 0x60, 0x2e, 0x2f, 0x69, 0xe7,
+	0x1f, 0xb9, 0xf1, 0xc1, 0x8e, 0x6d, 0xf5, 0x62, 0x36, 0x2f, 0x34, 0x3b, 0x55, 0xb2, 0x88, 0x0f,
+	0xb6, 0xbd, 0x3f, 0x1e, 0x84, 0x5a, 0x25, 0xb9, 0xe2, 0xff, 0xfe, 0x79, 0xe2, 0x51, 0xfe, 0x3c,
+	0x96, 0xfd, 0xf1, 0x35, 0x98, 0xf4, 0x47, 0xb9, 0x59, 0xa7, 0xc4, 0xc4, 0x2d, 0x2f, 0x8c, 0x5f,
+	0x9d, 0x17, 0x26, 0x42, 0xf6, 0xc2, 0xe4, 0x25, 0xbc, 0xf0, 0xaf, 0x58, 0xf6, 0x97, 0xfd, 0xe2,
+	0x8f, 0x27, 0x3e, 0x28, 0xf4, 0x2e, 0x8c, 0xf2, 0x0b, 0xa7, 0x44, 0xad, 0x11, 0x5d, 0x9c, 0x46,
+	0x31, 0xb4, 0x9a, 0x77, 0xdd, 0x31, 0x15, 0xb0, 0xce, 0x11, 0xe7, 0x76, 0x76, 0xae, 0x46, 0x07,
+	0x30, 0xb0, 0x56, 0xaf, 0x33, 0x7a, 0x8c, 0x59, 0x0f, 0xda, 0x85, 0xa6, 0x6e, 0xe7, 0x4c, 0x7a,
+	0xdb, 0x5a, 0xa2, 0x3d, 0xc8, 0x02, 0x92, 0x76, 0x74, 0x08, 0x71, 0x3e, 0x3e, 0x10, 0x43, 0x06,
+	0x9e, 0x00, 0xc2, 0x1b, 0x57, 0xc8, 0xaa, 0xaf, 0xe4, 0xcb, 0x5c, 0xeb, 0x0b, 0xe3, 0x74, 0xcf,
+	0xbe, 0x30, 0x1e, 0xc0, 0x80, 0xef, 0x8b, 0x5e, 0xa8, 0x51, 0xd0, 0x6c, 0x13, 0x56, 0x60, 0xd4,
+	0x8b, 0x88, 0x73, 0xe6, 0xc4, 0x1d, 0x6c, 0x7e, 0x26, 0xfe, 0x1d, 0xbb, 0xf5, 0x1b, 0x05, 0xe2,
+	0x52, 0xc7, 0x86, 0xc6, 0x21, 0x91, 0x2f, 0x6d, 0x93, 0x32, 0xb5, 0x89, 0xbe, 0x56, 0xd8, 0x76,
+	0x58, 0x89, 0x08, 0x9a, 0x80, 0xd1, 0x7c, 0x69, 0xc7, 0xb6, 0xda, 0xc8, 0x8a, 0xf3, 0x9a, 0x95,
+	0x2f, 0x89, 0x3f, 0x4b, 0x25, 0xae, 0xa1, 0x51, 0x18, 0xce, 0x97, 0xf2, 0x94, 0x98, 0x16, 0xb3,
+	0x2b, 0x16, 0x65, 0x89, 0xeb, 0x28, 0x01, 0x43, 0xf9, 0xd2, 0x03, 0x6a, 0x19, 0x07, 0x7c, 0x88,
+	0x94, 0xe8, 0x43, 0x23, 0x00, 0xf9, 0xd2, 0xee, 0xda, 0x5b, 0x6b, 0xfc, 0x3e, 0x8a, 0x10, 0x8c,
+	0xe4, 0x4b, 0x05, 0x8d, 0x39, 0x0e, 0xab, 0x71, 0x5a, 0xbf, 0xa0, 0xed, 0x56, 0x0e, 0xb1, 0x6e,
+	0xd7, 0x30, 0xa7, 0xc5, 0xd6, 0xdf, 0x7f, 0xf2, 0x97, 0x54, 0xe4, 0xe3, 0x67, 0x29, 0xe5, 0xc9,
+	0xb3, 0x94, 0x72, 0xfa, 0x2c, 0xa5, 0xfc, 0xf9, 0x59, 0x2a, 0xf2, 0x8b, 0xb3, 0x54, 0xe4, 0xd7,
+	0x67, 0x29, 0xe5, 0xc9, 0x59, 0x2a, 0x72, 0x7a, 0x96, 0x8a, 0xfc, 0xed, 0x71, 0x5a, 0x79, 0xfe,
+	0x38, 0xad, 0x7c, 0xf1, 0x38, 0x1d, 0xbb, 0x8f, 0x4d, 0x53, 0xab, 0xe2, 0xdf, 0x7f, 0x98, 0x1e,
+	0xf3, 0xc6, 0x60, 0x2e, 0xc9, 0x31, 0xf5, 0x8f, 0x1f, 0xa6, 0x47, 0xdc, 0x5b, 0xf7, 0x9b, 0x50,
+	0xb9, 0x9f, 0xff, 0x8d, 0xf0, 0xb5, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0xb9, 0xb2, 0x15, 0xa7,
+	0xe7, 0x28, 0x00, 0x00,
 }
 
 func (m *VCallRequest) SetupContext(ctx MessageContext) error {
@@ -3675,7 +3674,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallAsOf |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.CallAsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4400,7 +4399,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.TXExpiry |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.TXExpiry |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4719,7 +4718,7 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallAsOf |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.CallAsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5471,7 +5470,7 @@ func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AsOf |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.AsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5816,7 +5815,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AsOf |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.AsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5960,7 +5959,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.UnorderedPendingEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.UnorderedPendingEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5998,7 +5997,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.OrderedPendingEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.OrderedPendingEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -6036,7 +6035,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PreRegisteredEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.PreRegisteredEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -6482,7 +6481,7 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_assured_ledger_ledger_core_v2_reference.Global
+			var v github_com_insolar_assured_ledger_ledger_core_reference.Global
 			m.OrderedQueue = append(m.OrderedQueue, v)
 			if err := m.OrderedQueue[len(m.OrderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6517,7 +6516,7 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_assured_ledger_ledger_core_v2_reference.Global
+			var v github_com_insolar_assured_ledger_ledger_core_reference.Global
 			m.UnorderedQueue = append(m.UnorderedQueue, v)
 			if err := m.UnorderedQueue[len(m.UnorderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -8021,7 +8020,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_v2_pulse.Number(b&0x7F) << shift
+				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
