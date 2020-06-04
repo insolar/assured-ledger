@@ -1,0 +1,8 @@
+@startuml
+Init : INHERITED
+Init --> State0 : Jump
+State0 : INHERITED
+State0 --> State1 : Jump
+State1 : INHERITED
+State1 --> [*]
+@enduml
