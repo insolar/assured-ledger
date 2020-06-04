@@ -43,6 +43,12 @@ jobs:
         if: always()
         run: make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Upload integration_test.log to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: integration_test_log_master
+		  working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
       - name: Upload coverage to Codecov
         if: always()
         run: bash <(curl -s https://codecov.io/bash) -f ledger-core/coverage.out -y ledger-core/.codecov.yml -n coverage-report
