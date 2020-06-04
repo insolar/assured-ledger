@@ -65,6 +65,8 @@ spec:
           readOnly: true
         - name: app-bootstrap
           mountPath: /app/bootstrap
+        - name: certs-data
+          mountPath: /var/data/certs-data
   volumes:
     - name: bootstrap-yaml
       configMap:
@@ -72,3 +74,6 @@ spec:
     - name: app-bootstrap
       configMap:
         name: app-bootstrap
+    - name: certs-data
+      persistentVolumeClaim:
+        claimName: certs-volume
