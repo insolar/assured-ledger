@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: integration_test_log_linux
-          working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
       - name: Run functional tests multiple times with race detector
         if: always()
         run: make test_func_race
