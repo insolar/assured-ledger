@@ -163,7 +163,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 		fmt.Printf("ready waiting timed out after %s\n", netParams.WaitReady)
 	}
 
-	return fmt.Errorf("insolar has not been started\n")
+	return fmt.Errorf("insolar has not been started")
 }
 
 func (m *InsolarNetManager) stop(netParams NetParams) error {
