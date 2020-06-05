@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -24,23 +23,26 @@ import (
 
 func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	var (
-		mc               = minimock.NewController(t)
-		pd               = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID       = gen.UniqueIDWithPulse(pd.PulseNumber)
-		smGlobalRef      = reference.NewSelf(smObjectID)
-		smObject         = object.NewStateMachineObject(smGlobalRef)
-		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
-		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
+		mc              = minimock.NewController(t)
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		sharedStateData = smachine.NewUnboundSharedData(payload.VStateReport{
+			Status:              payload.Empty,
+			AsOf:                pulse.Unknown,
+			Callee:              smGlobalRef,
+			OrderedPendingCount: 1,
+			ProvidedContent:     nil,
+		})
+		smObjectAccessor = object.SharedReportAccessor{SharedDataLink: sharedStateData}
 	)
-
-	smObject.SetState(object.Empty)
-	smObject.IncrementPotentialPendingCounter(contract.ConstructorIsolation())
 
 	smVStateRequest := SMVStateRequest{
 		Payload: &payload.VStateRequest{
-			Callee: smGlobalRef,
+			Callee:           smGlobalRef,
+			RequestedContent: payload.RequestLatestDirtyState,
 		},
-		stateAccessor: smObjectAccessor,
+		reportAccessor: smObjectAccessor,
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
@@ -52,7 +54,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	require.True(t, smVStateRequest.objectStateReport.LatestDirtyState.IsZero())
 	require.Equal(t, int32(0), smVStateRequest.objectStateReport.UnorderedPendingCount)
 	require.Equal(t, int32(1), smVStateRequest.objectStateReport.OrderedPendingCount)
-	require.Nil(t, smVStateRequest.objectStateReport.ProvidedContent.LatestDirtyState)
+	require.Nil(t, smVStateRequest.objectStateReport.ProvidedContent)
 
 	mc.Finish()
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
@@ -68,7 +69,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
 		ScanCountLimit:    100000,
-		SlotMachineLogger: virtualStateMachine.ConveyorLoggerFactory{},
+		SlotMachineLogger: convlog.MachineLogger{},
 		SlotAliasRegistry: &conveyor.GlobalAliases{},
 		LogAdapterCalls:   true,
 	}

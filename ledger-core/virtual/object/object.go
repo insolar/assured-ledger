@@ -10,6 +10,7 @@ package object
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -18,14 +19,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
@@ -228,8 +228,6 @@ type SMObject struct {
 
 	waitGetStateUntil time.Time
 
-	migrateState smObjectMigrateState
-
 	orderedPendingListFilledCtl   smsync.BoolConditionalLink
 	unorderedPendingListFilledCtl smsync.BoolConditionalLink
 
@@ -276,6 +274,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.initWaitGetStateUntil()
 
+	ctx.Log().Trace("SetDefaultMigration")
 	ctx.SetDefaultMigration(sm.migrate)
 
 	return ctx.Jump(sm.stepGetState)
@@ -287,18 +286,6 @@ func (sm *SMObject) initWaitGetStateUntil() {
 	pulseStartedAt := sm.pulseSlot.PulseStartedAt()
 
 	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
-}
-
-func (sm *SMObject) stepGetState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.IsReady() {
-		return ctx.Jump(sm.stepGotState)
-	}
-
-	if !time.Now().After(sm.waitGetStateUntil) {
-		return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
-	}
-
-	return ctx.Jump(sm.stepSendStateRequest)
 }
 
 func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -322,8 +309,19 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
-
 	return ctx.Jump(sm.stepWaitState)
+}
+
+func (sm *SMObject) stepGetState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if sm.IsReady() {
+		return ctx.Jump(sm.stepGotState)
+	}
+
+	if !time.Now().After(sm.waitGetStateUntil) {
+		return ctx.WaitAnyUntil(sm.waitGetStateUntil).ThenRepeat()
+	}
+
+	return ctx.Jump(sm.stepSendStateRequest)
 }
 
 func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -353,10 +351,6 @@ func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.Stat
 }
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !sm.hasPendingExecution() && sm.migrateState == readyToStop {
-		return ctx.Stop()
-	}
-
 	return ctx.Sleep().ThenRepeat()
 }
 
@@ -409,47 +403,50 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}
 }
 
-func (sm *SMObject) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	switch sm.migrateState {
-	case stateWasNotSend:
-		sm.migrateState = stateSent
-	case stateSent:
-		sm.migrateState = readyToStop
-		return ctx.Jump(sm.migrateTransition)
-	}
-
-	var (
-		currentPulseNumber = sm.pulseSlot.CurrentPulseNumber()
-	)
-
-	msg := sm.BuildStateReport()
-	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
-	msg.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
-
-	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send state", err)
-			}
-		}
-	}).WithoutAutoWakeUp().Start()
-
-	return ctx.Jump(sm.migrateTransition)
-}
-
 func (sm *SMObject) hasPendingExecution() bool {
 	return sm.PotentialUnorderedPendingCount > 0 ||
 		sm.PotentialOrderedPendingCount > 0
 }
 
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	sm.migrateTransition = ctx.AffectedStep().Transition
+	ctx.Log().Trace("SMObject migrate")
 	switch sm.GetState() {
 	case Unknown:
-		ctx.Log().Warn("SMObject migration happened when object is not ready yet")
-		return ctx.Stay()
-	default:
-		return ctx.Jump(sm.stepSendVStateReport)
+		ctx.Log().Trace("SMObject migration happened when object is not ready yet")
+		return ctx.Stop()
+	case Empty:
+		if !sm.hasPendingExecution() {
+			ctx.Log().Trace("SMObject migration happened when object is not ready yet")
+			return ctx.Stop()
+		}
 	}
+
+	ctx.UnpublishAll()
+
+	report := sm.BuildStateReport()
+	if sm.Descriptor() != nil {
+		report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
+	}
+	sdl := ctx.Share(&report, smachine.ShareDataUnbound)
+	if !ctx.Publish(BuildReportKey(sm.Reference, sm.pulseSlot.PulseData().PulseNumber), sdl) {
+		ctx.Log().Warn(struct {
+			*log.Msg  `txt:"failed to publish state report"`
+			Reference string
+		}{
+			Reference: sm.Reference.String(),
+		})
+		return ctx.Error(fmt.Errorf("failed to publish state report"))
+	}
+
+	return ctx.Jump(sm.stepStartReportSM)
+}
+
+func (sm *SMObject) stepStartReportSM(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		return &SMStateReport{
+			SMReport: SMReport{
+				Reference: sm.Reference,
+			},
+		}
+	})
 }

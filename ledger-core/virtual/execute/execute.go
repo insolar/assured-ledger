@@ -123,6 +123,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 }
 
 func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("migrationDefault")
 	return ctx.Stop()
 }
 
@@ -230,6 +231,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			panic(throw.NotImplemented())
 		}
 	} else if objectState != object.HasState {
+		ctx.Log().Warn("no state on object after readyToWork for object: " + s.execution.Object.String())
 		panic(throw.IllegalState())
 	}
 
