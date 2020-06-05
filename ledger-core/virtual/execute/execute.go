@@ -541,14 +541,20 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
 		_, class, memory = executionNewState.Activate()
-		action = s.setNewState(class, memory)
+		action = s.getUpdateStateAction(class, memory)
 	case requestresult.SideEffectAmend:
 		_, class, memory = executionNewState.Amend()
-		action = s.setNewState(class, memory)
+		action = s.getUpdateStateAction(class, memory)
 	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
+	}
+
+	if s.migrationHappened {
+		newObjDescriptor := s.makeNewDescriptor(class, memory)
+		s.execution.ObjectDescriptor = newObjDescriptor
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -560,10 +566,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		// go further
 	default:
 		panic(throw.Impossible())
-	}
-
-	if s.migrationHappened {
-		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
@@ -615,30 +617,36 @@ func (s *SMExecute) finishRequestProcessing(state *object.SharedState, req refer
 	}
 }
 
-func (s *SMExecute) setNewState(class reference.Global, memory []byte) func(state *object.SharedState) {
+func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
+	parentReference := reference.Global{}
+	var prevStateIDBytes []byte
+	objDescriptor := s.execution.ObjectDescriptor
+	if objDescriptor != nil {
+		parentReference = objDescriptor.HeadRef()
+		prevStateIDBytes = objDescriptor.StateID().AsBytes()
+	}
+
+	objectRefBytes := s.execution.Object.AsBytes()
+	stateHash := append(memory, objectRefBytes...)
+	stateHash = append(stateHash, prevStateIDBytes...)
+
+	stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+	return descriptor.NewObject(
+		s.execution.Object,
+		stateID,
+		class,
+		memory,
+		parentReference,
+	)
+}
+
+func (s *SMExecute) getUpdateStateAction(class reference.Global, memory []byte) func(state *object.SharedState) {
 	return func(state *object.SharedState) {
 
-		parentReference := reference.Global{}
-		var prevStateIDBytes []byte
-		if state.Descriptor() != nil {
-			parentReference = state.Descriptor().Parent()
-			prevStateIDBytes = state.Descriptor().StateID().AsBytes()
-		}
+		newObjDescriptor := s.makeNewDescriptor(class, memory)
+		state.Info.SetDescriptor(newObjDescriptor)
 
-		objectRefBytes := s.execution.Object.AsBytes()
-		stateHash := append(memory, objectRefBytes...)
-		stateHash = append(stateHash, prevStateIDBytes...)
-
-		stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
-		state.Info.SetDescriptor(descriptor.NewObject(
-			s.execution.Object,
-			stateID,
-			class,
-			memory,
-			parentReference,
-		))
-
-		s.execution.ObjectDescriptor = state.Descriptor()
+		s.execution.ObjectDescriptor = newObjDescriptor
 
 		s.finishRequestProcessing(state, s.execution.Outgoing)
 		if state.GetState() == object.Empty {
