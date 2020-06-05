@@ -1,0 +1,24 @@
+@startuml
+Init : migrateStop
+Init -[#blue]-> migrateStop
+Init --> [*]
+Init --> stateGetLatestValidatedState : Jump
+migrateStop : INHERITED
+migrateStop --> [*]
+stateGetLatestValidatedState : INHERITED
+stateGetLatestValidatedState : migrateStop
+stateGetLatestValidatedState -[#blue]-> migrateStop
+stateGetLatestValidatedState --> stateGotLatestValidatedState : ThenJump
+stateGotLatestValidatedState : INHERITED
+stateGotLatestValidatedState : migrateStop
+stateGotLatestValidatedState -[#blue]-> migrateStop
+stateGotLatestValidatedState --> stateGotLatestValidatedState : ThenRepeat
+stateGotLatestValidatedState --> waitForMigration : JumpExt
+stateGotLatestValidatedState -[#DarkGreen]-> migrateSendState : JumpExt+(StepMigration)
+waitForMigration : INHERITED
+waitForMigration --> waitForMigration : ThenRepeat
+migrateSendState : NIL
+migrateSendState --> stateCompleteExecution : Jump
+stateCompleteExecution : INHERITED
+stateCompleteExecution --> [*]
+@enduml

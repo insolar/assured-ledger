@@ -1,0 +1,14 @@
+@startuml
+Init : INHERITED
+Init --> stepCheckCatalog : Jump
+stepCheckCatalog : INHERITED
+stepCheckCatalog --> stepBuildMissing : Jump
+stepCheckCatalog --> stepBuildStateReport : Jump
+stepBuildMissing : INHERITED
+stepBuildMissing --> stepSendResult : Jump
+stepBuildStateReport : INHERITED
+stepBuildStateReport --> stepBuildStateReport : ThenRepeat
+stepBuildStateReport --> stepSendResult : Jump
+stepSendResult : INHERITED
+stepSendResult --> [*]
+@enduml
