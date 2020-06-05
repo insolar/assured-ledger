@@ -1,0 +1,36 @@
+@startuml
+Init : cancelOnMigrate
+Init -[#blue]-> cancelOnMigrate
+Init --> stateGetSharedReadyToWork : Jump
+cancelOnMigrate : NIL
+cancelOnMigrate --> sendReplyOnCancel : Jump
+stateGetSharedReadyToWork : INHERITED
+stateGetSharedReadyToWork : cancelOnMigrate
+stateGetSharedReadyToWork -[#blue]-> cancelOnMigrate
+stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
+stateGetSharedReadyToWork --> [*]
+stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
+stateGetSharedReadyToWork --> stateSharedReadyToWork : ThenJump
+sendReplyOnCancel : INHERITED
+sendReplyOnCancel --> [*]
+stateSharedReadyToWork : INHERITED
+stateSharedReadyToWork : cancelOnMigrate
+stateSharedReadyToWork -[#blue]-> cancelOnMigrate
+stateSharedReadyToWork --> statePrepareMutableCall : Jump
+stateSharedReadyToWork --> stateStartImmutableCall : Jump
+stateSharedReadyToWork --> stateRegisterSagaCall : Jump
+statePrepareMutableCall : INHERITED
+statePrepareMutableCall : cancelOnMigrate
+statePrepareMutableCall -[#blue]-> cancelOnMigrate
+stateStartImmutableCall : INHERITED
+stateStartImmutableCall : cancelOnMigrate
+stateStartImmutableCall -[#blue]-> cancelOnMigrate
+stateStartImmutableCall --> stateStartImmutableCall : ThenRepeat
+stateStartImmutableCall --> stateDoneImmutableCall : ThenJump
+stateRegisterSagaCall : INHERITED
+stateRegisterSagaCall : cancelOnMigrate
+stateRegisterSagaCall -[#blue]-> cancelOnMigrate
+stateDoneImmutableCall : INHERITED
+stateDoneImmutableCall : cancelOnMigrate
+stateDoneImmutableCall -[#blue]-> cancelOnMigrate
+@enduml
