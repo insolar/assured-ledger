@@ -80,6 +80,38 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 	}
 }
 
+func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
+	t.Log("C4976")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	class := testwallet.GetClass()
+	objectLocal := server.RandomLocalWithPulse()
+	objectGlobal := reference.NewSelf(objectLocal)
+
+	err := Method_PrepareObject(ctx, server, class, objectLocal)
+	require.NoError(t, err)
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "random",
+			CallOutgoing:        server.RandomLocalWithPulse(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+
+		server.SendMessage(ctx, msg)
+
+		// TODO
+	}
+}
+
 func TestVirtual_Method_WithExecutor(t *testing.T) {
 	t.Log("C4923")
 
@@ -150,12 +182,10 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		pl := payload.VCallRequest{
 			CallType:            payload.CTMethod,
 			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-			CallAsOf:            0,
 			Caller:              server.GlobalCaller(),
 			Callee:              objectRef,
 			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "GetBalance",
-			CallRequestFlags:    0,
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
@@ -163,7 +193,6 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 		server.SendMessage(ctx, msg)
 
-		// time.Sleep(5*time.Second)
 		// TODO fix it after https://insolar.atlassian.net/browse/PLAT-445
 		// for getting panic set count to 1
 		// assert.True(t, server.PublisherMock.WaitCount(0, 10*time.Second))
