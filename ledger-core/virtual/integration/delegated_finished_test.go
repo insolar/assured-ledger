@@ -103,18 +103,26 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 		return nil
 	})
 
+
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
 	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-	{
-		// send VStateReport: save wallet
-		rawWalletState := makeRawWalletState(t, testBalance)
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
-		server.SendMessage(ctx, msg)
 
-		server.IncrementPulse(ctx)
-	}
+	// send VStateReport: save wallet
+	rawWalletState := makeRawWalletState(t, testBalance)
+	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
+	server.SendMessage(ctx, msg)
+
+	server.WaitActiveThenIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
+	server.IncrementPulse(ctx)
+	server.WaitActiveThenIdleConveyor()
 
 	// generate new state since it will be changed by CallAPIAddAmount
 	newRawWalletState := makeRawWalletState(t, testBalance+uint32(additionalBalance))
@@ -145,6 +153,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
+
+	server.WaitIdleConveyor()
 
 	require.Equal(t, 1, countVCallResult)
 }
