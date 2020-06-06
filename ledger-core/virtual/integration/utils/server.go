@@ -14,6 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
@@ -25,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
@@ -35,7 +37,8 @@ import (
 )
 
 type Server struct {
-	lock sync.Mutex
+	pulseLock sync.Mutex
+	dataLock sync.Mutex
 
 	// real components
 	virtual       *virtual.Dispatcher
@@ -49,12 +52,17 @@ type Server struct {
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       pulsestor.Manager
 
+	cycleFn 		   ConveyorCycleFunc
+	activeCount        atomickit.Uint32
+
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
 
 	// top-level caller ID
 	caller reference.Global
 }
+
+type ConveyorCycleFunc func(c *conveyor.PulseConveyor, idle bool)
 
 func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
 	return newServerExt(ctx, t, false)
@@ -126,6 +134,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.TokenService = token.NewService(ctx, s.caller)
+	virtualDispatcher.CycleFn = s.onCycle
 
 	if convlog.UseTextConvLog {
 		virtualDispatcher.MachineLogger = convlog.MachineLogger{}
@@ -159,10 +168,31 @@ func (s *Server) incrementPulse(ctx context.Context) {
 }
 
 func (s *Server) IncrementPulse(ctx context.Context) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.pulseLock.Lock()
+	defer s.pulseLock.Unlock()
 
 	s.incrementPulse(ctx)
+}
+
+func (s *Server) SetCycleCallback(cycleFn ConveyorCycleFunc) {
+	s.dataLock.Lock()
+	defer s.dataLock.Unlock()
+
+	s.cycleFn = cycleFn
+}
+
+func (s *Server) onCycle(idle bool) {
+	s.dataLock.Lock()
+	cycleFn := s.cycleFn
+	s.dataLock.Unlock()
+
+	if !idle {
+		s.activeCount.Add(1)
+	}
+	if cycleFn == nil {
+		return
+	}
+	cycleFn(s.virtual.Conveyor, idle)
 }
 
 func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
@@ -196,3 +226,29 @@ func (s *Server) Stop() {
 	_ = s.testWalletServer.Stop(context.Background())
 	_ = s.messageSender.Close()
 }
+
+func (s *Server) WaitIdleConveyor() {
+	s.waitIdleConveyor(false)
+}
+
+func (s *Server) WaitActiveThenIdleConveyor() {
+	s.waitIdleConveyor(true)
+}
+
+func (s *Server) waitIdleConveyor(checkActive bool) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	s.SetCycleCallback(func(c *conveyor.PulseConveyor, idle bool) {
+		if idle && (!checkActive || s.activeCount.Load() > 0) {
+			wg.Done()
+			s.SetCycleCallback(nil)
+		}
+	})
+	s.virtual.Conveyor.WakeUpWorker()
+	wg.Wait()
+}
+
+func (s *Server) ResetActiveConveyorFlag() {
+	s.activeCount.Store(0)
+}
+
