@@ -6,8 +6,8 @@
 package msgdelivery
 
 import (
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -27,11 +27,16 @@ func TestController(t *testing.T) {
 	vf := TestVerifierFactory{}
 	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
 
+
+	var ctl1 Service
 	controller1 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-			t.Log(a.String(), v)
-			return nil
+			t.Log(a.String(), "Ctl1:", v)
+			s := v.(fmt.Stringer).String() + "-return"
+			return ctl1.ShipReturn(a, Shipment{Head: &TestString{s}})
 		}, nil, TestLogAdapter{t})
+
+	ctl1 = controller1.NewFacade()
 
 	var dispatcher1 uniserver.Dispatcher
 	controller1.RegisterWith(dispatcher1.RegisterProtocol)
@@ -63,9 +68,12 @@ func TestController(t *testing.T) {
 
 	/********************************/
 
+	results := make(chan string, 2)
 	controller2 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-			t.Log(a.String(), v)
+			s := v.(fmt.Stringer).String()
+			t.Log(a.String(), "Ctl2:", s)
+			results <- s
 			return nil
 		}, nil, TestLogAdapter{t})
 
@@ -110,5 +118,9 @@ func TestController(t *testing.T) {
 	err = ctl2.ShipTo(NewDirectAddress(1), Shipment{Head: &TestString{"abc2"}})
 	require.NoError(t, err)
 
-	time.Sleep(time.Second)
+	require.Equal(t, "abc1", <-results)
+	require.Equal(t, "abc2-return", <-results)
+
+	dispatcher2.Stop()
+	dispatcher1.Stop()
 }
