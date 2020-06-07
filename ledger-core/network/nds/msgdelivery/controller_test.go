@@ -8,6 +8,7 @@ package msgdelivery
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -120,6 +121,8 @@ func TestController(t *testing.T) {
 
 	require.Equal(t, "abc1", <-results)
 	require.Equal(t, "abc2-return", <-results)
+
+	time.Sleep(controller1.timeCycle*10)
 
 	dispatcher2.Stop()
 	dispatcher1.Stop()
