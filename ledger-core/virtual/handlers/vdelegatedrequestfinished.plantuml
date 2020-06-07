@@ -2,12 +2,12 @@
 Init : INHERITED
 Init --> stepGetObject : Jump
 stepGetObject : INHERITED
-stepGetObject --> stepGetObject : ThenRepeat
 stepGetObject --> awaitObjectReady : Jump
+stepGetObject --> stepGetObject : ThenRepeat
 awaitObjectReady : INHERITED
-awaitObjectReady --> awaitObjectReady : ThenRepeat
 awaitObjectReady --> stepProcess : Jump
+awaitObjectReady --> awaitObjectReady : ThenRepeat
 stepProcess : INHERITED
-stepProcess --> stepProcess : ThenRepeat
 stepProcess --> [*]
+stepProcess --> stepProcess : ThenRepeat
 @enduml

@@ -7,10 +7,10 @@ cancelOnMigrate --> sendReplyOnCancel : Jump
 stateGetSharedReadyToWork : INHERITED
 stateGetSharedReadyToWork : cancelOnMigrate
 stateGetSharedReadyToWork -[#blue]-> cancelOnMigrate
-stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
 stateGetSharedReadyToWork --> [*]
-stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
 stateGetSharedReadyToWork --> stateSharedReadyToWork : ThenJump
+stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
+stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
 sendReplyOnCancel : INHERITED
 sendReplyOnCancel --> [*]
 stateSharedReadyToWork : INHERITED
@@ -25,8 +25,8 @@ statePrepareMutableCall -[#blue]-> cancelOnMigrate
 stateStartImmutableCall : INHERITED
 stateStartImmutableCall : cancelOnMigrate
 stateStartImmutableCall -[#blue]-> cancelOnMigrate
-stateStartImmutableCall --> stateStartImmutableCall : ThenRepeat
 stateStartImmutableCall --> stateDoneImmutableCall : ThenJump
+stateStartImmutableCall --> stateStartImmutableCall : ThenRepeat
 stateRegisterSagaCall : INHERITED
 stateRegisterSagaCall : cancelOnMigrate
 stateRegisterSagaCall -[#blue]-> cancelOnMigrate
