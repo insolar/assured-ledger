@@ -473,16 +473,22 @@ func (p *PulseConveyor) Stop() {
 }
 
 func (p *PulseConveyor) StartWorker(emergencyStop <-chan struct{}, completedFn func()) {
+	p.StartWorkerExt(emergencyStop, completedFn, nil)
+}
+
+type PulseConveyorCycleFunc = func(idle bool)
+
+func (p *PulseConveyor) StartWorkerExt(emergencyStop <-chan struct{}, completedFn func(), cycleFn PulseConveyorCycleFunc) {
 	if p.machineWorker != nil {
 		panic("illegal state")
 	}
 	p.machineWorker = sworker.NewAttachableSimpleSlotWorker()
 	ch := make(chan struct{})
 	p.stoppingChan = ch
-	go p.runWorker(emergencyStop, ch, completedFn)
+	go p.runWorker(emergencyStop, ch, completedFn, cycleFn)
 }
 
-func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop chan<- struct{}, completedFn func()) {
+func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop chan<- struct{}, completedFn func(), cycleFn PulseConveyorCycleFunc) {
 	if emergencyStop != nil {
 		go func() {
 			<-emergencyStop
@@ -520,6 +526,9 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 		}
 
 		if repeatNow || eventMark.HasSignal() {
+			if cycleFn != nil {
+				cycleFn(false)
+			}
 			continue
 		}
 
@@ -528,6 +537,10 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			return
 		case <-eventMark.Channel():
 		case <-func() <-chan time.Time {
+			if cycleFn != nil {
+				cycleFn(true)
+			}
+
 			switch {
 			case !nextPollTime.IsZero():
 				return time.After(time.Until(nextPollTime))
@@ -541,4 +554,8 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 
 	p.slotMachine.RunToStop(p.machineWorker, synckit.NewNeverSignal())
 	p.presentMachine = nil
+}
+
+func (p *PulseConveyor) WakeUpWorker() {
+	p.internalSignal.NextBroadcast()
 }

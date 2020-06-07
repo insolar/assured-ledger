@@ -18,6 +18,7 @@ import (
 type ConveyorWorker struct {
 	conveyor *conveyor.PulseConveyor
 	stopped  sync.WaitGroup
+	cycleFn  conveyor.PulseConveyorCycleFunc
 }
 
 func (w *ConveyorWorker) Stop() {
@@ -34,13 +35,13 @@ func (w *ConveyorWorker) AttachTo(conveyor *conveyor.PulseConveyor) {
 	}
 	w.conveyor = conveyor
 	w.stopped.Add(1)
-	conveyor.StartWorker(nil, func() {
+	conveyor.StartWorkerExt(nil, func() {
 		w.stopped.Done()
-	})
+	}, w.cycleFn)
 }
 
-func NewConveyorWorker() ConveyorWorker {
-	return ConveyorWorker{}
+func NewConveyorWorker(cycleFn  conveyor.PulseConveyorCycleFunc) ConveyorWorker {
+	return ConveyorWorker{cycleFn: cycleFn}
 }
 
 type AsyncTimeMessage struct {

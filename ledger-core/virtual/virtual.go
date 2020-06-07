@@ -45,6 +45,9 @@ type Dispatcher struct {
 	ConveyorWorker virtualStateMachine.ConveyorWorker
 	MachineLogger  smachine.SlotMachineLogger
 
+	// CycleFn is called after every scan cycle done by conveyor worker
+	CycleFn  conveyor.PulseConveyorCycleFunc
+
 	// Components
 	Runner        *runner.DefaultService
 	MessageSender messagesender.Service
@@ -96,7 +99,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
 
-	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker()
+	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker(lr.CycleFn)
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
 	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(lr.Conveyor)
