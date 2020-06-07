@@ -103,7 +103,6 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 		return nil
 	})
 
-
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
 	objectRef := gen.UniqueReference()
@@ -114,12 +113,10 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
 
 	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
 
 	server.SendMessage(ctx, msg)
 
 	server.WaitActiveThenIdleConveyor()
-	server.ResetActiveConveyorFlag()
 
 	server.IncrementPulse(ctx)
 	server.WaitActiveThenIdleConveyor()

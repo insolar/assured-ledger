@@ -187,7 +187,7 @@ func (s *Server) onCycle(idle bool) {
 	s.dataLock.Unlock()
 
 	if !idle {
-		s.activeCount.Add(1)
+		s.activeCount.Store(1)
 	}
 	if cycleFn == nil {
 		return
@@ -240,6 +240,7 @@ func (s *Server) waitIdleConveyor(checkActive bool) {
 	wg.Add(1)
 	s.SetCycleCallback(func(c *conveyor.PulseConveyor, idle bool) {
 		if idle && (!checkActive || s.activeCount.Load() > 0) {
+			s.activeCount.Store(0)
 			wg.Done()
 			s.SetCycleCallback(nil)
 		}
