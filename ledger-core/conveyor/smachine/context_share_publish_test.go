@@ -57,6 +57,7 @@ func TestBoundPublish(t *testing.T) {
 	require.False(t, ctx.Publish(key, link))
 
 	require.Equal(t, link, ctx.GetPublished(key))
+	require.Equal(t, link, ctx.GetPublishedLink(key))
 	ctx.UnpublishAll()
 
 	require.Nil(t, ctx.GetPublished(key))
@@ -83,6 +84,7 @@ func TestUnboundPublish(t *testing.T) {
 	require.False(t, ctx.Publish(key, link))
 
 	require.Equal(t, link, ctx.GetPublished(key))
+	require.Equal(t, link, ctx.GetPublishedLink(key))
 	ctx.UnpublishAll()
 
 	require.Equal(t, link, ctx.GetPublished(key))
