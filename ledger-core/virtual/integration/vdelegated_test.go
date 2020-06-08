@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
@@ -27,8 +27,23 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	testBalance := uint32(500)
-	objectRef := gen.UniqueReference()
+	var (
+		mc          = minimock.NewController(t)
+		testBalance = uint32(500)
+		objectRef   = gen.UniqueReference()
+		sender      = gen.UniqueReference()
+	)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VDelegatedCallResponse.Set(func(pl *payload.VDelegatedCallResponse) bool {
+		require.NotEmpty(t, pl.DelegationSpec)
+		require.Equal(t, objectRef, pl.DelegationSpec.Callee)
+		require.Equal(t, sender, pl.DelegationSpec.DelegateTo)
+
+		return false // no resend msg
+	}).ExpectedCount(1)
+
+	server.WaitIdleConveyor()
 
 	{
 		// send VStateReport: save wallet
@@ -51,42 +66,20 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	pl := payload.VDelegatedCallRequest{
-		RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
-		Callee:           objectRef,
-		CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-	}
-	sender := gen.UniqueReference()
-	msgWrapper := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl)
-	msgWrapper.SetSender(sender)
-	msg := msgWrapper.Finalize()
+	server.WaitActiveThenIdleConveyor()
 
-	requestIsDone := make(chan struct{}, 0)
-
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		defer func() { requestIsDone <- struct{}{} }()
-
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		require.NoError(t, err)
-
-		switch pl.(type) {
-		case *payload.VDelegatedCallResponse:
-			callResultPl := pl.(*payload.VDelegatedCallResponse)
-			require.NotEmpty(t, callResultPl.DelegationSpec)
-			require.Equal(t, objectRef, callResultPl.DelegationSpec.Callee)
-			require.Equal(t, sender, callResultPl.DelegationSpec.DelegateTo)
-		default:
-			require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VDelegatedCallResponse", pl)
+	{
+		// send VDelegatedCall
+		pl := payload.VDelegatedCallRequest{
+			RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
+			Callee:           objectRef,
+			CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
 
-		return nil
-	})
-
-	server.SendMessage(ctx, msg)
-
-	select {
-	case <-requestIsDone:
-	case <-time.After(10 * time.Second):
-		require.Failf(t, "", "timeout")
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).Finalize()
+		server.SendMessage(ctx, msg)
 	}
+
+	server.PublisherMock.WaitCount(1, 10*time.Second)
+	mc.Finish()
 }
