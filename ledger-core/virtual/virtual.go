@@ -17,7 +17,6 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
-	runnerAdapter "github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -45,12 +44,15 @@ type Dispatcher struct {
 	ConveyorWorker virtualStateMachine.ConveyorWorker
 	MachineLogger  smachine.SlotMachineLogger
 
+	// CycleFn is called after every scan cycle done by conveyor worker
+	CycleFn  conveyor.PulseConveyorCycleFunc
+
 	// Components
-	Runner        *runner.DefaultService
+	Runner        runner.Service
 	MessageSender messagesender.Service
 	TokenService  token.Service
 
-	runnerAdapter        *runnerAdapter.ServiceAdapter
+	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
 
 	stopFunc context.CancelFunc
@@ -86,17 +88,17 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, defaultHandlers, nil)
 
-	lr.runnerAdapter = runner.CreateRunnerService(ctx, lr.Runner)
+	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
 
-	lr.Conveyor.AddDependency(lr.runnerAdapter)
+	lr.Conveyor.AddInterfaceDependency(&lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.TokenService)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
 
-	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker()
+	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker(lr.CycleFn)
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
 	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(lr.Conveyor)

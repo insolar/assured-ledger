@@ -1,6 +1,6 @@
 # Assured Ledger
 
-[![linux-checks](https://github.com/insolar/assured-ledger/workflows/linux-checks/badge.svg)](https://github.com/insolar/assured-ledger/actions?query=workflow%3Alinux-checks+branch%3Amaster)
+[![master-checks](https://github.com/insolar/assured-ledger/workflows/master-checks/badge.svg)](https://github.com/insolar/assured-ledger/actions?query=workflow%3Amaster-checks+branch%3Amaster)
 [![windows-checks](https://github.com/insolar/assured-ledger/workflows/windows-checks/badge.svg)](https://github.com/insolar/assured-ledger/actions?query=workflow%3Awindows-checks+branch%3Amaster)
 [![codecov](https://codecov.io/gh/insolar/assured-ledger/branch/master/graph/badge.svg)](https://codecov.io/gh/insolar/assured-ledger)
 

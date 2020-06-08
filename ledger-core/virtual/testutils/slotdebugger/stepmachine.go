@@ -42,6 +42,6 @@ func (c *VirtualStepController) PrepareRunner(ctx context.Context, mc *minimock.
 	runnerService.Manager = c.MachineManager
 	runnerService.Cache = c.RunnerDescriptorCache.Mock()
 
-	runnerAdapter := runner.CreateRunnerService(ctx, runnerService)
-	c.SlotMachine.AddDependency(runnerAdapter)
+	runnerAdapter := runnerService.CreateAdapter(ctx)
+	c.SlotMachine.AddInterfaceDependency(&runnerAdapter)
 }
