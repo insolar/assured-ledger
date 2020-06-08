@@ -332,9 +332,9 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		case *payload.VCallRequest:
 			vCallRequestCount++
 		case *payload.VStateReport:
-			vStateRequestCount++
-		case *payload.VStateRequest:
 			vStateReportCount++
+		case *payload.VStateRequest:
+			vStateRequestCount++
 		default:
 			require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
 		}
@@ -355,6 +355,8 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
+	server.WaitActiveThenIdleConveyor()
+
 	// Change pulse to force send VStateRequest
 	server.IncrementPulse(ctx)
 
@@ -362,7 +364,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 
 	expectedNum := uint(1)
 	require.Equal(t, expectedNum, vStateReportCount)
-	require.Equal(t, expectedNum, vStateRequestCount)
+	require.Equal(t, uint(0), vStateRequestCount)
 	require.Equal(t, expectedNum, vCallRequestCount)
 	require.Equal(t, expectedNum, vCallResultCount)
 }
