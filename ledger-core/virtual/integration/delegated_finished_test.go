@@ -114,12 +114,10 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
 
 	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
 
 	server.SendMessage(ctx, msg)
 
 	server.WaitActiveThenIdleConveyor()
-	server.ResetActiveConveyorFlag()
 
 	server.IncrementPulse(ctx)
 	server.WaitActiveThenIdleConveyor()
