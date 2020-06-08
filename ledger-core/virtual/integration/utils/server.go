@@ -38,7 +38,7 @@ import (
 
 type Server struct {
 	pulseLock sync.Mutex
-	dataLock sync.Mutex
+	dataLock  sync.Mutex
 
 	// real components
 	virtual       *virtual.Dispatcher
@@ -50,10 +50,10 @@ type Server struct {
 	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
-	pulseManager       pulsestor.Manager
+	pulseManager       *pulsemanager.PulseManager
 
-	cycleFn 		   ConveyorCycleFunc
-	activeCount        atomickit.Uint32
+	cycleFn     ConveyorCycleFunc
+	activeCount atomickit.Uint32
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -65,14 +65,18 @@ type Server struct {
 type ConveyorCycleFunc func(c *conveyor.PulseConveyor, idle bool)
 
 func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, false)
+	return newServerExt(ctx, t, false, true)
 }
 
 func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, true)
+	return newServerExt(ctx, t, true, true)
 }
 
-func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Server, context.Context) {
+func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, true, false)
+}
+
+func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init bool) (*Server, context.Context) {
 	inslogger.SetTestOutput(t, suppressLogError)
 
 	if ctx == nil {
@@ -135,24 +139,30 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool) (*Se
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.TokenService = token.NewService(ctx, s.caller)
 	virtualDispatcher.CycleFn = s.onCycle
+	s.virtual = virtualDispatcher
 
 	if convlog.UseTextConvLog {
 		virtualDispatcher.MachineLogger = convlog.MachineLogger{}
 	}
-	if err := virtualDispatcher.Init(ctx); err != nil {
-		panic(err)
-	}
-
-	s.virtual = virtualDispatcher
-
-	PulseManager.AddDispatcher(s.virtual.FlowDispatcher)
-	s.IncrementPulse(ctx)
 
 	// re HTTP testing
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
 	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
 
+	if init {
+		s.Init(ctx)
+	}
+
 	return &s, ctx
+}
+
+func (s *Server) Init(ctx context.Context) {
+	if err := s.virtual.Init(ctx); err != nil {
+		panic(err)
+	}
+
+	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
+	s.IncrementPulse(ctx)
 }
 
 func (s *Server) GetPulse() pulsestor.Pulse {
@@ -187,7 +197,7 @@ func (s *Server) onCycle(idle bool) {
 	s.dataLock.Unlock()
 
 	if !idle {
-		s.activeCount.Add(1)
+		s.activeCount.Store(1)
 	}
 	if cycleFn == nil {
 		return
@@ -199,6 +209,10 @@ func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
 	if err := s.virtual.FlowDispatcher.Process(msg); err != nil {
 		panic(err)
 	}
+}
+
+func (s *Server) ReplaceRunner(svc runner.Service) {
+	s.virtual.Runner = svc
 }
 
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
@@ -240,6 +254,7 @@ func (s *Server) waitIdleConveyor(checkActive bool) {
 	wg.Add(1)
 	s.SetCycleCallback(func(c *conveyor.PulseConveyor, idle bool) {
 		if idle && (!checkActive || s.activeCount.Load() > 0) {
+			s.activeCount.Store(0)
 			wg.Done()
 			s.SetCycleCallback(nil)
 		}
@@ -251,4 +266,3 @@ func (s *Server) waitIdleConveyor(checkActive bool) {
 func (s *Server) ResetActiveConveyorFlag() {
 	s.activeCount.Store(0)
 }
-
