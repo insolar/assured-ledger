@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
@@ -74,7 +75,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc,
 // 2. Change pulse in mocked executor
 // 4. Since we changed pulse during execution, we expect that VDelegatedRequestFinished will be sent
 // 5. Check that in VDelegatedRequestFinished new object state is stored
-func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
+func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.T) {
 	t.Log("C4935")
 
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
@@ -107,14 +108,19 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	additionalBalance := uint(133)
 	objectRef := gen.UniqueReference()
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-	{
-		// send VStateReport: save wallet
-		rawWalletState := makeRawWalletState(t, testBalance)
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
-		server.SendMessage(ctx, msg)
 
-		server.IncrementPulse(ctx)
-	}
+	// send VStateReport: save wallet
+	rawWalletState := makeRawWalletState(t, testBalance)
+	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+
+	server.WaitIdleConveyor()
+
+	server.SendMessage(ctx, msg)
+
+	server.WaitActiveThenIdleConveyor()
+
+	server.IncrementPulse(ctx)
+	server.WaitActiveThenIdleConveyor()
 
 	// generate new state since it will be changed by CallAPIAddAmount
 	newRawWalletState := makeRawWalletState(t, testBalance+uint32(additionalBalance))
@@ -145,6 +151,88 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
+
+	server.WaitIdleConveyor()
+
+	require.Equal(t, 1, countVCallResult)
+}
+
+// In this case VDelegatedRequestFinished must not contain new state since it was not changed
+func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *testing.T) {
+	t.Log("C4990")
+
+	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	defer server.Stop()
+
+	var countVCallResult int
+	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
+	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
+		require.Len(t, messages, 1)
+
+		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
+		if err != nil {
+			return nil
+		}
+
+		switch payLoadData := pl.(type) {
+		case *payload.VDelegatedRequestFinished:
+			gotDelegatedRequestFinished <- payLoadData
+		case *payload.VCallResult:
+			countVCallResult++
+		default:
+			inslogger.FromContext(ctx).Infof("Going message: %T", payLoadData)
+		}
+
+		server.SendMessage(ctx, messages[0])
+		return nil
+	})
+
+	testBalance := uint32(555)
+	objectRef := gen.UniqueReference()
+	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+
+	// send VStateReport: save wallet
+	rawWalletState := makeRawWalletState(t, testBalance)
+	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
+	server.SendMessage(ctx, msg)
+
+	server.WaitActiveThenIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
+	server.IncrementPulse(ctx)
+	server.WaitActiveThenIdleConveyor()
+
+	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
+		// we want to change pulse during execution
+		server.IncrementPulse(ctx)
+
+		emptyResult := makeEmptyResult(t)
+		return rawWalletState, emptyResult, nil
+	}
+
+	mockExecutor(t, server, callMethod, nil)
+
+	code, _ := server.CallAPIGetBalance(ctx, objectRef)
+	require.Equal(t, 200, code)
+
+	select {
+	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
+		callFlags := payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+
+		require.Equal(t, objectRef, delegateFinishedMsg.Callee)
+		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)
+		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
+
+		require.Nil(t, delegateFinishedMsg.LatestState)
+	case <-time.After(10 * time.Second):
+		require.Failf(t, "", "timeout")
+	}
+
+	server.WaitIdleConveyor()
 
 	require.Equal(t, 1, countVCallResult)
 }

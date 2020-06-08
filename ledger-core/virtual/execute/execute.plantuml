@@ -11,37 +11,37 @@ stepCheckRequest --> stepGetObject : Jump
 stepGetObject : INHERITED
 stepGetObject : migrationDefault
 stepGetObject -[#blue]-> migrationDefault
-stepGetObject --> stepGetObject : ThenRepeat
 stepGetObject --> stepWaitObjectReady : Jump
+stepGetObject --> stepGetObject : ThenRepeat
 stepWaitObjectReady : INHERITED
 stepWaitObjectReady : migrationDefault
 stepWaitObjectReady -[#blue]-> migrationDefault
-stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
-stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
 stepWaitObjectReady --> stepIsolationNegotiation : Jump
+stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
+stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
 stepIsolationNegotiation : INHERITED
 stepIsolationNegotiation : migrationDefault
 stepIsolationNegotiation -[#blue]-> migrationDefault
-stepIsolationNegotiation --> stepIsolationNegotiation : ThenRepeat
 stepIsolationNegotiation --> stepTakeLock : Jump
+stepIsolationNegotiation --> stepIsolationNegotiation : ThenRepeat
 stepTakeLock : INHERITED
 stepTakeLock : migrationDefault
 stepTakeLock -[#blue]-> migrationDefault
-stepTakeLock --> stepTakeLock : ThenRepeat
 stepTakeLock --> stepDeduplicate : Jump
 stepTakeLock --> stepStartRequestProcessing : Jump
+stepTakeLock --> stepTakeLock : ThenRepeat
 stepDeduplicate : INHERITED
 stepDeduplicate : migrationDefault
 stepDeduplicate -[#blue]-> migrationDefault
-stepDeduplicate --> stepDeduplicate : ThenRepeat
+stepDeduplicate --> stepStartRequestProcessing : Jump
 stepDeduplicate --> [*]
 stepDeduplicate --> stepDeduplicate : ThenRepeat
-stepDeduplicate --> stepStartRequestProcessing : Jump
+stepDeduplicate --> stepDeduplicate : ThenRepeat
 stepStartRequestProcessing : migrateDuringExecution
 stepStartRequestProcessing -[#blue]-> migrateDuringExecution
-stepStartRequestProcessing --> stepStartRequestProcessing : ThenRepeat
-stepStartRequestProcessing --> [*]
 stepStartRequestProcessing --> stepExecuteStart : Jump
+stepStartRequestProcessing --> [*]
+stepStartRequestProcessing --> stepStartRequestProcessing : ThenRepeat
 migrateDuringExecution : INHERITED
 stepExecuteStart : INHERITED
 stepExecuteStart : migrateDuringExecution
@@ -50,16 +50,16 @@ stepExecuteStart --> stepExecuteDecideNextStep : ThenJump
 stepExecuteDecideNextStep : INHERITED
 stepExecuteDecideNextStep : migrateDuringExecution
 stepExecuteDecideNextStep -[#blue]-> migrateDuringExecution
-stepExecuteDecideNextStep --> stepExecuteDecideNextStep : ThenRepeat
 stepExecuteDecideNextStep --> stepSaveNewObject : Jump
 stepExecuteDecideNextStep --> stepExecuteAborted : Jump
 stepExecuteDecideNextStep --> stepExecuteOutgoing : Jump
+stepExecuteDecideNextStep --> stepExecuteDecideNextStep : ThenRepeat
 stepSaveNewObject : INHERITED
 stepSaveNewObject : migrateDuringExecution
 stepSaveNewObject -[#blue]-> migrateDuringExecution
-stepSaveNewObject --> stepSaveNewObject : ThenRepeat
 stepSaveNewObject --> stepSendDelegatedRequestFinished : Jump
 stepSaveNewObject --> stepSendCallResult : Jump
+stepSaveNewObject --> stepSaveNewObject : ThenRepeat
 stepExecuteAborted : INHERITED
 stepExecuteAborted : migrateDuringExecution
 stepExecuteAborted -[#blue]-> migrateDuringExecution

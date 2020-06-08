@@ -4,12 +4,12 @@ Init --> stepProcess : Jump
 stepProcess : INHERITED
 stepProcess --> stepWaitObjectReady : Jump
 stepWaitObjectReady : INHERITED
-stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
-stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
 stepWaitObjectReady --> stepProcessRequest : Jump
+stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
+stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
 stepProcessRequest : INHERITED
-stepProcessRequest --> stepProcessRequest : ThenRepeat
 stepProcessRequest --> stepBuildResponse : Jump
+stepProcessRequest --> stepProcessRequest : ThenRepeat
 stepBuildResponse : INHERITED
 stepBuildResponse --> [*]
 @enduml

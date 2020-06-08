@@ -3,8 +3,8 @@ Init : INHERITED
 Init --> State1 : Jump
 State1 : INHERITED
 State1 --> State2 : Jump
-State1 --> State1 : ThenRepeat
 State1 --> State5 : Jump
+State1 --> State1 : ThenRepeat
 State2 : INHERITED
 State2 --> State3 : Jump
 State2 --> State2a : Jump
@@ -12,13 +12,13 @@ State5 : INHERITED
 State5 --> State6 : Jump
 State5 --> State6 : ThenJump
 State3 : INHERITED
-State3 --> State3 : ThenRepeat
-State3 --> State3 : ThenRepeat
 State3 --> State4 : Jump
+State3 --> State3 : ThenRepeat
+State3 --> State3 : ThenRepeat
 State2a : INHERITED
 State6 : INHERITED
 State6 --> [*]
 State4 : INHERITED
-State4 --> State4 : ThenRepeat
 State4 --> State5 : ThenJump
+State4 --> State4 : ThenRepeat
 @enduml

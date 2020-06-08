@@ -7,8 +7,8 @@ stepCheckCatalog --> stepBuildStateReport : Jump
 stepBuildMissing : INHERITED
 stepBuildMissing --> stepSendResult : Jump
 stepBuildStateReport : INHERITED
-stepBuildStateReport --> stepBuildStateReport : ThenRepeat
 stepBuildStateReport --> stepSendResult : Jump
+stepBuildStateReport --> stepBuildStateReport : ThenRepeat
 stepSendResult : INHERITED
 stepSendResult --> [*]
 @enduml
