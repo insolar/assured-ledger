@@ -11,17 +11,22 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gojuno/minimock/v3"
 )
 
 var _ message.Publisher = &PublisherMock{}
 
 type CheckerFn func(topic string, messages ...*message.Message) error
 
+type Checker interface {
+	CheckMessages(topic string, messages ...*message.Message) error
+}
+
 type PublisherMock struct {
 	lock            sync.RWMutex
 	messageNotifier chan struct{}
 	messageCounter  int
-	checker         CheckerFn
+	checker         Checker
 	closed          bool
 }
 
@@ -49,6 +54,10 @@ func (p *PublisherMock) messageCountUpdate(count int) {
 	p.messageCounter += count
 }
 
+func (p *PublisherMock) GetCount() int {
+	return p.messageCounter
+}
+
 func (p *PublisherMock) WaitCount(count int, timeout time.Duration) bool {
 	for {
 		if p.messageCount() >= count {
@@ -65,19 +74,34 @@ func (p *PublisherMock) WaitCount(count int, timeout time.Duration) bool {
 }
 
 func (p *PublisherMock) SetResenderMode(ctx context.Context, sender Sender) {
-	p.SetChecker(func(topic string, messages ...*message.Message) error {
-		for _, msg := range messages {
-			sender.SendMessage(ctx, msg)
-		}
-		return nil
-	})
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.checker = NewResenderPublishChecker(ctx, sender)
+}
+
+func (p *PublisherMock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender Sender) *TypePublishChecker {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	checker := NewTypePublishChecker(ctx, t, sender)
+	p.checker = checker
+
+	return checker
+}
+
+func (p *PublisherMock) SetBaseChecker(fn Checker) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.checker = fn
 }
 
 func (p *PublisherMock) SetChecker(fn CheckerFn) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	p.checker = fn
+	p.checker = NewDefaultPublishChecker(fn)
 }
 
 func (p *PublisherMock) getChecker() CheckerFn {
@@ -92,7 +116,7 @@ func (p *PublisherMock) getChecker() CheckerFn {
 		panic("checker function is empty")
 	}
 
-	return p.checker
+	return p.checker.CheckMessages
 }
 
 func (p *PublisherMock) Publish(topic string, messages ...*message.Message) error {
