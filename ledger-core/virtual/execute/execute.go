@@ -64,7 +64,6 @@ type SMExecute struct {
 	outgoing        *payload.VCallRequest
 	outgoingObject  reference.Global
 	outgoingWasSent bool
-	outgoingWasRecv bool
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
@@ -399,10 +398,6 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
 	s.migrationHappened = true
 
-	if s.outgoingWasRecv {
-		return ctx.Stay()
-	}
-
 	s.stepAfterTokenGet = ctx.AffectedStep()
 
 	return ctx.Jump(s.stepGetDelegationToken)
@@ -413,7 +408,6 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		Callee:             s.execution.Object,
 		CallFlags:          payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
 		RequestReference:   s.execution.Outgoing,
-		RefOut:             reference.Global{}, // docs say that this is required field?
 		DelegationSpec:     s.delegationTokenSpec,
 		DelegatorSignature: s.delegationTokenSign,
 	}
@@ -421,7 +415,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 	subroutineSM := &SMVDelegatedCallRequest{Meta: s.Meta, RequestPayload: requestPayload}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subroutineSM.response == nil {
-			panic(throw.IllegalValue())
+			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
 		s.delegationTokenSign = subroutineSM.response.DelegatorSignature
@@ -583,9 +577,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	if s.migrationHappened {
 		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
-
-	// response was received and counters decreased. delegation token does not need
-	s.outgoingWasRecv = true
 
 	action := func(state *object.SharedState) {
 		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
