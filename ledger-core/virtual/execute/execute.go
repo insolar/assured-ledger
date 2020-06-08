@@ -51,13 +51,13 @@ type SMExecute struct {
 	executionNewState   *executionupdate.ContractExecutionStateUpdate
 	outgoingResult      []byte
 	deactivate          bool
-	run                 *runner.RunState
+	run                 runner.RunState
 	newObjectDescriptor descriptor.Object
 
 	methodIsolation contract.MethodIsolation
 
 	// dependencies
-	runner        *runner.ServiceAdapter
+	runner        runner.ServiceAdapter
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
 
@@ -399,7 +399,7 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state *runner.RunState) {
+	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state runner.RunState) {
 		s.run = state
 	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
 }

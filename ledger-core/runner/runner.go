@@ -24,14 +24,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
-type Service interface {
-	ExecutionStart(execution execution.Context) *RunState
-	ExecutionContinue(run *RunState, outgoingResult []byte)
-	ExecutionAbort(run *RunState)
+type UnmanagedService interface {
+	ExecutionStart(execution execution.Context) RunState
+	ExecutionContinue(run RunState, outgoingResult []byte)
+	ExecutionAbort(run RunState)
 }
 
-type UnmanagedService interface {
-	ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error)
+type Service interface {
+	CreateAdapter(ctx context.Context) ServiceAdapter
 }
 
 type DefaultService struct {
@@ -352,4 +352,8 @@ func (r *DefaultService) Init() error {
 	r.Cache.RegisterCallback(exec.GetDescriptor)
 
 	return nil
+}
+
+func (r *DefaultService) CreateAdapter(ctx context.Context) ServiceAdapter {
+	return createRunnerAdapter(ctx, r)
 }
