@@ -524,7 +524,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 		memory []byte
 		class  reference.Global
-		action func(state *object.SharedState)
 	)
 
 	if s.deactivate {
@@ -535,21 +534,15 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}
 
-	action = func(state *object.SharedState) {
-		s.finishRequestProcessing(state, s.execution.Outgoing)
-	}
-
-	var isStateChanged bool
+	var newDescriptor descriptor.Object
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
 		_, class, memory = executionNewState.Activate()
-		action = s.getUpdateStateAction(class, memory)
-		isStateChanged = true
+		newDescriptor = s.makeNewDescriptor(class, memory)
 	case requestresult.SideEffectAmend:
 		_, class, memory = executionNewState.Amend()
-		action = s.getUpdateStateAction(class, memory)
-		isStateChanged = true
+		newDescriptor = s.makeNewDescriptor(class, memory)
 	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
@@ -557,12 +550,27 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	if s.migrationHappened {
-		if isStateChanged {
-			newObjDescriptor := s.makeNewDescriptor(class, memory)
-			s.execution.ObjectDescriptor = newObjDescriptor
+		if newDescriptor != nil {
+			s.execution.ObjectDescriptor = newDescriptor
 			return ctx.Jump(s.stepSendDelegatedRequestFinished)
 		}
 		return ctx.Jump(s.stepSendCallResult)
+	}
+
+	action := func(state *object.SharedState) {
+		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+	}
+
+	if newDescriptor != nil {
+		action = func(state *object.SharedState) {
+			state.Info.SetDescriptor(newDescriptor)
+			s.execution.ObjectDescriptor = newDescriptor
+			state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+
+			if state.GetState() == object.Empty {
+				state.SetState(object.HasState)
+			}
+		}
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -618,13 +626,6 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	return ctx.Jump(s.stepSendCallResult)
 }
 
-func (s *SMExecute) finishRequestProcessing(state *object.SharedState, req reference.Global) {
-	if !s.migrationHappened {
-		state.DecrementPotentialPendingCounter(s.execution.Isolation)
-		state.FinishRequest(s.execution.Isolation.Interference, req)
-	}
-}
-
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
 	parentReference := reference.Global{}
 	var prevStateIDBytes []byte
@@ -646,21 +647,6 @@ func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) des
 		memory,
 		parentReference,
 	)
-}
-
-func (s *SMExecute) getUpdateStateAction(class reference.Global, memory []byte) func(state *object.SharedState) {
-	return func(state *object.SharedState) {
-
-		newObjDescriptor := s.makeNewDescriptor(class, memory)
-		state.Info.SetDescriptor(newObjDescriptor)
-
-		s.execution.ObjectDescriptor = newObjDescriptor
-
-		s.finishRequestProcessing(state, s.execution.Outgoing)
-		if state.GetState() == object.Empty {
-			state.SetState(object.HasState)
-		}
-	}
 }
 
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
