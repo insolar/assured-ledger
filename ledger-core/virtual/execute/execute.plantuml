@@ -59,6 +59,7 @@ stepSaveNewObject : migrateDuringExecution
 stepSaveNewObject -[#blue]-> migrateDuringExecution
 stepSaveNewObject --> stepSendDelegatedRequestFinished : Jump
 stepSaveNewObject --> stepSendCallResult : Jump
+stepSaveNewObject --> stepSendCallResult : Jump
 stepSaveNewObject --> stepSaveNewObject : ThenRepeat
 stepExecuteAborted : INHERITED
 stepExecuteAborted : migrateDuringExecution
