@@ -402,36 +402,22 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 }
 
 func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	bargeIn := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VDelegatedCallResponse)
-		if !ok || res == nil {
-			panic(throw.IllegalValue())
-		}
-		s.delegationTokenSpec = res.DelegationSpec
-		s.delegationTokenSign = res.DelegatorSignature
-
-		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			return ctx.WakeUp()
-		}
-	})
-
-	var bargeInRef = gen.UniqueReference()
-	if !ctx.PublishGlobalAliasAndBargeIn(bargeInRef, bargeIn) {
-		panic(throw.E("publish global BargeIn failed"))
-	}
-
 	var requestPayload = payload.VDelegatedCallRequest{
 		Callee:             s.Payload.Callee,
 		CallFlags:          s.Payload.CallFlags,
-		RequestReference:   s.Payload.CallReason,
+		RequestReference:   s.execution.Outgoing,
 		RefOut:             reference.Global{}, // docs say that this is required field?
-		RefIn:              bargeInRef,
 		DelegationSpec:     s.delegationTokenSpec,
 		DelegatorSignature: s.delegationTokenSign,
 	}
 
 	subroutineSM := &SMVDelegatedCallRequest{Meta: s.Meta, RequestPayload: requestPayload}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		if subroutineSM.response == nil {
+			panic(throw.IllegalValue())
+		}
+		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		s.delegationTokenSign = subroutineSM.response.DelegatorSignature
 		return ctx.Jump(s.stepAfterTokenGet.Transition)
 	})
 }

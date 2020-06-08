@@ -37,6 +37,7 @@ type StepController struct {
 	internalSignal synckit.VersionedSignal
 
 	SlotMachine   *smachine.SlotMachine
+	PulseSlot     conveyor.PulseSlot
 	debugLogger   *testUtilsCommon.DebugMachineLogger
 	stepIsWaiting bool
 	watchdog      *watchdog
@@ -77,8 +78,8 @@ func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepControll
 }
 func (c *StepController) preparePulseSlot() {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-	pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-	c.SlotMachine.AddDependency(&pulseSlot)
+	c.PulseSlot = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+	c.SlotMachine.AddDependency(&c.PulseSlot)
 }
 
 func combineCallbacks(mainFn, auxFn func()) func() {

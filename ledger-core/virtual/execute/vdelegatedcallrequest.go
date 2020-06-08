@@ -23,9 +23,10 @@ import (
 
 type SMVDelegatedCallRequest struct {
 	// input arguments
-	Meta            *payload.Meta
-	RequestPayload  payload.VDelegatedCallRequest
-	responsePayload payload.VDelegatedCallResponse
+	Meta           *payload.Meta
+	RequestPayload payload.VDelegatedCallRequest
+
+	response *payload.VDelegatedCallResponse
 
 	// dependencies
 	pulseSlot     *conveyor.PulseSlot
@@ -71,7 +72,7 @@ func (s *SMVDelegatedCallRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
-		s.responsePayload = *res
+		s.response = res
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			return ctx.WakeUp()
@@ -88,10 +89,8 @@ func (s *SMVDelegatedCallRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 }
 
 func (s *SMVDelegatedCallRequest) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	payloadData := s.RequestPayload
-
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &payloadData, node.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.PulseData().PulseNumber)
+		err := svc.SendRole(goCtx, &s.RequestPayload, node.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.PulseData().PulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
@@ -104,7 +103,9 @@ func (s *SMVDelegatedCallRequest) stepSendRequest(ctx smachine.ExecutionContext)
 }
 
 func (s *SMVDelegatedCallRequest) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.SetDefaultTerminationResult(s.responsePayload)
+	if s.response == nil {
+		ctx.Sleep().ThenRepeat()
+	}
 
 	return ctx.Stop()
 }
