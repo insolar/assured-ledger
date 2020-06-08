@@ -145,9 +145,6 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 		virtualDispatcher.MachineLogger = convlog.MachineLogger{}
 	}
 
-	s.WaitIdleConveyor()
-	s.ResetActiveConveyorFlag()
-
 	// re HTTP testing
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
 	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)

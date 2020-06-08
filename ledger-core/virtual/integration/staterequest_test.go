@@ -64,22 +64,23 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
+	server.WaitActiveThenIdleConveyor()
 
 	server.IncrementPulse(ctx)
 
-	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
+	server.WaitActiveThenIdleConveyor()
 
-	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, 0)
+	// skip StateReport from Pulse
+	<-reportChan
+
+	msg := makeVStateRequestEvent(server.GetPulse().PrevPulseNumber, objectRef, 0)
 	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             server.GetPulse().PulseNumber,
+			AsOf:             server.GetPulse().PrevPulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
 		}, data)
@@ -122,22 +123,23 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
+	server.WaitActiveThenIdleConveyor()
 
 	server.IncrementPulse(ctx)
 
-	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
+	server.WaitActiveThenIdleConveyor()
 
-	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
+	// skip StateReport from Pulse
+	<-reportChan
+
+	msg := makeVStateRequestEvent(server.GetPulse().PrevPulseNumber, objectRef, payload.RequestLatestDirtyState)
 	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             server.GetPulse().PulseNumber,
+			AsOf:             server.GetPulse().PrevPulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -178,8 +180,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	server.IncrementPulse(ctx)
 
-	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
+	server.WaitActiveThenIdleConveyor()
 
 	objectRef := gen.UniqueReference()
 

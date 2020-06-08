@@ -135,6 +135,8 @@ func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) sm
 		}
 	}
 
+	response.AsOf = s.Payload.AsOf
+
 	s.objectStateReport = &response
 
 	return ctx.Jump(s.stepSendResult)

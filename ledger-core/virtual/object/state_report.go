@@ -40,11 +40,6 @@ type SMStateReport struct {
 	pulseSlot     *conveyor.PulseSlot
 }
 
-func (sm SMReport) hasPendingExecution() bool {
-	return sm.report.OrderedPendingCount > 0 ||
-		sm.report.UnorderedPendingCount > 0
-}
-
 /* -------- Declaration ------------- */
 
 func (sm *SMStateReport) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
@@ -93,6 +88,10 @@ func GetSharedStateReport(ctx smachine.InOrderStepContext, object reference.Glob
 	return SharedReportAccessor{}, false
 }
 
+func (sm *SMStateReport) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
 func (sm *SMStateReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	reportShared, ok := GetSharedStateReport(ctx, sm.Reference, sm.pulseSlot.PulseData().PulseNumber)
 	if !ok {
@@ -130,6 +129,8 @@ func (sm *SMStateReport) stepSendVStateReport(ctx smachine.ExecutionContext) sma
 
 	msg := sm.report
 
+	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
+
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
@@ -138,6 +139,9 @@ func (sm *SMStateReport) stepSendVStateReport(ctx smachine.ExecutionContext) sma
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
+
+	// after report is sent we can stop
+	ctx.SetDefaultMigration(sm.migrationDefault)
 
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }

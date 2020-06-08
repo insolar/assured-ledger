@@ -123,7 +123,6 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 }
 
 func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Log().Trace("migrationDefault")
 	return ctx.Stop()
 }
 
@@ -232,7 +231,13 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		}
 	} else if objectState != object.HasState {
 		ctx.Log().Warn("no state on object after readyToWork for object: " + s.execution.Object.String())
-		panic(throw.IllegalState())
+		panic(throw.E("no state on object after readyToWork", struct {
+			ObjectReference string
+			State           object.State
+		}{
+			ObjectReference: s.execution.Object.String(),
+			State:           objectState,
+		}))
 	}
 
 	s.semaphoreOrdered = semaphoreOrdered
