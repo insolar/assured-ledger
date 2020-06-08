@@ -48,10 +48,11 @@ type SMExecute struct {
 	objectSharedState  object.SharedStateAccessor
 
 	// execution step
-	executionNewState *executionupdate.ContractExecutionStateUpdate
-	outgoingResult    []byte
-	deactivate        bool
-	run               *runner.RunState
+	executionNewState   *executionupdate.ContractExecutionStateUpdate
+	outgoingResult      []byte
+	deactivate          bool
+	run                 *runner.RunState
+	newObjectDescriptor descriptor.Object
 
 	methodIsolation contract.MethodIsolation
 
@@ -534,15 +535,14 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}
 
-	var newDescriptor descriptor.Object
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
 		_, class, memory = executionNewState.Activate()
-		newDescriptor = s.makeNewDescriptor(class, memory)
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
 	case requestresult.SideEffectAmend:
 		_, class, memory = executionNewState.Amend()
-		newDescriptor = s.makeNewDescriptor(class, memory)
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
 	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
@@ -550,21 +550,16 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	if s.migrationHappened {
-		if newDescriptor != nil {
-			s.execution.ObjectDescriptor = newDescriptor
-			return ctx.Jump(s.stepSendDelegatedRequestFinished)
-		}
-		return ctx.Jump(s.stepSendCallResult)
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
 
 	action := func(state *object.SharedState) {
 		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
 	}
 
-	if newDescriptor != nil {
+	if s.newObjectDescriptor != nil {
 		action = func(state *object.SharedState) {
-			state.Info.SetDescriptor(newDescriptor)
-			s.execution.ObjectDescriptor = newDescriptor
+			state.Info.SetDescriptor(s.newObjectDescriptor)
 			state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
 
 			if state.GetState() == object.Empty {
@@ -590,7 +585,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var lastState *payload.ObjectState = nil
 
-	if s.execution.Isolation.Interference == contract.CallTolerable {
+	if s.newObjectDescriptor != nil {
 		class, err := s.execution.ObjectDescriptor.Class()
 		if err != nil {
 			panic(throw.W(err, "failed to get class from descriptor", nil))

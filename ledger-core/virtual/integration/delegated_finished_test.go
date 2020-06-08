@@ -159,7 +159,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 	require.Equal(t, 1, countVCallResult)
 }
 
-// In this case VDelegatedRequestFinished must not be sent since state has not benn changed
+// In this case VDelegatedRequestFinished must not contain new state since it was not changed
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *testing.T) {
 	t.Log("C4990")
 
@@ -167,6 +167,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	defer server.Stop()
 
 	var countVCallResult int
+	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
 	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
 		require.Len(t, messages, 1)
 
@@ -177,7 +178,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 		switch payLoadData := pl.(type) {
 		case *payload.VDelegatedRequestFinished:
-			panic("VDelegatedRequestFinished must not be sent")
+			gotDelegatedRequestFinished <- payLoadData
 		case *payload.VCallResult:
 			countVCallResult++
 		default:
@@ -219,6 +220,19 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 	code, _ := server.CallAPIGetBalance(ctx, objectRef)
 	require.Equal(t, 200, code)
+
+	select {
+	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
+		callFlags := payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+
+		require.Equal(t, objectRef, delegateFinishedMsg.Callee)
+		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)
+		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
+
+		require.Nil(t, delegateFinishedMsg.LatestState)
+	case <-time.After(10 * time.Second):
+		require.Failf(t, "", "timeout")
+	}
 
 	server.WaitIdleConveyor()
 
