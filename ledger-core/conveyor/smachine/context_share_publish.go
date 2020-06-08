@@ -46,13 +46,26 @@ func (p *slotContext) Unshare(link SharedDataLink) bool {
 func (p *slotContext) Publish(key, data interface{}) bool {
 	p.ensureAtLeast(updCtxInit)
 	ensurePublishKey(key)
-	ensurePublishValue(data)
+
+	switch sdl := data.(type) {
+	case SharedDataLink:
+		if sdl.IsUnbound() {
+			return p.s.registerUnboundAlias(key, data)
+		}
+	case *SharedDataLink:
+		if sdl.IsUnbound() {
+			return p.s.registerUnboundAlias(key, data)
+		}
+	default:
+		ensurePublishValue(data)
+	}
+
 	return p.s.registerBoundAlias(key, data)
 }
 
 func (p *slotContext) Unpublish(key interface{}) bool {
 	p.ensureAtLeast(updCtxInit)
-	return p.s.unregisterBoundAlias(key)
+	return p.s.unregisterAlias(key)
 }
 
 func (p *slotContext) UnpublishAll() {
