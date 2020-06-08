@@ -1,0 +1,13 @@
+@startuml
+Init : INHERITED
+Init --> stepGetObject : Jump
+stepGetObject : INHERITED
+stepGetObject --> awaitObjectReady : Jump
+stepGetObject --> stepGetObject : ThenRepeat
+awaitObjectReady : INHERITED
+awaitObjectReady --> stepProcess : Jump
+awaitObjectReady --> awaitObjectReady : ThenRepeat
+stepProcess : INHERITED
+stepProcess --> [*]
+stepProcess --> stepProcess : ThenRepeat
+@enduml

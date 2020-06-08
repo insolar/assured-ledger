@@ -1,0 +1,79 @@
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: insolar-bootstrap
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: insolar-bootstrap
+rules:
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - secrets
+      - pods
+    verbs: ["*"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: insolar-bootstrap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: insolar-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: insolar-bootstrap
+    namespace: insolar
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wait-script
+data:
+  wait-for-bootstrap.sh: |-
+    #!/bin/sh
+    while true; do
+      if [ "$(kubectl -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
+        break
+      fi
+      sleep 1s
+    done
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bootstrap
+spec:
+  serviceAccountName: insolar-bootstrap
+  terminationGracePeriodSeconds: 10
+  restartPolicy: Never
+  containers:
+    - name: gen
+      image: insolar/assured-ledger:latest
+      imagePullPolicy: IfNotPresent
+      command: ["bash", "-c", "bash /app/bootstrap/run.sh"]
+      volumeMounts:
+        - name: bootstrap-yaml
+          mountPath: /etc/bootstrap
+          readOnly: true
+        - name: app-bootstrap
+          mountPath: /app/bootstrap
+        - name: certs-data
+          mountPath: /var/data/certs-data
+  volumes:
+    - name: bootstrap-yaml
+      configMap:
+        name: bootstrap-yaml
+    - name: app-bootstrap
+      configMap:
+        name: app-bootstrap
+    - name: certs-data
+      persistentVolumeClaim:
+        claimName: certs-volume

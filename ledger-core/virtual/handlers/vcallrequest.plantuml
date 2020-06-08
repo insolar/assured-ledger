@@ -1,0 +1,5 @@
+@startuml
+Init : INHERITED
+Init --> stepExecute : Jump
+stepExecute : INHERITED
+@enduml

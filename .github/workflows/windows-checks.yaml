@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-latest
     env: # we have to specify fake BUILD_DATE and BUILD_TIME here because git-date-time.sh doesn't work on Windows
       GOPATH: D:/a/assured-ledger/assured-ledger/go
-      WORKDIR: D:/a/assured-ledger/assured-ledger/go/src/github.com/insolar/assured-ledger/ledger-core/v2
+      WORKDIR: D:/a/assured-ledger/assured-ledger/go/src/github.com/insolar/assured-ledger/ledger-core
       BUILD_DATE: 20200101
       BUILD_TIME: 123456
     steps:
@@ -40,6 +40,12 @@ jobs:
         if: always()
         run: make test_with_coverage
         working-directory: ${{env.WORKDIR}}
+      - name: Upload integration_test.log to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: integration_test_log_windows
+          path: ${{env.WORKDIR}}/integration_test.log
       - name: Add coverage.html to artifacts
         uses: actions/upload-artifact@v1
         with:

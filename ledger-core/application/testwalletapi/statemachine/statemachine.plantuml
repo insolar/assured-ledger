@@ -1,0 +1,19 @@
+@startuml
+Init : migrationDefault
+Init -[#blue]-> migrationDefault
+Init --> stepRegisterBargeIn : Jump
+migrationDefault : INHERITED
+migrationDefault --> stepSendRequest : Jump
+stepRegisterBargeIn : INHERITED
+stepRegisterBargeIn : migrationDefault
+stepRegisterBargeIn -[#blue]-> migrationDefault
+stepRegisterBargeIn --> stepSendRequest : Jump
+stepSendRequest : INHERITED
+stepSendRequest : migrationDefault
+stepSendRequest -[#blue]-> migrationDefault
+stepSendRequest --> stepProcessResult : ThenJump
+stepProcessResult : INHERITED
+stepProcessResult : migrationDefault
+stepProcessResult -[#blue]-> migrationDefault
+stepProcessResult --> [*]
+@enduml

@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/
-      V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core/v2
+      V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
       USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
       KUBEVAL_VERSION: 0.15.0
@@ -46,10 +46,10 @@ jobs:
         uses: insolar/k3s-gha@master
         with:
           custom_registry: true
-          registries_yaml_path: "ledger-core/v2/scripts/deploy/kube/ci/registries.yaml"
+          registries_yaml_path: "ledger-core/scripts/deploy/kube/ci/registries.yaml"
           kubectl_version: "v1.18.2"
       - name: deploy k3s-registry
-        run: kubectl apply -k ledger-core/v2/scripts/deploy/kube/k3s-registry
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/k3s-registry
       - name: wait for registry to be up and running
         run: kubectl -n registry rollout status deploy/registry --timeout=80s
       - name: deploy ingress
@@ -72,7 +72,7 @@ jobs:
           make vendor install-build-tools kube_start_net
         working-directory: ${{env.V2_PATH}}
       - name: run tests
-        run: make test_func_kubernetes_ci 
+        run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
       - name: check prometheus contents
         run: curl -s 'http://localhost/prometheus/api/v1/status/tsdb' | jq .

@@ -1,0 +1,86 @@
+@startuml
+Init : migrationDefault
+Init -[#blue]-> migrationDefault
+Init --> stepCheckRequest : Jump
+migrationDefault : INHERITED
+migrationDefault --> [*]
+stepCheckRequest : INHERITED
+stepCheckRequest : migrationDefault
+stepCheckRequest -[#blue]-> migrationDefault
+stepCheckRequest --> stepGetObject : Jump
+stepGetObject : INHERITED
+stepGetObject : migrationDefault
+stepGetObject -[#blue]-> migrationDefault
+stepGetObject --> stepWaitObjectReady : Jump
+stepGetObject --> stepGetObject : ThenRepeat
+stepWaitObjectReady : INHERITED
+stepWaitObjectReady : migrationDefault
+stepWaitObjectReady -[#blue]-> migrationDefault
+stepWaitObjectReady --> stepIsolationNegotiation : Jump
+stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
+stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
+stepIsolationNegotiation : INHERITED
+stepIsolationNegotiation : migrationDefault
+stepIsolationNegotiation -[#blue]-> migrationDefault
+stepIsolationNegotiation --> stepTakeLock : Jump
+stepIsolationNegotiation --> stepIsolationNegotiation : ThenRepeat
+stepTakeLock : INHERITED
+stepTakeLock : migrationDefault
+stepTakeLock -[#blue]-> migrationDefault
+stepTakeLock --> stepDeduplicate : Jump
+stepTakeLock --> stepStartRequestProcessing : Jump
+stepTakeLock --> stepTakeLock : ThenRepeat
+stepDeduplicate : INHERITED
+stepDeduplicate : migrationDefault
+stepDeduplicate -[#blue]-> migrationDefault
+stepDeduplicate --> stepStartRequestProcessing : Jump
+stepDeduplicate --> [*]
+stepDeduplicate --> stepDeduplicate : ThenRepeat
+stepDeduplicate --> stepDeduplicate : ThenRepeat
+stepStartRequestProcessing : migrateDuringExecution
+stepStartRequestProcessing -[#blue]-> migrateDuringExecution
+stepStartRequestProcessing --> stepExecuteStart : Jump
+stepStartRequestProcessing --> [*]
+stepStartRequestProcessing --> stepStartRequestProcessing : ThenRepeat
+migrateDuringExecution : INHERITED
+stepExecuteStart : INHERITED
+stepExecuteStart : migrateDuringExecution
+stepExecuteStart -[#blue]-> migrateDuringExecution
+stepExecuteStart --> stepExecuteDecideNextStep : ThenJump
+stepExecuteDecideNextStep : INHERITED
+stepExecuteDecideNextStep : migrateDuringExecution
+stepExecuteDecideNextStep -[#blue]-> migrateDuringExecution
+stepExecuteDecideNextStep --> stepSaveNewObject : Jump
+stepExecuteDecideNextStep --> stepExecuteAborted : Jump
+stepExecuteDecideNextStep --> stepExecuteOutgoing : Jump
+stepExecuteDecideNextStep --> stepExecuteDecideNextStep : ThenRepeat
+stepSaveNewObject : INHERITED
+stepSaveNewObject : migrateDuringExecution
+stepSaveNewObject -[#blue]-> migrateDuringExecution
+stepSaveNewObject --> stepSendDelegatedRequestFinished : Jump
+stepSaveNewObject --> stepSendCallResult : Jump
+stepSaveNewObject --> stepSaveNewObject : ThenRepeat
+stepExecuteAborted : INHERITED
+stepExecuteAborted : migrateDuringExecution
+stepExecuteAborted -[#blue]-> migrateDuringExecution
+stepExecuteOutgoing : INHERITED
+stepExecuteOutgoing : migrateDuringExecution
+stepExecuteOutgoing -[#blue]-> migrateDuringExecution
+stepExecuteOutgoing --> stepSendOutgoing : Jump
+stepExecuteOutgoing --> stepExecuteContinue : Jump
+stepSendDelegatedRequestFinished : INHERITED
+stepSendDelegatedRequestFinished : migrateDuringExecution
+stepSendDelegatedRequestFinished -[#blue]-> migrateDuringExecution
+stepSendDelegatedRequestFinished --> stepSendCallResult : Jump
+stepSendCallResult : INHERITED
+stepSendCallResult : migrateDuringExecution
+stepSendCallResult -[#blue]-> migrateDuringExecution
+stepSendCallResult --> [*]
+stepSendOutgoing : INHERITED
+stepSendOutgoing : migrateDuringExecution
+stepSendOutgoing -[#blue]-> migrateDuringExecution
+stepExecuteContinue : INHERITED
+stepExecuteContinue : migrateDuringExecution
+stepExecuteContinue -[#blue]-> migrateDuringExecution
+stepExecuteContinue --> stepExecuteDecideNextStep : ThenJump
+@enduml
