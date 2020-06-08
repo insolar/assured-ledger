@@ -48,10 +48,11 @@ type SMExecute struct {
 	objectSharedState  object.SharedStateAccessor
 
 	// execution step
-	executionNewState *executionupdate.ContractExecutionStateUpdate
-	outgoingResult    []byte
-	deactivate        bool
-	run               *runner.RunState
+	executionNewState   *executionupdate.ContractExecutionStateUpdate
+	outgoingResult      []byte
+	deactivate          bool
+	run                 *runner.RunState
+	newObjectDescriptor descriptor.Object
 
 	methodIsolation contract.MethodIsolation
 
@@ -524,7 +525,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 		memory []byte
 		class  reference.Global
-		action func(state *object.SharedState)
 	)
 
 	if s.deactivate {
@@ -535,22 +535,37 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.executionNewState.Result.SetDeactivate(s.execution.ObjectDescriptor)
 	}
 
-	action = func(state *object.SharedState) {
-		s.finishRequestProcessing(state, s.execution.Outgoing)
-	}
-
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
 		_, class, memory = executionNewState.Activate()
-		action = s.setNewState(class, memory)
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
 	case requestresult.SideEffectAmend:
 		_, class, memory = executionNewState.Amend()
-		action = s.setNewState(class, memory)
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
 	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
+	}
+
+	if s.migrationHappened {
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	}
+
+	action := func(state *object.SharedState) {
+		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+	}
+
+	if s.newObjectDescriptor != nil {
+		action = func(state *object.SharedState) {
+			state.Info.SetDescriptor(s.newObjectDescriptor)
+			state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+
+			if state.GetState() == object.Empty {
+				state.SetState(object.HasState)
+			}
+		}
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -564,17 +579,13 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.Impossible())
 	}
 
-	if s.migrationHappened {
-		return ctx.Jump(s.stepSendDelegatedRequestFinished)
-	}
-
 	return ctx.Jump(s.stepSendCallResult)
 }
 
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var lastState *payload.ObjectState = nil
 
-	if s.execution.Isolation.Interference == contract.CallTolerable {
+	if s.newObjectDescriptor != nil {
 		class, err := s.execution.ObjectDescriptor.Class()
 		if err != nil {
 			panic(throw.W(err, "failed to get class from descriptor", nil))
@@ -610,43 +621,27 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	return ctx.Jump(s.stepSendCallResult)
 }
 
-func (s *SMExecute) finishRequestProcessing(state *object.SharedState, req reference.Global) {
-	if !s.migrationHappened {
-		state.DecrementPotentialPendingCounter(s.execution.Isolation)
-		state.FinishRequest(s.execution.Isolation.Interference, req)
+func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
+	parentReference := reference.Global{}
+	var prevStateIDBytes []byte
+	objDescriptor := s.execution.ObjectDescriptor
+	if objDescriptor != nil {
+		parentReference = objDescriptor.HeadRef()
+		prevStateIDBytes = objDescriptor.StateID().AsBytes()
 	}
-}
 
-func (s *SMExecute) setNewState(class reference.Global, memory []byte) func(state *object.SharedState) {
-	return func(state *object.SharedState) {
+	objectRefBytes := s.execution.Object.AsBytes()
+	stateHash := append(memory, objectRefBytes...)
+	stateHash = append(stateHash, prevStateIDBytes...)
 
-		parentReference := reference.Global{}
-		var prevStateIDBytes []byte
-		if state.Descriptor() != nil {
-			parentReference = state.Descriptor().Parent()
-			prevStateIDBytes = state.Descriptor().StateID().AsBytes()
-		}
-
-		objectRefBytes := s.execution.Object.AsBytes()
-		stateHash := append(memory, objectRefBytes...)
-		stateHash = append(stateHash, prevStateIDBytes...)
-
-		stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
-		state.Info.SetDescriptor(descriptor.NewObject(
-			s.execution.Object,
-			stateID,
-			class,
-			memory,
-			parentReference,
-		))
-
-		s.execution.ObjectDescriptor = state.Descriptor()
-
-		s.finishRequestProcessing(state, s.execution.Outgoing)
-		if state.GetState() == object.Empty {
-			state.SetState(object.HasState)
-		}
-	}
+	stateID := NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+	return descriptor.NewObject(
+		s.execution.Object,
+		stateID,
+		class,
+		memory,
+		parentReference,
+	)
 }
 
 func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
