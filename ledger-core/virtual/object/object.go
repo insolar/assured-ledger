@@ -109,7 +109,7 @@ func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolati
 	}
 }
 
-func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolation) {
+func (i *Info) FinishRequest(isolation contract.MethodIsolation, requestRef reference.Global) {
 	switch isolation.Interference {
 	case contract.CallIntolerable:
 		i.PotentialUnorderedPendingCount--
@@ -118,10 +118,7 @@ func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolati
 	default:
 		panic(throw.Unsupported())
 	}
-}
-
-func (i *Info) FinishRequest(tolerance contract.InterferenceFlag, requestRef reference.Global) {
-	i.KnownRequests.GetList(tolerance).Finish(requestRef)
+	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {

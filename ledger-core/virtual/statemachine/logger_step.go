@@ -100,7 +100,6 @@ func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smach
 }
 
 func (c ConveyorLogger) LogUpdate(data smachine.StepLoggerData, updateData smachine.StepLoggerUpdateData) {
-
 	if _, ok := data.Declaration.(*conveyor.PulseSlotMachine); ok {
 		return
 	}
