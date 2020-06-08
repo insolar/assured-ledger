@@ -12,7 +12,7 @@ import (
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
-	return NewTestLoggerExt(target, suppressTestError, "")
+	return NewTestLoggerExt(target, suppressTestError, "bilog")
 }
 
 func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, adapter string) log.Logger {
@@ -24,6 +24,8 @@ func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, ad
 	if adapter != "" {
 		logCfg.Adapter = adapter
 	}
+	logCfg.Level = logcommon.DebugLevel.String()
+	logCfg.Formatter = logcommon.TextFormat.String()
 
 	l, err := newLogger(logCfg)
 	if err != nil {

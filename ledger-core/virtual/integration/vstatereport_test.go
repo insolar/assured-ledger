@@ -7,7 +7,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -74,7 +73,7 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 			gotVStateReport <- payLoadData
 		case *payload.VCallResult:
 		default:
-			fmt.Printf("Going message: %T", payLoadData)
+			t.Logf("Going message: %T", payLoadData)
 		}
 
 		server.SendMessage(ctx, messages[0])
