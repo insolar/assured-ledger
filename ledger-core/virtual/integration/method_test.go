@@ -82,6 +82,7 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 
 func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	t.Log("C4976")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-397")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -108,7 +109,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 
 		server.SendMessage(ctx, msg)
 
-		// TODO
+		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-397
 	}
 }
 
@@ -169,6 +170,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	t.Log("C4974")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-395")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -193,9 +195,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 		server.SendMessage(ctx, msg)
 
-		// TODO fix it after https://insolar.atlassian.net/browse/PLAT-445
-		// for getting panic set count to 1
-		// assert.True(t, server.PublisherMock.WaitCount(0, 10*time.Second))
+		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-395
 	}
 }
 
