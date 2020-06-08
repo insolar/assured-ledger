@@ -72,6 +72,8 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 
 	server.SendMessage(ctx, msg)
 
+	server.WaitActiveThenIdleConveyor()
+
 	select {
 	case err := <-requestIsDone:
 		return err
@@ -170,7 +172,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	t.Log("C4974")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-395")
+	// t.Skip("https://insolar.atlassian.net/browse/PLAT-395")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -179,6 +181,8 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 	msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, payload.Missing, nil)
 	server.SendMessage(ctx, msg)
+
+	server.WaitActiveThenIdleConveyor()
 
 	{
 		pl := payload.VCallRequest{
