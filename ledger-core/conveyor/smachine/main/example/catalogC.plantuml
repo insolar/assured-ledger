@@ -1,0 +1,7 @@
+@startuml
+Init : INHERITED
+Init --> State1 : JumpExt
+Init --> [*]
+State1 : INHERITED
+State1 --> State1 : ThenRepeat
+@enduml

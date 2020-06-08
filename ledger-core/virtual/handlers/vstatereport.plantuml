@@ -1,0 +1,7 @@
+@startuml
+Init : INHERITED
+Init --> stepProcess : Jump
+stepProcess : INHERITED
+stepProcess --> [*]
+stepProcess --> stepProcess : ThenRepeat
+@enduml

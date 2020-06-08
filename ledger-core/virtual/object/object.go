@@ -3,6 +3,9 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
+//TODO https://insolar.atlassian.net/browse/PLAT-442
+////go:generate sm-uml-gen -f $GOFILE
+
 package object
 
 import (
@@ -106,7 +109,7 @@ func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolati
 	}
 }
 
-func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolation) {
+func (i *Info) FinishRequest(isolation contract.MethodIsolation, requestRef reference.Global) {
 	switch isolation.Interference {
 	case contract.CallIntolerable:
 		i.PotentialUnorderedPendingCount--
@@ -115,6 +118,7 @@ func (i *Info) DecrementPotentialPendingCounter(isolation contract.MethodIsolati
 	default:
 		panic(throw.Unsupported())
 	}
+	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
