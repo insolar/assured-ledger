@@ -368,7 +368,9 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			return
 		}
 
-		requestList.Add(s.execution.Outgoing)
+		if !requestList.Add(s.execution.Outgoing) {
+			ctx.Log().Warn("Request was not registered")
+		}
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -408,7 +410,7 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 
 func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var requestPayload = payload.VDelegatedCallRequest{
-		Callee:             s.Payload.Callee,
+		Callee:             s.execution.Object,
 		CallFlags:          payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
 		RequestReference:   s.execution.Outgoing,
 		RefOut:             reference.Global{}, // docs say that this is required field?

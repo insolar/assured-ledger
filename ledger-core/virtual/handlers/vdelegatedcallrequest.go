@@ -82,6 +82,9 @@ func (s *SMVDelegatedCallRequest) stepWaitObjectReady(ctx smachine.ExecutionCont
 	)
 
 	action := func(state *object.SharedState) {
+		if state.GetState() != object.HasState {
+			panic(throw.IllegalState())
+		}
 		semaphoreReadyToWork = state.ReadyToWork
 	}
 
