@@ -29,8 +29,9 @@ import (
 
 func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 	var (
-		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		mc       = minimock.NewController(t)
+		ctx      = inslogger.TestContext(t)
+		deadBeef = []byte{0xde, 0xad, 0xbe, 0xef}
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
@@ -83,8 +84,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 			require.False(t, slotLink.IsZero())
 			require.True(t, bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
 				RefIn:              bargeInRef,
-				DelegationSpec:     payload.CallDelegationToken{},
-				DelegatorSignature: nil,
+				DelegatorSignature: deadBeef,
 			}))
 
 			return smachine.NewAsyncCallRequesterMock(mc).
@@ -121,6 +121,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 	slotMachine.RunTil(smWrapper.AfterStep(smVDelegatedCallRequest.stepSendRequest))
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepAfterTokenGet.Transition))
 	require.NotNil(t, smExecute.delegationTokenSpec)
+	require.Equal(t, deadBeef, smExecute.delegationTokenSign)
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
