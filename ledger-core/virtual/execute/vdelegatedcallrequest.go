@@ -63,6 +63,7 @@ func (s *SMVDelegatedCallRequest) GetStateMachineDeclaration() smachine.StateMac
 }
 
 func (s *SMVDelegatedCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(s.migrationDefault)
 	return ctx.Jump(s.stepRegisterBargeIn)
 }
 
@@ -107,5 +108,9 @@ func (s *SMVDelegatedCallRequest) stepProcessResult(ctx smachine.ExecutionContex
 		ctx.Sleep().ThenRepeat()
 	}
 
+	return ctx.Stop()
+}
+
+func (s *SMVDelegatedCallRequest) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
