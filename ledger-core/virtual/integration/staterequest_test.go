@@ -64,6 +64,14 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
+	server.IncrementPulse(ctx)
+
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
 	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, 0)
 	server.SendMessage(ctx, msg)
 
@@ -114,6 +122,14 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
+	server.IncrementPulse(ctx)
+
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
 	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 	server.SendMessage(ctx, msg)
 
@@ -160,16 +176,21 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 		return nil
 	})
 
+	server.IncrementPulse(ctx)
+
+	server.WaitIdleConveyor()
+	server.ResetActiveConveyorFlag()
+
 	objectRef := gen.UniqueReference()
 
-	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(server.GetPulse().PrevPulseNumber, objectRef, payload.RequestLatestDirtyState)
 	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
 			Status: payload.Missing,
-			AsOf:   server.GetPulse().PulseNumber,
+			AsOf:   server.GetPulse().PrevPulseNumber,
 			Callee: objectRef,
 		}, data)
 	case <-time.After(10 * time.Second):

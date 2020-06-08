@@ -210,21 +210,12 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	}
 }
 
-type smObjectMigrateState int
-
-const (
-	stateWasNotSend smObjectMigrateState = iota
-	stateSent
-	readyToStop
-)
-
 type SMObject struct {
 	smachine.StateMachineDeclTemplate
 
 	SharedState
 
-	readyToWorkCtl    smsync.BoolConditionalLink
-	migrateTransition smachine.StateFunc
+	readyToWorkCtl smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
 
@@ -274,7 +265,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.initWaitGetStateUntil()
 
-	ctx.Log().Trace("SetDefaultMigration")
 	ctx.SetDefaultMigration(sm.migrate)
 
 	return ctx.Jump(sm.stepGetState)
@@ -409,7 +399,6 @@ func (sm *SMObject) hasPendingExecution() bool {
 }
 
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Log().Trace("SMObject migrate")
 	switch sm.GetState() {
 	case Unknown:
 		ctx.Log().Trace("SMObject migration happened when object is not ready yet")

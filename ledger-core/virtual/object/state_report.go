@@ -69,7 +69,7 @@ type SharedReportAccessor struct {
 
 func (v SharedReportAccessor) Prepare(fn func(report payload.VStateReport)) smachine.SharedDataAccessor {
 	return v.PrepareAccess(func(data interface{}) bool {
-		fn(data.(payload.VStateReport))
+		fn(*data.(*payload.VStateReport))
 		return false
 	})
 }
