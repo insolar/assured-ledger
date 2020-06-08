@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/gojuno/minimock"
+	"github.com/gojuno/minimock/v3"
 )
 
 var _ message.Publisher = &PublisherMock{}
