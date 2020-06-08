@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
@@ -91,14 +90,40 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	testBalance := uint32(555)
-	objectRef := gen.UniqueReference()
+	var (
+		mc                 = minimock.NewController(t)
+		testBalance        = uint32(500)
+		objectRef          = gen.UniqueReference()
+		delegatedRequest   = make(chan struct{}, 0)
+		getBalanceRequest  = make(chan struct{}, 1)
+		getBalanceResponse = make(chan struct{}, 0)
+	)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
+		delegatedRequest <- struct{}{}
+		return false // no resend msg
+	})
+	typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+		require.Equal(t, objectRef, request.Callee)
+		require.Equal(t, "GetBalance", request.CallSiteMethod)
+
+		getBalanceRequest <- struct{}{}
+		return true // resend msg
+	})
+	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		require.Equal(t, objectRef, result.Callee)
+		return true // resend msg
+	})
+
+	server.WaitIdleConveyor()
 
 	{
 		// send VStateReport: save wallet
 		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 		rawWalletState := makeRawWalletState(t, testBalance)
 		payloadMeta := &payload.VStateReport{
+			Status:                        payload.Ready,
 			Callee:                        objectRef,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: pulse.OfNow(),
@@ -114,48 +139,20 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	pl := payload.VDelegatedCallRequest{
-		RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
-		Callee:           objectRef,
-		CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
-
-	delegatedRequest := make(chan struct{}, 0)
-	getBalanceRequest := make(chan struct{}, 0)
-	getBalanceResponse := make(chan struct{}, 0)
-
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
-
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		require.NoError(t, err)
-
-		switch pl.(type) {
-		case *payload.VCallRequest:
-			req := pl.(*payload.VCallRequest)
-			require.Equal(t, objectRef, req.Callee)
-			require.Equal(t, "GetBalance", req.CallSiteMethod)
-
-			server.SendMessage(ctx, messages[0])
-			getBalanceRequest <- struct{}{}
-		case *payload.VCallResult:
-			res := pl.(*payload.VCallResult)
-			require.Equal(t, objectRef, res.Callee)
-
-			server.SendMessage(ctx, messages[0])
-		case *payload.VDelegatedCallResponse:
-			delegatedRequest <- struct{}{}
-		}
-
-		return nil
-	})
+	server.WaitActiveThenIdleConveyor()
 
 	go func() {
 		defer func() { getBalanceResponse <- struct{}{} }()
 
 		checkBalance(ctx, t, server, objectRef, testBalance)
 	}()
+
+	pl := payload.VDelegatedCallRequest{
+		RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
+		Callee:           objectRef,
+		CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+	}
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 	server.SendMessage(ctx, msg)
 
 	select {
@@ -171,4 +168,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		require.FailNow(t, "timeout")
 	}
+
+	server.WaitActiveThenIdleConveyor()
+	mc.Finish()
 }
