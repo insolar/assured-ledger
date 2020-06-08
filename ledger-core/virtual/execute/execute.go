@@ -539,14 +539,17 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		s.finishRequestProcessing(state, s.execution.Outgoing)
 	}
 
+	var isStateChanged bool
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
 		_, class, memory = executionNewState.Activate()
 		action = s.getUpdateStateAction(class, memory)
+		isStateChanged = true
 	case requestresult.SideEffectAmend:
 		_, class, memory = executionNewState.Amend()
 		action = s.getUpdateStateAction(class, memory)
+		isStateChanged = true
 	case requestresult.SideEffectDeactivate:
 		panic(throw.NotImplemented())
 	default:
@@ -554,9 +557,12 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	if s.migrationHappened {
-		newObjDescriptor := s.makeNewDescriptor(class, memory)
-		s.execution.ObjectDescriptor = newObjDescriptor
-		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+		if isStateChanged {
+			newObjDescriptor := s.makeNewDescriptor(class, memory)
+			s.execution.ObjectDescriptor = newObjDescriptor
+			return ctx.Jump(s.stepSendDelegatedRequestFinished)
+		}
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
