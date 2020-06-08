@@ -12,7 +12,6 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -22,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -74,6 +72,8 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 
 	server.SendMessage(ctx, msg)
 
+	server.WaitActiveThenIdleConveyor()
+
 	select {
 	case err := <-requestIsDone:
 		return err
@@ -82,7 +82,40 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, class refer
 	}
 }
 
-func TestVirtual_Method_WithoutExecutor(t *testing.T) {
+func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
+	t.Log("C4976")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-397")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	class := testwallet.GetClass()
+	objectLocal := server.RandomLocalWithPulse()
+	objectGlobal := reference.NewSelf(objectLocal)
+
+	err := Method_PrepareObject(ctx, server, class, objectLocal)
+	require.NoError(t, err)
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "random",
+			CallOutgoing:        server.RandomLocalWithPulse(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+
+		server.SendMessage(ctx, msg)
+
+		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-397
+	}
+}
+
+func TestVirtual_Method_WithExecutor(t *testing.T) {
 	t.Log("C4923")
 
 	server, ctx := utils.NewServer(nil, t)
@@ -134,6 +167,39 @@ func TestVirtual_Method_WithoutExecutor(t *testing.T) {
 		case <-time.After(10 * time.Second):
 			require.Failf(t, "", "timeout")
 		}
+	}
+}
+
+func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
+	t.Log("C4974")
+	// t.Skip("https://insolar.atlassian.net/browse/PLAT-395")
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
+
+	msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, payload.Missing, nil)
+	server.SendMessage(ctx, msg)
+
+	server.WaitActiveThenIdleConveyor()
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectRef,
+			CallSiteDeclaration: testwallet.GetClass(),
+			CallSiteMethod:      "GetBalance",
+			CallOutgoing:        server.RandomLocalWithPulse(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+
+		server.SendMessage(ctx, msg)
+
+		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-395
 	}
 }
 
@@ -238,75 +304,6 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				require.Failf(t, "", "timeout")
 			}
 		}
-	}
-}
-
-func TestVirtual_Method_WithExecutor(t *testing.T) {
-	t.Log("C4923")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	class := testwallet.GetClass()
-	objectLocal := server.RandomLocalWithPulse()
-	objectGlobal := reference.NewSelf(objectLocal)
-
-	err := Method_PrepareObject(ctx, server, class, objectLocal)
-	require.NoError(t, err)
-
-	for i := 0; i < 10; i++ {
-		pl := payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-			CallAsOf:            0,
-			Caller:              server.GlobalCaller(),
-			Callee:              objectGlobal,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "GetBalance",
-			CallSequence:        0,
-			CallReason:          reference.Global{},
-			RootTX:              reference.Global{},
-			CallTX:              reference.Global{},
-			CallRequestFlags:    0,
-			KnownCalleeIncoming: reference.Global{},
-			EntryHeadHash:       nil,
-			CallOutgoing:        gen.UniqueID(),
-			Arguments:           insolar.MustSerialize([]interface{}{}),
-		}
-
-		testIsDone := make(chan struct{}, 0)
-
-		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-			assert.Len(t, messages, 1)
-
-			var (
-				_      = messages[0].Metadata
-				metaPl = messages[0].Payload
-			)
-
-			metaType, metaPayload, err := rms.Unmarshal(metaPl)
-
-			assert.NoError(t, err)
-			assert.Equal(t, uint64(payload.TypeMetaPolymorthID), metaType)
-			assert.NoError(t, err)
-			assert.IsType(t, &payload.Meta{}, metaPayload)
-
-			callResultPl := metaPayload.(*payload.Meta).Payload
-			callResultType, callResultPayload, err := rms.Unmarshal(callResultPl)
-
-			assert.NoError(t, err)
-			assert.Equal(t, uint64(payload.TypeVCallResultPolymorthID), callResultType)
-			assert.IsType(t, &payload.VCallResult{}, callResultPayload)
-
-			testIsDone <- struct{}{}
-
-			return nil
-		})
-
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
-		server.SendMessage(ctx, msg)
-
-		<-testIsDone
 	}
 }
 

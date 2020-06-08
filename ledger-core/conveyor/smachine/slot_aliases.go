@@ -5,6 +5,10 @@
 
 package smachine
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
 /* ------- Slot-dependant aliases and mappings ------------- */
 
 type slotIDKey SlotID
@@ -65,9 +69,20 @@ func (a *slotAliases) RetainAll(parent *slotAliases, removeFn func(k interface{}
 }
 
 // ONLY to be used by a holder of a slot
+func (s *Slot) registerUnboundAlias(k, v interface{}) bool {
+	if k == nil {
+		panic(throw.IllegalValue())
+	}
+
+	m := &s.machine.localRegistry
+	_, loaded := m.LoadOrStore(k, v)
+	return !loaded
+}
+
+// ONLY to be used by a holder of a slot
 func (s *Slot) registerBoundAlias(k, v interface{}) bool {
 	if k == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 
 	m := &s.machine.localRegistry
@@ -97,9 +112,9 @@ func (s *Slot) registerBoundAlias(k, v interface{}) bool {
 }
 
 // ONLY to be used by a holder of a slot
-func (s *Slot) unregisterBoundAlias(k interface{}) bool {
+func (s *Slot) unregisterAlias(k interface{}) bool {
 	if k == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 
 	switch keyExists, wasUnpublished, _ := s.machine.unpublishUnbound(k); {
@@ -108,6 +123,15 @@ func (s *Slot) unregisterBoundAlias(k interface{}) bool {
 	case wasUnpublished:
 		return true
 	}
+	return s.machine._unregisterSlotBoundAlias(s.GetSlotID(), k)
+}
+
+// ONLY to be used by a holder of a slot
+func (s *Slot) unregisterBoundAlias(k interface{}) bool {
+	if k == nil {
+		panic(throw.IllegalValue())
+	}
+
 	return s.machine._unregisterSlotBoundAlias(s.GetSlotID(), k)
 }
 
