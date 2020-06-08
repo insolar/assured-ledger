@@ -205,8 +205,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			LogMock.Return(smachine.Logger{}).
-			StopMock.Return(smachine.StateUpdate{})
+			ErrorMock.Return(smachine.StateUpdate{})
 
 		smExecute.stepDeduplicate(execCtx)
 	}

@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
@@ -46,7 +45,7 @@ type Dispatcher struct {
 	MachineLogger  smachine.SlotMachineLogger
 
 	// CycleFn is called after every scan cycle done by conveyor worker
-	CycleFn  conveyor.PulseConveyorCycleFunc
+	CycleFn conveyor.PulseConveyorCycleFunc
 
 	// Components
 	Runner        runner.Service
@@ -69,7 +68,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
 		ScanCountLimit:    100000,
-		SlotMachineLogger: convlog.MachineLogger{},
+		SlotMachineLogger: virtualStateMachine.ConveyorLoggerFactory{},
 		SlotAliasRegistry: &conveyor.GlobalAliases{},
 		LogAdapterCalls:   true,
 	}

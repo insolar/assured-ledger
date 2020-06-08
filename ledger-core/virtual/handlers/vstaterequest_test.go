@@ -27,7 +27,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
-		sharedStateData = smachine.NewUnboundSharedData(payload.VStateReport{
+		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
 			Status:              payload.Empty,
 			AsOf:                pulse.Unknown,
 			Callee:              smGlobalRef,

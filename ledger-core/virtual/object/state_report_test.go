@@ -39,7 +39,6 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	checkMessageFn := func(msg payload.Marshaler) {
 		stateReport, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
-		require.True(t, ok)
 		require.NotNil(t, stateReport.ProvidedContent)
 		require.NotNil(t, stateReport.ProvidedContent.LatestDirtyState)
 		msgVStateReportCount++

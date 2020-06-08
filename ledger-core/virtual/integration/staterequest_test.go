@@ -73,14 +73,14 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	// skip StateReport from Pulse
 	<-reportChan
 
-	msg := makeVStateRequestEvent(server.GetPulse().PrevPulseNumber, objectRef, 0)
+	msg := makeVStateRequestEvent(server.GetPrevPulse().PulseNumber, objectRef, 0)
 	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             server.GetPulse().PrevPulseNumber,
+			AsOf:             server.GetPrevPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
 		}, data)
@@ -132,14 +132,14 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	// skip StateReport from Pulse
 	<-reportChan
 
-	msg := makeVStateRequestEvent(server.GetPulse().PrevPulseNumber, objectRef, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(server.GetPrevPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             server.GetPulse().PrevPulseNumber,
+			AsOf:             server.GetPrevPulse().PulseNumber,
 			Callee:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -184,14 +184,14 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	objectRef := gen.UniqueReference()
 
-	msg := makeVStateRequestEvent(server.GetPulse().PrevPulseNumber, objectRef, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(server.GetPrevPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
 	server.SendMessage(ctx, msg)
 
 	select {
 	case data := <-reportChan:
 		assert.Equal(t, &payload.VStateReport{
 			Status: payload.Missing,
-			AsOf:   server.GetPulse().PrevPulseNumber,
+			AsOf:   server.GetPrevPulse().PulseNumber,
 			Callee: objectRef,
 		}, data)
 	case <-time.After(10 * time.Second):

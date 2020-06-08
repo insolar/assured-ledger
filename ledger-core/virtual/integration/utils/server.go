@@ -169,6 +169,10 @@ func (s *Server) GetPulse() pulsestor.Pulse {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 
+func (s *Server) GetPrevPulse() pulsestor.Pulse {
+	return s.pulseGenerator.GetPrevPulseAsPulse()
+}
+
 func (s *Server) incrementPulse(ctx context.Context) {
 	s.pulseGenerator.Generate()
 

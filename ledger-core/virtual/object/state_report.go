@@ -24,12 +24,12 @@ type SMReport struct {
 	ReadyToWork smachine.SyncLink
 
 	Reference reference.Global
-
-	report payload.VStateReport
 }
 
 type SMStateReport struct {
 	SMReport
+
+	report payload.VStateReport
 
 	smachine.StateMachineDeclTemplate
 
@@ -89,6 +89,7 @@ func GetSharedStateReport(ctx smachine.InOrderStepContext, object reference.Glob
 }
 
 func (sm *SMStateReport) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Unpublish(BuildReportKey(sm.Reference, sm.pulseSlot.PulseData().PulseNumber))
 	return ctx.Stop()
 }
 

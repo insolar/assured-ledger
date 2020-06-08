@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type PulseGenerator struct {
@@ -69,6 +70,13 @@ func (g PulseGenerator) GetLastPulse() pulse.Data {
 
 func (g PulseGenerator) GetLastPulseAsPulse() pulsestor.Pulse {
 	return NewPulse(g.pulseList[len(g.pulseList)-1])
+}
+
+func (g PulseGenerator) GetPrevPulseAsPulse() pulsestor.Pulse {
+	if len(g.pulseList) < 2 {
+		panic(throw.IllegalValue())
+	}
+	return NewPulse(g.pulseList[len(g.pulseList)-2])
 }
 
 func (g *PulseGenerator) appendPulse(data pulse.Data) {
