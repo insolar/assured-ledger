@@ -75,12 +75,12 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 				func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...messagesender.SendOption) (err error) {
 					req, ok := msg.(*payload.VDelegatedCallRequest)
 					require.True(t, ok)
-					bargeInRef = req.RefIn
+					bargeInRef = req.RequestReference
 					return nil
 				})
 			fn(ctx.GetContext(), srv)
 			require.False(t, bargeInRef.IsZero())
-			slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(bargeInRef)
+			slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(DelegationTokenAwaitKey{bargeInRef})
 			require.False(t, slotLink.IsZero())
 			require.True(t, bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
 				RefIn:              bargeInRef,

@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 )
 
 type SMVDelegatedCallResponse struct {
@@ -45,7 +46,8 @@ func (s *SMVDelegatedCallResponse) Init(ctx smachine.InitializationContext) smac
 }
 
 func (s *SMVDelegatedCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(s.Payload.RefIn)
+	key := execute.DelegationTokenAwaitKey{Outgoing: s.Payload.DelegationSpec.Outgoing}
+	slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(key)
 	if slotLink.IsZero() {
 		return ctx.Error(errors.New("bargeIn was not published"))
 	}

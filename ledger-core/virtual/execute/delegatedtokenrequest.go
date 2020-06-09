@@ -16,10 +16,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+type DelegationTokenAwaitKey struct {
+	Outgoing reference.Global
+}
 
 type SMDelegatedTokenRequest struct {
 	// input arguments
@@ -80,12 +83,11 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 		}
 	})
 
-	callOutgoing := gen.UniqueIDWithPulse(s.pulseSlot.PulseData().PulseNumber)
-	outgoingRef := reference.NewRecordOf(s.RequestPayload.Callee, callOutgoing)
-	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
+	key := DelegationTokenAwaitKey{s.RequestPayload.RequestReference}
+
+	if !ctx.PublishGlobalAliasAndBargeIn(key, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeIn callback"))
 	}
-	s.RequestPayload.RefIn = outgoingRef
 	return ctx.Jump(s.stepSendRequest)
 }
 
