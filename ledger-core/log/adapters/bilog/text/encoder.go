@@ -96,6 +96,19 @@ func (p textEncoder) appendStrf(dst []byte, f string, a ...interface{}) []byte {
 	return json.AppendOptQuotedString(dst, p.sformatf(f, a...))
 }
 
+func (p textEncoder) AppendParts(b []byte, bb [][]byte) []byte {
+	for _, bi := range bb {
+		switch {
+		case len(bi) == 0:
+			continue
+		case len(b) != 0:
+			b = append(b, ' ')
+		}
+		b = append(b, bi...)
+	}
+	return b
+}
+
 func (p textEncoder) AppendIntField(dst []byte, key string, v int64, fFmt logfmt.LogFieldFormat) []byte {
 	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {

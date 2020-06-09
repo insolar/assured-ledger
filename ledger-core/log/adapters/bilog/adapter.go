@@ -94,8 +94,7 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 		}
 	}
 
-	encoder.content = append(encoder.content, v.parentStatic...)
-	encoder.content = append(encoder.content, v.staticFields...)
+	encoder.content = encoder.fieldEncoder.AppendParts(encoder.content, [][]byte{ v.parentStatic, v.staticFields })
 
 	for _, field := range v.dynFields {
 		val := field.Getter()

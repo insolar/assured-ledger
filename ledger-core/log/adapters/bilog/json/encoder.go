@@ -72,6 +72,13 @@ func (p jsonEncoder) appendStrf(dst []byte, f string, a ...interface{}) []byte {
 	return AppendString(dst, p.sformatf(f, a...))
 }
 
+func (p jsonEncoder) AppendParts(b []byte, bb [][]byte) []byte {
+	for _, bi := range bb {
+		b = append(b, bi...)
+	}
+	return b
+}
+
 func (p jsonEncoder) AppendIntField(dst []byte, key string, v int64, fFmt logfmt.LogFieldFormat) []byte {
 	dst = AppendKey(dst, key)
 	if fFmt.HasFmt {
