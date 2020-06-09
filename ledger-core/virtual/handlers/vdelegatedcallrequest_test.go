@@ -232,6 +232,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				callFlags = tc.callFlags
 			)
 
+			sharedState.SetState(object.HasState)
+
 			slotMachine := slotdebugger.New(ctx, t, tc.expectedError)
 			if tc.expectedError {
 				slotMachine.InitEmptyMessageSender(mc)
