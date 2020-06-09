@@ -7,7 +7,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -97,7 +96,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 		case *payload.VCallResult:
 			countVCallResult++
 		default:
-			fmt.Printf("Going message: %T", payLoadData)
+			t.Logf("Going message: %T", payLoadData)
 		}
 
 		server.SendMessage(ctx, messages[0])
@@ -195,16 +194,11 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	rawWalletState := makeRawWalletState(t, testBalance)
 	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
 
-	server.WaitIdleConveyor()
-	server.ResetActiveConveyorFlag()
-
 	server.SendMessage(ctx, msg)
 
 	server.WaitActiveThenIdleConveyor()
-	server.ResetActiveConveyorFlag()
 
 	server.IncrementPulse(ctx)
-	server.WaitActiveThenIdleConveyor()
 
 	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
 		// we want to change pulse during execution
@@ -264,7 +258,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) 
 		case *payload.VDelegatedRequestFinished:
 			gotDelegatedRequestFinished <- payLoadData
 		default:
-			fmt.Printf("Going message: %T", payLoadData)
+			t.Logf("Going message: %T", payLoadData)
 		}
 
 		server.SendMessage(ctx, messages[0])

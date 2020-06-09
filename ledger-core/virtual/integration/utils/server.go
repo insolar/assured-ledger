@@ -182,6 +182,8 @@ func (s *Server) IncrementPulse(ctx context.Context) {
 	defer s.pulseLock.Unlock()
 
 	s.incrementPulse(ctx)
+
+	s.WaitActiveThenIdleConveyor()
 }
 
 func (s *Server) SetCycleCallback(cycleFn ConveyorCycleFunc) {
