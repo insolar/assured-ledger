@@ -88,11 +88,14 @@ func (p *PulseDataManager) GetPresentPulse() (present pulse.Number, nearestFutur
 }
 
 func (p *PulseDataManager) GetPrevPulseRange() (pulse.Number, pulse.Range) {
+	// check if there is any pulse available
 	if ppn, _ := p.GetPresentPulse(); ppn.IsTimePulse() {
-		if ppr := p.GetPulseRange(ppn); ppr != nil {
-			// check if this is the very first pulse
+		// check if the current pulse has data and this pulse has no gaps (e.g. node was down)
+		if ppr := p.GetPulseRange(ppn); ppr != nil && !ppr.IsArticulated() {
+			// check if this is not the very first pulse
 			if prevDelta := ppr.LeftPrevDelta(); prevDelta > 0 {
 				if prevPulse, ok := ppr.LeftBoundNumber().TryPrev(prevDelta); ok {
+					// finally, check if there are data in the cache
 					return prevPulse, p.GetPulseRange(prevPulse)
 				}
 			}
