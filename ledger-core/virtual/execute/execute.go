@@ -569,24 +569,17 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if s.migrationHappened {
-		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	if s.migrationHappened || s.newObjectDescriptor == nil {
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	action := func(state *object.SharedState) {
-		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
-	}
-
-	if s.newObjectDescriptor != nil {
-		action = func(state *object.SharedState) {
+		action := func(state *object.SharedState) {
 			state.Info.SetDescriptor(s.newObjectDescriptor)
-			state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
 
 			if state.GetState() == object.Empty {
 				state.SetState(object.HasState)
 			}
 		}
-	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
@@ -638,7 +631,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	return ctx.Jump(s.stepSendCallResult)
+	return ctx.Stop()
 }
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
@@ -695,8 +688,33 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		}
 	}).WithoutAutoWakeUp().Start()
 
+	return ctx.Jump(s.stepFinishRequest)
+}
+
+func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	if s.migrationHappened {
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	}
+
+	action := func(state *object.SharedState) {
+		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
 	return ctx.Stop()
 }
+
 
 func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
