@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
@@ -71,12 +70,6 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	smObject := newSMObjectWithPulse()
 
-	stepChecker := stepchecker.New()
-	{
-		exec := SMObject{}
-		stepChecker.AddStep(exec.stepStartReportSM)
-	}
-
 	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 	smObject.SharedState.SetState(Missing)
 	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
@@ -87,7 +80,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 	report := smObject.BuildStateReport()
 
 	migrationCtx := smachine.NewMigrationContextMock(mc).
-		JumpMock.Set(stepChecker.CheckJumpW(t)).UnpublishAllMock.Return().
+		JumpMock.Return(smachine.StateUpdate{}).UnpublishAllMock.Return().
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
 		assert.Equal(t, finalizedstate.BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
@@ -97,7 +90,6 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	smObject.migrate(migrationCtx)
 
-	require.NoError(t, stepChecker.CheckDone())
 	mc.Finish()
 }
 
@@ -125,12 +117,6 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 		smObject = newSMObjectWithPulse()
 	)
 
-	stepChecker := stepchecker.New()
-	{
-		exec := SMObject{}
-		stepChecker.AddStep(exec.stepStartReportSM)
-	}
-
 	smObject.SharedState.SetState(Empty)
 	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
@@ -140,7 +126,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 	report := smObject.BuildStateReport()
 
 	migrationCtx := smachine.NewMigrationContextMock(mc).
-		JumpMock.Set(stepChecker.CheckJumpW(t)).UnpublishAllMock.Return().
+		JumpMock.Return(smachine.StateUpdate{}).UnpublishAllMock.Return().
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
 		assert.Equal(t, finalizedstate.BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
@@ -150,7 +136,6 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 
 	smObject.migrate(migrationCtx)
 
-	require.NoError(t, stepChecker.CheckDone())
 	mc.Finish()
 }
 

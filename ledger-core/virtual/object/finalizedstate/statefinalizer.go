@@ -2,6 +2,7 @@
 // All rights reserved.
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+//go:generate sm-uml-gen -f $GOFILE
 
 package finalizedstate
 
@@ -19,20 +20,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type SMReport struct {
-	ReadyToWork smachine.SyncLink
-
+type SMStateFinalizer struct {
 	Reference reference.Global
-}
 
-type SMStateReport struct {
-	SMReport
-
-	report payload.VStateReport
+	Report payload.VStateReport
 
 	smachine.StateMachineDeclTemplate
-
-	reportShared SharedReportAccessor
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -41,63 +34,40 @@ type SMStateReport struct {
 
 /* -------- Declaration ------------- */
 
-func (sm *SMStateReport) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
-	s := stateMachine.(*SMStateReport)
+func (*SMStateFinalizer) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := stateMachine.(*SMStateFinalizer)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
 }
 
-func (sm *SMStateReport) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
-	return sm.Init
+func (*SMStateFinalizer) GetInitStateFor(stateMachine smachine.StateMachine) smachine.InitFunc {
+	return stateMachine.(*SMStateFinalizer).Init
 }
 
 /* -------- Instance ------------- */
 
-func (sm *SMStateReport) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (sm *SMStateFinalizer) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return sm
 }
 
-func (sm *SMStateReport) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Unpublish(BuildReportKey(sm.Reference, sm.pulseSlot.PulseData().PulseNumber))
+func (sm *SMStateFinalizer) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
-func (sm *SMStateReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	reportShared, ok := GetSharedStateReport(ctx, sm.Reference, sm.pulseSlot.PulseData().PulseNumber)
-	if !ok {
+func (sm *SMStateFinalizer) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if sm.Reference.IsZero() {
 		panic(throw.IllegalState())
-	}
-
-	sm.reportShared = reportShared
-
-	return ctx.Jump(sm.stepFillReport)
-}
-
-func (sm *SMStateReport) stepFillReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	action := func(report payload.VStateReport) {
-		sm.report = report
-	}
-
-	switch sm.reportShared.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(sm.reportShared.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		panic(throw.NotImplemented())
-	case smachine.Passed:
-		// go further
-	default:
-		panic(throw.Impossible())
 	}
 
 	return ctx.Jump(sm.stepSendVStateReport)
 }
 
-func (sm *SMStateReport) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMStateFinalizer) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		currentPulseNumber = sm.pulseSlot.CurrentPulseNumber()
 	)
 
-	msg := sm.report
+	msg := sm.Report
 
 	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
 
@@ -116,6 +86,6 @@ func (sm *SMStateReport) stepSendVStateReport(ctx smachine.ExecutionContext) sma
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
-func (sm *SMStateReport) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMStateFinalizer) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
 }

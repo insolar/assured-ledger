@@ -50,16 +50,14 @@ func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.
 	return res
 }
 
-func newSMReportWithPulse() *SMStateReport {
+func newSMReportWithPulse() *SMStateFinalizer {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
-		smReport    = &SMStateReport{
-			SMReport: SMReport{
-				Reference: smGlobalRef,
-			},
+		smReport    = &SMStateFinalizer{
+			Reference: smGlobalRef,
 			pulseSlot: &pulseSlot,
 		}
 	)
@@ -75,7 +73,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
@@ -108,7 +106,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.report = buildStateReport(payload.Empty, nil)
+	smReport.Report = buildStateReport(payload.Empty, nil)
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
