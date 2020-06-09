@@ -43,10 +43,12 @@ stepStartRequestProcessing --> stepExecuteStart : Jump
 stepStartRequestProcessing --> [*]
 stepStartRequestProcessing --> stepStartRequestProcessing : ThenRepeat
 migrateDuringExecution : INHERITED
+migrateDuringExecution --> stepGetDelegationToken : Jump
 stepExecuteStart : INHERITED
 stepExecuteStart : migrateDuringExecution
 stepExecuteStart -[#blue]-> migrateDuringExecution
 stepExecuteStart --> stepExecuteDecideNextStep : ThenJump
+stepGetDelegationToken : INHERITED
 stepExecuteDecideNextStep : INHERITED
 stepExecuteDecideNextStep : migrateDuringExecution
 stepExecuteDecideNextStep -[#blue]-> migrateDuringExecution
