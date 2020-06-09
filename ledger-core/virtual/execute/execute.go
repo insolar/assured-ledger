@@ -68,9 +68,9 @@ type SMExecute struct {
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
-	// todo: remove nolint in PLAT-309
-	// nolint
-	delegationToken payload.CallDelegationToken
+	delegationTokenSpec payload.CallDelegationToken
+	delegationTokenSign []byte
+	stepAfterTokenGet   smachine.SlotStep
 }
 
 /* -------- Declaration ------------- */
@@ -395,7 +395,30 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
 	s.migrationHappened = true
-	return ctx.Stay()
+
+	s.stepAfterTokenGet = ctx.AffectedStep()
+
+	return ctx.Jump(s.stepGetDelegationToken)
+}
+
+func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var requestPayload = payload.VDelegatedCallRequest{
+		Callee:             s.execution.Object,
+		CallFlags:          payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
+		RequestReference:   s.execution.Outgoing,
+		DelegationSpec:     s.delegationTokenSpec,
+		DelegatorSignature: s.delegationTokenSign,
+	}
+
+	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		if subroutineSM.response == nil {
+			panic(throw.IllegalState())
+		}
+		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		s.delegationTokenSign = subroutineSM.response.DelegatorSignature
+		return ctx.Jump(s.stepAfterTokenGet.Transition)
+	})
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
