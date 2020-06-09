@@ -136,7 +136,7 @@ func (i *Info) Descriptor() descriptor.Object {
 func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
 	minPulse := i.PendingTable.GetList(tolerance).EarliestPulse()
 	knownPulse := i.KnownRequests.GetList(tolerance).EarliestPulse()
-	if knownPulse != pulse.Unknown && knownPulse < minPulse {
+	if knownPulse != pulse.Unknown && (minPulse == pulse.Unknown || knownPulse < minPulse) {
 		minPulse = knownPulse
 	}
 	return minPulse
