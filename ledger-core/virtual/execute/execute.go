@@ -367,9 +367,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			return
 		}
 
-		if !requestList.Add(s.execution.Outgoing) {
-			ctx.Log().Warn("Request was not registered")
-		}
+		requestList.Add(s.execution.Outgoing)
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -412,7 +410,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		DelegatorSignature: s.delegationTokenSign,
 	}
 
-	subroutineSM := &SMVDelegatedCallRequest{Meta: s.Meta, RequestPayload: requestPayload}
+	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())

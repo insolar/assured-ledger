@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type SMVDelegatedCallRequest struct {
+type SMDelegatedTokenRequest struct {
 	// input arguments
 	Meta           *payload.Meta
 	RequestPayload payload.VDelegatedCallRequest
@@ -35,39 +35,39 @@ type SMVDelegatedCallRequest struct {
 
 /* -------- Declaration ------------- */
 
-var dSMVDelegatedCallResultInstance smachine.StateMachineDeclaration = &dSMVDelegatedCallRequest{}
+var dSMDelegatedTokenRequestInstance smachine.StateMachineDeclaration = &dSMDelegatedTokenRequest{}
 
-type dSMVDelegatedCallRequest struct {
+type dSMDelegatedTokenRequest struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVDelegatedCallRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
-	s := sm.(*SMVDelegatedCallRequest)
+func (*dSMDelegatedTokenRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := sm.(*SMDelegatedTokenRequest)
 
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 }
 
-func (*dSMVDelegatedCallRequest) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+func (*dSMDelegatedTokenRequest) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
 	return nil
 }
 
 /* -------- Instance ------------- */
 
-func (s *SMVDelegatedCallRequest) GetSubroutineInitState(_ smachine.SubroutineStartContext) smachine.InitFunc {
+func (s *SMDelegatedTokenRequest) GetSubroutineInitState(_ smachine.SubroutineStartContext) smachine.InitFunc {
 	return s.Init
 }
 
-func (s *SMVDelegatedCallRequest) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
-	return dSMVDelegatedCallResultInstance
+func (s *SMDelegatedTokenRequest) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return dSMDelegatedTokenRequestInstance
 }
 
-func (s *SMVDelegatedCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(s.migrationDefault)
+func (s *SMDelegatedTokenRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(s.migration)
 	return ctx.Jump(s.stepRegisterBargeIn)
 }
 
-func (s *SMVDelegatedCallRequest) stepRegisterBargeIn(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 		res, ok := param.(*payload.VDelegatedCallResponse)
 		if !ok || res == nil {
@@ -83,13 +83,13 @@ func (s *SMVDelegatedCallRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 	callOutgoing := gen.UniqueIDWithPulse(s.pulseSlot.PulseData().PulseNumber)
 	outgoingRef := reference.NewRecordOf(s.RequestPayload.Callee, callOutgoing)
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-		return ctx.Error(errors.New("failed to publish bargeInCallback"))
+		return ctx.Error(errors.New("failed to publish bargeIn callback"))
 	}
 	s.RequestPayload.RefIn = outgoingRef
 	return ctx.Jump(s.stepSendRequest)
 }
 
-func (s *SMVDelegatedCallRequest) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMDelegatedTokenRequest) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, &s.RequestPayload, node.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
@@ -103,7 +103,7 @@ func (s *SMVDelegatedCallRequest) stepSendRequest(ctx smachine.ExecutionContext)
 	return ctx.Sleep().ThenJump(s.stepProcessResult)
 }
 
-func (s *SMVDelegatedCallRequest) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMDelegatedTokenRequest) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.response == nil {
 		ctx.Sleep().ThenRepeat()
 	}
@@ -111,6 +111,6 @@ func (s *SMVDelegatedCallRequest) stepProcessResult(ctx smachine.ExecutionContex
 	return ctx.Stop()
 }
 
-func (s *SMVDelegatedCallRequest) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (s *SMDelegatedTokenRequest) migration(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
