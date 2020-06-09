@@ -97,8 +97,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 		slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 		slotMachine.Migrate()
 		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepGetDelegationToken))
-		var smVDelegatedCallRequest SMDelegatedTokenRequest
-		slotMachine.RunTil(smWrapper.AfterStep(smVDelegatedCallRequest.stepSendRequest))
+		slotMachine.RunTil(smWrapper.AfterStep(SMDelegatedTokenRequest{}.stepSendRequest))
 		slotLink, bargeInHolder := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(DelegationTokenAwaitKey{smExecute.execution.Outgoing})
 
 		require.False(t, slotLink.IsZero())
