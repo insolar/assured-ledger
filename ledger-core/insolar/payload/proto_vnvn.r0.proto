@@ -225,9 +225,9 @@ message VFindCallRequest {
 message VFindCallResponse {
     option (insproto.id) = 1012;
     enum CallState {
-        Missing = 0;
-        Unknown = 1;
-        Found = 2;
+        fMissing = 0;
+        fUnknown = 1;
+        fFound = 2;
     }
     bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     bytes Outgoing = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
