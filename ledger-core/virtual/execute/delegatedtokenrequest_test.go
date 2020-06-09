@@ -28,9 +28,8 @@ import (
 
 func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 	var (
-		mc       = minimock.NewController(t)
-		ctx      = inslogger.TestContext(t)
-		deadBeef = []byte{0xde, 0xad, 0xbe, 0xef}
+		mc  = minimock.NewController(t)
+		ctx = inslogger.TestContext(t)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t, true)
@@ -38,10 +37,11 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller    = gen.UniqueReference()
-		callee    = gen.UniqueReference()
-		outgoing  = gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		objectRef = reference.NewSelf(outgoing)
+		caller         = gen.UniqueReference()
+		callee         = gen.UniqueReference()
+		outgoing       = gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		objectRef      = reference.NewSelf(outgoing)
+		migrationPulse pulse.Number
 
 		smExecute = SMExecute{
 			Payload: &payload.VCallRequest{
@@ -85,7 +85,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 			require.True(t, ok)
 			require.NotNil(t, res)
 			require.Equal(t, objectRef, object)
-			require.Equal(t, slotMachine.PulseSlot.CurrentPulseNumber(), pn)
+			require.Equal(t, migrationPulse, pn)
 			return nil
 		})
 
@@ -96,21 +96,22 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 
 		slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 		slotMachine.Migrate()
+		migrationPulse = slotMachine.PulseSlot.CurrentPulseNumber()
 		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepGetDelegationToken))
-		slotMachine.RunTil(smWrapper.AfterStep(SMDelegatedTokenRequest{}.stepSendRequest))
+		var smDelegatedTokenRequest SMDelegatedTokenRequest
+		slotMachine.RunTil(smWrapper.AfterStep(smDelegatedTokenRequest.stepSendRequest))
 		slotLink, bargeInHolder := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(DelegationTokenAwaitKey{smExecute.execution.Outgoing})
 
 		require.False(t, slotLink.IsZero())
 		require.True(t, bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			DelegationSpec:     payload.CallDelegationToken{Outgoing: smExecute.execution.Outgoing},
-			DelegatorSignature: deadBeef,
+			DelegationSpec: payload.CallDelegationToken{Outgoing: smExecute.execution.Outgoing},
 		}))
 	}
 	{
 		slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepAfterTokenGet.Transition))
 
 		require.NotNil(t, smExecute.delegationTokenSpec)
-		require.Equal(t, deadBeef, smExecute.delegationTokenSign)
+		require.Equal(t, smExecute.execution.Outgoing, smExecute.delegationTokenSpec.Outgoing)
 	}
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
