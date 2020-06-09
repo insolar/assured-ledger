@@ -23,8 +23,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
+	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
@@ -232,9 +232,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 
-			var tokenService = token.NewService(ctx, nodeRef)
+			var authenticationService = authentication.NewService(ctx, nodeRef)
 
-			slotMachine.AddInterfaceDependency(&tokenService)
+			slotMachine.AddInterfaceDependency(&authenticationService)
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
 				Payload: &payload.VDelegatedCallRequest{

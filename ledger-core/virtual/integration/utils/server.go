@@ -28,12 +28,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
+	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
 type Server struct {
@@ -137,7 +137,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
-	virtualDispatcher.TokenService = token.NewService(ctx, s.caller)
+	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, s.caller)
 	virtualDispatcher.CycleFn = s.onCycle
 	s.virtual = virtualDispatcher
 

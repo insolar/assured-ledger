@@ -21,8 +21,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
 type SMVDelegatedCallRequest struct {
@@ -33,10 +33,10 @@ type SMVDelegatedCallRequest struct {
 	objectSharedState object.SharedStateAccessor
 
 	// dependencies
-	objectCatalog object.Catalog
-	messageSender messageSenderAdapter.MessageSender
-	tokenService  token.Service
-	pulseSlot     *conveyor.PulseSlot
+	objectCatalog         object.Catalog
+	messageSender         messageSenderAdapter.MessageSender
+	authenticationService authentication.Service
+	pulseSlot             *conveyor.PulseSlot
 }
 
 var dSMVDelegatedCallRequestInstance smachine.StateMachineDeclaration = &dSMVDelegatedCallRequest{}
@@ -51,7 +51,7 @@ func (*dSMVDelegatedCallRequest) InjectDependencies(sm smachine.StateMachine, _ 
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
-	injector.MustInject(&s.tokenService)
+	injector.MustInject(&s.authenticationService)
 }
 
 func (*dSMVDelegatedCallRequest) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -194,7 +194,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
-	token := s.tokenService.GetCallDelegationToken(s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
+	token := s.authenticationService.GetCallDelegationToken(s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
 
 	response := payload.VDelegatedCallResponse{
 		RefIn:          s.Payload.RefIn,

@@ -18,10 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
 func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
@@ -45,12 +45,12 @@ type Dispatcher struct {
 	MachineLogger  smachine.SlotMachineLogger
 
 	// CycleFn is called after every scan cycle done by conveyor worker
-	CycleFn  conveyor.PulseConveyorCycleFunc
+	CycleFn conveyor.PulseConveyorCycleFunc
 
 	// Components
-	Runner        runner.Service
-	MessageSender messagesender.Service
-	TokenService  token.Service
+	Runner                runner.Service
+	MessageSender         messagesender.Service
+	AuthenticationService authentication.Service
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
@@ -93,7 +93,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.AddInterfaceDependency(&lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
-	lr.Conveyor.AddInterfaceDependency(&lr.TokenService)
+	lr.Conveyor.AddInterfaceDependency(&lr.AuthenticationService)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
