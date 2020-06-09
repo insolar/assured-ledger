@@ -59,7 +59,7 @@ stepExecuteDecideNextStep --> stepExecuteDecideNextStep : ThenRepeat
 stepSaveNewObject : INHERITED
 stepSaveNewObject : migrateDuringExecution
 stepSaveNewObject -[#blue]-> migrateDuringExecution
-stepSaveNewObject --> stepSendDelegatedRequestFinished : Jump
+stepSaveNewObject --> stepSendCallResult : Jump
 stepSaveNewObject --> stepSendCallResult : Jump
 stepSaveNewObject --> stepSaveNewObject : ThenRepeat
 stepExecuteAborted : INHERITED
@@ -70,14 +70,10 @@ stepExecuteOutgoing : migrateDuringExecution
 stepExecuteOutgoing -[#blue]-> migrateDuringExecution
 stepExecuteOutgoing --> stepSendOutgoing : Jump
 stepExecuteOutgoing --> stepExecuteContinue : Jump
-stepSendDelegatedRequestFinished : INHERITED
-stepSendDelegatedRequestFinished : migrateDuringExecution
-stepSendDelegatedRequestFinished -[#blue]-> migrateDuringExecution
-stepSendDelegatedRequestFinished --> stepSendCallResult : Jump
 stepSendCallResult : INHERITED
 stepSendCallResult : migrateDuringExecution
 stepSendCallResult -[#blue]-> migrateDuringExecution
-stepSendCallResult --> [*]
+stepSendCallResult --> stepFinishRequest : Jump
 stepSendOutgoing : INHERITED
 stepSendOutgoing : migrateDuringExecution
 stepSendOutgoing -[#blue]-> migrateDuringExecution
@@ -85,4 +81,14 @@ stepExecuteContinue : INHERITED
 stepExecuteContinue : migrateDuringExecution
 stepExecuteContinue -[#blue]-> migrateDuringExecution
 stepExecuteContinue --> stepExecuteDecideNextStep : ThenJump
+stepFinishRequest : INHERITED
+stepFinishRequest : migrateDuringExecution
+stepFinishRequest -[#blue]-> migrateDuringExecution
+stepFinishRequest --> stepSendDelegatedRequestFinished : Jump
+stepFinishRequest --> [*]
+stepFinishRequest --> stepFinishRequest : ThenRepeat
+stepSendDelegatedRequestFinished : INHERITED
+stepSendDelegatedRequestFinished : migrateDuringExecution
+stepSendDelegatedRequestFinished -[#blue]-> migrateDuringExecution
+stepSendDelegatedRequestFinished --> [*]
 @enduml
