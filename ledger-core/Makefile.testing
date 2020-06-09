@@ -21,13 +21,13 @@ test_with_coverage: ## run unit and slow tests with generation of coverage file
 
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
+	pkill -9 insolard || echo "No insolard running" # dirty hack to terminate all insolard processes
 	PULSAR_ONESHOT=$(PULSAR_ONESHOT) \
 	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
-	pgrep insolard | xargs kill -9 # dirty hack to terminate all insolard processes
 	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' make test_func
 
 .PNONY: test_func_race
