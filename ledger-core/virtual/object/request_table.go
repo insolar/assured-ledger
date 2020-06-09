@@ -13,12 +13,12 @@ import (
 )
 
 type RequestTable struct {
-	lists map[contract.InterferenceFlag]RequestList
+	lists map[contract.InterferenceFlag]*RequestList
 }
 
 func NewRequestTable() RequestTable {
 	var rt RequestTable
-	rt.lists = make(map[contract.InterferenceFlag]RequestList)
+	rt.lists = make(map[contract.InterferenceFlag]*RequestList)
 
 	rt.lists[contract.CallTolerable] = NewRequestList()
 	rt.lists[contract.CallIntolerable] = NewRequestList()
@@ -29,8 +29,7 @@ func (rt *RequestTable) GetList(flag contract.InterferenceFlag) *RequestList {
 	if flag.IsZero() {
 		panic(throw.IllegalValue())
 	}
-	list := rt.lists[flag]
-	return &list
+	return rt.lists[flag]
 }
 
 func (rt *RequestTable) Len() int {
@@ -48,8 +47,8 @@ type RequestList struct {
 	requests      map[reference.Global]isActive
 }
 
-func NewRequestList() RequestList {
-	return RequestList{
+func NewRequestList() *RequestList {
+	return &RequestList{
 		requests: make(map[reference.Global]isActive),
 	}
 }
