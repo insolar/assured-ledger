@@ -69,7 +69,6 @@ type SMExecute struct {
 	objectCatalog     object.Catalog
 
 	delegationTokenSpec payload.CallDelegationToken
-	delegationTokenSign []byte
 	stepAfterTokenGet   smachine.SlotStep
 }
 
@@ -403,11 +402,10 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 
 func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var requestPayload = payload.VDelegatedCallRequest{
-		Callee:             s.execution.Object,
-		CallFlags:          payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
-		RequestReference:   s.execution.Outgoing,
-		DelegationSpec:     s.delegationTokenSpec,
-		DelegatorSignature: s.delegationTokenSign,
+		Callee:         s.execution.Object,
+		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
+		CallOutgoing:   s.execution.Outgoing,
+		DelegationSpec: s.delegationTokenSpec,
 	}
 
 	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
@@ -416,7 +414,6 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
-		s.delegationTokenSign = subroutineSM.response.DelegatorSignature
 		return ctx.Jump(s.stepAfterTokenGet.Transition)
 	})
 }

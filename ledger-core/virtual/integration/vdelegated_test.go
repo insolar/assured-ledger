@@ -72,9 +72,9 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := payload.VDelegatedCallRequest{
-			RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
-			Callee:           objectRef,
-			CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
+			Callee:       objectRef,
+			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
 
 		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).Finalize()
@@ -156,9 +156,9 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	{
 		// send VDelegatedCallRequest
 		pl := payload.VDelegatedCallRequest{
-			RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
-			Callee:           objectRef,
-			CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
+			Callee:       objectRef,
+			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
 		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 		server.SendMessage(ctx, msg)
