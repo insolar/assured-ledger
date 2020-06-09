@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 )
 
@@ -34,7 +34,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 			OrderedPendingCount: 1,
 			ProvidedContent:     nil,
 		})
-		smObjectAccessor = object.SharedReportAccessor{SharedDataLink: sharedStateData}
+		smObjectAccessor = finalizedstate.SharedReportAccessor{SharedDataLink: sharedStateData}
 	)
 
 	smVStateRequest := SMVStateRequest{

@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/utils"
 )
 
@@ -89,7 +90,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 		JumpMock.Set(stepChecker.CheckJumpW(t)).UnpublishAllMock.Return().
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
-		assert.Equal(t, BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
+		assert.Equal(t, finalizedstate.BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
 		assert.NotNil(t, data)
 		return true
 	})
@@ -142,7 +143,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 		JumpMock.Set(stepChecker.CheckJumpW(t)).UnpublishAllMock.Return().
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
-		assert.Equal(t, BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
+		assert.Equal(t, finalizedstate.BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
 		assert.NotNil(t, data)
 		return true
 	})
@@ -165,21 +166,4 @@ func newSMObjectWithPulse() *SMObject {
 	smObject.pulseSlot = &pulseSlot
 
 	return smObject
-}
-
-func newSMReportWithPulse() *SMStateReport {
-	var (
-		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
-		smReport    = &SMStateReport{
-			SMReport: SMReport{
-				Reference: smGlobalRef,
-			},
-			pulseSlot: &pulseSlot,
-		}
-	)
-
-	return smReport
 }

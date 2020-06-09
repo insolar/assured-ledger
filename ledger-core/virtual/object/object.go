@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 )
 
 type State int32
@@ -417,7 +418,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 	sdl := ctx.Share(&report, smachine.ShareDataUnbound)
-	if !ctx.Publish(BuildReportKey(sm.Reference, sm.pulseSlot.PulseData().PulseNumber), sdl) {
+	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference, sm.pulseSlot.PulseData().PulseNumber), sdl) {
 		ctx.Log().Warn(struct {
 			*log.Msg  `txt:"failed to publish state report"`
 			Reference string
@@ -432,8 +433,8 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 
 func (sm *SMObject) stepStartReportSM(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &SMStateReport{
-			SMReport: SMReport{
+		return &finalizedstate.SMStateReport{
+			SMReport: finalizedstate.SMReport{
 				Reference: sm.Reference,
 			},
 		}

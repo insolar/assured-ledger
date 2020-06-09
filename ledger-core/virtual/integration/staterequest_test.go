@@ -68,8 +68,6 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 	server.IncrementPulse(ctx)
 
-	server.WaitActiveThenIdleConveyor()
-
 	// skip StateReport from Pulse
 	<-reportChan
 
@@ -127,8 +125,6 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 	server.IncrementPulse(ctx)
 
-	server.WaitActiveThenIdleConveyor()
-
 	// skip StateReport from Pulse
 	<-reportChan
 
@@ -179,8 +175,6 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	})
 
 	server.IncrementPulse(ctx)
-
-	server.WaitActiveThenIdleConveyor()
 
 	objectRef := gen.UniqueReference()
 
