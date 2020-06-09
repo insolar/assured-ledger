@@ -103,6 +103,10 @@ type PulseConveyor struct {
 	stoppingChan <-chan struct{}
 }
 
+func (p *PulseConveyor) GetDataManager() *PulseDataManager {
+	return &p.pdm
+}
+
 func (p *PulseConveyor) AddDependency(v interface{}) {
 	p.slotMachine.AddDependency(v)
 }
@@ -171,7 +175,7 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 
 	case pulseState == Antique:
 		// Antique events have individual pulse slots, while being executed in a single SlotMachine
-		if cps, ok := p.pdm.getCachedPulseSlot(targetPN); ok {
+		if cps := p.pdm.getCachedPulseSlot(targetPN); cps != nil {
 			createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
 			break // add SM
 		}
@@ -411,10 +415,7 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 			}
 		}
 
-		pr.EnumNonArticulatedData(func(data pulse.Data) bool {
-			p.pdm.putPulseData(data) // add to the recent cache
-			return false
-		})
+		p.pdm.putPulseRange(pr)
 
 		if p.presentMachine != nil {
 			p.presentMachine.setPast()
@@ -457,7 +458,7 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr p
 	if activatePresent {
 		p.presentMachine.activate(p.workerCtx, ctx.AddNew)
 	}
-	p.pdm.setPresentPulse(pd) // reroutes incoming events
+	p.pdm.setPresentPulse(pr) // reroutes incoming events
 }
 
 func (p *PulseConveyor) StopNoWait() {

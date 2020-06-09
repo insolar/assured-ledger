@@ -23,20 +23,22 @@ type Range interface {
 	// IsSingular indicates that this range is a singular and contains only one pulse.
 	IsSingular() bool
 
-	// Iterates from smaller to higher pulses, over both provided and articulated pulses within the range.
+	// EnumNumbers iterates from smaller to higher pulses, over both provided and articulated pulses within the range.
 	EnumNumbers(fn FindNumberFunc) bool
-	// Iterates from smaller to higher pulses, only over the provided pulse data within the range.
+	// EnumNonArticulatedNumbers iterates from smaller to higher pulses, only over the provided pulse data within the range.
 	EnumNonArticulatedNumbers(fn FindNumberFunc) bool
 
-	// Iterates from smaller to higher pulses, over both provided and articulated pulse data within the range.
+	// EnumData iterates from smaller to higher pulses, over both provided and articulated pulse data within the range.
 	EnumData(func(Data) bool) bool
-	// Iterates from smaller to higher pulses, only over the provided pulse data within the range.
+	// EnumNonArticulatedData iterates from smaller to higher pulses, only over the provided pulse data within the range.
 	EnumNonArticulatedData(func(Data) bool) bool
 
-	// Return true then the given range is next immediate range
+	// IsValidNext returns true then the given range is next immediate range
 	IsValidNext(Range) bool
-	// Return true then the given range is prev immediate range
+	// IsValidPrev returns true then the given range is prev immediate range
 	IsValidPrev(Range) bool
+	// Equal returns true when both ranges are equal
+	Equal(Range) bool
 }
 
 // Creates a range that covers a gap between the last expected pulse and the last available one.
@@ -179,6 +181,13 @@ func (p OnePulseRange) LeftPrevDelta() uint16 {
 	return p.data.PrevPulseDelta
 }
 
+func (p OnePulseRange) Equal(o Range) bool {
+	if po, ok := o.(OnePulseRange); ok {
+		return p == po
+	}
+	return false
+}
+
 /* ===================================================== */
 
 type templatePulseRange struct {
@@ -246,12 +255,34 @@ func (p gapPulseRange) IsArticulated() bool {
 	return true
 }
 
+func (p gapPulseRange) Equal(o Range) bool {
+	if po, ok := o.(gapPulseRange); ok {
+		return p == po
+	}
+	return false
+}
+
 /* ===================================================== */
 var _ Range = seqPulseRange{}
 
 type seqPulseRange struct {
 	templatePulseRange
 	data []Data
+}
+
+func (p seqPulseRange) Equal(o Range) bool {
+	if po, ok := o.(seqPulseRange); ok {
+		if len(p.data) != len(po.data) {
+			return false
+		}
+		for i := range p.data {
+			if p.data[i] != po.data[i] {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func (p seqPulseRange) IsValidNext(a Range) bool {
@@ -323,6 +354,21 @@ var _ Range = sparsePulseRange{}
 type sparsePulseRange struct {
 	templatePulseRange
 	data []Data
+}
+
+func (p sparsePulseRange) Equal(o Range) bool {
+	if po, ok := o.(sparsePulseRange); ok {
+		if len(p.data) != len(po.data) {
+			return false
+		}
+		for i := range p.data {
+			if p.data[i] != po.data[i] {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func (p sparsePulseRange) IsValidNext(a Range) bool {

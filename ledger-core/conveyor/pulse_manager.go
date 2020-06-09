@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester
@@ -35,7 +36,7 @@ type PulseDataManager struct {
 }
 
 type PulseDataService interface {
-	LoadPulseData(context.Context, pulse.Number) (pulse.Data, bool)
+	LoadPulseData(context.Context, pulse.Number) (pulse.Range, bool)
 }
 
 func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax, parallelReaders int) PulseDataServicePrepareFunc {
@@ -86,6 +87,21 @@ func (p *PulseDataManager) GetPresentPulse() (present pulse.Number, nearestFutur
 	return p._split(v)
 }
 
+func (p *PulseDataManager) GetPrevPulseRange() (pulse.Number, pulse.Range) {
+	if ppn, _ := p.GetPresentPulse(); ppn.IsTimePulse() {
+		if ppr := p.GetPulseRange(ppn); ppr != nil {
+			// check if this is the very first pulse
+			if prevDelta := ppr.LeftPrevDelta(); prevDelta > 0 {
+				if prevPulse, ok := ppr.LeftBoundNumber().TryPrev(prevDelta); ok {
+					return prevPulse, p.GetPulseRange(prevPulse)
+				}
+			}
+		}
+	}
+
+	return 0, nil
+}
+
 func (p *PulseDataManager) setUninitializedFuturePulse(futurePN pulse.Number) bool {
 	return atomic.CompareAndSwapUint64(&p.presentAndFuturePulse, 0, uint64(futurePN)<<32)
 }
@@ -94,13 +110,14 @@ func (*PulseDataManager) _split(v uint64) (present pulse.Number, nearestFuture p
 	return pulse.Number(v), pulse.Number(v >> 32)
 }
 
-func (p *PulseDataManager) setPresentPulse(pd pulse.Data) {
+func (p *PulseDataManager) setPresentPulse(pr pulse.Range) {
+	pd := pr.RightBoundData()
 	presentPN := pd.PulseNumber
 	futurePN := pd.NextPulseNumber()
 
-	if epd, ok := p.cache.Check(presentPN); ok {
-		if epd != pd {
-			panic("illegal state")
+	if epr := p.cache.Check(presentPN); epr != nil {
+		if !pr.Equal(epr) {
+			panic(throw.IllegalState())
 		}
 	}
 
@@ -140,10 +157,17 @@ func (p *PulseDataManager) unsetPreparingPulse() {
 }
 
 func (p *PulseDataManager) GetPulseData(pn pulse.Number) (pulse.Data, bool) {
+	if pr := p.cache.Get(pn); pr != nil {
+		return pr.RightBoundData(), true
+	}
+	return pulse.Data{}, false
+}
+
+func (p *PulseDataManager) GetPulseRange(pn pulse.Number) pulse.Range {
 	return p.cache.Get(pn)
 }
 
-func (p *PulseDataManager) getCachedPulseSlot(pn pulse.Number) (*PulseSlot, bool) {
+func (p *PulseDataManager) getCachedPulseSlot(pn pulse.Number) *PulseSlot {
 	return p.cache.getPulseSlot(pn)
 }
 
@@ -190,9 +214,9 @@ func (p *PulseDataManager) isRecentPastRange(presentPN pulse.Number, pastPN puls
 		pastPN >= p.getEarliestCacheBound() // this interval can be much narrower for a recently started node
 }
 
-func (p *PulseDataManager) PreparePulseDataRequest(ctx smachine.ExecutionContext,
+func (p *PulseDataManager) preparePulseDataRequest(ctx smachine.ExecutionContext,
 	pn pulse.Number,
-	resultFn func(isAvailable bool, pd pulse.Data),
+	resultFn func(pr pulse.Range),
 ) smachine.AsyncCallRequester {
 	switch {
 	case resultFn == nil:
@@ -200,24 +224,24 @@ func (p *PulseDataManager) PreparePulseDataRequest(ctx smachine.ExecutionContext
 	case p.pulseDataAdapterFn == nil:
 		panic("illegal state")
 	}
-	if pd, ok := p.GetPulseData(pn); ok {
-		resultFn(ok, pd)
+	if pr := p.GetPulseRange(pn); pr != nil {
+		resultFn(pr)
 	}
 
 	return p.pulseDataAdapterFn(ctx, func(ctx context.Context, svc PulseDataService) smachine.AsyncResultFunc {
-		pd, ok := svc.LoadPulseData(ctx, pn)
+		pr, ok := svc.LoadPulseData(ctx, pn)
 
 		return func(ctx smachine.AsyncResultContext) {
-			if ok && pd.IsValidPulsarData() {
-				p.putPulseData(pd)
-				resultFn(ok, pd)
+			if ok && pr.RightBoundData().IsValidPulsarData() {
+				p.putPulseRange(pr)
+				resultFn(pr)
 			} else {
-				resultFn(false, pulse.Data{})
+				resultFn(nil)
 			}
 		}
 	}).WithFlags(smachine.AutoWakeUp)
 }
 
-func (p *PulseDataManager) putPulseData(data pulse.Data) {
-	p.cache.Put(data)
+func (p *PulseDataManager) putPulseRange(pr pulse.Range) {
+	p.cache.Put(pr)
 }
