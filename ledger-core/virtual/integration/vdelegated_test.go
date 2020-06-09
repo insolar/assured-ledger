@@ -178,6 +178,6 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		require.FailNow(t, "timeout")
 	}
 
-	server.WaitActiveThenIdleConveyor()
+	server.WaitIdleConveyor()
 	mc.Finish()
 }
