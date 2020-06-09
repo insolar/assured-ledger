@@ -494,10 +494,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	case executionevent.CallConstructor:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoing.DelegationSpec = s.delegationToken
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoing.DelegationSpec = s.delegationToken
 		s.outgoingObject = s.outgoing.Callee
 	default:
 		panic(throw.IllegalValue())
@@ -708,6 +710,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallIncomingResult: reference.Local{},
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
+		DelegationSpec:     s.delegationToken,
 	}
 	target := s.Meta.Sender
 
