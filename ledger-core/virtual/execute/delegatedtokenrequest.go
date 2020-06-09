@@ -83,7 +83,7 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 		}
 	})
 
-	key := DelegationTokenAwaitKey{s.RequestPayload.RequestReference}
+	key := DelegationTokenAwaitKey{s.RequestPayload.CallOutgoing}
 
 	if !ctx.PublishGlobalAliasAndBargeIn(key, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeIn callback"))

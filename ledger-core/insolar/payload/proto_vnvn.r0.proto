@@ -44,11 +44,9 @@ message VCallRequest {
 
     bytes PayloadHash = 33;
     CallDelegationToken DelegationSpec = 34;
-    bytes DelegatorSignature = 35;
     bytes ProducerSignature = 36;
     bytes RegistrarSignature = 37;
     CallDelegationToken RegistrarDelegationSpec = 38;
-    bytes RegistrarDelegatorSignature = 39;
 
     int32 CallRequestFlags = 40 [(gogoproto.casttype) = "CallRequestFlags", (insproto.zeroable) = false];
     bytes KnownCalleeIncoming = 41 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
@@ -77,14 +75,12 @@ message VCallResult {
 
     bytes PayloadHash = 28;
     CallDelegationToken DelegationSpec = 29;
-    bytes DelegatorSignature = 30;
 
     bytes CallIncomingResult = 31 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Local", (insproto.zeroable) = false];
 
     bytes ProducerSignature = 32;
     bytes RegistrarSignature = 33;
     CallDelegationToken RegistrarDelegationSpec = 34;
-    bytes RegistrarDelegatorSignature = 35;
     bytes EntryHeadHash = 36;
 
     bytes SecurityContext = 37;
@@ -103,7 +99,6 @@ message VStateRequest {
     bytes SupportedExtensions = 24;
 
     CallDelegationToken DelegationSpec = 25;
-    bytes DelegatorSignature = 26;
     bytes ProducerSignature = 27;
 
     int32 CallRequestFlags = 28;
@@ -125,7 +120,6 @@ message VStateReport {
     bytes Callee = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
 
     CallDelegationToken DelegationSpec = 23;
-    bytes DelegatorSignature = 24;
 
     int32 UnorderedPendingCount = 25;
     uint32 UnorderedPendingEarliestPulse = 26 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (insproto.zeroable) = false];
@@ -172,7 +166,6 @@ message VPendingDelegationRequest {
     bytes Request = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
 
     CallDelegationToken DelegationSpec = 22;
-    bytes DelegatorSignature = 23;
 }
 
 message VDelegatedRequestFinished {
@@ -186,7 +179,6 @@ message VDelegatedRequestFinished {
     bytes CallIncoming = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Local", (insproto.zeroable) = false];
 
     CallDelegationToken DelegationSpec = 26;
-    bytes DelegatorSignature = 27;
 
     bytes EntryHeadHash = 28;
     ObjectState LatestState = 29 [(gogoproto.nullable) = true];
@@ -197,20 +189,17 @@ message VDelegatedCallRequest {
 
     bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     uint32 CallFlags = 21 [(gogoproto.customtype) = "CallFlags", (insproto.zeroable) = false];
-    bytes RequestReference = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    bytes CallOutgoing = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     bytes RecordHead = 23 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    bytes RefOut = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    bytes RefIn = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    CallDelegationToken DelegationSpec = 26;
-    bytes DelegatorSignature = 27;
+    bytes CallIncoming = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    CallDelegationToken DelegationSpec = 25;
 }
 
 message VDelegatedCallResponse {
     option (insproto.id) = 1009;
 
-    bytes RefIn = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    bytes CallIncoming = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     CallDelegationToken DelegationSpec = 21;
-    bytes DelegatorSignature = 22;
 }
 
 message CallDelegationToken {
