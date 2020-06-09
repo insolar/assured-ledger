@@ -247,9 +247,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
 				Payload: &payload.VDelegatedCallRequest{
-					RequestReference: tc.requestRef,
-					CallFlags:        callFlags,
-					Callee:           objectRef,
+					CallOutgoing: tc.requestRef,
+					CallFlags:    callFlags,
+					Callee:       objectRef,
 				},
 				Meta: &payload.Meta{
 					Sender: caller,
