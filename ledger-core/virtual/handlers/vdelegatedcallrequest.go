@@ -194,7 +194,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
-	token := s.tokenService.GetCallDelegationToken(s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
+	token := s.tokenService.GetCallDelegationToken(s.Payload.RequestReference, s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
 
 	response := payload.VDelegatedCallResponse{
 		RefIn:          s.Payload.RefIn,
