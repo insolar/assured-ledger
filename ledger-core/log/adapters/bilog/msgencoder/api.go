@@ -26,6 +26,8 @@ type Encoder interface {
 	PrepareBuffer(dst []byte, key string, level log.Level) []byte
 	FinalizeBuffer(dst []byte, metricTime time.Time) []byte
 
+	AppendParts(b []byte, bb [][]byte) []byte
+
 	AppendIntField(b []byte, key string, v int64, fmt logfmt.LogFieldFormat) []byte
 	AppendUintField(b []byte, key string, v uint64, fmt logfmt.LogFieldFormat) []byte
 	AppendBoolField(b []byte, key string, v bool, fmt logfmt.LogFieldFormat) []byte
