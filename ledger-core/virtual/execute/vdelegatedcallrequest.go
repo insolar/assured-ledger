@@ -91,7 +91,7 @@ func (s *SMVDelegatedCallRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 
 func (s *SMVDelegatedCallRequest) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &s.RequestPayload, node.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.PulseData().PulseNumber)
+		err := svc.SendRole(goCtx, &s.RequestPayload, node.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
