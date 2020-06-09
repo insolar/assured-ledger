@@ -147,7 +147,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 
 		latestState := delegateFinishedMsg.LatestState
 		require.Equal(t, newRawWalletState, latestState.State)
-	case <-time.After(100 * time.Second):
+	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
 	}
 
