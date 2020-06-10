@@ -651,9 +651,8 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		CallType:     s.Payload.CallType,
 		CallFlags:    s.Payload.CallFlags,
 		Callee:       s.execution.Object,
-		ResultFlags:  nil,
-		CallOutgoing: s.Payload.CallOutgoing,
-		CallIncoming: reference.Local{},
+		CallOutgoing: s.execution.Outgoing,
+		CallIncoming: s.execution.Incoming,
 		LatestState:  lastState,
 	}
 
