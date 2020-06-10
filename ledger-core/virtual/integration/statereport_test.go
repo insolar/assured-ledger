@@ -41,7 +41,7 @@ func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global,
 }
 
 func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Global,
-	stateStatus payload.VStateReport_StateStatus, state *payload.ObjectState) *message.Message {
+	stateStatus payload.VStateReport_StateStatus, state *payload.ObjectState, sender reference.Global) *message.Message {
 	payload := &payload.VStateReport{
 		Status: stateStatus,
 		Object: objectRef,
@@ -50,7 +50,7 @@ func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Glo
 		},
 	}
 
-	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
+	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
 }
 
 func makeRawWalletState(t *testing.T, balance uint32) []byte {
@@ -79,6 +79,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -98,6 +99,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -127,12 +129,13 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
 
 	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
-		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil)
+		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 }
@@ -142,6 +145,7 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -155,7 +159,7 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
-		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil)
+		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 
