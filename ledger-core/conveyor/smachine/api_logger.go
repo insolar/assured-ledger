@@ -253,6 +253,7 @@ func (p Logger) adapterCall(flags StepLoggerFlags, adapterID AdapterID, callID u
 	}
 }
 
+// Test will only send the given event when SM runs under step debugger. This method shall never report into a log.
 // NB! keep method simple to ensure inlining
 func (p Logger) Test(msg interface{}) {
 	if stepLogger := p._checkTestLog(); stepLogger != nil {
