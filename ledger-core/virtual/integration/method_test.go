@@ -249,24 +249,21 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceCache(cacheMock.Mock())
 
 	objectLocal := gen.UniqueID()
+	objectRef := reference.NewSelf(objectLocal)
+
 	err = Method_PrepareObject(ctx, server, class, objectLocal)
 	require.NoError(t, err)
 
 	{
 		requestIsDone := make(chan struct{}, 2)
-		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
+		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			defer func() { requestIsDone <- struct{}{} }()
 
-			pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-			require.NoError(t, err)
+			require.Equal(t, res.ReturnArguments, []byte("345"))
+			require.Equal(t, res.Callee, objectRef)
 
-			switch pl.(type) {
-			case *payload.VCallResult:
-			default:
-				require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
-			}
-
-			return nil
+			return false // no resend msg
 		})
 
 		for i := 0; i < 2; i++ {
@@ -275,7 +272,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
-				Callee:              reference.NewSelf(objectLocal),
+				Callee:              objectRef,
 				CallSiteDeclaration: class,
 				CallSiteMethod:      "GetBalance",
 				CallRequestFlags:    0,
@@ -305,6 +302,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			}
 		}
 	}
+
+	mc.Finish()
 }
 
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
@@ -343,7 +342,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		return nil
 	})
 
-	server.IncrementPulse(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -358,7 +357,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	server.WaitActiveThenIdleConveyor()
 
 	// Change pulse to force send VStateRequest
-	server.IncrementPulse(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	checkBalance(ctx, t, server, objectRef, testBalance)
 
