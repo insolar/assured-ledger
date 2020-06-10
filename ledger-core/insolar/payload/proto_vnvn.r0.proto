@@ -214,3 +214,23 @@ message CallDelegationToken {
     bytes Outgoing = 26 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     bytes ApproverSignature = 27;
 }
+
+message VFindCallRequest {
+    option (insproto.id) = 1011;
+    uint32 LookAt = 20 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (insproto.zeroable) = false];
+    bytes Callee = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    bytes Outgoing = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+}
+
+message VFindCallResponse {
+    option (insproto.id) = 1012;
+    enum CallState {
+        MissingCall = 0;
+        UnknownCall = 1;
+        FoundCall = 2;
+    }
+    bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    bytes Outgoing = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    CallState Status = 22;
+    VCallResult CallResult = 23 [(gogoproto.nullable) = true];
+}
