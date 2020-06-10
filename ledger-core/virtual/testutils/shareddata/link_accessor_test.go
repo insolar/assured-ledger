@@ -28,4 +28,5 @@ func TestCallSharedDataAccessor(t *testing.T) {
 
 	require.Equal(t, data, unwrapped.link.data)
 	require.Equal(t, reflectkit.CodeOf(accessFn), reflectkit.CodeOf(unwrapped.accessFn))
+	require.Equal(t, smachine.ShareDataUnbound, unwrapped.link.flags)
 }

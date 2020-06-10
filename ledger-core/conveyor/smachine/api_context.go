@@ -217,7 +217,7 @@ type ShareDataFlags uint32
 
 const (
 	// ShareDataWakesUpAfterUse requires that SM called Share() to be woken up after each use of the shared data.
-	ShareDataWakesUpAfterUse = 1 << iota
+	ShareDataWakesUpAfterUse ShareDataFlags = 1 << iota
 
 	// ShareDataUnbound marks the shared data as immediately accessible and unbound.
 	// WARNING! Can ONLY be used for concurrency-safe data. Must NOT keep references to SM or its fields.
