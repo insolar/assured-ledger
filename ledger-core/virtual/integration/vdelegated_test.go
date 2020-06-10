@@ -49,7 +49,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VStateReport: save wallet
 		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-		rawWalletState := makeRawWalletState(t, testBalance)
+		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
 			Callee:                        objectRef,
@@ -119,7 +119,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	{
 		// send VStateReport: save wallet
 		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-		rawWalletState := makeRawWalletState(t, testBalance)
+		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
 			Callee:                        objectRef,

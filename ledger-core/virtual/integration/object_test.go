@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,49 +22,43 @@ import (
 func TestInitViaCTMethod(t *testing.T) {
 	t.Log("C4867")
 
+	var (
+		mc = minimock.NewController(t)
+	)
+
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	// Call method on non-existent object, expect calling of VStateRequest
-	pl := payload.VCallRequest{
-		CallType:  payload.CTMethod,
-		Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
-		CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-	}
-
-	requestIsDone := make(chan struct{}, 0)
-
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		defer func() { requestIsDone <- struct{}{} }()
-
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		require.NoError(t, err)
-
-		switch request := pl.(type) {
-		case *payload.VStateRequest:
-			for _, flag := range []payload.StateRequestContentFlags{payload.RequestLatestValidatedState, payload.RequestLatestDirtyState,
-				payload.RequestOrderedQueue, payload.RequestUnorderedQueue} {
-				assert.True(t, request.RequestedContent.Contains(flag))
-			}
-		default:
-			require.Failf(t, "", "bad payload type, expected %s, got %T", "*payload.VCallResult", pl)
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VStateRequest.Set(func(request *payload.VStateRequest) bool {
+		for _, flag := range []payload.StateRequestContentFlags{
+			payload.RequestLatestValidatedState,
+			payload.RequestLatestDirtyState,
+			payload.RequestOrderedQueue,
+			payload.RequestUnorderedQueue,
+		} {
+			assert.True(t, request.RequestedContent.Contains(flag))
 		}
-
-		return nil
+		return false
 	})
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
-	server.SendMessage(ctx, msg)
-
-	select {
-	case <-requestIsDone:
-		require.Failf(t, "", "SM Object needs to wait until sm.waitGetStateUntil")
-	case <-time.After(500 * time.Millisecond):
+	{
+		// Call method on non-existent object, expect calling of VStateRequest
+		pl := payload.VCallRequest{
+			CallType:  payload.CTMethod,
+			Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
+			CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		}
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		server.SendMessage(ctx, msg)
 	}
 
-	select {
-	case <-requestIsDone:
-	case <-time.After(1 * time.Second):
+	// potentially failing test, if execution would sleep for some time before that check
+	if server.PublisherMock.WaitCount(1, 500*time.Millisecond) {
+		require.Failf(t, "", "SM Object needs to wait until sm.waitGetStateUntil (potentialy failing)")
+	}
+
+	if !server.PublisherMock.WaitCount(1, 1*time.Second) {
 		require.Failf(t, "", "timeout")
 	}
 }
