@@ -107,10 +107,10 @@ type InOrderStepContext interface {
 
 	// SetDefaultMigration sets a handler for migrations. Is applied when current SlotStep has no migration handler.
 	// MUST be fast as it blocks whole SlotMachine and can't be detached.
-	SetDefaultMigration(fn MigrateFunc)
+	SetDefaultMigration(MigrateFunc)
 	// SetDefaultErrorHandler sets a handler for errors and panics. Is applied when current SlotStep has no error handler.
 	// MUST be fast as it blocks whole SlotMachine and can't be detached.
-	SetDefaultErrorHandler(fn ErrorHandlerFunc)
+	SetDefaultErrorHandler(ErrorHandlerFunc)
 	// SetDefaultFlags sets default flags that are merged when SlotStep is set.
 	SetDefaultFlags(StepFlags)
 	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
@@ -126,7 +126,7 @@ type InOrderStepContext interface {
 	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
 	SetLogTracing(bool)
 	// UpdateDefaultStepLogger overrides default step logger. Current logger is provided as argument. Update func can return nil.
-	UpdateDefaultStepLogger(updateFn StepLoggerUpdateFunc)
+	UpdateDefaultStepLogger(StepLoggerUpdateFunc)
 
 	// Jump creates an update to go to the next step. Flags, migrate and error handlers are provided by SetDefaultXXX()
 	Jump(StateFunc) StateUpdate
@@ -148,7 +148,7 @@ type InOrderStepContext interface {
 	Unshare(SharedDataLink) bool
 
 	// Publish makes the data to be directly accessible via GetPublished().
-	// Data is unpublished when this SM is stopped.
+	// Data is unpublished when this SM is stopped, except for SharedDataLink with ShareDataUnbound flag.
 	// Visibility of key/data is limited by the SlotMachine running this SM.
 	//
 	// WARNING! There are NO safety guarantees. Publish only immutable data, e.g. publish SharedDataLink.
@@ -156,9 +156,9 @@ type InOrderStepContext interface {
 	// It is recommended to use typed wrappers to access the data.
 	Publish(key, data interface{}) bool
 	// Unpublish returns false when key is not in use or the key was published by a different SM.
-	// Is always able to unpublish link with ShareDataUnbound flag.
+	// Can always unpublish a key that maps to SharedDataLink with ShareDataUnbound flag.
 	Unpublish(key interface{}) bool
-	// UnpublishAll removes all keys published by this SM.
+	// UnpublishAll removes all keys published by this SM, except for SharedDataLink with ShareDataUnbound.
 	UnpublishAll()
 
 	// GetPublished reads data shared by Publish().
