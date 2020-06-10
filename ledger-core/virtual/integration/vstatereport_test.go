@@ -47,7 +47,7 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 
 	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
 		// we want to change pulse during execution
-		server.IncrementPulse(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
 
 		emptyResult := makeEmptyResult(t)
 		return newRawWalletState, emptyResult, nil
