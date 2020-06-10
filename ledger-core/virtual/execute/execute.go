@@ -421,7 +421,14 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state runner.RunState) {
 		s.run = state
-	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
+}
+
+func (s *SMExecute) stepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.run == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
+	return ctx.Jump(s.stepExecuteDecideNextStep)
 }
 
 func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -536,7 +543,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
 
-	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -573,13 +580,13 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-		action := func(state *object.SharedState) {
-			state.Info.SetDescriptor(s.newObjectDescriptor)
+	action := func(state *object.SharedState) {
+		state.Info.SetDescriptor(s.newObjectDescriptor)
 
-			if state.GetState() == object.Empty {
-				state.SetState(object.HasState)
-			}
+		if state.GetState() == object.Empty {
+			state.SetState(object.HasState)
 		}
+	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
@@ -714,7 +721,6 @@ func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.St
 
 	return ctx.Stop()
 }
-
 
 func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()

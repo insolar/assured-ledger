@@ -47,8 +47,13 @@ migrateDuringExecution --> stepGetDelegationToken : Jump
 stepExecuteStart : INHERITED
 stepExecuteStart : migrateDuringExecution
 stepExecuteStart -[#blue]-> migrateDuringExecution
-stepExecuteStart --> stepExecuteDecideNextStep : ThenJump
+stepExecuteStart --> stepWaitExecutionResult : ThenJump
 stepGetDelegationToken : INHERITED
+stepWaitExecutionResult : INHERITED
+stepWaitExecutionResult : migrateDuringExecution
+stepWaitExecutionResult -[#blue]-> migrateDuringExecution
+stepWaitExecutionResult --> stepExecuteDecideNextStep : Jump
+stepWaitExecutionResult --> stepWaitExecutionResult : ThenRepeat
 stepExecuteDecideNextStep : INHERITED
 stepExecuteDecideNextStep : migrateDuringExecution
 stepExecuteDecideNextStep -[#blue]-> migrateDuringExecution
@@ -80,7 +85,7 @@ stepSendOutgoing -[#blue]-> migrateDuringExecution
 stepExecuteContinue : INHERITED
 stepExecuteContinue : migrateDuringExecution
 stepExecuteContinue -[#blue]-> migrateDuringExecution
-stepExecuteContinue --> stepExecuteDecideNextStep : ThenJump
+stepExecuteContinue --> stepWaitExecutionResult : ThenJump
 stepFinishRequest : INHERITED
 stepFinishRequest : migrateDuringExecution
 stepFinishRequest -[#blue]-> migrateDuringExecution
