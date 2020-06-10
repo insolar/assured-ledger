@@ -8,7 +8,7 @@ package filaments
 import (
 	"math"
 
-	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag"
+	"github.com/insolar/assured-ledger/ledger-core/drafts/dropbag"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 

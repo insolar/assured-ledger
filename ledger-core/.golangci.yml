@@ -4,7 +4,7 @@ run:
   skip-dirs:
     - application/contract/
     - application/proxy/
-    - ledger-v2/*
+    - drafts/*
 
 linters:
   enable:
