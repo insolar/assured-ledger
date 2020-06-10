@@ -250,7 +250,8 @@ func MapBasicLogLevel(data smachine.StepLoggerData) (log.Level, string) {
 
 func _mapLogLevel(eventType smachine.StepLoggerEvent, data smachine.StepLoggerData) (log.Level, string) {
 	if data.Error != nil {
-		replace := eventType
+		var replace smachine.StepLoggerEvent
+
 		switch data.Flags.ErrorFlags() {
 		case smachine.StepLoggerUpdateErrorMuted:
 			replace = smachine.StepLoggerWarn
@@ -260,16 +261,15 @@ func _mapLogLevel(eventType smachine.StepLoggerEvent, data smachine.StepLoggerDa
 			return MapLogEvent(eventType, smachine.StepLogLevelError)
 		}
 
-		if eventType.IsEvent() && eventType > replace {
+		if eventType > replace && eventType.IsEvent() {
 			eventType = replace
 		}
 	}
 
 	if data.IsElevated() {
 		return MapLogEvent(eventType, smachine.StepLogLevelElevated)
-	} else {
-		return MapLogEvent(eventType, smachine.StepLogLevelDefault)
 	}
+	return MapLogEvent(eventType, smachine.StepLogLevelDefault)
 }
 
 func MapLogEvent(eventType smachine.StepLoggerEvent, stepLevel smachine.StepLogLevel) (log.Level, string) {
