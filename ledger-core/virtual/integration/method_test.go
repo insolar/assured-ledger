@@ -342,7 +342,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		return nil
 	})
 
-	server.IncrementPulse(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	testBalance := uint32(555)
 	rawWalletState := makeRawWalletState(t, testBalance)
@@ -357,7 +357,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	server.WaitActiveThenIdleConveyor()
 
 	// Change pulse to force send VStateRequest
-	server.IncrementPulse(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	checkBalance(ctx, t, server, objectRef, testBalance)
 

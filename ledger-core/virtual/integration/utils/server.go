@@ -162,7 +162,7 @@ func (s *Server) Init(ctx context.Context) {
 	}
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
-	s.IncrementPulse(ctx)
+	s.IncrementPulseAndWaitIdle(ctx)
 }
 
 func (s *Server) GetPulse() pulsestor.Pulse {
@@ -182,6 +182,10 @@ func (s *Server) IncrementPulse(ctx context.Context) {
 	defer s.pulseLock.Unlock()
 
 	s.incrementPulse(ctx)
+}
+
+func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
+	s.IncrementPulse(ctx)
 
 	s.WaitActiveThenIdleConveyor()
 }
