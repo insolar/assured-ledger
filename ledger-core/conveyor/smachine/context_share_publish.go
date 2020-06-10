@@ -193,7 +193,7 @@ func (m *SlotMachine) TryUnsafeUnpublish(key interface{}) (keyExists, wasUnpubli
 		if sdl, ok := v.(SharedDataLink); ok {
 			valueOwner := sdl.link
 			// This is the most likely case ... yet it doesn't cover all the cases
-			if valueOwner.isMachine(m) && m._unregisterSlotBoundAlias(valueOwner.SlotID(), key) {
+			if valueOwner.IsValid() && valueOwner.isMachine(m) && m._unregisterSlotBoundAlias(valueOwner.SlotID(), key) {
 				return true, true
 			}
 		}
