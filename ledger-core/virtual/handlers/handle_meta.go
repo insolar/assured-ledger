@@ -97,11 +97,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage, authService authentica
 		}, nil
 	}
 
-	logger.Warn(struct {
-		*log.Msg      `txt:"unsupported message"`
-		messageTypeID uint64
-		messageType   reflect.Type
-	}{messageTypeID: payloadTypeID, messageType: payloadType})
+	logger.Warn(errNoHandler{messageTypeID: payloadTypeID, messageType: payloadType})
 
 	return pulse.Unknown, nil, nil
 }
