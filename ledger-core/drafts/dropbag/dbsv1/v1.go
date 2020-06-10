@@ -6,7 +6,7 @@
 package dbsv1
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/dropbag/dbcommon"
+	"github.com/insolar/assured-ledger/ledger-core/drafts/dropbag/dbcommon"
 )
 
 const FormatId dbcommon.FileFormat = 1

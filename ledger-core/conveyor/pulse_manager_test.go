@@ -60,7 +60,7 @@ func TestPulseDataManager_GetPresentPulse(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulse.MinTimePulse + 1),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		presentPulse, nearestFuture := pdm.GetPresentPulse()
 		assert.Equal(t, pulse.Number(pulse.MinTimePulse+1), presentPulse)
 		assert.Equal(t, pulse.Number(pulse.MinTimePulse+3), nearestFuture)
@@ -95,7 +95,7 @@ func TestPulseDataManager_GetPulseData(t *testing.T) {
 
 		_, has := pdm.GetPulseData(pulseNum)
 		assert.False(t, has)
-		pdm.putPulseData(expected)
+		pdm.putPulseRange(expected.AsRange())
 		data, has := pdm.GetPulseData(pulseNum)
 		assert.True(t, has)
 		assert.Equal(t, expected, data)
@@ -119,13 +119,13 @@ func TestPulseDataManager_HasPulseData(t *testing.T) {
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
 		assert.False(t, pdm.HasPulseData(pulseNum))
-		pdm.putPulseData(pulse.Data{
+		pdm.putPulseRange(pulse.Data{
 			PulseNumber: pulseNum,
 			DataExt: pulse.DataExt{
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.True(t, pdm.HasPulseData(pulse.MinTimePulse+1))
 		assert.False(t, pdm.HasPulseData(1))
 	})
@@ -153,7 +153,7 @@ func TestPulseDataManager_IsAllowedFutureSpan(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.True(t, pdm.IsAllowedFutureSpan(pulseNum+2))
 	})
 	t.Run("1 max future", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestPulseDataManager_IsAllowedFutureSpan(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.False(t, pdm.IsAllowedFutureSpan(pulseNum+pulse.MinTimePulse+1))
 	})
 }
@@ -195,7 +195,7 @@ func TestPulseDataManager_IsAllowedPastSpan(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.True(t, pdm.IsAllowedPastSpan(pulseNum-1))
 	})
 	t.Run("5 past", func(t *testing.T) {
@@ -210,7 +210,7 @@ func TestPulseDataManager_IsAllowedPastSpan(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.False(t, pdm.IsAllowedPastSpan(pulseNum+1))
 	})
 }
@@ -237,7 +237,7 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulse.MinTimePulse),
 				NextPulseDelta: 1,
 			},
-		})
+		}.AsRange())
 
 		pdm.setPresentPulse(pulse.Data{
 			PulseNumber: pulseNum,
@@ -245,7 +245,7 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.True(t, pdm.IsRecentPastRange(pulseNum-1))
 	})
 	t.Run("5 past", func(t *testing.T) {
@@ -260,7 +260,7 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulse.MinTimePulse),
 				NextPulseDelta: 1,
 			},
-		})
+		}.AsRange())
 
 		pdm.setPresentPulse(pulse.Data{
 			PulseNumber: pulseNum,
@@ -268,7 +268,7 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 
 		pdm.setPresentPulse(pulse.Data{
 			PulseNumber: pulseNum + 2,
@@ -276,7 +276,7 @@ func TestPulseDataManager_IsRecentPastRange(t *testing.T) {
 				PulseEpoch:     pulse.Epoch(pulseNum + 2),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.False(t, pdm.IsRecentPastRange(pulse.MinTimePulse))
 	})
 }
@@ -319,7 +319,7 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 				func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 					return dummyAsync{}
 				})
-			pdm.PreparePulseDataRequest(nil, 1, nil)
+			pdm.preparePulseDataRequest(nil, 1, nil)
 		})
 	})
 
@@ -337,11 +337,11 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 				NextPulseDelta: 2,
 			},
 		}
-		pdm.putPulseData(expected)
+		pdm.putPulseRange(expected.AsRange())
 
-		async := pdm.PreparePulseDataRequest(nil, pulseNum, func(isAvailable bool, pd pulse.Data) {
-			require.True(t, isAvailable)
-			require.Equal(t, expected, pd)
+		async := pdm.preparePulseDataRequest(nil, pulseNum, func(pr pulse.Range) {
+			require.NotNil(t, pr)
+			require.Equal(t, expected, pr.RightBoundData())
 		})
 
 		async.Start()
@@ -369,13 +369,13 @@ func TestPulseDataManager_TouchPulseData(t *testing.T) {
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
 		assert.False(t, pdm.TouchPulseData(pulseNum))
-		pdm.putPulseData(pulse.Data{
+		pdm.putPulseRange(pulse.Data{
 			PulseNumber: pulseNum,
 			DataExt: pulse.DataExt{
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		})
+		}.AsRange())
 		assert.True(t, pdm.TouchPulseData(pulseNum))
 	})
 }
