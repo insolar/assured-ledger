@@ -114,6 +114,10 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 	)
 
 	action := func(state *object.SharedState) {
+		if state.GetState() != object.HasState {
+			panic(throw.IllegalState())
+		}
+
 		var (
 			oldestPulse  pulse.Number
 			pendingList  *object.RequestList
@@ -135,23 +139,23 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 			panic(throw.Unsupported())
 		}
 
-		if oldestPulse == pulse.Unknown || s.Payload.RequestReference.GetLocal().GetPulseNumber() < oldestPulse {
+		if oldestPulse == pulse.Unknown || s.Payload.CallOutgoing.GetLocal().GetPulseNumber() < oldestPulse {
 			resultCheck = delegationOldRequest
 			return
 		}
 
 		// pendingList already full
-		if pendingList.Count() == int(pendingCount) && !pendingList.Exist(s.Payload.RequestReference) {
-			fmt.Println(pendingList.Count(), int(pendingCount), pendingList.Exist(s.Payload.RequestReference))
+		if pendingList.Count() == int(pendingCount) && !pendingList.Exist(s.Payload.CallOutgoing) {
+			fmt.Println(pendingList.Count(), int(pendingCount), pendingList.Exist(s.Payload.CallOutgoing))
 			resultCheck = delegationFullTable
 			return
 		}
 
-		if !pendingList.Add(s.Payload.RequestReference) {
+		if !pendingList.Add(s.Payload.CallOutgoing) {
 			ctx.Log().Trace(struct {
 				*log.Msg  `txt:"request already in pending list"`
 				Reference string
-			}{Reference: s.Payload.RequestReference.String()})
+			}{Reference: s.Payload.CallOutgoing.String()})
 			// request was already in the list we will delegate token, maybe it is repeated call
 			return
 		}
@@ -171,17 +175,11 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 
 	switch resultCheck {
 	case delegationOldRequest:
-		ctx.Log().Warn(struct {
-			*log.Msg  `txt:"There is no such object"`
-			Reference string
-		}{Reference: s.Payload.RequestReference.String()})
-		return ctx.Error(throw.IllegalValue())
+		return ctx.Error(throw.E("There is no such object", struct{ Reference string }{Reference: s.Payload.CallIncoming.String()}))
 	case delegationFullTable:
-		ctx.Log().Warn(struct {
-			*log.Msg  `txt:"Pending table already full"`
+		return ctx.Error(throw.E("Pending table already full", struct {
 			Reference string
-		}{Reference: s.Payload.RequestReference.String()})
-		return ctx.Error(throw.IllegalState())
+		}{Reference: s.Payload.CallIncoming.String()}))
 		// Ok case
 	case delegationOk:
 	default:
@@ -194,10 +192,10 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
-	token := s.authenticationService.GetCallDelegationToken(s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
+	token := s.authenticationService.GetCallDelegationToken(s.Payload.CallOutgoing, s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
 
 	response := payload.VDelegatedCallResponse{
-		RefIn:          s.Payload.RefIn,
+		CallIncoming:   s.Payload.CallIncoming,
 		DelegationSpec: token,
 	}
 

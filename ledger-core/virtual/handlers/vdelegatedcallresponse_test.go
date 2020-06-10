@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 )
 
 func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
@@ -28,11 +29,11 @@ func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{RefIn: globalRef},
+		Payload: &payload.VDelegatedCallResponse{DelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
-		GetPublishedGlobalAliasAndBargeInMock.Expect(globalRef).Return(smachine.SlotLink{}, smachine.BargeIn{}).
+		GetPublishedGlobalAliasAndBargeInMock.Expect(execute.DelegationTokenAwaitKey{Outgoing: globalRef}).Return(smachine.SlotLink{}, smachine.BargeIn{}).
 		ErrorMock.Expect(errors.New("bargeIn was not published")).Return(smachine.StateUpdate{})
 
 	sm.stepProcess(execCtx)
@@ -49,13 +50,13 @@ func TestSMVDelegatedCallResponse_ErrorIfCallBargeInFailed(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{RefIn: globalRef},
+		Payload: &payload.VDelegatedCallResponse{DelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
 	}
 
 	slotLink := smachine.DeadSlotLink()
 	bargeIn := smachine.NewBargeInHolderMock(mc).CallWithParamMock.Return(false)
 	execCtx := smachine.NewExecutionContextMock(mc).
-		GetPublishedGlobalAliasAndBargeInMock.Expect(globalRef).Return(slotLink, bargeIn).
+		GetPublishedGlobalAliasAndBargeInMock.Expect(execute.DelegationTokenAwaitKey{Outgoing: globalRef}).Return(slotLink, bargeIn).
 		ErrorMock.Expect(errors.New("fail to call BargeIn")).Return(smachine.StateUpdate{})
 
 	sm.stepProcess(execCtx)
@@ -72,14 +73,14 @@ func TestSMVDelegatedCallResponse_SuccessCallBargeIn(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{RefIn: globalRef},
+		Payload: &payload.VDelegatedCallResponse{DelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
 	}
 
 	slotLink := smachine.DeadSlotLink()
 	bargeIn := smachine.NewBargeInHolderMock(mc).
 		CallWithParamMock.Expect(sm.Payload).Return(true)
 	execCtx := smachine.NewExecutionContextMock(mc).
-		GetPublishedGlobalAliasAndBargeInMock.Expect(globalRef).Return(slotLink, bargeIn).
+		GetPublishedGlobalAliasAndBargeInMock.Expect(execute.DelegationTokenAwaitKey{Outgoing: globalRef}).Return(slotLink, bargeIn).
 		StopMock.Return(smachine.StateUpdate{})
 
 	sm.stepProcess(execCtx)

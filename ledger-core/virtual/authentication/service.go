@@ -16,7 +16,7 @@ import (
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 type Service interface {
-	GetCallDelegationToken(to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
+	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
 }
 
 type service struct {
@@ -27,7 +27,7 @@ func NewService(_ context.Context, selfNode reference.Global) Service {
 	return service{selfNode: selfNode}
 }
 
-func (s service) GetCallDelegationToken(to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
+func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
 	return payload.CallDelegationToken{
 		TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 		Approver:          s.selfNode,
@@ -35,6 +35,7 @@ func (s service) GetCallDelegationToken(to reference.Global, pn pulse.Number, ob
 		PulseNumber:       pn,
 		Callee:            object,
 		Caller:            to,
+		Outgoing:          outgoing,
 		ApproverSignature: deadBeef[:],
 	}
 }

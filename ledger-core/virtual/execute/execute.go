@@ -68,9 +68,8 @@ type SMExecute struct {
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
-	// todo: remove nolint in PLAT-309
-	// nolint
-	delegationToken payload.CallDelegationToken
+	delegationTokenSpec payload.CallDelegationToken
+	stepAfterTokenGet   smachine.SlotStep
 }
 
 /* -------- Declaration ------------- */
@@ -395,7 +394,28 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
 	s.migrationHappened = true
-	return ctx.Stay()
+
+	s.stepAfterTokenGet = ctx.AffectedStep()
+
+	return ctx.Jump(s.stepGetDelegationToken)
+}
+
+func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var requestPayload = payload.VDelegatedCallRequest{
+		Callee:         s.execution.Object,
+		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
+		CallOutgoing:   s.execution.Outgoing,
+		DelegationSpec: s.delegationTokenSpec,
+	}
+
+	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		if subroutineSM.response == nil {
+			panic(throw.IllegalState())
+		}
+		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		return ctx.Jump(s.stepAfterTokenGet.Transition)
+	})
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -549,24 +569,17 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if s.migrationHappened {
-		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	if s.migrationHappened || s.newObjectDescriptor == nil {
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	action := func(state *object.SharedState) {
-		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
-	}
-
-	if s.newObjectDescriptor != nil {
-		action = func(state *object.SharedState) {
+		action := func(state *object.SharedState) {
 			state.Info.SetDescriptor(s.newObjectDescriptor)
-			state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
 
 			if state.GetState() == object.Empty {
 				state.SetState(object.HasState)
 			}
 		}
-	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
@@ -618,7 +631,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	return ctx.Jump(s.stepSendCallResult)
+	return ctx.Stop()
 }
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
@@ -675,8 +688,33 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		}
 	}).WithoutAutoWakeUp().Start()
 
+	return ctx.Jump(s.stepFinishRequest)
+}
+
+func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	if s.migrationHappened {
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	}
+
+	action := func(state *object.SharedState) {
+		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
 	return ctx.Stop()
 }
+
 
 func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()

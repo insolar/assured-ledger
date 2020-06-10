@@ -44,6 +44,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	retryUnorderedTable := object.NewRequestTable()
 	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(retryUnorderedRequestRef)
 
+	oneRandomOrderedRequest := reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow()))
+	oneRandomUnorderedRequest := reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow()))
+
 	for _, tc := range []struct {
 		name                          string
 		testRailCase                  string
@@ -60,7 +63,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "OK tolerable",
 			PendingRequestTable:         object.NewRequestTable(),
-			requestRef:                  reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
+			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
@@ -68,13 +71,14 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
+					Outgoing:          oneRandomOrderedRequest,
 				},
 			},
 		},
 		{
 			name:                          "OK intolerable",
 			PendingRequestTable:           object.NewRequestTable(),
-			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
+			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
@@ -82,6 +86,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
+					Outgoing:          oneRandomUnorderedRequest,
 				},
 			},
 		},
@@ -97,6 +102,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
+					Outgoing:          retryOrderedRequestRef,
 				},
 			},
 		},
@@ -112,6 +118,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
+					Outgoing:          retryUnorderedRequestRef,
 				},
 			},
 		},
@@ -225,6 +232,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				callFlags = tc.callFlags
 			)
 
+			sharedState.SetState(object.HasState)
+
 			slotMachine := slotdebugger.New(ctx, t, tc.expectedError)
 			if tc.expectedError {
 				slotMachine.InitEmptyMessageSender(mc)
@@ -238,9 +247,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
 				Payload: &payload.VDelegatedCallRequest{
-					RequestReference: tc.requestRef,
-					CallFlags:        callFlags,
-					Callee:           objectRef,
+					CallOutgoing: tc.requestRef,
+					CallFlags:    callFlags,
+					Callee:       objectRef,
 				},
 				Meta: &payload.Meta{
 					Sender: caller,

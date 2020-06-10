@@ -6,7 +6,6 @@
 package conveyor
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -101,10 +100,14 @@ const (
 	hitNoTouch
 )
 
-func (p *PulseDataCache) getRO(pn pulse.Number) (*cacheEntry, accessState) {
+func (p *PulseDataCache) getNoTouch(pn pulse.Number) (*cacheEntry, accessState) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
+	return p._getRO(pn)
+}
+
+func (p *PulseDataCache) _getRO(pn pulse.Number) (*cacheEntry, accessState) {
 	if p.cache != nil {
 		if pd, ok := p.cache[pn]; ok {
 			if p._wasTouched(pn) {
@@ -116,43 +119,45 @@ func (p *PulseDataCache) getRO(pn pulse.Number) (*cacheEntry, accessState) {
 	return nil, miss
 }
 
-func (p *PulseDataCache) getAndTouch(pn pulse.Number) (*cacheEntry, bool) {
-	pd, m := p.getRO(pn)
-	if m != hitNoTouch {
-		return pd, m != miss
+func (p *PulseDataCache) getAndTouch(pn pulse.Number) *cacheEntry {
+	ce, m := p.getNoTouch(pn)
+	switch {
+	case m != hitNoTouch:
+		return ce
+	case ce == nil:
+		panic(throw.IllegalState())
 	}
 
 	p.mutex.Lock()
 	p._touch(pn)
 	p.mutex.Unlock()
 
-	return pd, true
+	return ce
 }
 
-func (p *PulseDataCache) getPulseSlot(pn pulse.Number) (*PulseSlot, bool) {
-	if pd, ok := p.getAndTouch(pn); ok {
-		return &pd.ps, ok
+func (p *PulseDataCache) getPulseSlot(pn pulse.Number) *PulseSlot {
+	if ce := p.getAndTouch(pn); ce != nil {
+		return &ce.ps
 	}
-	return nil, false
+	return nil
 }
 
-func (p *PulseDataCache) Get(pn pulse.Number) (pulse.Data, bool) {
-	pd, ok := p.getAndTouch(pn)
-	return pd._cacheData(), ok
+func (p *PulseDataCache) Get(pn pulse.Number) pulse.Range {
+	return p.getAndTouch(pn)._cacheData()
 }
 
-func (p *PulseDataCache) Check(pn pulse.Number) (pulse.Data, bool) {
-	pd, m := p.getRO(pn)
-	return pd._cacheData(), m != miss
+func (p *PulseDataCache) Check(pn pulse.Number) pulse.Range {
+	pr, _ := p.getNoTouch(pn)
+	return pr._cacheData()
 }
 
 func (p *PulseDataCache) Contains(pn pulse.Number) bool {
-	_, m := p.getRO(pn)
+	_, m := p.getNoTouch(pn)
 	return m != miss
 }
 
 func (p *PulseDataCache) Touch(pn pulse.Number) bool {
-	switch _, m := p.getRO(pn); m {
+	switch _, m := p.getNoTouch(pn); m {
 	case miss:
 		return false
 	case hit:
@@ -164,36 +169,55 @@ func (p *PulseDataCache) Touch(pn pulse.Number) bool {
 	return true
 }
 
-func (p *PulseDataCache) Put(pd pulse.Data) {
-	switch epd, m := p.getRO(pd.PulseNumber); {
-	case m == miss:
-		//
-	case pd != epd._cacheData():
-		panic(fmt.Errorf("duplicate pulseData: before=%v after=%v", epd._cacheData(), pd))
-	case m == hitNoTouch:
-		p.mutex.Lock()
-		p._touch(pd.PulseNumber)
-		p.mutex.Unlock()
-		return
-	default: // m == hit:
-		return
+func (p *PulseDataCache) Put(pr pulse.Range) {
+	if pr == nil {
+		panic(throw.IllegalValue())
 	}
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	pns := make([]pulse.Number, 0, 4)
+	var ce *cacheEntry
+	pr.EnumNonArticulatedNumbers(func(pn pulse.Number, _, _ uint16) bool {
+		switch ece, m := p._getRO(pn); {
+		case m == miss:
+			//
+		case !pr.Equal(ece.pr):
+			panic(throw.New("mismatched pulse.Range", struct{ PN pulse.Number}{pn}))
+		case m == hitNoTouch:
+			//
+		case ce == nil:
+			ce = ece
+			return false
+		case ce != ece:
+			panic(throw.New("inconsistent pulse.Range cache", struct{ PN pulse.Number}{pn}))
+		default:
+			return false
+		}
+
+		pns = append(pns, pn)
+		return false
+	})
+
+	switch {
+	case ce == nil:
+		if len(pns) == 0 {
+			panic(throw.IllegalValue())
+		}
+		ce = newCacheEntry(p.pdm, pr)
+	case len(pns) == 0:
+		return
+	}
+
 	if p.cache == nil {
 		p.cache = make(map[pulse.Number]*cacheEntry)
-		p.cache[pd.PulseNumber] = newCacheEntry(p.pdm, pd)
-	} else {
-		switch epd, ok := p.cache[pd.PulseNumber]; {
-		case !ok:
-			p.cache[pd.PulseNumber] = newCacheEntry(p.pdm, pd)
-		case pd != epd._cacheData():
-			panic(fmt.Errorf("duplicate pulseData: before=%v after=%v", epd, pd))
-		}
 	}
-	p._touch(pd.PulseNumber)
+
+	for _, pn := range pns {
+		p.cache[pn] = ce
+		p._touch(pn)
+	}
 }
 
 func (p *PulseDataCache) _wasTouched(pn pulse.Number) bool {
@@ -220,14 +244,14 @@ func (p *PulseDataCache) _rotate() {
 	}
 }
 
-func newCacheEntry(pdm *PulseDataManager, pd pulse.Data) *cacheEntry {
-	ce := &cacheEntry{pr: pulse.NewOnePulseRange(pd), ps: PulseSlot{pulseManager: pdm}}
+func newCacheEntry(pdm *PulseDataManager, pr pulse.Range) *cacheEntry {
+	ce := &cacheEntry{pr: pr, ps: PulseSlot{pulseManager: pdm}}
 	ce.ps.pulseData = ce
 	return ce
 }
 
 type cacheEntry struct {
-	pr pulse.OnePulseRange
+	pr pulse.Range
 	ps PulseSlot
 }
 
@@ -251,9 +275,9 @@ func (p cacheEntry) MakePast() {
 	panic(throw.IllegalState())
 }
 
-func (p *cacheEntry) _cacheData() pulse.Data {
+func (p *cacheEntry) _cacheData() pulse.Range {
 	if p == nil {
-		return pulse.Data{}
+		return nil
 	}
-	return p.pr.RightBoundData()
+	return p.pr
 }

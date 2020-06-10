@@ -72,9 +72,9 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := payload.VDelegatedCallRequest{
-			RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
-			Callee:           objectRef,
-			CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
+			Callee:       objectRef,
+			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
 
 		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).Finalize()
@@ -87,6 +87,8 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	t.Log("C4982")
+	t.Skip("PLAT-449")
+	// flaky test, need to think about how to do it better, maybe move to half-integration
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -154,9 +156,9 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	{
 		// send VDelegatedCallRequest
 		pl := payload.VDelegatedCallRequest{
-			RequestReference: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
-			Callee:           objectRef,
-			CallFlags:        payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
+			Callee:       objectRef,
+			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
 		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 		server.SendMessage(ctx, msg)
@@ -176,6 +178,6 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		require.FailNow(t, "timeout")
 	}
 
-	server.WaitActiveThenIdleConveyor()
+	server.WaitIdleConveyor()
 	mc.Finish()
 }
