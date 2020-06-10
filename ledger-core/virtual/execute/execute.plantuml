@@ -60,7 +60,6 @@ stepExecuteDecideNextStep -[#blue]-> migrateDuringExecution
 stepExecuteDecideNextStep --> stepSaveNewObject : Jump
 stepExecuteDecideNextStep --> stepExecuteAborted : Jump
 stepExecuteDecideNextStep --> stepExecuteOutgoing : Jump
-stepExecuteDecideNextStep --> stepExecuteDecideNextStep : ThenRepeat
 stepSaveNewObject : INHERITED
 stepSaveNewObject : migrateDuringExecution
 stepSaveNewObject -[#blue]-> migrateDuringExecution
