@@ -5,7 +5,11 @@
 
 package smachine
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
 
 // this structure provides isolation of shared data to avoid SM being retained via SharedDataLink
 type uniqueAliasKey struct {
@@ -47,19 +51,11 @@ func (p *slotContext) Publish(key, data interface{}) bool {
 	p.ensureAtLeast(updCtxInit)
 	ensurePublishKey(key)
 
-	switch sdl := data.(type) {
-	case SharedDataLink:
-		if sdl.IsUnbound() {
-			return p.s.registerUnboundAlias(key, data)
-		}
-	case *SharedDataLink:
-		if sdl.IsUnbound() {
-			return p.s.registerUnboundAlias(key, data)
-		}
-	default:
-		ensurePublishValue(data)
+	if sdl, ok := data.(SharedDataLink); ok && sdl.IsUnbound() {
+		return p.s.registerUnboundAlias(key, data)
 	}
 
+	ensurePublishValue(data)
 	return p.s.registerBoundAlias(key, data)
 }
 
@@ -156,11 +152,6 @@ func (m *SlotMachine) GetPublished(key interface{}) (interface{}, bool) {
 				return sdl.getData(), true
 			}
 			return nil, true
-		case *SharedDataLink:
-			if sdl != nil && sdl.IsUnbound() {
-				return sdl.getData(), true
-			}
-			return nil, true
 		case nil:
 			return v, true
 		default:
@@ -176,18 +167,11 @@ func (m *SlotMachine) GetPublished(key interface{}) (interface{}, bool) {
 func (m *SlotMachine) TryPublish(key, data interface{}) (interface{}, bool) {
 	ensurePublishKey(key)
 
-	ensurePublishValue(data)
-	switch sdl := data.(type) {
-	case SharedDataLink:
-		if !sdl.IsUnbound() {
-			panic("illegal value")
-		}
-	case *SharedDataLink:
-		if sdl == nil || !sdl.IsUnbound() {
-			panic("illegal value")
-		}
+	if sdl, ok := data.(SharedDataLink); ok && !sdl.IsUnbound() {
+		panic(throw.IllegalValue())
 	}
 
+	ensurePublishValue(data)
 	v, loaded := m.localRegistry.LoadOrStore(key, data)
 	return v, !loaded
 }
@@ -199,28 +183,19 @@ func (m *SlotMachine) TryPublish(key, data interface{}) (interface{}, bool) {
 func (m *SlotMachine) TryUnsafeUnpublish(key interface{}) (keyExists, wasUnpublished bool) {
 	ensurePublishKey(key)
 
-	// Lets try to make it right
-
+	// Lets try to make it right first
 	switch keyExists, wasUnpublished, v := m.unpublishUnbound(key); {
 	case !keyExists:
 		return false, false
 	case wasUnpublished:
 		return true, true
 	default:
-		var valueOwner SlotLink
-
-		switch sdl := v.(type) {
-		case SharedDataLink:
-			valueOwner = sdl.link
-		case *SharedDataLink:
-			if sdl != nil {
-				valueOwner = sdl.link
+		if sdl, ok := v.(SharedDataLink); ok {
+			valueOwner := sdl.link
+			// This is the most likely case ... yet it doesn't cover all the cases
+			if valueOwner.IsValid() && valueOwner.isMachine(m) && m._unregisterSlotBoundAlias(valueOwner.SlotID(), key) {
+				return true, true
 			}
-		}
-
-		// This is the most likely case ... yet it doesn't cover all the cases
-		if valueOwner.IsValid() && m._unregisterSlotBoundAlias(valueOwner.SlotID(), key) {
-			return true, true
 		}
 	}
 
@@ -234,30 +209,19 @@ func (m *SlotMachine) unpublishUnbound(k interface{}) (keyExists, wasUnpublished
 	if !ok {
 		return false, false, nil
 	}
-	switch sdl := v.(type) {
-	case SharedDataLink:
-		if sdl.IsUnbound() {
-			m.localRegistry.Delete(k)
-			return true, true, v
-		}
-	case *SharedDataLink:
-		if sdl != nil && sdl.IsUnbound() {
-			m.localRegistry.Delete(k)
-			return true, true, v
-		}
+
+	if sdl, ok := v.(SharedDataLink); ok && sdl.IsUnbound() {
+		m.localRegistry.Delete(k)
+		return true, true, v
 	}
 	return true, false, v
 }
 
 func _asSharedDataLink(v interface{}) SharedDataLink {
-	switch d := v.(type) {
-	case SharedDataLink:
-		return d
-	case *SharedDataLink:
-		return *d
-	default:
-		return SharedDataLink{}
+	if sdl, ok := v.(SharedDataLink); ok {
+		return sdl
 	}
+	return SharedDataLink{}
 }
 
 func (p *slotContext) GetPublishedLink(key interface{}) SharedDataLink {
