@@ -120,17 +120,17 @@ func (v SharedDataLink) PrepareAccess(fn SharedDataFunc) SharedDataAccessor {
 	if fn == nil {
 		panic("illegal value")
 	}
-	return SharedDataAccessor{&v, fn}
+	return SharedDataAccessor{v, fn}
 }
 
 // SharedDataAccessor gets same data retention rules as the original SharedDataLink.
 type SharedDataAccessor struct {
-	link     *SharedDataLink
+	link     SharedDataLink
 	accessFn SharedDataFunc
 }
 
 func (v SharedDataAccessor) IsZero() bool {
-	return v.link == nil
+	return v.link.IsZero()
 }
 
 // Convenience wrapper of ExecutionContext.UseShared()
@@ -139,7 +139,7 @@ func (v SharedDataAccessor) TryUse(ctx ExecutionContext) SharedAccessReport {
 }
 
 func (v SharedDataAccessor) accessByOwner(local *Slot) Decision {
-	if v.accessFn == nil || v.link == nil || v.link.IsZero() {
+	if v.accessFn == nil || v.link.IsZero() {
 		return Impossible
 	}
 	if !v.link.isOwnedBy(local) {
