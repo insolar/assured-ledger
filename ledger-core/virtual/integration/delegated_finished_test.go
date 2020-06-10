@@ -118,7 +118,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 
 	server.WaitActiveThenIdleConveyor()
 
-	server.IncrementPulse(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 	server.WaitActiveThenIdleConveyor()
 
 	// generate new state since it will be changed by CallAPIAddAmount
@@ -126,7 +126,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 
 	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
 		// we want to change pulse during execution
-		server.IncrementPulse(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
 
 		emptyResult := makeEmptyResult(t)
 		return newRawWalletState, emptyResult, nil
@@ -198,11 +198,11 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 	server.WaitActiveThenIdleConveyor()
 
-	server.IncrementPulse(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
 		// we want to change pulse during execution
-		server.IncrementPulse(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
 
 		emptyResult := makeEmptyResult(t)
 		return rawWalletState, emptyResult, nil
@@ -241,7 +241,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) 
 	rawWalletState := makeRawWalletState(t, testBalance)
 	callConstructor := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, name string, args []byte) (objectState []byte, result []byte, err error) {
 		// we want to change pulse during construction
-		server.IncrementPulse(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
 
 		emptyResult := makeEmptyResult(t)
 		return rawWalletState, emptyResult, nil
