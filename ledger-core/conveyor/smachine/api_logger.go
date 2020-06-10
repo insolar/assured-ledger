@@ -149,6 +149,9 @@ type StepLogger interface {
 	// LogEvent is invoked on user calls to ctx.Log() methods
 	LogEvent(data StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller)
 
+	CanLogTestEvent() bool
+	LogTestEvent(data StepLoggerData, customEvent interface{})
+
 	// LogAdapter is invoked on user calls to ctx.LogAsync() methods
 	// Value of (callId) is guaranteed to be unique per Slot per async call. For notify and sync calls there is no guarantees on (callId).
 	// Type of call can be identified by (data.Flags).
@@ -197,6 +200,13 @@ func (p Logger) GetTracerID() TracerID {
 	return ""
 }
 
+func (p Logger) _checkTestLog() StepLogger {
+	if stepLogger, _, _ := p.getStepLogger(); stepLogger != nil && stepLogger.CanLogTestEvent() {
+		return stepLogger
+	}
+	return nil
+}
+
 func (p Logger) _checkLog(eventType StepLoggerEvent) (StepLogger, uint32, StepLoggerEvent) {
 	if stepLogger, stepLevel, stepUpdate := p.getStepLogger(); stepLogger != nil {
 		if stepLogger.CanLogEvent(eventType, stepLevel) {
@@ -219,6 +229,10 @@ func (p Logger) getStepLoggerData(eventType StepLoggerEvent, stepUpdate uint32, 
 	return stepData
 }
 
+func (p Logger) _doTestLog(stepLogger StepLogger, msg interface{}) {
+	stepLogger.LogTestEvent(p.getStepLoggerData(StepLoggerTrace, 0, nil), msg)
+}
+
 func (p Logger) _doLog(stepLogger StepLogger, stepUpdate uint32, eventType StepLoggerEvent,
 	msg interface{}, fields []logfmt.LogFieldMarshaller, err error,
 ) {
@@ -236,6 +250,13 @@ func (p Logger) _doAdapterLog(stepLogger StepLogger, stepUpdate uint32, extraFla
 func (p Logger) adapterCall(flags StepLoggerFlags, adapterID AdapterID, callID uint64, err error, fields ...logfmt.LogFieldMarshaller) { // nolint:unparam
 	if stepLogger, stepUpdate, _ := p._checkLog(StepLoggerAdapterCall); stepLogger != nil {
 		p._doAdapterLog(stepLogger, stepUpdate, flags, adapterID, callID, fields, err)
+	}
+}
+
+// NB! keep method simple to ensure inlining
+func (p Logger) Test(msg interface{}) {
+	if stepLogger := p._checkTestLog(); stepLogger != nil {
+		p._doTestLog(stepLogger, msg)
 	}
 }
 

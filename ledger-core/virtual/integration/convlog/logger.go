@@ -136,6 +136,12 @@ func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType
 	}
 }
 
+func (conveyorStepLogger) CanLogTestEvent() bool {
+	return false
+}
+
+func (conveyorStepLogger) LogTestEvent(smachine.StepLoggerData, interface{}) {}
+
 func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
 	level, levelName := MapCustomLogLevel(data)
 

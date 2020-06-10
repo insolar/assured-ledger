@@ -6,6 +6,8 @@
 package slotdebugger
 
 import (
+	"reflect"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -138,6 +140,18 @@ func (w StateMachineHelper) AfterCustomEvent(fn func(interface{}) bool) func(tes
 		case !event.Data.EventType.IsEvent():
 		default:
 			return fn(event.CustomEvent)
+		}
+		return false
+	}
+}
+
+func (w StateMachineHelper) AfterCustomEventType(tp reflect.Type) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		switch {
+		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
+		case !event.Data.EventType.IsEvent():
+		default:
+			return reflect.ValueOf(event.CustomEvent).Type().AssignableTo(tp)
 		}
 		return false
 	}
