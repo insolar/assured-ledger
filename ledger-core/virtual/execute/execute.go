@@ -152,7 +152,7 @@ func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.Sta
 func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.execution.Object)
 
-	if s.isConstructor {
+	if s.isConstructor && s.outgoingFromSlotPulse() {
 		action := func(state *object.SharedState) {
 			if state.GetState() == object.Unknown || state.GetState() == object.Missing {
 				state.SetState(object.Empty)
@@ -172,6 +172,12 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 	}
 
 	return ctx.Jump(s.stepWaitObjectReady)
+}
+
+func (s *SMExecute) outgoingFromSlotPulse() bool {
+	outgoingPulse := s.Payload.CallOutgoing.GetPulseNumber()
+	slotPulse := s.pulseSlot.PulseData().GetPulseNumber()
+	return outgoingPulse == slotPulse
 }
 
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
