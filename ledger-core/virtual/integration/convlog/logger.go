@@ -249,12 +249,25 @@ func MapBasicLogLevel(data smachine.StepLoggerData) (log.Level, string) {
 }
 
 func _mapLogLevel(eventType smachine.StepLoggerEvent, data smachine.StepLoggerData) (log.Level, string) {
-	switch {
-	case data.Error != nil:
-		return MapLogEvent(eventType, smachine.StepLogLevelError)
-	case data.IsElevated():
+	if data.Error != nil {
+		replace := eventType
+		switch data.Flags.ErrorFlags() {
+		case smachine.StepLoggerUpdateErrorMuted:
+			replace = smachine.StepLoggerWarn
+		case smachine.StepLoggerUpdateErrorRecovered:
+			replace = smachine.StepLoggerTrace
+		default:
+			return MapLogEvent(eventType, smachine.StepLogLevelError)
+		}
+
+		if eventType.IsEvent() && eventType > replace {
+			eventType = replace
+		}
+	}
+
+	if data.IsElevated() {
 		return MapLogEvent(eventType, smachine.StepLogLevelElevated)
-	default:
+	} else {
 		return MapLogEvent(eventType, smachine.StepLogLevelDefault)
 	}
 }
