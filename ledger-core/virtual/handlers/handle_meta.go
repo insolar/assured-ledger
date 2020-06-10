@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
 
@@ -33,7 +34,7 @@ type errNoHandler struct {
 	messageType   reflect.Type
 }
 
-func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachine.CreateFunc) {
+func FactoryMeta(message *statemachine.DispatcherMessage, authService authentication.Service) (pulse.Number, smachine.CreateFunc) {
 	payloadMeta := message.PayloadMeta
 	messageMeta := message.MessageMeta
 
@@ -56,6 +57,17 @@ func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachin
 	logger.Info(logProcessing{
 		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
 	})
+
+	err = authService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender)
+	if err != nil {
+		logger.Warn(struct {
+			*log.Msg      `txt:"illegitimate message"`
+			messageTypeID uint64
+			messageType   reflect.Type
+			error         string
+		}{messageTypeID: payloadTypeID, messageType: payloadType, error: err.Error()})
+		return pulse.Unknown, nil
+	}
 
 	switch obj := payloadObj.(type) {
 	case *payload.VCallRequest:

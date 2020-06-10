@@ -162,7 +162,7 @@ message ObjectState {
 
 message VPendingDelegationRequest {
     option (insproto.id) = 1005;
-    bytes Object = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     bytes Request = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
 
     CallDelegationToken DelegationSpec = 22;
@@ -198,8 +198,9 @@ message VDelegatedCallRequest {
 message VDelegatedCallResponse {
     option (insproto.id) = 1009;
 
-    bytes CallIncoming = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    CallDelegationToken DelegationSpec = 21;
+    bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    bytes CallIncoming = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    CallDelegationToken DelegationSpec = 22;
 }
 
 message CallDelegationToken {

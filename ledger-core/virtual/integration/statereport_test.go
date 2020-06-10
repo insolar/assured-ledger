@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global, stateRef reference.Local, rawState []byte) *message.Message {
+func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global, stateRef reference.Local, rawState []byte, sender reference.Global) *message.Message {
 	class := testwalletProxy.GetClass()
 
 	payload := &payload.VStateReport{
@@ -37,7 +37,7 @@ func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global,
 		},
 	}
 
-	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
+	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
 }
 
 func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Global,
@@ -86,7 +86,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 
@@ -105,7 +105,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 
 	}
@@ -114,7 +114,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: one more time to simulate rewrite
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, newStateID, makeRawWalletState(t, 444))
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, newStateID, makeRawWalletState(t, 444), server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 
 	}
@@ -149,7 +149,7 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 

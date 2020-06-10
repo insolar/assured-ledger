@@ -195,6 +195,7 @@ func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContex
 	token := s.authenticationService.GetCallDelegationToken(s.Payload.CallOutgoing, s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
 
 	response := payload.VDelegatedCallResponse{
+		Callee:         s.Payload.Callee,
 		CallIncoming:   s.Payload.CallIncoming,
 		DelegationSpec: token,
 	}

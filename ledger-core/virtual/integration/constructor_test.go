@@ -99,7 +99,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		return nil
 	})
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	server.SendMessage(ctx, msg)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
@@ -157,7 +157,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 			return nil
 		})
 
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 
 		assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))

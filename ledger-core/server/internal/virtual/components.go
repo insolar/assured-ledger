@@ -34,7 +34,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
-	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 )
 
@@ -120,8 +119,6 @@ func initComponents(
 	jc := jet.NewAffinityHelper(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
 	pulses := pulsestor.NewStorageMem()
 
-	authenticationService := authentication.NewService(ctx, certManager.GetCertificate().GetNodeRef())
-
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 
 	runnerService := runner.NewService()
@@ -129,9 +126,12 @@ func initComponents(
 	checkError(ctx, err, "failed to initialize Runner Service")
 
 	virtualDispatcher := virtual.NewDispatcher()
+
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
-	virtualDispatcher.AuthenticationService = authenticationService
+	virtualDispatcher.Affinity = jc
+	//authenticationService := authentication.NewService(ctx, certManager.GetCertificate().GetNodeRef(), virtualDispatcher.Conveyor.GetDataManager(), jc)
+	//virtualDispatcher.AuthenticationService = authenticationService
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 

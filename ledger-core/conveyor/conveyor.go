@@ -103,6 +103,10 @@ type PulseConveyor struct {
 	stoppingChan <-chan struct{}
 }
 
+func (p *PulseConveyor) SetFactoryFunc(factory PulseEventFactoryFunc) {
+	p.factoryFn = factory
+}
+
 func (p *PulseConveyor) GetDataManager() *PulseDataManager {
 	return &p.pdm
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -24,10 +25,14 @@ import (
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
 
-func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
+type DefaultHandlersFactory struct {
+	authService authentication.Service
+}
+
+func (f DefaultHandlersFactory) Classify(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		return handlers.FactoryMeta(event)
+		return handlers.FactoryMeta(event, f.authService)
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event)
 	default:
@@ -51,6 +56,7 @@ type Dispatcher struct {
 	Runner                runner.Service
 	MessageSender         messagesender.Service
 	AuthenticationService authentication.Service
+	Affinity              jet.AffinityHelper
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
@@ -73,8 +79,6 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		LogAdapterCalls:   true,
 	}
 
-	defaultHandlers := DefaultHandlersFactory
-
 	machineConfig := conveyorConfig
 	if lr.MachineLogger != nil {
 		machineConfig.SlotMachineLogger = lr.MachineLogger
@@ -86,7 +90,12 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
-	}, defaultHandlers, nil)
+	}, nil, nil)
+
+	lr.AuthenticationService = authentication.NewService(ctx, lr.Affinity.Me(), lr.Conveyor.GetDataManager(), lr.Affinity)
+
+	defaultHandlers := DefaultHandlersFactory{authService: lr.AuthenticationService}.Classify
+	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)

@@ -28,7 +28,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
-	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
@@ -120,7 +119,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
 		MeMock.Return(s.caller).
-		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
+		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
 	s.PublisherMock = mock.NewPublisherMock()
 	s.PublisherMock.SetResenderMode(ctx, &s)
@@ -137,7 +136,8 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
-	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, s.caller)
+	virtualDispatcher.Affinity = s.JetCoordinatorMock
+
 	virtualDispatcher.CycleFn = s.onCycle
 	s.virtual = virtualDispatcher
 

@@ -110,7 +110,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 
 	// send VStateReport: save wallet
 	rawWalletState := makeRawWalletState(t, testBalance)
-	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 
 	server.WaitIdleConveyor()
 
@@ -192,7 +192,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 	// send VStateReport: save wallet
 	rawWalletState := makeRawWalletState(t, testBalance)
-	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 
 	server.SendMessage(ctx, msg)
 
