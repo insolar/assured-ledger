@@ -77,7 +77,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		return false // no resend msg
 	})
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	server.SendMessage(ctx, msg)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
@@ -131,6 +131,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
+	server.IncrementPulse(ctx)
+
 	class := gen.UniqueReference()
 
 	requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
@@ -169,7 +171,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		return false // no resend msg
 	})
 
-	msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, payload.Missing, nil)
+	msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, payload.Missing, nil, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	isolation := contract.ConstructorIsolation()

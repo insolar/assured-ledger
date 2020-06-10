@@ -80,6 +80,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
 
+	server.IncrementPulse(ctx)
+
 	var countVCallResult int
 	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
 	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
@@ -162,6 +164,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	var countVCallResult int
 	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)

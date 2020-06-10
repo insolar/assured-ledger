@@ -21,14 +21,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags) *message.Message {
+func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags, sender reference.Global) *message.Message {
 	payload := &payload.VStateRequest{
 		AsOf:             pulseNumber,
 		Callee:           ref,
 		RequestedContent: flags,
 	}
 
-	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
+	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
 }
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
@@ -36,6 +36,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
@@ -64,7 +65,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, 0)
+	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, 0, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	select {
@@ -86,6 +87,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	reportChan := make(chan *payload.VStateReport, 0)
 
@@ -114,7 +116,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	select {
@@ -162,7 +164,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	objectRef := gen.UniqueReference()
 
-	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(server.GetPulse().PulseNumber, objectRef, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	select {
