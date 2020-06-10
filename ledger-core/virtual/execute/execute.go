@@ -222,9 +222,12 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	}
 
 	if isConstructor {
-		// it could be Empty or even has state, we ll deal with special cases in deduplication step
-		if objectState != object.Empty && objectState != object.HasState {
-			panic(throw.IllegalState())
+		switch objectState {
+		case object.Unknown:
+			panic(throw.Impossible())
+		case object.Inactive:
+			// attempt to create object that is deactivated :(
+			panic(throw.NotImplemented())
 		}
 	} else if objectState != object.HasState {
 		panic(throw.IllegalState())
