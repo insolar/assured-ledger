@@ -33,6 +33,10 @@ func TestNewLeftGapRange(t *testing.T) {
 	require.True(t, rg.IsValidPrev(OnePulseRange{pdBefore}))
 	require.True(t, rg.IsValidNext(OnePulseRange{pdAfter}))
 
+	require.True(t, rg.Equal(NewLeftGapRange(pdLeft.PulseNumber, pdLeft.PrevPulseDelta, pd)))
+	require.False(t, rg.Equal(NewLeftGapRange(pdBefore.PulseNumber, pd.PrevPulseDelta, pd)))
+	require.False(t, rg.Equal(pd.AsRange()))
+
 	require.Panics(t, func() { NewLeftGapRange(pdAfter.PulseNumber, pdAfter.PrevPulseDelta, pd) })
 }
 
@@ -63,6 +67,11 @@ func TestNewSequenceRange(t *testing.T) {
 	require.True(t, rg.IsValidPrev(OnePulseRange{pdBefore}))
 	require.True(t, rg.IsValidNext(OnePulseRange{pdAfter.CreateNextPulse(emptyEntropyFn)}))
 	require.IsType(t, seqPulseRange{}, rg)
+
+
+	require.True(t, rg.Equal(NewSequenceRange([]Data{pdLeft, pd, pdAfter})))
+	require.False(t, rg.Equal(NewSequenceRange([]Data{pd, pdAfter})))
+	require.False(t, rg.Equal(pd.AsRange()))
 
 	require.Panics(t, func() { NewSequenceRange([]Data{pdLeft, pdAfter}) })
 
@@ -112,6 +121,11 @@ func TestNewPulseRange(t *testing.T) {
 	require.True(t, rg.IsValidPrev(OnePulseRange{pdBefore}))
 	require.True(t, rg.IsValidNext(OnePulseRange{pdAfter.CreateNextPulse(emptyEntropyFn)}))
 	require.IsType(t, sparsePulseRange{}, rg)
+
+	require.True(t, rg.Equal(NewPulseRange([]Data{pdLeft, pdAfter})))
+	require.False(t, rg.Equal(NewSequenceRange([]Data{pdLeft, pd, pdAfter})))
+	require.False(t, rg.Equal(NewPulseRange([]Data{pd, pdAfter})))
+	require.False(t, rg.Equal(pd.AsRange()))
 
 	withExpected := []Data{
 		{pdLeft.PulseNumber,

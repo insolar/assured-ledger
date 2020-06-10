@@ -43,13 +43,13 @@ func (sm *antiqueEventSM) stepInit(ctx smachine.InitializationContext) smachine.
 
 func (sm *antiqueEventSM) stepRequestOldPulseData(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
-	return sm.ps.pulseManager.PreparePulseDataRequest(ctx, sm.pn, func(_ bool, _ pulse.Data) {
+	return sm.ps.pulseManager.preparePulseDataRequest(ctx, sm.pn, func(p pulse.Range) {
 		// we don't need to store PD as it will also be in the cache for a while
 	}).DelayedStart().Sleep().ThenJump(sm.stepGotAnswer)
 }
 
 func (sm *antiqueEventSM) stepGotAnswer(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if cps, ok := sm.ps.pulseManager.getCachedPulseSlot(sm.pn); ok {
+	if cps := sm.ps.pulseManager.getCachedPulseSlot(sm.pn); cps != nil {
 		var createDefaults smachine.CreateDefaultValues
 		createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
 		return ctx.ReplaceExt(sm.createFn, createDefaults)
