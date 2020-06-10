@@ -208,7 +208,7 @@ func (v *Global) MarshalBinary() ([]byte, error) {
 
 // deprecated: use reference.MarshalToSizedBuffer
 func (v Global) MarshalToSizedBuffer(data []byte) (int, error) {
-	return MarshalLocalToSizedBuffer(v, data)
+	return MarshalToSizedBuffer(v, data)
 }
 
 // deprecated: use reference.MarshalTo
