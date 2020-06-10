@@ -31,4 +31,4 @@ type LocalReference = reference.Local
 
 type PulseNumber = pulse.Number
 
-//go:generate protoc -I=. -I=E:\Go\src --ins_out=./ proto_*.proto
+////go:generate protoc -I=. -I=E:\Go\src --ins_out=./ proto_*.proto
