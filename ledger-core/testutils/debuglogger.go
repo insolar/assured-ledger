@@ -72,6 +72,25 @@ func (c DebugStepLogger) LogUpdate(data smachine.StepLoggerData, update smachine
 	<-c.continueSig
 }
 
+func (c DebugStepLogger) CanLogTestEvent() bool {
+	return true
+}
+
+func (c DebugStepLogger) LogTestEvent(data smachine.StepLoggerData, customEvent interface{}) {
+	if c.StepLogger.CanLogTestEvent() {
+		c.StepLogger.LogTestEvent(data, customEvent)
+	}
+
+	c.events <- UpdateEvent{
+		notEmpty:    true,
+		SM:          c.sm,
+		Data:        data,
+		CustomEvent: customEvent,
+	}
+
+	<-c.continueSig
+}
+
 func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
 	c.StepLogger.LogEvent(data, customEvent, fields)
 

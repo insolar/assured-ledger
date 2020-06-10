@@ -19,8 +19,13 @@ func (StepLoggerStub) CanLogEvent(StepLoggerEvent, StepLogLevel) bool {
 	return false
 }
 
+func (StepLoggerStub) CanLogTestEvent() bool {
+	return false
+}
+
 func (StepLoggerStub) LogUpdate(StepLoggerData, StepLoggerUpdateData)                            {}
 func (StepLoggerStub) LogInternal(StepLoggerData, string)                                        {}
+func (StepLoggerStub) LogTestEvent(StepLoggerData, interface{}) 								 {}
 func (StepLoggerStub) LogEvent(StepLoggerData, interface{}, []logfmt.LogFieldMarshaller)         {}
 func (StepLoggerStub) LogAdapter(StepLoggerData, AdapterID, uint64, []logfmt.LogFieldMarshaller) {}
 
