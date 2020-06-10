@@ -8,7 +8,7 @@ package dropbag
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/ledger-v2/jetid"
+	"github.com/insolar/assured-ledger/ledger-core/drafts/jetid"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/keyset"
