@@ -144,7 +144,7 @@ func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number
 
 func (i *Info) BuildStateReport() payload.VStateReport {
 	res := payload.VStateReport{
-		Callee:                        i.Reference,
+		Object:                        i.Reference,
 		UnorderedPendingCount:         int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
 		OrderedPendingCount:           int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
@@ -306,7 +306,7 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
 		payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
 	msg := payload.VStateRequest{
-		Callee:           sm.Reference,
+		Object:           sm.Reference,
 		RequestedContent: flags,
 	}
 

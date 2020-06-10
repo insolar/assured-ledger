@@ -53,10 +53,6 @@ func (s service) checkDelegationToken() error {
 	return nil
 }
 
-type TokenExtractor interface {
-	GetDelegationSpec() payload.CallDelegationToken
-}
-
 func (s service) getPrevPulse() (pulse.Number, error) {
 	previousPN, prevRange := s.pulseManager.GetPrevPulseRange()
 	if previousPN == pulse.Unknown {
@@ -71,55 +67,35 @@ func (s service) getPrevPulse() (pulse.Number, error) {
 
 func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global) error {
 	var (
-		token           payload.CallDelegationToken
-		objectRef       reference.Global
 		currentPulse, _ = s.pulseManager.GetPresentPulse()
 		requiredPulse   = currentPulse
 		err             error
 	)
 
-	tokenExtractor, ok := payloadObj.(TokenExtractor)
-	if !ok {
+	switch token, ok := payload.GetSenderDelegationToken(payloadObj); {
+	case !ok:
 		return errors.New("message must implement DelegationExtractor interface")
-	}
-	token = tokenExtractor.GetDelegationSpec()
-	if !token.IsZero() {
+	case !token.IsZero():
 		return s.checkDelegationToken()
 	}
 
-	switch obj := payloadObj.(type) {
-	case *payload.VCallRequest:
-		objectRef = obj.Caller
-	case *payload.VCallResult:
-		objectRef = obj.Caller
-	case *payload.VStateRequest:
-		objectRef = obj.Callee
-	case *payload.VStateReport:
-		objectRef = obj.Callee
-		requiredPulse, err = s.getPrevPulse()
-		if err != nil {
-			return errors.W(err, "can't get prev pulse")
-		}
-	case *payload.VDelegatedRequestFinished:
-		objectRef = obj.Callee
-	case *payload.VDelegatedCallResponse:
-		objectRef = obj.Callee
-	case *payload.VDelegatedCallRequest:
-		objectRef = obj.Callee
-		requiredPulse, err = s.getPrevPulse()
-		if err != nil {
-			return errors.W(err, "can't get prev pulse")
-		}
-	default:
+	subjectRef, usePrev, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
+	switch {
+	case !ok:
 		panic("Unexpected message type")
+	case usePrev:
+		requiredPulse, err = s.getPrevPulse()
+		if err != nil {
+			return errors.W(err, "can't get prev pulse")
+		}
 	}
 
-	if objectRef.Equal(statemachine.APICaller) {
+	if subjectRef.Equal(statemachine.APICaller) {
 		// it's dirty hack to exclude checking of testAPI requests
 		return nil
 	}
 
-	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, objectRef.GetLocal(), requiredPulse)
+	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), requiredPulse)
 	if err != nil {
 		return errors.W(err, "can't calculate role")
 	}

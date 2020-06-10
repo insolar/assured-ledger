@@ -27,7 +27,7 @@ func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global,
 
 	payload := &payload.VStateReport{
 		Status: payload.Ready,
-		Callee: objectRef,
+		Object: objectRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
 				Reference: stateRef,
@@ -44,7 +44,7 @@ func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Glo
 	stateStatus payload.VStateReport_StateStatus, state *payload.ObjectState) *message.Message {
 	payload := &payload.VStateReport{
 		Status: stateStatus,
-		Callee: objectRef,
+		Object: objectRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: state,
 		},

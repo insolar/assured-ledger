@@ -22,7 +22,7 @@ type InputEvent = interface{}
 
 // PulseEventFactoryFunc should return pulse.Unknown or current.Pulse when SM doesn't need to be put into a different pulse slot.
 // Arg (pulse.Range) can be nil for future slot.
-type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc)
+type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc, error)
 
 type EventInputer interface {
 	AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error
@@ -151,10 +151,10 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 	}
 
 	pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
-	remapPN, createFn := p.factoryFn(targetPN, pr, event)
+	remapPN, createFn, err := p.factoryFn(targetPN, pr, event)
 	switch {
-	case createFn == nil:
-		return fmt.Errorf("unrecognized event: pn=%v event=%v", targetPN, event)
+	case createFn == nil || err != nil:
+		return err
 
 	case remapPN == targetPN || remapPN == pn || remapPN.IsUnknown():
 		//

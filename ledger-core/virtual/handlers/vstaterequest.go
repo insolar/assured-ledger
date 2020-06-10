@@ -75,7 +75,7 @@ func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.Stat
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	objectSharedState, stateFound := s.objectCatalog.TryGet(ctx, s.Payload.Callee)
+	objectSharedState, stateFound := s.objectCatalog.TryGet(ctx, s.Payload.Object)
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)
 	}
@@ -88,7 +88,7 @@ func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachi
 	s.objectStateReport = &payload.VStateReport{
 		Status: payload.Missing,
 		AsOf:   s.Payload.AsOf,
-		Callee: s.Payload.Callee,
+		Object: s.Payload.Object,
 	}
 	return ctx.Jump(s.stepSendResult)
 }
@@ -130,7 +130,7 @@ func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) sm
 			*log.Msg  `txt:"State not ready for object"`
 			Reference reference.Global
 		}{
-			Reference: s.Payload.Callee,
+			Reference: s.Payload.Object,
 		})
 		panic(throw.IllegalState())
 	}

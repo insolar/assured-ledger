@@ -54,7 +54,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		rawWalletState := makeRawWalletState(t, testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
-			Callee:                        objectRef,
+			Object:                        objectRef,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: pulse.OfNow(),
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -124,7 +124,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		rawWalletState := makeRawWalletState(t, testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
-			Callee:                        objectRef,
+			Object:                        objectRef,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: pulse.OfNow(),
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{

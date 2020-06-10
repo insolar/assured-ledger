@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
@@ -29,12 +29,12 @@ type DefaultHandlersFactory struct {
 	authService authentication.Service
 }
 
-func (f DefaultHandlersFactory) Classify(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
+func (f DefaultHandlersFactory) Classify(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
 		return handlers.FactoryMeta(event, f.authService)
 	case *testWalletAPIStateMachine.TestAPICall:
-		return 0, testWalletAPIStateMachine.Handler(event)
+		return 0, testWalletAPIStateMachine.Handler(event), nil
 	default:
 		panic(throw.E("unknown event type", struct {
 			InputType interface{} `fmt:"%T"`

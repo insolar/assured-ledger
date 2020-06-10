@@ -38,7 +38,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 
 	smVStateRequest := SMVStateRequest{
 		Payload: &payload.VStateRequest{
-			Callee: smGlobalRef,
+			Object: smGlobalRef,
 		},
 		stateAccessor: smObjectAccessor,
 	}

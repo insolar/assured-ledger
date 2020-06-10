@@ -24,7 +24,7 @@ import (
 func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags) *message.Message {
 	payload := &payload.VStateRequest{
 		AsOf:             pulseNumber,
-		Callee:           ref,
+		Object:           ref,
 		RequestedContent: flags,
 	}
 
@@ -72,7 +72,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             server.GetPulse().PulseNumber,
-			Callee:           objectRef,
+			Object:           objectRef,
 			LatestDirtyState: objectRef,
 		}, data)
 	case <-time.After(10 * time.Second):
@@ -122,7 +122,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             server.GetPulse().PulseNumber,
-			Callee:           objectRef,
+			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
@@ -170,7 +170,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 		assert.Equal(t, &payload.VStateReport{
 			Status: payload.Missing,
 			AsOf:   server.GetPulse().PulseNumber,
-			Callee: objectRef,
+			Object: objectRef,
 		}, data)
 	case <-time.After(10 * time.Second):
 		require.Failf(t, "", "timeout")
