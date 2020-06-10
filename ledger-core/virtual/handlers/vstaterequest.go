@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -70,17 +69,24 @@ func (s *SMVStateRequest) GetStateMachineDeclaration() smachine.StateMachineDecl
 	return dSMVStateRequestInstance
 }
 
-func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	if s.Payload.AsOf == s.pulseSlot.CurrentPulseNumber() {
-		return ctx.Error(throw.E("VStateRequest for current pulse", struct {
-			From   reference.Global
-			Object reference.Global
-		}{
-			From:   s.Meta.Sender,
-			Object: s.Payload.Callee,
-		}))
-	}
+func (s *SMVStateRequest) migrateFutureMessage(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate {
+		return ctx.Stop()
+	})
 	return ctx.Jump(s.stepCheckCatalog)
+}
+
+func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() == conveyor.Present {
+		ctx.SetDefaultMigration(s.migrateFutureMessage)
+		return ctx.Jump(s.stepWait)
+	}
+
+	return ctx.Jump(s.stepCheckCatalog)
+}
+
+func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Sleep().ThenRepeat()
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
