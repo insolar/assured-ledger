@@ -130,8 +130,6 @@ func initComponents(
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = jc
-	//authenticationService := authentication.NewService(ctx, certManager.GetCertificate().GetNodeRef(), virtualDispatcher.Conveyor.GetDataManager(), jc)
-	//virtualDispatcher.AuthenticationService = authenticationService
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
