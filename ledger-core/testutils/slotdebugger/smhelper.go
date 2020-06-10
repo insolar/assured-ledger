@@ -133,6 +133,20 @@ func (w StateMachineHelper) AfterStepExt(s smachine.SlotStep) func(testUtilsComm
 	}
 }
 
+func (w StateMachineHelper) AfterTestString(marker string) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		switch {
+		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
+		case event.Data.EventType != smachine.StepLoggerTrace:
+		default:
+			if s, ok := event.CustomEvent.(string); ok  {
+				return s == marker
+			}
+		}
+		return false
+	}
+}
+
 func (w StateMachineHelper) AfterCustomEvent(fn func(interface{}) bool) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		switch {
