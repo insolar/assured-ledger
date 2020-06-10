@@ -23,7 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
-	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -241,7 +241,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 
-			var authenticationService = authentication.NewService(ctx, nodeRef)
+			var authenticationService = authentication.NewService(ctx, nodeRef, nil)
 
 			slotMachine.AddInterfaceDependency(&authenticationService)
 

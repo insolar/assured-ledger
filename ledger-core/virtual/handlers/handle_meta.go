@@ -35,9 +35,9 @@ type errNoHandler struct {
 	messageType   reflect.Type
 }
 
-func FactoryMeta(message *statemachine.DispatcherMessage, authService authentication.Service) (pulse.Number, smachine.CreateFunc, error) {
-	payloadMeta := message.PayloadMeta
-	messageMeta := message.MessageMeta
+func FactoryMeta(msg *statemachine.DispatcherMessage, authService authentication.Service, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
+	payloadMeta := msg.PayloadMeta
+	messageMeta := msg.MessageMeta
 
 	traceID := messageMeta.Get(defaults.TraceID)
 	if traceID == "" {
@@ -50,7 +50,7 @@ func FactoryMeta(message *statemachine.DispatcherMessage, authService authentica
 	payloadBytes := payloadMeta.Payload
 	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
-		logger.Warn(throw.WithSeverity(throw.W(err, "invalid message"), throw.ViolationSeverity))
+		logger.Warn(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity))
 		return pulse.Unknown, nil, nil
 	}
 
@@ -60,9 +60,14 @@ func FactoryMeta(message *statemachine.DispatcherMessage, authService authentica
 		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
 	})
 
-	err = authService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender)
+	currentPulse := pr.RightBoundData().PulseNumber
+	if currentPulse != payloadMeta.Pulse {
+		panic(throw.Impossible())
+	}
+
+	mustReject, err := authService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender, pr)
 	if err != nil {
-		logger.Warn(throw.W(err, "illegitimate message", struct {
+		logger.Warn(throw.W(err, "illegitimate msg", struct {
 			messageTypeID uint64
 			messageType   reflect.Type
 		}{messageTypeID: payloadTypeID, messageType: payloadType}))
@@ -70,22 +75,27 @@ func FactoryMeta(message *statemachine.DispatcherMessage, authService authentica
 		return pulse.Unknown, nil, nil
 	}
 
+	if mustReject {
+		// when this flag is set, then the relevant SM has to stop asap and send negative answer
+		return pulse.Unknown, nil, throw.NotImplemented()
+	}
+
 	if pn, sm := func () (pulse.Number, smachine.StateMachine) {
 		switch obj := payloadObj.(type) {
 		case *payload.VCallRequest:
-			return payloadMeta.Pulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}
+			return currentPulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VCallResult:
-			return payloadMeta.Pulse, &SMVCallResult{Meta: payloadMeta, Payload: obj}
+			return currentPulse, &SMVCallResult{Meta: payloadMeta, Payload: obj}
 		case *payload.VStateRequest:
 			return obj.AsOf, &SMVStateRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VStateReport:
-			return payloadMeta.Pulse, &SMVStateReport{Meta: payloadMeta, Payload: obj}
+			return currentPulse, &SMVStateReport{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedRequestFinished:
-			return payloadMeta.Pulse, &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
+			return currentPulse, &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedCallRequest:
-			return payloadMeta.Pulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
+			return currentPulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedCallResponse:
-			return payloadMeta.Pulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
+			return currentPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
 		default:
 			return 0, nil
 		}

@@ -9,30 +9,28 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 type Service interface {
 	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
-	IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global) error
+	IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
 }
 
 type service struct {
 	selfNode     reference.Global
-	pulseManager *conveyor.PulseDataManager
 	affinity     jet.AffinityHelper
 }
 
-func NewService(_ context.Context, selfNode reference.Global, pulseManager *conveyor.PulseDataManager, affinity jet.AffinityHelper) Service {
-	return service{selfNode: selfNode, pulseManager: pulseManager, affinity: affinity}
+func NewService(_ context.Context, selfNode reference.Global, affinity jet.AffinityHelper) Service {
+	return service{selfNode: selfNode, affinity: affinity}
 }
 
 func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
@@ -53,63 +51,57 @@ func (s service) checkDelegationToken() error {
 	return nil
 }
 
-func (s service) getPrevPulse() (pulse.Number, error) {
-	previousPN, prevRange := s.pulseManager.GetPrevPulseRange()
-	if previousPN == pulse.Unknown {
-		return pulse.Unknown, errors.New("required previous pulse doesn't exists")
-	}
-	if prevRange == nil {
-		// More info https://insolar.atlassian.net/browse/PLAT-355
-		panic(errors.NotImplemented())
-	}
-	return prevRange.RightBoundData().PulseNumber, nil
-}
-
-func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global) error {
-	var (
-		currentPulse, _ = s.pulseManager.GetPresentPulse()
-		requiredPulse   = currentPulse
-		err             error
-	)
-
+func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	switch token, ok := payload.GetSenderDelegationToken(payloadObj); {
 	case !ok:
-		return errors.New("message must implement DelegationExtractor interface")
+		return false, throw.New("message must implement DelegationExtractor interface")
 	case !token.IsZero():
-		return s.checkDelegationToken()
+		return false, s.checkDelegationToken()
 	}
 
+	verifyForPulse := pr.RightBoundData().PulseNumber
 	subjectRef, usePrev, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
 	switch {
 	case !ok:
 		panic("Unexpected message type")
 	case usePrev:
-		requiredPulse, err = s.getPrevPulse()
-		if err != nil {
-			return errors.W(err, "can't get prev pulse")
+		if !pr.IsArticulated() {
+			if prevDelta := pr.LeftPrevDelta(); prevDelta > 0 {
+				if prevPN, ok := pr.LeftBoundNumber().TryPrev(prevDelta); ok {
+					verifyForPulse = prevPN
+					break
+				}
+			}
 		}
+		// this is either a first pulse or the node is just started. In both cases we should allow the message to run
+		// but have to indicate that it has to be rejected
+		verifyForPulse = pulse.Unknown
 	}
 
 	if subjectRef.Equal(statemachine.APICaller) {
 		// it's dirty hack to exclude checking of testAPI requests
-		return nil
+		return false, nil
 	}
 
-	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), requiredPulse)
+	if verifyForPulse == pulse.Unknown {
+		return true, nil
+	}
+
+	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), verifyForPulse)
 	if err != nil {
-		return errors.W(err, "can't calculate role")
+		return false, throw.W(err, "can't calculate role")
 	}
 
 	if len(expectedVE) > 1 {
-		panic(errors.NotImplemented())
+		panic(throw.Impossible())
 	}
 
 	if !sender.Equal(expectedVE[0]) {
-		return errors.New("unexpected sender", struct {
+		return false, throw.New("unexpected sender", struct {
 			Sender     string
 			ExpectedVE string
 		}{Sender: sender.String(), ExpectedVE: expectedVE[0].String()})
 	}
 
-	return nil
+	return false, nil
 }
