@@ -219,9 +219,9 @@ message CallDelegationToken {
 
 message VFindCallRequest {
     option (insproto.id) = 1011;
-    uint32 LookAt = 20 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (insproto.zeroable) = false];
-    bytes Callee = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    bytes Outgoing = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    uint32 LookAt = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 21;
+    Reference Outgoing = 22;
 }
 
 message VFindCallResponse {
@@ -231,8 +231,8 @@ message VFindCallResponse {
         UnknownCall = 1;
         FoundCall = 2;
     }
-    bytes Callee = 20 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    bytes Outgoing = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    Reference Callee = 20;
+    Reference Outgoing = 21;
     CallState Status = 22;
     VCallResult CallResult = 23 [(gogoproto.nullable) = true];
 }
