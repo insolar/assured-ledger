@@ -14,11 +14,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
@@ -40,8 +39,13 @@ func makeVStateReportEvent(pulseNumber pulse.Number, objectRef reference.Global,
 	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
 }
 
-func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Global,
-	stateStatus payload.VStateReport_StateStatus, state *payload.ObjectState, sender reference.Global) *message.Message {
+func makeVStateReportWithState(
+	pulseNumber pulse.Number,
+	objectRef reference.Global,
+	stateStatus payload.VStateReport_StateStatus,
+	state *payload.ObjectState,
+	sender reference.Global,
+) *message.Message {
 	payload := &payload.VStateReport{
 		Status: stateStatus,
 		Object: objectRef,
@@ -53,14 +57,10 @@ func makeVStateReportWithState(pulseNumber pulse.Number, objectRef reference.Glo
 	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
 }
 
-func makeRawWalletState(t *testing.T, balance uint32) []byte {
-	wallet := testwallet.Wallet{Balance: balance}
-	ser := common.NewCBORSerializer()
-	var buf []byte
-	err := ser.Serialize(wallet, &buf)
-	require.NoError(t, err)
-
-	return buf
+func makeRawWalletState(balance uint32) []byte {
+	return insolar.MustSerialize(testwallet.Wallet{
+		Balance: balance,
+	})
 }
 
 func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objectRef reference.Global, testBalance uint32) {
@@ -81,61 +81,75 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
-	testBalance := uint32(555)
-	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.UniqueReference()
-	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+	var (
+		testBalance    = uint32(555)
+		objectLocal    = server.RandomLocalWithPulse()
+		objectGlobal   = reference.NewSelf(objectLocal)
+		stateID        = server.RandomLocalWithPulse()
+		rawWalletState = makeRawWalletState(testBalance)
+		pn             = server.GetPulse().PulseNumber
+	)
+
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
+
+		msg := makeVStateReportEvent(pn, objectGlobal, stateID, rawWalletState, server.JetCoordinatorMock.Me())
+
 		server.SendMessage(ctx, msg)
 	}
 
-	checkBalance(ctx, t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectGlobal, testBalance)
 }
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	t.Log("C4919")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
-	testBalance := uint32(555)
-	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := gen.UniqueReference()
-	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+	var (
+		testBalance    = uint32(555)
+		objectLocal    = server.RandomLocalWithPulse()
+		objectGlobal   = reference.NewSelf(objectLocal)
+		stateID        = server.RandomLocalWithPulse()
+		newStateID     = server.RandomLocalWithPulse()
+		rawWalletState = makeRawWalletState(testBalance)
+		pn             = server.GetPulse().PulseNumber
+	)
+
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
+		msg := makeVStateReportEvent(pn, objectGlobal, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
-
 	}
 
-	checkBalance(ctx, t, server, objectRef, testBalance)
-	newStateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+	checkBalance(ctx, t, server, objectGlobal, testBalance)
+
 	{
 		// send VStateReport: one more time to simulate rewrite
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, newStateID, makeRawWalletState(t, 444), server.JetCoordinatorMock.Me())
+		msg := makeVStateReportEvent(pn, objectGlobal, newStateID, makeRawWalletState(444), server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
-
 	}
 
-	checkBalance(ctx, t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectGlobal, testBalance)
 }
 
 func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 	t.Log("C4864")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
+	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
-	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
 
 	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
-		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil, server.JetCoordinatorMock.Me())
+		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectGlobal, reason, nil, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 }
@@ -147,21 +161,25 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
-	testBalance := uint32(555)
-	rawWalletState := makeRawWalletState(t, testBalance)
-	objectRef := reference.NewSelf(server.RandomLocalWithPulse())
-	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+	var (
+		testBalance    = uint32(555)
+		objectLocal    = server.RandomLocalWithPulse()
+		objectGlobal   = reference.NewSelf(objectLocal)
+		stateID        = server.RandomLocalWithPulse()
+		rawWalletState = makeRawWalletState(testBalance)
+		pn             = server.GetPulse().PulseNumber
+	)
 	{
 		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
+		msg := makeVStateReportEvent(pn, objectGlobal, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 
 	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
-		msg := makeVStateReportWithState(server.GetPulse().PulseNumber, objectRef, reason, nil, server.JetCoordinatorMock.Me())
+		msg := makeVStateReportWithState(pn, objectGlobal, reason, nil, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 
-	checkBalance(ctx, t, server, objectRef, testBalance)
+	checkBalance(ctx, t, server, objectGlobal, testBalance)
 }

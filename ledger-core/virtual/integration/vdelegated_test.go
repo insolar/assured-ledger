@@ -51,7 +51,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VStateReport: save wallet
 		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-		rawWalletState := makeRawWalletState(t, testBalance)
+		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
 			Object:                        objectRef,
@@ -121,7 +121,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	{
 		// send VStateReport: save wallet
 		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-		rawWalletState := makeRawWalletState(t, testBalance)
+		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
 			Object:                        objectRef,
@@ -135,7 +135,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 				},
 			},
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 	server.WaitActiveThenIdleConveyor()
@@ -150,7 +150,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 			CallSiteMethod: "GetBalance",
 			Arguments:      insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 	server.WaitActiveThenIdleConveyor()
@@ -162,7 +162,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 

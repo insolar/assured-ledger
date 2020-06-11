@@ -87,6 +87,7 @@ func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMac
 			backtrace = st.StackTraceAsText()
 		}
 	}
+
 	global.Logger().Errorm(LogCritical{
 		Message: msg,
 

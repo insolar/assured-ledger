@@ -72,6 +72,10 @@ func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, conte
 }
 
 func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, false, false)
+}
+
+func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
 	return newServerExt(ctx, t, true, false)
 }
 
