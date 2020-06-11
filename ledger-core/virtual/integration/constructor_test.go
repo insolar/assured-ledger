@@ -124,6 +124,8 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
+	t.Log("C4996")
+
 	// VE has object's state record with Status==Missing
 	// Constructor call should work on top of such entry
 	mc := minimock.NewController(t)
@@ -188,6 +190,102 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
+
+	mc.Finish()
+}
+
+func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
+	// Constructor call with outgoing.Pulse < currentPulse
+	// state request, state report
+	t.Log("C4997")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	class := gen.UniqueReference()
+
+	requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
+	requestResult.SetActivate(gen.UniqueReference(), class, []byte("234"))
+
+	executorMock := machine.NewExecutorMock(mc)
+	executorMock.CallConstructorMock.
+		Inspect(func(ctx context.Context, callContext *call.LogicContext, code reference.Global, name string, args []byte) {
+			require.Equal(t, "New", name)
+			require.Equal(t, []byte("arguments"), args)
+		}).
+		Return(nil, []byte("345"), nil)
+
+	mgr := machine.NewManager()
+	err := mgr.RegisterExecutor(machine.Builtin, executorMock)
+	require.NoError(t, err)
+	server.ReplaceMachinesManager(mgr)
+
+	cacheMock := descriptor.NewCacheMock(mc)
+	server.ReplaceCache(cacheMock)
+	cacheMock.ByClassRefMock.Return(
+		descriptor.NewClass(gen.UniqueReference(), gen.UniqueID(), gen.UniqueReference()),
+		descriptor.NewCode(nil, machine.Builtin, gen.UniqueReference()),
+		nil,
+	)
+
+	p1 := server.GetPulse().PulseNumber
+
+	outgoing := server.RandomLocalWithPulse()
+
+	server.IncrementPulse(ctx)
+
+	p2 := server.GetPulse().PulseNumber
+
+	objectRef := reference.NewSelf(outgoing)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
+		require.Equal(t, p1, req.AsOf)
+		require.Equal(t, objectRef, req.Callee)
+
+		flags := payload.StateRequestContentFlags(0)
+		flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
+			payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
+		require.Equal(t, flags, req.RequestedContent)
+
+		report := payload.VStateReport{
+			Status: payload.Missing,
+			AsOf:   p1,
+			Callee: objectRef,
+		}
+
+		server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).Finalize())
+
+		return false // no resend msg
+	})
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		require.Equal(t, res.ReturnArguments, []byte("345"))
+		require.Equal(t, res.Callee, objectRef)
+		require.Equal(t, res.CallOutgoing, outgoing)
+
+		return false // no resend msg
+	})
+
+	isolation := contract.ConstructorIsolation()
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		Callee:         class,
+		CallSiteMethod: "New",
+		CallSequence:   0,
+		CallOutgoing:   outgoing,
+		Arguments:      []byte("arguments"),
+	}
+
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	server.SendMessage(ctx, msg)
+
+	assert.True(t, server.PublisherMock.WaitCount(2, 10*time.Second))
+	server.WaitActiveThenIdleConveyor()
+	require.Equal(t, 2, server.PublisherMock.GetCount())
 
 	mc.Finish()
 }
