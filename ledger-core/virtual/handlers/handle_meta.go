@@ -101,6 +101,7 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 		case *payload.VDelegatedCallResponse:
 			return currentPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
 		default:
+			logger.Warn(errNoHandler{messageTypeID: payloadTypeID, messageType: payloadType})
 			return 0, nil
 		}
 	}(); sm != nil {
@@ -110,8 +111,6 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 			return sm
 		}, nil
 	}
-
-	logger.Warn(errNoHandler{messageTypeID: payloadTypeID, messageType: payloadType})
 
 	return pulse.Unknown, nil, nil
 }
