@@ -334,14 +334,18 @@ func (v callConditionalBuilder) WaitAny() ConditionalBuilder {
 	return v.newConditionalUpdate(stateUpdWaitForEvent)
 }
 
+func (v callConditionalBuilder) waitNone() ConditionalBuilder {
+	return v.newConditionalUpdate(stateUpdNext)
+}
+
 func (v callConditionalBuilder) ThenJump(fn StateFunc) StateUpdate {
-	return v.WaitAny().ThenJump(fn)
+	return v.waitNone().ThenJump(fn)
 }
 
 func (v callConditionalBuilder) ThenJumpExt(step SlotStep) StateUpdate {
-	return v.WaitAny().ThenJumpExt(step)
+	return v.waitNone().ThenJumpExt(step)
 }
 
 func (v callConditionalBuilder) ThenRepeat() StateUpdate {
-	return v.WaitAny().ThenRepeat()
+	return v.waitNone().ThenRepeat()
 }

@@ -21,8 +21,8 @@ const (
 	// A marker for logger to log this step without tracing
 	StepElevatedLog
 
-	//StepIgnoreAsyncWakeup
-	//StepForceAsyncWakeup
+	// stepSleepState is used to restore sleep status on RestoreStep() after AffectedStep
+	stepSleepState
 )
 
 // Describes a step of a SM
@@ -40,12 +40,17 @@ type SlotStep struct {
 	Flags StepFlags
 }
 
-func (s *SlotStep) IsZero() bool {
+func (s SlotStep) IsZero() bool {
 	return s.Transition == nil && s.Flags == 0 && s.Migration == nil && s.Handler == nil
 }
 
-func (s *SlotStep) ensureTransition() {
+func (s SlotStep) ensureTransition() {
 	if s.Transition == nil {
 		panic("illegal value")
 	}
+}
+
+func (s SlotStep) NoSleep() SlotStep {
+	s.Flags &^= stepSleepState
+	return s
 }

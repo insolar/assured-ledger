@@ -27,6 +27,7 @@ const (
 
 	stateUpdWakeup
 	stateUpdNext
+	stateUpdRestore
 	stateUpdPoll
 	stateUpdSleep
 	stateUpdWaitForEvent
@@ -206,6 +207,20 @@ func init() {
 			prepare:   stateUpdateDefaultNoArgPrepare,
 			varVerify: stateUpdateDefaultVerifyNoArgFn,
 			apply:     stateUpdateDefaultJump,
+		},
+
+		stateUpdRestore: {
+			name:      "restore",
+			filter:    updCtxExec | updCtxInit | updCtxBargeIn | updCtxMigrate | updCtxSubrExit,
+			params:    updParamStep,
+			apply: func(slot *Slot, stateUpdate StateUpdate, worker FixedSlotWorker, sd *StepDeclaration) (isAvailable bool, err error) {
+				m := slot.machine
+				slot.setNextStep(stateUpdate.step, sd)
+				if stateUpdate.step.Flags & stepSleepState == 0 {
+					m.updateSlotQueue(slot, worker, activateSlot)
+				}
+				return true, nil
+			},
 		},
 
 		stateUpdPoll: {

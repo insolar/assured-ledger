@@ -134,6 +134,8 @@ type InOrderStepContext interface {
 	// Flags are merged with SetDefaultFlags() unless StepResetAllFlags is included.
 	// Transition must not be nil, other handlers will use SetDefaultXXX() when nil
 	JumpExt(SlotStep) StateUpdate
+	// RestoreStep is similar to JumpExt, but also can apply sleep state when SlotStep was received from AffectedStep.
+	RestoreStep(SlotStep) StateUpdate
 
 	// Share creates a lazy link to the provided data. Link is invalidated when this SM is stopped.
 	// This SM is always has a safe access when active. The shared data is guaranteed to be accessed by only one SM.
@@ -428,6 +430,7 @@ type interruptContext interface {
 
 	JumpExt(SlotStep) StateUpdate
 	Jump(StateFunc) StateUpdate
+	RestoreStep(SlotStep) StateUpdate
 
 	// Error will stop SM by calling an error handler.
 	Error(error) StateUpdate
