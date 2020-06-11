@@ -26,13 +26,13 @@ import (
 )
 
 type DefaultHandlersFactory struct {
-	authService authentication.Service
+	metaFactory handlers.FactoryMeta
 }
 
 func (f DefaultHandlersFactory) Classify(_ pulse.Number, pr pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		return handlers.FactoryMeta(event, f.authService, pr)
+		return f.metaFactory.Process(event, pr)
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event), nil
 	default:
@@ -94,7 +94,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.AuthenticationService = authentication.NewService(ctx, lr.Affinity.Me(), lr.Affinity)
 
-	defaultHandlers := DefaultHandlersFactory{authService: lr.AuthenticationService}.Classify
+	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{lr.AuthenticationService}}.Classify
 	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)

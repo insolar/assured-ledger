@@ -64,7 +64,7 @@ func (h MessageHash) ProtoSize() int {
 
 // UnmarshalFromMeta reads only payload skipping meta decoding. Use this instead of regular Unmarshal if you don't need
 // Meta data.
-func UnmarshalFromMeta(meta []byte) (Payload, error) {
+func UnmarshalFromMeta(meta []byte) (Marshaler, error) {
 	m := Meta{}
 	// Can be optimized by using proto.NewBuffer.
 	err := m.Unmarshal(meta)
@@ -75,5 +75,5 @@ func UnmarshalFromMeta(meta []byte) (Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pl.(Payload), nil
+	return pl.(Marshaler), nil
 }

@@ -35,7 +35,11 @@ type errNoHandler struct {
 	messageType   reflect.Type
 }
 
-func FactoryMeta(msg *statemachine.DispatcherMessage, authService authentication.Service, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
+type FactoryMeta struct {
+	AuthService authentication.Service
+}
+
+func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
 	payloadMeta := msg.PayloadMeta
 	messageMeta := msg.MessageMeta
 
@@ -65,7 +69,7 @@ func FactoryMeta(msg *statemachine.DispatcherMessage, authService authentication
 		panic(throw.Impossible())
 	}
 
-	mustReject, err := authService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender, pr)
+	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender, pr)
 	if err != nil {
 		logger.Warn(throw.W(err, "illegitimate msg", struct {
 			messageTypeID uint64
@@ -80,7 +84,7 @@ func FactoryMeta(msg *statemachine.DispatcherMessage, authService authentication
 		return pulse.Unknown, nil, throw.NotImplemented()
 	}
 
-	if pn, sm := func () (pulse.Number, smachine.StateMachine) {
+	if pn, sm := func() (pulse.Number, smachine.StateMachine) {
 		switch obj := payloadObj.(type) {
 		case *payload.VCallRequest:
 			return currentPulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}

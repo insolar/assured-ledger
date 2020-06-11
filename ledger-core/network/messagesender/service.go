@@ -69,7 +69,7 @@ func (dm *DefaultService) Close() error {
 }
 
 func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
-	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
+	waterMillMsg, err := payload.NewMessage(msg.(payload.Marshaler))
 	if err != nil {
 		return errors.W(err, "Can't create watermill message")
 	}
@@ -83,7 +83,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 }
 
 func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error {
-	waterMillMsg, err := payload.NewMessage(msg.(payload.Payload))
+	waterMillMsg, err := payload.NewMessage(msg.(payload.Marshaler))
 	if err != nil {
 		return errors.W(err, "Can't create watermill message")
 	}

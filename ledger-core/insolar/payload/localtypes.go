@@ -21,14 +21,7 @@ func RegisterMessageType(id uint64, special string, t proto.Message) {
 	rms.RegisterMessageType(id, special, t)
 }
 
-// Payload represents any kind of data that can be encoded in consistent manner.
-type Payload interface {
-	Marshal() ([]byte, error)
-}
-
 type Reference = reference.Global
 type LocalReference = reference.Local
 
 type PulseNumber = pulse.Number
-
-////go:generate protoc -I=. -I=E:\Go\src --ins_out=./ proto_*.proto
