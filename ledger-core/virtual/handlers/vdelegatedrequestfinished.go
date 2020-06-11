@@ -31,14 +31,15 @@ type SMVDelegatedRequestFinished struct {
 }
 
 type stateIsNotReadyErrorMsg struct {
-	*log.Msg  `txt:"State is not ready"`
-	Reference string
+	*log.Msg `txt:"State is not ready"`
+	Object   string
 }
 
 type unExpectedVDelegateRequestFinished struct {
-	*log.Msg  `txt:"Unexpected VDelegateRequestFinished"`
-	Reference string
-	ordered   bool
+	*log.Msg `txt:"Unexpected VDelegateRequestFinished"`
+	Object   string
+	Request  string
+	Ordered  bool
 }
 
 var dSMVDelegatedRequestFinishedInstance smachine.StateMachineDeclaration = &dSMVDelegatedRequestFinished{}
@@ -102,7 +103,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
 			ctx.Log().Trace(stateIsNotReadyErrorMsg{
-				Reference: s.Payload.Callee.String(),
+				Object: s.Payload.Callee.String(),
 			})
 			return false
 		}
@@ -128,6 +129,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	state *object.SharedState,
 ) {
 	objectRef := s.Payload.Callee
+	requestRef := s.Payload.CallOutgoing
 
 	// Update object state.
 	if s.hasLatestState() {
@@ -135,8 +137,14 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	}
 
 	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
-	if !pendingList.Finish(objectRef) {
-		panic(throw.E("delegated request was not registered"))
+	if !pendingList.Finish(requestRef) {
+		panic(throw.E("delegated request was not registered", struct {
+			Object  string
+			Request string
+		}{
+			Object:  objectRef.String(),
+			Request: requestRef.String(),
+		}))
 	}
 
 	switch s.Payload.CallFlags.GetInterference() {
@@ -145,8 +153,9 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 			state.ActiveUnorderedPendingCount--
 		} else {
 			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
-				Reference: objectRef.String(),
-				ordered:   false,
+				Object:  objectRef.String(),
+				Request: requestRef.String(),
+				Ordered: false,
 			})
 		}
 	case contract.CallTolerable:
@@ -161,8 +170,9 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 			}
 		} else {
 			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
-				Reference: objectRef.String(),
-				ordered:   true,
+				Object:  objectRef.String(),
+				Request: requestRef.String(),
+				Ordered: true,
 			})
 		}
 	}
