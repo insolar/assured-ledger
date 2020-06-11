@@ -21,8 +21,8 @@ const (
 	// A marker for logger to log this step without tracing
 	StepElevatedLog
 
-	//StepIgnoreAsyncWakeup
-	//StepForceAsyncWakeup
+	// stepSleepState is used to restore sleep status on RestoreStep() after AffectedStep
+	stepSleepState
 )
 
 // Describes a step of a SM
