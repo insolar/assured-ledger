@@ -423,7 +423,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
-		return ctx.Jump(s.stepAfterTokenGet.Transition)
+		return ctx.JumpExt(s.stepAfterTokenGet)
 	})
 }
 

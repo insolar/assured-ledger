@@ -169,6 +169,10 @@ func (p *slotContext) JumpExt(step SlotStep) StateUpdate {
 	return p.template(stateUpdNext).newStep(step, nil)
 }
 
+func (p *slotContext) RestoreStep(step SlotStep) StateUpdate {
+	return p.template(stateUpdRestore).newStepOnly(step)
+}
+
 func (p *slotContext) Jump(fn StateFunc) StateUpdate {
 	return p.template(stateUpdNext).newStep(SlotStep{Transition: fn}, nil)
 }
@@ -210,6 +214,14 @@ func (p *slotContext) AffectedStep() SlotStep {
 	p.ensureAny3(updCtxMigrate, updCtxBargeIn, updCtxFail)
 	r := p.s.step
 	r.Flags |= StepResetAllFlags
+
+	switch {
+	case p.mode == updCtxFail:
+		// Slot will always wakeup on errors
+	case p.s.QueueType() == NoQueue:
+		r.Flags |= stepSleepState
+	}
+
 	return r
 }
 
