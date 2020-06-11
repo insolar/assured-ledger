@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -287,12 +286,13 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse.DelegationSpec.Caller = caller
 			expectedResponse.DelegationSpec.PulseNumber = pulse.OfNow()
 			expectedResponse.DelegationSpec.Callee = objectRef
+			expectedResponse.Callee = objectRef
 
 			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
 				res := msg.(*payload.VDelegatedCallResponse)
 				// ensure that both times request is the same
-				assert.Equal(t, caller, target)
-				assert.Equal(t, expectedResponse, res)
+				require.Equal(t, caller, target)
+				require.Equal(t, expectedResponse, res)
 				return nil
 			})
 
@@ -300,7 +300,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 			slotMachine.RunTil(smWrapper.AfterStep(smDelegatedCallRequest.stepBuildResponse))
 
-			assert.True(t, sharedState.PendingTable.GetList(callFlags.GetInterference()).Exist(tc.requestRef))
+			require.True(t, sharedState.PendingTable.GetList(callFlags.GetInterference()).Exist(tc.requestRef))
 
 			require.NoError(t, catalogWrapper.CheckDone())
 			mc.Finish()

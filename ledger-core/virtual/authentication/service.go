@@ -25,8 +25,8 @@ type Service interface {
 }
 
 type service struct {
-	selfNode     reference.Global
-	affinity     jet.AffinityHelper
+	selfNode reference.Global
+	affinity jet.AffinityHelper
 }
 
 func NewService(_ context.Context, selfNode reference.Global, affinity jet.AffinityHelper) Service {
@@ -54,7 +54,7 @@ func (s service) checkDelegationToken() error {
 func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	switch token, ok := payload.GetSenderDelegationToken(payloadObj); {
 	case !ok:
-		return false, throw.New("message must implement DelegationExtractor interface")
+		return false, throw.New("message must implement tokenHolder interface")
 	case !token.IsZero():
 		return false, s.checkDelegationToken()
 	}
