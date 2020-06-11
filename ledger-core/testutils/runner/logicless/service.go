@@ -81,7 +81,14 @@ type ServiceMock struct {
 	classifyMapping  ExecutionClassifyMock
 }
 
+func defaultKeyConstructor(execution execution.Context) string {
+	return execution.Outgoing.String()
+}
+
 func NewServiceMock(ctx context.Context, t minimock.Tester, keyConstructor func(execution execution.Context) string) *ServiceMock {
+	if keyConstructor == nil {
+		keyConstructor = defaultKeyConstructor
+	}
 	m := &ServiceMock{
 		ctx:            ctx,
 		t:              t,
@@ -247,7 +254,7 @@ type ExecutionClassifyMock struct {
 
 func (m *ExecutionClassifyMock) Set(key string, v1 contract.MethodIsolation, v2 error) *ExecutionClassifyMock {
 	if _, ok := m.mapper[key]; ok {
-		panic("key already exists")
+		panic(throw.IllegalValue())
 	}
 
 	m.mapper[key] = &ExecutionClassifyMockInstance{
@@ -259,12 +266,18 @@ func (m *ExecutionClassifyMock) Set(key string, v1 contract.MethodIsolation, v2 
 }
 
 func (s ServiceMock) ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error) {
-	if chunk, ok := s.classifyMapping.mapper[s.keyConstructor(execution)]; !ok {
+	key := s.keyConstructor(execution)
+	if chunk, ok := s.classifyMapping.mapper[key]; ok {
 		chunk.count++
 		return chunk.v1, chunk.v2
 	}
 
-	panic("key not found")
+	s.t.Fatalf("failed to registered value for key '%s'", key)
+	return contract.MethodIsolation{}, nil
+}
+
+func (s *ServiceMock) AddExecutionClassify(key string, v1 contract.MethodIsolation, v2 error) {
+	s.classifyMapping.Set(key, v1, v2)
 }
 
 func (m *ExecutionClassifyMock) minimockDone() bool {

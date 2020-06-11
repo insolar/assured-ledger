@@ -11,30 +11,33 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func makeEmptyResult(t *testing.T) []byte {
+func makeEmptyResult() []byte {
 	var ret0 error
-	ser := common.NewCBORSerializer()
-	var emptyResult []byte
-	err := ser.Serialize(foundation.Result{Returns: []interface{}{ret0}}, &emptyResult)
-	require.NoError(t, err)
 
-	return emptyResult
+	return insolar.MustSerialize(foundation.Result{
+		Error:   nil,
+		Returns: []interface{}{ret0},
+	})
 }
 
 type callMethodFunc = func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error)
@@ -74,176 +77,196 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc,
 // 2. Change pulse in mocked executor
 // 4. Since we changed pulse during execution, we expect that VDelegatedRequestFinished will be sent
 // 5. Check that in VDelegatedRequestFinished new object state is stored
-func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideAffect(t *testing.T) {
+func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.T) {
 	t.Log("C4935")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	var (
+		mc = minimock.NewController(t)
+	)
+
+	server, ctx := utils.NewUninitializedServer(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
 	defer server.Stop()
 
-	var countVCallResult int
-	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
 
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		if err != nil {
-			return nil
-		}
+	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 1)
 
-		switch payLoadData := pl.(type) {
-		case *payload.VDelegatedRequestFinished:
-			gotDelegatedRequestFinished <- payLoadData
-		case *payload.VCallResult:
-			countVCallResult++
-		default:
-			t.Logf("Going message: %T", payLoadData)
-		}
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	})
-
-	testBalance := uint32(555)
-	additionalBalance := uint(133)
-	objectRef := gen.UniqueReference()
-	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-
-	// send VStateReport: save wallet
-	rawWalletState := makeRawWalletState(t, testBalance)
-	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
-
-	server.WaitIdleConveyor()
-
-	server.SendMessage(ctx, msg)
-
-	server.WaitActiveThenIdleConveyor()
-
-	server.IncrementPulseAndWaitIdle(ctx)
-	server.WaitActiveThenIdleConveyor()
-
-	// generate new state since it will be changed by CallAPIAddAmount
-	newRawWalletState := makeRawWalletState(t, testBalance+uint32(additionalBalance))
-
-	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
-		// we want to change pulse during execution
-		server.IncrementPulseAndWaitIdle(ctx)
-
-		emptyResult := makeEmptyResult(t)
-		return newRawWalletState, emptyResult, nil
+	{
+		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+		typedChecker.SetDefaultResend(true)
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			gotDelegatedRequestFinished <- finished
+			return false
+		})
+		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
 	}
 
-	mockExecutor(t, server, callMethod, nil)
+	var (
+		class        = testwallet.GetClass()
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+		newState     = makeRawWalletState(initialBalance + 100)
+	)
 
-	code, _ := server.CallAPIAddAmount(ctx, objectRef, additionalBalance)
-	require.Equal(t, 200, code)
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "AddAmount",
+			CallOutgoing:        server.RandomLocalWithPulse(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+
+		newObjectDescriptor := descriptor.NewObject(reference.Global{}, objectLocal, class, []byte(""), reference.Global{})
+
+		result := requestresult.New(makeEmptyResult(), objectGlobal)
+		result.SetAmend(newObjectDescriptor, newState)
+
+		key := calculateOutgoing(pl).String()
+		runnerMock.AddExecutionMock(key).
+			AddStart(func(execution execution.Context) {
+				server.IncrementPulseAndWaitIdle(ctx)
+			}, &executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: result,
+			})
+		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		}, nil)
+
+		beforeCount := server.PublisherMock.GetCount()
+		server.SendMessage(ctx, msg)
+		if !server.PublisherMock.WaitCount(beforeCount+5, 10*time.Second) {
+			require.Fail(t, "timeout waiting for message")
+		}
+	}
+
+	server.WaitActiveThenIdleConveyor()
 
 	select {
 	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
 		callFlags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
-		require.Equal(t, objectRef, delegateFinishedMsg.Callee)
+		require.Equal(t, objectGlobal, delegateFinishedMsg.Callee)
 		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)
 		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
 
-		latestState := delegateFinishedMsg.LatestState
-		require.Equal(t, newRawWalletState, latestState.State)
-	case <-time.After(10 * time.Second):
-		require.Failf(t, "", "timeout")
+		require.Equal(t, newState, delegateFinishedMsg.LatestState.State)
+	default:
+		require.Fail(t, "unexpected situation")
 	}
-
-	server.WaitIdleConveyor()
-
-	require.Equal(t, 1, countVCallResult)
 }
 
 // In this case VDelegatedRequestFinished must not contain new state since it was not changed
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *testing.T) {
 	t.Log("C4990")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	var (
+		mc = minimock.NewController(t)
+	)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	var countVCallResult int
-	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 0)
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
 
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		if err != nil {
-			return nil
+	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 1)
+
+	{
+		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+		typedChecker.SetDefaultResend(true)
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			gotDelegatedRequestFinished <- finished
+			return false
+		})
+		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
+	}
+
+	var (
+		class        = testwallet.GetClass()
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "AddAmount",
+			CallOutgoing:        server.RandomLocalWithPulse(),
+			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
 
-		switch payLoadData := pl.(type) {
-		case *payload.VDelegatedRequestFinished:
-			gotDelegatedRequestFinished <- payLoadData
-		case *payload.VCallResult:
-			countVCallResult++
-		default:
-			inslogger.FromContext(ctx).Infof("Going message: %T", payLoadData)
+		// if object wasn't changed == absence of side-effect
+		result := requestresult.New(makeEmptyResult(), objectGlobal)
+
+		key := calculateOutgoing(pl).String()
+		runnerMock.AddExecutionMock(key).
+			AddStart(func(execution execution.Context) {
+				server.IncrementPulseAndWaitIdle(ctx)
+			}, &executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: result,
+			})
+		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		}, nil)
+
+		beforeCount := server.PublisherMock.GetCount()
+		server.SendMessage(ctx, msg)
+		if !server.PublisherMock.WaitCount(beforeCount+5, 10*time.Second) {
+			require.Fail(t, "timeout waiting for message")
 		}
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	})
-
-	testBalance := uint32(555)
-	objectRef := gen.UniqueReference()
-	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
-
-	// send VStateReport: save wallet
-	rawWalletState := makeRawWalletState(t, testBalance)
-	msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
-
-	server.SendMessage(ctx, msg)
+	}
 
 	server.WaitActiveThenIdleConveyor()
 
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
-		// we want to change pulse during execution
-		server.IncrementPulseAndWaitIdle(ctx)
-
-		emptyResult := makeEmptyResult(t)
-		return rawWalletState, emptyResult, nil
-	}
-
-	mockExecutor(t, server, callMethod, nil)
-
-	code, _ := server.CallAPIGetBalance(ctx, objectRef)
-	require.Equal(t, 200, code)
-
 	select {
 	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
-		callFlags := payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+		callFlags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
-		require.Equal(t, objectRef, delegateFinishedMsg.Callee)
+		require.Equal(t, objectGlobal, delegateFinishedMsg.Callee)
 		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)
 		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
 
 		require.Nil(t, delegateFinishedMsg.LatestState)
-	case <-time.After(10 * time.Second):
-		require.Failf(t, "", "timeout")
+	default:
+		require.Fail(t, "unexpected situation")
 	}
-
-	server.WaitIdleConveyor()
-
-	require.Equal(t, 1, countVCallResult)
 }
 
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) {
 	t.Log("C4988")
 	t.Skip("skipped until PLAT-304")
+
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
 	testBalance := uint32(333)
-	rawWalletState := makeRawWalletState(t, testBalance)
+	rawWalletState := makeRawWalletState(testBalance)
 	callConstructor := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, name string, args []byte) (objectState []byte, result []byte, err error) {
 		// we want to change pulse during construction
 		server.IncrementPulseAndWaitIdle(ctx)
 
-		emptyResult := makeEmptyResult(t)
+		emptyResult := makeEmptyResult()
 		return rawWalletState, emptyResult, nil
 	}
 
