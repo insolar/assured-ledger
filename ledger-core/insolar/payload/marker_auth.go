@@ -37,6 +37,10 @@ func (m *VStateRequest) customSubject() (Reference, authSubjectMode) {
 	return m.GetObject(), hasAuthSubject
 }
 
+func (m *VCallResult) customSubject() (Reference, authSubjectMode) {
+	return m.GetCallee(), hasAuthSubject
+}
+
 func (m *VStateReport) customSubject() (Reference, authSubjectMode) {
 	return m.GetObject(), hasAuthSubjectForPrevPulse
 }
@@ -48,8 +52,3 @@ func (m *VDelegatedCallRequest) customSubject() (Reference, authSubjectMode) {
 func (m *VDelegatedCallResponse) customSubject() (Reference, authSubjectMode) {
 	return m.GetCallee(), hasAuthSubject
 }
-
-func (m *VDelegatedRequestFinished) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubject
-}
-

@@ -100,7 +100,8 @@ func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj 
 		return false, throw.New("unexpected sender", struct {
 			Sender     string
 			ExpectedVE string
-		}{Sender: sender.String(), ExpectedVE: expectedVE[0].String()})
+			Pulse      string
+		}{Sender: sender.String(), ExpectedVE: expectedVE[0].String(), Pulse: verifyForPulse.String()})
 	}
 
 	return false, nil
