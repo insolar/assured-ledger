@@ -32,6 +32,17 @@ func NewPresentPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSl
 	}
 }
 
+func NewPastPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot {
+	return PulseSlot{
+		pulseManager: pulseManager,
+		pulseData: &presentPulseDataHolder{
+			pr:     pr,
+			at:     time.Unix(int64(pr.RightBoundData().Timestamp), 0),
+			isPast: 1,
+		},
+	}
+}
+
 type PulseSlot struct {
 	pulseManager *PulseDataManager
 	pulseData    pulseDataHolder

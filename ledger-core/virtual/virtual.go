@@ -45,7 +45,7 @@ type Dispatcher struct {
 	MachineLogger  smachine.SlotMachineLogger
 
 	// CycleFn is called after every scan cycle done by conveyor worker
-	CycleFn  conveyor.PulseConveyorCycleFunc
+	CycleFn conveyor.PulseConveyorCycleFunc
 
 	// Components
 	Runner        runner.Service

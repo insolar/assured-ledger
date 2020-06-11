@@ -73,6 +73,10 @@ func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, conte
 }
 
 func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+	return newServerExt(ctx, t, false, false)
+}
+
+func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
 	return newServerExt(ctx, t, true, false)
 }
 
@@ -167,6 +171,10 @@ func (s *Server) Init(ctx context.Context) {
 
 func (s *Server) GetPulse() pulsestor.Pulse {
 	return s.pulseGenerator.GetLastPulseAsPulse()
+}
+
+func (s *Server) GetPrevPulse() pulsestor.Pulse {
+	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 
 func (s *Server) incrementPulse(ctx context.Context) {

@@ -37,19 +37,19 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
-		rawWalletState := makeRawWalletState(t, testBalance)
+		rawWalletState := makeRawWalletState(testBalance)
 		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
 		server.SendMessage(ctx, msg)
 	}
 
 	// generate new state since it will be changed by CallAPIAddAmount
-	newRawWalletState := makeRawWalletState(t, testBalance+uint32(additionalBalance))
+	newRawWalletState := makeRawWalletState(testBalance + uint32(additionalBalance))
 
 	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
 		// we want to change pulse during execution
 		server.IncrementPulseAndWaitIdle(ctx)
 
-		emptyResult := makeEmptyResult(t)
+		emptyResult := makeEmptyResult()
 		return newRawWalletState, emptyResult, nil
 	}
 

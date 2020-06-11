@@ -230,7 +230,13 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			panic(throw.NotImplemented())
 		}
 	} else if objectState != object.HasState {
-		panic(throw.IllegalState())
+		panic(throw.E("no state on object after readyToWork", struct {
+			ObjectReference string
+			State           object.State
+		}{
+			ObjectReference: s.execution.Object.String(),
+			State:           objectState,
+		}))
 	}
 
 	s.semaphoreOrdered = semaphoreOrdered
@@ -351,8 +357,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	}
 
 	if isDuplicate {
-		ctx.Log().Warn("duplicate found as pending request")
-		return ctx.Stop()
+		return ctx.Error(throw.E("duplicate found as pending request"))
 	}
 
 	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {

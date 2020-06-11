@@ -1,14 +1,31 @@
 @startuml
-Init : INHERITED
+Init : migrateFutureMessage
+Init -[#blue]-> migrateFutureMessage
+Init --> stepWait : Jump
 Init --> stepCheckCatalog : Jump
+migrateFutureMessage : INHERITED
+migrateFutureMessage --> stepCheckCatalog : Jump
+migrateFutureMessage --> [*]
+stepWait : INHERITED
+stepWait : migrateFutureMessage
+stepWait -[#blue]-> migrateFutureMessage
+stepWait --> stepWait : ThenRepeat
 stepCheckCatalog : INHERITED
+stepCheckCatalog : migrateFutureMessage
+stepCheckCatalog -[#blue]-> migrateFutureMessage
 stepCheckCatalog --> stepBuildMissing : Jump
 stepCheckCatalog --> stepBuildStateReport : Jump
 stepBuildMissing : INHERITED
+stepBuildMissing : migrateFutureMessage
+stepBuildMissing -[#blue]-> migrateFutureMessage
 stepBuildMissing --> stepSendResult : Jump
 stepBuildStateReport : INHERITED
+stepBuildStateReport : migrateFutureMessage
+stepBuildStateReport -[#blue]-> migrateFutureMessage
 stepBuildStateReport --> stepSendResult : Jump
 stepBuildStateReport --> stepBuildStateReport : ThenRepeat
 stepSendResult : INHERITED
+stepSendResult : migrateFutureMessage
+stepSendResult -[#blue]-> migrateFutureMessage
 stepSendResult --> [*]
 @enduml

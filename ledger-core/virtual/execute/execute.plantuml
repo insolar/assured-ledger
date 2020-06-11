@@ -34,7 +34,6 @@ stepDeduplicate : INHERITED
 stepDeduplicate : migrationDefault
 stepDeduplicate -[#blue]-> migrationDefault
 stepDeduplicate --> stepStartRequestProcessing : Jump
-stepDeduplicate --> [*]
 stepDeduplicate --> stepDeduplicate : ThenRepeat
 stepDeduplicate --> stepDeduplicate : ThenRepeat
 stepStartRequestProcessing : migrateDuringExecution
