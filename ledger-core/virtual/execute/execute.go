@@ -428,18 +428,33 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.run = nil
 	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state runner.RunState) {
+		if state == nil {
+			panic(throw.IllegalValue())
+		}
 		s.run = state
-	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+
+		s.executionNewState = state.GetResult()
+		if s.executionNewState == nil {
+			panic(throw.IllegalValue())
+		}
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
+}
+
+func (s *SMExecute) stepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.executionNewState == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
+	return ctx.Jump(s.stepExecuteDecideNextStep)
 }
 
 func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	newState := s.run.GetResult()
-	if newState == nil {
-		return ctx.Sleep().ThenRepeat()
+	if s.executionNewState == nil {
+		panic(throw.IllegalState())
 	}
 
-	s.executionNewState = newState
+	newState := s.executionNewState
 
 	switch newState.Type {
 	case executionupdate.Done:
@@ -545,7 +560,18 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
 
-	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+	s.executionNewState = nil
+
+	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, func() {
+		if s.run == nil {
+			panic(throw.IllegalState())
+		}
+
+		s.executionNewState = s.run.GetResult()
+		if s.executionNewState == nil {
+			panic(throw.IllegalState())
+		}
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -582,13 +608,13 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-		action := func(state *object.SharedState) {
-			state.Info.SetDescriptor(s.newObjectDescriptor)
+	action := func(state *object.SharedState) {
+		state.Info.SetDescriptor(s.newObjectDescriptor)
 
-			if state.GetState() == object.Empty {
-				state.SetState(object.HasState)
-			}
+		if state.GetState() == object.Empty {
+			state.SetState(object.HasState)
 		}
+	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
@@ -625,9 +651,8 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		CallType:     s.Payload.CallType,
 		CallFlags:    s.Payload.CallFlags,
 		Callee:       s.execution.Object,
-		ResultFlags:  nil,
-		CallOutgoing: s.Payload.CallOutgoing,
-		CallIncoming: reference.Local{},
+		CallOutgoing: s.execution.Outgoing,
+		CallIncoming: s.execution.Incoming,
 		LatestState:  lastState,
 	}
 
@@ -723,7 +748,6 @@ func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.St
 
 	return ctx.Stop()
 }
-
 
 func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()

@@ -70,8 +70,9 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
-			Callee:    smExecID,
-			CallFlags: payload.BuildCallFlags(callMode, contract.CallDirty),
+			Callee:       smGlobalRef,
+			CallOutgoing: smExecID,
+			CallFlags:    payload.BuildCallFlags(callMode, contract.CallDirty),
 		},
 	}
 
@@ -104,8 +105,9 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
-			Callee:    smExecID,
-			CallFlags: payload.BuildCallFlags(callMode, contract.CallDirty),
+			Callee:       smGlobalRef,
+			CallOutgoing: smExecID,
+			CallFlags:    payload.BuildCallFlags(callMode, contract.CallDirty),
 		},
 	}
 
@@ -137,8 +139,9 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
-			Callee:    smExecID,
-			CallFlags: payload.BuildCallFlags(callMode, contract.CallDirty),
+			Callee:       smGlobalRef,
+			CallOutgoing: smExecID,
+			CallFlags:    payload.BuildCallFlags(callMode, contract.CallDirty),
 		},
 	}
 	execCtx := smachine.NewExecutionContextMock(mc)
