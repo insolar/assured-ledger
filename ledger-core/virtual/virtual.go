@@ -94,7 +94,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.AuthenticationService = authentication.NewService(ctx, lr.Affinity.Me(), lr.Affinity)
 
-	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{lr.AuthenticationService}}.Classify
+	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService}}.Classify
 	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
