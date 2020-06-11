@@ -107,6 +107,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		class        = testwallet.GetClass()
@@ -191,6 +192,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		waitInputChannel  = make(chan struct{}, 2)
