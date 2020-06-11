@@ -1,0 +1,13 @@
+@startuml
+Init : INHERITED
+Init --> stepSendVStateReport : Jump
+stepSendVStateReport : migrationDefault
+stepSendVStateReport -[#blue]-> migrationDefault
+stepSendVStateReport --> stepWaitIndefinitely : Jump
+migrationDefault : INHERITED
+migrationDefault --> [*]
+stepWaitIndefinitely : INHERITED
+stepWaitIndefinitely : migrationDefault
+stepWaitIndefinitely -[#blue]-> migrationDefault
+stepWaitIndefinitely --> stepWaitIndefinitely : ThenRepeat
+@enduml
