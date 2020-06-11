@@ -34,7 +34,6 @@ stepDeduplicate : INHERITED
 stepDeduplicate : migrationDefault
 stepDeduplicate -[#blue]-> migrationDefault
 stepDeduplicate --> stepStartRequestProcessing : Jump
-stepDeduplicate --> [*]
 stepDeduplicate --> stepDeduplicate : ThenRepeat
 stepDeduplicate --> stepDeduplicate : ThenRepeat
 stepStartRequestProcessing : migrateDuringExecution
@@ -47,15 +46,19 @@ migrateDuringExecution --> stepGetDelegationToken : Jump
 stepExecuteStart : INHERITED
 stepExecuteStart : migrateDuringExecution
 stepExecuteStart -[#blue]-> migrateDuringExecution
-stepExecuteStart --> stepExecuteDecideNextStep : ThenJump
+stepExecuteStart --> stepWaitExecutionResult : ThenJump
 stepGetDelegationToken : INHERITED
+stepWaitExecutionResult : INHERITED
+stepWaitExecutionResult : migrateDuringExecution
+stepWaitExecutionResult -[#blue]-> migrateDuringExecution
+stepWaitExecutionResult --> stepExecuteDecideNextStep : Jump
+stepWaitExecutionResult --> stepWaitExecutionResult : ThenRepeat
 stepExecuteDecideNextStep : INHERITED
 stepExecuteDecideNextStep : migrateDuringExecution
 stepExecuteDecideNextStep -[#blue]-> migrateDuringExecution
 stepExecuteDecideNextStep --> stepSaveNewObject : Jump
 stepExecuteDecideNextStep --> stepExecuteAborted : Jump
 stepExecuteDecideNextStep --> stepExecuteOutgoing : Jump
-stepExecuteDecideNextStep --> stepExecuteDecideNextStep : ThenRepeat
 stepSaveNewObject : INHERITED
 stepSaveNewObject : migrateDuringExecution
 stepSaveNewObject -[#blue]-> migrateDuringExecution
@@ -80,7 +83,7 @@ stepSendOutgoing -[#blue]-> migrateDuringExecution
 stepExecuteContinue : INHERITED
 stepExecuteContinue : migrateDuringExecution
 stepExecuteContinue -[#blue]-> migrateDuringExecution
-stepExecuteContinue --> stepExecuteDecideNextStep : ThenJump
+stepExecuteContinue --> stepWaitExecutionResult : ThenJump
 stepFinishRequest : INHERITED
 stepFinishRequest : migrateDuringExecution
 stepFinishRequest -[#blue]-> migrateDuringExecution

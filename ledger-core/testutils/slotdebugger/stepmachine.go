@@ -47,6 +47,18 @@ type StepController struct {
 }
 
 func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
+	controller := new(ctx, t, suppressLogError)
+	controller.preparePresentPulseSlot()
+	return controller
+}
+
+func NewPast(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
+	controller := new(ctx, t, suppressLogError)
+	controller.preparePastPulseSlot()
+	return controller
+}
+
+func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
 	inslogger.SetTestOutput(t, suppressLogError)
 
 	debugLogger := testUtilsCommon.NewDebugMachineLogger(convlog.MachineLogger{})
@@ -72,13 +84,18 @@ func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepControll
 	)
 	w.worker = newWorker(w)
 
-	w.preparePulseSlot()
-
 	return w
 }
-func (c *StepController) preparePulseSlot() {
+
+func (c *StepController) preparePresentPulseSlot() {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	c.PulseSlot = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+	c.SlotMachine.AddDependency(&c.PulseSlot)
+}
+
+func (c *StepController) preparePastPulseSlot() {
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+	c.PulseSlot = conveyor.NewPastPulseSlot(nil, pd.AsRange())
 	c.SlotMachine.AddDependency(&c.PulseSlot)
 }
 
