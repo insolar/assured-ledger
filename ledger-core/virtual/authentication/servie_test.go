@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -182,4 +183,22 @@ func Test_IsMessageFromVirtualLegitimate_HaveMoreThanOneResponsibleVE(t *testing
 	require.Panics(t, func() {
 		authService.IsMessageFromVirtualLegitimate(ctx, msg, sender, rg)
 	})
+}
+
+func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *testing.T) {
+	ctx := context.Background()
+	selfRef := gen.UniqueReference()
+	sender := statemachine.APICaller
+
+	authService := NewService(ctx, selfRef, nil)
+
+	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
+
+	msg := &payload.VStateRequest{
+		Object: statemachine.APICaller,
+	}
+
+	mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, msg, sender, rg)
+	require.NoError(t, err)
+	require.False(t, mustReject)
 }
