@@ -31,8 +31,6 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
 		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
-		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
@@ -46,6 +44,9 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
+
+	outgoing := gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+	objectRef := reference.NewSelf(outgoing)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -100,8 +101,6 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
 		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
-		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
@@ -115,6 +114,9 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
+
+	outgoing := gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+	objectRef := reference.NewSelf(outgoing)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -171,8 +173,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
 		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
-		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
@@ -186,6 +186,9 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
+
+	outgoing := gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+	objectRef := reference.NewSelf(outgoing)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{

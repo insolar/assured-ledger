@@ -305,12 +305,13 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 	flags := payload.StateRequestContentFlags(0)
 	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
 		payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
+	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	msg := payload.VStateRequest{
+		AsOf:             prevPulse,
 		Object:           sm.Reference,
 		RequestedContent: flags,
 	}
 
-	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
 	ref := sm.Reference
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

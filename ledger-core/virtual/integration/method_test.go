@@ -250,7 +250,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	cacheMock.IntenselyPanic = true
 	server.ReplaceCache(cacheMock.Mock())
 
-	objectLocal := gen.UniqueID()
+	objectLocal := server.RandomLocalWithPulse()
 	objectRef := reference.NewSelf(objectLocal)
 
 	err = Method_PrepareObject(ctx, server, class, objectLocal)
