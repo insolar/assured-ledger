@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -318,4 +319,8 @@ func (s *Server) waitIdleConveyor(checkActive bool) {
 
 func (s *Server) ResetActiveConveyorFlag() {
 	s.activeState.UnsetBits(hasActive)
+}
+
+func (s *Server) WrapPayload(pl payload.Marshaler) *RequestWrapper {
+	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
 }

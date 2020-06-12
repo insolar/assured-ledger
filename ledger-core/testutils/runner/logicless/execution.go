@@ -92,8 +92,8 @@ func (m *ExecutionMock) next(expectedTp ExecutionChunkType) (*ExecutionChunk, er
 		currentCheckPosition = m.pos
 	)
 
-	if len(m.checks) < currentCheckPosition {
-		return nil, throw.E("unexpected next step 1")
+	if len(m.checks) <= currentCheckPosition {
+		return nil, throw.E("unexpected next step")
 	}
 
 	if m.checks[currentCheckPosition].eventType != expectedTp {
