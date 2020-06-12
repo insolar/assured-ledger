@@ -5,10 +5,18 @@
 
 package smachine
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
 var _ DetachableSlotWorker = fixedWorkerWrapper{}
 
 type fixedWorkerWrapper struct {
 	FixedSlotWorker
+}
+
+func (w fixedWorkerWrapper) AddNestedCallCount(u uint) {
+	panic(throw.Unsupported())
 }
 
 func (w fixedWorkerWrapper) NonDetachableCall(fn NonDetachableFunc) (wasExecuted bool) {
@@ -25,5 +33,5 @@ func (w fixedWorkerWrapper) DetachableOuterCall(*SlotMachine, DetachableFunc) (w
 }
 
 func (w fixedWorkerWrapper) TryDetach(LongRunFlags) {
-	panic("unsupported")
+	panic(throw.Unsupported())
 }
