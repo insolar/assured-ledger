@@ -1,13 +1,25 @@
 @startuml
-Init : INHERITED
-Init --> stepGetObject : Jump
-stepGetObject : INHERITED
-stepGetObject --> awaitObjectReady : Jump
-stepGetObject --> stepGetObject : ThenRepeat
-awaitObjectReady : INHERITED
-awaitObjectReady --> stepProcess : Jump
-awaitObjectReady --> awaitObjectReady : ThenRepeat
-stepProcess : INHERITED
-stepProcess --> [*]
-stepProcess --> stepProcess : ThenRepeat
+state "Init" as T01_S001
+T01_S001 : SMVDelegatedRequestFinished
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "awaitObjectReady" as T01_S003
+T01_S003 : SMVDelegatedRequestFinished
+T01_S003 -> T01_S003 : [(...).AcquireForThisStep().IsNotPassed()]\nSleep
+T01_S003 --> T01_S004
+state "stepGetObject" as T01_S002
+T01_S002 : SMVDelegatedRequestFinished
+T01_S002 -> T01_S002 : [smachine.NotPassed]\nWaitShared
+T01_S002 --> T01_S003
+state "stepProcess" as T01_S004
+T01_S004 : SMVDelegatedRequestFinished
+T01_S004 -> T01_S004 : [smachine.NotPassed]\nWaitShared
+T01_S004 -->[*]
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVDelegatedRequestFinished
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVDelegatedRequestFinished
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
 @enduml
