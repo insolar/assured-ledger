@@ -277,7 +277,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 func (sm *SMObject) initWaitGetStateUntil() {
 	pulseDuration := time.Second * time.Duration(sm.pulseSlot.PulseData().NextPulseDelta)
-	waitDuration := pulseDuration / waitStatePulsePercent
+	waitDuration := pulseDuration / 100 * waitStatePulsePercent
 	pulseStartedAt := sm.pulseSlot.PulseStartedAt()
 
 	sm.waitGetStateUntil = pulseStartedAt.Add(waitDuration)
