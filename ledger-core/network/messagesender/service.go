@@ -19,8 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type options struct {
@@ -71,12 +70,12 @@ func (dm *DefaultService) Close() error {
 func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Marshaler))
 	if err != nil {
-		return errors.W(err, "Can't create watermill message")
+		return throw.W(err, "Can't create watermill message")
 	}
 
 	nodes, err := dm.affinity.QueryRole(ctx, role, object.GetLocal(), pn)
 	if err != nil {
-		return errors.W(err, "failed to calculate role")
+		return throw.W(err, "failed to calculate role")
 	}
 
 	return dm.sendTarget(ctx, waterMillMsg, nodes[0], pn)
@@ -85,7 +84,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Marshaler))
 	if err != nil {
-		return errors.W(err, "Can't create watermill message")
+		return throw.W(err, "Can't create watermill message")
 	}
 
 	var pn pulse.Number
@@ -96,7 +95,7 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler,
 		// It's possible, that we try to fetch something in PM.Set()
 		// In those cases, when we in the start of the system, we don't have any pulses
 		// but this is not the error
-		inslogger.FromContext(ctx).Warn(errors.W(err, "failed to fetch pulse"))
+		inslogger.FromContext(ctx).Warn(throw.W(err, "failed to fetch pulse"))
 	}
 	return dm.sendTarget(ctx, waterMillMsg, target, pn)
 }
@@ -120,14 +119,18 @@ func (dm *DefaultService) sendTarget(
 	msg.SetContext(ctx)
 	_, msg, err = dm.wrapMeta(msg, target, payload.MessageHash{}, pulse)
 	if err != nil {
-		inslogger.FromContext(ctx).Error(errors.W(err, "failed to send message"))
-		return errors.W(err, "can't wrap meta message")
+		inslogger.FromContext(ctx).Error(throw.W(err, "failed to send message"))
+		return throw.W(err, "can't wrap meta message")
 	}
 
 	logger.Debugf("sending message")
 	err = dm.pub.Publish(TopicOutgoing, msg)
 	if err != nil {
-		return errors.Wrapf(err, "can't publish message to %s topic", TopicOutgoing)
+		return throw.W(err, "can't publish message", struct {
+			Topic string
+		}{
+			Topic: TopicOutgoing,
+		})
 	}
 
 	return nil
@@ -155,7 +158,7 @@ func (dm *DefaultService) wrapMeta(
 
 	buf, err := payloadMeta.Marshal()
 	if err != nil {
-		return payload.Meta{}, nil, errors.W(err, "wrapMeta. failed to wrap message")
+		return payload.Meta{}, nil, throw.W(err, "wrapMeta. failed to wrap message")
 	}
 	msg.Payload = buf
 	msg.Metadata.Set(defaults.Receiver, receiver.String())
