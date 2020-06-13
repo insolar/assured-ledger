@@ -11,6 +11,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/assert"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
@@ -44,7 +45,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		require.Equal(t, sender, pl.DelegationSpec.DelegateTo)
 
 		return false // no resend msg
-	}).ExpectedCount(1)
+	})
 
 	server.WaitIdleConveyor()
 
@@ -85,6 +86,10 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	server.PublisherMock.WaitCount(1, 10*time.Second)
 	mc.Finish()
+
+	{
+		assert.Equal(t, typedChecker.Handlers.VDelegatedCallResponse.Count.Load(), 1)
+	}
 }
 
 func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {

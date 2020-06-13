@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
@@ -24,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
@@ -213,14 +215,15 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
 	{
-		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			require.Equal(t, res.ReturnArguments, []byte("345"))
 			require.Equal(t, res.Callee, objectGlobal)
 
 			return false // no resend msg
-		}).ExpectedCount(2)
+		})
 
 		countBefore := server.PublisherMock.GetCount()
 
@@ -273,6 +276,20 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 	}
 
+	{
+		it := server.Journal.GetJournalIterator()
+		select {
+		case <-it.WaitStop(&execute.SMExecute{}, 2):
+		case <-time.After(10 * time.Second):
+			t.Fatal("timeout")
+		}
+		it.Stop()
+	}
+
+	{
+		assert.Equal(t, 2, typedChecker.Handlers.VCallResult.Count.Load())
+	}
+
 	mc.Finish()
 }
 
@@ -287,9 +304,9 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	defer server.Stop()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.ExpectedCount(1).SetResend()
-	typedChecker.VCallRequest.ExpectedCount(1).SetResend()
-	typedChecker.VStateReport.ExpectedCount(1).SetResend()
+	typedChecker.VCallRequest.SetResend(true)
+	typedChecker.VCallResult.SetResend(true)
+	typedChecker.VStateReport.SetResend(true)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -304,6 +321,12 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	checkBalance(ctx, t, server, objectGlobal, initialBalance)
+
+	{
+		assert.Equal(t, 1, typedChecker.Handlers.VCallRequest.Count.Load())
+		assert.Equal(t, 1, typedChecker.Handlers.VCallResult.Count.Load())
+		assert.Equal(t, 1, typedChecker.Handlers.VStateReport.Count.Load())
+	}
 
 	mc.Finish()
 }
