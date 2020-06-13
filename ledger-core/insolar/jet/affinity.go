@@ -7,10 +7,7 @@ package jet
 
 import (
 	"context"
-	"fmt"
 	"sort"
-
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
@@ -20,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // AffinityCoordinator is responsible for all jet interactions
@@ -60,7 +58,7 @@ func (jc *AffinityCoordinator) QueryRole(
 	if role == node.DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pulseNumber)
 		if err != nil {
-			return nil, throw.Wrapf(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
+			return nil, throw.W(err, "calc DynamicRoleVirtualExecutor for object %v failed", objID.String())
 		}
 		return []reference.Global{n}, nil
 	}
@@ -120,22 +118,34 @@ func (jc *AffinityCoordinator) IsBeyondLimit(ctx context.Context, targetPN pulse
 }
 
 func (jc *AffinityCoordinator) virtualsForObject(
-	ctx context.Context, objID reference.Local, pulse pulse.Number, count int,
+	ctx context.Context, objID reference.Local, pn pulse.Number, count int,
 ) ([]reference.Global, error) {
-	candidates, err := jc.Nodes.InRole(pulse, node.StaticRoleVirtual)
+	candidates, err := jc.Nodes.InRole(pn, node.StaticRoleVirtual)
 	if err == nodestorage.ErrNoNodes {
 		return nil, err
 	}
 	if err != nil {
-		return nil, throw.Wrapf(err, "failed to fetch active virtual nodes for pulse %v", pulse)
+		return nil, throw.W(err, "failed to fetch active virtual nodes for pulse", struct {
+			Pulse pulse.Number
+		}{
+			Pulse: pn,
+		})
 	}
 	if len(candidates) == 0 {
-		return nil, throw.New(fmt.Sprintf("no active virtual nodes for pulse %d", pulse))
+		return nil, throw.E("no active virtual nodes for pulse", struct {
+			Pulse pulse.Number
+		}{
+			Pulse: pn,
+		})
 	}
 
-	ent, err := jc.entropy(ctx, pulse)
+	ent, err := jc.entropy(ctx, pn)
 	if err != nil {
-		return nil, throw.Wrapf(err, "failed to fetch entropy for pulse %v", pulse)
+		return nil, throw.W(err, "failed to fetch entropy for pulse", struct {
+			Pulse pulse.Number
+		}{
+			Pulse: pn,
+		})
 	}
 
 	return getRefs(
@@ -157,19 +167,23 @@ func CircleXOR(value, src []byte) []byte {
 	return result
 }
 
-func (jc *AffinityCoordinator) entropy(ctx context.Context, pulse pulse.Number) (pulsestor.Entropy, error) {
+func (jc *AffinityCoordinator) entropy(ctx context.Context, pn pulse.Number) (pulsestor.Entropy, error) {
 	current, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
 		return pulsestor.Entropy{}, throw.W(err, "failed to get current pulse")
 	}
 
-	if current.PulseNumber == pulse {
+	if current.PulseNumber == pn {
 		return current.Entropy, nil
 	}
 
-	older, err := jc.PulseAccessor.ForPulseNumber(ctx, pulse)
+	older, err := jc.PulseAccessor.ForPulseNumber(ctx, pn)
 	if err != nil {
-		return pulsestor.Entropy{}, throw.Wrapf(err, "failed to fetch pulse data for pulse %v", pulse)
+		return pulsestor.Entropy{}, throw.W(err, "failed to fetch pulse data for pulse", struct {
+			Pulse pulse.Number
+		}{
+			Pulse: pn,
+		})
 	}
 
 	return older.Entropy, nil

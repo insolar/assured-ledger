@@ -515,7 +515,7 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			nextPollTime time.Time
 		)
 		eventMark := p.internalSignal.Mark()
-		p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
+		_, callCount := p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
 			repeatNow, nextPollTime = p.slotMachine.ScanOnce(smachine.ScanDefault, worker)
 		})
 
@@ -535,6 +535,12 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 				cycleFn(false)
 			}
 			continue
+		}
+
+		if callCount > 0 {
+			if cycleFn != nil {
+				cycleFn(false)
+			}
 		}
 
 		select {

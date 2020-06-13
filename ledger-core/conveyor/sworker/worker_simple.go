@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Very simple implementation of a slot worker. No support for detachments.
@@ -33,7 +34,7 @@ func (v *AttachableSimpleSlotWorker) AttachAsNested(m *smachine.SlotMachine, out
 	loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool) {
 
 	if !atomic.CompareAndSwapUint32(&v.exclusive, 0, 1) {
-		panic("is attached")
+		panic(throw.IllegalState())
 	}
 	defer atomic.StoreUint32(&v.exclusive, 0)
 
@@ -42,11 +43,12 @@ func (v *AttachableSimpleSlotWorker) AttachAsNested(m *smachine.SlotMachine, out
 
 	w.init()
 	fn(w)
+	outer.AddNestedCallCount(w.callCount)
 	return false
 }
 
 func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *synckit.SignalVersion,
-	loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool) {
+	loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool, callCount uint) {
 
 	if !atomic.CompareAndSwapUint32(&v.exclusive, 0, 1) {
 		panic("is attached")
@@ -57,7 +59,7 @@ func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *s
 
 	w.init()
 	fn(w)
-	return false
+	return false, w.callCount
 }
 
 var _ smachine.FixedSlotWorker = &SimpleSlotWorker{}
@@ -66,6 +68,7 @@ type SimpleSlotWorker struct {
 	outerSignal *synckit.SignalVersion
 	loopLimitFn smachine.LoopLimiterFunc // NB! MUST correlate with outerSignal
 	loopLimit   int
+	callCount   uint
 
 	machine *smachine.SlotMachine
 
@@ -111,8 +114,13 @@ func (p *SimpleSlotWorker) OuterCall(*smachine.SlotMachine, smachine.NonDetachab
 }
 
 func (p *SimpleSlotWorker) DetachableCall(fn smachine.DetachableFunc) (wasDetached bool) {
+	p.callCount++
 	fn(&p.dsw)
 	return false
+}
+
+func (p *SimpleSlotWorker) AddNestedCallCount(u uint) {
+	p.callCount += u
 }
 
 var _ smachine.DetachableSlotWorker = &DetachableSimpleSlotWorker{}

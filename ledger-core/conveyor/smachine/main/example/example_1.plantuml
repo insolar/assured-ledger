@@ -1,24 +1,39 @@
 @startuml
-Init : INHERITED
-Init --> State1 : Jump
-State1 : INHERITED
-State1 --> State2 : Jump
-State1 --> State5 : Jump
-State1 --> State1 : ThenRepeat
-State2 : INHERITED
-State2 --> State3 : Jump
-State2 --> State2a : Jump
-State5 : INHERITED
-State5 --> State6 : Jump
-State5 --> State6 : ThenJump
-State3 : INHERITED
-State3 --> State4 : Jump
-State3 --> State3 : ThenRepeat
-State3 --> State3 : ThenRepeat
-State2a : INHERITED
-State6 : INHERITED
-State6 --> [*]
-State4 : INHERITED
-State4 --> State5 : ThenJump
-State4 --> State4 : ThenRepeat
+state "Init" as T00_S001
+T00_S001 : StateMachine1
+[*] --> T00_S001
+T00_S001 --> T00_S002
+state "State1" as T00_S002
+T00_S002 : StateMachine1
+T00_S002 --> T00_S003 : [smachine.Passed]\n
+T00_S002 -> T00_S002 : [smachine.NotPassed]\nYield
+T00_S002 --> T00_S007
+state "State2" as T00_S003
+T00_S003 : StateMachine1
+T00_S003 --> T00_S005 : [ctx.SlotLink().SlotID()&1==0]\n
+T00_S003 --> T00_S004
+state "State2a" as T00_S004
+T00_S004 : StateMachine1
+T00_S004 -> T00_S004 : WaitAnyUntil
+T00_S004 --> T00_S005 : WaitAnyUntil
+state "State3" as T00_S005
+T00_S005 : StateMachine1
+T00_S005 -> T00_S005 : [ctx.Acquire().IsNotPassed()]\n[s.count<5]...\nSleep, Poll
+T00_S005 --> T00_S006
+state "State4" as T00_S006
+T00_S006 : StateMachine1
+T00_S006 -> T00_S006 : [ctx.GetPendingCallCount()>0]\nWaitAny
+T00_S006 --> T00_S007 : WaitAnyUntil
+state "State5" as T00_S007
+T00_S007 : StateMachine1
+T00_S007 --> T00_S008 : [id&2==0]\nCallSubroutine
+T00_S007 --> T00_S010 : Sleep
+state "State5.2" as T00_S009
+T00_S009 : StateMachine1
+T00_S009 --> T00_S010
+state "State5.subroutineSM.1" as T00_S008 <<sdlreceive>>
+T00_S008 --> T00_S009
+state "State6" as T00_S010
+T00_S010 : StateMachine1
+T00_S010 -->[*]
 @enduml

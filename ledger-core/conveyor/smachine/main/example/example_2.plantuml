@@ -1,8 +1,14 @@
 @startuml
-Init : INHERITED
-Init --> State0 : Jump
-State0 : INHERITED
-State0 --> State0 : ThenJump
-State0 --> State0 : ThenRepeat
-State0 --> State0 : ThenRepeat
+state "Init" as T00_S001
+T00_S001 : StateMachine2
+[*] --> T00_S001
+T00_S001 --> T00_S002
+state "State0" as T00_S002
+T00_S002 : StateMachine2
+T00_S002 -> T00_S002 : [!ctx.AcquireForThisStep()]\n[s.Yield]...\nSleep, Yield
+state "math.MaxInt32" as T00_U001
+T00_U001 : StateMachine2
+T00_U001 : UNKNOWN 
+T00_S002 --> T00_U001 : [s.count<1000]\n
+T00_S002 --> T00_S002 : Yield
 @enduml

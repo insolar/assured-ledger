@@ -1,24 +1,34 @@
 @startuml
-Init : migrateStop
-Init -[#blue]-> migrateStop
-Init --> stateGetLatestValidatedState : Jump
-Init --> [*]
-migrateStop : INHERITED
-migrateStop --> [*]
-stateGetLatestValidatedState : INHERITED
-stateGetLatestValidatedState : migrateStop
-stateGetLatestValidatedState -[#blue]-> migrateStop
-stateGetLatestValidatedState --> stateGotLatestValidatedState : ThenJump
-stateGotLatestValidatedState : INHERITED
-stateGotLatestValidatedState : migrateStop
-stateGotLatestValidatedState -[#blue]-> migrateStop
-stateGotLatestValidatedState --> waitForMigration : JumpExt
-stateGotLatestValidatedState -[#DarkGreen]-> migrateSendState : JumpExt+(StepMigration)
-stateGotLatestValidatedState --> stateGotLatestValidatedState : ThenRepeat
-waitForMigration : INHERITED
-waitForMigration --> waitForMigration : ThenRepeat
-migrateSendState : NIL
-migrateSendState --> stateCompleteExecution : Jump
-stateCompleteExecution : INHERITED
-stateCompleteExecution --> [*]
+state "GetInitStateFor" as T00_S001
+T00_S001 : vmObjectSM
+[*] --> T00_S001
+T00_S001 --> T00_S002
+state "Init" as T00_S002
+T00_S002 : vmObjectSM
+T00_S002 -->[*] : [!ctx.Publish()]\n
+T00_S002 --> T00_S003
+state "migrateSendState" as T00_S007
+T00_S007 : vmObjectSM
+T00_S007 --[dotted]> T00_S007
+T00_S007 --> T00_S008
+state "migrateStop" as T00_S006
+T00_S006 : vmObjectSM
+T00_S006 --[dotted]> T00_S006
+T00_S006 -->[*]
+state "stateCompleteExecution" as T00_S008
+T00_S008 : vmObjectSM
+T00_S008 -->[*]
+state "stateGetLatestValidatedState" as T00_S003
+T00_S003 : vmObjectSM
+T00_S003 --[dotted]> T00_S006
+T00_S003 --> T00_S004 : Sleep
+state "stateGotLatestValidatedState" as T00_S004
+T00_S004 : vmObjectSM
+T00_S004 --[dotted]> T00_S006
+T00_S004 -> T00_S004 : [sm.ObjectLatestValidState==nil]\nSleep
+T00_S004 --> T00_S005
+state "waitForMigration" as T00_S005
+T00_S005 : vmObjectSM
+T00_S005 --[dotted]> T00_S007
+T00_S005 -> T00_S005 : Sleep
 @enduml

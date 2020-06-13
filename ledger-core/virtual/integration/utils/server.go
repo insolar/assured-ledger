@@ -269,8 +269,8 @@ func (s *Server) waitIdleConveyor(checkActive bool) {
 	s.SetCycleCallback(func(c *conveyor.PulseConveyor, idle bool) {
 		if idle && (!checkActive || s.activeCount.Load() > 0) {
 			s.activeCount.Store(0)
-			wg.Done()
 			s.SetCycleCallback(nil)
+			wg.Done()
 		}
 	})
 	s.virtual.Conveyor.WakeUpWorker()

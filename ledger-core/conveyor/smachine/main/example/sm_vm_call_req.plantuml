@@ -1,36 +1,39 @@
 @startuml
-Init : cancelOnMigrate
-Init -[#blue]-> cancelOnMigrate
-Init --> stateGetSharedReadyToWork : Jump
-cancelOnMigrate : NIL
-cancelOnMigrate --> sendReplyOnCancel : Jump
-stateGetSharedReadyToWork : INHERITED
-stateGetSharedReadyToWork : cancelOnMigrate
-stateGetSharedReadyToWork -[#blue]-> cancelOnMigrate
-stateGetSharedReadyToWork --> [*]
-stateGetSharedReadyToWork --> stateSharedReadyToWork : ThenJump
-stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
-stateGetSharedReadyToWork --> stateGetSharedReadyToWork : ThenRepeat
-sendReplyOnCancel : INHERITED
-sendReplyOnCancel --> [*]
-stateSharedReadyToWork : INHERITED
-stateSharedReadyToWork : cancelOnMigrate
-stateSharedReadyToWork -[#blue]-> cancelOnMigrate
-stateSharedReadyToWork --> statePrepareMutableCall : Jump
-stateSharedReadyToWork --> stateStartImmutableCall : Jump
-stateSharedReadyToWork --> stateRegisterSagaCall : Jump
-statePrepareMutableCall : INHERITED
-statePrepareMutableCall : cancelOnMigrate
-statePrepareMutableCall -[#blue]-> cancelOnMigrate
-stateStartImmutableCall : INHERITED
-stateStartImmutableCall : cancelOnMigrate
-stateStartImmutableCall -[#blue]-> cancelOnMigrate
-stateStartImmutableCall --> stateDoneImmutableCall : ThenJump
-stateStartImmutableCall --> stateStartImmutableCall : ThenRepeat
-stateRegisterSagaCall : INHERITED
-stateRegisterSagaCall : cancelOnMigrate
-stateRegisterSagaCall -[#blue]-> cancelOnMigrate
-stateDoneImmutableCall : INHERITED
-stateDoneImmutableCall : cancelOnMigrate
-stateDoneImmutableCall -[#blue]-> cancelOnMigrate
+state "Init" as T00_S001
+T00_S001 : StateMachineCallRequest
+[*] --> T00_S001
+T00_S001 --> T00_S003
+state "cancelOnMigrate" as T00_S002
+T00_S002 : StateMachineCallRequest
+T00_S002 --[dotted]> T00_S002
+T00_S002 --> T00_S009
+state "sendReplyOnCancel" as T00_S009
+T00_S009 : StateMachineCallRequest
+T00_S009 -->[*]
+state "stateDoneImmutableCall" as T00_S006
+T00_S006 : StateMachineCallRequest
+T00_S006 --[dotted]> T00_S002
+state "stateGetSharedReadyToWork" as T00_S003
+T00_S003 : StateMachineCallRequest
+T00_S003 --[dotted]> T00_S002
+T00_S003 -> T00_S003 : [smachine.NotPassed]\n[...&&(...).AcquireForThisStep().IsNotPassed()]...\nWaitShared, Sleep
+T00_S003 -->[*] : [smachine.Impossible]\n
+T00_S003 --> T00_S004 : Sleep
+state "statePrepareMutableCall" as T00_S008
+T00_S008 : StateMachineCallRequest
+T00_S008 --[dotted]> T00_S002
+state "stateRegisterSagaCall" as T00_S007
+T00_S007 : StateMachineCallRequest
+T00_S007 --[dotted]> T00_S002
+state "stateSharedReadyToWork" as T00_S004
+T00_S004 : StateMachineCallRequest
+T00_S004 --[dotted]> T00_S002
+T00_S004 --> T00_S008 : [ContractCallMutable]\n
+T00_S004 --> T00_S005 : [ContractCallImmutable]\n
+T00_S004 --> T00_S007 : [ContractCallSaga]\n
+state "stateStartImmutableCall" as T00_S005
+T00_S005 : StateMachineCallRequest
+T00_S005 --[dotted]> T00_S002
+T00_S005 -> T00_S005 : [!ctx.AcquireForThisStep()]\nSleep
+T00_S005 --> T00_S006 : Sleep
 @enduml
