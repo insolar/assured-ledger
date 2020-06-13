@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 )
 
-func RunExample() {
+func RunExample(numberOfPlayers int) {
 	const scanCountLimit = 1e4
 
 	/*** Initialize SlotMachine ***/
@@ -34,11 +34,11 @@ func RunExample() {
 	/*** Add injectables ***/
 
 	sm.AddDependency(NewGameAdapter(context.Background(), NewGameChooseService()))
+	sm.AddDependency(NewStatsAdapter(context.Background(), NewStatsGetService()))
 
 	/*** Add SMs ***/
 
-	const numberOfPlayers = 5
-	const numberOfRooms = 1
+	const numberOfRooms = 2
 
 	PlayRoomLimiter = smsync.NewFixedSemaphore(numberOfRooms, "rooms")
 

@@ -13,5 +13,5 @@ import (
 
 func TestExample(t *testing.T) {
 	inslogger.SetTestOutput(t, false)
-	RunExample()
+	RunExample(7)
 }

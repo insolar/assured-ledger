@@ -23,6 +23,8 @@ type GamePlayers struct {
 }
 
 type GameResult struct {
+	highestBet float32
+	highestBetPlayer int
 }
 
 type GameTemplate struct {

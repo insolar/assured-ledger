@@ -270,7 +270,19 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 		// both stop and errors are handled and returned through (ctx)
 
 		// also it is safe to access the subroutine SM here
-		gameSM.GetGameResult()
+		gr := gameSM.GetGameResult()
+		// Lets tell to the world - who are in the pair
+
+		ctx.Log().Trace(struct {
+			string
+			bet float32
+			winner int
+		}{"highest bet and winner:",
+			gr.highestBet,
+			gr.highestBetPlayer,
+		})
+
+
 		return ctx.Jump(p.stepNextGame)
 	})
 }

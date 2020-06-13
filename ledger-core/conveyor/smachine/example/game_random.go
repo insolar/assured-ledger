@@ -22,7 +22,7 @@ var _ GameStateMachine = &GameRandom{}
 type GameRandom struct {
 	GameTemplate
 	sharedData smachine.SharedDataLink
-	prize      GameResult
+	gameResult      GameResult
 }
 
 type sharedGameRandom struct {
@@ -64,7 +64,8 @@ func (sd *sharedGameRandom) applyBet(players GamePlayers, myBetFn func() float32
 }
 
 func (sd *sharedGameRandom) getResult() (GameResult, bool) {
-	return GameResult{}, sd.done
+
+	return GameResult{sd.highestBet, sd.highestBetPlayer}, sd.done
 }
 
 func (g *GameRandom) GetSubroutineInitState(ctx smachine.SubroutineStartContext) smachine.InitFunc {
@@ -73,7 +74,7 @@ func (g *GameRandom) GetSubroutineInitState(ctx smachine.SubroutineStartContext)
 }
 
 func (g *GameRandom) GetGameResult() GameResult {
-	return g.prize
+	return g.gameResult
 }
 
 func (g *GameRandom) makeBet() float32 {
@@ -123,7 +124,7 @@ func (g *GameRandom) stepBetRound(ctx smachine.ExecutionContext) smachine.StateU
 func (g *GameRandom) waitForResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if g.accessShared(ctx, func(sd *sharedGameRandom) bool {
 		if rs, ok := sd.getResult(); ok {
-			g.prize = rs
+			g.gameResult = rs
 			return true
 		}
 		return false
