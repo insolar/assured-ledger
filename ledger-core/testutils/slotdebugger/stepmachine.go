@@ -18,6 +18,7 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -38,7 +39,7 @@ type StepController struct {
 
 	SlotMachine   *smachine.SlotMachine
 	PulseSlot     conveyor.PulseSlot
-	debugLogger   *testUtilsCommon.DebugMachineLogger
+	debugLogger   *debuglogger.DebugMachineLogger
 	stepIsWaiting bool
 	watchdog      *watchdog
 
@@ -61,7 +62,7 @@ func NewPast(ctx context.Context, t *testing.T, suppressLogError bool) *StepCont
 func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
 	inslogger.SetTestOutput(t, suppressLogError)
 
-	debugLogger := testUtilsCommon.NewDebugMachineLogger(convlog.MachineLogger{})
+	debugLogger := debuglogger.NewDebugMachineLogger(convlog.MachineLogger{})
 	machineConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -128,7 +129,7 @@ func (c *StepController) Start() {
 	c.worker.Start()
 }
 
-func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
+func (c *StepController) NextStep() debuglogger.UpdateEvent {
 	if c.stepIsWaiting {
 		c.debugLogger.Continue()
 	}
@@ -137,7 +138,7 @@ func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
 	return rv
 }
 
-func (c *StepController) RunTil(predicate func(event testUtilsCommon.UpdateEvent) bool) {
+func (c *StepController) RunTil(predicate func(event debuglogger.UpdateEvent) bool) {
 	for {
 		switch event := c.NextStep(); {
 		case event.IsEmpty():
