@@ -52,6 +52,8 @@ type Dispatcher struct {
 	MessageSender messagesender.Service
 	TokenService  token.Service
 
+	EventlessSleep time.Duration
+
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
 
@@ -80,10 +82,17 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		machineConfig.SlotMachineLogger = lr.MachineLogger
 	}
 
+	switch {
+	case lr.EventlessSleep == 0:
+		lr.EventlessSleep = 100 * time.Millisecond
+	case lr.EventlessSleep < 0:
+		lr.EventlessSleep = 0
+	}
+
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
-		EventlessSleep:        100 * time.Millisecond,
+		EventlessSleep:        lr.EventlessSleep,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, defaultHandlers, nil)
