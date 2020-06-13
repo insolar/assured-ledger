@@ -214,8 +214,6 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 		return ctx.Repeat(presentSlotCycleBoost)
 	case !nextPollTime.IsZero():
 		return ctx.WaitAnyUntil(nextPollTime).ThenRepeat()
-	case !p.innerMachine.IsEmpty():
-		return ctx.WaitAny().ThenRepeat()
 	}
 	return ctx.WaitAny().ThenRepeat()
 }
@@ -268,8 +266,6 @@ func (p *PulseSlotMachine) stepPastLoop(ctx smachine.ExecutionContext) smachine.
 		return ctx.Yield().ThenRepeat()
 	case !nextPollTime.IsZero():
 		return ctx.WaitAnyUntil(nextPollTime).ThenRepeat()
-	case !p.innerMachine.IsEmpty():
-		return ctx.Poll().ThenRepeat()
 	}
 	return ctx.WaitAny().ThenRepeat()
 }
