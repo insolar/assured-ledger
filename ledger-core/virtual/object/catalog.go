@@ -98,8 +98,10 @@ func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference
 		return NewStateMachineObject(objectReference)
 	})
 
-	accessor, _ := p.TryGet(ctx, objectReference)
-	return accessor
+	if accessor, ok := p.TryGet(ctx, objectReference); ok {
+		return accessor
+	}
+	panic(throw.IllegalState())
 }
 
 // //////////////////////////////////////
