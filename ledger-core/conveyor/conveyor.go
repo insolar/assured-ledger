@@ -481,7 +481,15 @@ func (p *PulseConveyor) StartWorker(emergencyStop <-chan struct{}, completedFn f
 	p.StartWorkerExt(emergencyStop, completedFn, nil)
 }
 
-type PulseConveyorCycleFunc = func(idle bool)
+type CycleState uint8
+
+const (
+	Scanning CycleState = iota
+	ScanActive
+	ScanIdle
+)
+
+type PulseConveyorCycleFunc = func(CycleState)
 
 func (p *PulseConveyor) StartWorkerExt(emergencyStop <-chan struct{}, completedFn func(), cycleFn PulseConveyorCycleFunc) {
 	if p.machineWorker != nil {
@@ -515,6 +523,11 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			nextPollTime time.Time
 		)
 		eventMark := p.internalSignal.Mark()
+
+		if cycleFn != nil {
+			cycleFn(Scanning)
+		}
+
 		_, callCount := p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
 			repeatNow, nextPollTime = p.slotMachine.ScanOnce(smachine.ScanDefault, worker)
 		})
@@ -526,21 +539,16 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			// pass
 		}
 
+		if callCount > 0 && cycleFn != nil {
+			cycleFn(ScanActive)
+		}
+
 		if !p.slotMachine.IsActive() {
 			break
 		}
 
 		if repeatNow || eventMark.HasSignal() {
-			if cycleFn != nil {
-				cycleFn(false)
-			}
 			continue
-		}
-
-		if callCount > 0 {
-			if cycleFn != nil {
-				cycleFn(false)
-			}
 		}
 
 		select {
@@ -549,7 +557,7 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 		case <-eventMark.Channel():
 		case <-func() <-chan time.Time {
 			if cycleFn != nil {
-				cycleFn(true)
+				cycleFn(ScanIdle)
 			}
 
 			switch {
