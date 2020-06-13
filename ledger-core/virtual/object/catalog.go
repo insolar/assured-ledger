@@ -92,6 +92,7 @@ func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference
 	}
 
 	ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+		ctx.SetDependencyInheritanceMode(smachine.InheritResolvedDependencies)
 		p.initChildCtx(ctx, objectReference)
 
 		return NewStateMachineObject(objectReference)
