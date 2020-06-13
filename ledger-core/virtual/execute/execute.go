@@ -273,6 +273,10 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	}
 	s.execution.Isolation = negotiatedIsolation
 
+	if s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
+		return ctx.Jump(s.stepDeduplicate)
+	}
+
 	return ctx.Jump(s.stepTakeLock)
 }
 
@@ -299,31 +303,6 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	}
 
 	return res, nil
-}
-
-func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var executionSemaphore smachine.SyncLink
-
-	if s.execution.Isolation.Interference == contract.CallIntolerable {
-		executionSemaphore = s.semaphoreUnordered
-	} else {
-		executionSemaphore = s.semaphoreOrdered
-	}
-
-	if ctx.Acquire(executionSemaphore).IsNotPassed() {
-		if s.isConstructor {
-			panic(throw.NotImplemented())
-		}
-
-		// wait for semaphore to be released
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	if s.Payload.CallRequestFlags.GetRepeatedCall() == payload.RepeatedCall {
-		return ctx.Jump(s.stepDeduplicate)
-	}
-
-	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
 func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -357,10 +336,32 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	}
 
 	if isDuplicate {
-		return ctx.Error(throw.E("duplicate found as pending request"))
+		ctx.Log().Warn("duplicate found as pending request")
+		return ctx.Stop()
 	}
 
 	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	return ctx.Jump(s.stepTakeLock)
+}
+
+func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var executionSemaphore smachine.SyncLink
+
+	if s.execution.Isolation.Interference == contract.CallIntolerable {
+		executionSemaphore = s.semaphoreUnordered
+	} else {
+		executionSemaphore = s.semaphoreOrdered
+	}
+
+	if ctx.Acquire(executionSemaphore).IsNotPassed() {
+		if s.isConstructor {
+			panic(throw.NotImplemented())
+		}
+
+		// wait for semaphore to be released
 		return ctx.Sleep().ThenRepeat()
 	}
 
@@ -373,21 +374,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		var (
-			interference = s.execution.Isolation.Interference
-			outgoing     = s.execution.Outgoing
-		)
-		checkDuplicateInTable := func(table *object.RequestTable) bool {
-			return table.GetList(interference).Exist(outgoing)
-		}
-		isDuplicate = checkDuplicateInTable(&state.KnownRequests)
-		if !isDuplicate && s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
-			isDuplicate = checkDuplicateInTable(&state.PendingTable)
-		}
+		isDuplicate = !state.KnownRequests.GetList(s.execution.Isolation.Interference).Add(s.execution.Outgoing)
 		if isDuplicate {
 			return
 		}
-		state.KnownRequests.GetList(interference).Add(s.execution.Outgoing)
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
