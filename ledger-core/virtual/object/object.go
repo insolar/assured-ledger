@@ -247,6 +247,10 @@ func (sm *SMObject) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 }
 
 func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if sm.pulseSlot.State() != conveyor.Present {
+		return ctx.Stop()
+	}
+
 	sm.readyToWorkCtl = smsync.NewConditionalBool(false, "readyToWork")
 	sm.ReadyToWork = sm.readyToWorkCtl.SyncLink()
 
