@@ -373,14 +373,21 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		requestList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-		if requestList.Exist(s.execution.Outgoing) {
-			// found duplicate request, todo: deduplication algorithm
-			isDuplicate = true
+		var (
+			interference = s.execution.Isolation.Interference
+			outgoing     = s.execution.Outgoing
+		)
+		checkDuplicateInTable := func(table *object.RequestTable) bool {
+			return table.GetList(interference).Exist(outgoing)
+		}
+		isDuplicate = checkDuplicateInTable(&state.KnownRequests)
+		if !isDuplicate && s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
+			isDuplicate = checkDuplicateInTable(&state.PendingTable)
+		}
+		if isDuplicate {
 			return
 		}
-
-		requestList.Add(s.execution.Outgoing)
+		state.KnownRequests.GetList(interference).Add(s.execution.Outgoing)
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -564,6 +571,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.executionNewState = nil
 
@@ -639,7 +647,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	var lastState *payload.ObjectState = nil
 
 	if s.newObjectDescriptor != nil {
-		class, err := s.execution.ObjectDescriptor.Class()
+		class, err := s.newObjectDescriptor.Class()
 		if err != nil {
 			panic(throw.W(err, "failed to get class from descriptor", nil))
 		}
