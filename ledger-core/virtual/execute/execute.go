@@ -357,10 +357,6 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 	}
 
 	if ctx.Acquire(executionSemaphore).IsNotPassed() {
-		if s.isConstructor {
-			panic(throw.NotImplemented())
-		}
-
 		// wait for semaphore to be released
 		return ctx.Sleep().ThenRepeat()
 	}
@@ -404,6 +400,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 }
 
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	if s.migrationHappened && s.delegationTokenSpec.IsZero() {
+		return ctx.Error(throw.E("failed to get token in previous migration"))
+	}
+
 	s.migrationHappened = true
 
 	s.stepAfterTokenGet = ctx.AffectedStep()
@@ -419,12 +419,18 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		DelegationSpec: s.delegationTokenSpec,
 	}
 
+	// reset token
+	s.delegationTokenSpec = payload.CallDelegationToken{}
+
 	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		if s.outgoingWasSent {
+			return ctx.Jump(s.stepSendOutgoing)
+		}
 		return ctx.JumpExt(s.stepAfterTokenGet)
 	})
 }
@@ -523,6 +529,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
+	} else {
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -536,21 +544,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingWasSent = true
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJumpExt(
-		smachine.SlotStep{
-			Transition: s.stepExecuteContinue,
-			Migration:  s.migrateDuringSendOutgoing,
-		})
-}
-
-func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
-	s.migrationHappened = true
-
-	if s.outgoingWasSent {
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
-	}
-
-	return ctx.Jump(s.stepSendOutgoing)
+	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
