@@ -34,7 +34,8 @@ type PlayerSM struct {
 
 	pair SharedPairDataLink
 
-	adapter *GameChooseAdapter
+	adapterGame *GameChooseAdapter
+	adapterStats *StatsGetAdapter
 }
 
 var PlayRoomLimiter smachine.SyncLink = smsync.NewConditionalBool(true, "unlimited rooms").SyncLink()
@@ -51,7 +52,8 @@ func (p *PlayerSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration
 }
 
 func (PlayerSM) InjectDependencies(sm smachine.StateMachine, link smachine.SlotLink, dj *injector.DependencyInjector) {
-	dj.MustInject(&sm.(*PlayerSM).adapter)
+	dj.MustInject(&sm.(*PlayerSM).adapterGame)
+	dj.MustInject(&sm.(*PlayerSM).adapterStats)
 }
 
 // GetInitStateFor is a method of SM declaration that provides an init step for the given SM
@@ -176,7 +178,7 @@ func (p *PlayerSM) stepFindPair(ctx smachine.ExecutionContext) smachine.StateUpd
 		// To do this we use an adapter, that was injected into this SM.
 		//
 		// NB! PrepareAsync() call only prepares a call to adapter, but doesn't start it.
-		p.adapter.PrepareAsync(ctx, func(svc GameChooseService) smachine.AsyncResultFunc {
+		p.adapterGame.PrepareAsync(ctx, func(svc GameChooseService) smachine.AsyncResultFunc {
 
 			// this closure is executed on side of a service and it is safe to call functions of the service
 			//
@@ -283,9 +285,53 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 		})
 
 
-		return ctx.Jump(p.stepNextGame)
+		return ctx.Jump(p.stepUpdateStatsOfTheGames)
 	})
 }
+
+
+// At this step we have a game played. Need to update the stats and play another one
+func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		// Now we will call an external service to get a game to play
+		// To do this we use an adapter, that was injected into this SM.
+		//
+		// NB! PrepareAsync() call only prepares a call to adapter, but doesn't start it.
+		p.adapterStats.PrepareAsync(ctx, func(svc StatsGetService) smachine.AsyncResultFunc {
+
+			// this closure is executed on side of a service and it is safe to call functions of the service
+			//
+			// WARNING! It is NOT SAFE to access SM here. You have to store all required values and results into variables
+			//
+			stats := svc.GetStats(nil)
+			if stats == nil {
+				// any panics here will be passed into SM and re-raised there
+				panic(throw.IllegalValue())
+			}
+
+			return func(ctx smachine.AsyncResultContext) {
+				// This closure is executed on SM, so in here it is SAFE to access SM
+				//
+				// WARNING! It is NOT SAFE to access the service HERE.
+				//
+
+				// instruct the slot to wake up from sleep
+				ctx.WakeUp()
+			}
+		}).Start() // calling Start() send the async call immediately
+
+		// NB! SM can initiate multiple async calls
+
+		// Here we gonna sleep until a wake up by the async result
+		return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+			return ctx.Jump(p.stepNextGame)
+		})
+	})
+
+	//	return ctx.Jump(p.stepNextGame)
+}
+
 
 func (p *PlayerSM) stepNextGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// release sync object / free up a room
