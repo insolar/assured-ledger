@@ -143,7 +143,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -181,7 +181,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -222,7 +222,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -265,7 +265,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -311,7 +311,7 @@ func TestPulseConveyor_Cache(t *testing.T) {
 	}, nil)
 
 	emerChan := make(chan struct{})
-	conveyor.StartWorker(emerChan, func() {})
+	conveyor.StartWorker(emerChan, nil)
 	defer func() {
 		close(emerChan)
 		conveyor.Stop()
