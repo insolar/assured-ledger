@@ -1,0 +1,125 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package integration
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/pborman/uuid"
+	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
+)
+
+var (
+	machineConfig = smachine.SlotMachineConfig{
+		PollingPeriod:   500 * time.Millisecond,
+		PollingTruncate: 1 * time.Millisecond,
+		SlotPageSize:    1000,
+		ScanCountLimit:  100000,
+	}
+)
+
+func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatcher.Dispatcher {
+	ctx := context.Background()
+	pulseConveyor := conveyor.NewPulseConveyor(ctx, conveyor.PulseConveyorConfig{
+		ConveyorMachineConfig: machineConfig,
+		SlotMachineConfig:     machineConfig,
+		EventlessSleep:        0,
+		MinCachePulseAge:      100,
+		MaxPastPulseAge:       1000,
+	}, factoryFn, nil)
+	return statemachine.NewConveyorDispatcher(pulseConveyor)
+}
+
+func TestWatermill_HandleErrorCorrect(t *testing.T) {
+	var (
+		ctx        = context.Background()
+		wmLogger   = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
+		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
+	)
+	cnt := 0
+	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+		cnt++
+		return 0, nil, throw.E("handler error")
+	})
+	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
+	defer wmStop()
+	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
+	metaPl, _ := meta.Marshal()
+	msg := message.NewMessage(uuid.NewUUID().String(), metaPl)
+	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
+	time.Sleep(1 * time.Second)
+	require.Equal(t, 1, cnt)
+}
+
+func TestWatermill_HandlePanicCorrect(t *testing.T) {
+	var (
+		ctx        = context.Background()
+		wmLogger   = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
+		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
+	)
+	cnt := 0
+	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+		cnt++
+		panic(throw.E("handler panic"))
+	})
+	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
+	defer wmStop()
+	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
+	metaPl, _ := meta.Marshal()
+	msg := message.NewMessage(uuid.NewUUID().String(), metaPl)
+	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
+	time.Sleep(1 * time.Second)
+	require.Equal(t, 1, cnt)
+}
+
+func startWatermill(
+	ctx context.Context,
+	logger watermill.LoggerAdapter,
+	sub message.Subscriber,
+	inHandler message.NoPublishHandlerFunc,
+) func() {
+	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
+	if err != nil {
+		panic(err)
+	}
+	inRouter.AddNoPublisherHandler(
+		"IncomingHandler",
+		defaults.TopicIncoming,
+		sub,
+		inHandler,
+	)
+	startRouter(ctx, inRouter)
+	return func() {
+		if inRouter.Close() != nil {
+			inslogger.FromContext(ctx).Error("Error while closing router", err)
+		}
+	}
+}
+
+func startRouter(ctx context.Context, router *message.Router) {
+	go func() {
+		if err := router.Run(ctx); err != nil {
+			inslogger.FromContext(ctx).Error("Error while running router", err)
+		}
+	}()
+	<-router.Running()
+}
