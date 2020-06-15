@@ -22,6 +22,9 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 			cc.tracerID = creator.stepLogger.GetTracerID()
 		}
 	}
+	if defValues.InheritAllDependencies {
+		cc.inherit = InheritAllDependencies
+	}
 
 	if fn != nil {
 		sm = cc.executeCreate(fn)
