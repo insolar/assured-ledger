@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/assert"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
@@ -88,7 +88,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	mc.Finish()
 
 	{
-		assert.Equal(t, typedChecker.Handlers.VDelegatedCallResponse.Count.Load(), 1)
+		assert.Equal(t, 1, typedChecker.Handlers.VDelegatedCallResponse.Count.Load())
 	}
 }
 
