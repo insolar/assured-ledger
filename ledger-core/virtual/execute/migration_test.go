@@ -6,12 +6,9 @@
 package execute
 
 import (
-	"reflect"
-	"runtime"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
@@ -25,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -100,10 +98,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			}).SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
-					assert.Equal(t, runtime.FuncForPC(reflect.ValueOf(smExecute.stepExecuteContinue).Pointer()).Name(), runtime.FuncForPC(reflect.ValueOf(s1).Pointer()).Name())
-					return smachine.StateUpdate{}
-				})
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
@@ -123,10 +118,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(func(s1 smachine.StateFunc) (s2 smachine.StateUpdate) {
-					assert.Equal(t, runtime.FuncForPC(reflect.ValueOf(smExecute.stepExecuteContinue).Pointer()).Name(), runtime.FuncForPC(reflect.ValueOf(s1).Pointer()).Name())
-					return smachine.StateUpdate{}
-				})
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
