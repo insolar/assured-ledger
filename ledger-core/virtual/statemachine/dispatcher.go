@@ -119,17 +119,19 @@ type errUnknownPayload struct {
 	GotType      interface{} `fmt:"%T"`
 }
 
-func (c *conveyorDispatcher) Process(msg *message.Message) error {
+func (c *conveyorDispatcher) Process(msg *message.Message) (err error) {
+	msg.Ack()
 	ctx, logger := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(defaults.TraceID))
 	defer func() {
 		if rec := recover(); rec != nil {
-			logger.Error(throw.R(rec, throw.E("ConveyorDispatcher.Process panic")))
+			err = throw.R(rec, throw.E("ConveyorDispatcher.Process panic"))
+		}
+		if err != nil {
+			logger.Error(err)
 		}
 	}()
-	if err := c.process(ctx, msg); err != nil {
-		logger.Error(err)
-	}
-	return nil
+	err = c.process(ctx, msg)
+	return err
 }
 
 func (c *conveyorDispatcher) process(ctx context.Context, msg *message.Message) error {

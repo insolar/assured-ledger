@@ -43,44 +43,63 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatc
 }
 
 func TestConveyorDispatcher_ErrorUnmarshalHandling(t *testing.T) {
-	dispatcher := newDispatcherWithConveyor(nil)
+	msgDispatcher := newDispatcherWithConveyor(nil)
+	msg := message.NewMessage("", nil)
+	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
-		require.NoError(t, dispatcher.Process(&message.Message{}))
+		require.Error(t, msgDispatcher.Process(msg))
 	})
+	require.True(t, isMessageAcked(msg))
 }
 
 func TestConveyorDispatcher_WrongMetaTypeHandling(t *testing.T) {
-	dispatcher := newDispatcherWithConveyor(nil)
+	msgDispatcher := newDispatcherWithConveyor(nil)
 	req := payload.VCallRequest{}
 	pl, _ := req.Marshal()
+	msg := message.NewMessage("", pl)
+	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
-		require.NoError(t, dispatcher.Process(&message.Message{Payload: pl}))
+		require.Error(t, msgDispatcher.Process(msg))
 	})
+	require.True(t, isMessageAcked(msg))
 }
 
 func TestConveyorDispatcher_PanicInAddInputHandling(t *testing.T) {
-	dispatcher := newDispatcherWithConveyor(
+	msgDispatcher := newDispatcherWithConveyor(
 		func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 			panic(throw.E("handler panic"))
 		})
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
+	msg := message.NewMessage("", metaPl)
+	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
-		require.NoError(t, dispatcher.Process(&message.Message{Payload: metaPl}))
+		require.Error(t, msgDispatcher.Process(msg))
 	})
+	require.True(t, isMessageAcked(msg))
 }
 
 func TestConveyorDispatcher_ErrorInAddInputHandling(t *testing.T) {
-	dispatcher := newDispatcherWithConveyor(
+	msgDispatcher := newDispatcherWithConveyor(
 		func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 			return 0, nil, throw.E("handler error")
 
 		})
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
-	metadata := message.Metadata{}
-	metadata.Set("error_type", "error")
+	msg := message.NewMessage("", metaPl)
+	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
-		require.NoError(t, dispatcher.Process(&message.Message{Payload: metaPl, Metadata: metadata}))
+		require.Error(t, msgDispatcher.Process(msg))
 	})
+	require.True(t, isMessageAcked(msg))
+}
+
+func isMessageAcked(msg *message.Message) bool {
+	select {
+	case _, ok := <-msg.Acked():
+		return !ok
+	default:
+		return false
+	}
 }
