@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
-type AdapterCallbackFunc func(AsyncResultFunc, error) bool
+type AdapterCallbackFunc func(isValid bool, fn AsyncResultFunc, err error) bool
 
 func NewAdapterCallback(adapterID AdapterID, caller StepLink, callbackOverride AdapterCallbackFunc, flags AsyncCallFlags,
 	nestedFn CreateFactoryFunc) *AdapterCallback {
@@ -102,9 +102,12 @@ func (c *AdapterCallback) callback(isCancel bool, resultFn AsyncResultFunc, err 
 
 	switch {
 	case !c.canCall():
+		if c.callbackFn != nil {
+			c.callbackFn(false, resultFn, err)
+		}
 		return
 	case c.callbackFn != nil:
-		if c.callbackFn(resultFn, err) {
+		if c.callbackFn(true, resultFn, err) {
 			return
 		}
 	}

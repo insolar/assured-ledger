@@ -58,12 +58,15 @@ func (v StepLoggerFlags) ErrorFlags() StepLoggerFlags {
 }
 
 const (
-	StepLoggerAdapterSyncCall    StepLoggerFlags = 0
-	StepLoggerAdapterNotifyCall                  = stepLoggerUpdateAdapterBit0
-	StepLoggerAdapterAsyncCall                   = stepLoggerUpdateAdapterBit2
-	StepLoggerAdapterAsyncResult                 = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1
-	StepLoggerAdapterAsyncCancel                 = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
+	StepLoggerAdapterSyncCall           StepLoggerFlags = 0
+	StepLoggerAdapterNotifyCall                         = stepLoggerUpdateAdapterBit0
+	StepLoggerAdapterAsyncCall                          = stepLoggerUpdateAdapterBit2
+	StepLoggerAdapterAsyncResult                        = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1
+	StepLoggerAdapterAsyncCancel                        = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
+	StepLoggerAdapterAsyncExpiredResult                 = stepLoggerUpdateAdapterBit1
+	StepLoggerAdapterAsyncExpiredCancel                 = stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
 )
+
 const StepLoggerAdapterMask = stepLoggerUpdateAdapterBit0 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit2
 
 func (v StepLoggerFlags) AdapterFlags() StepLoggerFlags {
@@ -340,6 +343,10 @@ func (v StepLoggerFlags) FormatAdapterForLog() string {
 		return "async-result"
 	case StepLoggerAdapterAsyncCancel:
 		return "async-cancel"
+	case StepLoggerAdapterAsyncExpiredResult:
+		return "async-expired-result"
+	case StepLoggerAdapterAsyncExpiredCancel:
+		return "async-expired-cancel"
 	}
 	return ""
 }

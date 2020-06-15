@@ -205,6 +205,8 @@ func (w StateMachineHelper) AfterResultOfFirstAsyncCall(id smachine.AdapterID) f
 				panic(throw.FailHere("duplicate async call id"))
 			case smachine.StepLoggerAdapterAsyncCancel:
 				panic(throw.FailHere("async call was cancelled"))
+			case smachine.StepLoggerAdapterAsyncExpiredCancel, smachine.StepLoggerAdapterAsyncExpiredResult:
+				panic(throw.FailHere("async callback has expired"))
 			case smachine.StepLoggerAdapterAsyncResult:
 				return true
 			}
