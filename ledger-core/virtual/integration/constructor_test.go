@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -290,5 +291,96 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	server.WaitActiveThenIdleConveyor()
 	require.Equal(t, 2, server.PublisherMock.GetCount())
 
+	mc.Finish()
+}
+
+// A.New calls B.New
+func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
+	t.Log("C5090")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteDeclaration.String()
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		isolation = contract.ConstructorIsolation()
+
+		classA        = gen.UniqueReference()
+		outgoingA     = server.RandomLocalWithPulse()
+		objectAGlobal = reference.NewSelf(outgoingA)
+
+		classB        = gen.UniqueReference()
+		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+	)
+
+	outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), classA).CallConstructor(classB, "New", []byte{})
+	objectAExecutionMock := runnerMock.AddExecutionMock(classA.String())
+	objectAExecutionMock.AddStart(
+		func(ctx execution.Context) {
+			t.Log("ExecutionStart [A.New]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:     executionupdate.OutgoingCall,
+			Error:    nil,
+			Outgoing: outgoingCall,
+		},
+	)
+	objectAExecutionMock.AddContinue(
+		func(result []byte) {
+			t.Log("ExecutionContinue [A.New]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:   executionupdate.Done,
+			Result: requestresult.New([]byte("finish A.New"), objectAGlobal),
+		},
+	)
+
+	runnerMock.AddExecutionMock(classB.String()).AddStart(
+		func(ctx execution.Context) {
+			t.Log("ExecutionStart [B.New]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:   executionupdate.Done,
+			Result: requestresult.New([]byte("finish B.New"), objectBGlobal),
+		},
+	)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallRequest.SetResend().ExpectedCount(1)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		if res.CallOutgoing == outgoingA {
+			require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
+		}
+		if res.Caller == classA {
+			require.Equal(t, []byte("finish B.New"), res.ReturnArguments)
+		}
+		// we should resend that message only if it's CallResult from B to A
+		return res.Caller == classA
+	}).ExpectedCount(2)
+
+	pl := payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
+		Callee:              reference.Global{},
+		CallSiteDeclaration: classA,
+		CallSiteMethod:      "New",
+		CallOutgoing:        outgoingA,
+	}
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	beforeCount := server.PublisherMock.GetCount()
+	server.SendMessage(ctx, msg)
+	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
+		t.Fatal("failed to wait until all messages returned")
+	}
+
+	server.WaitActiveThenIdleConveyor()
 	mc.Finish()
 }
