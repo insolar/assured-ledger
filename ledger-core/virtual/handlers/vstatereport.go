@@ -69,7 +69,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		return ctx.Error(throw.IllegalValue())
 	}
 
-	objectRef := s.Payload.Callee
+	objectRef := s.Payload.Object
 	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
@@ -97,7 +97,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 func (s *SMVStateReport) updateSharedState(
 	state *object.SharedState,
 ) {
-	objectRef := s.Payload.Callee
+	objectRef := s.Payload.Object
 
 	var objState object.State
 	switch s.Payload.Status {

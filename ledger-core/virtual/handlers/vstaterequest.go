@@ -90,7 +90,8 @@ func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	reportSharedState, stateFound := finalizedstate.GetSharedStateReport(ctx, s.Payload.Callee, s.pulseSlot.PulseData().PulseNumber)
+	reportSharedState, stateFound := finalizedstate.GetSharedStateReport(ctx, s.Payload.Object, s.pulseSlot.PulseData().PulseNumber)
+
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)
 	}
@@ -103,7 +104,7 @@ func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachi
 	s.objectStateReport = &payload.VStateReport{
 		Status: payload.Missing,
 		AsOf:   s.Payload.AsOf,
-		Callee: s.Payload.Callee,
+		Object: s.Payload.Object,
 	}
 	return ctx.Jump(s.stepSendResult)
 }

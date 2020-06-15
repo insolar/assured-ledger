@@ -1,5 +1,20 @@
 @startuml
-Init : INHERITED
-Init --> stepExecute : Jump
-stepExecute : INHERITED
+state "Init" as T01_S001
+T01_S001 : SMVCallRequest
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "execute.SMExecute{}" as T01_S004 <<sdlreceive>>
+state "stepExecute" as T01_S002
+T01_S002 : SMVCallRequest
+T01_S002 --[dashed]> T01_S003 : Migrate: <nil>\nReplace
+state "stepExecute.1" as T01_S003
+T01_S003 : SMVCallRequest
+T01_S003 --> T01_S004
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVCallRequest
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVCallRequest
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
 @enduml

@@ -11,7 +11,7 @@ test_all: test_unit test_func test_slow ## run all tests (unit, func, slow)
 
 .PHONY: test_unit
 test_unit: ## run all unit tests
-	$(GOTEST) -count=1 $(TEST_ARGS) $(PACKAGES)
+	$(GOTEST) -count=$(TEST_COUNT) $(TEST_ARGS) $(PACKAGES)
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file

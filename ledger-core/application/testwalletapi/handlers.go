@@ -187,7 +187,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
+		result.Error = throw.W(err, "Failed to process wallet contract call request (Transfer)", nil).Error()
 		return
 	}
 
@@ -265,7 +265,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 
 	if err != nil {
-		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
+		result.Error = throw.W(err, "Failed to process wallet contract call request (GetBalance)", nil).Error()
 		return
 	}
 
@@ -351,7 +351,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = throw.W(err, "Failed to process wallet contract call request", nil).Error()
+		result.Error = throw.W(err, "Failed to process wallet contract call request (AddAmount)", nil).Error()
 		return
 	}
 

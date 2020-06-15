@@ -63,6 +63,7 @@ func (m *SlotMachineSync) IsInactive() bool {
 func (m *SlotMachineSync) SetStopping() bool {
 	if atomic.CompareAndSwapUint32(&m.machineStatus, uint32(SlotMachineActive), uint32(SlotMachineStopping)) {
 		close(m.stoppingSignal)
+		m.signalQueue.Add(func(interface{}) {})
 		return true
 	}
 	return false

@@ -1,31 +1,45 @@
 @startuml
-Init : migrateFutureMessage
-Init -[#blue]-> migrateFutureMessage
-Init --> stepWait : Jump
-Init --> stepCheckCatalog : Jump
-migrateFutureMessage : INHERITED
-migrateFutureMessage --> stepCheckCatalog : Jump
-migrateFutureMessage --> [*]
-stepWait : INHERITED
-stepWait : migrateFutureMessage
-stepWait -[#blue]-> migrateFutureMessage
-stepWait --> stepWait : ThenRepeat
-stepCheckCatalog : INHERITED
-stepCheckCatalog : migrateFutureMessage
-stepCheckCatalog -[#blue]-> migrateFutureMessage
-stepCheckCatalog --> stepBuildMissing : Jump
-stepCheckCatalog --> stepBuildStateReport : Jump
-stepBuildMissing : INHERITED
-stepBuildMissing : migrateFutureMessage
-stepBuildMissing -[#blue]-> migrateFutureMessage
-stepBuildMissing --> stepSendResult : Jump
-stepBuildStateReport : INHERITED
-stepBuildStateReport : migrateFutureMessage
-stepBuildStateReport -[#blue]-> migrateFutureMessage
-stepBuildStateReport --> stepSendResult : Jump
-stepBuildStateReport --> stepBuildStateReport : ThenRepeat
-stepSendResult : INHERITED
-stepSendResult : migrateFutureMessage
-stepSendResult -[#blue]-> migrateFutureMessage
-stepSendResult --> [*]
+state "Init" as T01_S003
+T01_S003 : SMVStateRequest
+[*] --> T01_S003
+T01_S003 --> T01_S004 : [(...).pulseSlot.State()==conveyor.Present]\nMigrate: s.migrateFutureMessage
+T01_S003 --> T01_S005
+state "migrateFutureMessage" as T01_S001
+T01_S001 : SMVStateRequest
+T01_S001 --> T01_S005 : Migrate: migrateFutureMessage.1
+state "migrateFutureMessage.1" as T01_S002
+T01_S002 : SMVStateRequest
+T01_S002 --[dotted]> T01_S002
+T01_S002 --> [*]
+state "s.messageSender" as T01_S009 <<sdlreceive>>
+state "stepBuildMissing" as T01_S006
+T01_S006 : SMVStateRequest
+T01_S006 --[dotted]> T01_S002
+T01_S006 --> T01_S008
+state "stepBuildStateReport" as T01_S007
+T01_S007 : SMVStateRequest
+T01_S007 --[dotted]> T01_S002
+T01_S007 --[dashed]> T01_S007 : [smachine.NotPassed]\nWaitShared
+T01_S007 --> T01_S008
+state "stepCheckCatalog" as T01_S005
+T01_S005 : SMVStateRequest
+T01_S005 --[dotted]> T01_S002
+T01_S005 --> T01_S006 : [!stateFound]
+T01_S005 --> T01_S007
+state "stepSendResult" as T01_S008
+T01_S008 : SMVStateRequest
+T01_S008 --[dotted]> T01_S002
+T01_S008 --> T01_S009 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S008 --> [*]
+state "stepWait" as T01_S004
+T01_S004 : SMVStateRequest
+T01_S004 --[dotted]> T01_S001
+T01_S004 --[dashed]> T01_S004 : Sleep
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVStateRequest
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVStateRequest
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
 @enduml

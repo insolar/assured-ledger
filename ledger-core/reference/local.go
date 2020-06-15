@@ -210,9 +210,19 @@ func (v *Local) asDecoderWriter() *byteWriter {
 	return &byteWriter{v: v}
 }
 
+// deprecated: use reference.EncodeLocal
+func (v Local) MarshalText() ([]byte, error) {
+	return []byte(EncodeLocal(v)), nil
+}
+
 // deprecated: use reference.BinarySizeLocal
 func (v Local) Size() int {
 	return BinarySizeLocal(v)
+}
+
+// deprecated: use reference.MarshalLocalToSizedBuffer
+func (v Local) MarshalToSizedBuffer(data []byte) (int, error) {
+	return MarshalLocalToSizedBuffer(v, data)
 }
 
 // deprecated: use reference.MarshalLocalTo

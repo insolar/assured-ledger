@@ -38,6 +38,28 @@ func (p *Uint32) Add(v uint32) uint32 {
 	return atomic.AddUint32(&p.v, v)
 }
 
+func (p *Uint32) SetBits(v uint32) uint32 {
+	for {
+		switch x := p.Load(); {
+		case x & v == v:
+			return x
+		case p.CompareAndSwap(x, x|v):
+			return x|v
+		}
+	}
+}
+
+func (p *Uint32) UnsetBits(v uint32) uint32 {
+	for {
+		switch x := p.Load(); {
+		case x & v == 0:
+			return x
+		case p.CompareAndSwap(x, x&^v):
+			return x&^v
+		}
+	}
+}
+
 func (p *Uint32) Sub(v uint32) uint32 {
 	return p.Add(^(v - 1))
 }

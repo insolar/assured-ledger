@@ -24,6 +24,8 @@ type LoopLimiterFunc func(loopCount int) (canLoop, hasSignal bool)
 type DetachableSlotWorker interface {
 	SlotWorker
 
+	AddNestedCallCount(u uint)
+
 	// NonDetachableCall provides a temporary protection from detach
 	NonDetachableCall(NonDetachableFunc) (wasExecuted bool)
 
@@ -49,6 +51,6 @@ type AttachedSlotWorker interface {
 }
 
 type AttachableSlotWorker interface {
-	AttachTo(m *SlotMachine, signal *synckit.SignalVersion, loopLimit uint32, fn AttachedFunc) (wasDetached bool)
+	AttachTo(m *SlotMachine, signal *synckit.SignalVersion, loopLimit uint32, fn AttachedFunc) (wasDetached bool, callCount uint)
 	AttachAsNested(m *SlotMachine, w DetachableSlotWorker, loopLimit uint32, fn AttachedFunc) (wasDetached bool)
 }

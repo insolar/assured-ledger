@@ -22,7 +22,7 @@ type InputEvent = interface{}
 
 // PulseEventFactoryFunc should return pulse.Unknown or current.Pulse when SM doesn't need to be put into a different pulse slot.
 // Arg (pulse.Range) can be nil for future slot.
-type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc)
+type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc, error)
 
 type EventInputer interface {
 	AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error
@@ -103,6 +103,10 @@ type PulseConveyor struct {
 	stoppingChan <-chan struct{}
 }
 
+func (p *PulseConveyor) SetFactoryFunc(factory PulseEventFactoryFunc) {
+	p.factoryFn = factory
+}
+
 func (p *PulseConveyor) GetDataManager() *PulseDataManager {
 	return &p.pdm
 }
@@ -147,10 +151,10 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 	}
 
 	pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
-	remapPN, createFn := p.factoryFn(targetPN, pr, event)
+	remapPN, createFn, err := p.factoryFn(targetPN, pr, event)
 	switch {
-	case createFn == nil:
-		return fmt.Errorf("unrecognized event: pn=%v event=%v", targetPN, event)
+	case createFn == nil || err != nil:
+		return err
 
 	case remapPN == targetPN || remapPN == pn || remapPN.IsUnknown():
 		//
@@ -477,7 +481,15 @@ func (p *PulseConveyor) StartWorker(emergencyStop <-chan struct{}, completedFn f
 	p.StartWorkerExt(emergencyStop, completedFn, nil)
 }
 
-type PulseConveyorCycleFunc = func(idle bool)
+type CycleState uint8
+
+const (
+	Scanning CycleState = iota
+	ScanActive
+	ScanIdle
+)
+
+type PulseConveyorCycleFunc = func(CycleState)
 
 func (p *PulseConveyor) StartWorkerExt(emergencyStop <-chan struct{}, completedFn func(), cycleFn PulseConveyorCycleFunc) {
 	if p.machineWorker != nil {
@@ -511,7 +523,12 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			nextPollTime time.Time
 		)
 		eventMark := p.internalSignal.Mark()
-		p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
+
+		if cycleFn != nil {
+			cycleFn(Scanning)
+		}
+
+		_, callCount := p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
 			repeatNow, nextPollTime = p.slotMachine.ScanOnce(smachine.ScanDefault, worker)
 		})
 
@@ -522,14 +539,15 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			// pass
 		}
 
+		if callCount > 0 && cycleFn != nil {
+			cycleFn(ScanActive)
+		}
+
 		if !p.slotMachine.IsActive() {
 			break
 		}
 
 		if repeatNow || eventMark.HasSignal() {
-			if cycleFn != nil {
-				cycleFn(false)
-			}
 			continue
 		}
 
@@ -539,7 +557,7 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 		case <-eventMark.Channel():
 		case <-func() <-chan time.Time {
 			if cycleFn != nil {
-				cycleFn(true)
+				cycleFn(ScanIdle)
 			}
 
 			switch {
