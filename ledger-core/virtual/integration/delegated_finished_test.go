@@ -90,6 +90,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 1)
 
@@ -123,7 +124,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		newObjectDescriptor := descriptor.NewObject(reference.Global{}, objectLocal, class, []byte(""), reference.Global{})
 
@@ -180,6 +181,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 1)
 
@@ -212,7 +214,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		// if object wasn't changed == absence of side-effect
 		result := requestresult.New(makeEmptyResult(), objectGlobal)

@@ -214,8 +214,13 @@ func (v *Global) MarshalBinary() ([]byte, error) {
 	return Marshal(v)
 }
 
+// deprecated: use reference.MarshalToSizedBuffer
+func (v Global) MarshalToSizedBuffer(data []byte) (int, error) {
+	return MarshalToSizedBuffer(v, data)
+}
+
 // deprecated: use reference.MarshalTo
-func (v *Global) MarshalTo(b []byte) (int, error) {
+func (v Global) MarshalTo(b []byte) (int, error) {
 	return MarshalTo(v, b)
 }
 

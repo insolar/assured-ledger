@@ -56,7 +56,7 @@ func (sm *emptySM) stepInit(ctx smachine.InitializationContext) smachine.StateUp
 	return ctx.Stop()
 }
 
-func handleFactory(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
+func handleFactory(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 	switch input.(type) {
 	default:
 		panic(fmt.Sprintf("unknown event type, got %T", input))
@@ -135,12 +135,12 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
+		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 			require.Equal(t, pn, inputPn)
 			require.Nil(t, input)
 			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
-			}
+			}, nil
 		}, nil)
 
 		emerChan := make(chan struct{})
@@ -173,12 +173,12 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
+		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 			require.Equal(t, pn, inputPn)
 			require.Nil(t, input)
 			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
-			}
+			}, nil
 		}, nil)
 
 		emerChan := make(chan struct{})
@@ -214,12 +214,12 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
+		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 			require.Equal(t, startPn, inputPn)
 			require.Nil(t, input)
 			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
-			}
+			}, nil
 		}, nil)
 
 		emerChan := make(chan struct{})
@@ -258,11 +258,11 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
-		}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
+		}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 			require.Nil(t, input)
 			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &emptySM{}
-			}
+			}, nil
 		}, nil)
 
 		emerChan := make(chan struct{})
@@ -306,9 +306,9 @@ func TestPulseConveyor_Cache(t *testing.T) {
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
-	}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc) {
+	}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		t.FailNow()
-		return 0, nil
+		return 0, nil, nil
 	}, nil)
 
 	emerChan := make(chan struct{})

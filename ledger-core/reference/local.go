@@ -220,6 +220,11 @@ func (v Local) Size() int {
 	return BinarySizeLocal(v)
 }
 
+// deprecated: use reference.MarshalLocalToSizedBuffer
+func (v Local) MarshalToSizedBuffer(data []byte) (int, error) {
+	return MarshalLocalToSizedBuffer(v, data)
+}
+
 // deprecated: use reference.MarshalLocalTo
 func (v Local) MarshalTo(data []byte) (int, error) {
 	return MarshalLocalTo(v, data)

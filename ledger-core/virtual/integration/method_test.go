@@ -53,11 +53,11 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 
 	payload := &payload.VStateReport{
 		Status:                        state,
-		Callee:                        object,
+		Object:                        object,
 		UnorderedPendingEarliestPulse: pulse.OfNow(),
 		ProvidedContent:               content,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payload).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payload).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	server.WaitIdleConveyor()
 	server.SendMessage(ctx, msg)
@@ -90,7 +90,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		server.SendMessage(ctx, msg)
 
@@ -107,6 +107,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		class        = testwallet.GetClass()
@@ -131,7 +132,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		CallOutgoing:        server.RandomLocalWithPulse(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	countBefore := server.PublisherMock.GetCount()
 	server.SendMessage(ctx, msg)
@@ -149,6 +150,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
@@ -168,7 +170,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		server.SendMessage(ctx, msg)
 
@@ -190,6 +192,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		waitInputChannel  = make(chan struct{}, 2)
@@ -235,7 +238,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallOutgoing:        callOutgoing,
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
-			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 

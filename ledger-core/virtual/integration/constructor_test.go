@@ -58,7 +58,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		CallSiteMethod: "test",
 		CallOutgoing:   outgoing,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -111,7 +111,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		CallOutgoing:   outgoing,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -145,6 +145,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		pulseNumber = server.GetPulse().PulseNumber
@@ -185,11 +186,11 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	})
 
 	{
-		msg := makeVStateReportWithState(pulseNumber, objectRef, payload.Missing, nil)
+		msg := makeVStateReportWithState(pulseNumber, objectRef, payload.Missing, nil, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 
-	msg := utils.NewRequestWrapper(pulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(pulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	server.SendMessage(ctx, msg)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
@@ -227,7 +228,7 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
 		require.Equal(t, p1, req.AsOf)
-		require.Equal(t, objectRef, req.Callee)
+		require.Equal(t, objectRef, req.Object)
 
 		flags := payload.StateRequestContentFlags(0)
 		flags.Set(
@@ -241,10 +242,10 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 		report := payload.VStateReport{
 			Status: payload.Missing,
 			AsOf:   p1,
-			Callee: objectRef,
+			Object: objectRef,
 		}
 
-		server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).Finalize())
+		server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
 
 		return false // no resend msg
 	})
@@ -264,7 +265,7 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 		CallOutgoing:   outgoing,
 		Arguments:      []byte("arguments"),
 	}
-	msg := utils.NewRequestWrapper(p2, &pl).Finalize()
+	msg := utils.NewRequestWrapper(p2, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueReference())

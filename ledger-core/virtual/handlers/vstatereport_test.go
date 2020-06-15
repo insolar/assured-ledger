@@ -39,7 +39,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 	smVStateReport := SMVStateReport{
 		Payload: &payload.VStateReport{
 			Status:                payload.Empty,
-			Callee:                smGlobalRef,
+			Object:                smGlobalRef,
 			UnorderedPendingCount: 1,
 			OrderedPendingCount:   1,
 			ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},

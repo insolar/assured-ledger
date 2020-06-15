@@ -83,7 +83,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 		JumpMock.Return(smachine.StateUpdate{}).UnpublishAllMock.Return().
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
-		assert.Equal(t, finalizedstate.BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
+		assert.Equal(t, finalizedstate.BuildReportKey(report.Object, smObject.pulseSlot.PulseData().PulseNumber), key)
 		assert.NotNil(t, data)
 		return true
 	})
@@ -129,7 +129,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 		JumpMock.Return(smachine.StateUpdate{}).UnpublishAllMock.Return().
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
-		assert.Equal(t, finalizedstate.BuildReportKey(report.Callee, smObject.pulseSlot.PulseData().PulseNumber), key)
+		assert.Equal(t, finalizedstate.BuildReportKey(report.Object, smObject.pulseSlot.PulseData().PulseNumber), key)
 		assert.NotNil(t, data)
 		return true
 	})
