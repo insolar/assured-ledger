@@ -162,6 +162,8 @@ func (m *SlotMachine) executeWorkingSlots(currentScanNo uint32, priorityOnly boo
 		}
 		loopLimit := 1 + ((limit - i) / m.workingSlots.Count())
 
+		// TODO here there may be a collision when shared data is accessed
+		// slot should be skipped then
 		prevStepNo := currentSlot.startWorking(currentScanNo) // its counterpart is in slotPostExecution()
 		currentSlot.removeFromQueue()
 
