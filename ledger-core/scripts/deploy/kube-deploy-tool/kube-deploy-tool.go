@@ -41,7 +41,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	startTest(cfg, insolarManager)
+
+	callbacks.suiteFinished(cfg)
 }
 
 func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
@@ -127,7 +130,7 @@ func rewriteBootstrapConfigs(cfg KubeParams, generator *ConfigGenerator) error {
 func readConfig() *KubeDeployToolConfig {
 	cfg := KubeDeployToolConfig{}
 	params := insconfig.Params{
-		EnvPrefix:        "kube-deploy-tool",
+		EnvPrefix:        "kubedeploytool",
 		ConfigPathGetter: &insconfig.DefaultPathGetter{},
 	}
 	insConfigurator := insconfig.New(params)
