@@ -13,7 +13,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
-	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -94,7 +93,7 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 	defer wmStop()
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
-	msg := message.NewMessage(uuid.NewUUID().String(), metaPl)
+	msg := message.NewMessage("1", metaPl)
 	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
 	time.Sleep(1 * time.Second)
 	require.Equal(t, 1, cnt)
@@ -123,7 +122,7 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 	defer wmStop()
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
-	msg := message.NewMessage(uuid.NewUUID().String(), metaPl)
+	msg := message.NewMessage("1", metaPl)
 	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
 	time.Sleep(1 * time.Second)
 	require.Equal(t, 1, cnt)
