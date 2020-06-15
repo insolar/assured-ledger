@@ -10,6 +10,7 @@ package execute
 import (
 	"context"
 	"errors"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -57,9 +58,10 @@ type SMExecute struct {
 	methodIsolation contract.MethodIsolation
 
 	// dependencies
-	runner        runner.ServiceAdapter
-	messageSender messageSenderAdapter.MessageSender
-	pulseSlot     *conveyor.PulseSlot
+	runner                runner.ServiceAdapter
+	messageSender         messageSenderAdapter.MessageSender
+	pulseSlot             *conveyor.PulseSlot
+	authenticationService authentication.Service
 
 	outgoing        *payload.VCallRequest
 	outgoingObject  reference.Global
@@ -87,6 +89,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.authenticationService)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -494,13 +497,13 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	case executionevent.CallConstructor:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
-		s.outgoing.DelegationSpec = s.delegationToken
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
+		s.SetToken()
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
-		s.outgoing.DelegationSpec = s.delegationToken
 		s.outgoingObject = s.outgoing.Callee
+		s.SetToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -711,8 +714,12 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallIncomingResult: reference.Local{},
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
-		DelegationSpec:     s.delegationToken,
 	}
+
+	if s.authenticationService.IsNeedUseToken(s.delegationTokenSpec) {
+		msg.DelegationSpec = s.delegationTokenSpec
+	}
+
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -755,4 +762,10 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash(data)
 	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
+}
+
+func (s *SMExecute) SetToken() {
+	if s.authenticationService.IsNeedUseToken(s.delegationTokenSpec) {
+		s.outgoing.DelegationSpec = s.delegationTokenSpec
+	}
 }
