@@ -233,7 +233,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			AcquireForThisStepMock.Return(true).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepStartRequestProcessing))
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
 		smExecute.stepDeduplicate(execCtx)
 	}
@@ -241,16 +241,17 @@ func TestSMExecute_Deduplication(t *testing.T) {
 	mc.Finish()
 }
 
-func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag(t *testing.T) {
+func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 	var (
 		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.PrevPulseDelta, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewSelf(smObjectID)
-		smObject        = object.NewStateMachineObject(smGlobalRef)
+		outgoingRef     = gen.UniqueIDWithPulse(oldPd.PulseNumber)
+		objectRef       = gen.UniqueReference()
+		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
@@ -258,19 +259,24 @@ func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:            payload.CTConstructor,
+		CallType:            payload.CTMethod,
+		Callee:              objectRef,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
-		CallSiteMethod:      "New",
-		CallOutgoing:        smObjectID,
+		CallSiteMethod:      "Method",
+		CallOutgoing:        outgoingRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
-		CallRequestFlags:    payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall),
 	}
 
 	smExecute := SMExecute{
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
 		objectSharedState: smObjectAccessor,
+
+		methodIsolation: contract.MethodIsolation{
+			Interference: callFlags.GetInterference(),
+			State:        callFlags.GetState(),
+		},
 	}
 
 	smExecute = expectedInitState(ctx, smExecute)
@@ -281,6 +287,6 @@ func TestSMExecute_StepTakeLockGoesToDeduplicationForRequestWithRepeatedCallFlag
 			AcquireMock.Return(true).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
 
-		smExecute.stepTakeLock(execCtx)
+		smExecute.stepIsolationNegotiation(execCtx)
 	}
 }

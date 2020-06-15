@@ -6,6 +6,8 @@
 package slotdebugger
 
 import (
+	"reflect"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -131,6 +133,20 @@ func (w StateMachineHelper) AfterStepExt(s smachine.SlotStep) func(testUtilsComm
 	}
 }
 
+func (w StateMachineHelper) AfterTestString(marker string) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		switch {
+		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
+		case event.Data.EventType != smachine.StepLoggerTrace:
+		default:
+			if s, ok := event.CustomEvent.(string); ok  {
+				return s == marker
+			}
+		}
+		return false
+	}
+}
+
 func (w StateMachineHelper) AfterCustomEvent(fn func(interface{}) bool) func(testUtilsCommon.UpdateEvent) bool {
 	return func(event testUtilsCommon.UpdateEvent) bool {
 		switch {
@@ -138,6 +154,18 @@ func (w StateMachineHelper) AfterCustomEvent(fn func(interface{}) bool) func(tes
 		case !event.Data.EventType.IsEvent():
 		default:
 			return fn(event.CustomEvent)
+		}
+		return false
+	}
+}
+
+func (w StateMachineHelper) AfterCustomEventType(tp reflect.Type) func(testUtilsCommon.UpdateEvent) bool {
+	return func(event testUtilsCommon.UpdateEvent) bool {
+		switch {
+		case w.slotLink.SlotID() != event.Data.StepNo.SlotID():
+		case !event.Data.EventType.IsEvent():
+		default:
+			return reflect.ValueOf(event.CustomEvent).Type().AssignableTo(tp)
 		}
 		return false
 	}

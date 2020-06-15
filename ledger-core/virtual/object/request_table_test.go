@@ -21,10 +21,10 @@ func TestRequestTable(t *testing.T) {
 	rt := NewRequestTable()
 
 	require.Equal(t, 0, len(rt.GetList(contract.CallIntolerable).requests))
-	require.Equal(t, 0, len(rt.GetList(contract.CallIntolerable).requests))
+	require.Equal(t, 0, len(rt.GetList(contract.CallTolerable).requests))
 
 	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallIntolerable).earliestPulse)
-	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallIntolerable).earliestPulse)
+	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallTolerable).earliestPulse)
 
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
@@ -36,6 +36,8 @@ func TestRequestTable(t *testing.T) {
 	intolerableList.Add(ref)
 
 	require.Equal(t, 1, len(rt.GetList(contract.CallIntolerable).requests))
+	require.Equal(t, 0, len(rt.GetList(contract.CallTolerable).requests))
+	require.Equal(t, currentPulse, rt.GetList(contract.CallIntolerable).EarliestPulse())
 }
 
 func TestRequestList(t *testing.T) {

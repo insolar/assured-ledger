@@ -57,7 +57,7 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		CallOutgoing:   gen.UniqueIDWithPulse(pn),
 		Arguments:      plArguments,
 	}
-	msg := NewRequestWrapper(pn, &pl).Finalize()
+	msg := NewRequestWrapper(pn, &pl).SetSender(h.server.JetCoordinatorMock.Me()).Finalize()
 	objectReference := h.calculateOutgoing(pl)
 
 	{

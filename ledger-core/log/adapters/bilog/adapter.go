@@ -55,7 +55,11 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 		preallocate += maxEventBufferIncrement
 	}
 
-	encoder := objectEncoder{v.encoder, nil, nil, time.Now(), level == logcommon.DebugLevel, level}
+	encoder := objectEncoder{v.encoder, nil, nil, time.Now(), false, level}
+	// level == logcommon.DebugLevel || level >= logcommon.WarnLevel
+	// This must be aligned with zlog
+	encoder.allowTrace = true
+
 	switch {
 	case v.recycleBuf:
 		encoder.poolBuf = allocateBuffer(preallocate)
@@ -90,8 +94,7 @@ func (v binLogAdapter) prepareEncoder(level log.Level, preallocate int) objectEn
 		}
 	}
 
-	encoder.content = append(encoder.content, v.parentStatic...)
-	encoder.content = append(encoder.content, v.staticFields...)
+	encoder.content = encoder.fieldEncoder.AppendParts(encoder.content, [][]byte{ v.parentStatic, v.staticFields })
 
 	for _, field := range v.dynFields {
 		val := field.Getter()

@@ -6,6 +6,7 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/ThreeDotsLabs/watermill v1.0.2
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/getkin/kin-openapi v0.2.1-0.20191211203508-0d9caf80ada6
 	github.com/gogo/protobuf v1.3.1
@@ -18,7 +19,7 @@ require (
 	github.com/insolar/gls v0.0.0-20200427111849-9a08a622625d
 	github.com/insolar/insconfig v0.0.0-20200228110347-69b2648d7227
 	github.com/insolar/rpc v1.2.2-0.20190812143745-c27e1d218f1f
-	github.com/insolar/sm-uml-gen v0.0.0-20200606213445-9d410c3b8b3d
+	github.com/insolar/sm-uml-gen v0.0.0-20200613174513-58a1c59e24de
 	github.com/insolar/x-crypto v0.0.0-20191031140942-75fab8a325f6
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/json-iterator/go v1.1.6

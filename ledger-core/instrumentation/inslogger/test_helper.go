@@ -24,6 +24,7 @@ func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, ad
 	if adapter != "" {
 		logCfg.Adapter = adapter
 	}
+	logCfg.Level = logcommon.DebugLevel.String()
 
 	l, err := newLogger(logCfg)
 	if err != nil {

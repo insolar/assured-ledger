@@ -8,7 +8,6 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	_ "github.com/insolar/assured-ledger/ledger-core/insproto"
-	github_com_insolar_assured_ledger_ledger_core_pulse "github.com/insolar/assured-ledger/ledger-core/pulse"
 	github_com_insolar_assured_ledger_ledger_core_reference "github.com/insolar/assured-ledger/ledger-core/reference"
 	io "io"
 	math "math"
@@ -103,37 +102,63 @@ func (VStateReport_StateStatus) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_8a268ff04305613a, []int{3, 0}
 }
 
+type VFindCallResponse_CallState int32
+
+const (
+	MissingCall VFindCallResponse_CallState = 0
+	UnknownCall VFindCallResponse_CallState = 1
+	FoundCall   VFindCallResponse_CallState = 2
+)
+
+var VFindCallResponse_CallState_name = map[int32]string{
+	0: "MissingCall",
+	1: "UnknownCall",
+	2: "FoundCall",
+}
+
+var VFindCallResponse_CallState_value = map[string]int32{
+	"MissingCall": 0,
+	"UnknownCall": 1,
+	"FoundCall":   2,
+}
+
+func (x VFindCallResponse_CallState) String() string {
+	return proto.EnumName(VFindCallResponse_CallState_name, int32(x))
+}
+
+func (VFindCallResponse_CallState) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_8a268ff04305613a, []int{11, 0}
+}
+
 type VCallRequest struct {
-	CallType                    CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
-	CallFlags                   CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"CallAsOf"`
-	Caller                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
-	Callee                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	CallSiteDeclaration         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=CallSiteDeclaration,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallSiteDeclaration"`
-	CallSiteMethod              string                                                         `protobuf:"bytes,26,opt,name=CallSiteMethod,proto3" json:"CallSiteMethod"`
-	CallSequence                uint32                                                         `protobuf:"varint,27,opt,name=CallSequence,proto3" json:"CallSequence"`
-	CallReason                  github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,28,opt,name=CallReason,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallReason"`
-	RootTX                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,29,opt,name=RootTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RootTX"`
-	CallTX                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,30,opt,name=CallTX,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallTX"`
-	ExpenseCenter               github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,31,opt,name=ExpenseCenter,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ExpenseCenter"`
-	ResourceCenter              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,32,opt,name=ResourceCenter,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"ResourceCenter"`
-	PayloadHash                 []byte                                                         `protobuf:"bytes,33,opt,name=PayloadHash,proto3" json:"PayloadHash"`
-	DelegationSpec              CallDelegationToken                                            `protobuf:"bytes,34,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature          []byte                                                         `protobuf:"bytes,35,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	ProducerSignature           []byte                                                         `protobuf:"bytes,36,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
-	RegistrarSignature          []byte                                                         `protobuf:"bytes,37,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
-	RegistrarDelegationSpec     CallDelegationToken                                            `protobuf:"bytes,38,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
-	RegistrarDelegatorSignature []byte                                                         `protobuf:"bytes,39,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature"`
-	CallRequestFlags            CallRequestFlags                                               `protobuf:"varint,40,opt,name=CallRequestFlags,proto3,casttype=CallRequestFlags" json:"CallRequestFlags"`
-	KnownCalleeIncoming         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,41,opt,name=KnownCalleeIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"KnownCalleeIncoming"`
-	EntryHeadHash               []byte                                                         `protobuf:"bytes,42,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
-	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,43,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
-	TXExpiry                    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,44,opt,name=TXExpiry,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"TXExpiry"`
-	SecurityContext             []byte                                                         `protobuf:"bytes,45,opt,name=SecurityContext,proto3" json:"SecurityContext"`
-	TXContext                   []byte                                                         `protobuf:"bytes,46,opt,name=TXContext,proto3" json:"TXContext"`
-	Arguments                   []byte                                                         `protobuf:"bytes,47,opt,name=Arguments,proto3" json:"Arguments"`
-	ExtensionHashes             []byte                                                         `protobuf:"bytes,48,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
-	Extensions                  []byte                                                         `protobuf:"bytes,49,opt,name=Extensions,proto3" json:"Extensions"`
+	CallType                CallTypeNew         `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
+	CallFlags               CallFlags           `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	CallAsOf                PulseNumber         `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=PulseNumber" json:"CallAsOf"`
+	Caller                  Reference           `protobuf:"bytes,23,opt,name=Caller,proto3" json:"Caller"`
+	Callee                  Reference           `protobuf:"bytes,24,opt,name=Callee,proto3" json:"Callee"`
+	CallSiteDeclaration     Reference           `protobuf:"bytes,25,opt,name=CallSiteDeclaration,proto3" json:"CallSiteDeclaration"`
+	CallSiteMethod          string              `protobuf:"bytes,26,opt,name=CallSiteMethod,proto3" json:"CallSiteMethod"`
+	CallSequence            uint32              `protobuf:"varint,27,opt,name=CallSequence,proto3" json:"CallSequence"`
+	CallReason              Reference           `protobuf:"bytes,28,opt,name=CallReason,proto3" json:"CallReason"`
+	RootTX                  Reference           `protobuf:"bytes,29,opt,name=RootTX,proto3" json:"RootTX"`
+	CallTX                  Reference           `protobuf:"bytes,30,opt,name=CallTX,proto3" json:"CallTX"`
+	ExpenseCenter           Reference           `protobuf:"bytes,31,opt,name=ExpenseCenter,proto3" json:"ExpenseCenter"`
+	ResourceCenter          Reference           `protobuf:"bytes,32,opt,name=ResourceCenter,proto3" json:"ResourceCenter"`
+	PayloadHash             []byte              `protobuf:"bytes,33,opt,name=PayloadHash,proto3" json:"PayloadHash"`
+	DelegationSpec          CallDelegationToken `protobuf:"bytes,34,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	ProducerSignature       []byte              `protobuf:"bytes,36,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
+	RegistrarSignature      []byte              `protobuf:"bytes,37,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
+	RegistrarDelegationSpec CallDelegationToken `protobuf:"bytes,38,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
+	CallRequestFlags        CallRequestFlags    `protobuf:"varint,40,opt,name=CallRequestFlags,proto3,casttype=CallRequestFlags" json:"CallRequestFlags"`
+	KnownCalleeIncoming     Reference           `protobuf:"bytes,41,opt,name=KnownCalleeIncoming,proto3" json:"KnownCalleeIncoming"`
+	EntryHeadHash           []byte              `protobuf:"bytes,42,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
+	CallOutgoing            LocalReference      `protobuf:"bytes,43,opt,name=CallOutgoing,proto3" json:"CallOutgoing"`
+	TXExpiry                PulseNumber         `protobuf:"varint,44,opt,name=TXExpiry,proto3,casttype=PulseNumber" json:"TXExpiry"`
+	SecurityContext         []byte              `protobuf:"bytes,45,opt,name=SecurityContext,proto3" json:"SecurityContext"`
+	TXContext               []byte              `protobuf:"bytes,46,opt,name=TXContext,proto3" json:"TXContext"`
+	Arguments               []byte              `protobuf:"bytes,47,opt,name=Arguments,proto3" json:"Arguments"`
+	ExtensionHashes         []byte              `protobuf:"bytes,48,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
+	Extensions              []byte              `protobuf:"bytes,49,opt,name=Extensions,proto3" json:"Extensions"`
 }
 
 func (m *VCallRequest) Reset()         { *m = VCallRequest{} }
@@ -179,11 +204,32 @@ func (m *VCallRequest) GetCallFlags() CallFlags {
 	return 0
 }
 
-func (m *VCallRequest) GetCallAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VCallRequest) GetCallAsOf() PulseNumber {
 	if m != nil {
 		return m.CallAsOf
 	}
 	return 0
+}
+
+func (m *VCallRequest) GetCaller() Reference {
+	if m != nil {
+		return m.Caller
+	}
+	return Reference{}
+}
+
+func (m *VCallRequest) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *VCallRequest) GetCallSiteDeclaration() Reference {
+	if m != nil {
+		return m.CallSiteDeclaration
+	}
+	return Reference{}
 }
 
 func (m *VCallRequest) GetCallSiteMethod() string {
@@ -200,6 +246,41 @@ func (m *VCallRequest) GetCallSequence() uint32 {
 	return 0
 }
 
+func (m *VCallRequest) GetCallReason() Reference {
+	if m != nil {
+		return m.CallReason
+	}
+	return Reference{}
+}
+
+func (m *VCallRequest) GetRootTX() Reference {
+	if m != nil {
+		return m.RootTX
+	}
+	return Reference{}
+}
+
+func (m *VCallRequest) GetCallTX() Reference {
+	if m != nil {
+		return m.CallTX
+	}
+	return Reference{}
+}
+
+func (m *VCallRequest) GetExpenseCenter() Reference {
+	if m != nil {
+		return m.ExpenseCenter
+	}
+	return Reference{}
+}
+
+func (m *VCallRequest) GetResourceCenter() Reference {
+	if m != nil {
+		return m.ResourceCenter
+	}
+	return Reference{}
+}
+
 func (m *VCallRequest) GetPayloadHash() []byte {
 	if m != nil {
 		return m.PayloadHash
@@ -212,13 +293,6 @@ func (m *VCallRequest) GetDelegationSpec() CallDelegationToken {
 		return m.DelegationSpec
 	}
 	return CallDelegationToken{}
-}
-
-func (m *VCallRequest) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
 }
 
 func (m *VCallRequest) GetProducerSignature() []byte {
@@ -242,18 +316,18 @@ func (m *VCallRequest) GetRegistrarDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VCallRequest) GetRegistrarDelegatorSignature() []byte {
-	if m != nil {
-		return m.RegistrarDelegatorSignature
-	}
-	return nil
-}
-
 func (m *VCallRequest) GetCallRequestFlags() CallRequestFlags {
 	if m != nil {
 		return m.CallRequestFlags
 	}
 	return 0
+}
+
+func (m *VCallRequest) GetKnownCalleeIncoming() Reference {
+	if m != nil {
+		return m.KnownCalleeIncoming
+	}
+	return Reference{}
 }
 
 func (m *VCallRequest) GetEntryHeadHash() []byte {
@@ -263,7 +337,14 @@ func (m *VCallRequest) GetEntryHeadHash() []byte {
 	return nil
 }
 
-func (m *VCallRequest) GetTXExpiry() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VCallRequest) GetCallOutgoing() LocalReference {
+	if m != nil {
+		return m.CallOutgoing
+	}
+	return LocalReference{}
+}
+
+func (m *VCallRequest) GetTXExpiry() PulseNumber {
 	if m != nil {
 		return m.TXExpiry
 	}
@@ -306,27 +387,25 @@ func (m *VCallRequest) GetExtensions() []byte {
 }
 
 type VCallResult struct {
-	CallType                    CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
-	CallFlags                   CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	CallAsOf                    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"CallAsOf"`
-	Caller                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,23,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
-	Callee                      github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	ResultFlags                 []byte                                                         `protobuf:"bytes,25,opt,name=ResultFlags,proto3" json:"ResultFlags"`
-	CallOutgoing                github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,26,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
-	CallIncoming                github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,27,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncoming"`
-	PayloadHash                 []byte                                                         `protobuf:"bytes,28,opt,name=PayloadHash,proto3" json:"PayloadHash"`
-	DelegationSpec              CallDelegationToken                                            `protobuf:"bytes,29,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature          []byte                                                         `protobuf:"bytes,30,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	CallIncomingResult          github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,31,opt,name=CallIncomingResult,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncomingResult"`
-	ProducerSignature           []byte                                                         `protobuf:"bytes,32,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
-	RegistrarSignature          []byte                                                         `protobuf:"bytes,33,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
-	RegistrarDelegationSpec     CallDelegationToken                                            `protobuf:"bytes,34,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
-	RegistrarDelegatorSignature []byte                                                         `protobuf:"bytes,35,opt,name=RegistrarDelegatorSignature,proto3" json:"RegistrarDelegatorSignature"`
-	EntryHeadHash               []byte                                                         `protobuf:"bytes,36,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
-	SecurityContext             []byte                                                         `protobuf:"bytes,37,opt,name=SecurityContext,proto3" json:"SecurityContext"`
-	ReturnArguments             []byte                                                         `protobuf:"bytes,38,opt,name=ReturnArguments,proto3" json:"ReturnArguments"`
-	ExtensionHashes             []byte                                                         `protobuf:"bytes,39,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
-	Extensions                  []byte                                                         `protobuf:"bytes,40,opt,name=Extensions,proto3" json:"Extensions"`
+	CallType                CallTypeNew         `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
+	CallFlags               CallFlags           `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	CallAsOf                PulseNumber         `protobuf:"varint,22,opt,name=CallAsOf,proto3,casttype=PulseNumber" json:"CallAsOf"`
+	Caller                  Reference           `protobuf:"bytes,23,opt,name=Caller,proto3" json:"Caller"`
+	Callee                  Reference           `protobuf:"bytes,24,opt,name=Callee,proto3" json:"Callee"`
+	ResultFlags             []byte              `protobuf:"bytes,25,opt,name=ResultFlags,proto3" json:"ResultFlags"`
+	CallOutgoing            LocalReference      `protobuf:"bytes,26,opt,name=CallOutgoing,proto3" json:"CallOutgoing"`
+	CallIncoming            LocalReference      `protobuf:"bytes,27,opt,name=CallIncoming,proto3" json:"CallIncoming"`
+	PayloadHash             []byte              `protobuf:"bytes,28,opt,name=PayloadHash,proto3" json:"PayloadHash"`
+	DelegationSpec          CallDelegationToken `protobuf:"bytes,29,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	CallIncomingResult      LocalReference      `protobuf:"bytes,31,opt,name=CallIncomingResult,proto3" json:"CallIncomingResult"`
+	ProducerSignature       []byte              `protobuf:"bytes,32,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
+	RegistrarSignature      []byte              `protobuf:"bytes,33,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
+	RegistrarDelegationSpec CallDelegationToken `protobuf:"bytes,34,opt,name=RegistrarDelegationSpec,proto3" json:"RegistrarDelegationSpec"`
+	EntryHeadHash           []byte              `protobuf:"bytes,36,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
+	SecurityContext         []byte              `protobuf:"bytes,37,opt,name=SecurityContext,proto3" json:"SecurityContext"`
+	ReturnArguments         []byte              `protobuf:"bytes,38,opt,name=ReturnArguments,proto3" json:"ReturnArguments"`
+	ExtensionHashes         []byte              `protobuf:"bytes,39,opt,name=ExtensionHashes,proto3" json:"ExtensionHashes"`
+	Extensions              []byte              `protobuf:"bytes,40,opt,name=Extensions,proto3" json:"Extensions"`
 }
 
 func (m *VCallResult) Reset()         { *m = VCallResult{} }
@@ -372,11 +451,25 @@ func (m *VCallResult) GetCallFlags() CallFlags {
 	return 0
 }
 
-func (m *VCallResult) GetCallAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VCallResult) GetCallAsOf() PulseNumber {
 	if m != nil {
 		return m.CallAsOf
 	}
 	return 0
+}
+
+func (m *VCallResult) GetCaller() Reference {
+	if m != nil {
+		return m.Caller
+	}
+	return Reference{}
+}
+
+func (m *VCallResult) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
 }
 
 func (m *VCallResult) GetResultFlags() []byte {
@@ -384,6 +477,20 @@ func (m *VCallResult) GetResultFlags() []byte {
 		return m.ResultFlags
 	}
 	return nil
+}
+
+func (m *VCallResult) GetCallOutgoing() LocalReference {
+	if m != nil {
+		return m.CallOutgoing
+	}
+	return LocalReference{}
+}
+
+func (m *VCallResult) GetCallIncoming() LocalReference {
+	if m != nil {
+		return m.CallIncoming
+	}
+	return LocalReference{}
 }
 
 func (m *VCallResult) GetPayloadHash() []byte {
@@ -400,11 +507,11 @@ func (m *VCallResult) GetDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VCallResult) GetDelegatorSignature() []byte {
+func (m *VCallResult) GetCallIncomingResult() LocalReference {
 	if m != nil {
-		return m.DelegatorSignature
+		return m.CallIncomingResult
 	}
-	return nil
+	return LocalReference{}
 }
 
 func (m *VCallResult) GetProducerSignature() []byte {
@@ -426,13 +533,6 @@ func (m *VCallResult) GetRegistrarDelegationSpec() CallDelegationToken {
 		return m.RegistrarDelegationSpec
 	}
 	return CallDelegationToken{}
-}
-
-func (m *VCallResult) GetRegistrarDelegatorSignature() []byte {
-	if m != nil {
-		return m.RegistrarDelegatorSignature
-	}
-	return nil
 }
 
 func (m *VCallResult) GetEntryHeadHash() []byte {
@@ -471,15 +571,14 @@ func (m *VCallResult) GetExtensions() []byte {
 }
 
 type VStateRequest struct {
-	AsOf                  github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"AsOf"`
-	Callee                github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	RequestedContent      StateRequestContentFlags                                       `protobuf:"varint,22,opt,name=RequestedContent,proto3,customtype=StateRequestContentFlags" json:"RequestedContent"`
-	RequestedContentLimit []byte                                                         `protobuf:"bytes,23,opt,name=RequestedContentLimit,proto3" json:"RequestedContentLimit"`
-	SupportedExtensions   []byte                                                         `protobuf:"bytes,24,opt,name=SupportedExtensions,proto3" json:"SupportedExtensions"`
-	DelegationSpec        CallDelegationToken                                            `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature    []byte                                                         `protobuf:"bytes,26,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	ProducerSignature     []byte                                                         `protobuf:"bytes,27,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
-	CallRequestFlags      int32                                                          `protobuf:"varint,28,opt,name=CallRequestFlags,proto3" json:"CallRequestFlags"`
+	AsOf                  PulseNumber              `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
+	Object                Reference                `protobuf:"bytes,21,opt,name=Object,proto3" json:"Object"`
+	RequestedContent      StateRequestContentFlags `protobuf:"varint,22,opt,name=RequestedContent,proto3,casttype=StateRequestContentFlags" json:"RequestedContent"`
+	RequestedContentLimit []byte                   `protobuf:"bytes,23,opt,name=RequestedContentLimit,proto3" json:"RequestedContentLimit"`
+	SupportedExtensions   []byte                   `protobuf:"bytes,24,opt,name=SupportedExtensions,proto3" json:"SupportedExtensions"`
+	DelegationSpec        CallDelegationToken      `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	ProducerSignature     []byte                   `protobuf:"bytes,27,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
+	CallRequestFlags      int32                    `protobuf:"varint,28,opt,name=CallRequestFlags,proto3" json:"CallRequestFlags"`
 }
 
 func (m *VStateRequest) Reset()         { *m = VStateRequest{} }
@@ -511,9 +610,23 @@ func (m *VStateRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VStateRequest proto.InternalMessageInfo
 
-func (m *VStateRequest) GetAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VStateRequest) GetAsOf() PulseNumber {
 	if m != nil {
 		return m.AsOf
+	}
+	return 0
+}
+
+func (m *VStateRequest) GetObject() Reference {
+	if m != nil {
+		return m.Object
+	}
+	return Reference{}
+}
+
+func (m *VStateRequest) GetRequestedContent() StateRequestContentFlags {
+	if m != nil {
+		return m.RequestedContent
 	}
 	return 0
 }
@@ -539,13 +652,6 @@ func (m *VStateRequest) GetDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VStateRequest) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
-}
-
 func (m *VStateRequest) GetProducerSignature() []byte {
 	if m != nil {
 		return m.ProducerSignature
@@ -561,23 +667,22 @@ func (m *VStateRequest) GetCallRequestFlags() int32 {
 }
 
 type VStateReport struct {
-	Status                        VStateReport_StateStatus                                       `protobuf:"varint,37,opt,name=Status,proto3,enum=payload.VStateReport_StateStatus" json:"Status"`
-	AsOf                          github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"AsOf"`
-	Callee                        github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	DelegationSpec                CallDelegationToken                                            `protobuf:"bytes,23,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature            []byte                                                         `protobuf:"bytes,24,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	UnorderedPendingCount         int32                                                          `protobuf:"varint,25,opt,name=UnorderedPendingCount,proto3" json:"UnorderedPendingCount"`
-	UnorderedPendingEarliestPulse github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,26,opt,name=UnorderedPendingEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"UnorderedPendingEarliestPulse"`
-	OrderedPendingCount           int32                                                          `protobuf:"varint,27,opt,name=OrderedPendingCount,proto3" json:"OrderedPendingCount"`
-	OrderedPendingEarliestPulse   github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,28,opt,name=OrderedPendingEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"OrderedPendingEarliestPulse"`
-	PreRegisteredQueueCount       int32                                                          `protobuf:"varint,29,opt,name=PreRegisteredQueueCount,proto3" json:"PreRegisteredQueueCount"`
-	PreRegisteredEarliestPulse    github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,30,opt,name=PreRegisteredEarliestPulse,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PreRegisteredEarliestPulse"`
-	PriorityCallQueueCount        int32                                                          `protobuf:"varint,31,opt,name=PriorityCallQueueCount,proto3" json:"PriorityCallQueueCount"`
-	LatestValidatedState          github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,32,opt,name=LatestValidatedState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestValidatedState"`
-	LatestValidatedCode           github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,33,opt,name=LatestValidatedCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestValidatedCode"`
-	LatestDirtyState              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,34,opt,name=LatestDirtyState,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestDirtyState"`
-	LatestDirtyCode               github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,35,opt,name=LatestDirtyCode,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"LatestDirtyCode"`
-	ProvidedContent               *VStateReport_ProvidedContentBody                              `protobuf:"bytes,36,opt,name=ProvidedContent,proto3" json:"ProvidedContent,omitempty"`
+	Status                        VStateReport_StateStatus          `protobuf:"varint,37,opt,name=Status,proto3,enum=payload.VStateReport_StateStatus" json:"Status"`
+	AsOf                          PulseNumber                       `protobuf:"varint,20,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
+	Object                        Reference                         `protobuf:"bytes,21,opt,name=Object,proto3" json:"Object"`
+	DelegationSpec                CallDelegationToken               `protobuf:"bytes,23,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	UnorderedPendingCount         int32                             `protobuf:"varint,25,opt,name=UnorderedPendingCount,proto3" json:"UnorderedPendingCount"`
+	UnorderedPendingEarliestPulse PulseNumber                       `protobuf:"varint,26,opt,name=UnorderedPendingEarliestPulse,proto3,casttype=PulseNumber" json:"UnorderedPendingEarliestPulse"`
+	OrderedPendingCount           int32                             `protobuf:"varint,27,opt,name=OrderedPendingCount,proto3" json:"OrderedPendingCount"`
+	OrderedPendingEarliestPulse   PulseNumber                       `protobuf:"varint,28,opt,name=OrderedPendingEarliestPulse,proto3,casttype=PulseNumber" json:"OrderedPendingEarliestPulse"`
+	PreRegisteredQueueCount       int32                             `protobuf:"varint,29,opt,name=PreRegisteredQueueCount,proto3" json:"PreRegisteredQueueCount"`
+	PreRegisteredEarliestPulse    PulseNumber                       `protobuf:"varint,30,opt,name=PreRegisteredEarliestPulse,proto3,casttype=PulseNumber" json:"PreRegisteredEarliestPulse"`
+	PriorityCallQueueCount        int32                             `protobuf:"varint,31,opt,name=PriorityCallQueueCount,proto3" json:"PriorityCallQueueCount"`
+	LatestValidatedState          Reference                         `protobuf:"bytes,32,opt,name=LatestValidatedState,proto3" json:"LatestValidatedState"`
+	LatestValidatedCode           Reference                         `protobuf:"bytes,33,opt,name=LatestValidatedCode,proto3" json:"LatestValidatedCode"`
+	LatestDirtyState              Reference                         `protobuf:"bytes,34,opt,name=LatestDirtyState,proto3" json:"LatestDirtyState"`
+	LatestDirtyCode               Reference                         `protobuf:"bytes,35,opt,name=LatestDirtyCode,proto3" json:"LatestDirtyCode"`
+	ProvidedContent               *VStateReport_ProvidedContentBody `protobuf:"bytes,36,opt,name=ProvidedContent,proto3" json:"ProvidedContent,omitempty"`
 }
 
 func (m *VStateReport) Reset()         { *m = VStateReport{} }
@@ -616,11 +721,18 @@ func (m *VStateReport) GetStatus() VStateReport_StateStatus {
 	return Unknown
 }
 
-func (m *VStateReport) GetAsOf() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VStateReport) GetAsOf() PulseNumber {
 	if m != nil {
 		return m.AsOf
 	}
 	return 0
+}
+
+func (m *VStateReport) GetObject() Reference {
+	if m != nil {
+		return m.Object
+	}
+	return Reference{}
 }
 
 func (m *VStateReport) GetDelegationSpec() CallDelegationToken {
@@ -630,13 +742,6 @@ func (m *VStateReport) GetDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VStateReport) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
-}
-
 func (m *VStateReport) GetUnorderedPendingCount() int32 {
 	if m != nil {
 		return m.UnorderedPendingCount
@@ -644,7 +749,7 @@ func (m *VStateReport) GetUnorderedPendingCount() int32 {
 	return 0
 }
 
-func (m *VStateReport) GetUnorderedPendingEarliestPulse() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VStateReport) GetUnorderedPendingEarliestPulse() PulseNumber {
 	if m != nil {
 		return m.UnorderedPendingEarliestPulse
 	}
@@ -658,7 +763,7 @@ func (m *VStateReport) GetOrderedPendingCount() int32 {
 	return 0
 }
 
-func (m *VStateReport) GetOrderedPendingEarliestPulse() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VStateReport) GetOrderedPendingEarliestPulse() PulseNumber {
 	if m != nil {
 		return m.OrderedPendingEarliestPulse
 	}
@@ -672,7 +777,7 @@ func (m *VStateReport) GetPreRegisteredQueueCount() int32 {
 	return 0
 }
 
-func (m *VStateReport) GetPreRegisteredEarliestPulse() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *VStateReport) GetPreRegisteredEarliestPulse() PulseNumber {
 	if m != nil {
 		return m.PreRegisteredEarliestPulse
 	}
@@ -686,6 +791,34 @@ func (m *VStateReport) GetPriorityCallQueueCount() int32 {
 	return 0
 }
 
+func (m *VStateReport) GetLatestValidatedState() Reference {
+	if m != nil {
+		return m.LatestValidatedState
+	}
+	return Reference{}
+}
+
+func (m *VStateReport) GetLatestValidatedCode() Reference {
+	if m != nil {
+		return m.LatestValidatedCode
+	}
+	return Reference{}
+}
+
+func (m *VStateReport) GetLatestDirtyState() Reference {
+	if m != nil {
+		return m.LatestDirtyState
+	}
+	return Reference{}
+}
+
+func (m *VStateReport) GetLatestDirtyCode() Reference {
+	if m != nil {
+		return m.LatestDirtyCode
+	}
+	return Reference{}
+}
+
 func (m *VStateReport) GetProvidedContent() *VStateReport_ProvidedContentBody {
 	if m != nil {
 		return m.ProvidedContent
@@ -694,12 +827,12 @@ func (m *VStateReport) GetProvidedContent() *VStateReport_ProvidedContentBody {
 }
 
 type VStateReport_ProvidedContentBody struct {
-	LatestValidatedState *ObjectState                                                     `protobuf:"bytes,21,opt,name=LatestValidatedState,proto3" json:"LatestValidatedState,omitempty"`
-	LatestDirtyState     *ObjectState                                                     `protobuf:"bytes,22,opt,name=LatestDirtyState,proto3" json:"LatestDirtyState,omitempty"`
-	LatestValidatedCode  *ObjectState                                                     `protobuf:"bytes,23,opt,name=LatestValidatedCode,proto3" json:"LatestValidatedCode,omitempty"`
-	LatestDirtyCode      *ObjectState                                                     `protobuf:"bytes,24,opt,name=LatestDirtyCode,proto3" json:"LatestDirtyCode,omitempty"`
-	OrderedQueue         []github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,rep,name=OrderedQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"OrderedQueue"`
-	UnorderedQueue       []github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,26,rep,name=UnorderedQueue,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"UnorderedQueue"`
+	LatestValidatedState *ObjectState `protobuf:"bytes,21,opt,name=LatestValidatedState,proto3" json:"LatestValidatedState,omitempty"`
+	LatestDirtyState     *ObjectState `protobuf:"bytes,22,opt,name=LatestDirtyState,proto3" json:"LatestDirtyState,omitempty"`
+	LatestValidatedCode  *ObjectState `protobuf:"bytes,23,opt,name=LatestValidatedCode,proto3" json:"LatestValidatedCode,omitempty"`
+	LatestDirtyCode      *ObjectState `protobuf:"bytes,24,opt,name=LatestDirtyCode,proto3" json:"LatestDirtyCode,omitempty"`
+	OrderedQueue         []Reference  `protobuf:"bytes,25,rep,name=OrderedQueue,proto3" json:"OrderedQueue"`
+	UnorderedQueue       []Reference  `protobuf:"bytes,26,rep,name=UnorderedQueue,proto3" json:"UnorderedQueue"`
 }
 
 func (m *VStateReport_ProvidedContentBody) Reset()         { *m = VStateReport_ProvidedContentBody{} }
@@ -759,13 +892,27 @@ func (m *VStateReport_ProvidedContentBody) GetLatestDirtyCode() *ObjectState {
 	return nil
 }
 
+func (m *VStateReport_ProvidedContentBody) GetOrderedQueue() []Reference {
+	if m != nil {
+		return m.OrderedQueue
+	}
+	return nil
+}
+
+func (m *VStateReport_ProvidedContentBody) GetUnorderedQueue() []Reference {
+	if m != nil {
+		return m.UnorderedQueue
+	}
+	return nil
+}
+
 type ObjectState struct {
-	Reference     github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,20,opt,name=Reference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"Reference"`
-	Parent        github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Parent,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Parent"`
-	Class         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=Class,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Class"`
-	State         []byte                                                         `protobuf:"bytes,23,opt,name=State,proto3" json:"State"`
-	PreviousState []byte                                                         `protobuf:"bytes,24,opt,name=PreviousState,proto3" json:"PreviousState"`
-	Deactivated   bool                                                           `protobuf:"varint,25,opt,name=Deactivated,proto3" json:"Deactivated"`
+	Reference     LocalReference `protobuf:"bytes,20,opt,name=Reference,proto3" json:"Reference"`
+	Parent        Reference      `protobuf:"bytes,21,opt,name=Parent,proto3" json:"Parent"`
+	Class         Reference      `protobuf:"bytes,22,opt,name=Class,proto3" json:"Class"`
+	State         []byte         `protobuf:"bytes,23,opt,name=State,proto3" json:"State"`
+	PreviousState []byte         `protobuf:"bytes,24,opt,name=PreviousState,proto3" json:"PreviousState"`
+	Deactivated   bool           `protobuf:"varint,25,opt,name=Deactivated,proto3" json:"Deactivated"`
 }
 
 func (m *ObjectState) Reset()         { *m = ObjectState{} }
@@ -797,6 +944,27 @@ func (m *ObjectState) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ObjectState proto.InternalMessageInfo
 
+func (m *ObjectState) GetReference() LocalReference {
+	if m != nil {
+		return m.Reference
+	}
+	return LocalReference{}
+}
+
+func (m *ObjectState) GetParent() Reference {
+	if m != nil {
+		return m.Parent
+	}
+	return Reference{}
+}
+
+func (m *ObjectState) GetClass() Reference {
+	if m != nil {
+		return m.Class
+	}
+	return Reference{}
+}
+
 func (m *ObjectState) GetState() []byte {
 	if m != nil {
 		return m.State
@@ -819,10 +987,9 @@ func (m *ObjectState) GetDeactivated() bool {
 }
 
 type VPendingDelegationRequest struct {
-	Object             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,20,opt,name=Object,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Object"`
-	Request            github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Request,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Request"`
-	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,22,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                         `protobuf:"bytes,23,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	Callee         Reference           `protobuf:"bytes,20,opt,name=Callee,proto3" json:"Callee"`
+	Request        Reference           `protobuf:"bytes,21,opt,name=Request,proto3" json:"Request"`
+	DelegationSpec CallDelegationToken `protobuf:"bytes,22,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
 }
 
 func (m *VPendingDelegationRequest) Reset()         { *m = VPendingDelegationRequest{} }
@@ -854,6 +1021,20 @@ func (m *VPendingDelegationRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VPendingDelegationRequest proto.InternalMessageInfo
 
+func (m *VPendingDelegationRequest) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *VPendingDelegationRequest) GetRequest() Reference {
+	if m != nil {
+		return m.Request
+	}
+	return Reference{}
+}
+
 func (m *VPendingDelegationRequest) GetDelegationSpec() CallDelegationToken {
 	if m != nil {
 		return m.DelegationSpec
@@ -861,24 +1042,16 @@ func (m *VPendingDelegationRequest) GetDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VPendingDelegationRequest) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
-}
-
 type VDelegatedRequestFinished struct {
-	CallType           CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
-	CallFlags          CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
-	Callee             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	ResultFlags        []byte                                                         `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags"`
-	CallOutgoing       github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallOutgoing"`
-	CallIncoming       github_com_insolar_assured_ledger_ledger_core_reference.Local  `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Local" json:"CallIncoming"`
-	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                         `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
-	EntryHeadHash      []byte                                                         `protobuf:"bytes,28,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
-	LatestState        *ObjectState                                                   `protobuf:"bytes,29,opt,name=LatestState,proto3" json:"LatestState,omitempty"`
+	CallType       CallTypeNew                                                    `protobuf:"varint,20,opt,name=CallType,proto3,enum=payload.CallTypeNew" json:"CallType"`
+	CallFlags      CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	Callee         Reference                                                      `protobuf:"bytes,22,opt,name=Callee,proto3" json:"Callee"`
+	ResultFlags    []byte                                                         `protobuf:"bytes,23,opt,name=ResultFlags,proto3" json:"ResultFlags"`
+	CallOutgoing   github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=CallOutgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallOutgoing"`
+	CallIncoming   github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=CallIncoming,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"CallIncoming"`
+	DelegationSpec CallDelegationToken                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
+	EntryHeadHash  []byte                                                         `protobuf:"bytes,28,opt,name=EntryHeadHash,proto3" json:"EntryHeadHash"`
+	LatestState    *ObjectState                                                   `protobuf:"bytes,29,opt,name=LatestState,proto3" json:"LatestState,omitempty"`
 }
 
 func (m *VDelegatedRequestFinished) Reset()         { *m = VDelegatedRequestFinished{} }
@@ -924,6 +1097,13 @@ func (m *VDelegatedRequestFinished) GetCallFlags() CallFlags {
 	return 0
 }
 
+func (m *VDelegatedRequestFinished) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
 func (m *VDelegatedRequestFinished) GetResultFlags() []byte {
 	if m != nil {
 		return m.ResultFlags
@@ -936,13 +1116,6 @@ func (m *VDelegatedRequestFinished) GetDelegationSpec() CallDelegationToken {
 		return m.DelegationSpec
 	}
 	return CallDelegationToken{}
-}
-
-func (m *VDelegatedRequestFinished) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
 }
 
 func (m *VDelegatedRequestFinished) GetEntryHeadHash() []byte {
@@ -960,14 +1133,12 @@ func (m *VDelegatedRequestFinished) GetLatestState() *ObjectState {
 }
 
 type VDelegatedCallRequest struct {
-	Callee             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,20,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	CallFlags          CallFlags                                                      `protobuf:"varint,21,opt,name=CallFlags,proto3,customtype=CallFlags" json:"CallFlags"`
-	RequestReference   github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=RequestReference,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RequestReference"`
-	RecordHead         github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,23,opt,name=RecordHead,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RecordHead"`
-	RefOut             github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=RefOut,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefOut"`
-	RefIn              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=RefIn,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefIn"`
-	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,26,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                         `protobuf:"bytes,27,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	Callee         Reference           `protobuf:"bytes,20,opt,name=Callee,proto3" json:"Callee"`
+	CallFlags      CallFlags           `protobuf:"varint,21,opt,name=CallFlags,proto3,casttype=CallFlags" json:"CallFlags"`
+	CallOutgoing   Reference           `protobuf:"bytes,22,opt,name=CallOutgoing,proto3" json:"CallOutgoing"`
+	RecordHead     Reference           `protobuf:"bytes,23,opt,name=RecordHead,proto3" json:"RecordHead"`
+	CallIncoming   Reference           `protobuf:"bytes,24,opt,name=CallIncoming,proto3" json:"CallIncoming"`
+	DelegationSpec CallDelegationToken `protobuf:"bytes,25,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
 }
 
 func (m *VDelegatedCallRequest) Reset()         { *m = VDelegatedCallRequest{} }
@@ -999,6 +1170,41 @@ func (m *VDelegatedCallRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VDelegatedCallRequest proto.InternalMessageInfo
 
+func (m *VDelegatedCallRequest) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *VDelegatedCallRequest) GetCallFlags() CallFlags {
+	if m != nil {
+		return m.CallFlags
+	}
+	return 0
+}
+
+func (m *VDelegatedCallRequest) GetCallOutgoing() Reference {
+	if m != nil {
+		return m.CallOutgoing
+	}
+	return Reference{}
+}
+
+func (m *VDelegatedCallRequest) GetRecordHead() Reference {
+	if m != nil {
+		return m.RecordHead
+	}
+	return Reference{}
+}
+
+func (m *VDelegatedCallRequest) GetCallIncoming() Reference {
+	if m != nil {
+		return m.CallIncoming
+	}
+	return Reference{}
+}
+
 func (m *VDelegatedCallRequest) GetDelegationSpec() CallDelegationToken {
 	if m != nil {
 		return m.DelegationSpec
@@ -1006,17 +1212,10 @@ func (m *VDelegatedCallRequest) GetDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VDelegatedCallRequest) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
-}
-
 type VDelegatedCallResponse struct {
-	RefIn              github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,20,opt,name=RefIn,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"RefIn"`
-	DelegationSpec     CallDelegationToken                                            `protobuf:"bytes,21,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
-	DelegatorSignature []byte                                                         `protobuf:"bytes,22,opt,name=DelegatorSignature,proto3" json:"DelegatorSignature"`
+	Callee         Reference           `protobuf:"bytes,20,opt,name=Callee,proto3" json:"Callee"`
+	CallIncoming   Reference           `protobuf:"bytes,21,opt,name=CallIncoming,proto3" json:"CallIncoming"`
+	DelegationSpec CallDelegationToken `protobuf:"bytes,22,opt,name=DelegationSpec,proto3" json:"DelegationSpec"`
 }
 
 func (m *VDelegatedCallResponse) Reset()         { *m = VDelegatedCallResponse{} }
@@ -1048,6 +1247,20 @@ func (m *VDelegatedCallResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VDelegatedCallResponse proto.InternalMessageInfo
 
+func (m *VDelegatedCallResponse) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *VDelegatedCallResponse) GetCallIncoming() Reference {
+	if m != nil {
+		return m.CallIncoming
+	}
+	return Reference{}
+}
+
 func (m *VDelegatedCallResponse) GetDelegationSpec() CallDelegationToken {
 	if m != nil {
 		return m.DelegationSpec
@@ -1055,22 +1268,15 @@ func (m *VDelegatedCallResponse) GetDelegationSpec() CallDelegationToken {
 	return CallDelegationToken{}
 }
 
-func (m *VDelegatedCallResponse) GetDelegatorSignature() []byte {
-	if m != nil {
-		return m.DelegatorSignature
-	}
-	return nil
-}
-
 type CallDelegationToken struct {
-	TokenTypeAndFlags CallDelegationTokenType                                        `protobuf:"varint,20,opt,name=TokenTypeAndFlags,proto3,customtype=CallDelegationTokenType" json:"TokenTypeAndFlags"`
-	Approver          github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,21,opt,name=Approver,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Approver"`
-	DelegateTo        github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,22,opt,name=DelegateTo,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"DelegateTo"`
-	PulseNumber       github_com_insolar_assured_ledger_ledger_core_pulse.Number     `protobuf:"varint,23,opt,name=PulseNumber,proto3,casttype=github.com/insolar/assured-ledger/ledger-core/pulse.Number" json:"PulseNumber"`
-	Callee            github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,24,opt,name=Callee,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Callee"`
-	Caller            github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,25,opt,name=Caller,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Caller"`
-	Outgoing          github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,26,opt,name=Outgoing,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"Outgoing"`
-	ApproverSignature []byte                                                         `protobuf:"bytes,27,opt,name=ApproverSignature,proto3" json:"ApproverSignature"`
+	TokenTypeAndFlags CallDelegationTokenType `protobuf:"varint,20,opt,name=TokenTypeAndFlags,proto3,casttype=CallDelegationTokenType" json:"TokenTypeAndFlags"`
+	Approver          Reference               `protobuf:"bytes,21,opt,name=Approver,proto3" json:"Approver"`
+	DelegateTo        Reference               `protobuf:"bytes,22,opt,name=DelegateTo,proto3" json:"DelegateTo"`
+	PulseNumber       PulseNumber             `protobuf:"varint,23,opt,name=PulseNumber,proto3,casttype=PulseNumber" json:"PulseNumber"`
+	Callee            Reference               `protobuf:"bytes,24,opt,name=Callee,proto3" json:"Callee"`
+	Caller            Reference               `protobuf:"bytes,25,opt,name=Caller,proto3" json:"Caller"`
+	Outgoing          Reference               `protobuf:"bytes,26,opt,name=Outgoing,proto3" json:"Outgoing"`
+	ApproverSignature []byte                  `protobuf:"bytes,27,opt,name=ApproverSignature,proto3" json:"ApproverSignature"`
 }
 
 func (m *CallDelegationToken) Reset()         { *m = CallDelegationToken{} }
@@ -1102,11 +1308,53 @@ func (m *CallDelegationToken) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CallDelegationToken proto.InternalMessageInfo
 
-func (m *CallDelegationToken) GetPulseNumber() github_com_insolar_assured_ledger_ledger_core_pulse.Number {
+func (m *CallDelegationToken) GetTokenTypeAndFlags() CallDelegationTokenType {
+	if m != nil {
+		return m.TokenTypeAndFlags
+	}
+	return 0
+}
+
+func (m *CallDelegationToken) GetApprover() Reference {
+	if m != nil {
+		return m.Approver
+	}
+	return Reference{}
+}
+
+func (m *CallDelegationToken) GetDelegateTo() Reference {
+	if m != nil {
+		return m.DelegateTo
+	}
+	return Reference{}
+}
+
+func (m *CallDelegationToken) GetPulseNumber() PulseNumber {
 	if m != nil {
 		return m.PulseNumber
 	}
 	return 0
+}
+
+func (m *CallDelegationToken) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *CallDelegationToken) GetCaller() Reference {
+	if m != nil {
+		return m.Caller
+	}
+	return Reference{}
+}
+
+func (m *CallDelegationToken) GetOutgoing() Reference {
+	if m != nil {
+		return m.Outgoing
+	}
+	return Reference{}
 }
 
 func (m *CallDelegationToken) GetApproverSignature() []byte {
@@ -1116,9 +1364,130 @@ func (m *CallDelegationToken) GetApproverSignature() []byte {
 	return nil
 }
 
+type VFindCallRequest struct {
+	LookAt   PulseNumber `protobuf:"varint,20,opt,name=LookAt,proto3,casttype=PulseNumber" json:"LookAt"`
+	Callee   Reference   `protobuf:"bytes,21,opt,name=Callee,proto3" json:"Callee"`
+	Outgoing Reference   `protobuf:"bytes,22,opt,name=Outgoing,proto3" json:"Outgoing"`
+}
+
+func (m *VFindCallRequest) Reset()         { *m = VFindCallRequest{} }
+func (m *VFindCallRequest) String() string { return proto.CompactTextString(m) }
+func (*VFindCallRequest) ProtoMessage()    {}
+func (*VFindCallRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8a268ff04305613a, []int{10}
+}
+func (m *VFindCallRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VFindCallRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VFindCallRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VFindCallRequest.Merge(m, src)
+}
+func (m *VFindCallRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VFindCallRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_VFindCallRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VFindCallRequest proto.InternalMessageInfo
+
+func (m *VFindCallRequest) GetLookAt() PulseNumber {
+	if m != nil {
+		return m.LookAt
+	}
+	return 0
+}
+
+func (m *VFindCallRequest) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *VFindCallRequest) GetOutgoing() Reference {
+	if m != nil {
+		return m.Outgoing
+	}
+	return Reference{}
+}
+
+type VFindCallResponse struct {
+	Callee     Reference                   `protobuf:"bytes,20,opt,name=Callee,proto3" json:"Callee"`
+	Outgoing   Reference                   `protobuf:"bytes,21,opt,name=Outgoing,proto3" json:"Outgoing"`
+	Status     VFindCallResponse_CallState `protobuf:"varint,22,opt,name=Status,proto3,enum=payload.VFindCallResponse_CallState" json:"Status"`
+	CallResult *VCallResult                `protobuf:"bytes,23,opt,name=CallResult,proto3" json:"CallResult,omitempty"`
+}
+
+func (m *VFindCallResponse) Reset()         { *m = VFindCallResponse{} }
+func (m *VFindCallResponse) String() string { return proto.CompactTextString(m) }
+func (*VFindCallResponse) ProtoMessage()    {}
+func (*VFindCallResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8a268ff04305613a, []int{11}
+}
+func (m *VFindCallResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VFindCallResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VFindCallResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VFindCallResponse.Merge(m, src)
+}
+func (m *VFindCallResponse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VFindCallResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_VFindCallResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VFindCallResponse proto.InternalMessageInfo
+
+func (m *VFindCallResponse) GetCallee() Reference {
+	if m != nil {
+		return m.Callee
+	}
+	return Reference{}
+}
+
+func (m *VFindCallResponse) GetOutgoing() Reference {
+	if m != nil {
+		return m.Outgoing
+	}
+	return Reference{}
+}
+
+func (m *VFindCallResponse) GetStatus() VFindCallResponse_CallState {
+	if m != nil {
+		return m.Status
+	}
+	return MissingCall
+}
+
+func (m *VFindCallResponse) GetCallResult() *VCallResult {
+	if m != nil {
+		return m.CallResult
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("payload.CallTypeNew", CallTypeNew_name, CallTypeNew_value)
 	proto.RegisterEnum("payload.VStateReport_StateStatus", VStateReport_StateStatus_name, VStateReport_StateStatus_value)
+	proto.RegisterEnum("payload.VFindCallResponse_CallState", VFindCallResponse_CallState_name, VFindCallResponse_CallState_value)
 	proto.RegisterType((*VCallRequest)(nil), "payload.VCallRequest")
 	proto.RegisterType((*VCallResult)(nil), "payload.VCallResult")
 	proto.RegisterType((*VStateRequest)(nil), "payload.VStateRequest")
@@ -1130,6 +1499,8 @@ func init() {
 	proto.RegisterType((*VDelegatedCallRequest)(nil), "payload.VDelegatedCallRequest")
 	proto.RegisterType((*VDelegatedCallResponse)(nil), "payload.VDelegatedCallResponse")
 	proto.RegisterType((*CallDelegationToken)(nil), "payload.CallDelegationToken")
+	proto.RegisterType((*VFindCallRequest)(nil), "payload.VFindCallRequest")
+	proto.RegisterType((*VFindCallResponse)(nil), "payload.VFindCallResponse")
 }
 
 func init() {
@@ -1137,139 +1508,139 @@ func init() {
 }
 
 var fileDescriptor_8a268ff04305613a = []byte{
-	// 2100 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x5a, 0x4f, 0x6f, 0x1b, 0xd7,
-	0x11, 0xe7, 0xda, 0xa2, 0x28, 0x0d, 0x25, 0x99, 0x7a, 0xfa, 0xb7, 0xa2, 0x24, 0x92, 0xa6, 0x14,
-	0x45, 0x71, 0x63, 0xca, 0x55, 0x8a, 0x1c, 0x84, 0x34, 0xad, 0x44, 0x49, 0xb1, 0x12, 0xdb, 0x62,
-	0x28, 0x46, 0x50, 0x8b, 0x02, 0xcd, 0x92, 0xfb, 0x44, 0xad, 0x43, 0xbd, 0xc7, 0xbe, 0xdd, 0x95,
-	0x45, 0xa0, 0xe8, 0xa5, 0x45, 0xd1, 0x43, 0x0f, 0xed, 0xa5, 0x80, 0x73, 0xea, 0xa5, 0x68, 0x51,
-	0xf4, 0xd4, 0x4f, 0x90, 0x63, 0xd0, 0x93, 0x8f, 0x42, 0x0e, 0x46, 0x6b, 0xa1, 0x40, 0xd3, 0xb4,
-	0x81, 0xdb, 0x63, 0x4e, 0xc5, 0xbe, 0xb7, 0x4b, 0x3e, 0x2e, 0x57, 0x94, 0x62, 0x2c, 0xd5, 0x16,
-	0xc8, 0x89, 0xbb, 0x33, 0xf3, 0xe6, 0xb7, 0x33, 0x6f, 0xde, 0xcc, 0xec, 0x2c, 0x61, 0xde, 0x20,
-	0x26, 0xad, 0x69, 0x6c, 0xb9, 0xae, 0x35, 0x6a, 0x54, 0xd3, 0x97, 0xeb, 0x8c, 0x5a, 0xf4, 0xfb,
-	0xc7, 0xe4, 0x98, 0xe4, 0xd8, 0x9d, 0x1c, 0xbf, 0x43, 0x31, 0x97, 0x99, 0xbc, 0x5d, 0x35, 0xac,
-	0x43, 0xbb, 0x9c, 0xab, 0xd0, 0xa3, 0xe5, 0x2a, 0xad, 0x52, 0x21, 0x5d, 0xb6, 0x0f, 0xf8, 0x1d,
-	0xbf, 0xe1, 0x57, 0x62, 0x5d, 0xf2, 0xdb, 0x92, 0xb8, 0x87, 0xa3, 0x99, 0xa6, 0xcd, 0xb0, 0x7e,
-	0xbb, 0x86, 0xf5, 0x2a, 0x66, 0xcb, 0xe2, 0xe7, 0x76, 0x85, 0x32, 0xec, 0x88, 0x08, 0x15, 0x06,
-	0x31, 0x85, 0x86, 0xec, 0xa7, 0xa3, 0x30, 0xb4, 0x97, 0xd7, 0x6a, 0xb5, 0x22, 0xfe, 0x81, 0x8d,
-	0x4d, 0x0b, 0xbd, 0x0e, 0x03, 0xce, 0x6d, 0xa9, 0x51, 0xc7, 0xea, 0x78, 0x46, 0x59, 0x1a, 0x59,
-	0x19, 0xcf, 0xb9, 0x4f, 0x97, 0xf3, 0x18, 0x0f, 0xf0, 0xa3, 0xf5, 0xbe, 0x8f, 0x9f, 0xa6, 0x23,
-	0xc5, 0xa6, 0x2c, 0x7a, 0x0d, 0x06, 0x9d, 0xeb, 0xad, 0x9a, 0x56, 0x35, 0xd5, 0x89, 0x8c, 0xb2,
-	0x34, 0xbc, 0x3e, 0xe1, 0x88, 0x7c, 0xf1, 0x34, 0xdd, 0x62, 0x3c, 0xff, 0x55, 0x26, 0x52, 0x6c,
-	0xdd, 0xa2, 0xb2, 0x00, 0x5b, 0x33, 0x77, 0x0e, 0xd4, 0x49, 0xbe, 0x66, 0xcb, 0x5d, 0xb3, 0xfa,
-	0xe5, 0x2c, 0xab, 0xdb, 0x35, 0x13, 0xe7, 0x1e, 0xd8, 0x47, 0x65, 0xcc, 0x38, 0x48, 0x53, 0x2f,
-	0x2a, 0x43, 0xbf, 0x73, 0x8d, 0x99, 0x3a, 0x95, 0x51, 0x96, 0x86, 0xd6, 0xdf, 0x76, 0x10, 0x3e,
-	0x79, 0x9a, 0x7e, 0xf3, 0xcb, 0x21, 0x30, 0x7c, 0x80, 0x19, 0x26, 0x15, 0x9c, 0x7b, 0xab, 0x46,
-	0xcb, 0x5a, 0x8d, 0xa3, 0xb8, 0x9a, 0x9b, 0x18, 0x58, 0x55, 0x7b, 0x84, 0x81, 0xd1, 0x09, 0x8c,
-	0x39, 0x57, 0xbb, 0x86, 0x85, 0x37, 0x70, 0xa5, 0xa6, 0x31, 0xcd, 0x32, 0x28, 0x51, 0xa7, 0x39,
-	0xe0, 0x56, 0x38, 0x80, 0xc5, 0x20, 0x08, 0xf4, 0x2a, 0x8c, 0x78, 0xe4, 0xfb, 0xd8, 0x3a, 0xa4,
-	0xba, 0x9a, 0xcc, 0x28, 0x4b, 0x83, 0x6e, 0x08, 0xf8, 0x78, 0x68, 0x09, 0x86, 0x38, 0xc5, 0x89,
-	0x27, 0x52, 0xc1, 0xea, 0x0c, 0xdf, 0x57, 0x21, 0xdb, 0xc6, 0x41, 0x0f, 0x01, 0x44, 0xe4, 0x69,
-	0x26, 0x25, 0xea, 0x6c, 0xe8, 0x9e, 0x93, 0xb4, 0x3b, 0x3b, 0x54, 0xa4, 0xd4, 0x2a, 0xed, 0xab,
-	0x73, 0xe1, 0xef, 0x90, 0xd0, 0xec, 0x45, 0x41, 0x69, 0x5f, 0x4d, 0xf5, 0x26, 0x0a, 0x4a, 0xfb,
-	0xa8, 0x0e, 0xc3, 0x9b, 0x27, 0x75, 0x4c, 0x4c, 0x9c, 0xc7, 0xc4, 0xc2, 0x4c, 0x4d, 0x87, 0x0e,
-	0xd5, 0x0e, 0x80, 0x18, 0x8c, 0x14, 0xb1, 0x49, 0x6d, 0x56, 0xf1, 0x20, 0x33, 0xa1, 0x43, 0xfa,
-	0x10, 0xd0, 0x22, 0xc4, 0x0b, 0x22, 0xe7, 0xdc, 0xd5, 0xcc, 0x43, 0xf5, 0x26, 0x07, 0x14, 0x21,
-	0x24, 0x33, 0xd0, 0xdb, 0x30, 0xb2, 0x81, 0x6b, 0xb8, 0xca, 0xe3, 0x74, 0xb7, 0x8e, 0x2b, 0x6a,
-	0x36, 0xa3, 0x2c, 0xc5, 0x57, 0x66, 0xdb, 0x52, 0x56, 0x4b, 0xa4, 0x44, 0x3f, 0xc0, 0xc4, 0x8b,
-	0xdb, 0xf6, 0x95, 0xe8, 0x1b, 0x80, 0x5c, 0x0a, 0x65, 0xbb, 0x46, 0x95, 0x68, 0x96, 0xcd, 0xb0,
-	0x3a, 0x2f, 0x41, 0x07, 0xf0, 0xd1, 0x0a, 0x8c, 0x16, 0x18, 0xd5, 0xed, 0x0a, 0x96, 0x16, 0x2d,
-	0x48, 0x8b, 0x3a, 0xd9, 0x0e, 0x52, 0x11, 0x57, 0x0d, 0xd3, 0x62, 0x9a, 0xb4, 0xe8, 0x25, 0x19,
-	0xa9, 0x93, 0x8f, 0xbe, 0x07, 0x53, 0x4d, 0xaa, 0xcf, 0xe8, 0xc5, 0x4b, 0x1b, 0x7d, 0x9e, 0x0a,
-	0xb4, 0x05, 0x33, 0x7e, 0x96, 0xec, 0x86, 0x97, 0xa5, 0x87, 0xeb, 0x26, 0x88, 0xee, 0x42, 0x42,
-	0xaa, 0x26, 0xa2, 0x1a, 0x2c, 0x65, 0x94, 0xa5, 0xe8, 0xfa, 0xac, 0x9b, 0xd9, 0x3b, 0xf8, 0x3c,
-	0x02, 0x3a, 0xa8, 0xe8, 0x87, 0x30, 0xf6, 0x0e, 0xa1, 0x8f, 0x88, 0x48, 0x7f, 0xdb, 0xa4, 0x42,
-	0x8f, 0x0c, 0x52, 0x55, 0x5f, 0x09, 0x3d, 0xf8, 0x82, 0x60, 0xd0, 0x2d, 0x18, 0xde, 0x24, 0x16,
-	0x6b, 0xdc, 0xc5, 0x6e, 0x0c, 0xde, 0x92, 0x3c, 0xd0, 0xce, 0x42, 0x47, 0x22, 0xe3, 0xed, 0xd8,
-	0x56, 0x95, 0x3a, 0x8f, 0xf8, 0x35, 0x2e, 0xba, 0xed, 0x3e, 0xe2, 0x37, 0x5f, 0xf4, 0x11, 0xef,
-	0xd1, 0x8a, 0xfb, 0x84, 0x6d, 0xea, 0x9d, 0xa2, 0x59, 0xda, 0xdf, 0x3c, 0xa9, 0x1b, 0xac, 0xa1,
-	0xbe, 0x1a, 0x6e, 0xd1, 0xf4, 0xf4, 0xa2, 0x1c, 0xdc, 0xd8, 0xc5, 0x15, 0x9b, 0x19, 0x56, 0x23,
-	0x4f, 0x89, 0x85, 0x4f, 0x2c, 0xf5, 0xb6, 0xe4, 0x00, 0x3f, 0x13, 0x65, 0x61, 0xb0, 0xb4, 0xef,
-	0x49, 0xe6, 0x24, 0xc9, 0x16, 0xd9, 0x91, 0x59, 0x63, 0x55, 0xfb, 0x08, 0x13, 0xcb, 0x54, 0x97,
-	0x65, 0x99, 0x26, 0xd9, 0xc1, 0xdd, 0x3c, 0xb1, 0x30, 0x31, 0x0d, 0x4a, 0x1c, 0xdf, 0x62, 0x53,
-	0xbd, 0x23, 0xe3, 0xfa, 0x98, 0x68, 0x01, 0xa0, 0x49, 0x32, 0xd5, 0xaf, 0x4b, 0xa2, 0x12, 0x7d,
-	0x35, 0xfa, 0xd1, 0x69, 0xfa, 0xd3, 0x58, 0xf6, 0x4f, 0x71, 0x88, 0xbb, 0xbd, 0x8e, 0x69, 0xd7,
-	0xbe, 0x6a, 0x75, 0xfe, 0x67, 0x5b, 0x9d, 0x45, 0x88, 0x8b, 0x2d, 0x12, 0x2e, 0x9e, 0x96, 0xd3,
-	0xbf, 0xc4, 0xe8, 0x38, 0x78, 0xc9, 0xde, 0x1e, 0x3c, 0x17, 0xae, 0x99, 0x8a, 0x66, 0x7a, 0x02,
-	0xd7, 0x4c, 0x41, 0xbe, 0x22, 0x38, 0x7b, 0xf9, 0x22, 0x38, 0x17, 0x72, 0x11, 0x4c, 0x5d, 0x50,
-	0x04, 0x1b, 0x80, 0xe4, 0x27, 0x17, 0x5b, 0xe4, 0x76, 0x26, 0x21, 0xba, 0x27, 0x00, 0x24, 0xb8,
-	0xfe, 0x66, 0x5e, 0xa4, 0xfe, 0xde, 0x7c, 0xf1, 0xfa, 0x9b, 0xed, 0x79, 0xfd, 0x9d, 0xbf, 0x6c,
-	0xfd, 0xed, 0xa8, 0x5b, 0x0b, 0xe7, 0xd7, 0xad, 0x80, 0x24, 0xff, 0x52, 0xb7, 0x24, 0x9f, 0x83,
-	0x1b, 0x45, 0x6c, 0xd9, 0x8c, 0xb4, 0xd2, 0xf8, 0xa2, 0x2c, 0xef, 0x63, 0x06, 0x25, 0xf3, 0x97,
-	0x2f, 0x9f, 0xcc, 0x97, 0xba, 0x24, 0xf3, 0xbf, 0xc7, 0xb2, 0x3f, 0x89, 0xc2, 0xf0, 0xde, 0xae,
-	0xa5, 0x59, 0xd8, 0x7b, 0x73, 0xfd, 0x2e, 0xf4, 0xf1, 0xec, 0x3a, 0x1e, 0x6a, 0x76, 0xed, 0x6b,
-	0xcb, 0xac, 0x98, 0xe7, 0xfb, 0xde, 0x64, 0xbd, 0x02, 0x24, 0x5c, 0x53, 0xb0, 0xce, 0x5d, 0x4e,
-	0x2c, 0x5e, 0x29, 0xa2, 0xeb, 0x0b, 0x2e, 0x9a, 0x2a, 0xdb, 0xeb, 0x8a, 0x48, 0x2d, 0x94, 0x7f,
-	0x35, 0x5a, 0x85, 0x09, 0x3f, 0xed, 0x9e, 0x71, 0x64, 0x58, 0x6e, 0x79, 0x10, 0xbe, 0x0d, 0x16,
-	0x41, 0xaf, 0xc3, 0xd8, 0xae, 0x5d, 0xaf, 0x53, 0x66, 0x61, 0x5d, 0xda, 0x15, 0x55, 0x5a, 0x19,
-	0x24, 0x10, 0x90, 0x8d, 0xa6, 0x43, 0xce, 0x46, 0xc9, 0x17, 0x69, 0xc9, 0x67, 0xba, 0xa7, 0x84,
-	0x3b, 0x01, 0x6d, 0xeb, 0x2c, 0xf7, 0xbd, 0x58, 0xd2, 0xc1, 0xe5, 0x61, 0xf8, 0x59, 0x2c, 0xfb,
-	0xd9, 0x28, 0x0c, 0x79, 0x61, 0xe8, 0xf8, 0x02, 0x7d, 0x0b, 0xfa, 0x9d, 0x5b, 0xdb, 0xe4, 0x67,
-	0x69, 0x64, 0xe5, 0x66, 0xd3, 0x6e, 0x59, 0x2c, 0xc7, 0xaf, 0x85, 0xa0, 0x0b, 0xe1, 0x2e, 0xfb,
-	0xbf, 0x0f, 0xe3, 0xce, 0x00, 0x98, 0x0a, 0x39, 0x00, 0xd4, 0x0b, 0x02, 0x60, 0x15, 0x26, 0xde,
-	0x23, 0x94, 0xe9, 0x98, 0x61, 0xbd, 0x80, 0x89, 0x6e, 0x90, 0x6a, 0x9e, 0xda, 0xc4, 0xe2, 0x91,
-	0xe8, 0xed, 0x68, 0xb0, 0x08, 0xfa, 0xb9, 0x02, 0x73, 0x7e, 0xce, 0xa6, 0xc6, 0x6a, 0x06, 0x36,
-	0xad, 0x82, 0xe3, 0x54, 0x1e, 0x7e, 0xe1, 0xed, 0x4b, 0x77, 0x30, 0xe7, 0x14, 0xee, 0x04, 0x18,
-	0x32, 0x23, 0x19, 0x12, 0x24, 0x80, 0x7e, 0xa6, 0xc0, 0xcc, 0x4e, 0x17, 0x23, 0x66, 0x43, 0x35,
-	0xa2, 0x1b, 0x14, 0x7a, 0x13, 0xa6, 0x0a, 0x0c, 0x8b, 0x9a, 0xe5, 0x08, 0xbd, 0x6b, 0x63, 0x1b,
-	0x0b, 0x33, 0xe6, 0x24, 0x33, 0xce, 0x13, 0x42, 0x3f, 0x55, 0x20, 0xd9, 0xc6, 0x6b, 0xb7, 0x24,
-	0x15, 0xaa, 0x25, 0x5d, 0x90, 0xd0, 0x1b, 0x30, 0x59, 0x60, 0x06, 0xe5, 0x15, 0x51, 0xab, 0xd5,
-	0x24, 0x3b, 0xd2, 0x92, 0x1d, 0xe7, 0xc8, 0xa0, 0x1f, 0xc1, 0xf8, 0x3d, 0xcd, 0xc2, 0xa6, 0xb5,
-	0xa7, 0xd5, 0x0c, 0x5d, 0xb3, 0xb0, 0xce, 0x53, 0x40, 0x0f, 0x86, 0x29, 0x81, 0x38, 0xce, 0xeb,
-	0xb4, 0x8f, 0x9e, 0xa7, 0xba, 0xd7, 0xf5, 0x84, 0xfa, 0x3a, 0x1d, 0x00, 0x83, 0x8e, 0x21, 0x21,
-	0xc8, 0x1b, 0x06, 0xb3, 0x1a, 0xc2, 0xf2, 0x6c, 0xe8, 0xd0, 0x1d, 0x18, 0xc8, 0x82, 0x1b, 0x12,
-	0x8d, 0x5b, 0x3c, 0x1f, 0x3a, 0xac, 0x1f, 0x02, 0x7d, 0x07, 0x6e, 0x14, 0x18, 0x3d, 0x36, 0xf4,
-	0x56, 0x21, 0x5f, 0xe0, 0x39, 0xf0, 0x95, 0xe0, 0x62, 0xe0, 0x13, 0x5e, 0xa7, 0x7a, 0x83, 0x47,
-	0x93, 0x52, 0xf4, 0xeb, 0x49, 0xfe, 0xb6, 0x0f, 0xc6, 0x02, 0xc4, 0xd1, 0x83, 0x73, 0xc2, 0x6b,
-	0x82, 0xe3, 0xb6, 0xde, 0x6b, 0x77, 0xca, 0x0f, 0x71, 0xc5, 0xe2, 0x3c, 0x17, 0x22, 0x38, 0x5c,
-	0xb6, 0x02, 0x36, 0x6c, 0xf2, 0x42, 0x5d, 0x9d, 0x1b, 0x70, 0x2f, 0x38, 0xec, 0xa6, 0x2e, 0x54,
-	0x15, 0x18, 0x46, 0x1b, 0x9d, 0xdb, 0xa9, 0x5e, 0xa8, 0xa9, 0x63, 0x7b, 0x1e, 0xc2, 0x90, 0x9b,
-	0xb0, 0xf8, 0xf9, 0x54, 0xa7, 0x33, 0xd7, 0x43, 0x1c, 0xa1, 0xb7, 0xe9, 0x46, 0x04, 0x46, 0x9a,
-	0x19, 0x5e, 0xa0, 0x25, 0x43, 0x45, 0xf3, 0x69, 0x5f, 0x1d, 0xf8, 0xdd, 0x69, 0x5a, 0xf9, 0xe8,
-	0x34, 0x1d, 0xc9, 0xbe, 0x03, 0x71, 0xa9, 0xc9, 0x40, 0x71, 0x88, 0xbd, 0x47, 0x3e, 0x20, 0xf4,
-	0x11, 0x49, 0x44, 0xd0, 0x20, 0x44, 0x8b, 0x58, 0xd3, 0x1b, 0x09, 0xc5, 0xb9, 0xdc, 0x3c, 0xaa,
-	0x5b, 0x8d, 0xc4, 0x35, 0x34, 0x04, 0x03, 0xdb, 0x44, 0xab, 0x58, 0xc6, 0x31, 0x4e, 0x5c, 0x77,
-	0x16, 0xdc, 0x37, 0x4c, 0xd3, 0x20, 0xd5, 0x44, 0x1f, 0xef, 0x76, 0xfe, 0x11, 0xcb, 0xfe, 0xe1,
-	0x3a, 0xc4, 0x25, 0x07, 0xa3, 0x2a, 0x0c, 0x16, 0xbd, 0x27, 0xe2, 0x0d, 0x4b, 0xa8, 0xef, 0x7b,
-	0x2d, 0xdd, 0x4e, 0xe3, 0x52, 0xd0, 0x98, 0x73, 0x90, 0x7a, 0xd0, 0xb8, 0x08, 0xcd, 0xe8, 0x7d,
-	0x88, 0xe6, 0x6b, 0x9a, 0x69, 0xf2, 0x38, 0x0f, 0x17, 0x42, 0x28, 0x46, 0x49, 0x88, 0x8a, 0x93,
-	0x24, 0xf7, 0xdf, 0x82, 0xe4, 0xbc, 0xb8, 0x15, 0x18, 0x3e, 0x36, 0xa8, 0x6d, 0x0a, 0x19, 0xb9,
-	0xcb, 0x69, 0x67, 0xa1, 0x45, 0x88, 0x6f, 0x60, 0xbe, 0x51, 0xce, 0xc9, 0xe0, 0x6d, 0xcd, 0x80,
-	0x37, 0x19, 0x90, 0x18, 0xd9, 0xcf, 0xaf, 0xc1, 0xf4, 0x9e, 0x5b, 0x94, 0x5b, 0x9d, 0x95, 0xf7,
-	0xbe, 0x54, 0x86, 0x7e, 0xb1, 0x97, 0xee, 0xce, 0x85, 0xea, 0x53, 0xa1, 0x19, 0xe9, 0x10, 0x73,
-	0xe1, 0x7a, 0xb0, 0x71, 0x9e, 0xea, 0x80, 0x96, 0x73, 0x32, 0xe4, 0x96, 0x73, 0xaa, 0x7b, 0xcb,
-	0xc9, 0xcf, 0xc7, 0x3f, 0x63, 0xd9, 0xbf, 0x46, 0x61, 0x7a, 0xcf, 0x65, 0x63, 0xdd, 0x7b, 0x5f,
-	0x30, 0x88, 0x61, 0x1e, 0x62, 0xfd, 0xaa, 0xe7, 0x8d, 0x5e, 0xab, 0x3f, 0x79, 0x55, 0x73, 0xba,
-	0xa9, 0xcb, 0xce, 0xe9, 0xd4, 0xab, 0x9d, 0xd3, 0x4d, 0xf7, 0x76, 0x4e, 0xd7, 0x19, 0x7d, 0xc9,
-	0x90, 0xa3, 0x6f, 0xe6, 0x82, 0x17, 0x9e, 0x8e, 0xa1, 0xcf, 0xec, 0xf9, 0x43, 0x9f, 0x37, 0x20,
-	0x2e, 0xea, 0xa1, 0xc8, 0x32, 0x73, 0x17, 0x96, 0x4f, 0x59, 0x9c, 0xc7, 0xf9, 0xe7, 0xb1, 0xec,
-	0x59, 0x14, 0x26, 0x5a, 0x71, 0x2e, 0xff, 0x7d, 0xa0, 0x15, 0x76, 0xe3, 0x3d, 0x0b, 0xbb, 0xf3,
-	0xce, 0xc3, 0x27, 0xdd, 0xce, 0xc3, 0x71, 0x73, 0xba, 0xd2, 0xaa, 0x58, 0xe1, 0x9f, 0x8c, 0x0e,
-	0x0c, 0xf4, 0x10, 0xa0, 0x88, 0x2b, 0x94, 0xe9, 0xce, 0x0e, 0xf4, 0x60, 0x2e, 0x2f, 0x69, 0xe7,
-	0x1f, 0xb9, 0xf1, 0xc1, 0x8e, 0x6d, 0xf5, 0x62, 0x36, 0x2f, 0x34, 0x3b, 0x55, 0xb2, 0x88, 0x0f,
-	0xb6, 0xbd, 0x3f, 0x1e, 0x84, 0x5a, 0x25, 0xb9, 0xe2, 0xff, 0xfe, 0x79, 0xe2, 0x51, 0xfe, 0x3c,
-	0x96, 0xfd, 0xf1, 0x35, 0x98, 0xf4, 0x47, 0xb9, 0x59, 0xa7, 0xc4, 0xc4, 0x2d, 0x2f, 0x8c, 0x5f,
-	0x9d, 0x17, 0x26, 0x42, 0xf6, 0xc2, 0xe4, 0x25, 0xbc, 0xf0, 0xaf, 0x58, 0xf6, 0x97, 0xfd, 0xe2,
-	0x8f, 0x27, 0x3e, 0x28, 0xf4, 0x2e, 0x8c, 0xf2, 0x0b, 0xa7, 0x44, 0xad, 0x11, 0x5d, 0x9c, 0x46,
-	0x31, 0xb4, 0x9a, 0x77, 0xdd, 0x31, 0x15, 0xb0, 0xce, 0x11, 0xe7, 0x76, 0x76, 0xae, 0x46, 0x07,
-	0x30, 0xb0, 0x56, 0xaf, 0x33, 0x7a, 0x8c, 0x59, 0x0f, 0xda, 0x85, 0xa6, 0x6e, 0xe7, 0x4c, 0x7a,
-	0xdb, 0x5a, 0xa2, 0x3d, 0xc8, 0x02, 0x92, 0x76, 0x74, 0x08, 0x71, 0x3e, 0x3e, 0x10, 0x43, 0x06,
-	0x9e, 0x00, 0xc2, 0x1b, 0x57, 0xc8, 0xaa, 0xaf, 0xe4, 0xcb, 0x5c, 0xeb, 0x0b, 0xe3, 0x74, 0xcf,
-	0xbe, 0x30, 0x1e, 0xc0, 0x80, 0xef, 0x8b, 0x5e, 0xa8, 0x51, 0xd0, 0x6c, 0x13, 0x56, 0x60, 0xd4,
-	0x8b, 0x88, 0x73, 0xe6, 0xc4, 0x1d, 0x6c, 0x7e, 0x26, 0xfe, 0x1d, 0xbb, 0xf5, 0x1b, 0x05, 0xe2,
-	0x52, 0xc7, 0x86, 0xc6, 0x21, 0x91, 0x2f, 0x6d, 0x93, 0x32, 0xb5, 0x89, 0xbe, 0x56, 0xd8, 0x76,
-	0x58, 0x89, 0x08, 0x9a, 0x80, 0xd1, 0x7c, 0x69, 0xc7, 0xb6, 0xda, 0xc8, 0x8a, 0xf3, 0x9a, 0x95,
-	0x2f, 0x89, 0x3f, 0x4b, 0x25, 0xae, 0xa1, 0x51, 0x18, 0xce, 0x97, 0xf2, 0x94, 0x98, 0x16, 0xb3,
-	0x2b, 0x16, 0x65, 0x89, 0xeb, 0x28, 0x01, 0x43, 0xf9, 0xd2, 0x03, 0x6a, 0x19, 0x07, 0x7c, 0x88,
-	0x94, 0xe8, 0x43, 0x23, 0x00, 0xf9, 0xd2, 0xee, 0xda, 0x5b, 0x6b, 0xfc, 0x3e, 0x8a, 0x10, 0x8c,
-	0xe4, 0x4b, 0x05, 0x8d, 0x39, 0x0e, 0xab, 0x71, 0x5a, 0xbf, 0xa0, 0xed, 0x56, 0x0e, 0xb1, 0x6e,
-	0xd7, 0x30, 0xa7, 0xc5, 0xd6, 0xdf, 0x7f, 0xf2, 0x97, 0x54, 0xe4, 0xe3, 0x67, 0x29, 0xe5, 0xc9,
-	0xb3, 0x94, 0x72, 0xfa, 0x2c, 0xa5, 0xfc, 0xf9, 0x59, 0x2a, 0xf2, 0x8b, 0xb3, 0x54, 0xe4, 0xd7,
-	0x67, 0x29, 0xe5, 0xc9, 0x59, 0x2a, 0x72, 0x7a, 0x96, 0x8a, 0xfc, 0xed, 0x71, 0x5a, 0x79, 0xfe,
-	0x38, 0xad, 0x7c, 0xf1, 0x38, 0x1d, 0xbb, 0x8f, 0x4d, 0x53, 0xab, 0xe2, 0xdf, 0x7f, 0x98, 0x1e,
-	0xf3, 0xc6, 0x60, 0x2e, 0xc9, 0x31, 0xf5, 0x8f, 0x1f, 0xa6, 0x47, 0xdc, 0x5b, 0xf7, 0x9b, 0x50,
-	0xb9, 0x9f, 0xff, 0x8d, 0xf0, 0xb5, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0xb9, 0xb2, 0x15, 0xa7,
-	0xe7, 0x28, 0x00, 0x00,
+	// 2110 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x59, 0xcd, 0x6f, 0x1b, 0xc7,
+	0x15, 0xd7, 0x5a, 0x92, 0x29, 0x3d, 0x4a, 0x32, 0x35, 0xd6, 0xc7, 0x4a, 0x96, 0x48, 0x9a, 0x51,
+	0x1c, 0xc5, 0x89, 0x29, 0x57, 0x75, 0x83, 0x40, 0x15, 0xdc, 0x48, 0x94, 0x9c, 0xd8, 0x91, 0x2c,
+	0x96, 0xa2, 0x05, 0x05, 0x28, 0xd0, 0xae, 0xb8, 0x63, 0x6a, 0xeb, 0xd5, 0x0e, 0x3b, 0x3b, 0xab,
+	0x98, 0xe7, 0xfe, 0x03, 0x01, 0x0a, 0x14, 0x70, 0xd0, 0x43, 0x2f, 0x05, 0x8a, 0x02, 0xed, 0xa1,
+	0x7f, 0x81, 0x8f, 0x01, 0x7a, 0xf1, 0xa1, 0x07, 0xa1, 0x05, 0x8c, 0xd4, 0x46, 0x81, 0x7e, 0xc3,
+	0xfd, 0x38, 0xa5, 0x97, 0x62, 0x66, 0x76, 0xc9, 0xe1, 0x72, 0xc9, 0xa5, 0xe9, 0xa6, 0x97, 0x9e,
+	0xb8, 0xfb, 0xde, 0xef, 0xcd, 0xbc, 0x79, 0xef, 0xcd, 0x6f, 0xde, 0x2c, 0xe1, 0x35, 0xcb, 0x71,
+	0x89, 0x6d, 0xd0, 0x95, 0x9a, 0x51, 0xb7, 0x89, 0x61, 0xae, 0xd4, 0x28, 0x61, 0xe4, 0xdb, 0xa7,
+	0xce, 0xa9, 0x93, 0xa7, 0xd7, 0xf3, 0xe2, 0x0d, 0x25, 0x7c, 0xe5, 0xfc, 0xb5, 0xaa, 0xc5, 0x8e,
+	0xbd, 0xa3, 0x7c, 0x85, 0x9c, 0xac, 0x54, 0x49, 0x95, 0x48, 0xf4, 0x91, 0x77, 0x5f, 0xbc, 0x89,
+	0x17, 0xf1, 0x24, 0xed, 0xe6, 0xdf, 0x53, 0xe0, 0xc1, 0x3c, 0x86, 0xeb, 0x7a, 0x14, 0x9b, 0xd7,
+	0x6c, 0x6c, 0x56, 0x31, 0x5d, 0x91, 0x3f, 0xd7, 0x2a, 0x84, 0x62, 0x0e, 0x91, 0x43, 0x58, 0x8e,
+	0xeb, 0x8f, 0x90, 0x0d, 0xbb, 0x67, 0x93, 0x8a, 0x61, 0xb3, 0x7a, 0x0d, 0xfb, 0x88, 0xdc, 0x0f,
+	0xc6, 0x60, 0xec, 0xa0, 0x60, 0xd8, 0x76, 0x09, 0x7f, 0xcf, 0xc3, 0x2e, 0x43, 0xef, 0xc0, 0x08,
+	0x7f, 0x2d, 0xd7, 0x6b, 0x58, 0x9f, 0xca, 0x6a, 0xcb, 0x13, 0xab, 0x53, 0x79, 0xdf, 0x3a, 0x1f,
+	0x28, 0xee, 0xe2, 0x8f, 0x37, 0x87, 0x3e, 0x7b, 0x9a, 0x19, 0x28, 0x35, 0xb0, 0x68, 0x05, 0x46,
+	0xf9, 0xf3, 0x2d, 0xdb, 0xa8, 0xba, 0xfa, 0x74, 0x56, 0x5b, 0x1e, 0xdf, 0x9c, 0xe4, 0x90, 0x2f,
+	0x9e, 0x66, 0x9a, 0x8a, 0x52, 0xf3, 0x11, 0xad, 0xc8, 0x89, 0x36, 0xdc, 0xbd, 0xfb, 0xfa, 0x8c,
+	0xc0, 0x5f, 0xf4, 0xf1, 0xc9, 0xa2, 0x67, 0xbb, 0xf8, 0xae, 0x77, 0x72, 0x84, 0x69, 0xa9, 0x01,
+	0x42, 0xd7, 0xe1, 0x3c, 0x7f, 0xc6, 0x54, 0x9f, 0xcd, 0x6a, 0xcb, 0xc9, 0x55, 0xd4, 0xf0, 0xab,
+	0x84, 0xef, 0x63, 0x8a, 0x9d, 0x0a, 0xf6, 0xbd, 0xf2, 0x71, 0x0d, 0x0b, 0xac, 0xeb, 0x3d, 0x59,
+	0x60, 0x74, 0x07, 0x2e, 0xf2, 0xa7, 0x7d, 0x8b, 0xe1, 0x2d, 0x5c, 0xb1, 0x0d, 0x6a, 0x30, 0x8b,
+	0x38, 0xfa, 0x5c, 0x8c, 0x79, 0x94, 0x11, 0x7a, 0x1b, 0x26, 0x02, 0xf1, 0x2e, 0x66, 0xc7, 0xc4,
+	0xd4, 0xe7, 0xb3, 0xda, 0xf2, 0xa8, 0x6f, 0x12, 0xd2, 0xa1, 0x65, 0x18, 0x13, 0x12, 0x9e, 0x06,
+	0xa7, 0x82, 0xf5, 0x4b, 0x22, 0x24, 0x12, 0xdb, 0xa2, 0x41, 0xef, 0x02, 0xc8, 0x84, 0x19, 0x2e,
+	0x71, 0xf4, 0x85, 0x18, 0xd7, 0x14, 0x2c, 0x8f, 0x47, 0x89, 0x10, 0x56, 0x3e, 0xd4, 0x17, 0xe3,
+	0xe2, 0x21, 0x71, 0x41, 0x04, 0xcb, 0x87, 0x7a, 0xba, 0x97, 0x08, 0x96, 0x0f, 0xd1, 0x4d, 0x18,
+	0xdf, 0x7e, 0x58, 0xc3, 0x8e, 0x8b, 0x0b, 0xd8, 0x61, 0x98, 0xea, 0x99, 0x18, 0xc3, 0x56, 0x38,
+	0x7a, 0x0f, 0x26, 0x4a, 0xd8, 0x25, 0x1e, 0xad, 0x04, 0x03, 0x64, 0x63, 0x06, 0x08, 0xe1, 0xd1,
+	0x15, 0x48, 0x16, 0x25, 0xf4, 0x03, 0xc3, 0x3d, 0xd6, 0x2f, 0x67, 0xb5, 0xe5, 0x31, 0x1f, 0xaa,
+	0x2a, 0xd0, 0x1d, 0x98, 0xd8, 0xc2, 0x36, 0xae, 0x8a, 0x6c, 0xed, 0xd7, 0x70, 0x45, 0xcf, 0x89,
+	0x99, 0x16, 0x5a, 0xea, 0xbd, 0x09, 0x29, 0x93, 0x07, 0xd8, 0x09, 0xe6, 0x6c, 0xb5, 0x44, 0xab,
+	0x30, 0x59, 0xa4, 0xc4, 0xf4, 0x2a, 0x98, 0xee, 0x5b, 0x55, 0xc7, 0x60, 0x1e, 0xc5, 0xfa, 0x92,
+	0x32, 0x73, 0xbb, 0x1a, 0xdd, 0x00, 0x54, 0xc2, 0x55, 0xcb, 0x65, 0xd4, 0x50, 0x8c, 0x5e, 0x57,
+	0x8c, 0x22, 0xf4, 0xe8, 0x5b, 0x30, 0xdb, 0x90, 0x86, 0xdc, 0xbf, 0xd2, 0xb3, 0xfb, 0x9d, 0x86,
+	0x40, 0x5b, 0x90, 0x52, 0xc8, 0x40, 0x6e, 0xe6, 0xe5, 0xac, 0xb6, 0x3c, 0xbc, 0xa9, 0xfb, 0x9b,
+	0xb3, 0x4d, 0x5f, 0x6a, 0x93, 0xf0, 0x5d, 0xf4, 0xa1, 0x43, 0x3e, 0x76, 0xe4, 0xa6, 0xba, 0xed,
+	0x54, 0xc8, 0x89, 0xe5, 0x54, 0xf5, 0x37, 0xe3, 0x76, 0x51, 0x84, 0x11, 0xba, 0x0a, 0xe3, 0xdb,
+	0x0e, 0xa3, 0xf5, 0x0f, 0xb0, 0x9f, 0xcf, 0xab, 0x4a, 0x80, 0x5a, 0x55, 0x68, 0x43, 0xee, 0xa1,
+	0x3d, 0x8f, 0x55, 0x09, 0x9f, 0xf0, 0x2d, 0x31, 0xe1, 0x6c, 0x63, 0xc2, 0x1d, 0xce, 0x7e, 0xe1,
+	0x59, 0x5b, 0x4c, 0x38, 0x2b, 0x95, 0x0f, 0xb7, 0x1f, 0xd6, 0x2c, 0x5a, 0xd7, 0xdf, 0xee, 0xc2,
+	0x4a, 0x01, 0x08, 0xe5, 0xe1, 0xc2, 0x3e, 0xae, 0x78, 0xd4, 0x62, 0xf5, 0x02, 0x71, 0x18, 0x7e,
+	0xc8, 0xf4, 0x6b, 0x8a, 0x87, 0x61, 0x25, 0xca, 0xc1, 0x68, 0xf9, 0x30, 0x40, 0xe6, 0x15, 0x64,
+	0x53, 0xcc, 0x31, 0x1b, 0xb4, 0xea, 0x9d, 0x60, 0x87, 0xb9, 0xfa, 0x8a, 0x8a, 0x69, 0x88, 0xf9,
+	0xbc, 0xdb, 0x0f, 0x19, 0x76, 0x5c, 0x8b, 0x38, 0x7c, 0xf1, 0xd8, 0xd5, 0xaf, 0xab, 0xf3, 0x86,
+	0x94, 0x68, 0x09, 0xa0, 0x21, 0x72, 0xf5, 0xaf, 0x28, 0x50, 0x45, 0xbe, 0x36, 0xfc, 0xf8, 0x2c,
+	0xf3, 0xc7, 0x44, 0xee, 0xe7, 0x23, 0x90, 0xf4, 0x4f, 0x05, 0xd7, 0xb3, 0xff, 0xdf, 0x0f, 0x85,
+	0x2b, 0x90, 0x94, 0x71, 0x90, 0xeb, 0x98, 0x53, 0x09, 0x45, 0x51, 0xb4, 0x95, 0xdf, 0xfc, 0xcb,
+	0x97, 0x9f, 0x3f, 0x44, 0x63, 0xcb, 0x5c, 0xea, 0x79, 0x88, 0xc6, 0x86, 0x09, 0xd1, 0xdf, 0x42,
+	0xef, 0xf4, 0xb7, 0xd8, 0x37, 0xfd, 0xed, 0x02, 0x52, 0x7d, 0x90, 0x41, 0xf1, 0x99, 0x3f, 0xc6,
+	0xf9, 0x08, 0xc3, 0x68, 0x36, 0xcd, 0xf6, 0xc3, 0xa6, 0x97, 0xfb, 0x67, 0xd3, 0xdc, 0xab, 0xb3,
+	0x69, 0x1b, 0x77, 0x2d, 0x75, 0xe6, 0xae, 0x08, 0x1e, 0x79, 0xbd, 0x1b, 0x8f, 0xe4, 0xe1, 0x42,
+	0x09, 0x33, 0x8f, 0x3a, 0x4d, 0xa6, 0xb8, 0xa2, 0xe2, 0x43, 0xca, 0x28, 0xbe, 0x78, 0xa3, 0x77,
+	0xbe, 0x58, 0xee, 0xc2, 0x17, 0x7f, 0x4a, 0xe4, 0x7e, 0x3f, 0x08, 0xe3, 0x07, 0xfb, 0xcc, 0x60,
+	0x38, 0x68, 0x23, 0xdf, 0x80, 0x21, 0xb1, 0x89, 0xa7, 0x3a, 0x6f, 0xe2, 0xa1, 0x60, 0x03, 0xef,
+	0x1d, 0x7d, 0x17, 0x57, 0x98, 0xe0, 0x87, 0xae, 0xdb, 0x51, 0xe2, 0xd0, 0x0e, 0xa4, 0xfc, 0x59,
+	0xb0, 0x29, 0xa2, 0xe1, 0x30, 0xc1, 0x15, 0xc3, 0x9b, 0x59, 0x7f, 0x1a, 0x5d, 0x75, 0xc5, 0x87,
+	0xf8, 0x67, 0x55, 0xd8, 0x12, 0xad, 0xc1, 0x74, 0x58, 0xb6, 0x63, 0x9d, 0x58, 0x4c, 0xf0, 0x49,
+	0xb0, 0xe4, 0x68, 0x08, 0x7a, 0x07, 0x2e, 0xee, 0x7b, 0xb5, 0x1a, 0xa1, 0x0c, 0x9b, 0x4a, 0xb0,
+	0x74, 0xc5, 0x32, 0x0a, 0x10, 0xb1, 0xf5, 0xe6, 0xfe, 0xbb, 0x9d, 0xc7, 0xa5, 0xee, 0x7b, 0xe5,
+	0x7a, 0xc4, 0x29, 0xbf, 0x20, 0x22, 0x28, 0x4d, 0xda, 0xb4, 0x22, 0xcf, 0x7f, 0x4e, 0xe4, 0x3e,
+	0x19, 0x87, 0xb1, 0x20, 0xcf, 0x7c, 0x55, 0xe8, 0x1b, 0x70, 0x9e, 0xbf, 0x7a, 0xae, 0x28, 0xd6,
+	0x89, 0xd5, 0xcb, 0x8d, 0x15, 0xa8, 0xb0, 0xbc, 0x78, 0x96, 0xc0, 0x20, 0x99, 0xf2, 0xed, 0xcb,
+	0xac, 0x93, 0xf6, 0x28, 0xcf, 0xf6, 0x1d, 0xe5, 0x35, 0x98, 0xbe, 0xe7, 0x10, 0x6a, 0x62, 0x8a,
+	0xcd, 0x22, 0x76, 0x4c, 0xcb, 0xa9, 0x16, 0x88, 0xe7, 0x30, 0x91, 0xb8, 0x20, 0x6c, 0xd1, 0x10,
+	0xf4, 0x11, 0x2c, 0x86, 0x15, 0xdb, 0x06, 0xb5, 0x2d, 0xec, 0x32, 0xb1, 0x4c, 0x71, 0x4e, 0x74,
+	0x58, 0x7b, 0x77, 0x4b, 0x5e, 0x80, 0x7b, 0x11, 0x4e, 0x5d, 0x52, 0x9c, 0x8a, 0x02, 0xa0, 0x7b,
+	0x70, 0x69, 0xaf, 0x8b, 0x43, 0x0b, 0x9d, 0x1d, 0xea, 0x66, 0x87, 0x6e, 0xc2, 0x6c, 0x91, 0x62,
+	0xc9, 0x86, 0x1c, 0xf4, 0x4d, 0x0f, 0x7b, 0x58, 0xba, 0xb4, 0xa8, 0xb8, 0xd4, 0x09, 0x84, 0xf6,
+	0x61, 0xbe, 0x45, 0xd5, 0xea, 0x55, 0xba, 0xb3, 0x57, 0x5d, 0xcc, 0xd0, 0x3a, 0xcc, 0x14, 0xa9,
+	0x45, 0x04, 0x77, 0x1a, 0xb6, 0xad, 0xf8, 0x94, 0x51, 0x7c, 0xea, 0x80, 0x41, 0x3b, 0x30, 0xb5,
+	0x63, 0x30, 0xec, 0xb2, 0x03, 0xc3, 0xb6, 0x4c, 0x83, 0x61, 0x53, 0xd4, 0x72, 0xec, 0xa5, 0x24,
+	0xd2, 0x8a, 0x37, 0xc6, 0x21, 0x79, 0x81, 0x98, 0xf2, 0x94, 0xea, 0xda, 0x18, 0x47, 0x18, 0xf1,
+	0x56, 0x5d, 0x8a, 0xb7, 0x2c, 0xca, 0xea, 0xd2, 0xab, 0x5c, 0xcc, 0x40, 0x6d, 0x16, 0x68, 0x13,
+	0x2e, 0x28, 0x32, 0xe1, 0xcd, 0x6b, 0x31, 0x83, 0x84, 0x0d, 0xd0, 0x47, 0x70, 0xa1, 0x48, 0xc9,
+	0xa9, 0x65, 0x36, 0xf9, 0x78, 0x49, 0x8c, 0xf1, 0x66, 0x34, 0x1b, 0x84, 0xc0, 0x9b, 0xc4, 0xac,
+	0x8b, 0xa1, 0xb5, 0x52, 0x78, 0x9c, 0xf9, 0x5f, 0x0d, 0xc2, 0xc5, 0x08, 0x38, 0xba, 0xdb, 0x21,
+	0x2d, 0x92, 0x1b, 0x9a, 0xcd, 0xa9, 0xa4, 0x02, 0xa1, 0xf3, 0xa7, 0x88, 0x4e, 0xcc, 0xad, 0x88,
+	0x60, 0xce, 0xc4, 0x8e, 0xd5, 0x1e, 0xce, 0x9d, 0xe8, 0x04, 0xcf, 0xc6, 0x0e, 0xd5, 0x21, 0xc5,
+	0x6d, 0xc9, 0xd1, 0x63, 0x47, 0x6a, 0x4b, 0xcf, 0x3a, 0x8c, 0xf9, 0x9b, 0x56, 0xd4, 0xb5, 0x3e,
+	0x97, 0x1d, 0xec, 0x9a, 0xdf, 0x16, 0x34, 0xbf, 0x8f, 0x37, 0x38, 0x48, 0xda, 0xcf, 0xc7, 0xd8,
+	0x87, 0xf0, 0x6b, 0x23, 0x3f, 0x3d, 0xcb, 0x68, 0x8f, 0xcf, 0x32, 0x03, 0xb9, 0x0f, 0x21, 0xa9,
+	0x9c, 0x04, 0x28, 0x09, 0x89, 0x7b, 0xce, 0x03, 0x7e, 0xe7, 0x4b, 0x0d, 0xa0, 0x51, 0x18, 0x2e,
+	0x61, 0xc3, 0xac, 0xa7, 0x34, 0xfe, 0xb8, 0x7d, 0x52, 0x63, 0xf5, 0xd4, 0x39, 0x34, 0x06, 0x23,
+	0xb7, 0x1d, 0xa3, 0xc2, 0xac, 0x53, 0x9c, 0x1a, 0xe4, 0x06, 0xbb, 0x96, 0xeb, 0x5a, 0x4e, 0x35,
+	0x35, 0x24, 0x8e, 0xa4, 0xbf, 0x24, 0x72, 0x3f, 0x3a, 0x07, 0x49, 0x25, 0x08, 0xe8, 0xeb, 0x30,
+	0xda, 0x70, 0x48, 0x9c, 0x2a, 0xb1, 0x1d, 0x68, 0x13, 0xcf, 0x0f, 0x99, 0xa2, 0x41, 0x79, 0x01,
+	0xc7, 0x1e, 0x32, 0x12, 0x87, 0xf2, 0x30, 0x5c, 0xb0, 0x0d, 0xd7, 0xf5, 0xab, 0xa5, 0xb3, 0x81,
+	0x84, 0xa1, 0x79, 0x18, 0x96, 0xd5, 0xa5, 0xb6, 0x17, 0x52, 0xc4, 0xdb, 0xc5, 0x22, 0xc5, 0xa7,
+	0x16, 0xf1, 0x5c, 0x89, 0x51, 0x1b, 0x89, 0x56, 0x15, 0xef, 0xf2, 0xb7, 0xb0, 0x08, 0x0c, 0xaf,
+	0x16, 0x71, 0x0c, 0x8d, 0x04, 0x5d, 0xbe, 0xa2, 0xc8, 0xfd, 0x5a, 0x83, 0xb9, 0x03, 0x9f, 0xac,
+	0x9b, 0x67, 0x5a, 0xd0, 0xa5, 0x35, 0xef, 0x42, 0x53, 0x3d, 0xde, 0x85, 0x56, 0x21, 0xe1, 0x1b,
+	0xc7, 0x86, 0x28, 0x00, 0x46, 0x1c, 0xc4, 0x33, 0xfd, 0x1e, 0xc4, 0x22, 0xeb, 0x7f, 0x4d, 0xe4,
+	0xfe, 0x3d, 0x04, 0x73, 0x07, 0xbe, 0x0a, 0x9b, 0x41, 0xab, 0x62, 0x39, 0x96, 0x7b, 0x8c, 0xcd,
+	0xff, 0xdd, 0x75, 0xb5, 0x19, 0xbf, 0x99, 0xfe, 0xee, 0x92, 0xb3, 0x9d, 0xee, 0x92, 0x4e, 0xe8,
+	0x2e, 0x29, 0x4b, 0xe1, 0x0e, 0x07, 0xfe, 0xe6, 0x69, 0xe6, 0xe6, 0xcb, 0x7d, 0x19, 0xa6, 0x81,
+	0x33, 0xf9, 0xf7, 0x6d, 0x72, 0x64, 0xd8, 0x2f, 0x7e, 0x98, 0x0d, 0x5f, 0x3c, 0x9d, 0xd0, 0xc5,
+	0x73, 0xee, 0xcb, 0x99, 0xaf, 0x71, 0x4b, 0x6d, 0xaf, 0x89, 0xf9, 0xbe, 0x9b, 0xb3, 0xb6, 0x6b,
+	0xd6, 0x42, 0xe7, 0x6b, 0xd6, 0x3a, 0x24, 0x25, 0x3f, 0xca, 0x1d, 0xb6, 0x18, 0x4b, 0xa7, 0x2a,
+	0x5c, 0x54, 0xdf, 0xdf, 0x12, 0xb9, 0xef, 0x0f, 0xc2, 0x74, 0xb3, 0xfa, 0xd4, 0xaf, 0xe7, 0x2f,
+	0xbf, 0xa1, 0x5e, 0xba, 0xe6, 0xd6, 0x43, 0x95, 0x11, 0x57, 0x79, 0xad, 0x79, 0x7e, 0x17, 0xa0,
+	0x84, 0x2b, 0x84, 0x9a, 0x3c, 0x22, 0xb1, 0xdf, 0x4c, 0x14, 0x6c, 0x30, 0x6f, 0xa3, 0x42, 0xf4,
+	0x5e, 0xe6, 0xed, 0x92, 0xef, 0xb9, 0x57, 0xe2, 0x80, 0x17, 0x89, 0xdc, 0x6f, 0x35, 0x98, 0x09,
+	0x67, 0xc1, 0xad, 0x11, 0xc7, 0xc5, 0x7d, 0xa4, 0x21, 0xbc, 0xba, 0xe9, 0x57, 0x5c, 0xdd, 0xab,
+	0x31, 0xdc, 0xdf, 0x13, 0xb9, 0xcf, 0x07, 0xe5, 0x5f, 0x11, 0x21, 0x23, 0xb4, 0x0b, 0x93, 0xe2,
+	0x81, 0x13, 0xd6, 0x86, 0x63, 0xca, 0xba, 0x91, 0xb7, 0xa7, 0x8c, 0x5f, 0x37, 0xb3, 0x11, 0x76,
+	0x1c, 0x5e, 0x6a, 0xb7, 0x44, 0x37, 0x60, 0x64, 0xa3, 0x56, 0xa3, 0xe4, 0x14, 0xd3, 0xd8, 0x35,
+	0x37, 0x90, 0xbc, 0x8a, 0x82, 0xc0, 0x97, 0x49, 0x6c, 0x05, 0x2a, 0x58, 0xf4, 0x35, 0x50, 0x1b,
+	0x77, 0x51, 0x80, 0x1d, 0x7a, 0x7a, 0xf5, 0xa5, 0x8f, 0x8f, 0x76, 0xcd, 0x0f, 0x83, 0x73, 0x3d,
+	0x7e, 0x18, 0xbc, 0x01, 0x23, 0xa1, 0x4f, 0x77, 0x5d, 0x42, 0xd1, 0xd8, 0x50, 0xab, 0x30, 0x19,
+	0x84, 0xa5, 0xc3, 0xfd, 0xbb, 0x4d, 0x2d, 0x52, 0xfc, 0x8f, 0x44, 0xee, 0x17, 0x1a, 0xa4, 0x0e,
+	0x6e, 0x59, 0x4e, 0x0b, 0x83, 0xbc, 0x05, 0xe7, 0x77, 0x08, 0x79, 0xb0, 0xc1, 0xba, 0x5d, 0x89,
+	0x7d, 0x88, 0x12, 0x96, 0xe9, 0x1e, 0xc3, 0xa2, 0x2e, 0x72, 0xa6, 0xd7, 0x45, 0x0a, 0x87, 0xff,
+	0x99, 0xc8, 0x3d, 0x3e, 0x07, 0x93, 0x8a, 0xc3, 0x7d, 0x6f, 0x36, 0xd5, 0x89, 0xe9, 0x9e, 0x23,
+	0xbd, 0xd9, 0xf8, 0xd6, 0x30, 0x23, 0xce, 0xf4, 0xa5, 0xe6, 0xed, 0x22, 0xec, 0x93, 0xd8, 0x6e,
+	0x4d, 0x16, 0x6f, 0x7e, 0x6e, 0x58, 0x0b, 0xfe, 0x3b, 0x13, 0x1f, 0x28, 0xc3, 0x6d, 0xb9, 0xf2,
+	0xc9, 0xdb, 0x67, 0x7f, 0x05, 0x9d, 0x5b, 0x97, 0x4c, 0x2d, 0xfb, 0xaf, 0x0b, 0x90, 0xf4, 0x5b,
+	0x51, 0x2e, 0x4b, 0x0d, 0x70, 0x81, 0xdf, 0xcc, 0x0a, 0x81, 0x86, 0xc6, 0x61, 0xf4, 0x16, 0xf1,
+	0xa4, 0x5f, 0xa9, 0x73, 0x22, 0x84, 0xff, 0x4a, 0x5c, 0xfd, 0x89, 0x06, 0x49, 0xa5, 0x05, 0x41,
+	0x53, 0x90, 0x2a, 0x94, 0x6f, 0x3b, 0x47, 0x1c, 0xb9, 0x51, 0xbc, 0xed, 0x0f, 0x36, 0x0d, 0x93,
+	0x85, 0xf2, 0x9e, 0xc7, 0x5a, 0xc4, 0x1a, 0xef, 0x86, 0x0b, 0x65, 0xf9, 0x7f, 0x61, 0xea, 0x1c,
+	0x9a, 0x84, 0xf1, 0x42, 0xb9, 0x40, 0x1c, 0x97, 0x51, 0xaf, 0xc2, 0x08, 0x4d, 0x0d, 0xa2, 0x14,
+	0x8c, 0x15, 0xca, 0x77, 0x09, 0xb3, 0xee, 0x8b, 0x7b, 0x6c, 0x6a, 0x08, 0x4d, 0x00, 0x14, 0xca,
+	0xfb, 0x1b, 0xef, 0x6f, 0x88, 0xf7, 0x61, 0x84, 0x60, 0xa2, 0x50, 0x2e, 0x1a, 0x94, 0x27, 0xc2,
+	0x16, 0xb2, 0xf3, 0x52, 0xb6, 0x5f, 0x39, 0xc6, 0xa6, 0x67, 0x63, 0x21, 0x4b, 0x6c, 0x7e, 0xe7,
+	0xc9, 0xef, 0xd2, 0x03, 0x9f, 0x3d, 0x4b, 0x6b, 0x4f, 0x9e, 0xa5, 0xb5, 0xb3, 0x67, 0x69, 0xed,
+	0xf3, 0x67, 0xe9, 0x81, 0x4f, 0x9e, 0xa7, 0x07, 0x7e, 0xfc, 0x3c, 0xad, 0x3d, 0x79, 0x9e, 0x1e,
+	0x38, 0x7b, 0x9e, 0x1e, 0xf8, 0xc3, 0xa3, 0x8c, 0xf6, 0xe2, 0x51, 0x46, 0xfb, 0xe2, 0x51, 0x26,
+	0xb1, 0x8b, 0x5d, 0xd7, 0xa8, 0xe2, 0x9f, 0x7d, 0x9a, 0xb9, 0x18, 0xdc, 0xc4, 0x7d, 0x11, 0x5f,
+	0xea, 0x2f, 0x3f, 0xcd, 0x4c, 0xf8, 0xaf, 0xfe, 0x07, 0xcc, 0xa3, 0xf3, 0xe2, 0x0f, 0xe8, 0xaf,
+	0xfe, 0x27, 0x00, 0x00, 0xff, 0xff, 0x58, 0xa4, 0x32, 0x21, 0x43, 0x1f, 0x00, 0x00,
 }
 
 func (m *VCallRequest) SetupContext(ctx MessageContext) error {
@@ -1365,17 +1736,19 @@ func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xe0
 	}
 	{
-		size := m.CallOutgoing.ProtoSize()
-		i -= size
-		if _, err := m.CallOutgoing.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallOutgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xda
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0xda
 	if len(m.EntryHeadHash) > 0 {
 		i -= len(m.EntryHeadHash)
 		copy(dAtA[i:], m.EntryHeadHash)
@@ -1388,34 +1761,25 @@ func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xd2
 	}
 	{
-		size := m.KnownCalleeIncoming.ProtoSize()
-		i -= size
-		if _, err := m.KnownCalleeIncoming.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.KnownCalleeIncoming.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xca
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0xca
 	if m.CallRequestFlags != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.CallRequestFlags))
 		i--
 		dAtA[i] = 0x2
 		i--
 		dAtA[i] = 0xc0
-	}
-	if len(m.RegistrarDelegatorSignature) > 0 {
-		i -= len(m.RegistrarDelegatorSignature)
-		copy(dAtA[i:], m.RegistrarDelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.RegistrarDelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0xba
 	}
 	{
 		size, err := m.RegistrarDelegationSpec.MarshalToSizedBuffer(dAtA[:i])
@@ -1453,17 +1817,6 @@ func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0xa2
 	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x9a
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1490,65 +1843,75 @@ func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x8a
 	}
 	{
-		size := m.ResourceCenter.ProtoSize()
-		i -= size
-		if _, err := m.ResourceCenter.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.ResourceCenter.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0x82
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x82
 	{
-		size := m.ExpenseCenter.ProtoSize()
-		i -= size
-		if _, err := m.ExpenseCenter.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.ExpenseCenter.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xfa
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xfa
 	{
-		size := m.CallTX.ProtoSize()
-		i -= size
-		if _, err := m.CallTX.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallTX.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xf2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xf2
 	{
-		size := m.RootTX.ProtoSize()
-		i -= size
-		if _, err := m.RootTX.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.RootTX.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xea
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xea
 	{
-		size := m.CallReason.ProtoSize()
-		i -= size
-		if _, err := m.CallReason.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallReason.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xe2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xe2
 	if m.CallSequence != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.CallSequence))
 		i--
@@ -1566,41 +1929,47 @@ func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xd2
 	}
 	{
-		size := m.CallSiteDeclaration.ProtoSize()
-		i -= size
-		if _, err := m.CallSiteDeclaration.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallSiteDeclaration.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xca
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xca
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
 	{
-		size := m.Caller.ProtoSize()
-		i -= size
-		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Caller.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xba
 	if m.CallAsOf != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.CallAsOf))
 		i--
@@ -1715,17 +2084,6 @@ func (m *VCallResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0xa2
 	}
-	if len(m.RegistrarDelegatorSignature) > 0 {
-		i -= len(m.RegistrarDelegatorSignature)
-		copy(dAtA[i:], m.RegistrarDelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.RegistrarDelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x2
-		i--
-		dAtA[i] = 0x9a
-	}
 	{
 		size, err := m.RegistrarDelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1763,27 +2121,18 @@ func (m *VCallResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x82
 	}
 	{
-		size := m.CallIncomingResult.ProtoSize()
-		i -= size
-		if _, err := m.CallIncomingResult.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallIncomingResult.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xfa
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xf2
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xfa
+		}
 	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
@@ -1811,29 +2160,33 @@ func (m *VCallResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xe2
 	}
 	{
-		size := m.CallIncoming.ProtoSize()
-		i -= size
-		if _, err := m.CallIncoming.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallIncoming.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xda
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xda
 	{
-		size := m.CallOutgoing.ProtoSize()
-		i -= size
-		if _, err := m.CallOutgoing.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallOutgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xd2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xd2
 	if len(m.ResultFlags) > 0 {
 		i -= len(m.ResultFlags)
 		copy(dAtA[i:], m.ResultFlags)
@@ -1846,29 +2199,33 @@ func (m *VCallResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xca
 	}
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
 	{
-		size := m.Caller.ProtoSize()
-		i -= size
-		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Caller.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xba
 	if m.CallAsOf != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.CallAsOf))
 		i--
@@ -1946,17 +2303,6 @@ func (m *VStateRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0xda
 	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xd2
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2001,17 +2347,19 @@ func (m *VStateRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xb0
 	}
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
 	if m.AsOf != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.AsOf))
 		i--
@@ -2081,53 +2429,61 @@ func (m *VStateReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	{
-		size := m.LatestDirtyCode.ProtoSize()
-		i -= size
-		if _, err := m.LatestDirtyCode.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.LatestDirtyCode.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0x9a
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x9a
 	{
-		size := m.LatestDirtyState.ProtoSize()
-		i -= size
-		if _, err := m.LatestDirtyState.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.LatestDirtyState.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0x92
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x92
 	{
-		size := m.LatestValidatedCode.ProtoSize()
-		i -= size
-		if _, err := m.LatestValidatedCode.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.LatestValidatedCode.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0x8a
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x8a
 	{
-		size := m.LatestValidatedState.ProtoSize()
-		i -= size
-		if _, err := m.LatestValidatedState.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.LatestValidatedState.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0x82
+		}
 	}
-	i--
-	dAtA[i] = 0x2
-	i--
-	dAtA[i] = 0x82
 	if m.PriorityCallQueueCount != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.PriorityCallQueueCount))
 		i--
@@ -2177,17 +2533,6 @@ func (m *VStateReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0xc8
 	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xc2
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2203,17 +2548,19 @@ func (m *VStateReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
 	if m.AsOf != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.AsOf))
 		i--
@@ -2256,11 +2603,11 @@ func (m *VStateReport_ProvidedContentBody) MarshalToSizedBuffer(dAtA []byte) (in
 	if len(m.UnorderedQueue) > 0 {
 		for iNdEx := len(m.UnorderedQueue) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size := m.UnorderedQueue[iNdEx].ProtoSize()
-				i -= size
-				if _, err := m.UnorderedQueue[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+				size, err := m.UnorderedQueue[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
 					return 0, err
 				}
+				i -= size
 				i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
 			}
 			i--
@@ -2272,11 +2619,11 @@ func (m *VStateReport_ProvidedContentBody) MarshalToSizedBuffer(dAtA []byte) (in
 	if len(m.OrderedQueue) > 0 {
 		for iNdEx := len(m.OrderedQueue) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size := m.OrderedQueue[iNdEx].ProtoSize()
-				i -= size
-				if _, err := m.OrderedQueue[iNdEx].MarshalTo(dAtA[i:]); err != nil {
+				size, err := m.OrderedQueue[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
 					return 0, err
 				}
+				i -= size
 				i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
 			}
 			i--
@@ -2418,41 +2765,47 @@ func (m *ObjectState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xba
 	}
 	{
-		size := m.Class.ProtoSize()
-		i -= size
-		if _, err := m.Class.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Class.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xb2
 	{
-		size := m.Parent.ProtoSize()
-		i -= size
-		if _, err := m.Parent.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Parent.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
 	{
-		size := m.Reference.ProtoSize()
-		i -= size
-		if _, err := m.Reference.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Reference.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
 	if i < len(dAtA) {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(0))
 		i--
@@ -2493,17 +2846,6 @@ func (m *VPendingDelegationRequest) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xba
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2519,29 +2861,33 @@ func (m *VPendingDelegationRequest) MarshalToSizedBuffer(dAtA []byte) (int, erro
 		}
 	}
 	{
-		size := m.Request.ProtoSize()
-		i -= size
-		if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Request.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
 	{
-		size := m.Object.ProtoSize()
-		i -= size
-		if _, err := m.Object.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
 	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1005))
 	i--
 	dAtA[i] = 0x1
@@ -2607,17 +2953,6 @@ func (m *VDelegatedRequestFinished) MarshalToSizedBuffer(dAtA []byte) (int, erro
 		i--
 		dAtA[i] = 0xe2
 	}
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xda
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2668,17 +3003,19 @@ func (m *VDelegatedRequestFinished) MarshalToSizedBuffer(dAtA []byte) (int, erro
 		dAtA[i] = 0xba
 	}
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xb2
 	if m.CallFlags != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.CallFlags))
 		i--
@@ -2731,17 +3068,6 @@ func (m *VDelegatedCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xda
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2753,57 +3079,51 @@ func (m *VDelegatedCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0x1
 			i--
-			dAtA[i] = 0xd2
+			dAtA[i] = 0xca
 		}
 	}
 	{
-		size := m.RefIn.ProtoSize()
-		i -= size
-		if _, err := m.RefIn.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallIncoming.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xca
 	{
-		size := m.RefOut.ProtoSize()
-		i -= size
-		if _, err := m.RefOut.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.RecordHead.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
 	{
-		size := m.RecordHead.ProtoSize()
-		i -= size
-		if _, err := m.RecordHead.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.CallOutgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xba
-	{
-		size := m.RequestReference.ProtoSize()
-		i -= size
-		if _, err := m.RequestReference.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xb2
 	if m.CallFlags != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.CallFlags))
 		i--
@@ -2812,17 +3132,19 @@ func (m *VDelegatedCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa8
 	}
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
 	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1008))
 	i--
 	dAtA[i] = 0x1
@@ -2861,19 +3183,22 @@ func (m *VDelegatedCallResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
-	if len(m.DelegatorSignature) > 0 {
-		i -= len(m.DelegatorSignature)
-		copy(dAtA[i:], m.DelegatorSignature)
-		i--
-		dAtA[i] = 132
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(len(m.DelegatorSignature)+1))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xb2
-	}
 	{
 		size, err := m.DelegationSpec.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
+	}
+	{
+		size, err := m.CallIncoming.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -2887,17 +3212,19 @@ func (m *VDelegatedCallResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 		}
 	}
 	{
-		size := m.RefIn.ProtoSize()
-		i -= size
-		if _, err := m.RefIn.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
 	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1009))
 	i--
 	dAtA[i] = 0x1
@@ -2948,41 +3275,47 @@ func (m *CallDelegationToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xda
 	}
 	{
-		size := m.Outgoing.ProtoSize()
-		i -= size
-		if _, err := m.Outgoing.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Outgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xd2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xd2
 	{
-		size := m.Caller.ProtoSize()
-		i -= size
-		if _, err := m.Caller.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Caller.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xca
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xca
 	{
-		size := m.Callee.ProtoSize()
-		i -= size
-		if _, err := m.Callee.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xc2
 	if m.PulseNumber != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.PulseNumber))
 		i--
@@ -2991,29 +3324,33 @@ func (m *CallDelegationToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xb8
 	}
 	{
-		size := m.DelegateTo.ProtoSize()
-		i -= size
-		if _, err := m.DelegateTo.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.DelegateTo.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xb2
 	{
-		size := m.Approver.ProtoSize()
-		i -= size
-		if _, err := m.Approver.MarshalTo(dAtA[i:]); err != nil {
+		size, err := m.Approver.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
 			return 0, err
 		}
-		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
 	}
-	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
 	if m.TokenTypeAndFlags != 0 {
 		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.TokenTypeAndFlags))
 		i--
@@ -3022,6 +3359,168 @@ func (m *CallDelegationToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0xa0
 	}
 	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1010))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	return len(dAtA) - i, nil
+}
+
+func (m *VFindCallRequest) SetupContext(ctx MessageContext) error {
+	return ctx.Message(m, 1011)
+}
+
+const TypeVFindCallRequestPolymorthID uint64 = 1011
+
+func (*VFindCallRequest) GetDefaultPolymorphID() uint64 {
+	return 1011
+}
+
+func (m *VFindCallRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VFindCallRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VFindCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	{
+		size, err := m.Outgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
+	}
+	{
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
+	}
+	if m.LookAt != 0 {
+		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.LookAt))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1011))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	return len(dAtA) - i, nil
+}
+
+func (m *VFindCallResponse) SetupContext(ctx MessageContext) error {
+	return ctx.Message(m, 1012)
+}
+
+const TypeVFindCallResponsePolymorthID uint64 = 1012
+
+func (*VFindCallResponse) GetDefaultPolymorphID() uint64 {
+	return 1012
+}
+
+func (m *VFindCallResponse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VFindCallResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VFindCallResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	if m.CallResult != nil {
+		{
+			size, err := m.CallResult.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			if size > 0 {
+				i -= size
+				i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+				i--
+				dAtA[i] = 0x1
+				i--
+				dAtA[i] = 0xba
+			}
+		}
+	}
+	if m.Status != 0 {
+		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xb0
+	}
+	{
+		size, err := m.Outgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
+	}
+	{
+		size, err := m.Callee.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xa2
+		}
+	}
+	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1012))
 	i--
 	dAtA[i] = 0x1
 	i--
@@ -3051,6 +3550,8 @@ func init() {
 	RegisterMessageType(1008, "", (*VDelegatedCallRequest)(nil))
 	RegisterMessageType(1009, "", (*VDelegatedCallResponse)(nil))
 	RegisterMessageType(1010, "", (*CallDelegationToken)(nil))
+	RegisterMessageType(1011, "", (*VFindCallRequest)(nil))
+	RegisterMessageType(1012, "", (*VFindCallResponse)(nil))
 }
 
 func (m *VCallRequest) ProtoSize() (n int) {
@@ -3068,12 +3569,15 @@ func (m *VCallRequest) ProtoSize() (n int) {
 	if m.CallAsOf != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.CallAsOf))
 	}
-	l = m.Caller.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.CallSiteDeclaration.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Caller.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.CallSiteDeclaration.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.CallSiteMethod)
 	if l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
@@ -3081,27 +3585,27 @@ func (m *VCallRequest) ProtoSize() (n int) {
 	if m.CallSequence != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.CallSequence))
 	}
-	l = m.CallReason.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.RootTX.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.CallTX.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.ExpenseCenter.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.ResourceCenter.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.CallReason.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.RootTX.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.CallTX.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.ExpenseCenter.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.ResourceCenter.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.PayloadHash)
 	if l > 0 {
 		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	if l = m.DelegationSpec.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvnR0(uint64(l))
-	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	l = len(m.ProducerSignature)
@@ -3117,23 +3621,20 @@ func (m *VCallRequest) ProtoSize() (n int) {
 	if l = m.RegistrarDelegationSpec.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = len(m.RegistrarDelegatorSignature)
-	if l > 0 {
-		l++
-		n += 2 + l + sovProtoVnvnR0(uint64(l))
-	}
 	if m.CallRequestFlags != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.CallRequestFlags))
 	}
-	l = m.KnownCalleeIncoming.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.KnownCalleeIncoming.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.EntryHeadHash)
 	if l > 0 {
 		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = m.CallOutgoing.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.CallOutgoing.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	if m.TXExpiry != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.TXExpiry))
 	}
@@ -3181,19 +3682,23 @@ func (m *VCallResult) ProtoSize() (n int) {
 	if m.CallAsOf != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.CallAsOf))
 	}
-	l = m.Caller.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Caller.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.ResultFlags)
 	if l > 0 {
 		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = m.CallOutgoing.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.CallIncoming.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.CallOutgoing.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.CallIncoming.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.PayloadHash)
 	if l > 0 {
 		l++
@@ -3202,13 +3707,9 @@ func (m *VCallResult) ProtoSize() (n int) {
 	if l = m.DelegationSpec.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
+	if l = m.CallIncomingResult.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = m.CallIncomingResult.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
 	l = len(m.ProducerSignature)
 	if l > 0 {
 		l++
@@ -3220,11 +3721,6 @@ func (m *VCallResult) ProtoSize() (n int) {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	if l = m.RegistrarDelegationSpec.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvnR0(uint64(l))
-	}
-	l = len(m.RegistrarDelegatorSignature)
-	if l > 0 {
-		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	l = len(m.EntryHeadHash)
@@ -3265,8 +3761,9 @@ func (m *VStateRequest) ProtoSize() (n int) {
 	if m.AsOf != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.AsOf))
 	}
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Object.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	if m.RequestedContent != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.RequestedContent))
 	}
@@ -3281,11 +3778,6 @@ func (m *VStateRequest) ProtoSize() (n int) {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	if l = m.DelegationSpec.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvnR0(uint64(l))
-	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	l = len(m.ProducerSignature)
@@ -3309,14 +3801,10 @@ func (m *VStateReport) ProtoSize() (n int) {
 	if m.AsOf != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.AsOf))
 	}
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	if l = m.DelegationSpec.ProtoSize(); l > 0 {
+	if l = m.Object.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
+	if l = m.DelegationSpec.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	if m.UnorderedPendingCount != 0 {
@@ -3340,14 +3828,18 @@ func (m *VStateReport) ProtoSize() (n int) {
 	if m.PriorityCallQueueCount != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.PriorityCallQueueCount))
 	}
-	l = m.LatestValidatedState.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.LatestValidatedCode.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.LatestDirtyState.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.LatestDirtyCode.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.LatestValidatedState.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.LatestValidatedCode.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.LatestDirtyState.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.LatestDirtyCode.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	if m.ProvidedContent != nil {
 		if l = m.ProvidedContent.ProtoSize(); l > 0 {
 			n += 2 + l + sovProtoVnvnR0(uint64(l))
@@ -3410,12 +3902,15 @@ func (m *ObjectState) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	l = m.Reference.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Parent.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Class.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Reference.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Parent.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Class.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.State)
 	if l > 0 {
 		l++
@@ -3441,16 +3936,13 @@ func (m *VPendingDelegationRequest) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	l = m.Object.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Request.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	if l = m.DelegationSpec.ProtoSize(); l > 0 {
+	if l = m.Callee.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
+	if l = m.Request.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.DelegationSpec.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	n += 2 + sovProtoVnvnR0(1005)
@@ -3469,8 +3961,9 @@ func (m *VDelegatedRequestFinished) ProtoSize() (n int) {
 	if m.CallFlags != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.CallFlags))
 	}
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.ResultFlags)
 	if l > 0 {
 		l++
@@ -3481,11 +3974,6 @@ func (m *VDelegatedRequestFinished) ProtoSize() (n int) {
 	l = m.CallIncoming.ProtoSize()
 	n += 2 + l + sovProtoVnvnR0(uint64(l))
 	if l = m.DelegationSpec.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoVnvnR0(uint64(l))
-	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	l = len(m.EntryHeadHash)
@@ -3508,25 +3996,22 @@ func (m *VDelegatedCallRequest) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	if m.CallFlags != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.CallFlags))
 	}
-	l = m.RequestReference.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.RecordHead.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.RefOut.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.RefIn.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	if l = m.DelegationSpec.ProtoSize(); l > 0 {
+	if l = m.CallOutgoing.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
+	if l = m.RecordHead.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.CallIncoming.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.DelegationSpec.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	n += 2 + sovProtoVnvnR0(1008)
@@ -3539,14 +4024,13 @@ func (m *VDelegatedCallResponse) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	l = m.RefIn.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	if l = m.DelegationSpec.ProtoSize(); l > 0 {
+	if l = m.Callee.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
-	l = len(m.DelegatorSignature)
-	if l > 0 {
-		l++
+	if l = m.CallIncoming.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.DelegationSpec.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	n += 2 + sovProtoVnvnR0(1009)
@@ -3562,25 +4046,73 @@ func (m *CallDelegationToken) ProtoSize() (n int) {
 	if m.TokenTypeAndFlags != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.TokenTypeAndFlags))
 	}
-	l = m.Approver.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.DelegateTo.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Approver.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.DelegateTo.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	if m.PulseNumber != 0 {
 		n += 2 + sovProtoVnvnR0(uint64(m.PulseNumber))
 	}
-	l = m.Callee.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Caller.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
-	l = m.Outgoing.ProtoSize()
-	n += 2 + l + sovProtoVnvnR0(uint64(l))
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Caller.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Outgoing.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
 	l = len(m.ApproverSignature)
 	if l > 0 {
 		l++
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	n += 2 + sovProtoVnvnR0(1010)
+	return n
+}
+
+func (m *VFindCallRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.LookAt != 0 {
+		n += 2 + sovProtoVnvnR0(uint64(m.LookAt))
+	}
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Outgoing.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	n += 2 + sovProtoVnvnR0(1011)
+	return n
+}
+
+func (m *VFindCallResponse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.Callee.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Outgoing.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if m.Status != 0 {
+		n += 2 + sovProtoVnvnR0(uint64(m.Status))
+	}
+	if m.CallResult != nil {
+		if l = m.CallResult.ProtoSize(); l > 0 {
+			n += 2 + l + sovProtoVnvnR0(uint64(l))
+		}
+	}
+	n += 2 + sovProtoVnvnR0(1012)
 	return n
 }
 
@@ -3674,7 +4206,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallAsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.CallAsOf |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3683,7 +4215,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3693,15 +4225,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3716,7 +4248,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3726,15 +4258,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3749,7 +4281,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallSiteDeclaration", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3759,15 +4291,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3833,7 +4365,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallReason", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3843,15 +4375,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3866,7 +4398,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RootTX", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3876,15 +4408,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3899,7 +4431,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallTX", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3909,15 +4441,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3932,7 +4464,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ExpenseCenter", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3942,15 +4474,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -3965,7 +4497,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ResourceCenter", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -3975,15 +4507,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4065,46 +4597,6 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			}
 			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		case 35:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
 			}
 			iNdEx = postIndex
 		case 36:
@@ -4220,46 +4712,6 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				return err
 			}
 			iNdEx = postIndex
-		case 39:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RegistrarDelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.RegistrarDelegatorSignature = append(m.RegistrarDelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.RegistrarDelegatorSignature == nil {
-				m.RegistrarDelegatorSignature = []byte{}
-			}
-			iNdEx = postIndex
 		case 40:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallRequestFlags", wireType)
@@ -4283,7 +4735,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field KnownCalleeIncoming", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -4293,15 +4745,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4356,7 +4808,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -4366,15 +4818,15 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4399,7 +4851,7 @@ func (m *VCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.TXExpiry |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.TXExpiry |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4718,7 +5170,7 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.CallAsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.CallAsOf |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4727,7 +5179,7 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -4737,15 +5189,15 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4760,7 +5212,7 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -4770,15 +5222,15 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4833,7 +5285,7 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -4843,15 +5295,15 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4866,7 +5318,7 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -4876,15 +5328,15 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -4968,51 +5420,11 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				return err
 			}
 			iNdEx = postIndex
-		case 30:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
-			}
-			iNdEx = postIndex
 		case 31:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CallIncomingResult", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -5022,15 +5434,15 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -5152,46 +5564,6 @@ func (m *VCallResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			}
 			if err := m.RegistrarDelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		case 35:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RegistrarDelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.RegistrarDelegatorSignature = append(m.RegistrarDelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.RegistrarDelegatorSignature == nil {
-				m.RegistrarDelegatorSignature = []byte{}
 			}
 			iNdEx = postIndex
 		case 36:
@@ -5470,16 +5842,16 @@ func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.AsOf |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 21:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -5489,22 +5861,22 @@ func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5638,46 +6010,6 @@ func (m *VStateRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 			}
 			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		case 26:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
 			}
 			iNdEx = postIndex
 		case 27:
@@ -5815,16 +6147,16 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.AsOf |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.AsOf |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 21:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -5834,22 +6166,22 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5886,46 +6218,6 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				return err
 			}
 			iNdEx = postIndex
-		case 24:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
-			}
-			iNdEx = postIndex
 		case 25:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UnorderedPendingCount", wireType)
@@ -5959,7 +6251,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.UnorderedPendingEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.UnorderedPendingEarliestPulse |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -5997,7 +6289,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.OrderedPendingEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.OrderedPendingEarliestPulse |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -6035,7 +6327,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PreRegisteredEarliestPulse |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.PreRegisteredEarliestPulse |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -6063,7 +6355,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedState", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6073,15 +6365,15 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6096,7 +6388,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LatestValidatedCode", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6106,15 +6398,15 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6129,7 +6421,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyState", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6139,15 +6431,15 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6162,7 +6454,7 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LatestDirtyCode", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6172,15 +6464,15 @@ func (m *VStateReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6456,7 +6748,7 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field OrderedQueue", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6466,23 +6758,22 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_assured_ledger_ledger_core_reference.Global
-			m.OrderedQueue = append(m.OrderedQueue, v)
+			m.OrderedQueue = append(m.OrderedQueue, Reference{})
 			if err := m.OrderedQueue[len(m.OrderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -6491,7 +6782,7 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UnorderedQueue", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6501,23 +6792,22 @@ func (m *VStateReport_ProvidedContentBody) UnmarshalWithUnknownCallback(dAtA []b
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			var v github_com_insolar_assured_ledger_ledger_core_reference.Global
-			m.UnorderedQueue = append(m.UnorderedQueue, v)
+			m.UnorderedQueue = append(m.UnorderedQueue, Reference{})
 			if err := m.UnorderedQueue[len(m.UnorderedQueue)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -6588,7 +6878,7 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Reference", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6598,15 +6888,15 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6621,7 +6911,7 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Parent", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6631,15 +6921,15 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6654,7 +6944,7 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Class", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6664,15 +6954,15 @@ func (m *ObjectState) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6847,9 +7137,9 @@ func (m *VPendingDelegationRequest) UnmarshalWithUnknownCallback(dAtA []byte, sk
 		switch fieldNum {
 		case 20:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6859,22 +7149,22 @@ func (m *VPendingDelegationRequest) UnmarshalWithUnknownCallback(dAtA []byte, sk
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6882,7 +7172,7 @@ func (m *VPendingDelegationRequest) UnmarshalWithUnknownCallback(dAtA []byte, sk
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -6892,15 +7182,15 @@ func (m *VPendingDelegationRequest) UnmarshalWithUnknownCallback(dAtA []byte, sk
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -6942,46 +7232,6 @@ func (m *VPendingDelegationRequest) UnmarshalWithUnknownCallback(dAtA []byte, sk
 			}
 			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		case 23:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -7088,7 +7338,7 @@ func (m *VDelegatedRequestFinished) UnmarshalWithUnknownCallback(dAtA []byte, sk
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7098,15 +7348,15 @@ func (m *VDelegatedRequestFinished) UnmarshalWithUnknownCallback(dAtA []byte, sk
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -7256,46 +7506,6 @@ func (m *VDelegatedRequestFinished) UnmarshalWithUnknownCallback(dAtA []byte, sk
 				return err
 			}
 			iNdEx = postIndex
-		case 27:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
-			}
-			iNdEx = postIndex
 		case 28:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EntryHeadHash", wireType)
@@ -7438,7 +7648,7 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7448,15 +7658,15 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -7488,9 +7698,9 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 			}
 		case 22:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RequestReference", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CallOutgoing", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7500,22 +7710,22 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.RequestReference.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.CallOutgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7523,7 +7733,7 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RecordHead", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7533,15 +7743,15 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -7554,9 +7764,9 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 			iNdEx = postIndex
 		case 24:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RefOut", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7566,59 +7776,26 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.RefOut.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 25:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RefIn", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RefIn.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 26:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
 			}
@@ -7649,46 +7826,6 @@ func (m *VDelegatedCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 			}
 			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		case 27:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -7755,9 +7892,9 @@ func (m *VDelegatedCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipF
 		switch fieldNum {
 		case 20:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RefIn", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7767,26 +7904,59 @@ func (m *VDelegatedCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipF
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.RefIn.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CallIncoming", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.CallIncoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 22:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelegationSpec", wireType)
 			}
@@ -7817,46 +7987,6 @@ func (m *VDelegatedCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipF
 			}
 			if err := m.DelegationSpec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		case 22:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatorSignature", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoVnvnR0
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoVnvnR0
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if byteLen > 0 {
-				if dAtA[iNdEx] != 132 {
-					return ErrExpectedBinaryMarkerProtoVnvnR0
-				}
-				iNdEx++
-			}
-			m.DelegatorSignature = append(m.DelegatorSignature[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatorSignature == nil {
-				m.DelegatorSignature = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -7944,7 +8074,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Approver", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7954,15 +8084,15 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -7977,7 +8107,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DelegateTo", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -7987,15 +8117,15 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -8020,7 +8150,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.PulseNumber |= github_com_insolar_assured_ledger_ledger_core_pulse.Number(b&0x7F) << shift
+				m.PulseNumber |= PulseNumber(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -8029,7 +8159,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -8039,15 +8169,15 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -8062,7 +8192,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -8072,15 +8202,15 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -8095,7 +8225,7 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowProtoVnvnR0
@@ -8105,15 +8235,15 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthProtoVnvnR0
 			}
@@ -8162,6 +8292,336 @@ func (m *CallDelegationToken) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 			m.ApproverSignature = append(m.ApproverSignature[:0], dAtA[iNdEx:postIndex]...)
 			if m.ApproverSignature == nil {
 				m.ApproverSignature = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvnR0(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VFindCallRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvnR0)
+}
+func (m *VFindCallRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvnR0
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VFindCallRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VFindCallRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LookAt", wireType)
+			}
+			m.LookAt = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.LookAt |= PulseNumber(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 22:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvnR0(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VFindCallResponse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvnR0)
+}
+func (m *VFindCallResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvnR0
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VFindCallResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VFindCallResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Callee", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Callee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 22:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= VFindCallResponse_CallState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CallResult", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.CallResult == nil {
+				m.CallResult = &VCallResult{}
+			}
+			if err := m.CallResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
 		default:

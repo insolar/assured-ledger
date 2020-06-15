@@ -186,6 +186,13 @@ func (p pbufEncoder) _appendBytes(dst []byte, key string, ft reflect.Kind, val [
 	return b.dst
 }
 
+func (p pbufEncoder) AppendParts(b []byte, bb [][]byte) []byte {
+	for _, bi := range bb {
+		b = append(b, bi...)
+	}
+	return b
+}
+
 func (p pbufEncoder) AppendIntField(dst []byte, key string, v int64, fFmt logfmt.LogFieldFormat) []byte {
 	if fFmt.HasFmt && p.enableFmt {
 		return p.appendFmt(dst, key, v, fFmt)

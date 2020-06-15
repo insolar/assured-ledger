@@ -112,7 +112,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &payloadData, node.DynamicRoleVirtualExecutor, obj, s.pulseSlot.PulseData().PulseNumber)
+		err := svc.SendRole(goCtx, &payloadData, node.DynamicRoleVirtualExecutor, obj, s.pulseSlot.CurrentPulseNumber())
 		s.messageAlreadySent = true
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {

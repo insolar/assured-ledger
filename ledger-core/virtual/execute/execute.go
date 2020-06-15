@@ -68,9 +68,8 @@ type SMExecute struct {
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
-	// todo: remove nolint in PLAT-309
-	// nolint
-	delegationToken payload.CallDelegationToken
+	delegationTokenSpec payload.CallDelegationToken
+	stepAfterTokenGet   smachine.SlotStep
 }
 
 /* -------- Declaration ------------- */
@@ -153,7 +152,7 @@ func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.Sta
 func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.execution.Object)
 
-	if s.isConstructor {
+	if s.isConstructor && s.outgoingFromSlotPulse() {
 		action := func(state *object.SharedState) {
 			if state.GetState() == object.Unknown || state.GetState() == object.Missing {
 				state.SetState(object.Empty)
@@ -173,6 +172,12 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 	}
 
 	return ctx.Jump(s.stepWaitObjectReady)
+}
+
+func (s *SMExecute) outgoingFromSlotPulse() bool {
+	outgoingPulse := s.Payload.CallOutgoing.GetPulseNumber()
+	slotPulse := s.pulseSlot.PulseData().GetPulseNumber()
+	return outgoingPulse == slotPulse
 }
 
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -217,12 +222,21 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	}
 
 	if isConstructor {
-		// it could be Empty or even has state, we ll deal with special cases in deduplication step
-		if objectState != object.Empty && objectState != object.HasState {
-			panic(throw.IllegalState())
+		switch objectState {
+		case object.Unknown:
+			panic(throw.Impossible())
+		case object.Inactive:
+			// attempt to create object that is deactivated :(
+			panic(throw.NotImplemented())
 		}
 	} else if objectState != object.HasState {
-		panic(throw.IllegalState())
+		panic(throw.E("no state on object after readyToWork", struct {
+			ObjectReference string
+			State           object.State
+		}{
+			ObjectReference: s.execution.Object.String(),
+			State:           objectState,
+		}))
 	}
 
 	s.semaphoreOrdered = semaphoreOrdered
@@ -259,6 +273,10 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	}
 	s.execution.Isolation = negotiatedIsolation
 
+	if s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
+		return ctx.Jump(s.stepDeduplicate)
+	}
+
 	return ctx.Jump(s.stepTakeLock)
 }
 
@@ -285,31 +303,6 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	}
 
 	return res, nil
-}
-
-func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var executionSemaphore smachine.SyncLink
-
-	if s.execution.Isolation.Interference == contract.CallIntolerable {
-		executionSemaphore = s.semaphoreUnordered
-	} else {
-		executionSemaphore = s.semaphoreOrdered
-	}
-
-	if ctx.Acquire(executionSemaphore).IsNotPassed() {
-		if s.isConstructor {
-			panic(throw.NotImplemented())
-		}
-
-		// wait for semaphore to be released
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	if s.Payload.CallRequestFlags.GetRepeatedCall() == payload.RepeatedCall {
-		return ctx.Jump(s.stepDeduplicate)
-	}
-
-	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
 func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -351,6 +344,23 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	return ctx.Jump(s.stepTakeLock)
+}
+
+func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var executionSemaphore smachine.SyncLink
+
+	if s.execution.Isolation.Interference == contract.CallIntolerable {
+		executionSemaphore = s.semaphoreUnordered
+	} else {
+		executionSemaphore = s.semaphoreOrdered
+	}
+
+	if ctx.Acquire(executionSemaphore).IsNotPassed() {
+		// wait for semaphore to be released
+		return ctx.Sleep().ThenRepeat()
+	}
+
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
@@ -360,14 +370,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		requestList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-		if requestList.Exist(s.execution.Outgoing) {
-			// found duplicate request, todo: deduplication algorithm
-			isDuplicate = true
+		isDuplicate = !state.KnownRequests.GetList(s.execution.Isolation.Interference).Add(s.execution.Outgoing)
+		if isDuplicate {
 			return
 		}
-
-		requestList.Add(s.execution.Outgoing)
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -394,23 +400,69 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 }
 
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	if s.migrationHappened && s.delegationTokenSpec.IsZero() {
+		return ctx.Error(throw.E("failed to get token in previous migration"))
+	}
+
 	s.migrationHappened = true
-	return ctx.Stay()
+
+	s.stepAfterTokenGet = ctx.AffectedStep()
+
+	return ctx.Jump(s.stepGetDelegationToken)
+}
+
+func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var requestPayload = payload.VDelegatedCallRequest{
+		Callee:         s.execution.Object,
+		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
+		CallOutgoing:   s.execution.Outgoing,
+		DelegationSpec: s.delegationTokenSpec,
+	}
+
+	// reset token
+	s.delegationTokenSpec = payload.CallDelegationToken{}
+
+	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		if subroutineSM.response == nil {
+			panic(throw.IllegalState())
+		}
+		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		if s.outgoingWasSent {
+			return ctx.Jump(s.stepSendOutgoing)
+		}
+		return ctx.JumpExt(s.stepAfterTokenGet)
+	})
 }
 
 func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.run = nil
 	return s.runner.PrepareExecutionStart(ctx, s.execution, func(state runner.RunState) {
+		if state == nil {
+			panic(throw.IllegalValue())
+		}
 		s.run = state
-	}).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+
+		s.executionNewState = state.GetResult()
+		if s.executionNewState == nil {
+			panic(throw.IllegalValue())
+		}
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
+}
+
+func (s *SMExecute) stepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.executionNewState == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
+	return ctx.Jump(s.stepExecuteDecideNextStep)
 }
 
 func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	newState := s.run.GetResult()
-	if newState == nil {
-		return ctx.Sleep().ThenRepeat()
+	if s.executionNewState == nil {
+		panic(throw.IllegalState())
 	}
 
-	s.executionNewState = newState
+	newState := s.executionNewState
 
 	switch newState.Type {
 	case executionupdate.Done:
@@ -477,10 +529,12 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
+	} else {
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.PulseData().PulseNumber)
+		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
@@ -490,21 +544,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingWasSent = true
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJumpExt(
-		smachine.SlotStep{
-			Transition: s.stepExecuteContinue,
-			Migration:  s.migrateDuringSendOutgoing,
-		})
-}
-
-func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
-	s.migrationHappened = true
-
-	if s.outgoingWasSent {
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
-	}
-
-	return ctx.Jump(s.stepSendOutgoing)
+	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -515,8 +555,20 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
-	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, nil).DelayedStart().Sleep().ThenJump(s.stepExecuteDecideNextStep)
+	s.executionNewState = nil
+
+	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, func() {
+		if s.run == nil {
+			panic(throw.IllegalState())
+		}
+
+		s.executionNewState = s.run.GetResult()
+		if s.executionNewState == nil {
+			panic(throw.IllegalState())
+		}
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -549,22 +601,15 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		panic(throw.IllegalValue())
 	}
 
-	if s.migrationHappened {
-		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	if s.migrationHappened || s.newObjectDescriptor == nil {
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	action := func(state *object.SharedState) {
-		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
-	}
+		state.Info.SetDescriptor(s.newObjectDescriptor)
 
-	if s.newObjectDescriptor != nil {
-		action = func(state *object.SharedState) {
-			state.Info.SetDescriptor(s.newObjectDescriptor)
-			state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
-
-			if state.GetState() == object.Empty {
-				state.SetState(object.HasState)
-			}
+		if state.GetState() == object.Empty {
+			state.SetState(object.HasState)
 		}
 	}
 
@@ -586,7 +631,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	var lastState *payload.ObjectState = nil
 
 	if s.newObjectDescriptor != nil {
-		class, err := s.execution.ObjectDescriptor.Class()
+		class, err := s.newObjectDescriptor.Class()
 		if err != nil {
 			panic(throw.W(err, "failed to get class from descriptor", nil))
 		}
@@ -603,9 +648,8 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		CallType:     s.Payload.CallType,
 		CallFlags:    s.Payload.CallFlags,
 		Callee:       s.execution.Object,
-		ResultFlags:  nil,
-		CallOutgoing: s.Payload.CallOutgoing,
-		CallIncoming: reference.Local{},
+		CallOutgoing: s.execution.Outgoing,
+		CallIncoming: s.execution.Incoming,
 		LatestState:  lastState,
 	}
 
@@ -618,7 +662,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	return ctx.Jump(s.stepSendCallResult)
+	return ctx.Stop()
 }
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
@@ -674,6 +718,30 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
+
+	return ctx.Jump(s.stepFinishRequest)
+}
+
+func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	if s.migrationHappened {
+		return ctx.Jump(s.stepSendDelegatedRequestFinished)
+	}
+
+	action := func(state *object.SharedState) {
+		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
 
 	return ctx.Stop()
 }

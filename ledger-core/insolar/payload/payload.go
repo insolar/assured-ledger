@@ -8,24 +8,9 @@ package payload
 import (
 	"encoding/base64"
 
-	"github.com/gogo/protobuf/proto"
-
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
-
-// aliases for more convenient using in .proto file (no need to use full path)
-// because alias in the same package
-type MessageContext = rms.MessageContext
-
-func RegisterMessageType(id uint64, special string, t proto.Message) {
-	rms.RegisterMessageType(id, special, t)
-}
-
-// Payload represents any kind of data that can be encoded in consistent manner.
-type Payload interface {
-	Marshal() ([]byte, error)
-}
 
 const (
 	MessageHashSize = 28
@@ -37,7 +22,7 @@ type MessageHash [MessageHashSize]byte
 
 func (h *MessageHash) MarshalTo(data []byte) (int, error) {
 	if len(data) < len(h) {
-		return 0, errors.New("Not enough bytes to marshal PulseNumber")
+		return 0, throw.New("Not enough bytes to marshal PulseNumber")
 	}
 	copy(data, h[:])
 	return len(h), nil
@@ -45,7 +30,7 @@ func (h *MessageHash) MarshalTo(data []byte) (int, error) {
 
 func (h *MessageHash) Unmarshal(data []byte) error {
 	if len(data) < MessageHashSize {
-		return errors.New("not enough bytes")
+		return throw.New("not enough bytes")
 	}
 	copy(h[:], data)
 	return nil
@@ -79,7 +64,7 @@ func (h MessageHash) ProtoSize() int {
 
 // UnmarshalFromMeta reads only payload skipping meta decoding. Use this instead of regular Unmarshal if you don't need
 // Meta data.
-func UnmarshalFromMeta(meta []byte) (Payload, error) {
+func UnmarshalFromMeta(meta []byte) (Marshaler, error) {
 	m := Meta{}
 	// Can be optimized by using proto.NewBuffer.
 	err := m.Unmarshal(meta)
@@ -90,5 +75,5 @@ func UnmarshalFromMeta(meta []byte) (Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pl.(Payload), nil
+	return pl.(Marshaler), nil
 }

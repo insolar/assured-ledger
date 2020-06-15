@@ -13,13 +13,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 )
 
 type SMVStateRequest struct {
@@ -28,7 +27,7 @@ type SMVStateRequest struct {
 	Payload *payload.VStateRequest
 
 	objectStateReport *payload.VStateReport
-	stateAccessor     object.SharedStateAccessor
+	reportAccessor    finalizedstate.SharedReportAccessor
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -70,17 +69,34 @@ func (s *SMVStateRequest) GetStateMachineDeclaration() smachine.StateMachineDecl
 	return dSMVStateRequestInstance
 }
 
-func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (s *SMVStateRequest) migrateFutureMessage(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate {
+		return ctx.Stop()
+	})
 	return ctx.Jump(s.stepCheckCatalog)
 }
 
+func (s *SMVStateRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() == conveyor.Present {
+		ctx.SetDefaultMigration(s.migrateFutureMessage)
+		return ctx.Jump(s.stepWait)
+	}
+
+	return ctx.Jump(s.stepCheckCatalog)
+}
+
+func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Sleep().ThenRepeat()
+}
+
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	objectSharedState, stateFound := s.objectCatalog.TryGet(ctx, s.Payload.Callee)
+	reportSharedState, stateFound := finalizedstate.GetSharedStateReport(ctx, s.Payload.Object, s.pulseSlot.PulseData().PulseNumber)
+
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)
 	}
 
-	s.stateAccessor = objectSharedState
+	s.reportAccessor = reportSharedState
 	return ctx.Jump(s.stepBuildStateReport)
 }
 
@@ -88,35 +104,25 @@ func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachi
 	s.objectStateReport = &payload.VStateReport{
 		Status: payload.Missing,
 		AsOf:   s.Payload.AsOf,
-		Callee: s.Payload.Callee,
+		Object: s.Payload.Object,
 	}
 	return ctx.Jump(s.stepSendResult)
 }
 
 func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		stateNotReady bool
+		response payload.VStateReport
+		content  *payload.VStateReport_ProvidedContentBody
 	)
 
-	action := func(state *object.SharedState) {
-		if state.GetState() == object.Unknown {
-			stateNotReady = true
-			return
-		}
-
-		report := state.BuildStateReport()
-		report.AsOf = s.Payload.AsOf
-
-		s.objectStateReport = &report
-
-		if s.Payload.RequestedContent.Contains(payload.RequestLatestDirtyState) {
-			report.ProvidedContent.LatestDirtyState = state.BuildLatestDirtyState()
-		}
+	action := func(report payload.VStateReport) {
+		response = report
+		content = report.ProvidedContent
 	}
 
-	switch s.stateAccessor.Prepare(action).TryUse(ctx).GetDecision() {
+	switch s.reportAccessor.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
-		return ctx.WaitShared(s.stateAccessor.SharedDataLink).ThenRepeat()
+		return ctx.WaitShared(s.reportAccessor.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
 		panic(throw.NotImplemented())
 	case smachine.Passed:
@@ -125,15 +131,21 @@ func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) sm
 		panic(throw.Impossible())
 	}
 
-	if stateNotReady {
-		ctx.Log().Trace(struct {
-			*log.Msg  `txt:"State not ready for object"`
-			Reference reference.Global
-		}{
-			Reference: s.Payload.Callee,
-		})
-		panic(throw.IllegalState())
+	response.ProvidedContent = nil
+	if s.Payload.RequestedContent != 0 && content != nil {
+		response.ProvidedContent = &payload.VStateReport_ProvidedContentBody{}
+		if s.Payload.RequestedContent.Contains(payload.RequestLatestDirtyState) {
+			response.ProvidedContent.LatestDirtyState = content.LatestDirtyState
+		}
+
+		if s.Payload.RequestedContent.Contains(payload.RequestLatestValidatedState) {
+			response.ProvidedContent.LatestValidatedState = content.LatestValidatedState
+		}
 	}
+
+	response.AsOf = s.Payload.AsOf
+
+	s.objectStateReport = &response
 
 	return ctx.Jump(s.stepSendResult)
 }

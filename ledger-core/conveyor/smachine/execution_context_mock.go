@@ -268,8 +268,14 @@ type ExecutionContextMock struct {
 	beforeReplaceWithCounter uint64
 	ReplaceWithMock          mExecutionContextMockReplaceWith
 
-	funcSetDefaultErrorHandler          func(fn ErrorHandlerFunc)
-	inspectFuncSetDefaultErrorHandler   func(fn ErrorHandlerFunc)
+	funcRestoreStep          func(s1 SlotStep) (s2 StateUpdate)
+	inspectFuncRestoreStep   func(s1 SlotStep)
+	afterRestoreStepCounter  uint64
+	beforeRestoreStepCounter uint64
+	RestoreStepMock          mExecutionContextMockRestoreStep
+
+	funcSetDefaultErrorHandler          func(e1 ErrorHandlerFunc)
+	inspectFuncSetDefaultErrorHandler   func(e1 ErrorHandlerFunc)
 	afterSetDefaultErrorHandlerCounter  uint64
 	beforeSetDefaultErrorHandlerCounter uint64
 	SetDefaultErrorHandlerMock          mExecutionContextMockSetDefaultErrorHandler
@@ -280,8 +286,8 @@ type ExecutionContextMock struct {
 	beforeSetDefaultFlagsCounter uint64
 	SetDefaultFlagsMock          mExecutionContextMockSetDefaultFlags
 
-	funcSetDefaultMigration          func(fn MigrateFunc)
-	inspectFuncSetDefaultMigration   func(fn MigrateFunc)
+	funcSetDefaultMigration          func(m1 MigrateFunc)
+	inspectFuncSetDefaultMigration   func(m1 MigrateFunc)
 	afterSetDefaultMigrationCounter  uint64
 	beforeSetDefaultMigrationCounter uint64
 	SetDefaultMigrationMock          mExecutionContextMockSetDefaultMigration
@@ -358,8 +364,8 @@ type ExecutionContextMock struct {
 	beforeUnshareCounter uint64
 	UnshareMock          mExecutionContextMockUnshare
 
-	funcUpdateDefaultStepLogger          func(updateFn StepLoggerUpdateFunc)
-	inspectFuncUpdateDefaultStepLogger   func(updateFn StepLoggerUpdateFunc)
+	funcUpdateDefaultStepLogger          func(s1 StepLoggerUpdateFunc)
+	inspectFuncUpdateDefaultStepLogger   func(s1 StepLoggerUpdateFunc)
 	afterUpdateDefaultStepLoggerCounter  uint64
 	beforeUpdateDefaultStepLoggerCounter uint64
 	UpdateDefaultStepLoggerMock          mExecutionContextMockUpdateDefaultStepLogger
@@ -517,6 +523,9 @@ func NewExecutionContextMock(t minimock.Tester) *ExecutionContextMock {
 
 	m.ReplaceWithMock = mExecutionContextMockReplaceWith{mock: m}
 	m.ReplaceWithMock.callArgs = []*ExecutionContextMockReplaceWithParams{}
+
+	m.RestoreStepMock = mExecutionContextMockRestoreStep{mock: m}
+	m.RestoreStepMock.callArgs = []*ExecutionContextMockRestoreStepParams{}
 
 	m.SetDefaultErrorHandlerMock = mExecutionContextMockSetDefaultErrorHandler{mock: m}
 	m.SetDefaultErrorHandlerMock.callArgs = []*ExecutionContextMockSetDefaultErrorHandlerParams{}
@@ -8871,6 +8880,221 @@ func (m *ExecutionContextMock) MinimockReplaceWithInspect() {
 	}
 }
 
+type mExecutionContextMockRestoreStep struct {
+	mock               *ExecutionContextMock
+	defaultExpectation *ExecutionContextMockRestoreStepExpectation
+	expectations       []*ExecutionContextMockRestoreStepExpectation
+
+	callArgs []*ExecutionContextMockRestoreStepParams
+	mutex    sync.RWMutex
+}
+
+// ExecutionContextMockRestoreStepExpectation specifies expectation struct of the ExecutionContext.RestoreStep
+type ExecutionContextMockRestoreStepExpectation struct {
+	mock    *ExecutionContextMock
+	params  *ExecutionContextMockRestoreStepParams
+	results *ExecutionContextMockRestoreStepResults
+	Counter uint64
+}
+
+// ExecutionContextMockRestoreStepParams contains parameters of the ExecutionContext.RestoreStep
+type ExecutionContextMockRestoreStepParams struct {
+	s1 SlotStep
+}
+
+// ExecutionContextMockRestoreStepResults contains results of the ExecutionContext.RestoreStep
+type ExecutionContextMockRestoreStepResults struct {
+	s2 StateUpdate
+}
+
+// Expect sets up expected params for ExecutionContext.RestoreStep
+func (mmRestoreStep *mExecutionContextMockRestoreStep) Expect(s1 SlotStep) *mExecutionContextMockRestoreStep {
+	if mmRestoreStep.mock.funcRestoreStep != nil {
+		mmRestoreStep.mock.t.Fatalf("ExecutionContextMock.RestoreStep mock is already set by Set")
+	}
+
+	if mmRestoreStep.defaultExpectation == nil {
+		mmRestoreStep.defaultExpectation = &ExecutionContextMockRestoreStepExpectation{}
+	}
+
+	mmRestoreStep.defaultExpectation.params = &ExecutionContextMockRestoreStepParams{s1}
+	for _, e := range mmRestoreStep.expectations {
+		if minimock.Equal(e.params, mmRestoreStep.defaultExpectation.params) {
+			mmRestoreStep.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRestoreStep.defaultExpectation.params)
+		}
+	}
+
+	return mmRestoreStep
+}
+
+// Inspect accepts an inspector function that has same arguments as the ExecutionContext.RestoreStep
+func (mmRestoreStep *mExecutionContextMockRestoreStep) Inspect(f func(s1 SlotStep)) *mExecutionContextMockRestoreStep {
+	if mmRestoreStep.mock.inspectFuncRestoreStep != nil {
+		mmRestoreStep.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.RestoreStep")
+	}
+
+	mmRestoreStep.mock.inspectFuncRestoreStep = f
+
+	return mmRestoreStep
+}
+
+// Return sets up results that will be returned by ExecutionContext.RestoreStep
+func (mmRestoreStep *mExecutionContextMockRestoreStep) Return(s2 StateUpdate) *ExecutionContextMock {
+	if mmRestoreStep.mock.funcRestoreStep != nil {
+		mmRestoreStep.mock.t.Fatalf("ExecutionContextMock.RestoreStep mock is already set by Set")
+	}
+
+	if mmRestoreStep.defaultExpectation == nil {
+		mmRestoreStep.defaultExpectation = &ExecutionContextMockRestoreStepExpectation{mock: mmRestoreStep.mock}
+	}
+	mmRestoreStep.defaultExpectation.results = &ExecutionContextMockRestoreStepResults{s2}
+	return mmRestoreStep.mock
+}
+
+//Set uses given function f to mock the ExecutionContext.RestoreStep method
+func (mmRestoreStep *mExecutionContextMockRestoreStep) Set(f func(s1 SlotStep) (s2 StateUpdate)) *ExecutionContextMock {
+	if mmRestoreStep.defaultExpectation != nil {
+		mmRestoreStep.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.RestoreStep method")
+	}
+
+	if len(mmRestoreStep.expectations) > 0 {
+		mmRestoreStep.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.RestoreStep method")
+	}
+
+	mmRestoreStep.mock.funcRestoreStep = f
+	return mmRestoreStep.mock
+}
+
+// When sets expectation for the ExecutionContext.RestoreStep which will trigger the result defined by the following
+// Then helper
+func (mmRestoreStep *mExecutionContextMockRestoreStep) When(s1 SlotStep) *ExecutionContextMockRestoreStepExpectation {
+	if mmRestoreStep.mock.funcRestoreStep != nil {
+		mmRestoreStep.mock.t.Fatalf("ExecutionContextMock.RestoreStep mock is already set by Set")
+	}
+
+	expectation := &ExecutionContextMockRestoreStepExpectation{
+		mock:   mmRestoreStep.mock,
+		params: &ExecutionContextMockRestoreStepParams{s1},
+	}
+	mmRestoreStep.expectations = append(mmRestoreStep.expectations, expectation)
+	return expectation
+}
+
+// Then sets up ExecutionContext.RestoreStep return parameters for the expectation previously defined by the When method
+func (e *ExecutionContextMockRestoreStepExpectation) Then(s2 StateUpdate) *ExecutionContextMock {
+	e.results = &ExecutionContextMockRestoreStepResults{s2}
+	return e.mock
+}
+
+// RestoreStep implements ExecutionContext
+func (mmRestoreStep *ExecutionContextMock) RestoreStep(s1 SlotStep) (s2 StateUpdate) {
+	mm_atomic.AddUint64(&mmRestoreStep.beforeRestoreStepCounter, 1)
+	defer mm_atomic.AddUint64(&mmRestoreStep.afterRestoreStepCounter, 1)
+
+	if mmRestoreStep.inspectFuncRestoreStep != nil {
+		mmRestoreStep.inspectFuncRestoreStep(s1)
+	}
+
+	mm_params := &ExecutionContextMockRestoreStepParams{s1}
+
+	// Record call args
+	mmRestoreStep.RestoreStepMock.mutex.Lock()
+	mmRestoreStep.RestoreStepMock.callArgs = append(mmRestoreStep.RestoreStepMock.callArgs, mm_params)
+	mmRestoreStep.RestoreStepMock.mutex.Unlock()
+
+	for _, e := range mmRestoreStep.RestoreStepMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.s2
+		}
+	}
+
+	if mmRestoreStep.RestoreStepMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmRestoreStep.RestoreStepMock.defaultExpectation.Counter, 1)
+		mm_want := mmRestoreStep.RestoreStepMock.defaultExpectation.params
+		mm_got := ExecutionContextMockRestoreStepParams{s1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRestoreStep.t.Errorf("ExecutionContextMock.RestoreStep got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmRestoreStep.RestoreStepMock.defaultExpectation.results
+		if mm_results == nil {
+			mmRestoreStep.t.Fatal("No results are set for the ExecutionContextMock.RestoreStep")
+		}
+		return (*mm_results).s2
+	}
+	if mmRestoreStep.funcRestoreStep != nil {
+		return mmRestoreStep.funcRestoreStep(s1)
+	}
+	mmRestoreStep.t.Fatalf("Unexpected call to ExecutionContextMock.RestoreStep. %v", s1)
+	return
+}
+
+// RestoreStepAfterCounter returns a count of finished ExecutionContextMock.RestoreStep invocations
+func (mmRestoreStep *ExecutionContextMock) RestoreStepAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRestoreStep.afterRestoreStepCounter)
+}
+
+// RestoreStepBeforeCounter returns a count of ExecutionContextMock.RestoreStep invocations
+func (mmRestoreStep *ExecutionContextMock) RestoreStepBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRestoreStep.beforeRestoreStepCounter)
+}
+
+// Calls returns a list of arguments used in each call to ExecutionContextMock.RestoreStep.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmRestoreStep *mExecutionContextMockRestoreStep) Calls() []*ExecutionContextMockRestoreStepParams {
+	mmRestoreStep.mutex.RLock()
+
+	argCopy := make([]*ExecutionContextMockRestoreStepParams, len(mmRestoreStep.callArgs))
+	copy(argCopy, mmRestoreStep.callArgs)
+
+	mmRestoreStep.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockRestoreStepDone returns true if the count of the RestoreStep invocations corresponds
+// the number of defined expectations
+func (m *ExecutionContextMock) MinimockRestoreStepDone() bool {
+	for _, e := range m.RestoreStepMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RestoreStepMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRestoreStepCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRestoreStep != nil && mm_atomic.LoadUint64(&m.afterRestoreStepCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockRestoreStepInspect logs each unmet expectation
+func (m *ExecutionContextMock) MinimockRestoreStepInspect() {
+	for _, e := range m.RestoreStepMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ExecutionContextMock.RestoreStep with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RestoreStepMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRestoreStepCounter) < 1 {
+		if m.RestoreStepMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ExecutionContextMock.RestoreStep")
+		} else {
+			m.t.Errorf("Expected call to ExecutionContextMock.RestoreStep with params: %#v", *m.RestoreStepMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRestoreStep != nil && mm_atomic.LoadUint64(&m.afterRestoreStepCounter) < 1 {
+		m.t.Error("Expected call to ExecutionContextMock.RestoreStep")
+	}
+}
+
 type mExecutionContextMockSetDefaultErrorHandler struct {
 	mock               *ExecutionContextMock
 	defaultExpectation *ExecutionContextMockSetDefaultErrorHandlerExpectation
@@ -8890,11 +9114,11 @@ type ExecutionContextMockSetDefaultErrorHandlerExpectation struct {
 
 // ExecutionContextMockSetDefaultErrorHandlerParams contains parameters of the ExecutionContext.SetDefaultErrorHandler
 type ExecutionContextMockSetDefaultErrorHandlerParams struct {
-	fn ErrorHandlerFunc
+	e1 ErrorHandlerFunc
 }
 
 // Expect sets up expected params for ExecutionContext.SetDefaultErrorHandler
-func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Expect(fn ErrorHandlerFunc) *mExecutionContextMockSetDefaultErrorHandler {
+func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Expect(e1 ErrorHandlerFunc) *mExecutionContextMockSetDefaultErrorHandler {
 	if mmSetDefaultErrorHandler.mock.funcSetDefaultErrorHandler != nil {
 		mmSetDefaultErrorHandler.mock.t.Fatalf("ExecutionContextMock.SetDefaultErrorHandler mock is already set by Set")
 	}
@@ -8903,7 +9127,7 @@ func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Exp
 		mmSetDefaultErrorHandler.defaultExpectation = &ExecutionContextMockSetDefaultErrorHandlerExpectation{}
 	}
 
-	mmSetDefaultErrorHandler.defaultExpectation.params = &ExecutionContextMockSetDefaultErrorHandlerParams{fn}
+	mmSetDefaultErrorHandler.defaultExpectation.params = &ExecutionContextMockSetDefaultErrorHandlerParams{e1}
 	for _, e := range mmSetDefaultErrorHandler.expectations {
 		if minimock.Equal(e.params, mmSetDefaultErrorHandler.defaultExpectation.params) {
 			mmSetDefaultErrorHandler.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetDefaultErrorHandler.defaultExpectation.params)
@@ -8914,7 +9138,7 @@ func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Exp
 }
 
 // Inspect accepts an inspector function that has same arguments as the ExecutionContext.SetDefaultErrorHandler
-func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Inspect(f func(fn ErrorHandlerFunc)) *mExecutionContextMockSetDefaultErrorHandler {
+func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Inspect(f func(e1 ErrorHandlerFunc)) *mExecutionContextMockSetDefaultErrorHandler {
 	if mmSetDefaultErrorHandler.mock.inspectFuncSetDefaultErrorHandler != nil {
 		mmSetDefaultErrorHandler.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.SetDefaultErrorHandler")
 	}
@@ -8938,7 +9162,7 @@ func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Ret
 }
 
 //Set uses given function f to mock the ExecutionContext.SetDefaultErrorHandler method
-func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Set(f func(fn ErrorHandlerFunc)) *ExecutionContextMock {
+func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Set(f func(e1 ErrorHandlerFunc)) *ExecutionContextMock {
 	if mmSetDefaultErrorHandler.defaultExpectation != nil {
 		mmSetDefaultErrorHandler.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.SetDefaultErrorHandler method")
 	}
@@ -8952,15 +9176,15 @@ func (mmSetDefaultErrorHandler *mExecutionContextMockSetDefaultErrorHandler) Set
 }
 
 // SetDefaultErrorHandler implements ExecutionContext
-func (mmSetDefaultErrorHandler *ExecutionContextMock) SetDefaultErrorHandler(fn ErrorHandlerFunc) {
+func (mmSetDefaultErrorHandler *ExecutionContextMock) SetDefaultErrorHandler(e1 ErrorHandlerFunc) {
 	mm_atomic.AddUint64(&mmSetDefaultErrorHandler.beforeSetDefaultErrorHandlerCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetDefaultErrorHandler.afterSetDefaultErrorHandlerCounter, 1)
 
 	if mmSetDefaultErrorHandler.inspectFuncSetDefaultErrorHandler != nil {
-		mmSetDefaultErrorHandler.inspectFuncSetDefaultErrorHandler(fn)
+		mmSetDefaultErrorHandler.inspectFuncSetDefaultErrorHandler(e1)
 	}
 
-	mm_params := &ExecutionContextMockSetDefaultErrorHandlerParams{fn}
+	mm_params := &ExecutionContextMockSetDefaultErrorHandlerParams{e1}
 
 	// Record call args
 	mmSetDefaultErrorHandler.SetDefaultErrorHandlerMock.mutex.Lock()
@@ -8977,7 +9201,7 @@ func (mmSetDefaultErrorHandler *ExecutionContextMock) SetDefaultErrorHandler(fn 
 	if mmSetDefaultErrorHandler.SetDefaultErrorHandlerMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSetDefaultErrorHandler.SetDefaultErrorHandlerMock.defaultExpectation.Counter, 1)
 		mm_want := mmSetDefaultErrorHandler.SetDefaultErrorHandlerMock.defaultExpectation.params
-		mm_got := ExecutionContextMockSetDefaultErrorHandlerParams{fn}
+		mm_got := ExecutionContextMockSetDefaultErrorHandlerParams{e1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSetDefaultErrorHandler.t.Errorf("ExecutionContextMock.SetDefaultErrorHandler got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -8986,10 +9210,10 @@ func (mmSetDefaultErrorHandler *ExecutionContextMock) SetDefaultErrorHandler(fn 
 
 	}
 	if mmSetDefaultErrorHandler.funcSetDefaultErrorHandler != nil {
-		mmSetDefaultErrorHandler.funcSetDefaultErrorHandler(fn)
+		mmSetDefaultErrorHandler.funcSetDefaultErrorHandler(e1)
 		return
 	}
-	mmSetDefaultErrorHandler.t.Fatalf("Unexpected call to ExecutionContextMock.SetDefaultErrorHandler. %v", fn)
+	mmSetDefaultErrorHandler.t.Fatalf("Unexpected call to ExecutionContextMock.SetDefaultErrorHandler. %v", e1)
 
 }
 
@@ -9264,11 +9488,11 @@ type ExecutionContextMockSetDefaultMigrationExpectation struct {
 
 // ExecutionContextMockSetDefaultMigrationParams contains parameters of the ExecutionContext.SetDefaultMigration
 type ExecutionContextMockSetDefaultMigrationParams struct {
-	fn MigrateFunc
+	m1 MigrateFunc
 }
 
 // Expect sets up expected params for ExecutionContext.SetDefaultMigration
-func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Expect(fn MigrateFunc) *mExecutionContextMockSetDefaultMigration {
+func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Expect(m1 MigrateFunc) *mExecutionContextMockSetDefaultMigration {
 	if mmSetDefaultMigration.mock.funcSetDefaultMigration != nil {
 		mmSetDefaultMigration.mock.t.Fatalf("ExecutionContextMock.SetDefaultMigration mock is already set by Set")
 	}
@@ -9277,7 +9501,7 @@ func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Expect(fn
 		mmSetDefaultMigration.defaultExpectation = &ExecutionContextMockSetDefaultMigrationExpectation{}
 	}
 
-	mmSetDefaultMigration.defaultExpectation.params = &ExecutionContextMockSetDefaultMigrationParams{fn}
+	mmSetDefaultMigration.defaultExpectation.params = &ExecutionContextMockSetDefaultMigrationParams{m1}
 	for _, e := range mmSetDefaultMigration.expectations {
 		if minimock.Equal(e.params, mmSetDefaultMigration.defaultExpectation.params) {
 			mmSetDefaultMigration.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetDefaultMigration.defaultExpectation.params)
@@ -9288,7 +9512,7 @@ func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Expect(fn
 }
 
 // Inspect accepts an inspector function that has same arguments as the ExecutionContext.SetDefaultMigration
-func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Inspect(f func(fn MigrateFunc)) *mExecutionContextMockSetDefaultMigration {
+func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Inspect(f func(m1 MigrateFunc)) *mExecutionContextMockSetDefaultMigration {
 	if mmSetDefaultMigration.mock.inspectFuncSetDefaultMigration != nil {
 		mmSetDefaultMigration.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.SetDefaultMigration")
 	}
@@ -9312,7 +9536,7 @@ func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Return() 
 }
 
 //Set uses given function f to mock the ExecutionContext.SetDefaultMigration method
-func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Set(f func(fn MigrateFunc)) *ExecutionContextMock {
+func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Set(f func(m1 MigrateFunc)) *ExecutionContextMock {
 	if mmSetDefaultMigration.defaultExpectation != nil {
 		mmSetDefaultMigration.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.SetDefaultMigration method")
 	}
@@ -9326,15 +9550,15 @@ func (mmSetDefaultMigration *mExecutionContextMockSetDefaultMigration) Set(f fun
 }
 
 // SetDefaultMigration implements ExecutionContext
-func (mmSetDefaultMigration *ExecutionContextMock) SetDefaultMigration(fn MigrateFunc) {
+func (mmSetDefaultMigration *ExecutionContextMock) SetDefaultMigration(m1 MigrateFunc) {
 	mm_atomic.AddUint64(&mmSetDefaultMigration.beforeSetDefaultMigrationCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetDefaultMigration.afterSetDefaultMigrationCounter, 1)
 
 	if mmSetDefaultMigration.inspectFuncSetDefaultMigration != nil {
-		mmSetDefaultMigration.inspectFuncSetDefaultMigration(fn)
+		mmSetDefaultMigration.inspectFuncSetDefaultMigration(m1)
 	}
 
-	mm_params := &ExecutionContextMockSetDefaultMigrationParams{fn}
+	mm_params := &ExecutionContextMockSetDefaultMigrationParams{m1}
 
 	// Record call args
 	mmSetDefaultMigration.SetDefaultMigrationMock.mutex.Lock()
@@ -9351,7 +9575,7 @@ func (mmSetDefaultMigration *ExecutionContextMock) SetDefaultMigration(fn Migrat
 	if mmSetDefaultMigration.SetDefaultMigrationMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSetDefaultMigration.SetDefaultMigrationMock.defaultExpectation.Counter, 1)
 		mm_want := mmSetDefaultMigration.SetDefaultMigrationMock.defaultExpectation.params
-		mm_got := ExecutionContextMockSetDefaultMigrationParams{fn}
+		mm_got := ExecutionContextMockSetDefaultMigrationParams{m1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSetDefaultMigration.t.Errorf("ExecutionContextMock.SetDefaultMigration got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -9360,10 +9584,10 @@ func (mmSetDefaultMigration *ExecutionContextMock) SetDefaultMigration(fn Migrat
 
 	}
 	if mmSetDefaultMigration.funcSetDefaultMigration != nil {
-		mmSetDefaultMigration.funcSetDefaultMigration(fn)
+		mmSetDefaultMigration.funcSetDefaultMigration(m1)
 		return
 	}
-	mmSetDefaultMigration.t.Fatalf("Unexpected call to ExecutionContextMock.SetDefaultMigration. %v", fn)
+	mmSetDefaultMigration.t.Fatalf("Unexpected call to ExecutionContextMock.SetDefaultMigration. %v", m1)
 
 }
 
@@ -11580,11 +11804,11 @@ type ExecutionContextMockUpdateDefaultStepLoggerExpectation struct {
 
 // ExecutionContextMockUpdateDefaultStepLoggerParams contains parameters of the ExecutionContext.UpdateDefaultStepLogger
 type ExecutionContextMockUpdateDefaultStepLoggerParams struct {
-	updateFn StepLoggerUpdateFunc
+	s1 StepLoggerUpdateFunc
 }
 
 // Expect sets up expected params for ExecutionContext.UpdateDefaultStepLogger
-func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) Expect(updateFn StepLoggerUpdateFunc) *mExecutionContextMockUpdateDefaultStepLogger {
+func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) Expect(s1 StepLoggerUpdateFunc) *mExecutionContextMockUpdateDefaultStepLogger {
 	if mmUpdateDefaultStepLogger.mock.funcUpdateDefaultStepLogger != nil {
 		mmUpdateDefaultStepLogger.mock.t.Fatalf("ExecutionContextMock.UpdateDefaultStepLogger mock is already set by Set")
 	}
@@ -11593,7 +11817,7 @@ func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) E
 		mmUpdateDefaultStepLogger.defaultExpectation = &ExecutionContextMockUpdateDefaultStepLoggerExpectation{}
 	}
 
-	mmUpdateDefaultStepLogger.defaultExpectation.params = &ExecutionContextMockUpdateDefaultStepLoggerParams{updateFn}
+	mmUpdateDefaultStepLogger.defaultExpectation.params = &ExecutionContextMockUpdateDefaultStepLoggerParams{s1}
 	for _, e := range mmUpdateDefaultStepLogger.expectations {
 		if minimock.Equal(e.params, mmUpdateDefaultStepLogger.defaultExpectation.params) {
 			mmUpdateDefaultStepLogger.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateDefaultStepLogger.defaultExpectation.params)
@@ -11604,7 +11828,7 @@ func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) E
 }
 
 // Inspect accepts an inspector function that has same arguments as the ExecutionContext.UpdateDefaultStepLogger
-func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) Inspect(f func(updateFn StepLoggerUpdateFunc)) *mExecutionContextMockUpdateDefaultStepLogger {
+func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) Inspect(f func(s1 StepLoggerUpdateFunc)) *mExecutionContextMockUpdateDefaultStepLogger {
 	if mmUpdateDefaultStepLogger.mock.inspectFuncUpdateDefaultStepLogger != nil {
 		mmUpdateDefaultStepLogger.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.UpdateDefaultStepLogger")
 	}
@@ -11628,7 +11852,7 @@ func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) R
 }
 
 //Set uses given function f to mock the ExecutionContext.UpdateDefaultStepLogger method
-func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) Set(f func(updateFn StepLoggerUpdateFunc)) *ExecutionContextMock {
+func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) Set(f func(s1 StepLoggerUpdateFunc)) *ExecutionContextMock {
 	if mmUpdateDefaultStepLogger.defaultExpectation != nil {
 		mmUpdateDefaultStepLogger.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.UpdateDefaultStepLogger method")
 	}
@@ -11642,15 +11866,15 @@ func (mmUpdateDefaultStepLogger *mExecutionContextMockUpdateDefaultStepLogger) S
 }
 
 // UpdateDefaultStepLogger implements ExecutionContext
-func (mmUpdateDefaultStepLogger *ExecutionContextMock) UpdateDefaultStepLogger(updateFn StepLoggerUpdateFunc) {
+func (mmUpdateDefaultStepLogger *ExecutionContextMock) UpdateDefaultStepLogger(s1 StepLoggerUpdateFunc) {
 	mm_atomic.AddUint64(&mmUpdateDefaultStepLogger.beforeUpdateDefaultStepLoggerCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdateDefaultStepLogger.afterUpdateDefaultStepLoggerCounter, 1)
 
 	if mmUpdateDefaultStepLogger.inspectFuncUpdateDefaultStepLogger != nil {
-		mmUpdateDefaultStepLogger.inspectFuncUpdateDefaultStepLogger(updateFn)
+		mmUpdateDefaultStepLogger.inspectFuncUpdateDefaultStepLogger(s1)
 	}
 
-	mm_params := &ExecutionContextMockUpdateDefaultStepLoggerParams{updateFn}
+	mm_params := &ExecutionContextMockUpdateDefaultStepLoggerParams{s1}
 
 	// Record call args
 	mmUpdateDefaultStepLogger.UpdateDefaultStepLoggerMock.mutex.Lock()
@@ -11667,7 +11891,7 @@ func (mmUpdateDefaultStepLogger *ExecutionContextMock) UpdateDefaultStepLogger(u
 	if mmUpdateDefaultStepLogger.UpdateDefaultStepLoggerMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmUpdateDefaultStepLogger.UpdateDefaultStepLoggerMock.defaultExpectation.Counter, 1)
 		mm_want := mmUpdateDefaultStepLogger.UpdateDefaultStepLoggerMock.defaultExpectation.params
-		mm_got := ExecutionContextMockUpdateDefaultStepLoggerParams{updateFn}
+		mm_got := ExecutionContextMockUpdateDefaultStepLoggerParams{s1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmUpdateDefaultStepLogger.t.Errorf("ExecutionContextMock.UpdateDefaultStepLogger got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -11676,10 +11900,10 @@ func (mmUpdateDefaultStepLogger *ExecutionContextMock) UpdateDefaultStepLogger(u
 
 	}
 	if mmUpdateDefaultStepLogger.funcUpdateDefaultStepLogger != nil {
-		mmUpdateDefaultStepLogger.funcUpdateDefaultStepLogger(updateFn)
+		mmUpdateDefaultStepLogger.funcUpdateDefaultStepLogger(s1)
 		return
 	}
-	mmUpdateDefaultStepLogger.t.Fatalf("Unexpected call to ExecutionContextMock.UpdateDefaultStepLogger. %v", updateFn)
+	mmUpdateDefaultStepLogger.t.Fatalf("Unexpected call to ExecutionContextMock.UpdateDefaultStepLogger. %v", s1)
 
 }
 
@@ -12766,6 +12990,8 @@ func (m *ExecutionContextMock) MinimockFinish() {
 
 		m.MinimockReplaceWithInspect()
 
+		m.MinimockRestoreStepInspect()
+
 		m.MinimockSetDefaultErrorHandlerInspect()
 
 		m.MinimockSetDefaultFlagsInspect()
@@ -12872,6 +13098,7 @@ func (m *ExecutionContextMock) minimockDone() bool {
 		m.MinimockReplaceDone() &&
 		m.MinimockReplaceExtDone() &&
 		m.MinimockReplaceWithDone() &&
+		m.MinimockRestoreStepDone() &&
 		m.MinimockSetDefaultErrorHandlerDone() &&
 		m.MinimockSetDefaultFlagsDone() &&
 		m.MinimockSetDefaultMigrationDone() &&

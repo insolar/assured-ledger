@@ -6,8 +6,6 @@
 package execute
 
 import (
-	"reflect"
-	"runtime"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -24,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -69,7 +68,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
 		stepChecker.AddStep(exec.stepSendOutgoing)
-		stepChecker.AddStep(exec.stepSendOutgoing)
+		stepChecker.AddStep(exec.stepGetDelegationToken)
 	}
 	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
 
@@ -99,12 +98,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			}).SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpExtMock.Set(
-					func(s1 smachine.SlotStep) (s2 smachine.StateUpdate) {
-						require.Equal(t, runtime.FuncForPC(reflect.ValueOf(smExecute.stepExecuteContinue).Pointer()).Name(), runtime.FuncForPC(reflect.ValueOf(s1.Transition).Pointer()).Name())
-						require.Equal(t, runtime.FuncForPC(reflect.ValueOf(smExecute.migrateDuringSendOutgoing).Pointer()).Name(), runtime.FuncForPC(reflect.ValueOf(s1.Migration).Pointer()).Name())
-						return smachine.StateUpdate{}
-					})
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
@@ -112,15 +106,11 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	{ // check migration is successful
 		migrationCtx := smachine.NewMigrationContextMock(mc).
-			JumpMock.Set(stepChecker.CheckJumpW(t))
+			JumpMock.Set(stepChecker.CheckJumpW(t)).AffectedStepMock.Return(smachine.SlotStep{})
 
-		smExecute.migrateDuringSendOutgoing(migrationCtx)
+		smExecute.migrateDuringExecution(migrationCtx)
 
 		require.Equal(t, true, smExecute.migrationHappened)
-		require.Equal(t,
-			payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall),
-			smExecute.outgoing.CallRequestFlags,
-		)
 	}
 
 	{ // check step after migration
@@ -128,12 +118,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpExtMock.Set(
-					func(s1 smachine.SlotStep) (s2 smachine.StateUpdate) {
-						require.Equal(t, runtime.FuncForPC(reflect.ValueOf(smExecute.stepExecuteContinue).Pointer()).Name(), runtime.FuncForPC(reflect.ValueOf(s1.Transition).Pointer()).Name())
-						require.Equal(t, runtime.FuncForPC(reflect.ValueOf(smExecute.migrateDuringSendOutgoing).Pointer()).Name(), runtime.FuncForPC(reflect.ValueOf(s1.Migration).Pointer()).Name())
-						return smachine.StateUpdate{}
-					})
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)

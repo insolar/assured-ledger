@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -23,8 +22,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
@@ -44,6 +43,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	retryUnorderedTable := object.NewRequestTable()
 	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(retryUnorderedRequestRef)
 
+	oneRandomOrderedRequest := reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow()))
+	oneRandomUnorderedRequest := reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow()))
+
 	for _, tc := range []struct {
 		name                          string
 		testRailCase                  string
@@ -60,7 +62,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "OK tolerable",
 			PendingRequestTable:         object.NewRequestTable(),
-			requestRef:                  reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
+			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
@@ -68,13 +70,14 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
+					Outgoing:          oneRandomOrderedRequest,
 				},
 			},
 		},
 		{
 			name:                          "OK intolerable",
 			PendingRequestTable:           object.NewRequestTable(),
-			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
+			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
@@ -82,6 +85,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
+					Outgoing:          oneRandomUnorderedRequest,
 				},
 			},
 		},
@@ -97,6 +101,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				DelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
+					Outgoing:          retryOrderedRequestRef,
 				},
 			},
 		},
@@ -112,6 +117,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
+					Outgoing:          retryUnorderedRequestRef,
 				},
 			},
 		},
@@ -225,6 +231,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				callFlags = tc.callFlags
 			)
 
+			sharedState.SetState(object.HasState)
+
 			slotMachine := slotdebugger.New(ctx, t, tc.expectedError)
 			if tc.expectedError {
 				slotMachine.InitEmptyMessageSender(mc)
@@ -232,15 +240,15 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 
-			var tokenService = token.NewService(ctx, nodeRef)
+			var authenticationService = authentication.NewService(ctx, nodeRef, nil)
 
-			slotMachine.AddInterfaceDependency(&tokenService)
+			slotMachine.AddInterfaceDependency(&authenticationService)
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
 				Payload: &payload.VDelegatedCallRequest{
-					RequestReference: tc.requestRef,
-					CallFlags:        callFlags,
-					Callee:           objectRef,
+					CallOutgoing: tc.requestRef,
+					CallFlags:    callFlags,
+					Callee:       objectRef,
 				},
 				Meta: &payload.Meta{
 					Sender: caller,
@@ -278,12 +286,13 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse.DelegationSpec.Caller = caller
 			expectedResponse.DelegationSpec.PulseNumber = pulse.OfNow()
 			expectedResponse.DelegationSpec.Callee = objectRef
+			expectedResponse.Callee = objectRef
 
 			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
 				res := msg.(*payload.VDelegatedCallResponse)
 				// ensure that both times request is the same
-				assert.Equal(t, caller, target)
-				assert.Equal(t, expectedResponse, res)
+				require.Equal(t, caller, target)
+				require.Equal(t, expectedResponse, res)
 				return nil
 			})
 
@@ -291,7 +300,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 			slotMachine.RunTil(smWrapper.AfterStep(smDelegatedCallRequest.stepBuildResponse))
 
-			assert.True(t, sharedState.PendingTable.GetList(callFlags.GetInterference()).Exist(tc.requestRef))
+			require.True(t, sharedState.PendingTable.GetList(callFlags.GetInterference()).Exist(tc.requestRef))
 
 			require.NoError(t, catalogWrapper.CheckDone())
 			mc.Finish()

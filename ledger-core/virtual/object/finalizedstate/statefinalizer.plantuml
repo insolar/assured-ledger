@@ -1,0 +1,20 @@
+@startuml
+state "GetInitStateFor" as T00_S001
+T00_S001 : SMStateFinalizer
+[*] --> T00_S001
+state "Init" as T00_S003
+T00_S003 : SMStateFinalizer
+T00_S003 --> T00_S004
+state "migrationDefault" as T00_S002
+T00_S002 : SMStateFinalizer
+T00_S002 --> [*]
+state "sm.messageSender" as T00_S005 <<sdlreceive>>
+state "stepSendVStateReport" as T00_S004
+T00_S004 : SMStateFinalizer
+T00_S004 --> T00_S005 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T00_S004 --> T00_S006 : Migrate: sm.migrationDefault
+state "stepWaitIndefinitely" as T00_S006
+T00_S006 : SMStateFinalizer
+T00_S006 --[dotted]> T00_S002
+T00_S006 --[dashed]> T00_S006 : Sleep
+@enduml

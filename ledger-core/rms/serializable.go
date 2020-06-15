@@ -6,6 +6,8 @@
 package rms
 
 import (
+	"encoding"
+
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -27,6 +29,7 @@ type Serializable interface {
 type GoGoSerializable interface {
 	proto.ProtoSizer
 	unmarshaler
+	encoding.TextMarshaler
 	MarshalTo([]byte) (int, error)
 	MarshalToSizedBuffer([]byte) (int, error)
 }
