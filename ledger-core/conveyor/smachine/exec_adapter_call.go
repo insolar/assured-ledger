@@ -55,10 +55,11 @@ func (c AdapterCall) DelegateAndSendResult(defaultNestedFn CreateFactoryFunc, de
 	switch {
 	case err == nil:
 		return func() {
-			if !c.Callback.IsCancelled() {
+			if c.Callback.IsCancelled() {
+				c.Callback.SendCancel()
+			} else {
 				c.Callback.SendResult(result)
 			}
-			c.Callback.SendCancel()
 		}, nil
 	case err == ErrCancelledCall:
 		return c.Callback.SendCancel, nil
