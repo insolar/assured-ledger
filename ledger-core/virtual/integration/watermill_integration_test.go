@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
@@ -49,16 +50,45 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatc
 	return statemachine.NewConveyorDispatcher(pulseConveyor)
 }
 
+type WatermillLogErrorHandler func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool
+
+func NewWatermillLogAdapterWrapper(log log.Logger, errorHandler WatermillLogErrorHandler) *WatermillLogAdapterWrapper {
+	return &WatermillLogAdapterWrapper{
+		WatermillLogAdapter: *logwatermill.NewWatermillLogAdapter(log),
+		errorHandler:        errorHandler,
+	}
+}
+
+type WatermillLogAdapterWrapper struct {
+	logwatermill.WatermillLogAdapter
+	errorHandler WatermillLogErrorHandler
+}
+
+func (w *WatermillLogAdapterWrapper) Error(msg string, err error, fields watermill.LogFields) {
+	if w.errorHandler != nil && w.errorHandler(&w.WatermillLogAdapter, msg, err, fields) {
+		return
+	}
+	w.WatermillLogAdapter.Error(msg, err, fields)
+}
+
 func TestWatermill_HandleErrorCorrect(t *testing.T) {
+	const errorMsg = "handler error"
+	watermillErrorHandler := func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool {
+		if err.Error() == errorMsg {
+			logger.Info(msg+" | Error: "+err.Error(), fields)
+			return true
+		}
+		return false
+	}
 	var (
 		ctx        = context.Background()
-		wmLogger   = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
+		wmLogger   = NewWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 	)
 	cnt := 0
 	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		cnt++
-		return 0, nil, throw.E("handler error")
+		return 0, nil, throw.E(errorMsg)
 	})
 	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
 	defer wmStop()
@@ -71,15 +101,23 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 }
 
 func TestWatermill_HandlePanicCorrect(t *testing.T) {
+	const panicMsg = "handler panic"
+	watermillErrorHandler := func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool {
+		if err.Error() == panicMsg {
+			logger.Info(msg+" | Error: "+err.Error(), fields)
+			return true
+		}
+		return false
+	}
 	var (
 		ctx        = context.Background()
-		wmLogger   = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
+		wmLogger   = NewWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 	)
 	cnt := 0
 	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		cnt++
-		panic(throw.E("handler panic"))
+		panic(throw.E(panicMsg))
 	})
 	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
 	defer wmStop()
