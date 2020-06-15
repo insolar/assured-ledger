@@ -129,16 +129,20 @@ func (c *adapterCallRequest) _startAsync() {
 		logger, stepNo := c.ctx._newLoggerAsync()
 		callID := uint64(stepNo)<<16 | uint64(localCallID)
 
-		overrideFn = func(resultFunc AsyncResultFunc, err error) bool {
+		overrideFn = func(isValid bool, resultFunc AsyncResultFunc, err error) bool {
+			flags := StepLoggerAdapterAsyncResult
 			switch {
-			case err != nil:
-				logger.adapterCall(StepLoggerAdapterAsyncResult, c.adapterID, callID, err)
-			case resultFunc == nil:
-				logger.adapterCall(StepLoggerAdapterAsyncCancel, c.adapterID, callID, nil)
+			case err != nil || resultFunc != nil:
+				if !isValid {
+					flags = StepLoggerAdapterAsyncExpiredResult
+				}
+			case isValid:
+				flags = StepLoggerAdapterAsyncCancel
 			default:
-				logger.adapterCall(StepLoggerAdapterAsyncResult, c.adapterID, callID, nil)
+				flags = StepLoggerAdapterAsyncExpiredCancel
 			}
-			return false // don't stop callback
+			logger.adapterCall(flags, c.adapterID, callID, err)
+			return false // don't stop a valid callback, is ignored for invalid anyway
 		}
 		logger.adapterCall(StepLoggerAdapterAsyncCall, c.adapterID, callID, nil)
 	}
@@ -224,10 +228,14 @@ func (c *adapterSyncCallRequest) _startSyncWithResult(isTry bool) AsyncResultFun
 	}
 	resultCh := make(chan resultType, 1)
 
-	callback := NewAdapterCallback(c.adapterID, c.ctx.s.NewStepLink(), func(fn AsyncResultFunc, err error) bool {
-		resultCh <- resultType{fn, err}
+	callback := NewAdapterCallback(c.adapterID, c.ctx.s.NewStepLink(), func(isValid bool, fn AsyncResultFunc, err error) bool {
+		if isValid {
+			resultCh <- resultType{fn, err}
+		} else {
+			resultCh <- resultType{nil, err}
+		}
 		close(resultCh) // prevent repeated callbacks
-		return true
+		return true // stop further processing
 	}, 0, c.nestedFn)
 
 	cancelFn := c.executor.StartCall(goCtx, c.fn, callback, false)
