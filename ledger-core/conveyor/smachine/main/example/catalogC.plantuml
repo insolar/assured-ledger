@@ -5,9 +5,9 @@ T00_S001 : catalogEntryCSM
 T00_S001 --> T00_S002
 state "Init" as T00_S002
 T00_S002 : catalogEntryCSM
-T00_S002 -->[*] : [!ctx.Publish()]\n
+T00_S002 --> [*] : [!ctx.Publish()]
 T00_S002 --> T00_S003
 state "State1" as T00_S003
 T00_S003 : catalogEntryCSM
-T00_S003 -> T00_S003 : Sleep
+T00_S003 --[dashed]> T00_S003 : Sleep
 @enduml

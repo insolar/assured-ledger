@@ -32,7 +32,7 @@ func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.
 	)
 
 	res := payload.VStateReport{
-		Callee:          smGlobalRef,
+		Object:          smGlobalRef,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{},
 		Status:          status,
 	}

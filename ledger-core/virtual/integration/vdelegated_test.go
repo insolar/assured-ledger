@@ -28,11 +28,13 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
+	server.IncrementPulse(ctx)
+
 	var (
 		mc          = minimock.NewController(t)
 		testBalance = uint32(500)
 		objectRef   = gen.UniqueReference()
-		sender      = gen.UniqueReference()
+		sender      = server.JetCoordinatorMock.Me()
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -52,7 +54,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
-			Callee:                        objectRef,
+			Object:                        objectRef,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: pulse.OfNow(),
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -63,7 +65,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 				},
 			},
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).SetSender(sender).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 
@@ -77,7 +79,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
 
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 
@@ -122,7 +124,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
-			Callee:                        objectRef,
+			Object:                        objectRef,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: pulse.OfNow(),
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -133,7 +135,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 				},
 			},
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 	server.WaitActiveThenIdleConveyor()
@@ -148,7 +150,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 			CallSiteMethod: "GetBalance",
 			Arguments:      insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 	server.WaitActiveThenIdleConveyor()
@@ -160,7 +162,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 

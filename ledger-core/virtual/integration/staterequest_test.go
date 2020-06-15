@@ -20,14 +20,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags) *message.Message {
+func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags, sender reference.Global) *message.Message {
 	payload := &payload.VStateRequest{
 		AsOf:             pulseNumber,
-		Callee:           ref,
+		Object:           ref,
 		RequestedContent: flags,
 	}
 
-	return utils.NewRequestWrapper(pulseNumber, payload).Finalize()
+	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
 }
 
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
@@ -39,6 +39,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
@@ -59,7 +60,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             server.GetPrevPulse().PulseNumber,
-			Callee:           objectGlobal,
+			Object:           objectGlobal,
 			LatestDirtyState: objectGlobal,
 		}, report)
 
@@ -67,7 +68,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	})
 
 	countBefore = server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pn, objectGlobal, 0)
+	msg := makeVStateRequestEvent(pn, objectGlobal, 0, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
@@ -84,6 +85,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulse(ctx)
 
 	var (
 		objectLocal    = server.RandomLocalWithPulse()
@@ -91,7 +93,6 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		pn             = server.GetPulse().PulseNumber
 		rawWalletState = makeRawWalletState(initialBalance)
 	)
-
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
 	countBefore := server.PublisherMock.GetCount()
@@ -105,7 +106,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             pn,
-			Callee:           objectGlobal,
+			Object:           objectGlobal,
 			LatestDirtyState: objectGlobal,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
@@ -120,7 +121,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	})
 
 	countBefore = server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pn, objectGlobal, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(pn, objectGlobal, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
@@ -149,7 +150,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 		assert.Equal(t, &payload.VStateReport{
 			Status: payload.Missing,
 			AsOf:   server.GetPrevPulse().PulseNumber,
-			Callee: objectGlobal,
+			Object: objectGlobal,
 		}, report)
 
 		return false
@@ -158,7 +159,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	server.IncrementPulse(ctx)
 
 	countBefore := server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pn, objectGlobal, payload.RequestLatestDirtyState)
+	msg := makeVStateRequestEvent(pn, objectGlobal, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
