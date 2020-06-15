@@ -273,6 +273,10 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	}
 	s.execution.Isolation = negotiatedIsolation
 
+	if s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
+		return ctx.Jump(s.stepDeduplicate)
+	}
+
 	return ctx.Jump(s.stepTakeLock)
 }
 
@@ -299,31 +303,6 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	}
 
 	return res, nil
-}
-
-func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var executionSemaphore smachine.SyncLink
-
-	if s.execution.Isolation.Interference == contract.CallIntolerable {
-		executionSemaphore = s.semaphoreUnordered
-	} else {
-		executionSemaphore = s.semaphoreOrdered
-	}
-
-	if ctx.Acquire(executionSemaphore).IsNotPassed() {
-		if s.isConstructor {
-			panic(throw.NotImplemented())
-		}
-
-		// wait for semaphore to be released
-		return ctx.Sleep().ThenRepeat()
-	}
-
-	if s.Payload.CallRequestFlags.GetRepeatedCall() == payload.RepeatedCall {
-		return ctx.Jump(s.stepDeduplicate)
-	}
-
-	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
 func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -357,10 +336,28 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	}
 
 	if isDuplicate {
-		return ctx.Error(throw.E("duplicate found as pending request"))
+		ctx.Log().Warn("duplicate found as pending request")
+		return ctx.Stop()
 	}
 
 	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	return ctx.Jump(s.stepTakeLock)
+}
+
+func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var executionSemaphore smachine.SyncLink
+
+	if s.execution.Isolation.Interference == contract.CallIntolerable {
+		executionSemaphore = s.semaphoreUnordered
+	} else {
+		executionSemaphore = s.semaphoreOrdered
+	}
+
+	if ctx.Acquire(executionSemaphore).IsNotPassed() {
+		// wait for semaphore to be released
 		return ctx.Sleep().ThenRepeat()
 	}
 
@@ -373,14 +370,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		requestList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-		if requestList.Exist(s.execution.Outgoing) {
-			// found duplicate request, todo: deduplication algorithm
-			isDuplicate = true
+		isDuplicate = !state.KnownRequests.GetList(s.execution.Isolation.Interference).Add(s.execution.Outgoing)
+		if isDuplicate {
 			return
 		}
-
-		requestList.Add(s.execution.Outgoing)
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -407,6 +400,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 }
 
 func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachine.StateUpdate {
+	if s.migrationHappened && s.delegationTokenSpec.IsZero() {
+		return ctx.Error(throw.E("failed to get token in previous migration"))
+	}
+
 	s.migrationHappened = true
 
 	s.stepAfterTokenGet = ctx.AffectedStep()
@@ -422,12 +419,18 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		DelegationSpec: s.delegationTokenSpec,
 	}
 
+	// reset token
+	s.delegationTokenSpec = payload.CallDelegationToken{}
+
 	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		if s.outgoingWasSent {
+			return ctx.Jump(s.stepSendOutgoing)
+		}
 		return ctx.JumpExt(s.stepAfterTokenGet)
 	})
 }
@@ -526,10 +529,12 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 			return ctx.Error(errors.New("failed to publish bargeInCallback"))
 		}
+	} else {
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.PulseData().PulseNumber)
+		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
@@ -539,21 +544,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingWasSent = true
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJumpExt(
-		smachine.SlotStep{
-			Transition: s.stepExecuteContinue,
-			Migration:  s.migrateDuringSendOutgoing,
-		})
-}
-
-func (s *SMExecute) migrateDuringSendOutgoing(ctx smachine.MigrationContext) smachine.StateUpdate {
-	s.migrationHappened = true
-
-	if s.outgoingWasSent {
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
-	}
-
-	return ctx.Jump(s.stepSendOutgoing)
+	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -564,6 +555,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
+	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.executionNewState = nil
 
@@ -639,7 +631,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	var lastState *payload.ObjectState = nil
 
 	if s.newObjectDescriptor != nil {
-		class, err := s.execution.ObjectDescriptor.Class()
+		class, err := s.newObjectDescriptor.Class()
 		if err != nil {
 			panic(throw.W(err, "failed to get class from descriptor", nil))
 		}
