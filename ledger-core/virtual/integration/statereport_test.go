@@ -183,29 +183,3 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 	checkBalance(ctx, t, server, objectGlobal, testBalance)
 }
-
-func TestVirtual_VStateReport_AntiquePulse(t *testing.T) {
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	antiquePn := server.GetPulse().PulseNumber
-
-	for i := 0; i < 3; i++ {
-		server.IncrementPulseAndWaitIdle(ctx)
-	}
-
-	var (
-		testBalance    = uint32(555)
-		objectLocal    = server.RandomLocalWithPulse()
-		objectGlobal   = reference.NewSelf(objectLocal)
-		stateID        = server.RandomLocalWithPulse()
-		rawWalletState = makeRawWalletState(testBalance)
-	)
-	{
-		// send VStateReport: save wallet
-		msg := makeVStateReportEvent(antiquePn, objectGlobal, stateID, rawWalletState)
-		server.SendMessage(ctx, msg)
-	}
-
-	checkBalance(ctx, t, server, objectGlobal, testBalance)
-}
