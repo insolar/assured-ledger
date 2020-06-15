@@ -22,6 +22,7 @@ var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 type Service interface {
 	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
 	IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
+	IsNeedUseToken(token payload.CallDelegationToken) bool
 }
 
 type service struct {
@@ -43,6 +44,14 @@ func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.
 		Caller:            to,
 		Outgoing:          outgoing,
 		ApproverSignature: deadBeef[:],
+	}
+}
+
+func (s service) IsNeedUseToken(token payload.CallDelegationToken) bool {
+	if token.Caller == s.affinity.Me() {
+		return false
+	} else {
+		return true
 	}
 }
 
