@@ -324,6 +324,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		class = gen.UniqueReference()
@@ -401,7 +402,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
 	server.SendMessage(ctx, msg)
 	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
@@ -426,6 +427,7 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		class = gen.UniqueReference()
@@ -498,7 +500,7 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
 	server.SendMessage(ctx, msg)
 	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
