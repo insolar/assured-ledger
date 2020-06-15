@@ -111,7 +111,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		newState     = makeRawWalletState(initialBalance + 100)
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	{
 		pl := payload.VCallRequest{
@@ -201,7 +201,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 		objectGlobal = reference.NewSelf(objectLocal)
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	{
 		pl := payload.VCallRequest{

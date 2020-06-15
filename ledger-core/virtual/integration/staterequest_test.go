@@ -47,7 +47,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 		pn           = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	countBefore := server.PublisherMock.GetCount()
 	server.IncrementPulse(ctx)
@@ -93,7 +93,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 		pn             = server.GetPulse().PulseNumber
 		rawWalletState = makeRawWalletState(initialBalance)
 	)
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	countBefore := server.PublisherMock.GetCount()
 	server.IncrementPulse(ctx)

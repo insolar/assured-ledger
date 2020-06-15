@@ -29,7 +29,8 @@ import (
 
 const initialBalance uint32 = 500
 
-func Method_PrepareObject(ctx context.Context, server *utils.Server, state payload.VStateReport_StateStatus, object reference.Global) {
+// Method_PrepareWalletObject creates simple wallet object with initialBalance.
+func Method_PrepareWalletObject(ctx context.Context, server *utils.Server, state payload.VStateReport_StateStatus, object reference.Global) {
 	var (
 		walletState = makeRawWalletState(initialBalance)
 
@@ -51,13 +52,45 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 		panic("unexpected state")
 	}
 
-	payload := &payload.VStateReport{
+	pl := &payload.VStateReport{
 		Status:                        state,
 		Object:                        object,
 		UnorderedPendingEarliestPulse: pulse.OfNow(),
 		ProvidedContent:               content,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payload).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+
+	server.WaitIdleConveyor()
+	server.SendMessage(ctx, msg)
+	server.WaitActiveThenIdleConveyor()
+}
+
+// Method_PrepareObject creates object of specific class with raw state.
+func Method_PrepareObject(ctx context.Context, server *utils.Server, state payload.VStateReport_StateStatus, class, object reference.Global, rawState []byte) {
+	var content *payload.VStateReport_ProvidedContentBody
+
+	switch state {
+	case payload.Missing:
+		content = nil
+	case payload.Ready:
+		content = &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				Reference: reference.Local{},
+				Class:     class,
+				State:     rawState,
+			},
+		}
+	default:
+		panic("unexpected state")
+	}
+
+	pl := &payload.VStateReport{
+		Status:                        state,
+		Object:                        object,
+		UnorderedPendingEarliestPulse: pulse.OfNow(),
+		ProvidedContent:               content,
+	}
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	server.WaitIdleConveyor()
 	server.SendMessage(ctx, msg)
@@ -77,7 +110,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 		objectGlobal = reference.NewSelf(objectLocal)
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	{
 		pl := payload.VCallRequest{
@@ -115,7 +148,7 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		objectGlobal = reference.NewSelf(objectLocal)
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
@@ -157,7 +190,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		objectGlobal = reference.NewSelf(objectLocal)
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	{
 		pl := payload.VCallRequest{
@@ -211,7 +244,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		<-waitOutputChannel
 	}
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	{
 		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -298,7 +331,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		objectGlobal = reference.NewSelf(objectLocal)
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareWalletObject(ctx, server, payload.Ready, objectGlobal)
 
 	// Change pulse to force send VStateRequest
 	server.IncrementPulseAndWaitIdle(ctx)
