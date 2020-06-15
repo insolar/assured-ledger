@@ -220,9 +220,6 @@ type SMObject struct {
 
 	waitGetStateUntil time.Time
 
-	orderedPendingListFilledCtl   smsync.BoolConditionalLink
-	unorderedPendingListFilledCtl smsync.BoolConditionalLink
-
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
@@ -257,11 +254,8 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
-	sm.orderedPendingListFilledCtl = smsync.NewConditionalBool(true, "orderedPendingListFilled")
-	sm.OrderedPendingListFilled = sm.orderedPendingListFilledCtl.SyncLink()
-
-	sm.unorderedPendingListFilledCtl = smsync.NewConditionalBool(true, "unorderedPendingListFilledCtl")
-	sm.UnorderedPendingListFilled = sm.unorderedPendingListFilledCtl.SyncLink()
+	sm.OrderedPendingListFilled = smsync.NewSemaphore(1, "ordered pending list filled").SyncLink()
+	sm.UnorderedPendingListFilled = smsync.NewSemaphore(1, "unordered pending list filled").SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
@@ -437,7 +431,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		return ctx.Error(fmt.Errorf("failed to publish state report"))
 	}
 
-	return ctx.Jump(func (ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		return ctx.ReplaceWith(&smf)
 	})
 }
