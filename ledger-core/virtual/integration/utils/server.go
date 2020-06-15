@@ -27,13 +27,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
 type Server struct {
@@ -53,7 +53,7 @@ type Server struct {
 	pulseManager       *pulsemanager.PulseManager
 
 	cycleFn     ConveyorCycleFunc
-	activeCount atomickit.Uint32
+	activeState atomickit.Uint32
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -62,7 +62,7 @@ type Server struct {
 	caller reference.Global
 }
 
-type ConveyorCycleFunc func(c *conveyor.PulseConveyor, idle bool)
+type ConveyorCycleFunc func(c *conveyor.PulseConveyor, hasActive, isIdle bool)
 
 func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
 	return newServerExt(ctx, t, false, true)
@@ -124,7 +124,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
 		MeMock.Return(s.caller).
-		QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
+		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
 	s.PublisherMock = mock.NewPublisherMock()
 	s.PublisherMock.SetResenderMode(ctx, &s)
@@ -141,8 +141,11 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
-	virtualDispatcher.TokenService = token.NewService(ctx, s.caller)
+	virtualDispatcher.Affinity = s.JetCoordinatorMock
+
 	virtualDispatcher.CycleFn = s.onCycle
+	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
+
 	s.virtual = virtualDispatcher
 
 	if convlog.UseTextConvLog {
@@ -198,25 +201,50 @@ func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
 	s.WaitActiveThenIdleConveyor()
 }
 
+const (
+	hasActive = 1
+	isIdle = 2
+)
+
 func (s *Server) SetCycleCallback(cycleFn ConveyorCycleFunc) {
+	s.onCycleUpdate(func() uint32 {
+		s.cycleFn = cycleFn
+		return s.activeState.Load()
+	})
+}
+
+func (s *Server) onCycle(state conveyor.CycleState) {
+	s.onCycleUpdate(func() uint32 {
+		switch state {
+		case conveyor.ScanActive:
+			return s.activeState.SetBits(hasActive)
+		case conveyor.ScanIdle:
+			return s.activeState.SetBits(isIdle)
+		case conveyor.Scanning:
+			return s.activeState.UnsetBits(isIdle)
+		default:
+			panic(throw.Impossible())
+		}
+	})
+}
+
+func (s *Server) onCycleUpdate(fn func() uint32) {
+	if updateFn := s._onCycleUpdate(fn); updateFn != nil {
+		updateFn()
+	}
+}
+
+func (s *Server) _onCycleUpdate(fn func() uint32) func() {
 	s.dataLock.Lock()
 	defer s.dataLock.Unlock()
 
-	s.cycleFn = cycleFn
-}
-
-func (s *Server) onCycle(idle bool) {
-	s.dataLock.Lock()
-	cycleFn := s.cycleFn
-	s.dataLock.Unlock()
-
-	if !idle {
-		s.activeCount.Store(1)
+	cs := fn()
+	if cycleFn := s.cycleFn; cycleFn != nil {
+		return func() {
+			cycleFn(s.virtual.Conveyor, cs & hasActive != 0, cs & isIdle != 0)
+		}
 	}
-	if cycleFn == nil {
-		return
-	}
-	cycleFn(s.virtual.Conveyor, idle)
+	return nil
 }
 
 func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
@@ -266,17 +294,19 @@ func (s *Server) WaitActiveThenIdleConveyor() {
 func (s *Server) waitIdleConveyor(checkActive bool) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	s.SetCycleCallback(func(c *conveyor.PulseConveyor, idle bool) {
-		if idle && (!checkActive || s.activeCount.Load() > 0) {
-			s.activeCount.Store(0)
-			wg.Done()
+	s.SetCycleCallback(func(c *conveyor.PulseConveyor, hasActive, isIdle bool) {
+		if checkActive && !hasActive {
+			return
+		}
+		if isIdle {
+			s.ResetActiveConveyorFlag()
 			s.SetCycleCallback(nil)
+			wg.Done()
 		}
 	})
-	s.virtual.Conveyor.WakeUpWorker()
 	wg.Wait()
 }
 
 func (s *Server) ResetActiveConveyorFlag() {
-	s.activeCount.Store(0)
+	s.activeState.UnsetBits(hasActive)
 }

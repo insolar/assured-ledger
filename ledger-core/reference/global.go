@@ -6,6 +6,7 @@
 package reference
 
 import (
+	"encoding"
 	"io"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -48,6 +49,8 @@ func NewRecordOf(owner Global, localID Local) Global {
 	// }
 	return Global{addressLocal: localID, addressBase: base}
 }
+
+var _ encoding.TextMarshaler = Global{}
 
 type Global struct {
 	addressLocal Local
@@ -191,6 +194,11 @@ func (v Global) Equal(other Holder) bool {
 	return Equal(v, other)
 }
 
+// deprecated: use reference.Encode
+func (v Global) MarshalText() ([]byte, error) {
+	return []byte(Encode(v)), nil
+}
+
 // deprecated: use reference.MarshalJSON
 func (v *Global) MarshalJSON() ([]byte, error) {
 	return MarshalJSON(v)
@@ -206,8 +214,13 @@ func (v *Global) MarshalBinary() ([]byte, error) {
 	return Marshal(v)
 }
 
+// deprecated: use reference.MarshalToSizedBuffer
+func (v Global) MarshalToSizedBuffer(data []byte) (int, error) {
+	return MarshalToSizedBuffer(v, data)
+}
+
 // deprecated: use reference.MarshalTo
-func (v *Global) MarshalTo(b []byte) (int, error) {
+func (v Global) MarshalTo(b []byte) (int, error) {
 	return MarshalTo(v, b)
 }
 

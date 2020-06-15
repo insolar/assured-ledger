@@ -37,8 +37,9 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
+
 		rawWalletState := makeRawWalletState(testBalance)
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState)
+		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
 		server.SendMessage(ctx, msg)
 	}
 

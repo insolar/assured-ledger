@@ -22,6 +22,10 @@ type RecordBody struct {
 	digests  []cryptkit.Digest
 }
 
+func (p RecordBody) MarshalText() (text []byte, err error) {
+	return nil, nil
+}
+
 func (RecordBody) RecordBody() {}
 
 func (p *RecordBody) Reset() {

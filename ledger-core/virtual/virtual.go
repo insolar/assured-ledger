@@ -13,23 +13,28 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/token"
 )
 
-func DefaultHandlersFactory(_ pulse.Number, _ pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc) {
+type DefaultHandlersFactory struct {
+	metaFactory handlers.FactoryMeta
+}
+
+func (f DefaultHandlersFactory) Classify(_ pulse.Number, pr pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		return handlers.FactoryMeta(event)
+		return f.metaFactory.Process(event, pr)
 	case *testWalletAPIStateMachine.TestAPICall:
-		return 0, testWalletAPIStateMachine.Handler(event)
+		return 0, testWalletAPIStateMachine.Handler(event), nil
 	default:
 		panic(throw.E("unknown event type", struct {
 			InputType interface{} `fmt:"%T"`
@@ -48,9 +53,12 @@ type Dispatcher struct {
 	CycleFn conveyor.PulseConveyorCycleFunc
 
 	// Components
-	Runner        runner.Service
-	MessageSender messagesender.Service
-	TokenService  token.Service
+	Runner                runner.Service
+	MessageSender         messagesender.Service
+	AuthenticationService authentication.Service
+	Affinity              jet.AffinityHelper
+
+	EventlessSleep time.Duration
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
@@ -73,27 +81,37 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		LogAdapterCalls:   true,
 	}
 
-	defaultHandlers := DefaultHandlersFactory
-
 	machineConfig := conveyorConfig
 	if lr.MachineLogger != nil {
 		machineConfig.SlotMachineLogger = lr.MachineLogger
 	}
 
+	switch {
+	case lr.EventlessSleep == 0:
+		lr.EventlessSleep = 100 * time.Millisecond
+	case lr.EventlessSleep < 0:
+		lr.EventlessSleep = 0
+	}
+
 	lr.Conveyor = conveyor.NewPulseConveyor(context.Background(), conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
-		EventlessSleep:        100 * time.Millisecond,
+		EventlessSleep:        lr.EventlessSleep,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
-	}, defaultHandlers, nil)
+	}, nil, nil)
+
+	lr.AuthenticationService = authentication.NewService(ctx, lr.Affinity.Me(), lr.Affinity)
+
+	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService}}.Classify
+	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
 
 	lr.Conveyor.AddInterfaceDependency(&lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
-	lr.Conveyor.AddInterfaceDependency(&lr.TokenService)
+	lr.Conveyor.AddInterfaceDependency(&lr.AuthenticationService)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)

@@ -49,7 +49,7 @@ func TestInitViaCTMethod(t *testing.T) {
 			Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
 			CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 		server.SendMessage(ctx, msg)
 	}
 

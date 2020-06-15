@@ -1,8 +1,12 @@
 @startuml
-Init : INHERITED
-Init --> State0 : Jump
-State0 : INHERITED
-State0 --> State1 : Jump
-State1 : INHERITED
-State1 --> [*]
+state "Init" as T00_S001
+T00_S001 : StateMachine3
+[*] --> T00_S001
+T00_S001 --> T00_S002
+state "State0" as T00_S002
+T00_S002 : StateMachine3
+T00_S002 --> T00_S003
+state "State1" as T00_S003
+T00_S003 : StateMachine3
+T00_S003 --> [*] : [s.count&1==1]
 @enduml

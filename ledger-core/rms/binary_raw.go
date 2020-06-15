@@ -7,6 +7,8 @@ package rms
 
 import (
 	"bytes"
+	"encoding"
+	"fmt"
 	"io"
 	"reflect"
 
@@ -72,6 +74,19 @@ func (p *RawBinary) _size() int {
 		return vv.FixedByteSize()
 	default:
 		return p._serializableSize()
+	}
+}
+
+func (p *RawBinary) MarshalText() ([]byte, error) {
+	switch vv := p.value.(type) {
+	case nil:
+		return nil, nil
+	case encoding.TextMarshaler:
+		return vv.MarshalText()
+	case fmt.Stringer:
+		return []byte(vv.String()), nil
+	default:
+		return []byte(fmt.Sprintf("%T", vv)), nil
 	}
 }
 

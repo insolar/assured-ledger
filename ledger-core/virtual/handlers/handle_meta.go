@@ -17,6 +17,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
 
@@ -33,78 +35,82 @@ type errNoHandler struct {
 	messageType   reflect.Type
 }
 
-func FactoryMeta(message *statemachine.DispatcherMessage) (pulse.Number, smachine.CreateFunc) {
-	payloadMeta := message.PayloadMeta
-	messageMeta := message.MessageMeta
+type FactoryMeta struct {
+	AuthService authentication.Service
+}
+
+func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
+	payloadMeta := msg.PayloadMeta
+	messageMeta := msg.MessageMeta
 
 	traceID := messageMeta.Get(defaults.TraceID)
 	if traceID == "" {
 		panic("TraceID is empty")
 	}
 
+	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
+	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
+
 	payloadBytes := payloadMeta.Payload
 	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
-		panic(err)
+		logger.Warn(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity))
+		return pulse.Unknown, nil, nil
 	}
 
 	payloadType := rms.GetRegistry().Get(payloadTypeID)
-
-	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
-	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
 	logger.Info(logProcessing{
 		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
 	})
 
-	switch obj := payloadObj.(type) {
-	case *payload.VCallRequest:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVCallRequest{Meta: payloadMeta, Payload: obj}
-		}
-
-	case *payload.VCallResult:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVCallResult{Meta: payloadMeta, Payload: obj}
-		}
-	case *payload.VStateRequest:
-		return obj.AsOf, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVStateRequest{Meta: payloadMeta, Payload: obj}
-		}
-	case *payload.VStateReport:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVStateReport{Meta: payloadMeta, Payload: obj}
-		}
-	case *payload.VDelegatedRequestFinished:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
-		}
-	case *payload.VDelegatedCallRequest:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
-		}
-	case *payload.VDelegatedCallResponse:
-		return payloadMeta.Pulse, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
-			return &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
-		}
-	default:
-		panic(errNoHandler{
-			messageTypeID: payloadTypeID,
-			messageType:   payloadType,
-		})
+	currentPulse := pr.RightBoundData().PulseNumber
+	if currentPulse != payloadMeta.Pulse {
+		panic(throw.Impossible())
 	}
+
+	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender, pr)
+	if err != nil {
+		logger.Warn(throw.W(err, "illegitimate msg", struct {
+			messageTypeID uint64
+			messageType   reflect.Type
+		}{messageTypeID: payloadTypeID, messageType: payloadType}))
+
+		return pulse.Unknown, nil, nil
+	}
+
+	if mustReject {
+		// when this flag is set, then the relevant SM has to stop asap and send negative answer
+		return pulse.Unknown, nil, throw.NotImplemented()
+	}
+
+	if pn, sm := func() (pulse.Number, smachine.StateMachine) {
+		switch obj := payloadObj.(type) {
+		case *payload.VCallRequest:
+			return currentPulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}
+		case *payload.VCallResult:
+			return currentPulse, &SMVCallResult{Meta: payloadMeta, Payload: obj}
+		case *payload.VStateRequest:
+			return obj.AsOf, &SMVStateRequest{Meta: payloadMeta, Payload: obj}
+		case *payload.VStateReport:
+			return currentPulse, &SMVStateReport{Meta: payloadMeta, Payload: obj}
+		case *payload.VDelegatedRequestFinished:
+			return currentPulse, &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
+		case *payload.VDelegatedCallRequest:
+			return currentPulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
+		case *payload.VDelegatedCallResponse:
+			return currentPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
+		default:
+			logger.Warn(errNoHandler{messageTypeID: payloadTypeID, messageType: payloadType})
+			return 0, nil
+		}
+	}(); sm != nil {
+		return pn, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			ctx.SetContext(goCtx)
+			ctx.SetTracerID(traceID)
+			return sm
+		}, nil
+	}
+
+	return pulse.Unknown, nil, nil
 }

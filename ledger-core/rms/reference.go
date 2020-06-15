@@ -121,3 +121,15 @@ func (p *Reference) Equal(o *Reference) bool {
 	}
 	return reference.Equal(p.value, o.value)
 }
+
+func (p *Reference) MarshalText() ([]byte, error) {
+	switch {
+	case p.value != nil:
+		return []byte(reference.Encode(p.value)), nil
+	case p.lazy != nil:
+		return []byte("lazy-ref"), nil
+	default:
+		return nil, nil
+	}
+}
+
