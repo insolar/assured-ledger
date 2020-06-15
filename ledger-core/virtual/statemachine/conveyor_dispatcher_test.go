@@ -73,8 +73,8 @@ func TestConveyorDispatcher_PanicInAddInputHandling(t *testing.T) {
 	metaPl, _ := meta.Marshal()
 	msg := message.NewMessage("", metaPl)
 	require.False(t, isMessageAcked(msg))
-	require.NotPanics(t, func() {
-		require.Error(t, msgDispatcher.Process(msg))
+	require.Panics(t, func() {
+		require.NoError(t, msgDispatcher.Process(msg))
 	})
 	require.True(t, isMessageAcked(msg))
 }

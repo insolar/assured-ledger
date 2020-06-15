@@ -119,22 +119,8 @@ type errUnknownPayload struct {
 	GotType      interface{} `fmt:"%T"`
 }
 
-func (c *conveyorDispatcher) Process(msg *message.Message) (err error) {
+func (c *conveyorDispatcher) Process(msg *message.Message) error {
 	msg.Ack()
-	ctx, logger := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(defaults.TraceID))
-	defer func() {
-		if rec := recover(); rec != nil {
-			err = throw.R(rec, throw.E("ConveyorDispatcher.Process panic"))
-		}
-		if err != nil {
-			logger.Error(err)
-		}
-	}()
-	err = c.process(ctx, msg)
-	return err
-}
-
-func (c *conveyorDispatcher) process(ctx context.Context, msg *message.Message) error {
 	_, pl, err := rms.Unmarshal(msg.Payload)
 	if err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")
@@ -144,6 +130,7 @@ func (c *conveyorDispatcher) process(ctx context.Context, msg *message.Message) 
 		return throw.E("unexpected type", errUnknownPayload{ExpectedType: "payload.Meta", GotType: pl})
 	}
 
+	ctx, _ := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(defaults.TraceID))
 	return c.conveyor.AddInput(ctx, plMeta.Pulse, &DispatcherMessage{
 		MessageMeta: msg.Metadata,
 		PayloadMeta: plMeta,
