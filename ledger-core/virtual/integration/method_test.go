@@ -427,7 +427,7 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 
 // unordered A.Foo calls unordered A.Bar
 func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
-	t.Log("C5116")
+	t.Log("C5122")
 
 	mc := minimock.NewController(t)
 
