@@ -498,12 +498,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
-		s.SetToken()
+		s.outgoing.DelegationSpec = s.getToken()
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = s.outgoing.Callee
-		s.SetToken()
+		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -714,10 +714,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallIncomingResult: reference.Local{},
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
-	}
-
-	if s.authenticationService.IsNeedUseToken(s.delegationTokenSpec) {
-		msg.DelegationSpec = s.delegationTokenSpec
+		DelegationSpec:     s.getToken(),
 	}
 
 	target := s.Meta.Sender
@@ -764,8 +761,9 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
 }
 
-func (s *SMExecute) SetToken() {
-	if s.authenticationService.IsNeedUseToken(s.delegationTokenSpec) {
-		s.outgoing.DelegationSpec = s.delegationTokenSpec
+func (s *SMExecute) getToken() payload.CallDelegationToken {
+	if !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
+		return payload.CallDelegationToken{}
 	}
+	return s.delegationTokenSpec
 }
