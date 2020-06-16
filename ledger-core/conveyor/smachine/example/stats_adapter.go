@@ -42,7 +42,7 @@ type statsGetter struct{}
 var statsIDCount uint64 // atomic
 
 func (statsGetter) GetStats(g* GameRandom) StatsFactoryFunc {
-	return func(g GameRandom) StatsStateMachine {
-		return NewStatsOfGame(g)
+	return func() StatsStateMachine {
+		return NewStatsOfGame()
 	}
 }

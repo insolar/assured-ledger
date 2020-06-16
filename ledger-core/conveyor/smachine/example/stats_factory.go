@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
-type StatsFactoryFunc func(GameRandom) StatsStateMachine
+type StatsFactoryFunc func() StatsStateMachine
 
 type StatsStateMachine interface {
 	smachine.SubroutineStateMachine

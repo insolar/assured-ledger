@@ -33,6 +33,7 @@ type PlayerSM struct {
 	gamesToBePlayed int
 
 	pair SharedPairDataLink
+	stats SharedStatsDataLink
 
 	adapterGame *GameChooseAdapter
 	adapterStats *StatsGetAdapter
@@ -85,6 +86,7 @@ func (p *PlayerSM) stepInit(ctx smachine.InitializationContext) smachine.StateUp
 const freePlayer = "freePlayer"
 
 var sharedPlayerPairType = reflect.TypeOf((*SharedPairData)(nil))
+var sharedStatsDataType = reflect.TypeOf((*SharedStatsData)(nil))
 
 // stepFindPair looks for another player without a pair and creates a pair.
 // When there is no player without a pair, this step will publish this player as "freePlayer" and will wait for another player to join.
@@ -284,14 +286,40 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 			gr.highestBetPlayer,
 		})
 
-
-		return ctx.Jump(p.stepUpdateStatsOfTheGames)
+		return ctx.Jump(p.stepPrepareStatsOfTheGames)
 	})
 }
 
 
 // At this step we have a game played. Need to update the stats and play another one
-func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *PlayerSM) stepPrepareStatsOfTheGames(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	/**/
+	// GetPublishedLink checks if there is something is registered under the given key
+	sdl := ctx.GetPublishedLink(statsKey)
+	if sdl.IsOfType(sharedStatsDataType) {
+		// now lets try to access the shared data
+		// for this, an access function must be connected to the SharedDataLink with PrepareAccess()
+		// then UseShared is invoked, and it returns information if the function was applied to the data under SharedDataLink
+		if p.stats.PrepareAccess(func(pp *SharedStatsData) (wakeup bool) {
+			return false
+		}).TryUse(ctx).IsAvailable() {
+			// we have a pair - lets get playing
+			return ctx.Jump(p.stepUpdateStatsOfTheGames)
+		}
+	}
+	/**/
+
+	sd := &SharedStatsData{}
+
+	// share the data
+	p.stats.sharedData = ctx.Share(sd, 0)
+	// and publish it to make accessible to other SMs
+	if !ctx.Publish(statsKey, p.stats.sharedData) {
+		// collision has happen - lets repeat after other SMs
+		return ctx.Yield().ThenRepeat()
+	}
+
 
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		// Now we will call an external service to get a game to play
@@ -304,8 +332,8 @@ func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smac
 			//
 			// WARNING! It is NOT SAFE to access SM here. You have to store all required values and results into variables
 			//
-			stats := svc.GetStats(nil)
-			if stats == nil {
+			statsFactory := svc.GetStats(nil)
+			if statsFactory == nil {
 				// any panics here will be passed into SM and re-raised there
 				panic(throw.IllegalValue())
 			}
@@ -315,7 +343,7 @@ func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smac
 				//
 				// WARNING! It is NOT SAFE to access the service HERE.
 				//
-
+				sd.statsFactory = statsFactory
 				// instruct the slot to wake up from sleep
 				ctx.WakeUp()
 			}
@@ -324,14 +352,66 @@ func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smac
 		// NB! SM can initiate multiple async calls
 
 		// Here we gonna sleep until a wake up by the async result
+		// Here we gonna sleep until a wake up by the async result
 		return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-			return ctx.Jump(p.stepNextGame)
+			// check if we've got a result
+			if sd.statsFactory == nil {
+				// if not then sleep again
+				return ctx.Sleep().ThenRepeat()
+			}
+			return ctx.Jump(p.stepUpdateStatsOfTheGames)
 		})
 	})
-
-	//	return ctx.Jump(p.stepNextGame)
 }
 
+// At this step we have a game played. Need to update the stats and play another one
+func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	var statsSM StatsStateMachine
+
+	// now lets try to access the shared data
+	// for this, an access function must be connected to the SharedDataLink with PrepareAccess()
+	// then UseShared is invoked, and it returns information if the function was applied to the data under SharedDataLink
+	if p.stats.PrepareAccess(func(sd *SharedStatsData) (wakeup bool) {
+		if sd.statsFactory != nil {
+			statsSM = sd.statsFactory()
+		}
+		return true
+	}).TryUse(ctx).IsAvailable() {
+		//return ctx.Jump(p.stepUpdatedStatsOfTheGames)
+	}
+
+	if statsSM == nil {
+		// we've been woken up before the first player got a stats factory
+		// lets get to sleep then
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	// now we'll let the subroutine SM to play for this player
+	return ctx.CallSubroutine(statsSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+
+		// this closure is called on termination of the subroutine SM
+		// both stop and errors are handled and returned through (ctx)
+
+		// also it is safe to access the subroutine SM here
+		//gr := statsSM.GetGameResult()
+		// Lets tell to the world - who are in the pair
+		res := statsSM.GetStats()
+		ctx.Log().Trace(struct {
+			string
+			gamesPlayed int
+			bet float32
+			winner int
+		}{"GOT INTO statsSM subroutine, highest bet and winner:",
+			res.gamesPlayed,
+			res.highestBet,
+			res.highestBetPlayer,
+		})
+
+		return ctx.Jump(p.stepNextGame)
+	})
+
+}
 
 func (p *PlayerSM) stepNextGame(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// release sync object / free up a room
@@ -347,9 +427,11 @@ func (p *PlayerSM) stepNextGame(ctx smachine.ExecutionContext) smachine.StateUpd
 	// release shared data
 	// it is safe to try to un-share data from another slot - it will be ignored
 	ctx.Unshare(p.pair.sharedData)
+	//ctx.Unshare(p.stats.sharedData)
 
 	// reset local data
 	p.pair = SharedPairDataLink{}
+	p.stats = SharedStatsDataLink{}
 
 	// and take a small break
 	sleepUntil := time.Now().Add(time.Millisecond * time.Duration(rand.Intn(500)))
