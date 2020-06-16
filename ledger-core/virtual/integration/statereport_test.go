@@ -158,7 +158,7 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	t.Log("C4865")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(nil, t, func(s string) bool {
+	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
 		switch {
 		case !strings.Contains(s, "illegal value"):
 		case !strings.Contains(s,"github.com/insolar/assured-ledger/ledger-core/virtual/handlers.(*SMVStateReport).stepProcess"):

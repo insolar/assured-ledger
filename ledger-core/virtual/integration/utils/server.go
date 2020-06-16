@@ -74,7 +74,7 @@ func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
 	return newServerExt(ctx, t, nil, true)
 }
 
-func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+func NewServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
 	if errorFilterFn == nil {
 		errorFilterFn = func(string) bool { return false }
 	}
@@ -85,7 +85,7 @@ func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context
 	return newServerExt(ctx, t, nil, false)
 }
 
-func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+func NewUninitializedServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
 	if errorFilterFn == nil {
 		errorFilterFn = func(string) bool { return false }
 	}
