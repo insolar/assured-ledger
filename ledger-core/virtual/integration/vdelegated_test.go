@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
@@ -44,7 +45,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		require.Equal(t, sender, pl.DelegationSpec.DelegateTo)
 
 		return false // no resend msg
-	}).ExpectedCount(1)
+	})
 
 	server.WaitIdleConveyor()
 
@@ -85,6 +86,10 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	server.PublisherMock.WaitCount(1, 10*time.Second)
 	mc.Finish()
+
+	{
+		assert.Equal(t, 1, typedChecker.Handlers.VDelegatedCallResponse.Count.Load())
+	}
 }
 
 func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {

@@ -50,7 +50,9 @@ func (sm *antiqueEventSM) stepRequestOldPulseData(ctx smachine.ExecutionContext)
 
 func (sm *antiqueEventSM) stepGotAnswer(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if cps := sm.ps.pulseManager.getCachedPulseSlot(sm.pn); cps != nil {
-		var createDefaults smachine.CreateDefaultValues
+		createDefaults := smachine.CreateDefaultValues{
+			InheritAllDependencies: true,
+		}
 		createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
 		return ctx.ReplaceExt(sm.createFn, createDefaults)
 	}

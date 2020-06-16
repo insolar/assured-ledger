@@ -645,12 +645,13 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	}
 
 	msg := payload.VDelegatedRequestFinished{
-		CallType:     s.Payload.CallType,
-		CallFlags:    s.Payload.CallFlags,
-		Callee:       s.execution.Object,
-		CallOutgoing: s.execution.Outgoing,
-		CallIncoming: s.execution.Incoming,
-		LatestState:  lastState,
+		CallType:       s.Payload.CallType,
+		CallFlags:      s.Payload.CallFlags,
+		Callee:         s.execution.Object,
+		CallOutgoing:   s.execution.Outgoing,
+		CallIncoming:   s.execution.Incoming,
+		DelegationSpec: s.delegationTokenSpec,
+		LatestState:    lastState,
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
