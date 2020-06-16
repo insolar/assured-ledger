@@ -1,0 +1,9 @@
+@startuml
+state "GetInitStateFor" as T00_S001
+T00_S001 : emptySM
+[*] --> T00_S001
+T00_S001 --> T00_S002
+state "stepInit" as T00_S002
+T00_S002 : emptySM
+T00_S002 --> [*]
+@enduml
