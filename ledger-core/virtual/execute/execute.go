@@ -761,7 +761,7 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 }
 
 func (s *SMExecute) getToken() payload.CallDelegationToken {
-	if !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
+	if s.authenticationService != nil && !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
 		return payload.CallDelegationToken{}
 	}
 	return s.delegationTokenSpec

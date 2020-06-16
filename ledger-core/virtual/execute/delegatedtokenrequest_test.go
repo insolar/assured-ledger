@@ -60,9 +60,9 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 
 	{
 		var (
-			catalog     object.Catalog = catalogWrapper.Mock()
-			authService                = authentication.NewService(ctx, gen.UniqueReference(), nil)
-			sharedState                = &object.SharedState{
+			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service = authentication.NewServiceMock(t)
+			sharedState                        = &object.SharedState{
 				Info: object.Info{
 					Reference:      objectRef,
 					PendingTable:   object.NewRequestTable(),
