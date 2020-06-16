@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
@@ -70,23 +71,29 @@ type Server struct {
 type ConveyorCycleFunc func(c *conveyor.PulseConveyor, hasActive, isIdle bool)
 
 func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, false, true)
+	return newServerExt(ctx, t, nil, true)
 }
 
-func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, true, true)
+func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+	if errorFilterFn == nil {
+		errorFilterFn = func(string) bool { return false }
+	}
+	return newServerExt(ctx, t, errorFilterFn, true)
 }
 
 func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, false, false)
+	return newServerExt(ctx, t, nil, false)
 }
 
-func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, true, false)
+func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+	if errorFilterFn == nil {
+		errorFilterFn = func(string) bool { return false }
+	}
+	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
-func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init bool) (*Server, context.Context) {
-	inslogger.SetTestOutput(t, suppressLogError)
+func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
+	inslogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
 		ctx = inslogger.TestContext(t)

@@ -19,11 +19,13 @@ type TestingLogger interface {
 	Fatal(...interface{})
 }
 
+type ErrorFilterFunc = func(string) bool
+
 type TestingLoggerOutput struct {
-	Output            io.Writer
-	Testing           TestingLogger
-	InterceptFatal    func([]byte) bool
-	SuppressTestError bool
+	Output         io.Writer
+	Testing        TestingLogger
+	InterceptFatal func([]byte) bool
+	ErrorFilterFn  ErrorFilterFunc
 }
 
 func (r *TestingLoggerOutput) Close() error {
@@ -59,7 +61,7 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 			defer r.Testing.Error(msg)
 		}
 	case PanicLevel, ErrorLevel:
-		if !r.SuppressTestError {
+		if r.ErrorFilterFn == nil || r.ErrorFilterFn(msg) {
 			defer r.Testing.Error(msg)
 		} else {
 			defer r.Testing.Log(msg)
