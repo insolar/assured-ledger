@@ -396,12 +396,12 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 	runnerMock.AddExecutionClassify("Foo", contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}, nil)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend().ExpectedCount(1)
+	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		if res.CallOutgoing == outgoingA {
+		switch res.Callee {
+		case classA:
 			require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-		}
-		if res.Caller == classA {
+		case objectBGlobal:
 			require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
 		}
 		// we should resend that message only if it's CallResult from B to A
@@ -409,12 +409,11 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 	}).ExpectedCount(2)
 
 	pl := payload.VCallRequest{
-		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:              reference.Global{},
-		CallSiteDeclaration: classA,
-		CallSiteMethod:      "New",
-		CallOutgoing:        outgoingA,
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		Callee:         classA,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoingA,
 	}
 	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
@@ -491,12 +490,12 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 	runnerMock.AddExecutionClassify("Foo", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend().ExpectedCount(1)
+	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		if res.CallOutgoing == outgoingA {
+		switch res.Callee {
+		case classA:
 			require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-		}
-		if res.Caller == classA {
+		case objectBGlobal:
 			require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
 		}
 		// we should resend that message only if it's CallResult from B to A
@@ -504,12 +503,11 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 	}).ExpectedCount(2)
 
 	pl := payload.VCallRequest{
-		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:              reference.Global{},
-		CallSiteDeclaration: classA,
-		CallSiteMethod:      "New",
-		CallOutgoing:        outgoingA,
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		Callee:         classA,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoingA,
 	}
 	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()

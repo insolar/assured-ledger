@@ -304,11 +304,10 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	defer server.Stop()
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteDeclaration.String()
+		return execution.Request.Callee.String()
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		isolation = contract.ConstructorIsolation()
@@ -354,12 +353,12 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend().ExpectedCount(1)
+	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		if res.CallOutgoing == outgoingA {
+		switch res.Callee {
+		case classA:
 			require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-		}
-		if res.Caller == classA {
+		case classB:
 			require.Equal(t, []byte("finish B.New"), res.ReturnArguments)
 		}
 		// we should resend that message only if it's CallResult from B to A
@@ -367,12 +366,11 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	}).ExpectedCount(2)
 
 	pl := payload.VCallRequest{
-		CallType:            payload.CTConstructor,
-		CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:              reference.Global{},
-		CallSiteDeclaration: classA,
-		CallSiteMethod:      "New",
-		CallOutgoing:        outgoingA,
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		Callee:         classA,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoingA,
 	}
 	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
