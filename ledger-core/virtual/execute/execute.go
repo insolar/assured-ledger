@@ -656,7 +656,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		Callee:         s.execution.Object,
 		CallOutgoing:   s.execution.Outgoing,
 		CallIncoming:   s.execution.Incoming,
-		DelegationSpec: s.delegationTokenSpec,
+		DelegationSpec: s.getToken(),
 		LatestState:    lastState,
 	}
 
