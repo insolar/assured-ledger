@@ -9,7 +9,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -21,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -142,7 +141,6 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 
 		// pendingList already full
 		if pendingList.Count() == int(pendingCount) && !pendingList.Exist(s.Payload.CallOutgoing) {
-			fmt.Println(pendingList.Count(), int(pendingCount), pendingList.Exist(s.Payload.CallOutgoing))
 			resultCheck = delegationFullTable
 			return
 		}

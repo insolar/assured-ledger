@@ -75,24 +75,14 @@ func (rl *RequestList) Add(ref reference.Global) bool {
 	return true
 }
 
-func (rl *RequestList) Finish(ref reference.Global) bool {
-	if !rl.Exist(ref) {
-		return false
-	}
-
-	requestPulseNumber := ref.GetLocal().GetPulseNumber()
-	rl.requests[ref] = false
-
-	if requestPulseNumber != rl.earliestPulse {
-		return true
-	}
-
+func (rl *RequestList) calculateEarliestPulse() {
 	min := pulse.Unknown
+
 	for ref := range rl.requests {
-		// skip finished
 		if !rl.requests[ref] {
-			continue
+			continue // skip finished
 		}
+
 		refPulseNumber := ref.GetLocal().GetPulseNumber()
 		if min == pulse.Unknown || refPulseNumber < min {
 			min = refPulseNumber
@@ -100,6 +90,19 @@ func (rl *RequestList) Finish(ref reference.Global) bool {
 	}
 
 	rl.earliestPulse = min
+}
+
+func (rl *RequestList) Finish(ref reference.Global) bool {
+	if !rl.Exist(ref) {
+		return false
+	}
+
+	rl.requests[ref] = false
+
+	if ref.GetLocal().GetPulseNumber() == rl.earliestPulse {
+		rl.calculateEarliestPulse()
+	}
+
 	return true
 }
 
