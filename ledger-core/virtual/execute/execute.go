@@ -427,7 +427,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())
 		}
-		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
 		if s.outgoingWasSent {
 			return ctx.Jump(s.stepSendOutgoing)
 		}

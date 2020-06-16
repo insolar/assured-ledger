@@ -21,26 +21,114 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+var emptyEntropyFn = func() longbits.Bits256 {
+	return longbits.Bits256{}
+}
+
+// with token
+
+type noTokenHolderMessageMock struct {
+	caller reference.Global
+}
+
+func (n noTokenHolderMessageMock) GetCaller() reference.Global {
+	return n.caller
+}
+
 func Test_IsMessageFromVirtualLegitimate_CantGetToken(t *testing.T) {
 	ctx := context.Background()
 	selfRef := gen.UniqueReference()
 
-	authService := NewService(ctx, selfRef, nil)
-	_, err := authService.IsMessageFromVirtualLegitimate(ctx, 33, reference.Global{}, nil)
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		QueryRoleMock.Return([]reference.Global{selfRef}, nil)
+
+	authService := NewService(ctx, selfRef, jetCoordinatorMock)
+	pdLeft := pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 10, longbits.Bits256{})
+	rg := pulse.NewPulseRange([]pulse.Data{pdLeft})
+	msg := &noTokenHolderMessageMock{caller: selfRef}
+	_, err := authService.IsMessageFromVirtualLegitimate(ctx, msg, selfRef, rg)
 	require.EqualError(t, err, "message must implement tokenHolder interface")
 }
 
-type tokenHolderMock struct {
-	token payload.CallDelegationToken
+func Test_IsMessageFromVirtualLegitimate_ExpectedVE_NotEqual_Approver(t *testing.T) {
+	ctx := context.Background()
+	selfRef := gen.UniqueReference()
+
+	refs := gen.UniqueReferences(2)
+	expectedVE := refs[0]
+	approver := refs[1]
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		QueryRoleMock.Return([]reference.Global{expectedVE}, nil)
+
+	authService := NewService(ctx, selfRef, jetCoordinatorMock)
+
+	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
+
+	msg := &payload.VStateRequest{
+		DelegationSpec: payload.CallDelegationToken{
+			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+			Approver:          approver,
+		},
+	}
+
+	_, err := authService.IsMessageFromVirtualLegitimate(ctx, msg, expectedVE, rg)
+	require.Contains(t, err.Error(), "token Approver and expectedVE are different")
 }
 
-func (h tokenHolderMock) GetDelegationSpec() payload.CallDelegationToken {
-	return h.token
+func Test_IsMessageFromVirtualLegitimate_SelfNode_Equals_Approver(t *testing.T) {
+	ctx := context.Background()
+
+	refs := gen.UniqueReferences(2)
+	sender := refs[0]
+	selfRef := refs[1]
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		QueryRoleMock.Return([]reference.Global{selfRef}, nil)
+
+	authService := NewService(ctx, selfRef, jetCoordinatorMock)
+
+	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
+
+	msg := &payload.VStateRequest{
+		DelegationSpec: payload.CallDelegationToken{
+			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+			Approver:          selfRef,
+		},
+	}
+
+	_, err := authService.IsMessageFromVirtualLegitimate(ctx, msg, sender, rg)
+	require.Contains(t, err.Error(), "selfNode cannot be equal to token Approver")
 }
 
-var emptyEntropyFn = func() longbits.Bits256 {
-	return longbits.Bits256{}
+func Test_IsMessageFromVirtualLegitimate_WithTokenHappyPath(t *testing.T) {
+	ctx := context.Background()
+
+	refs := gen.UniqueReferences(3)
+	sender := refs[0]
+	selfRef := refs[1]
+	approver := refs[2]
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		QueryRoleMock.Return([]reference.Global{approver}, nil)
+
+	authService := NewService(ctx, selfRef, jetCoordinatorMock)
+
+	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
+
+	msg := &payload.VStateRequest{
+		DelegationSpec: payload.CallDelegationToken{
+			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+			Approver:          approver,
+		},
+	}
+
+	mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, msg, sender, rg)
+	require.NoError(t, err)
+	require.False(t, mustReject)
 }
+
+// without token
 
 func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
 	ctx := context.Background()
@@ -53,14 +141,15 @@ func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
 	rg := pulse.NewPulseRange([]pulse.Data{pdLeft})
 
 	require.PanicsWithValue(t, "Unexpected message type", func() {
-		authService.IsMessageFromVirtualLegitimate(ctx, tokenHolderMock{}, reference.Global{}, rg)
+		authService.IsMessageFromVirtualLegitimate(ctx, 333, reference.Global{}, rg)
 	})
 }
 
 func Test_IsMessageFromVirtualLegitimate_MessageWithCurrentExpectedPulse_HappyPath(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-	sender := gen.UniqueReference()
+	refs := gen.UniqueReferences(2)
+	selfRef := refs[0]
+	sender := refs[0]
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{sender}, nil)
@@ -78,8 +167,9 @@ func Test_IsMessageFromVirtualLegitimate_MessageWithCurrentExpectedPulse_HappyPa
 
 func Test_IsMessageFromVirtualLegitimate_MessageWithCurrentExpectedPulse_BadSender(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-	sender := gen.UniqueReference()
+	refs := gen.UniqueReferences(2)
+	selfRef := refs[0]
+	sender := refs[0]
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{sender}, nil)
@@ -96,8 +186,9 @@ func Test_IsMessageFromVirtualLegitimate_MessageWithCurrentExpectedPulse_BadSend
 
 func Test_IsMessageFromVirtualLegitimate_MessageWithPrevExpectedPulse_HappyPath(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-	sender := gen.UniqueReference()
+	refs := gen.UniqueReferences(2)
+	selfRef := refs[0]
+	sender := refs[0]
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{sender}, nil)
@@ -115,8 +206,9 @@ func Test_IsMessageFromVirtualLegitimate_MessageWithPrevExpectedPulse_HappyPath(
 
 func Test_IsMessageFromVirtualLegitimate_MessageWithPrevExpectedPulse_BadSender(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-	sender := gen.UniqueReference()
+	refs := gen.UniqueReferences(2)
+	selfRef := refs[0]
+	sender := refs[0]
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{sender}, nil)
@@ -147,8 +239,9 @@ func Test_IsMessageFromVirtualLegitimate_MessageWithPrevExpectedPulse_MustReject
 
 func Test_IsMessageFromVirtualLegitimate_CantCalculateRole(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-	sender := gen.UniqueReference()
+	refs := gen.UniqueReferences(2)
+	selfRef := refs[0]
+	sender := refs[0]
 
 	calcErrorMsg := "bad calculator"
 
@@ -168,8 +261,9 @@ func Test_IsMessageFromVirtualLegitimate_CantCalculateRole(t *testing.T) {
 
 func Test_IsMessageFromVirtualLegitimate_HaveMoreThanOneResponsibleVE(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-	sender := gen.UniqueReference()
+	refs := gen.UniqueReferences(2)
+	selfRef := refs[0]
+	sender := refs[0]
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{sender, sender}, nil)
