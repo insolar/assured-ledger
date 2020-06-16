@@ -15,9 +15,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -25,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journalinglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -33,6 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
@@ -51,6 +55,7 @@ type Server struct {
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       *pulsemanager.PulseManager
+	Journal            *journalinglogger.JournalingLogger
 
 	cycleFn     ConveyorCycleFunc
 	activeState atomickit.Uint32
@@ -138,6 +143,12 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
+	var childLog smachine.SlotMachineLogger = statemachine.ConveyorLoggerFactory{}
+	if convlog.UseTextConvLog {
+		childLog = convlog.MachineLogger{}
+	}
+	s.Journal = journalinglogger.NewJournalingLogger(childLog)
+
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
@@ -145,12 +156,8 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 
 	virtualDispatcher.CycleFn = s.onCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
-
+	virtualDispatcher.MachineLogger = s.Journal
 	s.virtual = virtualDispatcher
-
-	if convlog.UseTextConvLog {
-		virtualDispatcher.MachineLogger = convlog.MachineLogger{}
-	}
 
 	// re HTTP testing
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
@@ -167,9 +174,11 @@ func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
+	s.Journal.Start()
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
 	s.IncrementPulseAndWaitIdle(ctx)
+
 }
 
 func (s *Server) GetPulse() pulsestor.Pulse {
@@ -203,7 +212,7 @@ func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
 
 const (
 	hasActive = 1
-	isIdle = 2
+	isIdle    = 2
 )
 
 func (s *Server) SetCycleCallback(cycleFn ConveyorCycleFunc) {
@@ -241,7 +250,7 @@ func (s *Server) _onCycleUpdate(fn func() uint32) func() {
 	cs := fn()
 	if cycleFn := s.cycleFn; cycleFn != nil {
 		return func() {
-			cycleFn(s.virtual.Conveyor, cs & hasActive != 0, cs & isIdle != 0)
+			cycleFn(s.virtual.Conveyor, cs&hasActive != 0, cs&isIdle != 0)
 		}
 	}
 	return nil
@@ -281,6 +290,7 @@ func (s *Server) Stop() {
 	s.virtual.Conveyor.Stop()
 	_ = s.testWalletServer.Stop(context.Background())
 	_ = s.messageSender.Close()
+	s.Journal.Stop()
 }
 
 func (s *Server) WaitIdleConveyor() {
@@ -309,4 +319,8 @@ func (s *Server) waitIdleConveyor(checkActive bool) {
 
 func (s *Server) ResetActiveConveyorFlag() {
 	s.activeState.UnsetBits(hasActive)
+}
+
+func (s *Server) WrapPayload(pl payload.Marshaler) *RequestWrapper {
+	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
 }

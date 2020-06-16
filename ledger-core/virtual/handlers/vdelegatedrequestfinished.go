@@ -30,12 +30,12 @@ type SMVDelegatedRequestFinished struct {
 	objectCatalog object.Catalog
 }
 
-type stateIsNotReadyErrorMsg struct {
+type stateIsNotReady struct {
 	*log.Msg `txt:"State is not ready"`
 	Object   string
 }
 
-type unExpectedVDelegateRequestFinished struct {
+type unexpectedVDelegateRequestFinished struct {
 	*log.Msg `txt:"Unexpected VDelegateRequestFinished"`
 	Object   string
 	Request  string
@@ -102,7 +102,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
-			ctx.Log().Trace(stateIsNotReadyErrorMsg{
+			ctx.Log().Trace(stateIsNotReady{
 				Object: s.Payload.Callee.String(),
 			})
 			return false
@@ -152,7 +152,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		if state.ActiveUnorderedPendingCount > 0 {
 			state.ActiveUnorderedPendingCount--
 		} else {
-			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef.String(),
 				Request: requestRef.String(),
 				Ordered: false,
@@ -169,7 +169,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 				}
 			}
 		} else {
-			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef.String(),
 				Request: requestRef.String(),
 				Ordered: true,

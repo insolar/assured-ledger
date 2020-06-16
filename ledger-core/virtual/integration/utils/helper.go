@@ -78,7 +78,7 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 	}
 
 	typedChecker := h.server.PublisherMock.SetTypedChecker(ctx, t, h.server)
-	typedChecker.VCallResult.ExpectedCount(1)
+	typedChecker.VCallResult.SetResend(false)
 
 	messagesBefore := h.server.PublisherMock.GetCount()
 	h.server.SendMessage(ctx, msg)

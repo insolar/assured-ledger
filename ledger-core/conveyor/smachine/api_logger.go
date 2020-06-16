@@ -58,16 +58,23 @@ func (v StepLoggerFlags) ErrorFlags() StepLoggerFlags {
 }
 
 const (
-	StepLoggerAdapterSyncCall    StepLoggerFlags = 0
-	StepLoggerAdapterNotifyCall                  = stepLoggerUpdateAdapterBit0
-	StepLoggerAdapterAsyncCall                   = stepLoggerUpdateAdapterBit2
-	StepLoggerAdapterAsyncResult                 = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1
-	StepLoggerAdapterAsyncCancel                 = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
+	StepLoggerAdapterSyncCall           StepLoggerFlags = 0
+	StepLoggerAdapterNotifyCall                         = stepLoggerUpdateAdapterBit0
+	StepLoggerAdapterAsyncCall                          = stepLoggerUpdateAdapterBit2
+	StepLoggerAdapterAsyncResult                        = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1
+	StepLoggerAdapterAsyncCancel                        = stepLoggerUpdateAdapterBit2 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
+	StepLoggerAdapterAsyncExpiredResult                 = stepLoggerUpdateAdapterBit1
+	StepLoggerAdapterAsyncExpiredCancel                 = stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit0
 )
+
 const StepLoggerAdapterMask = stepLoggerUpdateAdapterBit0 | stepLoggerUpdateAdapterBit1 | stepLoggerUpdateAdapterBit2
 
 func (v StepLoggerFlags) AdapterFlags() StepLoggerFlags {
 	return v & StepLoggerAdapterMask
+}
+
+func (v StepLoggerFlags) WithAdapterFlags(flags StepLoggerFlags) StepLoggerFlags {
+	return (v & ^StepLoggerAdapterMask) | (flags & StepLoggerAdapterMask)
 }
 
 // SlotMachineData describes an event that is not connected to a specific SM, or when the related SM is already dead.
@@ -223,6 +230,7 @@ func (p Logger) getStepLoggerData(eventType StepLoggerEvent, stepUpdate uint32, 
 	stepData := p.logger.getStepLoggerData()
 	stepData.EventType = eventType
 	stepData.Error = err
+
 	if stepUpdate != 0 {
 		stepData.StepNo.step = stepUpdate
 	}
@@ -244,6 +252,17 @@ func (p Logger) _doAdapterLog(stepLogger StepLogger, stepUpdate uint32, extraFla
 ) {
 	stepData := p.getStepLoggerData(StepLoggerAdapterCall, stepUpdate, err)
 	stepData.Flags |= extraFlags
+
+	if stepUpdate == 0 {
+		stepData.StepNo.step = 0
+		switch stepData.Flags.AdapterFlags() {
+		case StepLoggerAdapterAsyncResult:
+			stepData.Flags = stepData.Flags.WithAdapterFlags(StepLoggerAdapterAsyncExpiredResult)
+		case StepLoggerAdapterAsyncCancel:
+			stepData.Flags = stepData.Flags.WithAdapterFlags(StepLoggerAdapterAsyncExpiredCancel)
+		}
+	}
+
 	stepLogger.LogAdapter(stepData, adapterID, callID, fields)
 }
 
@@ -340,6 +359,10 @@ func (v StepLoggerFlags) FormatAdapterForLog() string {
 		return "async-result"
 	case StepLoggerAdapterAsyncCancel:
 		return "async-cancel"
+	case StepLoggerAdapterAsyncExpiredResult:
+		return "async-expired-result"
+	case StepLoggerAdapterAsyncExpiredCancel:
+		return "async-expired-cancel"
 	}
 	return ""
 }

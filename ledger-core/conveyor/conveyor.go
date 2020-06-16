@@ -178,6 +178,8 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		return nil
 
 	case pulseState == Antique:
+		createDefaults.InheritAllDependencies = true // ensure inheritance
+
 		// Antique events have individual pulse slots, while being executed in a single SlotMachine
 		if cps := p.pdm.getCachedPulseSlot(targetPN); cps != nil {
 			createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
