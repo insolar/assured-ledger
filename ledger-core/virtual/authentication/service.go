@@ -48,11 +48,11 @@ func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.
 }
 
 func (s service) IsNeedUseToken(token payload.CallDelegationToken) bool {
+	useToken := true
 	if token.Caller == s.affinity.Me() {
-		return false
-	} else {
-		return true
+		useToken = false
 	}
+	return useToken
 }
 
 func (s service) checkDelegationToken() error {
