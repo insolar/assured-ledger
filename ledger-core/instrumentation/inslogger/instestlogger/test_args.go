@@ -15,7 +15,7 @@ import (
 
 
 // readTestLogConfig MUST be in a separate, test-only package to avoid polluting cmd line with test args
-func readTestLogConfig(cfg *configuration.Log, echoAll *bool) {
+func readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
@@ -27,12 +27,17 @@ func readTestLogConfig(cfg *configuration.Log, echoAll *bool) {
 	if echoAll != nil {
 		*echoAll = argEchoAll
 	}
+	if emuMarks != nil {
+		*emuMarks = argEmuMarks
+	}
 }
 
 var argEchoAll bool
+var argEmuMarks bool
 var argOutFile string
 
 func init() {
 	flag.BoolVar(&argEchoAll, "testlog.echo", false, "copy all log messages to console")
+	flag.BoolVar(&argEmuMarks, "testlog.marks", true, "emulate test run/pass/fail/skip marks")
 	flag.StringVar(&argOutFile, "testlog.out", "", "output file for json log")
 }
