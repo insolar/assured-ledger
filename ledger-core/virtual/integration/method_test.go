@@ -22,8 +22,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -327,5 +329,153 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		assert.Equal(t, 1, typedChecker.Handlers.VStateReport.Count.Load())
 	}
 
+	mc.Finish()
+}
+
+// A.Foo calls ordered B1.Bar, B2.Bar, B3.Bar
+func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
+	t.Log("C5114")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.Callee.String()
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		flags = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+
+		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+
+		classB         = gen.UniqueReference()
+		objectB1Global = reference.NewSelf(server.RandomLocalWithPulse())
+		objectB2Global = reference.NewSelf(server.RandomLocalWithPulse())
+		objectB3Global = reference.NewSelf(server.RandomLocalWithPulse())
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+	Method_PrepareObject(ctx, server, payload.Ready, objectB1Global)
+	Method_PrepareObject(ctx, server, payload.Ready, objectB2Global)
+	Method_PrepareObject(ctx, server, payload.Ready, objectB3Global)
+
+	builder := executionevent.NewRPCBuilder(gen.UniqueReference(), objectAGlobal)
+	objectAExecutionMock := runnerMock.AddExecutionMock(objectAGlobal.String())
+	objectAExecutionMock.AddStart(
+		func(ctx execution.Context) {
+			t.Log("ExecutionStart [A.Foo]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:     executionupdate.OutgoingCall,
+			Error:    nil,
+			Outgoing: builder.CallMethod(objectB1Global, classB, "Bar", []byte{}),
+		},
+	)
+
+	objectAExecutionMock.AddContinue(
+		func(result []byte) {
+			t.Log("ExecutionContinue [A.Foo]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:     executionupdate.OutgoingCall,
+			Error:    nil,
+			Outgoing: builder.CallMethod(objectB2Global, classB, "Bar", []byte{}),
+		},
+	)
+	objectAExecutionMock.AddContinue(
+		func(result []byte) {
+			t.Log("ExecutionContinue [A.Foo]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:     executionupdate.OutgoingCall,
+			Error:    nil,
+			Outgoing: builder.CallMethod(objectB3Global, classB, "Bar", []byte{}),
+		},
+	)
+	objectAExecutionMock.AddContinue(
+		func(result []byte) {
+			t.Log("ExecutionContinue [A.Foo]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:   executionupdate.Done,
+			Error:  nil,
+			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+		},
+	)
+
+	runnerMock.AddExecutionMock(objectB1Global.String()).AddStart(
+		func(ctx execution.Context) {
+			t.Log("ExecutionStart [B1.Bar]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:   executionupdate.Done,
+			Result: requestresult.New([]byte("finish B1.Bar"), objectB1Global),
+		},
+	)
+
+	runnerMock.AddExecutionMock(objectB2Global.String()).AddStart(
+		func(ctx execution.Context) {
+			t.Log("ExecutionStart [B2.Bar]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:   executionupdate.Done,
+			Result: requestresult.New([]byte("finish B2.Bar"), objectB2Global),
+		},
+	)
+
+	runnerMock.AddExecutionMock(objectB3Global.String()).AddStart(
+		func(ctx execution.Context) {
+			t.Log("ExecutionStart [B3.Bar]")
+		},
+		&executionupdate.ContractExecutionStateUpdate{
+			Type:   executionupdate.Done,
+			Result: requestresult.New([]byte("finish B3.Bar"), objectB3Global),
+		},
+	)
+
+	runnerMock.AddExecutionClassify(objectAGlobal.String(), flags, nil)
+	runnerMock.AddExecutionClassify(objectB1Global.String(), flags, nil)
+	runnerMock.AddExecutionClassify(objectB2Global.String(), flags, nil)
+	runnerMock.AddExecutionClassify(objectB3Global.String(), flags, nil)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallRequest.SetResend(true).ExpectedCount(3)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		switch res.Callee {
+		case objectAGlobal:
+			require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
+		case objectB1Global:
+			require.Equal(t, []byte("finish B1.Bar"), res.ReturnArguments)
+		case objectB2Global:
+			require.Equal(t, []byte("finish B2.Bar"), res.ReturnArguments)
+		case objectB3Global:
+			require.Equal(t, []byte("finish B3.Bar"), res.ReturnArguments)
+		}
+		// we should resend that message only if it's CallResult from B to A
+		return res.Caller == objectAGlobal
+	}).ExpectedCount(4)
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:         server.GlobalCaller(),
+		Callee:         objectAGlobal,
+		CallSiteMethod: "Foo",
+		CallOutgoing:   server.RandomLocalWithPulse(),
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	beforeCount := server.PublisherMock.GetCount()
+	server.SendMessage(ctx, msg)
+	if !server.PublisherMock.WaitCount(beforeCount+7, 10*time.Second) {
+		t.Fatal("failed to wait until all messages returned")
+	}
+
+	server.WaitActiveThenIdleConveyor()
 	mc.Finish()
 }
