@@ -31,7 +31,7 @@ type suiteLogRedirect struct {
 }
 
 func (v suiteLogRedirect) logger() log.Logger {
-	return NewTestLoggerExt(v.T(), false, v.adapter)
+	return newTestLoggerExt(v.T(), false, v.adapter)
 }
 
 func (v suiteLogRedirect) TestRedirectError() {

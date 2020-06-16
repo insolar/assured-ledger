@@ -9,26 +9,35 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
-	return NewTestLoggerExt(target, suppressTestError, "")
+	return newTestLoggerExt(target, suppressTestError, "")
 }
 
-func NewTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, adapter string) log.Logger {
+func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, adapterOverride string) log.Logger {
 	if target == nil {
 		panic("illegal value")
 	}
 
-	logCfg := defaultLogConfig()
-	if adapter != "" {
-		logCfg.Adapter = adapter
+	logCfg := defaultTestLogConfig()
+	if adapterOverride != "" {
+		logCfg.Adapter = adapterOverride
 	}
-	logCfg.Level = logcommon.DebugLevel.String()
 
 	l, err := newLogger(logCfg)
 	if err != nil {
 		panic(err)
+	}
+
+	switch l.GetFormat() {
+	case logcommon.JSONFormat:
+		target = ConvertJSONTestingOutput(target)
+	case logcommon.TextFormat:
+		// leave as is
+	default:
+		panic(throw.Unsupported())
 	}
 
 	return l.WithMetrics(logcommon.LogMetricsResetMode | logcommon.LogMetricsTimestamp).

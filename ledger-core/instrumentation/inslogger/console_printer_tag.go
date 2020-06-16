@@ -3,26 +3,25 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build convlogtxt
+// +build convlogtxt testlogtxt
 
 package inslogger
 
 import (
-	"os"
+	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/consprint"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func init() {
-	if _, ok := logoutput.JSONStdErr.Writer.(*os.File); !ok {
-		// avoid cases of unexpected use
-		panic(throw.IllegalState())
-	}
+	logoutput.JSONConsoleWrapper = ConvertJSONConsoleOutput
+}
 
+func copyConsoleOutputConfig() consprint.Config {
 	d := ConsoleWriterDefaults
-	cfg := consprint.Config{
+	return consprint.Config{
 		NoColor:    d.NoColor,
 		TimeFormat: d.TimeFormat,
 		PartsOrder: d.PartsOrder,
@@ -36,5 +35,12 @@ func init() {
 		FormatErrFieldName:  d.FormatErrFieldName,
 		FormatErrFieldValue: d.FormatErrFieldValue,
 	}
-	logoutput.JSONStdErr.Writer = consprint.NewConsolePrinter(logoutput.JSONStdErr.Writer, cfg)
+}
+
+func ConvertJSONConsoleOutput(in io.Writer) io.Writer {
+	return consprint.NewConsolePrinter(in, copyConsoleOutputConfig())
+}
+
+func ConvertJSONTestingOutput(in logcommon.TestingLogger) logcommon.TestingLogger {
+	return consprint.NewConsoleTestingPrinter(in, copyConsoleOutputConfig())
 }

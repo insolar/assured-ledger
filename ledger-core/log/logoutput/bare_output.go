@@ -6,6 +6,7 @@
 package logoutput
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 
@@ -33,27 +34,24 @@ func (l LogOutput) String() string {
 	return string(l)
 }
 
-var JSONStdErr = logcommon.BareOutput{
-	Writer:         os.Stderr,
-	FlushFn:        os.Stderr.Sync,
-	ProtectedClose: true,
-}
+var JSONConsoleWrapper func(io.Writer) io.Writer
 
 func OpenLogBareOutput(output LogOutput, fmt logcommon.LogFormat, param string) (logcommon.BareOutput, error) {
 	switch output {
 	case StdErrOutput:
-		if fmt != logcommon.JSONFormat {
-			return logcommon.BareOutput{
-				Writer:         os.Stderr,
-				FlushFn:        os.Stderr.Sync,
-				ProtectedClose: true,
-			}, nil
+		o := logcommon.BareOutput{
+			Writer:         os.Stderr,
+			FlushFn:        os.Stderr.Sync,
+			ProtectedClose: true,
 		}
 
-		o := JSONStdErr
-		if o.Writer == nil {
-			return o, throw.IllegalState()
+		if fmt == logcommon.JSONFormat && JSONConsoleWrapper != nil {
+			o.Writer = JSONConsoleWrapper(o.Writer)
+			if o.Writer == nil {
+				return o, throw.FailHere("failed on JSONConsoleWrapper")
+			}
 		}
+
 		return o, nil
 	case SysLogOutput:
 		executableName := filepath.Base(os.Args[0])

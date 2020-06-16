@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
@@ -41,6 +42,12 @@ func defaultLogConfig() configuration.Log {
 	// enforce buffer-less for a non-configured logger
 	logCfg.BufferSize = 0
 	logCfg.LLBufferSize = -1
+	return logCfg
+}
+
+func defaultTestLogConfig() configuration.Log {
+	logCfg := defaultLogConfig()
+	logCfg.Level = logcommon.DebugLevel.String()
 	return logCfg
 }
 

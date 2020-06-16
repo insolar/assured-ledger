@@ -34,12 +34,17 @@ const (
 var _ smachine.SlotMachineLogger = MachineLogger{}
 
 type MachineLogger struct {
+	EchoTo smachine.SlotMachineLogger
 	EchoToGlobal bool
 }
 
 func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg string) {
+	if l.EchoTo != nil {
+		l.EchoTo.LogMachineInternal(data, msg)
+	}
+
 	if data.Error != nil {
-		l.LogMachineCritical(data, msg)
+		l.logMachineCritical(data, msg)
 		return
 	}
 
@@ -50,7 +55,15 @@ func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg str
 	}
 }
 
-func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
+func (l MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
+	if l.EchoTo != nil {
+		l.EchoTo.LogMachineCritical(data, msg)
+	}
+
+	l.logMachineCritical(data, msg)
+}
+
+func (MachineLogger) logMachineCritical(data smachine.SlotMachineData, msg string) {
 	printMachineData(data, mError, msg)
 
 	if data.Error == nil {
@@ -61,6 +74,11 @@ func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg strin
 }
 
 func (l MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
+	if l.EchoTo != nil {
+		sl := l.EchoTo.CreateStepLogger(ctx, sm, tracer)
+		return conveyorStepLogger{sl.GetLoggerContext(), sm, sl.GetTracerID(), sl, l.EchoToGlobal}
+	}
+
 	ctxWithTrace, _ := inslogger.WithTraceField(ctx, tracer)
 	return conveyorStepLogger{ctxWithTrace, sm, tracer, l.EchoToGlobal}
 }
@@ -69,6 +87,7 @@ type conveyorStepLogger struct {
 	ctxWithTrace context.Context
 	sm           smachine.StateMachine
 	tracer       smachine.TracerID
+	echoTo       smachine.StepLogger
 	echoToGlobal bool
 }
 
@@ -84,11 +103,20 @@ func (v conveyorStepLogger) GetLoggerContext() context.Context {
 	return v.ctxWithTrace
 }
 
-func (v conveyorStepLogger) CreateAsyncLogger(_ context.Context, _ *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
+func (v conveyorStepLogger) CreateAsyncLogger(ctx context.Context, data *smachine.StepLoggerData) (context.Context, smachine.StepLogger) {
+	if v.echoTo != nil {
+		subCtx, sl := v.echoTo.CreateAsyncLogger(ctx, data)
+		return subCtx, conveyorStepLogger{subCtx, v.sm, v.tracer, sl, v.echoToGlobal}
+	}
+
 	return v.ctxWithTrace, v
 }
 
 func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine.StepLoggerUpdateData) {
+	if v.echoTo != nil && v.echoTo.CanLogEvent(data.EventType, smachine.StepLogLevelDefault) {
+		v.echoTo.LogUpdate(data, upd)
+	}
+
 	level, levelName := MapBasicLogLevel(data)
 
 	PrepareStepName(&data.CurrentStep)
@@ -116,6 +144,10 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 }
 
 func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
+	if v.echoTo != nil && v.echoTo.CanLogEvent(data.EventType, smachine.StepLogLevelDefault) {
+		v.echoTo.LogInternal(data, updateType)
+	}
+
 	level, levelName := MapBasicLogLevel(data)
 
 	PrepareStepName(&data.CurrentStep)
@@ -136,13 +168,28 @@ func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType
 	}
 }
 
-func (conveyorStepLogger) CanLogTestEvent() bool {
-	return false
+func (v conveyorStepLogger) CanLogTestEvent() bool {
+	return true
 }
 
-func (conveyorStepLogger) LogTestEvent(smachine.StepLoggerData, interface{}) {}
+func (v conveyorStepLogger) LogTestEvent(data smachine.StepLoggerData, customEvent interface{}) {
+	if v.echoTo != nil && v.echoTo.CanLogTestEvent() {
+		v.echoTo.LogTestEvent(data, customEvent)
+	}
+
+	_, levelName := MapCustomLogLevel(data)
+
+	PrepareStepName(&data.CurrentStep)
+
+	printStepData(data, levelName, fmt.Sprintf("custom_test  %+v", customEvent),
+		fmt.Sprintf("payload=%T tracer=%v", v.sm, v.tracer))
+}
 
 func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
+	if v.echoTo != nil && v.echoTo.CanLogEvent(data.EventType, smachine.StepLogLevelDefault) {
+		v.echoTo.LogEvent(data, customEvent, fields)
+	}
+
 	level, levelName := MapCustomLogLevel(data)
 
 	PrepareStepName(&data.CurrentStep)
@@ -172,6 +219,10 @@ func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent i
 }
 
 func (v conveyorStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
+	if v.echoTo != nil && v.echoTo.CanLogEvent(data.EventType, smachine.StepLogLevelDefault) {
+		v.echoTo.LogAdapter(data, adapterID, callID, fields)
+	}
+
 	level, levelName := MapBasicLogLevel(data)
 
 	msg := data.FormatForLog("")
