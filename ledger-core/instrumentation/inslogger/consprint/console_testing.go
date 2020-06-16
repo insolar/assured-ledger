@@ -66,7 +66,7 @@ func (p *testingConsoleWriter) Fatal(args ...interface{}) {
 
 func (p *testingConsoleWriter) log(s string, level int) {
 	p.mutex.Lock()
-	p.mutex.Unlock()
+	defer p.mutex.Unlock()
 	p.level = level
 	_, _ = p.ConsoleWriter.Write([]byte(s))
 }
