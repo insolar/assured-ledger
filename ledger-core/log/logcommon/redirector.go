@@ -20,7 +20,7 @@ type TestingLogger interface {
 }
 
 type TestingLoggerOutput struct {
-	Output            io.Writer
+	Output, EchoTo    io.Writer
 	Testing           TestingLogger
 	InterceptFatal    func([]byte) bool
 	SuppressTestError bool
@@ -44,8 +44,10 @@ func (r *TestingLoggerOutput) Write(b []byte) (int, error) {
 	if r.Output != nil {
 		return r.Output.Write(b)
 	}
+	if r.EchoTo != nil {
+		return r.EchoTo.Write(b)
+	}
 
-	r.Testing.Log(string(b))
 	return len(b), nil
 }
 
@@ -64,16 +66,15 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 		} else {
 			defer r.Testing.Log(msg)
 		}
-	default:
-		if r.Output == nil {
-			r.Testing.Log(msg)
-			return len(b), nil
-		}
 	}
 
 	if r.Output != nil {
 		return r.Output.Write(b)
 	}
+	if r.EchoTo != nil {
+		return r.EchoTo.Write(b)
+	}
+
 	return len(b), nil
 }
 

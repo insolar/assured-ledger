@@ -40,9 +40,15 @@ func copyConsoleOutputConfig() consprint.Config {
 }
 
 func ConvertJSONConsoleOutput(in io.Writer) io.Writer {
+	if in == nil {
+		return nil
+	}
 	return consprint.NewConsolePrinter(in, copyConsoleOutputConfig())
 }
 
 func ConvertJSONTestingOutput(in logcommon.TestingLogger) logcommon.TestingLogger {
+	if in == nil {
+		return nil
+	}
 	return consprint.NewConsoleTestingPrinter(in, copyConsoleOutputConfig())
 }

@@ -37,6 +37,10 @@ func (l LogOutput) String() string {
 	return string(l)
 }
 
+func (l LogOutput) IsConsole() bool {
+	return l == StdErrOutput
+}
+
 var JSONConsoleWrapper func(io.Writer) io.Writer
 
 func OpenLogBareOutput(output LogOutput, fmt logcommon.LogFormat, param string) (logcommon.BareOutput, error) {
