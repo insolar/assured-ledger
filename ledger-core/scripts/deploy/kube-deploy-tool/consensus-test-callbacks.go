@@ -53,9 +53,9 @@ func (c *ConsensusTestCallbacks) suiteFinished(config *KubeDeployToolConfig) {
 	fmt.Println("Done")
 
 	fmt.Println("Creating report")
-	reportUrl, err := CreateReport(config.MetricParams, dirName)
+	reportURL, err := CreateReport(config.MetricParams, dirName)
 	if err != nil {
 		fmt.Println("Failed to create report: ", err)
 	}
-	fmt.Printf("Done\nReport is available at %s\n", reportUrl)
+	fmt.Printf("Done\nReport is available at %s\n", reportURL)
 }
