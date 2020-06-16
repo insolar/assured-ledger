@@ -29,7 +29,7 @@ func NewConsoleTestingPrinter(w logcommon.TestingLogger, config Config) logcommo
 		}
 	}
 
-	cw := &testingConsoleWriter{config, w}
+	cw := &testingConsoleWriter{ConsoleWriter: config, Testing: w}
 	cw.ConsoleWriter.Out = cw
 	return cw
 }

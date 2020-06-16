@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build convlogtxt testlogtxt
+// +build convlogtxt copylogtxt
 
 package inslogger
 
@@ -14,6 +14,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
+
+const ConvertJSONLogForConsole = true
 
 func init() {
 	logoutput.JSONConsoleWrapper = ConvertJSONConsoleOutput

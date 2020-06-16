@@ -80,7 +80,7 @@ func (l MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMa
 	}
 
 	ctxWithTrace, _ := inslogger.WithTraceField(ctx, tracer)
-	return conveyorStepLogger{ctxWithTrace, sm, tracer, l.EchoToGlobal}
+	return conveyorStepLogger{ctxWithTrace, sm, tracer, nil, l.EchoToGlobal}
 }
 
 type conveyorStepLogger struct {
