@@ -401,7 +401,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	runnerMock.AddExecutionClassify("Bar", flags, nil)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend().ExpectedCount(1)
+	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		switch res.Callee {
 		case objectAGlobal:
@@ -499,7 +499,7 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 	runnerMock.AddExecutionClassify("Bar", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend().ExpectedCount(1)
+	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		switch res.Callee {
 		case objectAGlobal:
