@@ -5,7 +5,7 @@
 
 // +build convlogtxt copylogtxt
 
-package inslogger
+package instestlogger
 
 import (
 	"io"

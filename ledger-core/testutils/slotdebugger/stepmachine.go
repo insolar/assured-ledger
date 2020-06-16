@@ -14,7 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -60,7 +60,7 @@ func NewPast(ctx context.Context, t *testing.T, suppressLogError bool) *StepCont
 }
 
 func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	inslogger.SetTestOutput(t, suppressLogError)
+	instestlogger.SetTestOutput(t, suppressLogError)
 
 	debugLogger := debuglogger.NewDebugMachineLogger(convlog.MachineLogger{})
 	machineConfig := smachine.SlotMachineConfig{

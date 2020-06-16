@@ -32,7 +32,7 @@ func init() {
 
 	// NB! initialize adapters' globals before the next call
 	global.TrySetDefaultInitializer(func() (log.LoggerBuilder, error) {
-		return newLogger(defaultLogConfig())
+		return NewLogBuilder(defaultLogConfig())
 	})
 }
 
@@ -45,7 +45,7 @@ func defaultLogConfig() configuration.Log {
 	return logCfg
 }
 
-func defaultTestLogConfig() configuration.Log {
+func DefaultTestLogConfig() configuration.Log {
 	logCfg := defaultLogConfig()
 	logCfg.Level = logcommon.DebugLevel.String()
 	return logCfg
@@ -59,7 +59,7 @@ func fileLineMarshaller(file string, line int) string {
 	return file[skip:] + ":" + strconv.Itoa(line)
 }
 
-func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
+func NewLogBuilder(cfg configuration.Log) (log.LoggerBuilder, error) {
 	defaults := DefaultLoggerSettings()
 	pCfg, err := ParseLogConfigWithDefaults(cfg, defaults)
 	if err != nil {
@@ -95,7 +95,7 @@ func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
 // newLog creates a new logger with the given configuration
 func NewLog(cfg configuration.Log) (logger log.Logger, err error) {
 	var b log.LoggerBuilder
-	b, err = newLogger(cfg)
+	b, err = NewLogBuilder(cfg)
 	if err == nil {
 		logger, err = b.Build()
 		if err == nil {

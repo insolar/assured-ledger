@@ -3,12 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package inslogger
+package instestlogger
 
 import (
 	"io"
 	"os"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -24,24 +25,28 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 		panic("illegal value")
 	}
 
-	logCfg := defaultTestLogConfig()
+	logCfg := inslogger.DefaultTestLogConfig()
+
+	echoAllCfg := false
 	if adapterOverride != "" {
 		logCfg.Adapter = adapterOverride
+	} else {
+		readTestLogConfig(&logCfg, &echoAllCfg)
 	}
 
-	outputType, err := ParseOutput(logCfg.OutputType, defaultLogOutput)
+	outputType, err := inslogger.ParseOutput(logCfg.OutputType)
 	if err != nil {
 		panic(err)
 	}
 	isConsoleOutput := outputType.IsConsole()
 
-	l, err := newLogger(logCfg)
+	l, err := inslogger.NewLogBuilder(logCfg)
 	if err != nil {
 		panic(err)
 	}
 
 	var echoTo io.Writer
-	if echoAll && !isConsoleOutput {
+	if (echoAll || echoAllCfg) && !isConsoleOutput {
 		echoTo = os.Stderr
 	}
 
