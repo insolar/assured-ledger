@@ -22,6 +22,7 @@ type LogOutput uint8
 const (
 	StdErrOutput LogOutput = iota
 	SysLogOutput
+	FileOutput
 )
 
 func (l LogOutput) String() string {
@@ -30,6 +31,8 @@ func (l LogOutput) String() string {
 		return "stderr"
 	case SysLogOutput:
 		return "syslog"
+	case FileOutput:
+		return "file"
 	}
 	return string(l)
 }
@@ -53,6 +56,18 @@ func OpenLogBareOutput(output LogOutput, fmt logcommon.LogFormat, param string) 
 		}
 
 		return o, nil
+	case FileOutput:
+		w, err := os.OpenFile(param, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return logcommon.BareOutput{}, err
+		}
+
+		return logcommon.BareOutput{
+			Writer:         w,
+			FlushFn:        w.Sync,
+			ProtectedClose: false,
+		}, nil
+
 	case SysLogOutput:
 		executableName := filepath.Base(os.Args[0])
 		w, err := outputsyslog.ConnectSyslogByParam(param, executableName)
