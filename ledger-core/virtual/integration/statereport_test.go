@@ -157,7 +157,6 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 		}
 		return true
 	})
-
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
