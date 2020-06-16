@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -60,6 +61,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 	{
 		var (
 			catalog     object.Catalog = catalogWrapper.Mock()
+			authService                = authentication.NewService(ctx, gen.UniqueReference(), nil)
 			sharedState                = &object.SharedState{
 				Info: object.Info{
 					Reference:      objectRef,
@@ -71,6 +73,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 			}
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&authService)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
