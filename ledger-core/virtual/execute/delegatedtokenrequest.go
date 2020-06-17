@@ -76,9 +76,10 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
-		s.response = res
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			s.response = res
+
 			return ctx.WakeUp()
 		}
 	})
