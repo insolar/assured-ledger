@@ -14,4 +14,11 @@ import (
 func TestExample(t *testing.T) {
 	inslogger.SetTestOutput(t, false)
 	RunExample(5)
+	/*
+	RunExample(1)
+	RunExample(3)
+	RunExample(8)
+	RunExample(0)
+	RunExample(-1)
+	 */
 }
