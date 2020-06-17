@@ -67,7 +67,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
 					Outgoing:          oneRandomOrderedRequest,
@@ -82,7 +82,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
 					Outgoing:          oneRandomUnorderedRequest,
@@ -98,7 +98,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
 					Outgoing:          retryOrderedRequestRef,
@@ -113,7 +113,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
@@ -281,11 +281,11 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			}
 
 			expectedResponse := tc.expectedResponse
-			expectedResponse.DelegationSpec.Approver = nodeRef
-			expectedResponse.DelegationSpec.DelegateTo = caller
-			expectedResponse.DelegationSpec.Caller = caller
-			expectedResponse.DelegationSpec.PulseNumber = pulse.OfNow()
-			expectedResponse.DelegationSpec.Callee = objectRef
+			expectedResponse.ResponseDelegationSpec.Approver = nodeRef
+			expectedResponse.ResponseDelegationSpec.DelegateTo = caller
+			expectedResponse.ResponseDelegationSpec.Caller = caller
+			expectedResponse.ResponseDelegationSpec.PulseNumber = pulse.OfNow()
+			expectedResponse.ResponseDelegationSpec.Callee = objectRef
 			expectedResponse.Callee = objectRef
 
 			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {

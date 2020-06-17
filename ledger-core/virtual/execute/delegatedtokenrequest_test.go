@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -22,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -72,6 +74,11 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
 
+		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
+		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
+		slotMachine.AddInterfaceDependency(&auth)
+
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
@@ -104,7 +111,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 
 		require.False(t, slotLink.IsZero())
 		require.True(t, bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			DelegationSpec: payload.CallDelegationToken{Outgoing: smExecute.execution.Outgoing},
+			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: smExecute.execution.Outgoing},
 		}))
 	}
 	{

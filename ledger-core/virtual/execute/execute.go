@@ -29,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -57,9 +58,10 @@ type SMExecute struct {
 	methodIsolation contract.MethodIsolation
 
 	// dependencies
-	runner        runner.ServiceAdapter
-	messageSender messageSenderAdapter.MessageSender
-	pulseSlot     *conveyor.PulseSlot
+	runner                runner.ServiceAdapter
+	messageSender         messageSenderAdapter.MessageSender
+	pulseSlot             *conveyor.PulseSlot
+	authenticationService authentication.Service
 
 	outgoing        *payload.VCallRequest
 	outgoingObject  reference.Global
@@ -87,6 +89,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.authenticationService)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -494,10 +497,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	case executionevent.CallConstructor:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoing.DelegationSpec = s.delegationTokenSpec
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoing.DelegationSpec = s.delegationTokenSpec
 		s.outgoingObject = s.outgoing.Callee
 	default:
 		panic(throw.IllegalValue())
@@ -709,6 +714,9 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
 	}
+
+	msg.DelegationSpec = s.delegationTokenSpec
+
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
