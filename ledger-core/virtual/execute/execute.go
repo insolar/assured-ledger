@@ -517,9 +517,10 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			if !ok || res == nil {
 				panic(throw.IllegalValue())
 			}
-			s.outgoingResult = res.ReturnArguments
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				s.outgoingResult = res.ReturnArguments
+
 				return ctx.WakeUp()
 			}
 		})
