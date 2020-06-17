@@ -90,7 +90,7 @@ func CollectMetrics(cfg MetricsConfig, groups []middleware.GroupConfig) (reportD
 	return dirName, nil
 }
 
-func CreateReport(cfg MetricsConfig, dirName string) (reportUrl string, err error) {
+func CreateReport(cfg MetricsConfig, dirName string) (reportURL string, err error) {
 	reportCfg := report.Config{
 		Webdav: middleware.WebDavConfig{
 			Host:      cfg.WebDav.Host,

@@ -15,6 +15,10 @@ import (
 )
 
 func main() {
+	os.Exit(runSuite())
+}
+
+func runSuite() int {
 	cfg := readConfig()
 	callbacks := NewConsensusTestCallbacks()
 	insolarManager := NewInsolarNetManager(
@@ -44,7 +48,12 @@ func main() {
 
 	startTest(cfg, insolarManager)
 
-	callbacks.suiteFinished(cfg)
+	err = callbacks.suiteFinished(cfg)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return 1
+	}
+	return 0
 }
 
 func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {

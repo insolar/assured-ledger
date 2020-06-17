@@ -43,19 +43,19 @@ func (c *ConsensusTestCallbacks) ready(params NetParams, timing eventTiming) {
 func (c *ConsensusTestCallbacks) stopped(params NetParams, timing eventTiming) {
 }
 
-func (c *ConsensusTestCallbacks) suiteFinished(config *KubeDeployToolConfig) {
+func (c *ConsensusTestCallbacks) suiteFinished(config *KubeDeployToolConfig) error {
 	fmt.Println("Gathering metrics")
 	dirName, err := CollectMetrics(config.MetricParams, Groups)
 	if err != nil {
-		fmt.Println("Metrics replicator failed: ", err)
-		return
+		return fmt.Errorf("metrics replicator failed: %s", err)
 	}
 	fmt.Println("Done")
 
 	fmt.Println("Creating report")
 	reportURL, err := CreateReport(config.MetricParams, dirName)
 	if err != nil {
-		fmt.Println("Failed to create report: ", err)
+		return fmt.Errorf("failed to create report: %s", err)
 	}
 	fmt.Printf("Done\nReport is available at %s\n", reportURL)
+	return nil
 }
