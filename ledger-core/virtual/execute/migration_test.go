@@ -129,5 +129,4 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		smExecute.stepSendOutgoing(execCtx)
 	}
-
 }

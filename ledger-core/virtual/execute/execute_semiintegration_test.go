@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -68,13 +67,12 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
-
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -143,12 +141,12 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -219,13 +217,12 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
-
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -297,13 +294,12 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
-
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -373,13 +369,12 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
-
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -448,13 +443,12 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
-
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}

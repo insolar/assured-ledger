@@ -498,10 +498,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
+		s.outgoing.DelegationSpec = s.getToken()
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = s.outgoing.Callee
+		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -653,7 +655,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		Callee:         s.execution.Object,
 		CallOutgoing:   s.execution.Outgoing,
 		CallIncoming:   s.execution.Incoming,
-		DelegationSpec: s.delegationTokenSpec,
+		DelegationSpec: s.getToken(),
 		LatestState:    lastState,
 	}
 
@@ -711,6 +713,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallIncomingResult: reference.Local{},
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
+		DelegationSpec:     s.getToken(),
 	}
 
 	target := s.Meta.Sender
@@ -755,4 +758,11 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash(data)
 	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
+}
+
+func (s *SMExecute) getToken() payload.CallDelegationToken {
+	if s.authenticationService != nil && !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
+		return payload.CallDelegationToken{}
+	}
+	return s.delegationTokenSpec
 }

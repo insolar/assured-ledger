@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -61,8 +60,9 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 
 	{
 		var (
-			catalog     object.Catalog = catalogWrapper.Mock()
-			sharedState                = &object.SharedState{
+			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service = authentication.NewServiceMock(t)
+			sharedState                        = &object.SharedState{
 				Info: object.Info{
 					Reference:      objectRef,
 					PendingTable:   object.NewRequestTable(),
@@ -73,11 +73,7 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 			}
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
-
-		jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-			QueryRoleMock.Return([]reference.Global{gen.UniqueReference()}, nil)
-		auth := authentication.NewService(ctx, reference.Global{}, jetCoordinatorMock)
-		slotMachine.AddInterfaceDependency(&auth)
+		slotMachine.AddInterfaceDependency(&authService)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
