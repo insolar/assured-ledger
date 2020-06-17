@@ -107,7 +107,7 @@ func (s *SMDelegatedTokenRequest) stepSendRequest(ctx smachine.ExecutionContext)
 
 func (s *SMDelegatedTokenRequest) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.response == nil {
-		ctx.Sleep().ThenRepeat()
+		return ctx.Sleep().ThenRepeat()
 	}
 
 	return ctx.Stop()

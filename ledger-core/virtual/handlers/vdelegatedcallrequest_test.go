@@ -61,6 +61,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	}{
 		{
 			name:                        "OK tolerable",
+			testRailCase:                "C5133",
 			PendingRequestTable:         object.NewRequestTable(),
 			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -76,6 +77,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "OK intolerable",
+			testRailCase:                  "C5132",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -107,6 +109,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "retry intolerable",
+			testRailCase:                  "C5127",
 			PendingRequestTable:           retryUnorderedTable,
 			requestRef:                    retryUnorderedRequestRef,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -123,6 +126,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "unexpected intolerable",
+			testRailCase:                  "C5131",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
@@ -152,6 +156,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "too old tolerable",
+			testRailCase:                  "C5130",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -161,6 +166,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "full table intolerable",
+			testRailCase:                  "C5129",
 			PendingRequestTable:           oneRandomUnorderedTable,
 			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -190,7 +196,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                        "wrong call interference flag: expected tolerable, get intolerable",
-			testRailCase:                "C4989",
+			testRailCase:                "C5128",
 			PendingRequestTable:         object.NewRequestTable(),
 			requestRef:                  reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -200,9 +206,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.testRailCase != "" {
-				t.Log(tc.testRailCase)
-			}
+			t.Log(tc.testRailCase)
 			var (
 				mc  = minimock.NewController(t)
 				ctx = inslogger.TestContext(t)

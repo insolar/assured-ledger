@@ -255,11 +255,11 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	}
 
 	{
-		require.Equal(t, typedChecker.Handlers.VCallResult.Count.Load(), 1)
-		require.Equal(t, typedChecker.Handlers.VDelegatedCallResponse.Count.Load(), 1)
-		require.Equal(t, typedChecker.Handlers.VDelegatedCallRequest.Count.Load(), 1)
-		require.Equal(t, typedChecker.Handlers.VStateReport.Count.Load(), 1)
-		require.Equal(t, typedChecker.Handlers.VDelegatedRequestFinished.Count.Load(), 1)
+		require.Equal(t, typedChecker.VCallResult.Count(), 1)
+		require.Equal(t, typedChecker.VDelegatedCallResponse.Count(), 1)
+		require.Equal(t, typedChecker.VDelegatedCallRequest.Count(), 1)
+		require.Equal(t, typedChecker.VStateReport.Count(), 1)
+		require.Equal(t, typedChecker.VDelegatedRequestFinished.Count(), 1)
 	}
 }
 
