@@ -64,6 +64,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	server.StartRecording(10000, true)
+
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -120,7 +122,6 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	}
 
 	{
-		it := server.Journal.GetJournalIterator()
 		select {
 		case <-it.WaitStop(&execute.SMExecute{}, 2):
 		case <-time.After(10 * time.Second):

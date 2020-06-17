@@ -35,7 +35,7 @@ type DebugStepLogger struct {
 
 	sm          smachine.StateMachine
 	events      chan<- UpdateEvent
-	continueSig <-chan struct{}
+	continueSig synckit.SignalChannel
 }
 
 func (c DebugStepLogger) CanLogEvent(smachine.StepLoggerEvent, smachine.StepLogLevel) bool {
@@ -121,24 +121,24 @@ func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smac
 type LoggerSlotPredicateFn func(smachine.StateMachine, smachine.TracerID) bool
 
 type DebugMachineLogger struct {
-	underlying        smachine.SlotMachineLogger
-	events            chan UpdateEvent
-	continueExecution chan struct{}
-	slotPredicate     LoggerSlotPredicateFn
+	underlying   smachine.SlotMachineLogger
+	events       chan UpdateEvent
+	continueStep synckit.ClosableSignalChannel
 }
 
 func (v DebugMachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, traceID smachine.TracerID) smachine.StepLogger {
 	underlying := v.underlying.CreateStepLogger(ctx, sm, traceID)
 
-	if v.slotPredicate != nil && !v.slotPredicate(sm, traceID) {
-		return underlying
+	continueStep := synckit.SignalChannel(v.continueStep)
+	if continueStep == nil {
+		continueStep = synckit.ClosedChannel()
 	}
 
 	return DebugStepLogger{
 		StepLogger:  underlying,
 		sm:          sm,
 		events:      v.events,
-		continueSig: v.continueExecution,
+		continueSig: v.continueStep,
 	}
 }
 
@@ -150,47 +150,64 @@ func (v DebugMachineLogger) LogMachineCritical(slotMachineData smachine.SlotMach
 	v.underlying.LogMachineCritical(slotMachineData, msg)
 }
 
-func (v DebugMachineLogger) GetEvent() UpdateEvent {
-	event, ok := <-v.events
-	if !ok {
-		return UpdateEvent{}
+func (v DebugMachineLogger) LogStopping(m *smachine.SlotMachine) {
+	v.underlying.LogStopping(m)
+	v.continueAll()
+}
+
+func (v DebugMachineLogger) continueAll() {
+	if v.continueStep != nil {
+		select {
+		case _, ok := <- v.continueStep:
+			if ok {
+				close(v.continueStep)
+			}
+		}
 	}
-	return event
+}
+
+func (v DebugMachineLogger) GetEvent() UpdateEvent {
+	return <-v.events
 }
 
 func (v DebugMachineLogger) Continue() {
-	v.continueExecution <- struct{}{}
+	if v.continueStep != nil {
+		v.continueStep <- struct{}{}
+	}
 }
 
-func (v *DebugMachineLogger) SetPredicate(fn LoggerSlotPredicateFn) {
-	if fn == nil {
+func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEvents bool) {
+	for {
+		select {
+		case _, ok := <-v.events:
+			if !ok {
+				return
+			}
+		case _, ok := <-flushDone:
+			if !ok {
+				if closeEvents {
+					close(v.events)
+				}
+				return
+			}
+		}
+	}
+}
+
+func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) DebugMachineLogger {
+	return DebugMachineLogger{
+		underlying:    underlying,
+		events:        make(chan UpdateEvent, 1),
+		continueStep:  make(chan struct{}),
+	}
+}
+
+func NewDebugMachineLoggerNoBlock(underlying smachine.SlotMachineLogger, eventBufLimit int) DebugMachineLogger {
+	if eventBufLimit <= 0 {
 		panic(throw.IllegalValue())
 	}
-	v.slotPredicate = fn
-}
-
-func (v *DebugMachineLogger) Stop() {
-	close(v.continueExecution)
-}
-
-func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel) {
-	for {
-		ok := false
-		select {
-		case _, ok = <-v.events:
-		case _, ok = <-flushDone:
-		}
-		if !ok {
-			return
-		}
-	}
-}
-
-func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) *DebugMachineLogger {
-	return &DebugMachineLogger{
-		underlying:        underlying,
-		events:            make(chan UpdateEvent, 1),
-		continueExecution: make(chan struct{}),
-		slotPredicate:     nil,
+	return DebugMachineLogger{
+		underlying:    underlying,
+		events:        make(chan UpdateEvent, eventBufLimit),
 	}
 }
