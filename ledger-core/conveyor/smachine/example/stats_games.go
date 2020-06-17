@@ -14,7 +14,6 @@ func NewStatsOfGame() StatsStateMachine {
 	return &StatsOfTheGames{StatsTemplate: StatsTemplate{}}
 }
 
-const statsKey = "statsKey777"
 const statsDataKey = "statsDataKey777"
 
 var _ StatsStateMachine = &StatsOfTheGames{}
@@ -68,10 +67,6 @@ func (stat *StatsOfTheGames) stepSetup(ctx smachine.InitializationContext) smach
 		panic(throw.IllegalState())
 	}
 	return ctx.Jump(stat.stepUpdateStats)
-}
-
-func (stat *StatsOfTheGames) GetCurrentStats() GamesStats {
-	return stat.gamesStats
 }
 
 func (stats *StatsOfTheGames) stepUpdateStats(ctx smachine.ExecutionContext) smachine.StateUpdate {

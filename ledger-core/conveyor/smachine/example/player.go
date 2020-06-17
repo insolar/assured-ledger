@@ -85,6 +85,8 @@ func (p *PlayerSM) stepInit(ctx smachine.InitializationContext) smachine.StateUp
 // freePlayer is a key to advertise a player without a pair
 const freePlayer = "freePlayer"
 
+const statsFactoryKey = "statsKey777"
+
 var sharedPlayerPairType = reflect.TypeOf((*SharedPairData)(nil))
 var sharedStatsDataType = reflect.TypeOf((*SharedStatsData)(nil))
 
@@ -292,7 +294,7 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 // At this step we have a game played. Need to prepare to update the stats
 func (p *PlayerSM) stepPrepareStatsOfTheGames(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
-	sdl := ctx.GetPublishedLink(statsKey)
+	sdl := ctx.GetPublishedLink(statsFactoryKey)
 	if sdl.IsOfType(sharedStatsDataType) {
 		p.stats.sharedData = sdl
 		if p.stats.PrepareAccess(func(pp *SharedStatsData) (wakeup bool) {
@@ -307,7 +309,7 @@ func (p *PlayerSM) stepPrepareStatsOfTheGames(ctx smachine.ExecutionContext) sma
 	// share the data
 	p.stats.sharedData = ctx.Share(sd, 0)
 	// and publish it to make accessible to other SMs
-	if !ctx.Publish(statsKey, p.stats.sharedData) {
+	if !ctx.Publish(statsFactoryKey, p.stats.sharedData) {
 		// collision has happen - lets repeat after other SMs
 		return ctx.Yield().ThenRepeat()
 	}
@@ -415,7 +417,7 @@ func (p *PlayerSM) stepNextGame(ctx smachine.ExecutionContext) smachine.StateUpd
 	// release shared data
 	// it is safe to try to un-share data from another slot - it will be ignored
 	ctx.Unshare(p.pair.sharedData)
-	//ctx.Unshare(p.stats.sharedData)
+	//ctx.Unshare(p.stats.sharedData)	// FIXME: this needs to be uncommented
 
 	// reset local data
 	p.pair = SharedPairDataLink{}
