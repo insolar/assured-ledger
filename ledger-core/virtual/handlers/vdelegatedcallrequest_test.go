@@ -220,16 +220,16 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				unorderedBargeIn = smachine.BargeIn{}
 				sharedState      = &object.SharedState{
 					Info: object.Info{
-						PendingTable:                       tc.PendingRequestTable,
-						OrderedPendingEarliestPulse:        tc.OrderedPendingEarliestPulse,
-						UnorderedPendingEarliestPulse:      tc.UnorderedPendingEarliestPulse,
-						ActiveOrderedPendingCount:          tc.ActiveOrderedPendingCount,
-						ActiveUnorderedPendingCount:        tc.ActiveUnorderedPendingCount,
-						KnownRequests:                      object.NewRequestTable(),
-						ReadyToWork:                        smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-						OrderedExecute:                     smsync.NewConditional(1, "MutableExecution").SyncLink(),
-						OrderedPendingListFilledCallback:   orderedBargeIn,
-						UnorderedPendingListFilledCallback: unorderedBargeIn,
+						PendingTable:                          tc.PendingRequestTable,
+						OrderedPendingEarliestPulse:           tc.OrderedPendingEarliestPulse,
+						UnorderedPendingEarliestPulse:         tc.UnorderedPendingEarliestPulse,
+						PreviousExecutorOrderedPendingCount:   tc.ActiveOrderedPendingCount,
+						PreviousExecutorUnorderedPendingCount: tc.ActiveUnorderedPendingCount,
+						KnownRequests:                         object.NewRequestTable(),
+						ReadyToWork:                           smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+						OrderedExecute:                        smsync.NewConditional(1, "MutableExecution").SyncLink(),
+						OrderedPendingListFilledCallback:      orderedBargeIn,
+						UnorderedPendingListFilledCallback:    unorderedBargeIn,
 					},
 				}
 				callFlags = tc.callFlags

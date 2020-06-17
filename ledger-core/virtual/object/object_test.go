@@ -112,7 +112,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 		smObject.Init(initCtx)
 	}
 
-	smObject.SharedState.ActiveOrderedPendingCount = 1
+	smObject.SharedState.PreviousExecutorOrderedPendingCount = 1
 	smObject.SharedState.SetState(HasState)
 
 	{ // we should be able to start
@@ -168,7 +168,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	)
 
 	smObject.SetState(HasState)
-	smObject.ActiveOrderedPendingCount = 1
+	smObject.PreviousExecutorOrderedPendingCount = 1
 
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.InitEmptyMessageSender(mc)
@@ -219,8 +219,8 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 	{
 
-		smObject.SharedState.ActiveOrderedPendingCount = 0
-		smObject.SharedState.ActiveUnorderedPendingCount = 0
+		smObject.SharedState.PreviousExecutorOrderedPendingCount = 0
+		smObject.SharedState.PreviousExecutorUnorderedPendingCount = 0
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t))
@@ -237,11 +237,11 @@ func TestSMObject_correctionPendingCounters(t *testing.T) {
 	)
 
 	smObject := NewStateMachineObject(smGlobalRef)
-	smObject.ActiveUnorderedPendingCount = 2
-	smObject.ActiveOrderedPendingCount = 2
+	smObject.PreviousExecutorUnorderedPendingCount = 2
+	smObject.PreviousExecutorOrderedPendingCount = 2
 	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueReference())
 	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueReference())
 	smObject.countActivePendings(smachine.Logger{})
-	require.Equal(t, uint8(1), smObject.ActiveUnorderedPendingCount)
-	require.Equal(t, uint8(1), smObject.ActiveOrderedPendingCount)
+	require.Equal(t, uint8(1), smObject.PreviousExecutorUnorderedPendingCount)
+	require.Equal(t, uint8(1), smObject.PreviousExecutorOrderedPendingCount)
 }

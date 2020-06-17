@@ -55,9 +55,8 @@ type Info struct {
 	KnownRequests RequestTable
 	PendingTable  RequestTable
 
-	// Active means pendings on other executors
-	ActiveUnorderedPendingCount uint8
-	ActiveOrderedPendingCount   uint8
+	PreviousExecutorUnorderedPendingCount uint8
+	PreviousExecutorOrderedPendingCount   uint8
 
 	// Potential means pendings on this executor
 	PotentialUnorderedPendingCount uint8
@@ -145,9 +144,9 @@ func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number
 func (i *Info) BuildStateReport() payload.VStateReport {
 	res := payload.VStateReport{
 		Object:                        i.Reference,
-		UnorderedPendingCount:         int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
+		UnorderedPendingCount:         int32(i.PreviousExecutorUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
-		OrderedPendingCount:           int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
+		OrderedPendingCount:           int32(i.PreviousExecutorOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
@@ -321,12 +320,12 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.ActiveOrderedPendingCount > 0 {
+	if sm.PreviousExecutorOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
 		sm.createWaitOrderedPendingTableSM(ctx)
 	}
 
-	if sm.ActiveUnorderedPendingCount > 0 {
+	if sm.PreviousExecutorUnorderedPendingCount > 0 {
 		sm.createWaitUnorderedPendingTableSM(ctx)
 	}
 
@@ -440,26 +439,27 @@ type pendingCountersWarnMsg struct {
 	*log.Msg     `txt:"Pending counter does not match active records count in table"`
 	CounterType  string
 	PendingCount uint8
-	CountActive  uint8
+	CountActive  int
 }
 
 func (sm *SMObject) countActivePendings(logger smachine.Logger) {
-	unorderedCountActive := uint8(sm.PendingTable.GetList(contract.CallIntolerable).CountActive())
-	if sm.ActiveUnorderedPendingCount != unorderedCountActive {
+	unorderedPendingList := sm.PendingTable.GetList(contract.CallIntolerable)
+	if int(sm.PreviousExecutorUnorderedPendingCount) != unorderedPendingList.Count() {
 		logger.Warn(pendingCountersWarnMsg{
 			CounterType:  "Unordered",
-			PendingCount: sm.ActiveUnorderedPendingCount,
-			CountActive:  unorderedCountActive,
+			PendingCount: sm.PreviousExecutorUnorderedPendingCount,
+			CountActive:  unorderedPendingList.Count(),
 		})
-		sm.ActiveUnorderedPendingCount = unorderedCountActive
 	}
-	orderedCountActive := uint8(sm.PendingTable.GetList(contract.CallTolerable).CountActive())
-	if sm.ActiveOrderedPendingCount != orderedCountActive {
+	sm.PreviousExecutorUnorderedPendingCount = uint8(unorderedPendingList.CountActive())
+
+	orderedPendingList := sm.PendingTable.GetList(contract.CallTolerable)
+	if int(sm.PreviousExecutorOrderedPendingCount) != orderedPendingList.Count() {
 		logger.Warn(pendingCountersWarnMsg{
 			CounterType:  "Ordered",
-			PendingCount: sm.ActiveOrderedPendingCount,
-			CountActive:  orderedCountActive,
+			PendingCount: sm.PreviousExecutorOrderedPendingCount,
+			CountActive:  orderedPendingList.Count(),
 		})
-		sm.ActiveOrderedPendingCount = orderedCountActive
 	}
+	sm.PreviousExecutorOrderedPendingCount = uint8(orderedPendingList.CountActive())
 }
