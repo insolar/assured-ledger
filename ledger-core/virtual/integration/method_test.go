@@ -288,7 +288,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	}
 
 	{
-		assert.Equal(t, 2, typedChecker.Handlers.VCallResult.Count.Load())
+		assert.Equal(t, 2, typedChecker.VCallResult.Count())
 	}
 
 	mc.Finish()
@@ -324,9 +324,9 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	checkBalance(ctx, t, server, objectGlobal, initialBalance)
 
 	{
-		assert.Equal(t, 1, typedChecker.Handlers.VCallRequest.Count.Load())
-		assert.Equal(t, 1, typedChecker.Handlers.VCallResult.Count.Load())
-		assert.Equal(t, 1, typedChecker.Handlers.VStateReport.Count.Load())
+		assert.Equal(t, 1, typedChecker.VCallRequest.Count())
+		assert.Equal(t, 1, typedChecker.VCallResult.Count())
+		assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	}
 
 	mc.Finish()
