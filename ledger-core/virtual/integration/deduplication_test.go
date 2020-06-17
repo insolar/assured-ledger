@@ -135,10 +135,10 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	}
 
 	{
-		assert.Equal(t, 1, typedChecker.Handlers.VCallResult.Count.Load())
-		assert.Equal(t, 1, typedChecker.Handlers.VDelegatedCallRequest.Count.Load())
-		assert.Equal(t, 1, typedChecker.Handlers.VDelegatedCallResponse.Count.Load())
-		assert.Equal(t, 1, typedChecker.Handlers.VDelegatedCallRequest.Count.Load())
-		assert.Equal(t, 1, typedChecker.Handlers.VStateReport.Count.Load())
+		assert.Equal(t, 1, typedChecker.VCallResult.Count())
+		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
+		assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
+		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
+		assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	}
 }

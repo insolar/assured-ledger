@@ -88,7 +88,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	mc.Finish()
 
 	{
-		assert.Equal(t, 1, typedChecker.Handlers.VDelegatedCallResponse.Count.Load())
+		assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
 	}
 }
 
