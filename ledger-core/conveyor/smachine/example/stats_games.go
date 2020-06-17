@@ -15,6 +15,7 @@ func NewStatsOfGame() StatsStateMachine {
 }
 
 const statsKey = "statsKey777"
+const statsDataKey = "statsDataKey777"
 
 var _ StatsStateMachine = &StatsOfTheGames{}
 
@@ -24,11 +25,12 @@ type StatsOfTheGames struct {
 	gamesStats GamesStats
 }
 
-type sharedStatsState struct {
+type SharedStatsState struct {
 	nextBetPlayer    int
 	highestBetPlayer int
 	highestBet       float32
 	done             bool
+	gamesPlayed		 int
 }
 
 type SharedStatsData struct {
@@ -48,23 +50,23 @@ func (v SharedStatsDataLink) PrepareAccess(fn func(*SharedStatsData) (wakeup boo
 	})
 }
 
+var sharedStatsState SharedStatsState
+
 func (stat *StatsOfTheGames) stepSetup(ctx smachine.InitializationContext) smachine.StateUpdate {
-	return ctx.Stop()
-	return ctx.Jump(stat.stepUpdateStats)
-	if sdl := ctx.GetPublishedLink(statsKey); !sdl.IsZero() {
+	if sdl := ctx.GetPublishedLink(statsDataKey); !sdl.IsZero() {
 		stat.sharedData = sdl
 		return ctx.Jump(stat.stepUpdateStats)
 	}
 
-	sd := &sharedStatsState{}
+	sd := &sharedStatsState
 
 	// ShareDataDirect protects (sd) from invalidation by stop of the subroutine.
 	// So (sd) will remain available while the slot is available and as long as relevant SharedDataLink is retained.
 	sdl := ctx.Share(sd, smachine.ShareDataDirect)
-	if !ctx.Publish(statsKey, sdl) {
+	stat.sharedData = sdl
+	if !ctx.Publish(statsDataKey, stat.sharedData) {
 		panic(throw.IllegalState())
 	}
-	stat.sharedData = sdl
 	return ctx.Jump(stat.stepUpdateStats)
 }
 
@@ -72,30 +74,20 @@ func (stat *StatsOfTheGames) GetCurrentStats() GamesStats {
 	return stat.gamesStats
 }
 
-func (stat *StatsOfTheGames) stepGetShared(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sdl := ctx.GetPublishedLink(statsKey); !sdl.IsZero() {
-		stat.sharedData = sdl
-		return ctx.Jump(stat.stepUpdateStats)
-	}
-	return ctx.WaitAny().ThenRepeat()
-}
-
 func (stats *StatsOfTheGames) stepUpdateStats(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	stats.gamesStats.gamesPlayed ++
-	return ctx.Stop()
-
-	if stats.accessShared(ctx, func(sd *sharedStatsState) bool {
-		stats.gamesStats.gamesPlayed ++
+	if !stats.accessShared(ctx, func(sd *SharedStatsState) bool {
+		sd.gamesPlayed ++
+		stats.gamesStats.gamesPlayed = sd.gamesPlayed
 		return true
 	}) {
-		return ctx.Stop()
+		panic(throw.IllegalState())
 	}
-	return ctx.Sleep().ThenRepeat()
+	return ctx.Stop()
 }
 
-func (stat *StatsOfTheGames) accessShared(ctx smachine.ExecutionContext, fn func(state *sharedStatsState) bool) (result bool) {
+func (stat *StatsOfTheGames) accessShared(ctx smachine.ExecutionContext, fn func(state *SharedStatsState) bool) (result bool) {
 	if stat.sharedData.PrepareAccess(func(i interface{}) (wakeup bool) {
-		if sd, ok := i.(*sharedStatsState); ok {
+		if sd, ok := i.(*SharedStatsState); ok {
 			result = fn(sd)
 			return false
 		}

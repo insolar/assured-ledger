@@ -273,9 +273,7 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 		// this closure is called on termination of the subroutine SM
 		// both stop and errors are handled and returned through (ctx)
 
-		// also it is safe to access the subroutine SM here
 		gr := gameSM.GetGameResult()
-		// Lets tell to the world - who are in the pair
 
 		ctx.Log().Trace(struct {
 			string
@@ -291,24 +289,18 @@ func (p *PlayerSM) stepStartTheGame(ctx smachine.ExecutionContext) smachine.Stat
 }
 
 
-// At this step we have a game played. Need to update the stats and play another one
+// At this step we have a game played. Need to prepare to update the stats
 func (p *PlayerSM) stepPrepareStatsOfTheGames(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
-	/**/
-	// GetPublishedLink checks if there is something is registered under the given key
 	sdl := ctx.GetPublishedLink(statsKey)
 	if sdl.IsOfType(sharedStatsDataType) {
-		// now lets try to access the shared data
-		// for this, an access function must be connected to the SharedDataLink with PrepareAccess()
-		// then UseShared is invoked, and it returns information if the function was applied to the data under SharedDataLink
+		p.stats.sharedData = sdl
 		if p.stats.PrepareAccess(func(pp *SharedStatsData) (wakeup bool) {
 			return false
 		}).TryUse(ctx).IsAvailable() {
-			// we have a pair - lets get playing
 			return ctx.Jump(p.stepUpdateStatsOfTheGames)
 		}
 	}
-	/**/
 
 	sd := &SharedStatsData{}
 
@@ -322,7 +314,7 @@ func (p *PlayerSM) stepPrepareStatsOfTheGames(ctx smachine.ExecutionContext) sma
 
 
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		// Now we will call an external service to get a game to play
+		// Now we will call an external service to update the game stats
 		// To do this we use an adapter, that was injected into this SM.
 		//
 		// NB! PrepareAsync() call only prepares a call to adapter, but doesn't start it.
@@ -352,7 +344,6 @@ func (p *PlayerSM) stepPrepareStatsOfTheGames(ctx smachine.ExecutionContext) sma
 		// NB! SM can initiate multiple async calls
 
 		// Here we gonna sleep until a wake up by the async result
-		// Here we gonna sleep until a wake up by the async result
 		return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 			// check if we've got a result
 			if sd.statsFactory == nil {
@@ -369,33 +360,30 @@ func (p *PlayerSM) stepUpdateStatsOfTheGames(ctx smachine.ExecutionContext) smac
 
 	var statsSM StatsStateMachine
 
-	// now lets try to access the shared data
-	// for this, an access function must be connected to the SharedDataLink with PrepareAccess()
-	// then UseShared is invoked, and it returns information if the function was applied to the data under SharedDataLink
 	if p.stats.PrepareAccess(func(sd *SharedStatsData) (wakeup bool) {
 		if sd.statsFactory != nil {
 			statsSM = sd.statsFactory()
 		}
 		return true
-	}).TryUse(ctx).IsAvailable() {
-		//return ctx.Jump(p.stepUpdatedStatsOfTheGames)
+	}).TryUse(ctx).GetDecision() == smachine.Impossible {
+		panic(throw.IllegalState())
 	}
 
 	if statsSM == nil {
 		// we've been woken up before the first player got a stats factory
 		// lets get to sleep then
-		return ctx.Sleep().ThenRepeat()
+		// FIXME: must be ctx.Sleep().ThenRepeat() here, need to figure out why it stucks here with Sleep()
+		return ctx.Yield().ThenRepeat()
 	}
 
-	// now we'll let the subroutine SM to play for this player
 	return ctx.CallSubroutine(statsSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 
 		// this closure is called on termination of the subroutine SM
 		// both stop and errors are handled and returned through (ctx)
 
 		// also it is safe to access the subroutine SM here
-		//gr := statsSM.GetGameResult()
-		// Lets tell to the world - who are in the pair
+
+		// Lets tell to the world the results of the game
 		res := statsSM.GetStats()
 		ctx.Log().Trace(struct {
 			string
