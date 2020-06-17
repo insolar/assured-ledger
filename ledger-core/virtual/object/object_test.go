@@ -241,7 +241,7 @@ func TestSMObject_correctionPendingCounters(t *testing.T) {
 	smObject.ActiveOrderedPendingCount = 2
 	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueReference())
 	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueReference())
-	smObject.correctionPendingCounters(smachine.Logger{})
+	smObject.countActivePendings(smachine.Logger{})
 	require.Equal(t, uint8(1), smObject.ActiveUnorderedPendingCount)
 	require.Equal(t, uint8(1), smObject.ActiveOrderedPendingCount)
 }

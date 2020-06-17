@@ -414,7 +414,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		Reference: sm.Reference,
 	}
 
-	sm.correctionPendingCounters(ctx.Log())
+	sm.countActivePendings(ctx.Log())
 	smf.Report = sm.BuildStateReport()
 	if sm.Descriptor() != nil {
 		smf.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
@@ -443,7 +443,7 @@ type pendingCountersWarnMsg struct {
 	CountActive  uint8
 }
 
-func (sm *SMObject) correctionPendingCounters(logger smachine.Logger) {
+func (sm *SMObject) countActivePendings(logger smachine.Logger) {
 	unorderedCountActive := uint8(sm.PendingTable.GetList(contract.CallIntolerable).CountActive())
 	if sm.ActiveUnorderedPendingCount != unorderedCountActive {
 		logger.Warn(pendingCountersWarnMsg{
