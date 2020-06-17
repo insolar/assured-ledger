@@ -56,22 +56,29 @@ func TestRequestList(t *testing.T) {
 	rl := NewRequestList()
 	require.Equal(t, 0, rl.Count())
 	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 0, rl.CountActive())
 	require.Equal(t, pulse.Number(0), rl.EarliestPulse())
 
 	require.Equal(t, true, rl.Add(RefOne))
 	require.Equal(t, true, rl.Exist(RefOne))
 	require.Equal(t, 1, rl.Count())
+	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 1, rl.CountActive())
 	require.Equal(t, nextPulseNumber, rl.EarliestPulse())
 
 	require.Equal(t, false, rl.Add(RefOne))
 	require.Equal(t, true, rl.Exist(RefOne))
 	require.Equal(t, 1, rl.Count())
+	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 1, rl.CountActive())
 	require.Equal(t, nextPulseNumber, rl.EarliestPulse())
 
 	require.Equal(t, true, rl.Add(RefOld))
 	require.Equal(t, true, rl.Exist(RefOne))
 	require.Equal(t, true, rl.Exist(RefOld))
 	require.Equal(t, 2, rl.Count())
+	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 2, rl.CountActive())
 	require.Equal(t, pd.PulseNumber, rl.EarliestPulse())
 
 	require.Equal(t, true, rl.Add(RefTwo))
@@ -81,6 +88,7 @@ func TestRequestList(t *testing.T) {
 	require.Equal(t, 3, rl.Count())
 	require.Equal(t, pd.PulseNumber, rl.EarliestPulse())
 	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 3, rl.CountActive())
 
 	rl.Finish(RefOne)
 	require.Equal(t, pd.PulseNumber, rl.EarliestPulse()) // doesn't change
@@ -90,6 +98,8 @@ func TestRequestList(t *testing.T) {
 	// try to finish ref that not in list
 	successFinish := rl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
 	require.Equal(t, false, successFinish)
+	require.Equal(t, 1, rl.CountFinish())
+	require.Equal(t, 2, rl.CountActive())
 }
 
 func TestRequestList_Finish(t *testing.T) {
@@ -109,13 +119,17 @@ func TestRequestList_Finish(t *testing.T) {
 	require.Equal(t, true, rl.Add(RefOne))
 	require.Equal(t, 1, rl.Count())
 	require.Equal(t, currentPulse, rl.earliestPulse)
+	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 1, rl.CountActive())
 
 	require.Equal(t, true, rl.Add(RefTwo))
 	require.Equal(t, 2, rl.Count())
 	require.Equal(t, currentPulse, rl.earliestPulse)
 	require.Equal(t, 0, rl.CountFinish())
+	require.Equal(t, 2, rl.CountActive())
 
 	rl.Finish(RefOne)
 	require.Equal(t, 1, rl.CountFinish())
+	require.Equal(t, 1, rl.CountActive())
 	require.Equal(t, nextPulseNumber, rl.earliestPulse)
 }
