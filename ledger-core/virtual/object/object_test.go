@@ -229,7 +229,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 	}
 }
 
-func TestSMObject_correctionPendingCounters(t *testing.T) {
+func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
@@ -242,6 +242,6 @@ func TestSMObject_correctionPendingCounters(t *testing.T) {
 	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueReference())
 	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueReference())
 	smObject.checkPendingCounters(smachine.Logger{})
-	require.Equal(t, uint8(1), smObject.PreviousExecutorUnorderedPendingCount)
-	require.Equal(t, uint8(1), smObject.PreviousExecutorOrderedPendingCount)
+	require.Equal(t, uint8(2), smObject.PreviousExecutorUnorderedPendingCount)
+	require.Equal(t, uint8(2), smObject.PreviousExecutorOrderedPendingCount)
 }
