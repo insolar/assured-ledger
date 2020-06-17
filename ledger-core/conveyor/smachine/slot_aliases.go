@@ -55,13 +55,14 @@ func (a *slotAliases) RetainAll(parent *slotAliases, removeFn func(k interface{}
 			}
 		}
 	}
-	if i == 0 {
-		a.keys = nil
-		return
-	}
 
 	keys := a.keys[i:]
-	a.keys = a.keys[:i]
+
+	if i == 0 {
+		a.keys = nil
+	} else {
+		a.keys = a.keys[:i]
+	}
 	for i, k := range keys {
 		keys[i] = nil
 		removeFn(k)
