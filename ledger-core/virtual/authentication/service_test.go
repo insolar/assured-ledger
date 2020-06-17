@@ -202,3 +202,36 @@ func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *
 	require.NoError(t, err)
 	require.False(t, mustReject)
 }
+
+func Test_HasToSendToken_Self_Approved(t *testing.T) {
+	ctx := context.Background()
+	selfRef := gen.UniqueReference()
+
+	affMock := jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+
+	authService := NewService(ctx, selfRef, affMock)
+
+	hasToSendToken := authService.HasToSendToken(payload.CallDelegationToken{
+		Approver: selfRef,
+		Caller:   selfRef,
+	})
+
+	require.False(t, hasToSendToken)
+}
+
+func Test_HasToSendToken_Other_Approved(t *testing.T) {
+	ctx := context.Background()
+	otherRef := gen.UniqueReference()
+	selfRef := gen.UniqueReference()
+
+	affMock := jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+
+	authService := NewService(ctx, selfRef, affMock)
+
+	hasToSendToken := authService.HasToSendToken(payload.CallDelegationToken{
+		Approver: otherRef,
+		Caller:   selfRef,
+	})
+
+	require.True(t, hasToSendToken)
+}

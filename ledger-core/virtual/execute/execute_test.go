@@ -18,13 +18,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 )
@@ -289,4 +297,127 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 
 		smExecute.stepIsolationNegotiation(execCtx)
 	}
+}
+
+func TestSMExecute_TokenInOutgoingMessage_selfToken(t *testing.T) {
+	testSMExecuteTokenInOutgoingMessage(t, true)
+}
+
+func TestSMExecute_TokenInOutgoingMessage_otherToken(t *testing.T) {
+	testSMExecuteTokenInOutgoingMessage(t, false)
+}
+
+func testSMExecuteTokenInOutgoingMessage(t *testing.T, selfToken bool) {
+	var (
+		ctx = inslogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        smObjectID,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	selfRef := gen.UniqueReference()
+	otherRef := gen.UniqueReference()
+	affMock := jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+
+	authService := authentication.NewService(ctx, selfRef, affMock)
+
+	token := payload.CallDelegationToken{
+		Caller: selfRef,
+	}
+
+	if selfToken {
+		token.Approver = selfRef
+	} else {
+		token.Approver = otherRef
+	}
+
+	smExecute := SMExecute{
+		Meta: &payload.Meta{
+			Sender: otherRef,
+		},
+		Payload:               request,
+		pulseSlot:             &pulseSlot,
+		objectSharedState:     smObjectAccessor,
+		authenticationService: authService,
+		delegationTokenSpec:   token,
+		executionNewState: &executionupdate.ContractExecutionStateUpdate{
+			Outgoing: executionevent.CallMethod{},
+			Result:   &requestresult.RequestResult{},
+		},
+		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(
+			func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
+				serviceMock := messageSender.NewServiceMock(t)
+
+				f := func(msg payload.Marshaler) (err error) {
+					switch msg0 := msg.(type) {
+					case *payload.VCallResult:
+						if selfToken {
+							require.Equal(t, payload.CallDelegationToken{}, msg0.DelegationSpec)
+						} else {
+							require.Equal(t, token, msg0.DelegationSpec)
+						}
+					case *payload.VDelegatedRequestFinished:
+						if selfToken {
+							require.Empty(t, payload.CallDelegationToken{}, msg0.DelegationSpec)
+						} else {
+							require.Equal(t, token, msg0.DelegationSpec)
+						}
+					default:
+						panic("Unexpected message type")
+					}
+
+					return nil
+				}
+
+				serviceMock.SendTargetMock.Set(func(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...messageSender.SendOption) (err error) {
+					return f(msg)
+				})
+				serviceMock.SendRoleMock.Set(func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...messageSender.SendOption) (err error) {
+					return f(msg)
+				})
+
+				fn(ctx, serviceMock)
+
+				return smachine.NewAsyncCallRequesterMock(t).WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
+					return smachine.NewAsyncCallRequesterMock(t).StartMock.Set(func() {
+					})
+				})
+			}),
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepFinishRequest))
+
+		smExecute.stepSendCallResult(execCtx)
+	}
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).StopMock.Set(func() (s1 smachine.StateUpdate) {
+			return smachine.StateUpdate{}
+		})
+
+		smExecute.stepSendDelegatedRequestFinished(execCtx)
+	}
+
+	mc.Finish()
 }
