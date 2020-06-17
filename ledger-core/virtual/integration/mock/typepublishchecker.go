@@ -39,6 +39,10 @@ func (p PubVCallRequestMock) SetResend(resend bool) PubVCallRequestMock {
 	return p
 }
 
+func (p PubVCallRequestMock) Count() int {
+	return p.parent.Handlers.VCallRequest.count.Load()
+}
+
 // ============================================================================
 
 type VCallResultHandler func(*payload.VCallResult) bool
@@ -60,6 +64,10 @@ func (p PubVCallResultMock) SetResend(resend bool) PubVCallResultMock {
 	p.parent.Handlers.VCallResult.touched = true
 	p.parent.Handlers.VCallResult.handler = func(*payload.VCallResult) bool { return resend }
 	return p
+}
+
+func (p PubVCallResultMock) Count() int {
+	return p.parent.Handlers.VCallResult.count.Load()
 }
 
 // ============================================================================
@@ -85,6 +93,10 @@ func (p PubVDelegatedCallRequestMock) SetResend(resend bool) PubVDelegatedCallRe
 	return p
 }
 
+func (p PubVDelegatedCallRequestMock) Count() int {
+	return p.parent.Handlers.VDelegatedCallRequest.count.Load()
+}
+
 // ============================================================================
 
 type VDelegatedCallResponseHandler func(*payload.VDelegatedCallResponse) bool
@@ -106,6 +118,10 @@ func (p PubVDelegatedCallResponseMock) SetResend(resend bool) PubVDelegatedCallR
 	p.parent.Handlers.VDelegatedCallResponse.touched = true
 	p.parent.Handlers.VDelegatedCallResponse.handler = func(*payload.VDelegatedCallResponse) bool { return resend }
 	return p
+}
+
+func (p PubVDelegatedCallResponseMock) Count() int {
+	return p.parent.Handlers.VDelegatedCallResponse.count.Load()
 }
 
 // ============================================================================
@@ -131,6 +147,10 @@ func (p PubVDelegatedRequestFinishedMock) SetResend(resend bool) PubVDelegatedRe
 	return p
 }
 
+func (p PubVDelegatedRequestFinishedMock) Count() int {
+	return p.parent.Handlers.VDelegatedRequestFinished.count.Load()
+}
+
 // ============================================================================
 
 type VStateRequestHandler func(*payload.VStateRequest) bool
@@ -152,6 +172,10 @@ func (p PubVStateRequestMock) SetResend(resend bool) PubVStateRequestMock {
 	p.parent.Handlers.VStateRequest.touched = true
 	p.parent.Handlers.VStateRequest.handler = func(*payload.VStateRequest) bool { return resend }
 	return p
+}
+
+func (p PubVStateRequestMock) Count() int {
+	return p.parent.Handlers.VStateRequest.count.Load()
 }
 
 // ============================================================================
@@ -177,48 +201,52 @@ func (p PubVStateReportMock) SetResend(resend bool) PubVStateReportMock {
 	return p
 }
 
+func (p PubVStateReportMock) Count() int {
+	return p.parent.Handlers.VStateReport.count.Load()
+}
+
 // ============================================================================
 
 type TypePublishCheckerHandlers struct {
 	VCallRequest struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VCallRequestHandler
 	}
 	VCallResult struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VCallResultHandler
 	}
 	VDelegatedCallRequest struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VDelegatedCallRequestHandler
 	}
 	VDelegatedCallResponse struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VDelegatedCallResponseHandler
 	}
 	VDelegatedRequestFinished struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VDelegatedRequestFinishedHandler
 	}
 	VStateRequest struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VStateRequestHandler
 	}
 	VStateReport struct {
 		touched       bool
-		Count         atomickit.Int
+		count         atomickit.Int
 		expectedCount int
 		handler       VStateReportHandler
 	}
@@ -255,43 +283,43 @@ func NewTypePublishChecker(ctx context.Context, t minimock.Tester, sender Sender
 		Handlers: TypePublishCheckerHandlers{
 			VCallRequest: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VCallRequestHandler
 			}{expectedCount: -1},
 			VCallResult: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VCallResultHandler
 			}{expectedCount: -1},
 			VDelegatedCallRequest: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VDelegatedCallRequestHandler
 			}{expectedCount: -1},
 			VDelegatedCallResponse: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VDelegatedCallResponseHandler
 			}{expectedCount: -1},
 			VDelegatedRequestFinished: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VDelegatedRequestFinishedHandler
 			}{expectedCount: -1},
 			VStateRequest: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VStateRequestHandler
 			}{expectedCount: -1},
 			VStateReport: struct {
 				touched       bool
-				Count         atomickit.Int
+				count         atomickit.Int
 				expectedCount int
 				handler       VStateReportHandler
 			}{expectedCount: -1},
@@ -342,7 +370,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	case *payload.VCallResult:
 		hdlStruct := &p.Handlers.VCallResult
@@ -356,7 +384,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	case *payload.VDelegatedCallRequest:
 		hdlStruct := &p.Handlers.VDelegatedCallRequest
@@ -370,7 +398,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	case *payload.VDelegatedCallResponse:
 		hdlStruct := &p.Handlers.VDelegatedCallResponse
@@ -384,7 +412,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	case *payload.VDelegatedRequestFinished:
 		hdlStruct := &p.Handlers.VDelegatedRequestFinished
@@ -398,7 +426,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	case *payload.VStateRequest:
 		hdlStruct := &p.Handlers.VStateRequest
@@ -412,7 +440,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	case *payload.VStateReport:
 		hdlStruct := &p.Handlers.VStateReport
@@ -426,7 +454,7 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 			return
 		}
 
-		hdlStruct.Count.Add(1)
+		hdlStruct.count.Add(1)
 
 	default:
 		p.t.Fatalf("unexpected %T payload", basePayload)
@@ -445,25 +473,25 @@ func (p *TypePublishChecker) SetDefaultResend(flag bool) *TypePublishChecker {
 
 func (p *TypePublishChecker) minimockDone() bool {
 	if hdl := p.Handlers.VCallRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VCallResult; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VDelegatedCallRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VDelegatedCallResponse; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VDelegatedRequestFinished; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VStateRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VStateReport; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.Count.Load() == hdl.expectedCount
+		return hdl.count.Load() == hdl.expectedCount
 	}
 	return true
 }
