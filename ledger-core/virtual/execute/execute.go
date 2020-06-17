@@ -289,7 +289,7 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	case methodIsolation.Interference == callIsolation.Interference:
 		// ok case
 	case methodIsolation.Interference == contract.CallIntolerable && callIsolation.Interference == contract.CallTolerable:
-		res.Interference = callIsolation.Interference
+		res.Interference = methodIsolation.Interference
 	default:
 		return contract.MethodIsolation{}, throw.IllegalValue()
 	}
