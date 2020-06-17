@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -226,4 +227,21 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 		smObject.stepGotState(execCtx)
 	}
+}
+
+func TestSMObject_correctionPendingCounters(t *testing.T) {
+	var (
+		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
+		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef = reference.NewSelf(smObjectID)
+	)
+
+	smObject := NewStateMachineObject(smGlobalRef)
+	smObject.ActiveUnorderedPendingCount = 2
+	smObject.ActiveOrderedPendingCount = 2
+	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueReference())
+	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueReference())
+	smObject.correctionPendingCounters(smachine.Logger{})
+	require.Equal(t, uint8(1), smObject.ActiveUnorderedPendingCount)
+	require.Equal(t, uint8(1), smObject.ActiveOrderedPendingCount)
 }
