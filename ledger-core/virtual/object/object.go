@@ -414,6 +414,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		Reference: sm.Reference,
 	}
 
+	sm.correctionPendingCounters(ctx.Log())
 	smf.Report = sm.BuildStateReport()
 	if sm.Descriptor() != nil {
 		smf.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
@@ -433,4 +434,32 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		return ctx.ReplaceWith(&smf)
 	})
+}
+
+type pendingCountersWarnMsg struct {
+	*log.Msg     `txt:"Pending counter does not match active records count in table"`
+	CounterType  string
+	PendingCount uint8
+	CountActive  uint8
+}
+
+func (sm *SMObject) correctionPendingCounters(logger smachine.Logger) {
+	unorderedCountActive := uint8(sm.PendingTable.GetList(contract.CallIntolerable).CountActive())
+	if sm.ActiveUnorderedPendingCount != unorderedCountActive {
+		logger.Warn(pendingCountersWarnMsg{
+			CounterType:  "Unordered",
+			PendingCount: sm.ActiveUnorderedPendingCount,
+			CountActive:  unorderedCountActive,
+		})
+		sm.ActiveUnorderedPendingCount = unorderedCountActive
+	}
+	orderedCountActive := uint8(sm.PendingTable.GetList(contract.CallTolerable).CountActive())
+	if sm.ActiveOrderedPendingCount != orderedCountActive {
+		logger.Warn(pendingCountersWarnMsg{
+			CounterType:  "Ordered",
+			PendingCount: sm.ActiveOrderedPendingCount,
+			CountActive:  orderedCountActive,
+		})
+		sm.ActiveOrderedPendingCount = orderedCountActive
+	}
 }
