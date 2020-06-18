@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -26,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 )
 
 func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
@@ -41,6 +43,9 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 	)
 	defer mc.Finish()
 
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		MeMock.Return(gen.UniqueReference())
+
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:            payload.CTConstructor,
@@ -54,6 +59,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		executionNewState: &executionupdate.ContractExecutionStateUpdate{
 			Outgoing: executionevent.CallMethod{},
 		},
+		authenticationService: authentication.NewService(ctx, jetCoordinatorMock),
 		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
 			return smachine.NewAsyncCallRequesterMock(t).WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
 				return smachine.NewAsyncCallRequesterMock(t).StartMock.Set(func() {
