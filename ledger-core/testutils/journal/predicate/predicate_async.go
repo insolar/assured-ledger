@@ -28,14 +28,14 @@ func (p *AsyncCounter) Count() int {
 	return p.count.Load()
 }
 
-func (p *AsyncCounter) EventInput(event debuglogger.UpdateEvent) {
+func (p *AsyncCounter) EventInput(event debuglogger.UpdateEvent) SubscriberState {
 	switch {
 	case event.AdapterID == "":
-		return
+		return RetainSubscriber
 	case p.adapter == "":
 		//
 	case p.adapter != event.AdapterID:
-		return
+		return RetainSubscriber
 	}
 
 	switch event.Data.Flags.AdapterFlags() {
@@ -46,9 +46,11 @@ func (p *AsyncCounter) EventInput(event debuglogger.UpdateEvent) {
 	case smachine.StepLoggerAdapterAsyncCall:
 		p.count.Add(1)
 	}
+	return RetainSubscriber
 }
 
-func (p *AsyncCounter) AfterZeroCount(event debuglogger.UpdateEvent) bool {
+func (p *AsyncCounter) AfterPositiveToZero(event debuglogger.UpdateEvent) bool {
+	x := p.Count()
 	p.EventInput(event)
-	return p.Count() == 0
+	return x > 0 && p.Count() == 0
 }

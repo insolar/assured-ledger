@@ -138,7 +138,7 @@ func (v DebugMachineLogger) CreateStepLogger(ctx context.Context, sm smachine.St
 		StepLogger:  underlying,
 		sm:          sm,
 		events:      v.events,
-		continueSig: v.continueStep,
+		continueSig: continueStep,
 	}
 }
 
@@ -159,10 +159,12 @@ func (v DebugMachineLogger) continueAll() {
 	if v.continueStep != nil {
 		select {
 		case _, ok := <- v.continueStep:
-			if ok {
-				close(v.continueStep)
+			if !ok {
+				return
 			}
+		default:
 		}
+		close(v.continueStep)
 	}
 }
 

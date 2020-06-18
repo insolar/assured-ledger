@@ -9,6 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -18,8 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type SynchronizationPoint struct {
@@ -64,7 +66,7 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	server.StartRecording(10000, true)
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
@@ -123,16 +125,16 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 
 	{
 		select {
-		case <-it.WaitStop(&execute.SMExecute{}, 2):
+		case <-executeDone:
 		case <-time.After(10 * time.Second):
-			t.Fatal("timeout")
+			require.FailNow(t, "timeout")
 		}
+
 		select {
-		case <-it.WaitAllAsyncCallsFinished():
+		case <-server.Journal.WaitAllAsyncCallsDone():
 		case <-time.After(10 * time.Second):
-			t.Fatal("timeout")
+			require.FailNow(t, "timeout")
 		}
-		it.Stop()
 	}
 
 	{

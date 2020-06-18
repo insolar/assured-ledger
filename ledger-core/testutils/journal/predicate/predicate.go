@@ -51,3 +51,5 @@ func Or(predicates ...Func) Func {
 		return false
 	}
 }
+
+

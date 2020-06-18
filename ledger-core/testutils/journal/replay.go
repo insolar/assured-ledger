@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -21,7 +22,7 @@ func NewReplay(parent *Dispenser, size int) *Replay {
 	}
 	return &Replay{
 		parent:    parent,
-		events:    make([]debuglogger.UpdateEvent, size),
+		events:    make([]debuglogger.UpdateEvent, 0, size),
 	}
 }
 
@@ -33,21 +34,22 @@ type Replay struct {
 	discard   bool
 }
 
-func (p *Replay) EventInput(event debuglogger.UpdateEvent) {
+func (p *Replay) EventInput(event debuglogger.UpdateEvent) predicate.SubscriberState {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	switch {
 	case p.overflown:
-		return
+		return predicate.RemoveSubscriber
 	case len(p.events) == cap(p.events):
 		p.overflown = true
 		if p.discard {
 			p.events = nil
 		}
-		return
+		return predicate.RemoveSubscriber
 	}
 	p.events = append(p.events, event)
+	return predicate.RetainSubscriber
 }
 
 func (p *Replay) SetDiscardOnOverflow() {
@@ -70,7 +72,7 @@ func (p *Replay) DiscardNow() {
 	p.events = nil
 }
 
-func (p *Replay) getEventsOrSubscribe(lastLen int, dispenser *Dispenser) ([]debuglogger.UpdateEvent, bool) {
+func (p *Replay) getEventsOrSubscribe(lastLen int, outFn predicate.SubscriberFunc) ([]debuglogger.UpdateEvent, bool) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -80,15 +82,19 @@ func (p *Replay) getEventsOrSubscribe(lastLen int, dispenser *Dispenser) ([]debu
 	case p.overflown:
 		return nil, true
 	default:
-		p.parent.SubscribeAll(dispenser.EventInput)
+		p.parent.Subscribe(outFn)
 		return nil, false
 	}
 }
 
-func (p *Replay) ReplayAndSubscribe(dispenser *Dispenser) {
+func (p *Replay) ReplayAndSubscribe(outFn predicate.SubscriberFunc) {
+	if outFn == nil {
+		panic(throw.IllegalValue())
+	}
+
 	lastPos := 0
 	for {
-		chunk, overflown := p.getEventsOrSubscribe(lastPos, dispenser)
+		chunk, overflown := p.getEventsOrSubscribe(lastPos, outFn)
 		switch {
 		case overflown:
 			panic(throw.IllegalState())
@@ -96,27 +102,32 @@ func (p *Replay) ReplayAndSubscribe(dispenser *Dispenser) {
 			return
 		}
 		for _, event := range chunk {
-			dispenser.EventInput(event)
+			if outFn(event) == predicate.RemoveSubscriber {
+				return
+			}
 		}
 
 		lastPos += len(chunk)
 	}
 }
 
-func (p *Replay) ReplayAndSubscribe(dispenser *Dispenser) {
-}
+func (p *Replay) TryReplayThenSubscribe(outFn predicate.SubscriberFunc) bool {
+	if outFn == nil {
+		panic(throw.IllegalValue())
+	}
 
-func (p *Replay) TryReplayThenSubscribe(dispenser *Dispenser) bool {
 	lastPos := 0
 	for {
-		chunk, overflown := p.getEventsOrSubscribe(lastPos, dispenser)
+		chunk, overflown := p.getEventsOrSubscribe(lastPos, outFn)
 		for _, event := range chunk {
-			dispenser.EventInput(event)
+			if outFn(event) == predicate.RemoveSubscriber {
+				return true
+			}
 		}
 
 		switch {
 		case overflown:
-			p.parent.SubscribeAll(dispenser.EventInput)
+			p.parent.Subscribe(outFn)
 			return false
 		case len(chunk) == 0:
 			return true

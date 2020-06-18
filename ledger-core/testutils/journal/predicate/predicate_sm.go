@@ -23,6 +23,13 @@ func NewSMTypeFilter(sample smachine.StateMachine, andPredicate Func) Func {
 	var smType = reflect.TypeOf(sample)
 
 	return func(event debuglogger.UpdateEvent) bool {
-		return event.SM != nil && reflect.TypeOf(event.SM) == smType && (andPredicate == nil || andPredicate(event))
+		switch {
+		case event.SM == nil:
+		case reflect.TypeOf(event.SM) != smType:
+		case andPredicate != nil && !andPredicate(event):
+		default:
+			return true
+		}
+		return false
 	}
 }

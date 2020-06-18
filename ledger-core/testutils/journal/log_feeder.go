@@ -8,10 +8,11 @@ package journal
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type FeedFunc = func(debuglogger.UpdateEvent)
+type FeedFunc = predicate.SubscriberFunc
 
 func NewFeeder(underlying smachine.SlotMachineLogger, feedFn FeedFunc) *Feeder {
 	if feedFn == nil {

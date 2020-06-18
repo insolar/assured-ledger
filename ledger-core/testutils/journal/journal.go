@@ -7,19 +7,23 @@ package journal
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func New() *Journal {
 	j := &Journal{}
+	j.async = predicate.NewAnyAsyncCounter()
+	j.dispenser.Subscribe(j.async.EventInput)
 	return j
 }
 
 type Journal struct {
 	dispenser Dispenser
 	replay *Replay
-	asyncChan synckit.SignalChannel
+	async *predicate.AsyncCounter
 }
 
 func (p *Journal) InterceptSlotMachineLog(underlying smachine.SlotMachineLogger) smachine.SlotMachineLogger {
@@ -39,34 +43,75 @@ func (p *Journal) StartRecording(limit int, discardOnOverflow bool) {
 	if discardOnOverflow {
 		p.replay.SetDiscardOnOverflow()
 	}
+	p.dispenser.Subscribe(p.replay.EventInput)
 }
 
-func (p *Journal) ReplayAndSubscribe(dispenser *Dispenser) {
-	switch {
-	case dispenser == nil:
-		panic(throw.IllegalValue())
-	case p.replay == nil:
+func (p *Journal) ReplayAndSubscribe(outFn predicate.SubscriberFunc) {
+	if p.replay == nil {
 		panic(throw.IllegalState())
-	default:
-		p.replay.ReplayAndSubscribe(dispenser)
 	}
+	p.replay.ReplayAndSubscribe(outFn)
 }
 
-func (p *Journal) TryReplayThenSubscribe(dispenser *Dispenser) bool {
-	switch {
-	case dispenser == nil:
-		panic(throw.IllegalValue())
-	case p.replay == nil:
-		p.dispenser.SubscribeAll(dispenser.EventInput)
+func (p *Journal) TryReplayThenSubscribe(outFn predicate.SubscriberFunc) bool {
+	if p.replay == nil {
+		p.dispenser.Subscribe(outFn)
 		return false
-	default:
-		return p.replay.TryReplayThenSubscribe(dispenser)
 	}
+	return p.replay.TryReplayThenSubscribe(outFn)
 }
 
-func (p *Journal) Subscribe(dispenser *Dispenser) {
-	if dispenser == nil {
-		panic(throw.IllegalValue())
+func (p *Journal) Subscribe(outFn predicate.SubscriberFunc) {
+	p.dispenser.Subscribe(outFn)
+}
+
+func (p *Journal) WaitOnce(pFn predicate.Func) synckit.SignalChannel {
+	ch := make(synckit.ClosableSignalChannel, 1)
+	p.Subscribe(predicate.EmitOnce(pFn, true, ch))
+	return ch
+}
+func (p *Journal) ReplayAndWaitOnce(pFn predicate.Func) synckit.SignalChannel {
+	ch := make(synckit.ClosableSignalChannel, 1)
+	p.ReplayAndSubscribe(predicate.EmitOnce(pFn, true, ch))
+	return ch
+}
+
+func (p *Journal) Wait(pFn predicate.Func) synckit.SignalChannel {
+	ch := make(synckit.ClosableSignalChannel, 1)
+	p.Subscribe(predicate.EmitByFilter(pFn, true, ch))
+	return ch
+}
+
+func (p *Journal) ReplayAndWait(pFn predicate.Func) synckit.SignalChannel {
+	ch := make(synckit.ClosableSignalChannel, 1)
+	p.ReplayAndSubscribe(predicate.EmitByFilter(pFn, true, ch))
+	return ch
+}
+
+func (p *Journal) ReplayAndWaitStopOf(sample smachine.StateMachine, stopCount int) synckit.SignalChannel {
+	return p.ReplayAndWaitOnce(
+		predicate.NewCounter(
+			predicate.NewSMTypeFilter(sample, predicate.AfterAnyStopOrError),
+			stopCount,
+		).AfterPositiveToZero)
+}
+
+func (p *Journal) WaitStopOf(sample smachine.StateMachine, stopCount int) synckit.SignalChannel {
+	return p.WaitOnce(
+		predicate.NewCounter(
+			predicate.NewSMTypeFilter(sample, predicate.AfterAnyStopOrError),
+			stopCount,
+		).AfterPositiveToZero)
+}
+
+func (p *Journal) WaitAllAsyncCallsDone() synckit.SignalChannel {
+	ch := p.WaitOnce(func(debuglogger.UpdateEvent) bool {
+		return p.async.Count() == 0
+	})
+
+	if p.async.Count() == 0 {
+		return synckit.ClosedChannel()
 	}
-	p.dispenser.SubscribeAll(dispenser.EventInput)
+
+	return ch
 }

@@ -183,7 +183,11 @@ func (s *Server) Init(ctx context.Context) {
 	s.IncrementPulseAndWaitIdle(ctx)
 }
 
-func (s *Server) StartRecording(limit int, discardOnOverflow bool) {
+func (s *Server) StartRecording() {
+	s.StartRecordingExt(10_000, true)
+}
+
+func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
 	s.Journal.StartRecording(limit, discardOnOverflow)
 }
 

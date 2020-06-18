@@ -11,7 +11,9 @@ import (
 )
 
 func NewCounter(predicateFn Func, initCount int) *Counter {
-	return &Counter{predicateFn: predicateFn}
+	c := &Counter{predicateFn: predicateFn}
+	c.count.Store(initCount)
+	return c
 }
 
 type Counter struct {
@@ -23,13 +25,20 @@ func (p *Counter) Count() int {
 	return p.count.Load()
 }
 
-func (p *Counter) EventInput(event debuglogger.UpdateEvent) {
+func (p *Counter) EventInput(event debuglogger.UpdateEvent) SubscriberState {
 	if p.predicateFn == nil || p.predicateFn(event) {
 		p.count.Add(-1)
 	}
+	return RetainSubscriber
 }
 
-func (p *Counter) AfterZeroCount(event debuglogger.UpdateEvent) bool {
+func (p *Counter) AfterPositiveToZero(event debuglogger.UpdateEvent) bool {
+	prev := p.Count()
 	p.EventInput(event)
-	return p.Count() == 0
+	return prev > 0 && p.Count() == 0
 }
+
+// func (p *Counter) AfterZeroCount(event debuglogger.UpdateEvent) bool {
+// 	p.EventInput(event)
+// 	return p.Count() == 0
+// }
