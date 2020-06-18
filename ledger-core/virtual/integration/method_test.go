@@ -831,12 +831,12 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 		it := server.Journal.GetJournalIterator()
 		select {
 		case <-it.WaitStop(&execute.SMExecute{}, 2):
-		case <-time.After(10 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timeout")
 		}
 		select {
 		case <-it.WaitAllAsyncCallsFinished():
-		case <-time.After(10 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timeout")
 		}
 		it.Stop()
@@ -959,12 +959,12 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 		it := server.Journal.GetJournalIterator()
 		select {
 		case <-it.WaitStop(&execute.SMExecute{}, 2):
-		case <-time.After(10 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timeout")
 		}
 		select {
 		case <-it.WaitAllAsyncCallsFinished():
-		case <-time.After(10 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timeout")
 		}
 		it.Stop()
