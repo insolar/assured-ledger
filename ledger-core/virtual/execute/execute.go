@@ -11,6 +11,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -29,7 +31,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -522,9 +523,10 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			if !ok || res == nil {
 				panic(throw.IllegalValue())
 			}
-			s.outgoingResult = res.ReturnArguments
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				s.outgoingResult = res.ReturnArguments
+
 				return ctx.WakeUp()
 			}
 		})

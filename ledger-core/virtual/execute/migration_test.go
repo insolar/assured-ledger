@@ -59,7 +59,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		executionNewState: &executionupdate.ContractExecutionStateUpdate{
 			Outgoing: executionevent.CallMethod{},
 		},
-		authenticationService: authentication.NewService(ctx, gen.UniqueReference(), jetCoordinatorMock),
+		authenticationService: authentication.NewService(ctx, jetCoordinatorMock),
 		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
 			return smachine.NewAsyncCallRequesterMock(t).WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
 				return smachine.NewAsyncCallRequesterMock(t).StartMock.Set(func() {

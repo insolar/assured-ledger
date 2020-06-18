@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -111,7 +112,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 		smObject.Init(initCtx)
 	}
 
-	smObject.SharedState.ActiveOrderedPendingCount = 1
+	smObject.SharedState.PreviousExecutorOrderedPendingCount = 1
 	smObject.SharedState.SetState(HasState)
 
 	{ // we should be able to start
@@ -167,7 +168,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	)
 
 	smObject.SetState(HasState)
-	smObject.ActiveOrderedPendingCount = 1
+	smObject.PreviousExecutorOrderedPendingCount = 1
 
 	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.InitEmptyMessageSender(mc)
@@ -218,12 +219,29 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 	{
 
-		smObject.SharedState.ActiveOrderedPendingCount = 0
-		smObject.SharedState.ActiveUnorderedPendingCount = 0
+		smObject.SharedState.PreviousExecutorOrderedPendingCount = 0
+		smObject.SharedState.PreviousExecutorUnorderedPendingCount = 0
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t))
 
 		smObject.stepGotState(execCtx)
 	}
+}
+
+func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
+	var (
+		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
+		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef = reference.NewSelf(smObjectID)
+	)
+
+	smObject := NewStateMachineObject(smGlobalRef)
+	smObject.PreviousExecutorUnorderedPendingCount = 2
+	smObject.PreviousExecutorOrderedPendingCount = 2
+	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueReference())
+	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueReference())
+	smObject.checkPendingCounters(smachine.Logger{})
+	require.Equal(t, uint8(2), smObject.PreviousExecutorUnorderedPendingCount)
+	require.Equal(t, uint8(2), smObject.PreviousExecutorOrderedPendingCount)
 }

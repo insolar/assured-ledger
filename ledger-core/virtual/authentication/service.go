@@ -27,18 +27,17 @@ type Service interface {
 }
 
 type service struct {
-	selfNode reference.Global
 	affinity jet.AffinityHelper
 }
 
-func NewService(_ context.Context, selfNode reference.Global, affinity jet.AffinityHelper) Service {
-	return service{selfNode: selfNode, affinity: affinity}
+func NewService(_ context.Context, affinity jet.AffinityHelper) Service {
+	return service{affinity: affinity}
 }
 
 func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
 	return payload.CallDelegationToken{
 		TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-		Approver:          s.selfNode,
+		Approver:          s.affinity.Me(),
 		DelegateTo:        to,
 		PulseNumber:       pn,
 		Callee:            object,
@@ -67,12 +66,12 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
 	}
 
-	if token.Approver.Equal(s.selfNode) {
+	if token.Approver.Equal(s.affinity.Me()) {
 		return throw.New("selfNode cannot be equal to token Approver",
 			struct {
 				SelfNode string
 				Approver string
-			}{SelfNode: s.selfNode.String(), Approver: token.Approver.String()})
+			}{SelfNode: s.affinity.Me().String(), Approver: token.Approver.String()})
 	}
 	return nil
 }

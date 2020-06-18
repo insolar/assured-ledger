@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -23,10 +24,8 @@ import (
 )
 
 func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
-	ctx := context.Background()
-	selfRef := gen.UniqueReference()
-
-	authService := NewService(ctx, selfRef, nil)
+	ctx := inslogger.TestContext(t)
+	authService := NewService(ctx, nil)
 
 	pdLeft := pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 10, longbits.Bits256{})
 
@@ -41,7 +40,9 @@ func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *
 	selfRef := gen.UniqueReference()
 	sender := statemachine.APICaller
 
-	authService := NewService(ctx, selfRef, nil)
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		QueryRoleMock.Return([]reference.Global{selfRef}, nil)
+	authService := NewService(ctx, jetCoordinatorMock)
 
 	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
@@ -110,9 +111,10 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			insertToken(token, testCase.msg)
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{approver}, nil)
+				QueryRoleMock.Return([]reference.Global{approver}, nil).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
@@ -129,9 +131,10 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			selfRef := refs[1]
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{selfRef}, nil)
+				QueryRoleMock.Return([]reference.Global{selfRef}, nil).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
@@ -156,9 +159,10 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			approver := refs[1]
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{expectedVE}, nil)
+				QueryRoleMock.Return([]reference.Global{expectedVE}, nil).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
@@ -229,9 +233,10 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			sender := refs[0]
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{sender}, nil)
+				QueryRoleMock.Return([]reference.Global{sender}, nil).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, pulseRange)
 			require.NoError(t, err)
@@ -247,9 +252,10 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			badSender := refs[2]
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{sender}, nil)
+				QueryRoleMock.Return([]reference.Global{sender}, nil).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, badSender, pulseRange)
 			require.Contains(t, err.Error(), "unexpected sender")
@@ -262,8 +268,9 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			sender := refs[1]
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{sender}, nil)
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+				QueryRoleMock.Return([]reference.Global{sender}, nil).
+				MeMock.Return(selfRef)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			// reject all messages since pulseRange has bad previous delta
 			pr := pulse.NewOnePulseRange(pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 0, longbits.Bits256{}))
@@ -284,9 +291,10 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			sender := refs[0]
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{sender, sender}, nil)
+				QueryRoleMock.Return([]reference.Global{sender, sender}, nil).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
@@ -304,15 +312,56 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			calcErrorMsg := "bad calculator"
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{}, throw.New(calcErrorMsg))
+				QueryRoleMock.Return([]reference.Global{}, throw.New(calcErrorMsg)).
+				MeMock.Return(selfRef)
 
-			authService := NewService(ctx, selfRef, jetCoordinatorMock)
+			authService := NewService(ctx, jetCoordinatorMock)
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
 			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
 			require.Contains(t, err.Error(), "can't calculate role")
 			require.Contains(t, err.Error(), calcErrorMsg)
+		})
+	}
+}
+
+func TestService_HasToSendToken(t *testing.T) {
+	var (
+		selfRef  = gen.UniqueReference()
+		otherRef = gen.UniqueReference()
+	)
+	tests := []struct {
+		name     string
+		approver reference.Global
+		rv       bool
+	}{
+		{
+			name:     "Self_Ignore",
+			approver: selfRef,
+			rv:       false,
+		},
+		{
+			name:     "Other_Approve",
+			approver: otherRef,
+			rv:       true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var (
+				ctx     = inslogger.TestContext(t)
+				affMock = jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+			)
+
+			authService := NewService(ctx, affMock)
+
+			hasToSendToken := authService.HasToSendToken(payload.CallDelegationToken{
+				Approver: test.approver,
+				Caller:   selfRef,
+			})
+
+			require.Equal(t, test.rv, hasToSendToken)
 		})
 	}
 }
