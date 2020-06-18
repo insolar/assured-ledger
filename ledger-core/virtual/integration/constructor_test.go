@@ -396,18 +396,18 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		CallOutgoing:   outgoingA,
 	}
 	msg := server.WrapPayload(&pl).Finalize()
-	beforeCount := server.PublisherMock.GetCount()
 	server.SendMessage(ctx, msg)
-	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
-		t.Fatal("failed to wait until all messages returned")
-	}
-	server.WaitActiveThenIdleConveyor()
 
 	// wait for all calls and SMs
 	{
 		it := server.Journal.GetJournalIterator()
 		select {
 		case <-it.WaitStop(&execute.SMExecute{}, 2):
+		case <-time.After(10 * time.Second):
+			t.Fatal("timeout")
+		}
+		select {
+		case <-it.WaitAllAsyncCallsFinished():
 		case <-time.After(10 * time.Second):
 			t.Fatal("timeout")
 		}
