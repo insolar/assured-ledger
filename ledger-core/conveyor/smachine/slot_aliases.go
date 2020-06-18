@@ -40,7 +40,7 @@ func (a slotAliases) Copy() *slotAliases {
 	return &slotAliases{append([]interface{}{}, a.keys...)}
 }
 
-func (a *slotAliases) RetainAll(parent *slotAliases, removeFn func(k interface{})) {
+func (a *slotAliases) RetainAll(parent *slotAliases, removeFn func(k interface{}) bool) {
 	i, n := 0, len(a.keys)
 	if n == 0 {
 		return
@@ -57,15 +57,16 @@ func (a *slotAliases) RetainAll(parent *slotAliases, removeFn func(k interface{}
 	}
 
 	keys := a.keys[i:]
-
-	if i == 0 {
-		a.keys = nil
-	} else {
-		a.keys = a.keys[:i]
-	}
+	a.keys = a.keys[:i]
 	for i, k := range keys {
 		keys[i] = nil
-		removeFn(k)
+		if !removeFn(k) {
+			a.keys = append(a.keys, k)
+		}
+	}
+
+	if len(a.keys) == 0 {
+		a.keys = nil
 	}
 }
 
@@ -154,12 +155,9 @@ func (s *Slot) storeSubroutineAliases(parent *slotAliases, mode SubroutineCleanu
 }
 
 func (s *Slot) restoreSubroutineAliases(parent *slotAliases, mode SubroutineCleanupMode) {
-	all := true
-	switch mode & SubroutineCleanupAliasesAndShares {
-	case SubroutineCleanupNone:
+	mode &= SubroutineCleanupAliasesAndShares
+	if mode == SubroutineCleanupNone {
 		return
-	case SubroutineCleanupAliases:
-		all = false
 	}
 
 	mm := &s.machine.localRegistry // SAFE for concurrent use
@@ -168,21 +166,25 @@ func (s *Slot) restoreSubroutineAliases(parent *slotAliases, mode SubroutineClea
 	if isa, ok := mm.Load(key); ok {
 		sa := isa.(*slotAliases)
 		sar := s.machine.config.SlotAliasRegistry
-		sa.RetainAll(parent, func(k interface{}) {
-			if !all {
-				if _, ok := k.(*uniqueAliasKey); ok {
-					// retain shares
-					return
+		sa.RetainAll(parent, func(k interface{}) bool {
+			switch kk := k.(type) {
+			case *uniqueSharedKey: // shared data
+				if mode != SubroutineCleanupAliasesAndShares {
+					return false
+				}
+			case globalAliasKey:
+				// always
+				if sar != nil {
+					sar.UnpublishAlias(kk.key)
+				}
+			default:
+				if mode == SubroutineCleanupGlobalsOnly {
+					return false
 				}
 			}
 
 			mm.Delete(k)
-
-			if sar != nil {
-				if ga, ok := k.(globalAliasKey); ok {
-					sar.UnpublishAlias(ga.key)
-				}
-			}
+			return true
 		})
 	}
 }
