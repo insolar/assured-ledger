@@ -179,6 +179,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	delegateDone := server.Journal.WaitStopOf(&object.SMAwaitDelegate{}, 1)
+
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -240,18 +242,17 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	}
 
 	{
-		it := server.Journal.GetJournalIterator()
 		select {
-		case <-it.WaitStop(&object.SMAwaitDelegate{}, 1):
+		case <-delegateDone:
 		case <-time.After(10 * time.Second):
 			require.FailNow(t, "timeout")
 		}
+
 		select {
-		case <-it.WaitAllAsyncCallsFinished():
+		case <-server.Journal.WaitAllAsyncCallsDone():
 		case <-time.After(10 * time.Second):
 			require.FailNow(t, "timeout")
 		}
-		it.Stop()
 	}
 
 	{
