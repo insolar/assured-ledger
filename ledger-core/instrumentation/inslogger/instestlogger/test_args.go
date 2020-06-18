@@ -7,8 +7,9 @@ package instestlogger
 
 import (
 	"flag"
-	"os"
 	"strconv"
+	"strings"
+
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -33,20 +34,26 @@ func readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool) {
 			*emuMarks = argEmuMarks
 		}
 
-	case os.Getenv("TESTLOG_OUT") != "":
-		cfg.OutputParams = os.Getenv("TESTLOG_OUT")
+	case flag.NArg() > 0:
+		m := readArgsMap(flag.Args())
+		if outFile := m["TESTLOG_OUT"]; outFile != "" {
+			cfg.OutputParams = outFile
 
-		if v := os.Getenv("TESTLOG_ECHO"); v != "" && echoAll != nil {
-			if b, err := strconv.ParseBool(v); err == nil {
-				*echoAll = b
+			if v := m["TESTLOG_ECHO"]; v != "" && echoAll != nil {
+				if b, err := strconv.ParseBool(v); err == nil {
+					*echoAll = b
+				}
 			}
-		}
 
-		if v := os.Getenv("TESTLOG_MARKS"); v != "" && emuMarks != nil {
-			if b, err := strconv.ParseBool(v); err == nil {
-				*emuMarks = b
+			if v := m["TESTLOG_MARKS"]; v != "" && emuMarks != nil {
+				if b, err := strconv.ParseBool(v); err == nil {
+					*emuMarks = b
+				}
 			}
+
+			break
 		}
+		return
 
 	default:
 		return
@@ -54,6 +61,28 @@ func readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool) {
 
 	cfg.OutputType = logoutput.FileOutput.String()
 	cfg.Formatter = logcommon.JSONFormat.String()
+}
+
+func readArgsMap(args []string) (m map[string]string) {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "TESTLOG_") {
+			continue
+		}
+		sep := strings.IndexByte(arg, '=')
+		if sep < 0 {
+			continue
+		}
+		if m == nil {
+			m = map[string]string{}
+		}
+		n := arg[:sep]
+		v := arg[sep+1:]
+		if vv, err := strconv.Unquote(v); err == nil {
+			v = vv
+		}
+		m[n] = v
+	}
+	return
 }
 
 var argEchoAll bool
