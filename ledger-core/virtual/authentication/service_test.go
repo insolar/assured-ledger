@@ -32,9 +32,8 @@ func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
 
 	rg := pulse.NewPulseRange([]pulse.Data{pdLeft})
 
-	require.PanicsWithValue(t, "Unexpected message type", func() {
-		authService.IsMessageFromVirtualLegitimate(ctx, 333, reference.Global{}, rg)
-	})
+	_, err := authService.IsMessageFromVirtualLegitimate(ctx, 333, reference.Global{}, rg)
+	require.EqualError(t, err, "Unexpected message type")
 }
 
 func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *testing.T) {

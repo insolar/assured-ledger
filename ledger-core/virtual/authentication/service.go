@@ -95,7 +95,7 @@ func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj 
 	subjectRef, usePrev, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
 	switch {
 	case !ok:
-		panic("Unexpected message type")
+		return false, throw.New("Unexpected message type")
 	case usePrev:
 		if !pr.IsArticulated() {
 			if prevDelta := pr.LeftPrevDelta(); prevDelta > 0 {
