@@ -115,11 +115,16 @@ func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smac
 	    // so this defer is to protect from such case.
 
 		defer func() {
-			r := recover()
-			if err, ok := r.(error); ok && err.Error() == "send on closed channel" {
+			switch r := recover().(type) {
+			case nil:
 				return
+			case error:
+				if r.Error() == "send on closed channel" {
+					return
+				}
+			default:
+				panic(r)
 			}
-			panic(r)
 		}()
 	}
 
