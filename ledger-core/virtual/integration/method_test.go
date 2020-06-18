@@ -191,6 +191,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
 
@@ -278,13 +280,11 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	}
 
 	{
-		it := server.Journal.GetJournalIterator()
 		select {
-		case <-it.WaitStop(&execute.SMExecute{}, 2):
+		case <-executeDone:
 		case <-time.After(10 * time.Second):
-			t.Fatal("timeout")
+			require.FailNow(t, "timeout")
 		}
-		it.Stop()
 	}
 
 	{

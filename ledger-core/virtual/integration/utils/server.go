@@ -27,9 +27,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/journalinglogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -55,10 +56,14 @@ type Server struct {
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
 	pulseManager       *pulsemanager.PulseManager
-	Journal            *journalinglogger.JournalingLogger
+	Journal            *journal.Journal
 
+	// wait and suspend operations
 	cycleFn     ConveyorCycleFunc
 	activeState atomickit.Uint32
+
+	// finalization
+	fullStop    synckit.ClosableSignalChannel
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -94,6 +99,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 
 	s := Server{
 		caller: gen.UniqueReference(),
+		fullStop: make(synckit.ClosableSignalChannel),
 	}
 
 	// Pulse-related components
@@ -143,11 +149,15 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
-	var childLog smachine.SlotMachineLogger = statemachine.ConveyorLoggerFactory{}
+	var machineLogger smachine.SlotMachineLogger
+
 	if convlog.UseTextConvLog {
-		childLog = convlog.MachineLogger{}
+		machineLogger = convlog.MachineLogger{}
+	} else {
+		machineLogger = statemachine.ConveyorLoggerFactory{}
 	}
-	s.Journal = journalinglogger.NewJournalingLogger(childLog)
+	s.Journal = journal.New()
+	machineLogger = s.Journal.InterceptSlotMachineLog(machineLogger, s.fullStop)
 
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
@@ -156,7 +166,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 
 	virtualDispatcher.CycleFn = s.onCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
-	virtualDispatcher.MachineLogger = s.Journal
+	virtualDispatcher.MachineLogger = machineLogger
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing
@@ -174,11 +184,17 @@ func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
-	s.Journal.Start()
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
 	s.IncrementPulseAndWaitIdle(ctx)
+}
 
+func (s *Server) StartRecording() {
+	s.StartRecordingExt(10_000, true)
+}
+
+func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
+	s.Journal.StartRecording(limit, discardOnOverflow)
 }
 
 func (s *Server) GetPulse() pulsestor.Pulse {
@@ -287,10 +303,11 @@ func (s *Server) RandomLocalWithPulse() reference.Local {
 }
 
 func (s *Server) Stop() {
+	defer close(s.fullStop)
+
 	s.virtual.Conveyor.Stop()
 	_ = s.testWalletServer.Stop(context.Background())
 	_ = s.messageSender.Close()
-	s.Journal.Stop()
 }
 
 func (s *Server) WaitIdleConveyor() {

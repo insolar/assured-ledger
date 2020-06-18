@@ -79,6 +79,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
 		})
+
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
 		catalogWrapper.AddObject(objectGlobal, smObjectAccessor)
@@ -125,7 +126,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		require.False(t, slotLink.IsZero())
 
 		ok := bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			DelegationSpec: payload.CallDelegationToken{Outgoing: outgoingGlobal},
+			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: outgoingGlobal},
 		})
 		require.True(t, ok)
 	}

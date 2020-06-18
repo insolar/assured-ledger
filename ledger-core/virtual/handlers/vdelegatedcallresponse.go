@@ -46,7 +46,7 @@ func (s *SMVDelegatedCallResponse) Init(ctx smachine.InitializationContext) smac
 }
 
 func (s *SMVDelegatedCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	key := execute.DelegationTokenAwaitKey{Outgoing: s.Payload.DelegationSpec.Outgoing}
+	key := execute.DelegationTokenAwaitKey{Outgoing: s.Payload.ResponseDelegationSpec.Outgoing}
 	slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(key)
 	if slotLink.IsZero() {
 		return ctx.Error(errors.New("bargeIn was not published"))
