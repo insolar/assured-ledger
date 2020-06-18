@@ -63,8 +63,12 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 	{
 		catalogWrapper := object.NewCatalogMockWrapper(mc)
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service = authentication.NewServiceMock(t)
+		)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&authService)
 
 		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
 			Info: object.Info{
