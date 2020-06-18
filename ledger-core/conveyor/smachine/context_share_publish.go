@@ -12,7 +12,7 @@ import (
 )
 
 // this structure provides isolation of shared data to avoid SM being retained via SharedDataLink
-type uniqueAliasKey struct {
+type uniqueSharedKey struct {
 	valueType reflect.Type
 }
 
@@ -26,7 +26,7 @@ func (p *slotContext) Share(data interface{}, flags ShareDataFlags) SharedDataLi
 	case flags&ShareDataDirect != 0:
 		return SharedDataLink{p.s.NewLink(), data, flags}
 	default:
-		alias := &uniqueAliasKey{reflect.TypeOf(data)}
+		alias := &uniqueSharedKey{reflect.TypeOf(data)}
 		if !p.s.registerBoundAlias(alias, data) {
 			panic("impossible")
 		}
