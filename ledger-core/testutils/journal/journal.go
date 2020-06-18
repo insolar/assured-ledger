@@ -26,10 +26,8 @@ type Journal struct {
 	async *predicate.AsyncCounter
 }
 
-func (p *Journal) InterceptSlotMachineLog(underlying smachine.SlotMachineLogger) smachine.SlotMachineLogger {
-	feeder := NewFeeder(underlying, p.dispenser.EventInput)
-	feeder.Start()
-	return feeder
+func (p *Journal) InterceptSlotMachineLog(underlying smachine.SlotMachineLogger, stopSignal synckit.SignalChannel) smachine.SlotMachineLogger {
+	return NewFeeder(underlying, p.dispenser.EventInput, stopSignal)
 }
 
 func (p *Journal) StartRecording(limit int, discardOnOverflow bool) {

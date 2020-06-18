@@ -107,6 +107,22 @@ func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent inte
 func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
 	c.StepLogger.LogAdapter(data, adapterID, callID, fields)
 
+	switch data.Flags.AdapterFlags() {
+	case smachine.StepLoggerAdapterAsyncResult, smachine.StepLoggerAdapterAsyncCancel,
+	     smachine.StepLoggerAdapterAsyncExpiredResult, smachine.StepLoggerAdapterAsyncExpiredCancel:
+
+	    // These events are sent from an adapter and may arrive after the debug logger was stopped
+	    // so this defer is to protect from such case.
+
+		defer func() {
+			r := recover()
+			if err, ok := r.(error); ok && err.Error() == "send on closed channel" {
+				return
+			}
+			panic(r)
+		}()
+	}
+
 	c.events <- UpdateEvent{
 		notEmpty:  true,
 		SM:        c.sm,
@@ -172,6 +188,10 @@ func (v DebugMachineLogger) GetEvent() UpdateEvent {
 	return <-v.events
 }
 
+func (v DebugMachineLogger) EventChan() <-chan UpdateEvent {
+	return v.events
+}
+
 func (v DebugMachineLogger) Continue() {
 	if v.continueStep != nil {
 		v.continueStep <- struct{}{}
@@ -185,13 +205,12 @@ func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEv
 			if !ok {
 				return
 			}
-		case _, ok := <-flushDone:
-			if !ok {
-				if closeEvents {
-					close(v.events)
-				}
-				return
+		case <-flushDone:
+			if closeEvents {
+				close(v.events)
+				for range v.events {}
 			}
+			return
 		}
 	}
 }

@@ -9,20 +9,23 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type FeedFunc = predicate.SubscriberFunc
 
-func NewFeeder(underlying smachine.SlotMachineLogger, feedFn FeedFunc) *Feeder {
+func NewFeeder(underlying smachine.SlotMachineLogger, feedFn FeedFunc, stopSignal synckit.SignalChannel) *Feeder {
 	if feedFn == nil {
 		panic(throw.IllegalState())
 	}
 
-	return &Feeder{
+	feeder := &Feeder{
 		captor:  debuglogger.NewDebugMachineLoggerNoBlock(underlying, 100),
 		feedFn: feedFn,
 	}
+	feeder.Start(stopSignal)
+	return feeder
 }
 
 var _ smachine.SlotMachineLogger = &Feeder{}
@@ -33,15 +36,24 @@ type Feeder struct {
 	feedFn FeedFunc
 }
 
-func (p *Feeder) Start() {
-	// no need to have a limit
+func (p *Feeder) Start(stopSignal synckit.SignalChannel) {
 	go func() {
 		for {
-			rv := p.captor.GetEvent()
-			p.feedFn(rv) // allow stop to be detected by receiver(s)
-			if rv.IsEmpty() {
-				return
+			select {
+			case event, ok := <- p.captor.EventChan():
+				switch {
+				case !ok || event.IsEmpty():
+					p.feedFn(event)
+					return
+				case p.feedFn(event) == predicate.RetainSubscriber:
+					continue
+				}
+			case <- stopSignal:
+				//
 			}
+
+			p.captor.FlushEvents(synckit.ClosedChannel(), true)
+			return
 		}
 	}()
 }

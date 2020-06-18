@@ -30,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -57,8 +58,12 @@ type Server struct {
 	pulseManager       *pulsemanager.PulseManager
 	Journal            *journal.Journal
 
+	// wait and suspend operations
 	cycleFn     ConveyorCycleFunc
 	activeState atomickit.Uint32
+
+	// finalization
+	fullStop    synckit.ClosableSignalChannel
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -94,6 +99,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 
 	s := Server{
 		caller: gen.UniqueReference(),
+		fullStop: make(synckit.ClosableSignalChannel),
 	}
 
 	// Pulse-related components
@@ -151,7 +157,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 		machineLogger = statemachine.ConveyorLoggerFactory{}
 	}
 	s.Journal = journal.New()
-	machineLogger = s.Journal.InterceptSlotMachineLog(machineLogger)
+	machineLogger = s.Journal.InterceptSlotMachineLog(machineLogger, s.fullStop)
 
 	virtualDispatcher := virtual.NewDispatcher()
 	virtualDispatcher.Runner = runnerService
@@ -297,6 +303,8 @@ func (s *Server) RandomLocalWithPulse() reference.Local {
 }
 
 func (s *Server) Stop() {
+	defer close(s.fullStop)
+
 	s.virtual.Conveyor.Stop()
 	_ = s.testWalletServer.Stop(context.Background())
 	_ = s.messageSender.Close()
