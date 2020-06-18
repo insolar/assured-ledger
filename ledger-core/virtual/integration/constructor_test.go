@@ -60,7 +60,6 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		CallSiteMethod: "test",
 		CallOutgoing:   outgoing,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -82,7 +81,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 			})
 	}
 
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
 
@@ -113,7 +112,6 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		CallOutgoing:   outgoing,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -123,7 +121,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		return false // no resend msg
 	})
 
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
 
@@ -150,7 +148,6 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		pulseNumber = server.GetPulse().PulseNumber
 		outgoing    = server.RandomLocalWithPulse()
 		objectRef   = reference.NewSelf(outgoing)
 	)
@@ -188,12 +185,11 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	})
 
 	{
-		msg := makeVStateReportWithState(pulseNumber, objectRef, payload.Missing, nil, server.JetCoordinatorMock.Me())
-		server.SendMessage(ctx, msg)
+		pl := makeVStateReportWithState(objectRef, payload.Missing, nil)
+		server.SendPayload(ctx, pl)
 	}
 
-	msg := utils.NewRequestWrapper(pulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
 

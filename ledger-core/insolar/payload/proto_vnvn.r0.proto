@@ -161,14 +161,6 @@ message ObjectState {
     bool Deactivated = 25;
 }
 
-message VPendingDelegationRequest {
-    option (insproto.id) = 1005;
-    Reference Callee = 20;
-    Reference Request = 21;
-
-    CallDelegationToken DelegationSpec = 22;
-}
-
 message VDelegatedRequestFinished {
     option (insproto.id) = 1006;
     CallTypeNew CallType = 20;
