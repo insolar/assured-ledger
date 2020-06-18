@@ -7,6 +7,8 @@ package instestlogger
 
 import (
 	"flag"
+	"os"
+	"strconv"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -19,17 +21,39 @@ func readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	if argOutFile != "" {
-		cfg.OutputType = logoutput.FileOutput.String()
-		cfg.Formatter = logcommon.JSONFormat.String()
+
+	switch {
+	case argOutFile != "":
 		cfg.OutputParams = argOutFile
+
+		if echoAll != nil {
+			*echoAll = argEchoAll
+		}
+		if emuMarks != nil {
+			*emuMarks = argEmuMarks
+		}
+
+	case os.Getenv("TESTLOG_OUT") != "":
+		cfg.OutputParams = os.Getenv("TESTLOG_OUT")
+
+		if v := os.Getenv("TESTLOG_ECHO"); v != "" && echoAll != nil {
+			if b, err := strconv.ParseBool(v); err == nil {
+				*echoAll = b
+			}
+		}
+
+		if v := os.Getenv("TESTLOG_MARKS"); v != "" && emuMarks != nil {
+			if b, err := strconv.ParseBool(v); err == nil {
+				*emuMarks = b
+			}
+		}
+
+	default:
+		return
 	}
-	if echoAll != nil {
-		*echoAll = argEchoAll
-	}
-	if emuMarks != nil {
-		*emuMarks = argEmuMarks
-	}
+
+	cfg.OutputType = logoutput.FileOutput.String()
+	cfg.Formatter = logcommon.JSONFormat.String()
 }
 
 var argEchoAll bool
