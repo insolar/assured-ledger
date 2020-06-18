@@ -15,7 +15,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file
-	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts ./... -- -v -tags=slowtest -count=1 $(TEST_ARGS) 2>&1 | tee "integration_test.log"
+	gotestsum --raw-command -- go-acc --covermode=count --output=coverage.tmp.out --ignore drafts ./... -- -v -tags=slowtest -json -count=1 $(TEST_ARGS) 2>&1 | tee "integration_test.log"
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -90,7 +90,7 @@ test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes clus
 
 .PHONY: publish_integration_tests
 publish_integration_tests: ## send results to testrail
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FORMAT="text" --FILE="integration_test.log"
+	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FILE="integration_test.log"
 
 .PHONY: publish_functest
 publish_functest: ## send results to testrail
