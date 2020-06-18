@@ -117,10 +117,10 @@ func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smac
 		defer func() {
 			switch r := recover().(type) {
 			case nil:
-				return
+				//
 			case error:
-				if r.Error() == "send on closed channel" {
-					return
+				if r.Error() != "send on closed channel" {
+					panic(r)
 				}
 			default:
 				panic(r)
