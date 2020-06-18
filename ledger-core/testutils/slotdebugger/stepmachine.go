@@ -76,7 +76,7 @@ func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepControll
 	w := &StepController{
 		t:           t,
 		ctx:         ctx,
-		debugLogger: debugLogger,
+		debugLogger: &debugLogger,
 	}
 	w.SlotMachine = smachine.NewSlotMachine(machineConfig,
 		w.internalSignal.NextBroadcast,
@@ -153,10 +153,8 @@ func (c *StepController) Stop() {
 	c.watchdog.Stop()
 
 	c.SlotMachine.Stop()
-	c.externalSignal.NextBroadcast()
-	c.debugLogger.Stop()
 
-	c.debugLogger.FlushEvents(c.worker.finishedSignal())
+	c.debugLogger.FlushEvents(c.worker.finishedSignal(), true)
 }
 
 func (c *StepController) Migrate() {
