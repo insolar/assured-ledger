@@ -59,7 +59,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		CallSiteMethod: "test",
 		CallOutgoing:   outgoing,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	msg := server.WrapPayload(&pl).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -114,7 +114,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 		CallOutgoing:   outgoing,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	msg := server.WrapPayload(&pl).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -176,7 +176,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		CallSiteMethod: "test",
 		CallOutgoing:   outgoing,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	msg := server.WrapPayload(&pl).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -282,7 +282,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	msg := utils.NewRequestWrapper(pulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
+	msg := server.WrapPayload(&pl).Finalize()
 	server.SendMessage(ctx, msg)
 
 	{
