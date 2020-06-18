@@ -11,6 +11,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -57,9 +59,10 @@ type SMExecute struct {
 	methodIsolation contract.MethodIsolation
 
 	// dependencies
-	runner        runner.ServiceAdapter
-	messageSender messageSenderAdapter.MessageSender
-	pulseSlot     *conveyor.PulseSlot
+	runner                runner.ServiceAdapter
+	messageSender         messageSenderAdapter.MessageSender
+	pulseSlot             *conveyor.PulseSlot
+	authenticationService authentication.Service
 
 	outgoing        *payload.VCallRequest
 	outgoingObject  reference.Global
@@ -87,6 +90,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.authenticationService)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -427,7 +431,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())
 		}
-		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
 		if s.outgoingWasSent {
 			return ctx.Jump(s.stepSendOutgoing)
 		}
@@ -495,10 +499,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
+		s.outgoing.DelegationSpec = s.getToken()
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = s.outgoing.Callee
+		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -517,9 +523,10 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			if !ok || res == nil {
 				panic(throw.IllegalValue())
 			}
-			s.outgoingResult = res.ReturnArguments
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				s.outgoingResult = res.ReturnArguments
+
 				return ctx.WakeUp()
 			}
 		})
@@ -650,7 +657,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		Callee:         s.execution.Object,
 		CallOutgoing:   s.execution.Outgoing,
 		CallIncoming:   s.execution.Incoming,
-		DelegationSpec: s.delegationTokenSpec,
+		DelegationSpec: s.getToken(),
 		LatestState:    lastState,
 	}
 
@@ -708,7 +715,9 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallIncomingResult: reference.Local{},
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
+		DelegationSpec:     s.getToken(),
 	}
+
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -751,4 +760,11 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash(data)
 	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
+}
+
+func (s *SMExecute) getToken() payload.CallDelegationToken {
+	if s.authenticationService != nil && !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
+		return payload.CallDelegationToken{}
+	}
+	return s.delegationTokenSpec
 }

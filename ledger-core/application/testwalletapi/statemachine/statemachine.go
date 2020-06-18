@@ -81,9 +81,10 @@ func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smach
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
-		s.responsePayload = *res
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			s.responsePayload = *res
+
 			return ctx.WakeUp()
 		}
 	})

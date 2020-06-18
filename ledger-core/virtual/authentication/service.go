@@ -19,24 +19,25 @@ import (
 
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/authentication.Service -o ./ -s _mock.go -g
 type Service interface {
 	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
 	IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
+	HasToSendToken(token payload.CallDelegationToken) bool
 }
 
 type service struct {
-	selfNode reference.Global
 	affinity jet.AffinityHelper
 }
 
-func NewService(_ context.Context, selfNode reference.Global, affinity jet.AffinityHelper) Service {
-	return service{selfNode: selfNode, affinity: affinity}
+func NewService(_ context.Context, affinity jet.AffinityHelper) Service {
+	return service{affinity: affinity}
 }
 
 func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
 	return payload.CallDelegationToken{
 		TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-		Approver:          s.selfNode,
+		Approver:          s.affinity.Me(),
 		DelegateTo:        to,
 		PulseNumber:       pn,
 		Callee:            object,
@@ -46,24 +47,54 @@ func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.
 	}
 }
 
-func (s service) checkDelegationToken() error {
+func (s service) HasToSendToken(token payload.CallDelegationToken) bool {
+	useToken := true
+	if token.Approver == s.affinity.Me() {
+		useToken = false
+	}
+	return useToken
+}
+
+func (s service) checkDelegationToken(expectedVE reference.Global, token payload.CallDelegationToken) error {
 	// TODO: check signature
+
+	if !token.Approver.Equal(expectedVE) {
+		return throw.New("token Approver and expectedVE are different",
+			struct {
+				ExpectedVE string
+				Approver   string
+			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
+	}
+
+	if token.Approver.Equal(s.affinity.Me()) {
+		return throw.New("selfNode cannot be equal to token Approver",
+			struct {
+				SelfNode string
+				Approver string
+			}{SelfNode: s.affinity.Me().String(), Approver: token.Approver.String()})
+	}
 	return nil
 }
 
-func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
-	switch token, ok := payload.GetSenderDelegationToken(payloadObj); {
-	case !ok:
-		return false, throw.New("message must implement tokenHolder interface")
-	case !token.IsZero():
-		return false, s.checkDelegationToken()
+func (s service) getExpectedVE(ctx context.Context, subjectRef reference.Global, verifyForPulse pulse.Number) (reference.Global, error) {
+	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), verifyForPulse)
+	if err != nil {
+		return reference.Global{}, throw.W(err, "can't calculate role")
 	}
 
+	if len(expectedVE) > 1 {
+		panic(throw.Impossible())
+	}
+
+	return expectedVE[0], nil
+}
+
+func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	verifyForPulse := pr.RightBoundData().PulseNumber
 	subjectRef, usePrev, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
 	switch {
 	case !ok:
-		panic("Unexpected message type")
+		return false, throw.New("Unexpected message type")
 	case usePrev:
 		if !pr.IsArticulated() {
 			if prevDelta := pr.LeftPrevDelta(); prevDelta > 0 {
@@ -87,21 +118,21 @@ func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj 
 		return true, nil
 	}
 
-	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), verifyForPulse)
+	expectedVE, err := s.getExpectedVE(ctx, subjectRef, verifyForPulse)
 	if err != nil {
-		return false, throw.W(err, "can't calculate role")
+		return false, throw.W(err, "can't get expected VE")
 	}
 
-	if len(expectedVE) > 1 {
-		panic(throw.Impossible())
+	if token, ok := payload.GetSenderDelegationToken(payloadObj); ok && !token.IsZero() {
+		return false, s.checkDelegationToken(expectedVE, token)
 	}
 
-	if !sender.Equal(expectedVE[0]) {
+	if !sender.Equal(expectedVE) {
 		return false, throw.New("unexpected sender", struct {
 			Sender     string
 			ExpectedVE string
 			Pulse      string
-		}{Sender: sender.String(), ExpectedVE: expectedVE[0].String(), Pulse: verifyForPulse.String()})
+		}{Sender: sender.String(), ExpectedVE: expectedVE.String(), Pulse: verifyForPulse.String()})
 	}
 
 	return false, nil

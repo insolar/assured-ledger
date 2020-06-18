@@ -51,7 +51,7 @@ jobs:
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
       - name: Upload coverage to Codecov
         if: always()
-        run: bash <(curl -s https://codecov.io/bash) -f ledger-core/coverage.out -y ledger-core/.codecov.yml -n coverage-report
+        run: bash <(curl -s https://codecov.io/bash) -f ledger-core/coverage.out -n coverage-report
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger
       - name: Add coverage.html to artifacts
         if: always()

@@ -149,9 +149,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 
 	switch s.Payload.CallFlags.GetInterference() {
 	case contract.CallIntolerable:
-		if state.ActiveUnorderedPendingCount > 0 {
-			state.ActiveUnorderedPendingCount--
-		} else {
+		if state.PreviousExecutorUnorderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef.String(),
 				Request: requestRef.String(),
@@ -159,21 +157,18 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 			})
 		}
 	case contract.CallTolerable:
-		if state.ActiveOrderedPendingCount > 0 {
-			state.ActiveOrderedPendingCount--
-
-			if state.ActiveOrderedPendingCount == 0 {
-				// If we do not have pending ordered, release sync object.
-				if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-					ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")
-				}
-			}
-		} else {
+		if state.PreviousExecutorOrderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef.String(),
 				Request: requestRef.String(),
 				Ordered: true,
 			})
+		}
+		if pendingList.CountActive() == 0 {
+			// If we do not have pending ordered, release sync object.
+			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
+				ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")
+			}
 		}
 	}
 }

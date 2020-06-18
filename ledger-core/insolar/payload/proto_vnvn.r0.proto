@@ -202,7 +202,7 @@ message VDelegatedCallResponse {
 
     Reference Callee = 20;
     Reference CallIncoming = 21;
-    CallDelegationToken DelegationSpec = 22;
+    CallDelegationToken ResponseDelegationSpec = 22;
 }
 
 message CallDelegationToken {
