@@ -65,7 +65,7 @@ type Server struct {
 	// wait and suspend operations
 
 	// finalization
-	fullStop    synckit.ClosableSignalChannel
+	fullStop synckit.ClosableSignalChannel
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -100,7 +100,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	}
 
 	s := Server{
-		caller: gen.UniqueReference(),
+		caller:   gen.UniqueReference(),
 		fullStop: make(synckit.ClosableSignalChannel),
 	}
 
@@ -425,4 +425,9 @@ func (s *Server) setWaitCallback(cycleFn ConveyorCycleFunc) {
 
 func (s *Server) WrapPayload(pl payload.Marshaler) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
+}
+
+func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
+	msg := s.WrapPayload(pl).Finalize()
+	s.SendMessage(ctx, msg)
 }

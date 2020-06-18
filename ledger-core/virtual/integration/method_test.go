@@ -61,10 +61,9 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 		UnorderedPendingEarliestPulse: pulse.OfNow(),
 		ProvidedContent:               content,
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payload).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	server.WaitIdleConveyor()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, payload)
 	server.WaitActiveThenIdleConveyor()
 }
 
@@ -94,9 +93,8 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 
 		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-397
 	}
@@ -136,10 +134,9 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		CallOutgoing:        server.RandomLocalWithPulse(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	countBefore := server.PublisherMock.GetCount()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
 		t.Error("failed to wait for result")
@@ -173,9 +170,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 
 		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-395
 	}
@@ -244,7 +239,6 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				CallOutgoing:        callOutgoing,
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
-			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 
@@ -259,7 +253,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 				State:        contract.CallValidated,
 			}, nil)
 
-			server.SendMessage(ctx, msg)
+			server.SendPayload(ctx, &pl)
 		}
 
 		for i := 0; i < 2; i++ {
@@ -424,9 +418,8 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
 		t.Fatal("failed to wait until all messages returned")
 	}
@@ -522,9 +515,8 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
 		t.Fatal("failed to wait until all messages returned")
 	}
@@ -615,9 +607,8 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
 		t.Fatal("failed to wait until all messages returned")
 	}
@@ -709,9 +700,8 @@ func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 	beforeCount := server.PublisherMock.GetCount()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
 		t.Fatal("failed to wait until all messages returned")
 	}
