@@ -62,11 +62,12 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 		callMode    = contract.CallTolerable
 	)
 
-	smObject.ActiveOrderedPendingCount = 1
+	smObject.PreviousExecutorOrderedPendingCount = 1
 
 	table := smObject.PendingTable.GetList(callMode)
 	table.Add(smExecID)
 	require.Equal(t, 1, table.Count())
+	require.Equal(t, 1, table.CountActive())
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
@@ -82,7 +83,8 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 	sm.updateSharedState(execCtx, &smObject.SharedState)
 
 	require.Equal(t, 1, table.CountFinish())
-	require.Equal(t, uint8(0), smObject.ActiveOrderedPendingCount)
+	require.Equal(t, 0, table.CountActive())
+	require.Equal(t, uint8(1), smObject.PreviousExecutorOrderedPendingCount)
 	mc.Finish()
 }
 
@@ -97,11 +99,15 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 		callMode    = contract.CallTolerable
 	)
 
-	smObject.ActiveOrderedPendingCount = 2
+	smObject.PreviousExecutorOrderedPendingCount = 2
 
 	table := smObject.PendingTable.GetList(callMode)
 	table.Add(smExecID)
 	require.Equal(t, 1, table.Count())
+	require.Equal(t, 1, table.CountActive())
+	table.Add(reference.NewSelf(gen.UniqueIDWithPulse(pd.PulseNumber)))
+	require.Equal(t, 2, table.Count())
+	require.Equal(t, 2, table.CountActive())
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
@@ -116,7 +122,8 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	sm.updateSharedState(execCtx, &smObject.SharedState)
 
 	require.Equal(t, 1, table.CountFinish())
-	require.Equal(t, uint8(1), smObject.ActiveOrderedPendingCount)
+	require.Equal(t, 1, table.CountActive())
+	require.Equal(t, uint8(2), smObject.PreviousExecutorOrderedPendingCount)
 	mc.Finish()
 }
 
@@ -131,11 +138,12 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 		callMode    = contract.CallIntolerable
 	)
 
-	smObject.ActiveUnorderedPendingCount = 1
+	smObject.PreviousExecutorUnorderedPendingCount = 1
 
 	table := smObject.PendingTable.GetList(callMode)
 	table.Add(smExecID)
 	require.Equal(t, 1, table.Count())
+	require.Equal(t, 1, table.CountActive())
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
@@ -148,6 +156,7 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 	sm.updateSharedState(execCtx, &smObject.SharedState)
 
 	require.Equal(t, 1, table.CountFinish())
-	require.Equal(t, uint8(0), smObject.ActiveUnorderedPendingCount)
+	require.Equal(t, 0, table.CountActive())
+	require.Equal(t, uint8(1), smObject.PreviousExecutorUnorderedPendingCount)
 	mc.Finish()
 }

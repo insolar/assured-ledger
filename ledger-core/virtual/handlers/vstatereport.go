@@ -122,8 +122,8 @@ func (s *SMVStateReport) updateSharedState(
 		panic(throw.IllegalState())
 	}
 
-	state.ActiveUnorderedPendingCount = uint8(s.Payload.UnorderedPendingCount)
-	state.ActiveOrderedPendingCount = uint8(s.Payload.OrderedPendingCount)
+	state.PreviousExecutorUnorderedPendingCount = uint8(s.Payload.UnorderedPendingCount)
+	state.PreviousExecutorOrderedPendingCount = uint8(s.Payload.OrderedPendingCount)
 
 	state.OrderedPendingEarliestPulse = s.Payload.OrderedPendingEarliestPulse
 	state.UnorderedPendingEarliestPulse = s.Payload.UnorderedPendingEarliestPulse

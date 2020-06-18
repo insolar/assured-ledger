@@ -57,7 +57,9 @@ func (*dSMDelegatedTokenRequest) GetInitStateFor(_ smachine.StateMachine) smachi
 
 /* -------- Instance ------------- */
 
-func (s *SMDelegatedTokenRequest) GetSubroutineInitState(_ smachine.SubroutineStartContext) smachine.InitFunc {
+func (s *SMDelegatedTokenRequest) GetSubroutineInitState(ctx smachine.SubroutineStartContext) smachine.InitFunc {
+	ctx.SetSubroutineCleanupMode(smachine.SubroutineCleanupAliasesAndShares)
+
 	return s.Init
 }
 
@@ -76,9 +78,10 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
-		s.response = res
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			s.response = res
+
 			return ctx.WakeUp()
 		}
 	})
