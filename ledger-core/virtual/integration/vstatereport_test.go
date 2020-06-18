@@ -47,8 +47,8 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 		// send VStateReport: save wallet
 
 		rawWalletState := makeRawWalletState(testBalance)
-		msg := makeVStateReportEvent(server.GetPulse().PulseNumber, objectRef, stateID, rawWalletState, server.JetCoordinatorMock.Me())
-		server.SendMessage(ctx, msg)
+		pl := makeVStateReportEvent(objectRef, stateID, rawWalletState)
+		server.SendPayload(ctx, pl)
 	}
 
 	// generate new state since it will be changed by CallAPIAddAmount

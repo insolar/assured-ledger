@@ -49,8 +49,7 @@ func TestInitViaCTMethod(t *testing.T) {
 			Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
 			CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 	}
 
 	// potentially failing test, if execution would sleep for some time before that check
