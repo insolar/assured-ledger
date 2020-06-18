@@ -19,24 +19,25 @@ import (
 
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/authentication.Service -o ./ -s _mock.go -g
 type Service interface {
 	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
 	IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
+	HasToSendToken(token payload.CallDelegationToken) bool
 }
 
 type service struct {
-	selfNode reference.Global
 	affinity jet.AffinityHelper
 }
 
-func NewService(_ context.Context, selfNode reference.Global, affinity jet.AffinityHelper) Service {
-	return service{selfNode: selfNode, affinity: affinity}
+func NewService(_ context.Context, affinity jet.AffinityHelper) Service {
+	return service{affinity: affinity}
 }
 
 func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
 	return payload.CallDelegationToken{
 		TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-		Approver:          s.selfNode,
+		Approver:          s.affinity.Me(),
 		DelegateTo:        to,
 		PulseNumber:       pn,
 		Callee:            object,
@@ -44,6 +45,14 @@ func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.
 		Outgoing:          outgoing,
 		ApproverSignature: deadBeef[:],
 	}
+}
+
+func (s service) HasToSendToken(token payload.CallDelegationToken) bool {
+	useToken := true
+	if token.Approver == s.affinity.Me() {
+		useToken = false
+	}
+	return useToken
 }
 
 func (s service) checkDelegationToken() error {

@@ -52,3 +52,9 @@ func (m *VDelegatedCallRequest) customSubject() (Reference, authSubjectMode) {
 func (m *VDelegatedCallResponse) customSubject() (Reference, authSubjectMode) {
 	return m.GetCallee(), hasAuthSubject
 }
+
+// customSubject returns hasAuthSubject ( i.e. for current pulse ) since VDelegatedRequestFinished can come only with
+// delegation token and subject is going to be considered as Approver of this delegation token
+func (m *VDelegatedRequestFinished) customSubject() (Reference, authSubjectMode) {
+	return m.GetCallee(), hasAuthSubject
+}
