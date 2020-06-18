@@ -753,11 +753,15 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), classA).CallMethod(objectBGlobal, classB, "Foo", []byte{})
+		outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), classA).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
+		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
+		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock("New")
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [A.New]")
+				require.Equal(t, classA, ctx.Request.Callee)
+				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
 			&executionupdate.ContractExecutionStateUpdate{
 				Type:     executionupdate.OutgoingCall,
@@ -768,16 +772,20 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 		objectAExecutionMock.AddContinue(
 			func(result []byte) {
 				t.Log("ExecutionContinue [A.New]")
+				require.Equal(t, []byte("finish B.Foo"), result)
 			},
 			&executionupdate.ContractExecutionStateUpdate{
 				Type:   executionupdate.Done,
-				Result: requestresult.New([]byte("finish A.New"), objectAGlobal),
+				Result: objectAResult,
 			},
 		)
 
 		runnerMock.AddExecutionMock("Foo").AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [B.Foo]")
+				require.Equal(t, objectBGlobal, ctx.Request.Callee)
+				require.Equal(t, classA, ctx.Request.Caller)
+				require.Equal(t, []byte("123"), ctx.Request.Arguments)
 			},
 			&executionupdate.ContractExecutionStateUpdate{
 				Type:   executionupdate.Done,
@@ -790,7 +798,12 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 
 	// add checks to typedChecker
 	{
-		typedChecker.VCallRequest.SetResend(true)
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+			require.Equal(t, objectBGlobal, request.Callee)
+			require.Equal(t, classA, request.Caller)
+			require.Equal(t, []byte("123"), request.Arguments)
+			return true // resend
+		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			switch res.Callee {
 			case classA:
@@ -868,11 +881,15 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), classA).CallMethod(objectBGlobal, classB, "Foo", []byte{})
+		outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), classA).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
+		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
+		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock("New")
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [A.New]")
+				require.Equal(t, classA, ctx.Request.Callee)
+				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
 			&executionupdate.ContractExecutionStateUpdate{
 				Type:     executionupdate.OutgoingCall,
@@ -883,16 +900,20 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 		objectAExecutionMock.AddContinue(
 			func(result []byte) {
 				t.Log("ExecutionContinue [A.New]")
+				require.Equal(t, []byte("finish B.Foo"), result)
 			},
 			&executionupdate.ContractExecutionStateUpdate{
 				Type:   executionupdate.Done,
-				Result: requestresult.New([]byte("finish A.New"), objectAGlobal),
+				Result: objectAResult,
 			},
 		)
 
 		runnerMock.AddExecutionMock("Foo").AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [B.Foo]")
+				require.Equal(t, objectBGlobal, ctx.Request.Callee)
+				require.Equal(t, classA, ctx.Request.Caller)
+				require.Equal(t, []byte("123"), ctx.Request.Arguments)
 			},
 			&executionupdate.ContractExecutionStateUpdate{
 				Type:   executionupdate.Done,
@@ -905,7 +926,12 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 
 	// add checks to typedChecker
 	{
-		typedChecker.VCallRequest.SetResend(true)
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+			require.Equal(t, objectBGlobal, request.Callee)
+			require.Equal(t, classA, request.Caller)
+			require.Equal(t, []byte("123"), request.Arguments)
+			return true // resend
+		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			switch res.Callee {
 			case classA:
