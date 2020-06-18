@@ -59,7 +59,7 @@ func (v SharedDataLink) getData() interface{} {
 
 func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
 	m := v.link.getActiveMachine()
-	if _, ok := v.data.(*uniqueAliasKey); ok {
+	if _, ok := v.data.(*uniqueSharedKey); ok {
 		if v.IsUnbound() || v.flags&ShareDataDirect != 0 { // shouldn't happen
 			panic("impossible")
 		}
@@ -75,7 +75,7 @@ func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
 
 // Returns true when the underlying data is of the given type
 func (v SharedDataLink) IsOfType(t reflect.Type) bool {
-	if a, ok := v.data.(*uniqueAliasKey); ok {
+	if a, ok := v.data.(*uniqueSharedKey); ok {
 		return a.valueType == t
 	}
 	return reflect.TypeOf(v.data) == t
@@ -86,7 +86,7 @@ func (v SharedDataLink) IsAssignableToType(t reflect.Type) bool {
 	switch a := v.data.(type) {
 	case nil:
 		return false
-	case *uniqueAliasKey:
+	case *uniqueSharedKey:
 		return a.valueType.AssignableTo(t)
 	}
 	return reflect.TypeOf(v.data).AssignableTo(t)
@@ -97,7 +97,7 @@ func (v SharedDataLink) IsAssignableTo(t interface{}) bool {
 	switch a := v.data.(type) {
 	case nil:
 		return false
-	case *uniqueAliasKey:
+	case *uniqueSharedKey:
 		return a.valueType.AssignableTo(reflect.TypeOf(t))
 	}
 	return reflect.TypeOf(v.data).AssignableTo(reflect.TypeOf(t))
