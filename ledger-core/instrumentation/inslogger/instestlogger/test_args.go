@@ -38,6 +38,6 @@ var argOutFile string
 
 func init() {
 	flag.BoolVar(&argEchoAll, "testlog.echo", false, "copy all log messages to console")
-	flag.BoolVar(&argEmuMarks, "testlog.marks", true, "emulate test run/pass/fail/skip marks")
+	flag.BoolVar(&argEmuMarks, "testlog.marks", false, "emulate test run/pass/fail/skip marks")
 	flag.StringVar(&argOutFile, "testlog.out", "", "output file for json log")
 }
