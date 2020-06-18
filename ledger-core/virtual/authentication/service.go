@@ -27,18 +27,17 @@ type Service interface {
 }
 
 type service struct {
-	selfNode reference.Global
 	affinity jet.AffinityHelper
 }
 
-func NewService(_ context.Context, selfNode reference.Global, affinity jet.AffinityHelper) Service {
-	return service{selfNode: selfNode, affinity: affinity}
+func NewService(_ context.Context, affinity jet.AffinityHelper) Service {
+	return service{affinity: affinity}
 }
 
 func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
 	return payload.CallDelegationToken{
 		TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-		Approver:          s.selfNode,
+		Approver:          s.affinity.Me(),
 		DelegateTo:        to,
 		PulseNumber:       pn,
 		Callee:            object,
