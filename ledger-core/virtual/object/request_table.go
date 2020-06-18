@@ -44,6 +44,8 @@ type isActive bool
 
 type RequestList struct {
 	earliestPulse pulse.Number
+	countActive   int
+	countFinish   int
 	requests      map[reference.Global]isActive
 }
 
@@ -66,6 +68,7 @@ func (rl *RequestList) Add(ref reference.Global) bool {
 	}
 
 	rl.requests[ref] = true
+	rl.countActive++
 
 	requestPulseNumber := ref.GetLocal().GetPulseNumber()
 	if rl.earliestPulse == 0 || requestPulseNumber < rl.earliestPulse {
@@ -98,6 +101,8 @@ func (rl *RequestList) Finish(ref reference.Global) bool {
 	}
 
 	rl.requests[ref] = false
+	rl.countActive--
+	rl.countFinish++
 
 	if ref.GetLocal().GetPulseNumber() == rl.earliestPulse {
 		rl.calculateEarliestPulse()
@@ -111,23 +116,11 @@ func (rl *RequestList) Count() int {
 }
 
 func (rl *RequestList) CountFinish() int {
-	var count int
-	for _, requestIsActive := range rl.requests {
-		if !requestIsActive {
-			count++
-		}
-	}
-	return count
+	return rl.countFinish
 }
 
 func (rl *RequestList) CountActive() int {
-	var count int
-	for _, requestIsActive := range rl.requests {
-		if requestIsActive {
-			count++
-		}
-	}
-	return count
+	return rl.countActive
 }
 
 func (rl *RequestList) EarliestPulse() pulse.Number {

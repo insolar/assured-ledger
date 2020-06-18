@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -220,16 +221,16 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				unorderedBargeIn = smachine.BargeIn{}
 				sharedState      = &object.SharedState{
 					Info: object.Info{
-						PendingTable:                       tc.PendingRequestTable,
-						OrderedPendingEarliestPulse:        tc.OrderedPendingEarliestPulse,
-						UnorderedPendingEarliestPulse:      tc.UnorderedPendingEarliestPulse,
-						ActiveOrderedPendingCount:          tc.ActiveOrderedPendingCount,
-						ActiveUnorderedPendingCount:        tc.ActiveUnorderedPendingCount,
-						KnownRequests:                      object.NewRequestTable(),
-						ReadyToWork:                        smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-						OrderedExecute:                     smsync.NewConditional(1, "MutableExecution").SyncLink(),
-						OrderedPendingListFilledCallback:   orderedBargeIn,
-						UnorderedPendingListFilledCallback: unorderedBargeIn,
+						PendingTable:                          tc.PendingRequestTable,
+						OrderedPendingEarliestPulse:           tc.OrderedPendingEarliestPulse,
+						UnorderedPendingEarliestPulse:         tc.UnorderedPendingEarliestPulse,
+						PreviousExecutorOrderedPendingCount:   tc.ActiveOrderedPendingCount,
+						PreviousExecutorUnorderedPendingCount: tc.ActiveUnorderedPendingCount,
+						KnownRequests:                         object.NewRequestTable(),
+						ReadyToWork:                           smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+						OrderedExecute:                        smsync.NewConditional(1, "MutableExecution").SyncLink(),
+						OrderedPendingListFilledCallback:      orderedBargeIn,
+						UnorderedPendingListFilledCallback:    unorderedBargeIn,
 					},
 				}
 				callFlags = tc.callFlags
@@ -244,7 +245,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 
-			var authenticationService = authentication.NewService(ctx, nodeRef, nil)
+			affinityHelper := jet.NewAffinityHelperMock(t).MeMock.Return(nodeRef)
+			var authenticationService = authentication.NewService(ctx, affinityHelper)
 
 			slotMachine.AddInterfaceDependency(&authenticationService)
 
