@@ -10,6 +10,7 @@ package execute
 import (
 	"context"
 	"errors"
+
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -430,7 +431,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())
 		}
-		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
 		if s.outgoingWasSent {
 			return ctx.Jump(s.stepSendOutgoing)
 		}
