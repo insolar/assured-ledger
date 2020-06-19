@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestSMObject_InitSetMigration(t *testing.T) {
@@ -33,7 +33,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 	)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
-		require.True(t, utils.CmpStateFuncs(smObject.migrate, fn))
+		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
 	}
 	initCtx := smachine.NewInitializationContextMock(mc).
 		ShareMock.Return(sharedStateData).
