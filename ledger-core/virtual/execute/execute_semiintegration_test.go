@@ -33,8 +33,9 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		caller      = gen.UniqueReference()
 		sharedState = &object.SharedState{
 			Info: object.Info{
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -106,8 +107,9 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		callee      = gen.UniqueReference()
 		sharedState = &object.SharedState{
 			Info: object.Info{
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -180,8 +182,9 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		caller      = gen.UniqueReference()
 		sharedState = &object.SharedState{
 			Info: object.Info{
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -262,8 +265,9 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -337,8 +341,9 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -411,8 +416,9 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},

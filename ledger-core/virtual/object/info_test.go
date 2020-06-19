@@ -72,14 +72,14 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			info := Info{
-				PendingTable:  NewRequestTable(),
-				KnownRequests: NewRequestTable(),
+				PendingTable:   NewRequestTable(),
+				WorkedRequests: NewRequestTable(),
 			}
 			if tc.getPendingTable != nil {
 				info.PendingTable = tc.getPendingTable()
 			}
 			if tc.getKnownRequests != nil {
-				info.KnownRequests = tc.getKnownRequests()
+				info.WorkedRequests = tc.getKnownRequests()
 			}
 			assert.Equal(t, tc.ExpectedEarliestPulse, info.GetEarliestPulse(tolerance))
 		})

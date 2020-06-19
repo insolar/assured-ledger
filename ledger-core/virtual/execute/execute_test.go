@@ -138,10 +138,12 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
+	smObject.SharedState.Info.RequestsInEarlySteps[smExecute.execution.Outgoing] = struct{}{}
+
 	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Zero(t, smObject.KnownRequests.Len())
+	assert.Zero(t, smObject.WorkedRequests.Len())
 
 	{ // updateCounters after
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -155,22 +157,14 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Equal(t, smObject.KnownRequests.Len(), 1)
-	assert.True(t, smObject.KnownRequests.GetList(contract.CallTolerable).Exist(smExecute.execution.Outgoing))
-
-	{
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			LogMock.Return(smachine.Logger{}).
-			StopMock.Return(smachine.StateUpdate{})
-
-		smExecute.stepStartRequestProcessing(execCtx)
-	}
+	assert.Equal(t, smObject.WorkedRequests.Len(), 1)
+	assert.True(t, smObject.WorkedRequests.GetList(contract.CallTolerable).Exist(smExecute.execution.Outgoing))
+	assert.Empty(t, smObject.SharedState.Info.RequestsInEarlySteps)
 
 	mc.Finish()
 }
 
-func TestSMExecute_Deduplication(t *testing.T) {
+func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	var (
 		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -214,7 +208,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 			LogMock.Return(smachine.Logger{}).
 			StopMock.Return(smachine.StateUpdate{})
 
-		smExecute.stepDeduplicate(execCtx)
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
 	{
@@ -230,7 +224,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 				ThenRepeatMock.Return(smachine.StateUpdate{}),
 		)
 
-		smExecute.stepDeduplicate(execCtx)
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
 	{
@@ -241,7 +235,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 			AcquireForThisStepMock.Return(true).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
-		smExecute.stepDeduplicate(execCtx)
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
 	mc.Finish()

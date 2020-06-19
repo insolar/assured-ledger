@@ -73,8 +73,9 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
 			Info: object.Info{
 				Reference:      objectGlobal,
+				RequestsInEarlySteps: make(map[reference.Global]struct{}),
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				WorkedRequests: object.NewRequestTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
