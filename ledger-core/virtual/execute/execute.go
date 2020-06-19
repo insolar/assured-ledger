@@ -311,20 +311,21 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	action := func(state *object.SharedState) {
 		req := s.execution.Outgoing
 
-		_, inQueue := state.RequestsInEarlySteps[req]
-		if inQueue {
+		workingList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+
+		requestState := workingList.GetState(req)
+		switch requestState {
+		// processing started but not yet processing
+		case object.RequestStarted:
 			duplicate = true
 			return
-		}
-
-		workedList := state.WorkedRequests.GetList(s.execution.Isolation.Interference)
-		if workedList.Exist(req) {
+		case object.RequestProcessing:
 			duplicate = true
 			// TODO: we may have result already, should resend
 			return
 		}
 
-		state.RequestsInEarlySteps[req] = struct{}{}
+		workingList.Add(req)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -417,16 +418,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	action := func(state *object.SharedState) {
 		reqRef := s.execution.Outgoing
 
-		if _, has := state.RequestsInEarlySteps[reqRef]; !has {
-			// if we come here then request should be in RequestsInEarlySteps
-			panic(throw.Impossible())
-		}
-		delete(state.RequestsInEarlySteps, reqRef)
-
-		reqList := state.WorkedRequests.GetList(s.execution.Isolation.Interference)
-		alreadyIn := !reqList.Add(reqRef)
-		if alreadyIn {
-			// request already on execution
+		reqList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+		if !reqList.SetActive(reqRef) {
+			// if we come here then request should be in RequestStarted
+			// if it is not it is either somehow lost or it is already processing
 			panic(throw.Impossible())
 		}
 

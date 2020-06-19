@@ -24,8 +24,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 
 	for _, tc := range []struct {
 		name                  string
-		getPendingTable       func() RequestTable
-		getKnownRequests      func() RequestTable
+		getPendingTable       func() PendingTable
+		getKnownRequests      func() WorkingTable
 		ExpectedEarliestPulse pulse.Number
 	}{
 		{
@@ -35,7 +35,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 		{
 			name: "only pending",
-			getPendingTable: func() RequestTable {
+			getPendingTable: func() PendingTable {
 				table := NewRequestTable()
 				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
@@ -45,26 +45,28 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 		{
 			name: "only known",
-			getKnownRequests: func() RequestTable {
-				table := NewRequestTable()
+			getKnownRequests: func() WorkingTable {
+				table := NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
+				table.GetList(tolerance).SetActive(ref)
 				return table
 			},
 			ExpectedEarliestPulse: currentPulse,
 		},
 		{
 			name: "both",
-			getPendingTable: func() RequestTable {
+			getPendingTable: func() PendingTable {
 				table := NewRequestTable()
 				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
-			getKnownRequests: func() RequestTable {
-				table := NewRequestTable()
+			getKnownRequests: func() WorkingTable {
+				table := NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueIDWithPulse(prevPulse))
 				table.GetList(tolerance).Add(ref)
+				table.GetList(tolerance).SetActive(ref)
 				return table
 			},
 			ExpectedEarliestPulse: prevPulse,
@@ -72,14 +74,14 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			info := Info{
-				PendingTable:   NewRequestTable(),
-				WorkedRequests: NewRequestTable(),
+				PendingTable:  NewRequestTable(),
+				KnownRequests: NewWorkingTable(),
 			}
 			if tc.getPendingTable != nil {
 				info.PendingTable = tc.getPendingTable()
 			}
 			if tc.getKnownRequests != nil {
-				info.WorkedRequests = tc.getKnownRequests()
+				info.KnownRequests = tc.getKnownRequests()
 			}
 			assert.Equal(t, tc.ExpectedEarliestPulse, info.GetEarliestPulse(tolerance))
 		})

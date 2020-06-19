@@ -138,12 +138,12 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.SharedState.Info.RequestsInEarlySteps[smExecute.execution.Outgoing] = struct{}{}
+	smObject.SharedState.Info.KnownRequests.GetList(callFlags.GetInterference()).Add(smExecute.execution.Outgoing)
 
 	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Zero(t, smObject.WorkedRequests.Len())
+	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
 	{ // updateCounters after
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -157,9 +157,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Equal(t, smObject.WorkedRequests.Len(), 1)
-	assert.True(t, smObject.WorkedRequests.GetList(contract.CallTolerable).Exist(smExecute.execution.Outgoing))
-	assert.Empty(t, smObject.SharedState.Info.RequestsInEarlySteps)
+	assert.Equal(t, 1, smObject.KnownRequests.Len())
+	assert.Equal(t, object.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
 
 	mc.Finish()
 }

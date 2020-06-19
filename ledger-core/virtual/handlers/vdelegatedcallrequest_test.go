@@ -57,7 +57,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		ActiveUnorderedPendingCount   uint8
 		callFlags                     payload.CallFlags
 		expectedResponse              *payload.VDelegatedCallResponse
-		PendingRequestTable           object.RequestTable
+		PendingRequestTable           object.PendingTable
 		expectedError                 bool
 	}{
 		{
@@ -226,8 +226,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 						UnorderedPendingEarliestPulse:         tc.UnorderedPendingEarliestPulse,
 						PreviousExecutorOrderedPendingCount:   tc.ActiveOrderedPendingCount,
 						PreviousExecutorUnorderedPendingCount: tc.ActiveUnorderedPendingCount,
-						RequestsInEarlySteps:                  make(map[reference.Global]struct{}),
-						WorkedRequests:                        object.NewRequestTable(),
+						KnownRequests:                         object.NewWorkingTable(),
 						ReadyToWork:                           smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 						OrderedExecute:                        smsync.NewConditional(1, "MutableExecution").SyncLink(),
 						OrderedPendingListFilledCallback:      orderedBargeIn,

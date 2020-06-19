@@ -52,12 +52,10 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
-	// requests that are currently processed, but not yet reached execution
-	RequestsInEarlySteps  map[reference.Global]struct{}
-	// requests that we're executing in the runner right now or
-	// have been finished already
-	WorkedRequests RequestTable
-	PendingTable   RequestTable
+	// KnownRequests holds requests that were seen on current pulse
+	KnownRequests WorkingTable
+	// PendingTable holds requests that are known to be processed by other executors
+	PendingTable PendingTable
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
@@ -121,7 +119,7 @@ func (i *Info) FinishRequest(isolation contract.MethodIsolation, requestRef refe
 	default:
 		panic(throw.Unsupported())
 	}
-	i.WorkedRequests.GetList(isolation.Interference).Finish(requestRef)
+	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
@@ -138,7 +136,7 @@ func (i *Info) Descriptor() descriptor.Object {
 
 func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
 	minPulse := i.PendingTable.GetList(tolerance).EarliestPulse()
-	knownPulse := i.WorkedRequests.GetList(tolerance).EarliestPulse()
+	knownPulse := i.KnownRequests.GetList(tolerance).EarliestPulse()
 	if knownPulse != pulse.Unknown && (minPulse == pulse.Unknown || knownPulse < minPulse) {
 		minPulse = knownPulse
 	}
@@ -207,10 +205,9 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 	return &SMObject{
 		SharedState: SharedState{
 			Info: Info{
-				Reference:      objectReference,
-				RequestsInEarlySteps: make(map[reference.Global]struct{}),
-				WorkedRequests: NewRequestTable(),
-				PendingTable:   NewRequestTable(),
+				Reference:     objectReference,
+				KnownRequests: NewWorkingTable(),
+				PendingTable:  NewRequestTable(),
 			},
 		},
 	}
