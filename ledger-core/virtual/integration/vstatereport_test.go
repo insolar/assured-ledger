@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 // 1. Send CallRequest
@@ -33,8 +34,8 @@ import (
 // 4. Since we changed pulse during execution, we expect that VStateReport will be sent
 // 5. Check that in VStateReport new object state is stored
 func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
-	t.Skip("skipped until PLAT-314")
 	t.Log("C4934")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-314")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -454,11 +455,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 
-	select {
-	case <-inExecutor:
-	case <-time.After(10 * time.Second):
-		require.Fail(t, "didn't reach executor in time")
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, inExecutor)
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) releaseNewlyCreatedPendings() {

@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/stretchr/testify/require"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -25,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 type SynchronizationPoint struct {
@@ -126,19 +125,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 		server.SendMessage(ctx, msg)
 	}
 
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -226,25 +214,12 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	server.SendPayload(ctx, &pl)
 	server.SendPayload(ctx, &pl)
 
-	select {
-	case <-oneExecutionEnded:
-	case <-time.After(10 * time.Second):
-		require.FailNow(t, "timeout")
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 
 	close(releaseBlockedExecution)
 
-	select {
-	case <-executeDone:
-	case <-time.After(10 * time.Second):
-		require.FailNow(t, "timeout")
-	}
-
-	select {
-	case <-server.Journal.WaitAllAsyncCallsDone():
-	case <-time.After(10 * time.Second):
-		require.FailNow(t, "timeout")
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		assert.Equal(t, 1, numberOfExecutions)
