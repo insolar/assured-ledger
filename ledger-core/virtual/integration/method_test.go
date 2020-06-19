@@ -865,12 +865,10 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, uint32(1), request.CallSequence)
 			case objectB2Global:
 				require.Equal(t, []byte("B2"), request.Arguments)
-				// TODO: unskip after fix https://insolar.atlassian.net/browse/PLAT-435
-				// require.Equal(t, uint32(2), request.CallSequence)
+				require.Equal(t, uint32(2), request.CallSequence)
 			case objectB3Global:
 				require.Equal(t, []byte("B3"), request.Arguments)
-				// TODO: unskip after fix https://insolar.atlassian.net/browse/PLAT-435
-				// require.Equal(t, uint32(3), request.CallSequence)
+				require.Equal(t, uint32(3), request.CallSequence)
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -932,6 +930,240 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	}
 
 	require.Equal(t, 3, typedChecker.VCallRequest.Count())
+	require.Equal(t, 4, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+// call A.Foo -> B.Bar two times
+func TestVirtual_CallContractTwoTimes(t *testing.T) {
+	t.Log("C5183")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 4)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		switch execution.Request.CallSiteMethod {
+		case "Foo":
+			return execution.Request.CallOutgoing.String()
+		case "Bar":
+			return execution.Request.CallReason.String()
+		default:
+			return "default"
+		}
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
+
+		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+
+		classB        = gen.UniqueReference()
+		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+
+		outgoingFirstCall  = server.RandomLocalWithPulse()
+		outgoingSecondCall = server.RandomLocalWithPulse()
+
+		outgoingReasonFirst  = gen.UniqueReference()
+		outgoingReasonSecond = gen.UniqueReference()
+	)
+
+	// create objects
+	{
+		Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+	}
+
+	// add ExecutionMocks to runnerMock
+	{
+		objectAExecutionMockFirst := runnerMock.AddExecutionMock(outgoingFirstCall.String())
+		objectAExecutionMockFirst.AddStart(
+			func(ctx execution.Context) {
+				t.Log("ExecutionStart [A.Foo] first call")
+				require.Equal(t, server.GlobalCaller(), ctx.Request.Caller)
+				require.Equal(t, objectAGlobal, ctx.Request.Callee)
+				require.Equal(t, outgoingFirstCall, ctx.Request.CallOutgoing)
+				require.Equal(t, []byte("first"), ctx.Request.Arguments)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:     executionupdate.OutgoingCall,
+				Error:    nil,
+				Outgoing: executionevent.NewRPCBuilder(outgoingReasonFirst, objectAGlobal).CallMethod(objectBGlobal, classB, "Bar", []byte("first outgoing")),
+			},
+		)
+		objectAExecutionMockFirst.AddContinue(
+			func(result []byte) {
+				t.Log("ExecutionContinue [A.Foo] first call")
+				require.Equal(t, []byte("finish B.Bar"), result)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Error:  nil,
+				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+			},
+		)
+
+		objectAExecutionMockSecond := runnerMock.AddExecutionMock(outgoingSecondCall.String())
+		objectAExecutionMockSecond.AddStart(
+			func(ctx execution.Context) {
+				t.Log("ExecutionStart [A.Foo] second call")
+				require.Equal(t, server.GlobalCaller(), ctx.Request.Caller)
+				require.Equal(t, objectAGlobal, ctx.Request.Callee)
+				require.Equal(t, outgoingSecondCall, ctx.Request.CallOutgoing)
+				require.Equal(t, []byte("second"), ctx.Request.Arguments)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:     executionupdate.OutgoingCall,
+				Error:    nil,
+				Outgoing: executionevent.NewRPCBuilder(outgoingReasonSecond, objectAGlobal).CallMethod(objectBGlobal, classB, "Bar", []byte("second outgoing")),
+			},
+		)
+		objectAExecutionMockSecond.AddContinue(
+			func(result []byte) {
+				t.Log("ExecutionContinue [A.Foo] second call")
+				require.Equal(t, []byte("finish B.Bar"), result)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Error:  nil,
+				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionMock(outgoingReasonFirst.String()).AddStart(
+			func(ctx execution.Context) {
+				t.Log("ExecutionStart [B.Bar] first call")
+				require.Equal(t, objectBGlobal, ctx.Request.Callee)
+				require.Equal(t, objectAGlobal, ctx.Request.Caller)
+				require.Equal(t, []byte("first outgoing"), ctx.Request.Arguments)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionMock(outgoingReasonSecond.String()).AddStart(
+			func(ctx execution.Context) {
+				t.Log("ExecutionStart [B.Bar] second call")
+				require.Equal(t, objectBGlobal, ctx.Request.Callee)
+				require.Equal(t, objectAGlobal, ctx.Request.Caller)
+				require.Equal(t, []byte("second outgoing"), ctx.Request.Arguments)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionClassify(outgoingFirstCall.String(), flags, nil)
+		runnerMock.AddExecutionClassify(outgoingSecondCall.String(), flags, nil)
+		runnerMock.AddExecutionClassify(outgoingReasonFirst.String(), flags, nil)
+		runnerMock.AddExecutionClassify(outgoingReasonSecond.String(), flags, nil)
+	}
+
+	// add checks to typedChecker
+	{
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+			assert.Equal(t, objectAGlobal, request.Caller)
+			assert.Equal(t, objectBGlobal, request.Callee)
+			assert.Equal(t, payload.CTMethod, request.CallType)
+			assert.Equal(t, callFlags, request.CallFlags)
+			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+
+			switch request.CallReason {
+			case outgoingReasonFirst:
+				require.Equal(t, []byte("first outgoing"), request.Arguments)
+				require.Equal(t, uint32(1), request.CallSequence)
+			case outgoingReasonSecond:
+				require.Equal(t, []byte("second outgoing"), request.Arguments)
+				require.Equal(t, uint32(1), request.CallSequence)
+			default:
+				t.Fatal("wrong CallReason")
+			}
+			return true // resend
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, payload.CTMethod, res.CallType)
+			assert.Equal(t, callFlags, res.CallFlags)
+
+			switch res.Callee {
+			case objectAGlobal:
+				require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
+				require.Equal(t, server.GlobalCaller(), res.Caller)
+				switch res.CallOutgoing {
+				case outgoingFirstCall:
+				case outgoingSecondCall:
+				default:
+					t.Fatal("wrong CallOutgoing")
+				}
+			case objectBGlobal:
+				require.Equal(t, []byte("finish B.Bar"), res.ReturnArguments)
+				require.Equal(t, objectAGlobal, res.Caller)
+				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
+			default:
+				t.Fatal("wrong Callee")
+			}
+			// we should resend that message only if it's CallResult from B to A
+			return res.Caller == objectAGlobal
+		})
+	}
+
+	// send first VCallRequest A.Foo
+	{
+		pl := payload.VCallRequest{
+			CallType:       payload.CTMethod,
+			CallFlags:      callFlags,
+			Caller:         server.GlobalCaller(),
+			Callee:         objectAGlobal,
+			CallSiteMethod: "Foo",
+			CallOutgoing:   outgoingFirstCall,
+			Arguments:      []byte("first"),
+		}
+		msg := server.WrapPayload(&pl).Finalize()
+		server.SendMessage(ctx, msg)
+		server.WaitActiveThenIdleConveyor()
+	}
+	// send second VCallRequest A.Foo
+	{
+		pl := payload.VCallRequest{
+			CallType:       payload.CTMethod,
+			CallFlags:      callFlags,
+			Caller:         server.GlobalCaller(),
+			Callee:         objectAGlobal,
+			CallSiteMethod: "Foo",
+			CallOutgoing:   outgoingSecondCall,
+			Arguments:      []byte("second"),
+		}
+		msg := server.WrapPayload(&pl).Finalize()
+		server.SendMessage(ctx, msg)
+	}
+
+	// wait for all calls and SMs
+	{
+		select {
+		case <-executeDone:
+		case <-time.After(20 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+		select {
+		case <-server.Journal.WaitAllAsyncCallsDone():
+		case <-time.After(20 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+	}
+
+	require.Equal(t, 2, typedChecker.VCallRequest.Count())
 	require.Equal(t, 4, typedChecker.VCallResult.Count())
 
 	mc.Finish()
