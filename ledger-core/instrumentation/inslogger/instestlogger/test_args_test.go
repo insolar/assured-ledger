@@ -68,6 +68,19 @@ func TestReadTestLogConfig_Options(t *testing.T) {
 	require.Equal(t, "<test3>", cfg.OutputParams)
 	require.True(t, echoAll)
 	require.False(t, emuMarks)
+
+	cmdLine := flag.NewFlagSet("", flag.PanicOnError)
+	initCmdOptions(cmdLine)
+	require.NoError(t, cmdLine.Parse([]string{
+		"-testlog.out=test2",
+		"-testlog.echo=0",
+		"-testlog.marks=1",
+	}))
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
+
+	require.Equal(t, "test2", cfg.OutputParams)
+	require.False(t, echoAll)
+	require.True(t, emuMarks)
 }
 
 func TestReadTestLogConfig_Args(t *testing.T) {
