@@ -19,6 +19,10 @@ import (
 
 // readTestLogConfig MUST be in a separate, test-only package to avoid polluting cmd line with test args
 func readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool) {
+	_readTestLogConfig(cfg, echoAll, emuMarks, flag.CommandLine)
+}
+
+func _readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool, cmdLine *flag.FlagSet) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
@@ -34,8 +38,8 @@ func readTestLogConfig(cfg *configuration.Log, echoAll, emuMarks *bool) {
 			*emuMarks = argEmuMarks
 		}
 
-	case flag.NArg() > 0:
-		m := readArgsMap(flag.Args())
+	case cmdLine != nil && cmdLine.NArg() > 0:
+		m := readArgsMap(cmdLine.Args())
 		if outFile := m["TESTLOG_OUT"]; outFile != "" {
 			cfg.OutputParams = outFile
 
@@ -89,8 +93,12 @@ var argEchoAll bool
 var argEmuMarks bool
 var argOutFile string
 
+func initCmdOptions(cmdLine *flag.FlagSet) {
+	cmdLine.BoolVar(&argEchoAll, "testlog.echo", false, "copy all log messages to console")
+	cmdLine.BoolVar(&argEmuMarks, "testlog.marks", false, "emulate test run/pass/fail/skip marks")
+	cmdLine.StringVar(&argOutFile, "testlog.out", "", "output file for json log")
+}
+
 func init() {
-	flag.BoolVar(&argEchoAll, "testlog.echo", false, "copy all log messages to console")
-	flag.BoolVar(&argEmuMarks, "testlog.marks", false, "emulate test run/pass/fail/skip marks")
-	flag.StringVar(&argOutFile, "testlog.out", "", "output file for json log")
+	initCmdOptions(flag.CommandLine)
 }
