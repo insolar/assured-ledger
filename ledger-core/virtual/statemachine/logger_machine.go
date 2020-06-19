@@ -99,3 +99,5 @@ func (ConveyorLoggerFactory) LogMachineCritical(slotMachineData smachine.SlotMac
 		Backtrace:  backtrace,
 	})
 }
+
+func (ConveyorLoggerFactory) LogStopping(*smachine.SlotMachine) {}

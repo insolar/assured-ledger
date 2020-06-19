@@ -11,8 +11,10 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -53,4 +55,12 @@ func (c *VirtualStepController) PrepareMockedRunner(ctx context.Context, mc mini
 
 	runnerAdapter := c.RunnerMock.CreateAdapter(ctx)
 	c.SlotMachine.AddInterfaceDependency(&runnerAdapter)
+}
+
+func (c VirtualStepController) GenerateLocal() reference.Local {
+	return gen.UniqueIDWithPulse(c.PulseSlot.CurrentPulseNumber())
+}
+
+func (c VirtualStepController) GenerateGlobal() reference.Global {
+	return reference.NewSelf(c.GenerateLocal())
 }
