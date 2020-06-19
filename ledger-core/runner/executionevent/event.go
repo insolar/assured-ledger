@@ -123,8 +123,7 @@ func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *pay
 		CallType:            payload.CTConstructor,
 		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
-		Callee:              reference.Global{},
-		CallSiteDeclaration: e.class,
+		Callee:              e.class,
 		CallSiteMethod:      e.constructor,
 		CallSequence:        0, // must be filled in the caller
 		CallReason:          e.parentRequestReference,
