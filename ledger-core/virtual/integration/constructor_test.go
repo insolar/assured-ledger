@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -390,6 +391,147 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 
 	server.WaitActiveThenIdleConveyor()
 	require.Equal(t, 2, server.PublisherMock.GetCount())
+
+	mc.Finish()
+}
+
+// A.New calls B.New
+func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
+	t.Log("C5090")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.Callee.String()
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		isolation = contract.ConstructorIsolation()
+		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
+
+		classA        = gen.UniqueReference()
+		outgoingA     = server.RandomLocalWithPulse()
+		objectAGlobal = reference.NewSelf(outgoingA)
+
+		classB        = gen.UniqueReference()
+		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+
+		outgoingCallRef = gen.UniqueReference()
+	)
+
+	// add ExecutionMocks to runnerMock
+	{
+		outgoingCall := executionevent.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallConstructor(classB, "New", []byte("123"))
+		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
+		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
+		objectAExecutionMock := runnerMock.AddExecutionMock(classA.String())
+		objectAExecutionMock.AddStart(
+			func(ctx execution.Context) {
+				t.Log("ExecutionStart [A.New]")
+				require.Equal(t, classA, ctx.Request.Callee)
+				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:     executionupdate.OutgoingCall,
+				Error:    nil,
+				Outgoing: outgoingCall,
+			},
+		)
+		objectAExecutionMock.AddContinue(
+			func(result []byte) {
+				t.Log("ExecutionContinue [A.New]")
+				require.Equal(t, []byte("finish B.New"), result)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: objectAResult,
+			},
+		)
+
+		objectBResult := requestresult.New([]byte("finish B.New"), objectBGlobal)
+		objectBResult.SetActivate(reference.Global{}, classB, []byte("state B"))
+		runnerMock.AddExecutionMock(classB.String()).AddStart(
+			func(ctx execution.Context) {
+				t.Log("ExecutionStart [B.New]")
+				require.Equal(t, classB, ctx.Request.Callee)
+				require.Equal(t, objectAGlobal, ctx.Request.Caller)
+				require.Equal(t, []byte("123"), ctx.Request.Arguments)
+			},
+			&executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: objectBResult,
+			},
+		)
+	}
+
+	// add checks to typedChecker
+	{
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+			assert.Equal(t, classB, request.Callee)
+			assert.Equal(t, objectAGlobal, request.Caller)
+			assert.Equal(t, []byte("123"), request.Arguments)
+			assert.Equal(t, payload.CTConstructor, request.CallType)
+			assert.Equal(t, uint32(1), request.CallSequence)
+			assert.Equal(t, outgoingCallRef, request.CallReason)
+			assert.Equal(t, callFlags, request.CallFlags)
+			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+			return true // resend
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, payload.CTConstructor, res.CallType)
+			assert.Equal(t, callFlags, res.CallFlags)
+
+			switch res.Callee {
+			case objectAGlobal:
+				require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
+				require.Equal(t, server.GlobalCaller(), res.Caller)
+				require.Equal(t, outgoingA, res.CallOutgoing)
+			default:
+				require.Equal(t, []byte("finish B.New"), res.ReturnArguments)
+				require.Equal(t, objectAGlobal, res.Caller)
+				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
+			}
+			// we should resend that message only if it's CallResult from B to A
+			return res.Caller == objectAGlobal
+		})
+	}
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      callFlags,
+		Caller:         server.GlobalCaller(),
+		Callee:         classA,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoingA,
+	}
+	msg := server.WrapPayload(&pl).Finalize()
+	server.SendMessage(ctx, msg)
+
+	// wait for all calls and SMs
+	{
+		select {
+		case <-executeDone:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+		select {
+		case <-server.Journal.WaitAllAsyncCallsDone():
+		case <-time.After(10 * time.Second):
+			t.Fatal("timeout")
+		}
+	}
+
+	require.Equal(t, 1, typedChecker.VCallRequest.Count())
+	require.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
