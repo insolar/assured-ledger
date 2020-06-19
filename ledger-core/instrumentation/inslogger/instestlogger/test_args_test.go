@@ -82,11 +82,10 @@ func TestReadTestLogConfig_Args(t *testing.T) {
 	cfg.Formatter = "stub"
 
 	cmdLine := flag.NewFlagSet("", flag.PanicOnError)
-	initCmdOptions(cmdLine)
 
 	require.NoError(t, cmdLine.Parse([]string{
-		"-testlog.echo=1",
-		"-testlog.marks=0",
+		"TESTLOG_ECHO=1",
+		"TESTLOG_MARKS=0",
 	}))
 	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
 
@@ -96,9 +95,9 @@ func TestReadTestLogConfig_Args(t *testing.T) {
 
 
 	require.NoError(t, cmdLine.Parse([]string{
-		"-testlog.out=test1",
-		"-testlog.echo=1",
-		"-testlog.marks=0",
+		"TESTLOG_OUT=test1",
+		"TESTLOG_ECHO=1",
+		"TESTLOG_MARKS=0",
 	}))
 	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
 
@@ -107,9 +106,9 @@ func TestReadTestLogConfig_Args(t *testing.T) {
 	require.False(t, emuMarks)
 
 	require.NoError(t, cmdLine.Parse([]string{
-		"-testlog.out=test2",
-		"-testlog.echo=0",
-		"-testlog.marks=1",
+		"TESTLOG_OUT=test2",
+		"TESTLOG_ECHO=0",
+		"TESTLOG_MARKS=1",
 	}))
 	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
 
