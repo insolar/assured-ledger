@@ -25,8 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -50,7 +48,7 @@ type SMExecute struct {
 	objectSharedState  object.SharedStateAccessor
 
 	// execution step
-	executionNewState   *executionupdate.ContractExecutionStateUpdate
+	executionNewState   *execution.Update
 	outgoingResult      []byte
 	deactivate          bool
 	run                 runner.RunState
@@ -511,14 +509,14 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	newState := s.executionNewState
 
 	switch newState.Type {
-	case executionupdate.Done:
+	case execution.Done:
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
-	case executionupdate.Error:
+	case execution.Error:
 		panic(throw.W(newState.Error, "failed to execute request", nil))
-	case executionupdate.Aborted:
+	case execution.Abort:
 		return ctx.Jump(s.stepExecuteAborted)
-	case executionupdate.OutgoingCall:
+	case execution.OutgoingCall:
 		return ctx.Jump(s.stepExecuteOutgoing)
 	default:
 		panic(throw.IllegalValue())
@@ -533,16 +531,14 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
-	case executionevent.GetCode:
-		panic(throw.Unsupported())
-	case executionevent.Deactivate:
+	case execution.Deactivate:
 		s.deactivate = true
-	case executionevent.CallConstructor:
+	case execution.CallConstructor:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 		s.outgoing.DelegationSpec = s.getToken()
-	case executionevent.CallMethod:
+	case execution.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = s.outgoing.Callee

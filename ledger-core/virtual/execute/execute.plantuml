@@ -45,9 +45,9 @@ T01_U001 --[dashed]> T01_S017 : migrateDuringExecution\nPrepareExecutionContinue
 state "stepExecuteDecideNextStep" as T01_S018
 T01_S018 : SMExecute
 T01_S018 --[dotted]> T01_S012
-T01_S018 --> T01_S024 : [executionupdate.Done]
-T01_S018 --> T01_S019 : [executionupdate.Aborted]
-T01_S018 --> T01_S020 : [executionupdate.OutgoingCall]
+T01_S018 --> T01_S024 : [execution.Done]
+T01_S018 --> T01_S019 : [execution.Abort]
+T01_S018 --> T01_S020 : [execution.OutgoingCall]
 state "stepExecuteOutgoing" as T01_S020
 T01_S020 : SMExecute
 T01_S020 --[dotted]> T01_S012

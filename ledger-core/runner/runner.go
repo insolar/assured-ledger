@@ -41,7 +41,7 @@ type DefaultService struct {
 
 	lastPosition           call.ID
 	eventSinkInProgressMap map[call.ID]*awaitedRun
-	eventSinkMap           map[call.ID]*executionEventSink
+	eventSinkMap           map[call.ID]*execution.EventSink
 	eventSinkMapLock       sync.Mutex
 }
 
@@ -51,66 +51,74 @@ func (r *DefaultService) stopExecution(id call.ID) error { // nolint
 
 	if val, ok := r.eventSinkMap[id]; ok {
 		delete(r.eventSinkMap, id)
-		val.Stop()
+		val.InternalStop()
 	}
 
 	return nil
 }
 
-func (r *DefaultService) getExecutionSink(id call.ID) *executionEventSink {
+func (r *DefaultService) getExecutionSink(id call.ID) *execution.EventSink {
 	r.eventSinkMapLock.Lock()
 	defer r.eventSinkMapLock.Unlock()
 
 	return r.eventSinkMap[id]
 }
 
-func (r *DefaultService) awaitedRunFinish(id call.ID) {
+func (r *DefaultService) awaitedRunFinish(id call.ID, possibleAbsent bool) {
 	r.eventSinkMapLock.Lock()
 	defer r.eventSinkMapLock.Unlock()
 
-	r.eventSinkInProgressMap[id].resumeFn()
-	delete(r.eventSinkInProgressMap, id)
-}
-
-func (r *DefaultService) awaitedRunAdd(sink *executionEventSink, resumeFn func()) {
-	r.eventSinkMapLock.Lock()
-	defer r.eventSinkMapLock.Unlock()
-
-	r.eventSinkInProgressMap[sink.id] = &awaitedRun{
-		run:      sink,
-		resumeFn: resumeFn,
+	if run, ok := r.eventSinkInProgressMap[id]; ok {
+		run.resumeFn()
+		delete(r.eventSinkInProgressMap, id)
+	} else if !possibleAbsent {
+		panic(throw.IllegalState())
 	}
 }
 
-func (r *DefaultService) createExecutionSink(execution execution.Context) *executionEventSink {
+func (r *DefaultService) awaitedRunAdd(sink *execution.EventSink, resumeFn func()) {
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
+
+	run := &awaitedRun{
+		run:      sink,
+		resumeFn: resumeFn,
+	}
+
+	if _, ok := r.eventSinkInProgressMap[sink.ID()]; ok {
+		panic(throw.IllegalState())
+	}
+	r.eventSinkInProgressMap[sink.ID()] = run
+}
+
+func (r *DefaultService) createExecutionSink(executionContext execution.Context) *execution.EventSink {
 	r.eventSinkMapLock.Lock()
 	defer r.eventSinkMapLock.Unlock()
 
 	id := r.lastPosition
 	r.lastPosition++
 
-	eventSink := newEventSink(execution)
-	eventSink.id = id
+	eventSink := execution.NewEventSink(id, executionContext)
 	r.eventSinkMap[id] = eventSink
 
 	return eventSink
 }
 
-func (r *DefaultService) executionRecover(ctx context.Context, id call.ID) {
-	if rec := recover(); rec != nil {
-		// replace with custom error, not RecoverSlotPanicWithStack
-		err := throw.R(rec, throw.E("ContractRunnerService panic"))
+func (r *DefaultService) destroyExecutionSink(id call.ID) {
+	r.eventSinkMapLock.Lock()
+	defer r.eventSinkMapLock.Unlock()
 
-		executionContext := r.getExecutionSink(id)
-		if executionContext == nil {
-			logger := inslogger.FromContext(ctx)
-			logger.Errorf("[executionRecover] Failed to find a job execution context %d", id)
-			logger.Errorf("[executionRecover] Failed to execute a job, panic: %v", r)
-			return
-		}
-
-		executionContext.Error(err)
+	sink, ok := r.eventSinkMap[id]
+	if !ok {
+		panic(throw.IllegalState())
 	}
+
+	if _, ok := r.eventSinkInProgressMap[id]; ok {
+		panic(throw.IllegalState())
+	}
+
+	sink.InternalStop()
+	delete(r.eventSinkMap, id)
 }
 
 func generateCallContext(
@@ -125,12 +133,11 @@ func generateCallContext(
 		ID:   id,
 		Mode: call.Execute,
 
-		// Callee:    reference.Global{}, // is assigned below
 		Class: classDesc.HeadRef(),
 		Code:  codeDesc.Ref(),
 
 		Caller:      request.Caller,
-		CallerClass: request.CallSiteDeclaration,
+		CallerClass: classDesc.HeadRef(),
 
 		Request: execution.Incoming,
 
@@ -151,13 +158,13 @@ func generateCallContext(
 func (r *DefaultService) executeMethod(
 	ctx context.Context,
 	id call.ID,
-	eventSink *executionEventSink,
+	eventSink *execution.EventSink,
 ) (
 	*requestresult.RequestResult,
 	error,
 ) {
 	var (
-		executionContext = eventSink.context
+		executionContext = eventSink.Context()
 		request          = executionContext.Request
 
 		objectDescriptor = executionContext.ObjectDescriptor
@@ -209,12 +216,12 @@ func (r *DefaultService) executeMethod(
 func (r *DefaultService) executeConstructor(
 	ctx context.Context,
 	id call.ID,
-	eventSink *executionEventSink,
+	eventSink *execution.EventSink,
 ) (
 	*requestresult.RequestResult, error,
 ) {
 	var (
-		executionContext = eventSink.context
+		executionContext = eventSink.Context()
 		request          = executionContext.Request
 	)
 
@@ -226,10 +233,6 @@ func (r *DefaultService) executeConstructor(
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
 		return nil, errors.W(err, "couldn't get executor")
-	}
-
-	if request.CallSiteDeclaration.IsZero() {
-		request.CallSiteDeclaration = request.Callee
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
@@ -245,15 +248,13 @@ func (r *DefaultService) executeConstructor(
 	// form and return executionResult
 	res := requestresult.New(executionResult, executionContext.Object)
 	if newState != nil {
-		res.SetActivate(request.Callee, request.CallSiteDeclaration, newState)
+		res.SetActivate(request.Callee, logicContext.CallerClass, newState)
 	}
 
 	return res, nil
 }
 
 func (r *DefaultService) execute(ctx context.Context, id call.ID) {
-	defer r.executionRecover(ctx, id)
-
 	executionSink := r.getExecutionSink(id)
 	if executionSink == nil {
 		panic(throw.Impossible())
@@ -264,7 +265,30 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 		err    error
 	)
 
-	switch executionSink.context.Request.CallType {
+	defer func() {
+		var (
+			recoveredError = recover()
+			possibleAbsent = false
+		)
+
+		// replace with custom error, not RecoverSlotPanicWithStack
+		switch {
+		case recoveredError != nil:
+			// panic was catched
+			err := throw.R(recoveredError, throw.E("ContractRunnerService panic"))
+			executionSink.Error(err)
+		case (result == nil && err == nil) || executionSink.IsAborted():
+			// cancellation
+			possibleAbsent = true
+		default:
+			// ok execution
+		}
+
+		r.awaitedRunFinish(id, possibleAbsent)
+		r.destroyExecutionSink(id)
+	}()
+
+	switch executionSink.Context().Request.CallType {
 	case payload.CTMethod:
 		result, err = r.executeMethod(ctx, id, executionSink)
 	case payload.CTConstructor:
@@ -281,26 +305,25 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 	default:
 		panic(throw.IllegalValue())
 	}
-
-	r.awaitedRunFinish(id)
 }
 
-func (r *DefaultService) runPrepare(execution execution.Context) *executionEventSink {
+func (r *DefaultService) runPrepare(execution execution.Context) *execution.EventSink {
 	return r.createExecutionSink(execution)
 }
 
-func (r *DefaultService) runStart(run *executionEventSink, resumeFn func()) {
+func (r *DefaultService) runStart(run *execution.EventSink, resumeFn func()) {
 	r.awaitedRunAdd(run, resumeFn)
 
-	go r.execute(context.Background(), run.id)
+	go r.execute(context.Background(), run.ID())
 }
 
-func (r *DefaultService) runContinue(run *executionEventSink, resumeFn func()) {
+func (r *DefaultService) runContinue(run *execution.EventSink, resumeFn func()) {
 	r.awaitedRunAdd(run, resumeFn)
 }
 
-func (r *DefaultService) runAbort(_ *executionEventSink, _ func()) {
-	panic(throw.NotImplemented())
+func (r *DefaultService) runAbort(run *execution.EventSink, resumeFn func()) {
+	run.InternalAbort()
+	resumeFn()
 }
 
 func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (contract.MethodIsolation, error) {
@@ -337,7 +360,7 @@ func NewService() *DefaultService {
 		Manager: machine.NewManager(),
 
 		lastPosition:           0,
-		eventSinkMap:           make(map[call.ID]*executionEventSink),
+		eventSinkMap:           make(map[call.ID]*execution.EventSink),
 		eventSinkInProgressMap: make(map[call.ID]*awaitedRun),
 		eventSinkMapLock:       sync.Mutex{},
 	}

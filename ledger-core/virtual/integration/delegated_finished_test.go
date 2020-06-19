@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -135,8 +134,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		runnerMock.AddExecutionMock(key).
 			AddStart(func(execution execution.Context) {
 				server.IncrementPulse(ctx)
-			}, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			}, &execution.Update{
+				Type:   execution.Done,
 				Result: result,
 			})
 		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
@@ -227,8 +226,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 		runnerMock.AddExecutionMock(key).
 			AddStart(func(execution execution.Context) {
 				server.IncrementPulse(ctx)
-			}, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			}, &execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New(makeEmptyResult(), objectGlobal),
 			})
 		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{

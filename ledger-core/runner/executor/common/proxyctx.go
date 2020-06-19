@@ -14,7 +14,6 @@ import (
 )
 
 type RunnerRPCStub interface {
-	GetCode(rpctypes.UpGetCodeReq, *rpctypes.UpGetCodeResp) error
 	CallMethod(rpctypes.UpCallMethodReq, *rpctypes.UpCallMethodResp) error
 	CallConstructor(rpctypes.UpCallConstructorReq, *rpctypes.UpCallConstructorResp) error
 	DeactivateObject(rpctypes.UpDeactivateObjectReq, *rpctypes.UpDeactivateObjectResp) error
