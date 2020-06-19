@@ -6,7 +6,6 @@
 package instestlogger
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"time"
@@ -58,13 +57,13 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 	switch l.GetFormat() {
 	case logcommon.JSONFormat:
 		if emuMarks {
-			emulateTestJSON(out, target)
+			emulateTestJSON(out, target, time.Now)
 		}
 		target = ConvertJSONTestingOutput(target)
 		echoTo = ConvertJSONConsoleOutput(echoTo)
 	case logcommon.TextFormat:
 		if emuMarks {
-			emulateTestText(out, target)
+			emulateTestText(out, target, time.Now)
 		}
 	default:
 		panic(throw.Unsupported())
@@ -84,70 +83,4 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 
 func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
 	global.SetLogger(NewTestLogger(target, suppressLogError))
-}
-
-type tb interface {
-	Name() string
-	Cleanup(func())
-	Failed() bool
-	Skipped() bool
-}
-
-func emulateTestText(out io.Writer, tLog interface{}) {
-	t, ok := tLog.(tb)
-	if !ok {
-		return
-	}
-
-	startedAt := time.Now()
-	_, _ = fmt.Fprintln(out, `=== RUN  `, t.Name())
-	t.Cleanup(func() {
-		d := time.Since(startedAt)
-		resName := ""
-		switch {
-		case t.Failed():
-			resName = "FAIL"
-		case t.Skipped():
-			resName = "SKIP"
-		default:
-			resName = "PASS"
-		}
-		_, _ = fmt.Fprintf(out, `--- %s: %s (%.2fs)\n`, resName, t.Name(), d.Seconds())
-	})
-}
-
-func emulateTestJSON(out io.Writer, tLog interface{}) {
-	t, ok := tLog.(tb)
-	if !ok {
-		return
-	}
-
-	packageName := "" // ? how to get it ?
-	const timestampFormat = "2006-01-02T15:04:05.000000000Z"
-
-	startedAt := time.Now()
-	_, _ = fmt.Fprintf(out, `{"Time":"%s","Action":"run","Package":"%s","Test":"%s"}`+"\n",
-		startedAt.Format(timestampFormat),
-		packageName, t.Name())
-
-	// TODO Is emulation of text output needed?
-	// _, _ = fmt.Fprintf(out, `{"Time":"%s","Action":"output","Package":"%s","Test":"%s","Output":"=== RUN   %s\n"}`,
-	// 	time.Now().Format(timestampFormat),
-	// 	packageName, testName)
-
-	t.Cleanup(func() {
-		d := time.Since(startedAt)
-		resName := ""
-		switch {
-		case t.Failed():
-			resName = "fail"
-		case t.Skipped():
-			resName = "skip"
-		default:
-			resName = "pass"
-		}
-		_, _ = fmt.Fprintf(out, `{"Time":"%s","Action":"%s","Package":"%s","Test":"%s","Elapsed":%.3f}`+"\n",
-			startedAt.Format(timestampFormat), resName,
-			packageName, t.Name(), d.Seconds())
-	})
 }
