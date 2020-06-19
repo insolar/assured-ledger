@@ -21,7 +21,7 @@ import (
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -103,8 +103,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		}, nil)
 		slotMachine.RunnerMock.AddExecutionMock(outgoingGlobal.String()).AddStart(
 			nil,
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("123"), objectGlobal),
 			})
 	}

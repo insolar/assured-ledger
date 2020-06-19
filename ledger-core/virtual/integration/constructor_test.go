@@ -19,8 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -75,8 +73,8 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
 
 		runnerMock.AddExecutionMock(calculateOutgoing(pl).String()).
-			AddStart(nil, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			AddStart(nil, &execution.Update{
+				Type:   execution.Done,
 				Result: requestResult,
 			})
 	}
@@ -194,8 +192,8 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
 
 		runnerMock.AddExecutionMock(calculateOutgoing(pl).String()).
-			AddStart(nil, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			AddStart(nil, &execution.Update{
+				Type:   execution.Done,
 				Result: requestResult,
 			})
 	}
@@ -263,8 +261,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 			AddStart(func(execution execution.Context) {
 				require.Equal(t, "New", execution.Request.CallSiteMethod)
 				require.Equal(t, []byte("arguments"), execution.Request.Arguments)
-			}, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			}, &execution.Update{
+				Type:   execution.Done,
 				Result: requestResult,
 			})
 	}
@@ -380,8 +378,8 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 			AddStart(func(execution execution.Context) {
 				require.Equal(t, "New", execution.Request.CallSiteMethod)
 				require.Equal(t, []byte("arguments"), execution.Request.Arguments)
-			}, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			}, &execution.Update{
+				Type:   execution.Done,
 				Result: requestResult,
 			})
 	}
@@ -433,7 +431,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := executionevent.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallConstructor(classB, "New", []byte("123"))
+		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallConstructor(classB, "New", []byte("123"))
 		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock(classA.String())
@@ -443,8 +441,8 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 				require.Equal(t, classA, ctx.Request.Callee)
 				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Error:    nil,
 				Outgoing: outgoingCall,
 			},
@@ -454,8 +452,8 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 				t.Log("ExecutionContinue [A.New]")
 				require.Equal(t, []byte("finish B.New"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: objectAResult,
 			},
 		)
@@ -469,8 +467,8 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("123"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: objectBResult,
 			},
 		)
