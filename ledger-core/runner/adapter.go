@@ -10,38 +10,35 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RunMode int
 
 const (
-	Undefined RunMode = iota
-
+	_ RunMode = iota
 	Start
 	Continue
 	Abort
 )
 
 type RunState interface {
-	GetResult() *executionupdate.ContractExecutionStateUpdate
-	GetID() call.ID
+	GetResult() *execution.Update
 }
 
 type runState struct {
-	state *executionEventSink
+	state *execution.EventSink
 	mode  RunMode
 }
 
-func (r runState) GetResult() *executionupdate.ContractExecutionStateUpdate {
-	return r.state.GetResult()
+func (r runState) GetResult() *execution.Update {
+	return r.state.GetEvent()
 }
 
-func (r runState) GetID() call.ID {
-	return r.state.id
+type awaitedRun struct {
+	run      *execution.EventSink
+	resumeFn func()
 }
 
 type runnerServiceInterceptor struct {
@@ -68,7 +65,7 @@ func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResul
 	if !ok {
 		panic(throw.IllegalValue())
 	}
-	p.last.state.input <- outgoingResult
+	p.last.state.ProvideInput(outgoingResult)
 	p.last.mode = Continue
 }
 
@@ -86,11 +83,6 @@ func (p *runnerServiceInterceptor) ExecutionAbort(run RunState) {
 
 func (p *runnerServiceInterceptor) ExecutionClassify(_ execution.Context) (contract.MethodIsolation, error) {
 	panic(throw.Impossible())
-}
-
-type awaitedRun struct {
-	run      *executionEventSink
-	resumeFn func()
 }
 
 // ================================= Adapter =================================

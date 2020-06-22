@@ -7,7 +7,6 @@ package logicless
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -15,7 +14,7 @@ type ExecutionChunk struct {
 	eventType ExecutionChunkType
 
 	check  interface{}
-	update *executionupdate.ContractExecutionStateUpdate
+	update *execution.Update
 }
 
 type ExecutionChunkType int
@@ -51,7 +50,7 @@ type ExecutionMockStartCheckFunc func(ctx execution.Context)
 type ExecutionMockContinueCheckFunc func(result []byte)
 type ExecutionMockAbortCheckFunc func()
 
-func (m *ExecutionMock) AddStart(fn ExecutionMockStartCheckFunc, returnValue *executionupdate.ContractExecutionStateUpdate) *ExecutionMock {
+func (m *ExecutionMock) AddStart(fn ExecutionMockStartCheckFunc, returnValue *execution.Update) *ExecutionMock {
 	if len(m.checks) > 0 {
 		panic(throw.IllegalValue())
 	}
@@ -63,7 +62,7 @@ func (m *ExecutionMock) AddStart(fn ExecutionMockStartCheckFunc, returnValue *ex
 	return m
 }
 
-func (m *ExecutionMock) AddContinue(fn ExecutionMockContinueCheckFunc, returnValue *executionupdate.ContractExecutionStateUpdate) *ExecutionMock {
+func (m *ExecutionMock) AddContinue(fn ExecutionMockContinueCheckFunc, returnValue *execution.Update) *ExecutionMock {
 	if len(m.checks) == 0 || m.checks[len(m.checks)-1].eventType >= Abort {
 		panic(throw.IllegalValue())
 	}
