@@ -1024,7 +1024,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		builder := executionevent.NewRPCBuilder(outgoingCallRef, objectAGlobal)
+		builder := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal)
 		objectAExecutionMock := runnerMock.AddExecutionMock(objectAGlobal.String())
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
@@ -1033,9 +1033,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Callee)
 				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
-				Error:    nil,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: builder.CallMethod(objectB1Global, classB, "Bar", []byte("B1")),
 			},
 		)
@@ -1045,9 +1044,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo]")
 				require.Equal(t, []byte("finish B1.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
-				Error:    nil,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: builder.CallMethod(objectB2Global, classB, "Bar", []byte("B2")),
 			},
 		)
@@ -1056,9 +1054,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo]")
 				require.Equal(t, []byte("finish B2.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
-				Error:    nil,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: builder.CallMethod(objectB3Global, classB, "Bar", []byte("B3")),
 			},
 		)
@@ -1067,9 +1064,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo]")
 				require.Equal(t, []byte("finish B3.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
-				Error:  nil,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 			},
 		)
@@ -1081,8 +1077,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("B1"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B1.Bar"), objectB1Global),
 			},
 		)
@@ -1094,8 +1090,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("B2"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B2.Bar"), objectB2Global),
 			},
 		)
@@ -1107,8 +1103,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("B3"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B3.Bar"), objectB3Global),
 			},
 		)
@@ -1187,18 +1183,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	// wait for all calls and SMs
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(20 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(20 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 3, typedChecker.VCallRequest.Count())
 	require.Equal(t, 4, typedChecker.VCallResult.Count())
