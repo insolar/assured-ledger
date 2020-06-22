@@ -89,7 +89,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
-	t.Log("C4835")
+	t.Log("C5180")
 
 	var (
 		mc = minimock.NewController(t)
@@ -97,6 +97,8 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	var (
 		isolation = contract.ConstructorIsolation()
@@ -123,7 +125,97 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
+	{
+		select {
+		case <-executeDone:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+
+		select {
+		case <-server.Journal.WaitAllAsyncCallsDone():
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+	}
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
+	t.Log("C4995")
+
+	var (
+		mc        = minimock.NewController(t)
+		isolation = contract.ConstructorIsolation()
+		class     = gen.UniqueReference()
+	)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	var (
+		outgoing     = server.RandomLocalWithPulse()
+		objectRef    = reference.NewSelf(outgoing)
+		runnerResult = []byte("123")
+	)
+
+	flags := payload.BuildCallFlags(isolation.Interference, isolation.State)
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      flags,
+		CallAsOf:       server.GetPulse().PulseNumber,
+		Callee:         class,
+		CallSiteMethod: "test",
+		CallOutgoing:   outgoing,
+	}
+	msg := server.WrapPayload(&pl).Finalize()
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		require.Equal(t, res.ReturnArguments, runnerResult)
+		require.Equal(t, res.Callee, objectRef)
+		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, payload.CTConstructor, res.CallType)
+		require.Equal(t, flags, res.CallFlags)
+
+		return false // no resend msg
+	})
+
+	{
+		requestResult := requestresult.New(runnerResult, objectRef)
+		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
+
+		runnerMock.AddExecutionMock(calculateOutgoing(pl).String()).
+			AddStart(nil, &executionupdate.ContractExecutionStateUpdate{
+				Type:   executionupdate.Done,
+				Result: requestResult,
+			})
+	}
+
+	server.SendMessage(ctx, msg)
+
+	{
+		select {
+		case <-executeDone:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+
+		select {
+		case <-server.Journal.WaitAllAsyncCallsDone():
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+	}
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -142,14 +234,16 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		outgoing    = server.RandomLocalWithPulse()
-		objectRef   = reference.NewSelf(outgoing)
+		outgoing  = server.RandomLocalWithPulse()
+		objectRef = reference.NewSelf(outgoing)
 	)
 
 	pl := payload.VCallRequest{
@@ -191,7 +285,20 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
+	{
+		select {
+		case <-executeDone:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+
+		select {
+		case <-server.Journal.WaitAllAsyncCallsDone():
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+	}
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
