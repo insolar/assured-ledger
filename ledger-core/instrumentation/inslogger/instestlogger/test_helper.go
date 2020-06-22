@@ -87,7 +87,6 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, lo
 		MustBuild()
 }
 
-
 func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
 	global.SetLogger(NewTestLogger(target, suppressLogError))
 }
@@ -95,3 +94,10 @@ func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
 func SetTestOutputWithCfg(target logcommon.TestingLogger, cfg configuration.Log) {
 	global.SetLogger(newTestLoggerExt(target, false, cfg, false))
 }
+
+func SetTestOutputWithStub(suppressLogError bool) (teardownFn func(pass bool)) {
+	emu := &stubT{}
+	global.SetLogger(NewTestLogger(emu, suppressLogError))
+	return emu.cleanup
+}
+

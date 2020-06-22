@@ -14,7 +14,7 @@ import (
 )
 
 func TestEmulateTextMarks(t *testing.T) {
-	var emuT tb
+	var emuT markerT
 
 	emuT = &mockT{name: "emuTest"}
 	emuTime := mockTime{time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}
@@ -43,7 +43,7 @@ func TestEmulateTextMarks(t *testing.T) {
 }
 
 func TestEmulateJSONMarks(t *testing.T) {
-	var emuT tb
+	var emuT markerT
 
 	emuT = &mockT{name: "emuTest"}
 	emuTime := mockTime{time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}
