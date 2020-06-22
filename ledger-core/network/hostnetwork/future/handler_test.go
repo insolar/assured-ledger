@@ -19,8 +19,8 @@ import (
 )
 
 func newPacket() *packet.Packet {
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
 	return packet.NewPacket(sender, receiver, types.Pulse, 123)
 }
 

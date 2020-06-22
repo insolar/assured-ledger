@@ -29,8 +29,8 @@ func TestAbort(t *testing.T) {
 	var (
 		ctx = inslogger.TestContext(t)
 
-		object        = gen.UniqueReference()
-		remoteObject  = gen.UniqueReference()
+		object        = gen.UniqueGlobalRef()
+		remoteObject  = gen.UniqueGlobalRef()
 		class         = testwalletProxy.GetClass()
 		wallet, _     = testwallet.New()
 		defaultObject = insolar.MustSerialize(wallet)

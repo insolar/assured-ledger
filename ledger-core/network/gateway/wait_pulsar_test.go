@@ -30,7 +30,7 @@ func createBase(mc *minimock.Controller) *Base {
 
 	op := mock.NewOriginProviderMock(mc)
 	op.GetOriginMock.Set(func() node2.NetworkNode {
-		return node.NewNode(gen.UniqueReference(), node2.StaticRoleVirtual, nil, "127.0.0.1:123", "")
+		return node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleVirtual, nil, "127.0.0.1:123", "")
 	})
 
 	aborter := network.NewAborterMock(mc)

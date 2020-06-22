@@ -37,7 +37,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueReference()
+		class     = gen.UniqueGlobalRef()
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -138,7 +138,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueReference()
+		class     = gen.UniqueGlobalRef()
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -207,7 +207,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueReference()
+		class     = gen.UniqueGlobalRef()
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -235,8 +235,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	}
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
-		requestResult.SetActivate(gen.UniqueReference(), class, []byte("234"))
+		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
+		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
 
 		runnerMock.AddExecutionMock(calculateOutgoing(pl).String()).
 			AddStart(func(execution execution.Context) {
@@ -280,7 +280,7 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueReference()
+		class     = gen.UniqueGlobalRef()
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -342,8 +342,8 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	msg := utils.NewRequestWrapper(p2, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
-		requestResult.SetActivate(gen.UniqueReference(), class, []byte("234"))
+		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
+		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
 
 		runnerMock.AddExecutionMock(calculateOutgoing(pl).String()).
 			AddStart(func(execution execution.Context) {
@@ -390,14 +390,14 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		isolation = contract.ConstructorIsolation()
 		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 
-		classA        = gen.UniqueReference()
+		classA        = gen.UniqueGlobalRef()
 		outgoingA     = server.RandomLocalWithPulse()
 		objectAGlobal = reference.NewSelf(outgoingA)
 
-		classB        = gen.UniqueReference()
+		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingCallRef = gen.UniqueReference()
+		outgoingCallRef = gen.UniqueGlobalRef()
 	)
 
 	// add ExecutionMocks to runnerMock

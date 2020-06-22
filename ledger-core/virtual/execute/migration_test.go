@@ -36,14 +36,14 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		pd         = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot  = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-		MeMock.Return(gen.UniqueReference())
+		MeMock.Return(gen.UniqueGlobalRef())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
