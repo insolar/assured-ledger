@@ -30,17 +30,22 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 
 	echoAllCfg := false
 	emuMarks := false
+	prettyPrintJSON := false
 	if adapterOverride != "" {
 		logCfg.Adapter = adapterOverride
 	} else {
-		readTestLogConfig(&logCfg, &echoAllCfg, &emuMarks)
+		readTestLogConfig(&logCfg, &echoAllCfg, &emuMarks, &prettyPrintJSON)
 	}
 
 	outputType, err := inslogger.ParseOutput(logCfg.OutputType)
 	if err != nil {
 		panic(err)
 	}
+
 	isConsoleOutput := outputType.IsConsole()
+	if isConsoleOutput {
+		prettyPrintJSON = false // is only needed for file output
+	}
 
 	l, err := inslogger.NewLogBuilder(logCfg)
 	if err != nil {
@@ -56,7 +61,12 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 
 	switch l.GetFormat() {
 	case logcommon.JSONFormat:
-		if emuMarks {
+		if prettyPrintJSON {
+			if emuMarks {
+				emulateTestText(out, target, time.Now)
+			}
+			out = ConvertJSONConsoleOutput(out)
+		} else if emuMarks {
 			emulateTestJSON(out, target, time.Now)
 		}
 		target = ConvertJSONTestingOutput(target)
@@ -68,7 +78,6 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 	default:
 		panic(throw.Unsupported())
 	}
-
 
 	return l.WithMetrics(logcommon.LogMetricsResetMode | logcommon.LogMetricsTimestamp).
 		WithCaller(logcommon.CallerField).

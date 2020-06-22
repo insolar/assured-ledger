@@ -37,7 +37,7 @@ func TestReadArgsMap(t *testing.T) {
 func TestReadTestLogConfig_Options(t *testing.T) {
 	var (
 		cfg configuration.Log
-		echoAll, emuMarks bool
+		echoAll, emuMarks, prettyPrintJSON bool
 	)
 	cfg.OutputParams = "stub"
 	cfg.OutputType = "stub"
@@ -45,29 +45,59 @@ func TestReadTestLogConfig_Options(t *testing.T) {
 
 	argEchoAll = true
 	argEmuMarks = true
+	argOutFmt = ""
 
 	argOutFile = ""
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, nil)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, nil)
 	require.Equal(t, "stub", cfg.OutputParams)
+	require.Equal(t, "stub", cfg.Formatter)
 	require.False(t, echoAll)
 	require.False(t, emuMarks)
+	require.False(t, prettyPrintJSON)
 
 	argOutFile = "<test1>"
-	_readTestLogConfig(&cfg, nil, nil, nil)
+	_readTestLogConfig(&cfg, nil, nil, nil, nil)
 	require.Equal(t, "<test1>", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
 
 	argOutFile = "<test2>"
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, nil)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, nil)
 	require.Equal(t, "<test2>", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
 	require.True(t, echoAll)
 	require.True(t, emuMarks)
+	require.False(t, prettyPrintJSON)
 
 	argEmuMarks = false
 	argOutFile = "<test3>"
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, nil)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, nil)
 	require.Equal(t, "<test3>", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
 	require.True(t, echoAll)
 	require.False(t, emuMarks)
+	require.False(t, prettyPrintJSON)
+
+	argOutFile = "<test4>"
+	argOutFmt = "0"
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, nil)
+	require.Equal(t, "<test4>", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
+	require.False(t, prettyPrintJSON)
+
+	argOutFile = "<test5>"
+	argOutFmt = "1"
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, nil)
+	require.Equal(t, "<test5>", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
+	require.True(t, prettyPrintJSON)
+
+	prettyPrintJSON = false
+	argOutFile = "<test6>"
+	argOutFmt = "text"
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, nil)
+	require.Equal(t, "<test6>", cfg.OutputParams)
+	require.Equal(t, "text", cfg.Formatter)
+	require.False(t, prettyPrintJSON)
 
 	cmdLine := flag.NewFlagSet("", flag.PanicOnError)
 	initCmdOptions(cmdLine)
@@ -76,7 +106,7 @@ func TestReadTestLogConfig_Options(t *testing.T) {
 		"-testlog.echo=0",
 		"-testlog.marks=1",
 	}))
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, cmdLine)
 
 	require.Equal(t, "test2", cfg.OutputParams)
 	require.False(t, echoAll)
@@ -88,7 +118,7 @@ func TestReadTestLogConfig_Args(t *testing.T) {
 
 	var (
 		cfg configuration.Log
-		echoAll, emuMarks bool
+		echoAll, emuMarks, prettyPrintJSON bool
 	)
 	cfg.OutputParams = "stub"
 	cfg.OutputType = "stub"
@@ -100,32 +130,67 @@ func TestReadTestLogConfig_Args(t *testing.T) {
 		"TESTLOG_ECHO=1",
 		"TESTLOG_MARKS=0",
 	}))
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, cmdLine)
 
 	require.Equal(t, "stub", cfg.OutputParams)
+	require.Equal(t, "stub", cfg.Formatter)
 	require.False(t, echoAll)
 	require.False(t, emuMarks)
-
+	require.False(t, prettyPrintJSON)
 
 	require.NoError(t, cmdLine.Parse([]string{
 		"TESTLOG_OUT=test1",
 		"TESTLOG_ECHO=1",
 		"TESTLOG_MARKS=0",
 	}))
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, cmdLine)
 
 	require.Equal(t, "test1", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
 	require.True(t, echoAll)
 	require.False(t, emuMarks)
+	require.False(t, prettyPrintJSON)
 
 	require.NoError(t, cmdLine.Parse([]string{
 		"TESTLOG_OUT=test2",
 		"TESTLOG_ECHO=0",
 		"TESTLOG_MARKS=1",
+		"TESTLOG_TXT=0",
 	}))
-	_readTestLogConfig(&cfg, &echoAll, &emuMarks, cmdLine)
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, cmdLine)
 
 	require.Equal(t, "test2", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
 	require.False(t, echoAll)
 	require.True(t, emuMarks)
+	require.False(t, prettyPrintJSON)
+
+	require.NoError(t, cmdLine.Parse([]string{
+		"TESTLOG_OUT=test3",
+		"TESTLOG_ECHO=0",
+		"TESTLOG_MARKS=0",
+		"TESTLOG_TXT=1",
+	}))
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, cmdLine)
+
+	require.Equal(t, "test3", cfg.OutputParams)
+	require.Equal(t, "json", cfg.Formatter)
+	require.False(t, echoAll)
+	require.False(t, emuMarks)
+	require.True(t, prettyPrintJSON)
+
+	prettyPrintJSON = false
+	require.NoError(t, cmdLine.Parse([]string{
+		"TESTLOG_OUT=test4",
+		"TESTLOG_ECHO=0",
+		"TESTLOG_MARKS=0",
+		"TESTLOG_TXT=text",
+	}))
+	_readTestLogConfig(&cfg, &echoAll, &emuMarks, &prettyPrintJSON, cmdLine)
+
+	require.Equal(t, "test4", cfg.OutputParams)
+	require.Equal(t, "text", cfg.Formatter)
+	require.False(t, echoAll)
+	require.False(t, emuMarks)
+	require.False(t, prettyPrintJSON)
 }
