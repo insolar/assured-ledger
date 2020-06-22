@@ -11,6 +11,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
@@ -28,8 +29,22 @@ type VirtualStepController struct {
 	MachineManager        machine.Manager
 }
 
-func New(ctx context.Context, t *testing.T, suppressLogError bool) *VirtualStepController {
-	stepController := slotdebugger.New(ctx, t, suppressLogError)
+func NewWithErrorFilter(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *VirtualStepController {
+	stepController := slotdebugger.NewWithErrorFilter(ctx, t, filterFn)
+	w := &VirtualStepController{
+		StepController: stepController,
+	}
+
+	return w
+}
+
+func New(ctx context.Context, t *testing.T) *VirtualStepController {
+	return NewWithErrorFilter(ctx, t, nil)
+}
+
+// deprecated
+func NewWithIgnoreAllError(ctx context.Context, t *testing.T) *VirtualStepController {
+	stepController := slotdebugger.NewWithIgnoreAllErrors(ctx, t)
 
 	w := &VirtualStepController{
 		StepController: stepController,
