@@ -42,7 +42,7 @@ func TestSMTestAPICall_Migrate(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := slotdebugger.NewWithIgnoreAllErrors(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	slotMachine.Start()
