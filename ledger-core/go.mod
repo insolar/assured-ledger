@@ -5,7 +5,8 @@ go 1.14
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/ThreeDotsLabs/watermill v1.0.2
-	github.com/cyraxred/go-acc v0.2.4-0.20200618204446-b4753244efbb // indirect
+	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
+	github.com/cyraxred/go-acc v0.2.4-0.20200618204446-b4753244efbb
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/getkin/kin-openapi v0.2.1-0.20191211203508-0d9caf80ada6
 	github.com/gogo/protobuf v1.3.1
@@ -24,16 +25,17 @@ require (
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/json-iterator/go v1.1.9
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/onrik/gomerkle v1.0.0
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/ory/go-acc v0.2.1
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/zerolog v1.15.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
+	github.com/spf13/afero v1.3.0 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5
@@ -48,7 +50,8 @@ require (
 	go.uber.org/goleak v1.0.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
+	golang.org/x/sys v0.0.0-20200620081246-981b61492c35
+	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/tools v0.0.0-20200312153518-5e2df02acb1e
 	google.golang.org/genproto v0.0.0-20191108220845-16a3f7862a1a
 	google.golang.org/grpc v1.22.0
