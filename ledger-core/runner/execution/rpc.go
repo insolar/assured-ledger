@@ -3,13 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package executionevent
+package execution
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 )
 
 type RPC interface{ rpc() }
@@ -17,6 +16,10 @@ type RPC interface{ rpc() }
 type Builder struct {
 	request reference.Global
 	object  reference.Global
+}
+
+func NewRPCBuilder(request reference.Global, object reference.Global) Builder {
+	return Builder{request: request, object: object}
 }
 
 func (r Builder) Deactivate() Deactivate {
@@ -53,26 +56,6 @@ func (r Builder) CallMethod(
 		class:     class,
 	}
 }
-
-func (r Builder) GetCode(code reference.Global) GetCode {
-	return GetCode{
-		codeReference: code,
-	}
-}
-
-func NewRPCBuilder(request reference.Global, object reference.Global) Builder {
-	return Builder{request: request, object: object}
-}
-
-type GetCode struct {
-	codeReference reference.Global
-}
-
-func (e GetCode) CodeReference() reference.Global {
-	return e.codeReference
-}
-
-func (e GetCode) rpc() {}
 
 type Deactivate struct {
 	parentRequestReference reference.Global
@@ -118,7 +101,7 @@ func (e CallConstructor) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-func (e CallConstructor) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
+func (e CallConstructor) ConstructVCallRequest(execution Context) *payload.VCallRequest {
 	execution.Sequence++
 
 	return &payload.VCallRequest{
@@ -177,20 +160,19 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-func (e CallMethod) ConstructVCallRequest(execution execution.Context) *payload.VCallRequest {
+func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallRequest {
 	execution.Sequence++
 
 	return &payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
-		Caller:              e.parentObjectReference,
-		Callee:              e.object,
-		CallSiteDeclaration: e.class,
-		CallSiteMethod:      e.method,
-		CallSequence:        execution.Sequence,
-		CallReason:          e.parentRequestReference,
-		CallOutgoing:        reference.Local{}, // must be filled in the caller
-		Arguments:           e.arguments,
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
+		Caller:         e.parentObjectReference,
+		Callee:         e.object,
+		CallSiteMethod: e.method,
+		CallSequence:   execution.Sequence,
+		CallReason:     e.parentRequestReference,
+		CallOutgoing:   reference.Local{}, // must be filled in the caller
+		Arguments:      e.arguments,
 	}
 }
 

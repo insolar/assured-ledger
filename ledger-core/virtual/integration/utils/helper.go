@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -70,8 +69,8 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		result.SetActivate(reference.Global{}, h.class, CreateWallet(initialBalance))
 
 		executionMock := mockedRunner.AddExecutionMock(objectReference.String())
-		executionMock.AddStart(nil, &executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		executionMock.AddStart(nil, &execution.Update{
+			Type:   execution.Done,
 			Result: result,
 		})
 	}

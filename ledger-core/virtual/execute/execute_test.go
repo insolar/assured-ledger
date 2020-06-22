@@ -23,8 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -378,8 +377,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				objectSharedState:     smObjectAccessor,
 				authenticationService: authService,
 				delegationTokenSpec:   test.token,
-				executionNewState: &executionupdate.ContractExecutionStateUpdate{
-					Outgoing: executionevent.CallMethod{},
+				executionNewState: &execution.Update{
+					Outgoing: execution.CallMethod{},
 					Result:   &requestresult.RequestResult{},
 				},
 				messageSender: messageSenderAdapter.Mock(),
