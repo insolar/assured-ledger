@@ -29,7 +29,7 @@ func TestWorkingTable(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	object := gen.UniqueIDWithPulse(currentPulse)
+	object := gen.UniqueLocalRefWithPulse(currentPulse)
 	ref := reference.NewSelf(object)
 
 	intolerableList := rt.GetList(contract.CallIntolerable)
@@ -50,12 +50,12 @@ func TestWorkingList(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOld := gen.UniqueIDWithPulse(currentPulse)
+	objectOld := gen.UniqueLocalRefWithPulse(currentPulse)
 	RefOld := reference.NewSelf(objectOld)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
-	objectOne := gen.UniqueIDWithPulse(nextPulseNumber)
-	objectTwo := gen.UniqueIDWithPulse(nextPulseNumber)
+	objectOne := gen.UniqueLocalRefWithPulse(nextPulseNumber)
+	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
@@ -106,7 +106,7 @@ func TestWorkingList(t *testing.T) {
 	assert.Equal(t, 2, rl.CountActive())
 
 	// try to finish ref that not in list
-	successFinish := rl.Finish(reference.NewSelf(gen.UniqueIDWithPulse(currentPulse)))
+	successFinish := rl.Finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)))
 	assert.Equal(t, false, successFinish)
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
@@ -116,12 +116,12 @@ func TestWorkingList_Finish(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOne := gen.UniqueIDWithPulse(currentPulse)
+	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
 	RefOne := reference.NewSelf(objectOne)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
 
-	objectTwo := gen.UniqueIDWithPulse(nextPulseNumber)
+	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
 	RefTwo := reference.NewSelf(objectTwo)
 
 	rl := NewWorkingList()

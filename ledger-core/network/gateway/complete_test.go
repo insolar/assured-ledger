@@ -85,8 +85,8 @@ func mockPulseManager(t *testing.T) pulsestor.Manager {
 func TestComplete_GetCert(t *testing.T) {
 	t.Skip("fixme")
 
-	nodeRef := gen.UniqueReference()
-	certNodeRef := gen.UniqueReference()
+	nodeRef := gen.UniqueGlobalRef()
+	certNodeRef := gen.UniqueGlobalRef()
 
 	gatewayer := mock.NewGatewayerMock(t)
 	nodekeeper := mock.NewNodeKeeperMock(t)
@@ -134,8 +134,8 @@ func TestComplete_GetCert(t *testing.T) {
 
 func TestComplete_handler(t *testing.T) {
 	t.Skip("fixme")
-	nodeRef := gen.UniqueReference()
-	certNodeRef := gen.UniqueReference()
+	nodeRef := gen.UniqueGlobalRef()
+	certNodeRef := gen.UniqueGlobalRef()
 
 	gatewayer := mock.NewGatewayerMock(t)
 	nodekeeper := mock.NewNodeKeeperMock(t)

@@ -45,10 +45,10 @@ import (
 type Server struct {
 	pulseLock sync.Mutex
 
-	debugLock   sync.Mutex
-	debugFlags  atomickit.Uint32
-	suspend     synckit.ClosableSignalChannel
-	cycleFn     ConveyorCycleFunc
+	debugLock  sync.Mutex
+	debugFlags atomickit.Uint32
+	suspend    synckit.ClosableSignalChannel
+	cycleFn    ConveyorCycleFunc
 
 	// real components
 	virtual       *virtual.Dispatcher
@@ -101,7 +101,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	}
 
 	s := Server{
-		caller:   gen.UniqueReference(),
+		caller:   gen.UniqueGlobalRef(),
 		fullStop: make(synckit.ClosableSignalChannel),
 	}
 
@@ -112,7 +112,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.UniqueReference()).
+			IDMock.Return(gen.UniqueGlobalRef()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
 			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
@@ -256,7 +256,7 @@ func (s *Server) GlobalCaller() reference.Global {
 }
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
-	return gen.UniqueIDWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
 func (s *Server) Stop() {
@@ -312,7 +312,7 @@ func (s *Server) _suspendConveyorAndWait(wg *sync.WaitGroup) {
 	}
 
 	flags := s.debugFlags.Load()
-	if flags & isNotScanning != 0 {
+	if flags&isNotScanning != 0 {
 		wg.Done()
 		return
 	}
@@ -357,10 +357,10 @@ func (s *Server) ResetActiveConveyorFlag() {
 }
 
 const (
-	hasActive = 1
-	isIdle = 2
+	hasActive     = 1
+	isIdle        = 2
 	isNotScanning = 4
-	callOnce = 8
+	callOnce      = 8
 )
 
 func (s *Server) onCycleUpdate(fn func() uint32) synckit.SignalChannel {
@@ -376,18 +376,18 @@ func (s *Server) _onCycleUpdate(fn func() uint32) (func(), synckit.SignalChannel
 	defer s.debugLock.Unlock()
 
 	// makes sure that calling Wait in a parallel thread will not lock up caller of Suspend
-	if cs := s.debugFlags.Load(); cs & callOnce != 0 {
+	if cs := s.debugFlags.Load(); cs&callOnce != 0 {
 		s.debugFlags.UnsetBits(callOnce)
 		if cycleFn := s.cycleFn; cycleFn != nil {
 			s.cycleFn = nil
-			go cycleFn(s.virtual.Conveyor, cs & hasActive != 0, cs & isIdle != 0)
+			go cycleFn(s.virtual.Conveyor, cs&hasActive != 0, cs&isIdle != 0)
 		}
 	}
 
 	cs := fn()
 	if cycleFn := s.cycleFn; cycleFn != nil {
 		return func() {
-			cycleFn(s.virtual.Conveyor, cs & hasActive != 0, cs & isIdle != 0)
+			cycleFn(s.virtual.Conveyor, cs&hasActive != 0, cs&isIdle != 0)
 		}, s.suspend
 	}
 
@@ -398,17 +398,17 @@ func (s *Server) onConveyorCycle(state conveyor.CycleState) {
 	ch := s.onCycleUpdate(func() uint32 {
 		switch state {
 		case conveyor.ScanActive:
-			return s.debugFlags.SetBits(hasActive|isNotScanning)
+			return s.debugFlags.SetBits(hasActive | isNotScanning)
 		case conveyor.ScanIdle:
-			return s.debugFlags.SetBits(isIdle|isNotScanning)
+			return s.debugFlags.SetBits(isIdle | isNotScanning)
 		case conveyor.Scanning:
-			return s.debugFlags.UnsetBits(isIdle|isNotScanning)
+			return s.debugFlags.UnsetBits(isIdle | isNotScanning)
 		default:
 			panic(throw.Impossible())
 		}
 	})
 	if ch != nil && state == conveyor.Scanning {
-		<- ch
+		<-ch
 	}
 }
 

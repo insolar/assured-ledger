@@ -58,7 +58,7 @@ func (c *VirtualStepController) PrepareMockedRunner(ctx context.Context, mc mini
 }
 
 func (c VirtualStepController) GenerateLocal() reference.Local {
-	return gen.UniqueIDWithPulse(c.PulseSlot.CurrentPulseNumber())
+	return gen.UniqueLocalRefWithPulse(c.PulseSlot.CurrentPulseNumber())
 }
 
 func (c VirtualStepController) GenerateGlobal() reference.Global {

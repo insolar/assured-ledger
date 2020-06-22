@@ -331,7 +331,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]node2.NetworkNode, []node2.NetworkN
 
 func newNetworkNode(addr string, role node2.StaticRole, pk crypto.PublicKey) node.MutableNode {
 	n := node.NewNode(
-		gen.UniqueReference(),
+		gen.UniqueGlobalRef(),
 		role,
 		pk,
 		addr,
