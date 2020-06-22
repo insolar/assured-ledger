@@ -24,14 +24,14 @@ func TestNode(t *testing.T) {
 	)
 	{
 		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueReference()
+			e.ID = gen.UniqueGlobalRef()
 			e.Role = node.StaticRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
 		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueReference()
+			e.ID = gen.UniqueGlobalRef()
 			e.Role = node.StaticRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)

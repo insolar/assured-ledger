@@ -24,7 +24,7 @@ func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		globalRef = reference.NewSelf(bargeInID)
 	)
 
@@ -45,7 +45,7 @@ func TestSMVDelegatedCallResponse_ErrorIfCallBargeInFailed(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		globalRef = reference.NewSelf(bargeInID)
 	)
 
@@ -68,7 +68,7 @@ func TestSMVDelegatedCallResponse_SuccessCallBargeIn(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		globalRef = reference.NewSelf(bargeInID)
 	)
 

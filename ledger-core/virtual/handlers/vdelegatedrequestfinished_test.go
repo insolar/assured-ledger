@@ -25,10 +25,10 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueIDWithPulse(pd.PulseNumber))
+		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = contract.CallTolerable
 	)
 
@@ -55,10 +55,10 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueIDWithPulse(pd.PulseNumber))
+		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = contract.CallTolerable
 	)
 
@@ -92,10 +92,10 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueIDWithPulse(pd.PulseNumber))
+		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = contract.CallTolerable
 	)
 
@@ -105,7 +105,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	table.Add(smExecID)
 	require.Equal(t, 1, table.Count())
 	require.Equal(t, 1, table.CountActive())
-	table.Add(reference.NewSelf(gen.UniqueIDWithPulse(pd.PulseNumber)))
+	table.Add(reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber)))
 	require.Equal(t, 2, table.Count())
 	require.Equal(t, 2, table.CountActive())
 
@@ -131,10 +131,10 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueIDWithPulse(pd.PulseNumber))
+		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = contract.CallIntolerable
 	)
 

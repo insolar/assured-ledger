@@ -29,9 +29,9 @@ func createCryptographyService(t *testing.T) cryptography.Service {
 }
 
 func TestCreateAndVerifyPermit(t *testing.T) {
-	origin, err := host.NewHostN("127.0.0.1:123", gen.UniqueReference())
+	origin, err := host.NewHostN("127.0.0.1:123", gen.UniqueGlobalRef())
 	assert.NoError(t, err)
-	redirect, err := host.NewHostN("127.0.0.1:321", gen.UniqueReference())
+	redirect, err := host.NewHostN("127.0.0.1:321", gen.UniqueGlobalRef())
 	assert.NoError(t, err)
 
 	cryptographyService := createCryptographyService(t)

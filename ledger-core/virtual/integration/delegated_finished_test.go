@@ -68,7 +68,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc,
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByClassRefMock.Return(
-		descriptor.NewClass(gen.UniqueReference(), gen.UniqueID(), testwallet.GetClass()),
+		descriptor.NewClass(gen.UniqueGlobalRef(), gen.UniqueLocalRef(), testwallet.GetClass()),
 		descriptor.NewCode(nil, machine.Builtin, walletCodeRef.Ref()),
 		nil,
 	)

@@ -77,7 +77,7 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	var (
 		isolation = contract.ConstructorIsolation()
 		outgoing  = server.RandomLocalWithPulse()
-		class     = gen.UniqueReference()
+		class     = gen.UniqueGlobalRef()
 	)
 
 	pl := payload.VCallRequest{
@@ -91,8 +91,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	synchronizeExecution := NewSynchronizationPoint(1)
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
-		requestResult.SetActivate(gen.UniqueReference(), class, []byte("234"))
+		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
+		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(calculateOutgoing(pl).String())
 		executionMock.AddStart(func(ctx execution.Context) {
@@ -157,8 +157,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	p1 := server.GetPulse().PulseNumber
 
 	outgoing := server.RandomLocalWithPulse()
-	class := gen.UniqueReference()
-	object := gen.UniqueReference()
+	class := gen.UniqueGlobalRef()
+	object := gen.UniqueGlobalRef()
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -185,7 +185,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
 		)
 
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueReference())
+		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 		executionMock := runnerMock.AddExecutionMock("SomeMethod")
@@ -246,8 +246,8 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	p1 := server.GetPulse().PulseNumber
 
 	outgoing := server.RandomLocalWithPulse()
-	class := gen.UniqueReference()
-	object := gen.UniqueReference()
+	class := gen.UniqueGlobalRef()
+	object := gen.UniqueGlobalRef()
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -273,7 +273,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
 		)
 
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueReference())
+		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 		executionMock := runnerMock.AddExecutionMock("SomeMethod")
