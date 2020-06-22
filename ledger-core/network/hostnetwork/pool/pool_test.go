@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -43,6 +44,8 @@ func newTransportMock(t *testing.T) transport.StreamTransport {
 }
 
 func TestNewConnectionPool(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := context.Background()
 	tr := newTransportMock(t)
 

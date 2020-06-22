@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
@@ -24,6 +25,7 @@ import (
 
 func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 	defer testutils.LeakTester(t)
+	instestlogger.SetTestOutput(t)
 
 	// TODO: PLAT-376 this test or network/pool should be fixed
 

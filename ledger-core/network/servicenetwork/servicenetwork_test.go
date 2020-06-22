@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -226,6 +227,8 @@ func (s *stater) State() []byte {
 func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
+
 	origin := gen.UniqueGlobalRef()
 	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
 	cert := &mandates.Certificate{}

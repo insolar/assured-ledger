@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -128,12 +129,16 @@ func newHostSuite(t *testing.T) *hostSuite {
 	resolver := newMockResolver()
 
 	cm1 := component.NewManager(nil)
+	cm1.SetLogger(global.Logger())
+
 	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
 	n1, err := NewHostNetwork(id1)
 	require.NoError(t, err)
 	cm1.Inject(f1, n1, resolver)
 
 	cm2 := component.NewManager(nil)
+	cm2.SetLogger(global.Logger())
+
 	cfg2 := configuration.NewHostNetwork().Transport
 	// cfg2.Address = "127.0.0.1:8087"
 	f2 := transport.NewFactory(cfg2)
@@ -175,6 +180,7 @@ func (s *hostSuite) Stop() {
 
 func TestNewHostNetwork(t *testing.T) {
 	defer testutils.LeakTester(t)
+	instestlogger.SetTestOutput(t)
 
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -210,6 +216,7 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	require.NoError(t, err)
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
 	cm.Register(m, n1, transport.NewFactory(configuration.NewHostNetwork().Transport))
 	cm.Inject()
 	err = cm.Init(ctx)
@@ -244,6 +251,7 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket3(t *testing.T) {
+	instestlogger.SetTestOutput(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -278,6 +286,7 @@ func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
+	instestlogger.SetTestOutput(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -307,6 +316,7 @@ func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
 
 func TestHostNetwork_WrongHandler(t *testing.T) {
 	defer testutils.LeakTester(t)
+	instestlogger.SetTestOutput(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 
@@ -336,6 +346,7 @@ func TestHostNetwork_WrongHandler(t *testing.T) {
 
 func TestStartStopSend(t *testing.T) {
 	defer testutils.LeakTester(t)
+	instestlogger.SetTestOutput(t)
 	s := newHostSuite(t)
 	defer s.Stop()
 

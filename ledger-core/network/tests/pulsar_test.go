@@ -78,6 +78,7 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 	}
 
 	tp.cm = component.NewManager(nil)
+	tp.cm.SetLogger(global.Logger())
 
 	tp.cm.Register(platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
 
