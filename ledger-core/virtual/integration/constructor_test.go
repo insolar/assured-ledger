@@ -167,9 +167,10 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		runnerResult = []byte("123")
 	)
 
+	flags := payload.BuildCallFlags(isolation.Interference, isolation.State)
 	pl := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		CallFlags:      flags,
 		CallAsOf:       server.GetPulse().PulseNumber,
 		Callee:         class,
 		CallSiteMethod: "test",
@@ -182,6 +183,8 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		require.Equal(t, res.ReturnArguments, runnerResult)
 		require.Equal(t, res.Callee, objectRef)
 		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, payload.CTConstructor, res.CallType)
+		require.Equal(t, flags, res.CallFlags)
 
 		return false // no resend msg
 	})
@@ -239,8 +242,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		outgoing    = server.RandomLocalWithPulse()
-		objectRef   = reference.NewSelf(outgoing)
+		outgoing  = server.RandomLocalWithPulse()
+		objectRef = reference.NewSelf(outgoing)
 	)
 
 	pl := payload.VCallRequest{
