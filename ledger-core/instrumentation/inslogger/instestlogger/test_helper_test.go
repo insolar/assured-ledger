@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package inslogger
+package instestlogger
 
 import (
 	"testing"
@@ -31,7 +31,7 @@ type suiteLogRedirect struct {
 }
 
 func (v suiteLogRedirect) logger() log.Logger {
-	return NewTestLoggerExt(v.T(), false, v.adapter)
+	return newTestLoggerExt(v.T(), false, false, v.adapter)
 }
 
 func (v suiteLogRedirect) TestRedirectError() {
