@@ -69,9 +69,8 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 	if sender.Equal(s.affinity.Me()) {
 		return throw.New("current node cannot be equal to sender of message with token",
 			struct {
-				SelfNode string
-				Sender   string
-			}{SelfNode: s.affinity.Me().String(), Sender: sender.String()})
+				Sender string
+			}{Sender: sender.String()})
 	}
 	return nil
 }
