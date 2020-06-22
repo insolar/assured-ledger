@@ -74,7 +74,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			Info: object.Info{
 				Reference:      objectGlobal,
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
