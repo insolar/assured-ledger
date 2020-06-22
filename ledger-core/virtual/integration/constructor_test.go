@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func calculateOutgoing(request payload.VCallRequest) reference.Global {
@@ -123,19 +124,9 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
@@ -200,19 +191,9 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 	server.SendMessage(ctx, msg)
 
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
@@ -283,19 +264,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
@@ -518,18 +489,8 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	// wait for all calls and SMs
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			t.Fatal("timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())

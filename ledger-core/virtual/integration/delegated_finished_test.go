@@ -29,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func makeEmptyResult() []byte {
@@ -238,19 +239,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 		server.SendPayload(ctx, &pl)
 	}
 
-	{
-		select {
-		case <-delegateDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, delegateDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		require.Equal(t, typedChecker.VCallResult.Count(), 1)
