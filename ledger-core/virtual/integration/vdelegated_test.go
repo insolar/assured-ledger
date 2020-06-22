@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
@@ -118,7 +119,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 		require.Equal(t, objectRef, result.Callee)
 
-		getBalanceResponse <- struct{}{}
+		close(getBalanceResponse)
 		return false // no resend msg
 	})
 	server.WaitIdleConveyor()
@@ -179,11 +180,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		require.FailNow(t, "timeout")
 	}
 
-	select {
-	case <-getBalanceResponse:
-	case <-time.After(10 * time.Second):
-		require.FailNow(t, "timeout")
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, getBalanceResponse)
 
 	server.WaitIdleConveyor()
 	mc.Finish()
