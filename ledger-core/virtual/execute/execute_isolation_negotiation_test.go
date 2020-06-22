@@ -145,7 +145,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 				smGlobalRef     = reference.NewSelf(smObjectID)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)

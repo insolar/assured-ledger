@@ -65,7 +65,7 @@ func TestSMExecute_Init(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -112,7 +112,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -170,7 +170,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -248,8 +248,8 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.PrevPulseDelta, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		outgoingRef     = gen.UniqueIDWithPulse(oldPd.PulseNumber)
-		objectRef       = gen.UniqueReference()
+		outgoingRef     = gen.UniqueLocalRefWithPulse(oldPd.PulseNumber)
+		objectRef       = gen.UniqueGlobalRef()
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -292,8 +292,8 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 
 func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 	var (
-		selfRef  = gen.UniqueReference()
-		otherRef = gen.UniqueReference()
+		selfRef  = gen.UniqueGlobalRef()
+		otherRef = gen.UniqueGlobalRef()
 	)
 
 	tests := []struct {
@@ -326,7 +326,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 				smGlobalRef     = reference.NewSelf(smObjectID)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)

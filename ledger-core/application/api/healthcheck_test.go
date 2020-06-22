@@ -53,7 +53,7 @@ func randomNodeList(t *testing.T, size int) []node.DiscoveryNode {
 	list := make([]node.DiscoveryNode, size)
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
-		r := gen.UniqueReference()
+		r := gen.UniqueGlobalRef()
 		dn.GetNodeRefMock.Set(func() reference.Global {
 			return r
 		})

@@ -71,7 +71,7 @@ func (w *DescriptorCacheMockWrapper) AddClassCodeDescriptor(
 
 	w.Classes[head] = descriptorPair{
 		class: descriptor.NewClass(head, state, code),
-		code:  descriptor.NewCode(gen.UniqueReference().AsBytes(), machine.Builtin, code),
+		code:  descriptor.NewCode(gen.UniqueGlobalRef().AsBytes(), machine.Builtin, code),
 	}
 
 	w.childMock.ByClassRefMock.Set(w.byClassRefImpl)

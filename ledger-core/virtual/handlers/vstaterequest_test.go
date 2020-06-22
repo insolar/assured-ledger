@@ -28,7 +28,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	var (
 		mc              = minimock.NewController(t)
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
 			Status:              payload.Empty,
@@ -67,8 +67,8 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		objectRef = gen.UniqueReference()
-		caller    = gen.UniqueReference()
+		objectRef = gen.UniqueGlobalRef()
+		caller    = gen.UniqueGlobalRef()
 
 		catalogWrapper                = object.NewCatalogMockWrapper(mc)
 		catalog        object.Catalog = catalogWrapper.Mock()
@@ -106,8 +106,8 @@ func TestDSMVStateRequest_PastPulse(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		objectRef = gen.UniqueReference()
-		caller    = gen.UniqueReference()
+		objectRef = gen.UniqueGlobalRef()
+		caller    = gen.UniqueGlobalRef()
 
 		catalogWrapper                = object.NewCatalogMockWrapper(mc)
 		catalog        object.Catalog = catalogWrapper.Mock()

@@ -17,7 +17,7 @@ import (
 )
 
 func TestEcdsaMarshalUnmarshal(t *testing.T) {
-	data := gen.UniqueReference()
+	data := gen.UniqueGlobalRef()
 
 	kp := platformpolicy.NewKeyProcessor()
 	provider := sign.NewECDSAProvider()

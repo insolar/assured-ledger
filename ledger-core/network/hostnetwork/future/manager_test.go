@@ -25,8 +25,8 @@ func TestNewManager(t *testing.T) {
 func TestFutureManager_Create(t *testing.T) {
 	m := NewManager()
 
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
 
 	p := packet.NewPacket(sender, receiver, types.Unknown, 123)
 	future := m.Create(p)
@@ -39,8 +39,8 @@ func TestFutureManager_Create(t *testing.T) {
 func TestFutureManager_Get(t *testing.T) {
 	m := NewManager()
 
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
 
 	p := packet.NewPacket(sender, receiver, types.Unknown, 123)
 
@@ -55,8 +55,8 @@ func TestFutureManager_Get(t *testing.T) {
 func TestFutureManager_Canceler(t *testing.T) {
 	m := NewManager()
 
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
 
 	p := packet.NewPacket(sender, receiver, types.Unknown, 123)
 

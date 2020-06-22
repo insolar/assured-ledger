@@ -34,7 +34,7 @@ func newNode(ref reference.Global, id int) node2.NetworkNode {
 func TestTable_Resolve(t *testing.T) {
 	table := Table{}
 
-	refs := gen.UniqueReferences(2)
+	refs := gen.UniqueGlobalRefs(2)
 	puls := pulsestor.GenesisPulse
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {

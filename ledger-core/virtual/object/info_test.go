@@ -37,7 +37,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "only pending",
 			getPendingTable: func() PendingTable {
 				table := NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
@@ -47,7 +47,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "only known",
 			getKnownRequests: func() WorkingTable {
 				table := NewWorkingTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				table.GetList(tolerance).SetActive(ref)
 				return table
@@ -58,13 +58,13 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "both",
 			getPendingTable: func() PendingTable {
 				table := NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
 			getKnownRequests: func() WorkingTable {
 				table := NewWorkingTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(prevPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse))
 				table.GetList(tolerance).Add(ref)
 				table.GetList(tolerance).SetActive(ref)
 				return table
