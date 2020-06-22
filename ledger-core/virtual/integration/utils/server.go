@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
@@ -93,7 +94,7 @@ func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*
 }
 
 func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init bool) (*Server, context.Context) {
-	inslogger.SetTestOutput(t, suppressLogError)
+	instestlogger.SetTestOutput(t, suppressLogError)
 
 	if ctx == nil {
 		ctx = inslogger.TestContext(t)

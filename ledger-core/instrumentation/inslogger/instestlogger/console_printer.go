@@ -3,19 +3,20 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package inslogger
+package instestlogger
 
 import (
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
 
 var ConsoleWriterDefaults = ConsoleWriterConfig{
 	NoColor:      true,
-	TimeFormat:   TimestampFormat,
+	TimeFormat:   inslogger.TimestampFormat,
 	FormatCaller: formatCaller,
 	PartsOrder: []string{
 		logoutput.TimestampFieldName,
