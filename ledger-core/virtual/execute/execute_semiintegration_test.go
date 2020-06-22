@@ -41,7 +41,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -114,7 +114,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -188,7 +188,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -251,7 +251,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -326,7 +326,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -401,7 +401,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 

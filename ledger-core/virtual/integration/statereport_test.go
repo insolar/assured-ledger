@@ -7,6 +7,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -146,7 +147,10 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	t.Log("C4865")
 
-	server, ctx := utils.NewServerIgnoreLogErrors(nil, t)
+	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
+		// Pass all errors, except for (*SMVStateReport).stepProcess
+		return !strings.Contains(s,"(*SMVStateReport).stepProcess")
+	})
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
