@@ -80,7 +80,12 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		TraceID:   traceID,
 		Error:     "",
 	}
-	defer func() { s.mustWriteResult(w, result) }()
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
@@ -92,7 +97,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
 	if err != nil {
-		result.Error = throw.W(err, "Failed to process create wallet contract call request").Error()
+		result.Error = throw.W(err, "Failed to process create wallet contract call request (Create)").Error()
 		return
 	}
 

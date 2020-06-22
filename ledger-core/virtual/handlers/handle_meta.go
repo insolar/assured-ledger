@@ -74,7 +74,14 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 		logger.Warn(throw.W(err, "illegitimate msg", struct {
 			messageTypeID uint64
 			messageType   reflect.Type
-		}{messageTypeID: payloadTypeID, messageType: payloadType}))
+			incomingPulse string
+			currentPulse  string
+		}{
+			messageTypeID: payloadTypeID,
+			messageType:   payloadType,
+			incomingPulse: payloadMeta.Pulse.String(),
+			currentPulse:  pr.RightBoundData().PulseNumber.String(),
+		}))
 
 		return pulse.Unknown, nil, nil
 	}

@@ -63,6 +63,7 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 }
 
 func (s *SMTestAPICall) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("Resend message")
 	return ctx.Jump(s.stepSendRequest)
 }
 
