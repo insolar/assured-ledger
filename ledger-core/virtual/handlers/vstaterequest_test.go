@@ -74,7 +74,7 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 		catalog        object.Catalog = catalogWrapper.Mock()
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, false)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 
@@ -113,7 +113,7 @@ func TestDSMVStateRequest_PastPulse(t *testing.T) {
 		catalog        object.Catalog = catalogWrapper.Mock()
 	)
 
-	slotMachine := slotdebugger.NewPast(ctx, t, false)
+	slotMachine := slotdebugger.NewPast(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 

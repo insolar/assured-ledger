@@ -170,7 +170,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	smObject.SetState(HasState)
 	smObject.PreviousExecutorOrderedPendingCount = 1
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 
 	smWrapper := slotMachine.AddStateMachine(ctx, smObject)

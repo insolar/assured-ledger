@@ -18,23 +18,31 @@ import (
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
-	return newTestLoggerExt(target, suppressTestError, false, "")
+	if !suppressTestError {
+		return NewTestLoggerWithErrorFilter(target, nil)
+	}
+
+	return NewTestLoggerWithErrorFilter(target, func(string) bool {	return false })
 }
 
-func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll bool, adapterOverride string) log.Logger {
+func NewTestLoggerWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) log.Logger {
+	return newTestLoggerExt(target, filterFn, "")
+}
+
+func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc, adapterOverride string) log.Logger {
 	if target == nil {
 		panic("illegal value")
 	}
 
 	logCfg := inslogger.DefaultTestLogConfig()
 
-	echoAllCfg := false
+	echoAll := false
 	emuMarks := false
 	prettyPrintJSON := false
 	if adapterOverride != "" {
 		logCfg.Adapter = adapterOverride
 	} else {
-		readTestLogConfig(&logCfg, &echoAllCfg, &emuMarks, &prettyPrintJSON)
+		readTestLogConfig(&logCfg, &echoAll, &emuMarks, &prettyPrintJSON)
 	}
 
 	outputType, err := inslogger.ParseOutput(logCfg.OutputType)
@@ -53,7 +61,7 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 	}
 
 	var echoTo io.Writer
-	if (echoAll || echoAllCfg) && !isConsoleOutput {
+	if echoAll && !isConsoleOutput {
 		echoTo = os.Stderr
 	}
 
@@ -85,11 +93,14 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 			Testing: target,
 			Output: out,
 			EchoTo: echoTo,
-			SuppressTestError: suppressTestError}).
+			ErrorFilterFn: filterFn}).
 		MustBuild()
 }
 
+func SetTestOutputWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) {
+	global.SetLogger(NewTestLoggerWithErrorFilter(target, filterFn))
+}
 
-func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
-	global.SetLogger(NewTestLogger(target, suppressLogError))
+func SetTestOutput(target logcommon.TestingLogger) {
+	global.SetLogger(NewTestLogger(target, false))
 }
