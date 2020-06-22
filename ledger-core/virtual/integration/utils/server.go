@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
@@ -82,9 +83,6 @@ func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
 }
 
 func NewServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
-	if errorFilterFn == nil {
-		errorFilterFn = func(string) bool { return false }
-	}
 	return newServerExt(ctx, t, errorFilterFn, true)
 }
 
@@ -93,14 +91,11 @@ func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context
 }
 
 func NewUninitializedServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
-	if errorFilterFn == nil {
-		errorFilterFn = func(string) bool { return false }
-	}
 	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
 func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
-	inslogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
+	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
 		ctx = inslogger.TestContext(t)
