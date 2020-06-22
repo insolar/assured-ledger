@@ -141,6 +141,13 @@ func InitTicker() {
 	})
 }
 
+func IsInitialized() bool {
+	globalLogger.mutex.RLock()
+	defer globalLogger.mutex.RUnlock()
+
+	return globalLogger.logger != nil
+}
+
 func TrySetDefaultInitializer(initFn func() (log.LoggerBuilder, error)) bool {
 	if initFn == nil {
 		panic("illegal value")

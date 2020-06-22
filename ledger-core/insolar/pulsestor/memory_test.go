@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -19,7 +19,7 @@ import (
 func TestNodeStorage_ForPulseNumber(t *testing.T) {
 	t.Parallel()
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	pn := gen.PulseNumber()
 	pulse := Pulse{PulseNumber: pn}
 	storage := NewStorageMem()
@@ -42,7 +42,7 @@ func TestNodeStorage_ForPulseNumber(t *testing.T) {
 func TestNodeStorage_Latest(t *testing.T) {
 	t.Parallel()
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	t.Run("returns error when no Pulse", func(t *testing.T) {
 		storage := NewStorageMem()
@@ -64,7 +64,7 @@ func TestNodeStorage_Latest(t *testing.T) {
 func TestNodeStorage_Append(t *testing.T) {
 	t.Parallel()
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	pn := gen.PulseNumber()
 	puls := Pulse{PulseNumber: pn}
 
@@ -159,7 +159,7 @@ func TestNodeStorage_Append(t *testing.T) {
 func TestMemoryStorage_Shift(t *testing.T) {
 	t.Parallel()
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	pn := gen.PulseNumber()
 	puls := Pulse{PulseNumber: pn}
 
@@ -229,7 +229,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 func TestMemoryStorage_ForwardsBackwards(t *testing.T) {
 	t.Parallel()
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	storage := NewStorageMem()
 	tailPulse := Pulse{PulseNumber: gen.PulseNumber()}
 	headPulse := Pulse{PulseNumber: tailPulse.PulseNumber + 1}

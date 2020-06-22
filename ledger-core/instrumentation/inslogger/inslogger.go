@@ -11,7 +11,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
@@ -231,12 +230,6 @@ func _getLogger(ctx context.Context) (log.Logger, bool) {
 		return global.CopyForContext(), false
 	}
 	return val.(log.Logger), true
-}
-
-// TestContext returns context with initalized log field "testname" equal t.Name() value.
-func TestContext(t *testing.T) context.Context {
-	ctx, _ := WithField(context.Background(), "testname", t.Name())
-	return ctx
 }
 
 func GetLoggerLevel(ctx context.Context) log.Level {

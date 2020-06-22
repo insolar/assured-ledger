@@ -6,6 +6,7 @@
 package instestlogger
 
 import (
+	"context"
 	"io"
 	"os"
 	"time"
@@ -85,6 +86,12 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 		panic(throw.Unsupported())
 	}
 
+	if namer, ok := target.(interface{ Name() string }); ok {
+		if name := namer.Name(); name != "" {
+			l = l.WithField("testname", name)
+		}
+	}
+
 	return l.WithMetrics(logcommon.LogMetricsResetMode | logcommon.LogMetricsTimestamp).
 		WithCaller(logcommon.CallerField).
 		WithOutput(&logcommon.TestingLoggerOutput{
@@ -116,5 +123,14 @@ func SetTestOutputWithStub(suppressLogError bool) (teardownFn func(pass bool)) {
 	emu := &stubT{}
 	global.SetLogger(NewTestLogger(emu, suppressLogError))
 	return emu.cleanup
+}
+
+// TestContext returns context with initalized log field "testname" equal t.Name() value.
+func TestContext(target logcommon.TestingLogger) context.Context {
+	if !global.IsInitialized() {
+		SetTestOutput(target)
+	}
+	// ctx, _ := inslogger.WithField(context.Background(), "testname", t.Name())
+	return context.Background()
 }
 

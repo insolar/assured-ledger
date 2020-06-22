@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -120,7 +121,7 @@ type hostSuite struct {
 }
 
 func newHostSuite(t *testing.T) *hostSuite {
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	ctx1 := inslogger.ContextWithTrace(ctx, "AAA")
 	ctx2 := inslogger.ContextWithTrace(ctx, "BBB")
@@ -203,7 +204,7 @@ func TestNewHostNetwork(t *testing.T) {
 
 func TestHostNetwork_SendRequestPacket(t *testing.T) {
 	m := newMockResolver()
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	n1, err := NewHostNetwork(id1)
 	require.NoError(t, err)
@@ -365,7 +366,7 @@ func TestStartStopSend(t *testing.T) {
 	require.NoError(t, err)
 	<-time.After(time.Millisecond * 10)
 
-	s.ctx1 = inslogger.TestContext(t)
+	s.ctx1 = instestlogger.TestContext(t)
 	err = s.cm1.Start(s.ctx1)
 	require.NoError(t, err)
 
@@ -376,7 +377,7 @@ func TestStartStopSend(t *testing.T) {
 func TestHostNetwork_SendRequestToHost_NotStarted(t *testing.T) {
 	defer testutils.LeakTester(t)
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	hn, err := NewHostNetwork(id1)
 	require.NoError(t, err)
