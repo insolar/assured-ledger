@@ -39,7 +39,7 @@ func waitForStatus(t *testing.T, nc *api.NetworkChecker, expected bool) {
 }
 
 func TestAvailabilityChecker_UpdateStatus(t *testing.T) {
-	instestlogger.SetTestOutput(t, true)
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
 	ctx, _ := inslogger.InitNodeLoggerByGlobal("", "")
 
 	defer testutils.LeakTester(t,

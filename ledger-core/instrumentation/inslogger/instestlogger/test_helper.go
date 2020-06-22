@@ -99,12 +99,17 @@ func SetTestOutputWithErrorFilter(target logcommon.TestingLogger, filterFn logco
 	global.SetLogger(NewTestLoggerWithErrorFilter(target, filterFn))
 }
 
+// deprecated
+func SetTestOutputWithIgnoreAllErrors(target logcommon.TestingLogger) {
+	global.SetLogger(NewTestLogger(target, true))
+}
+
 func SetTestOutput(target logcommon.TestingLogger) {
 	global.SetLogger(NewTestLogger(target, false))
 }
 
 func SetTestOutputWithCfg(target logcommon.TestingLogger, cfg configuration.Log) {
-	global.SetLogger(newTestLoggerExt(target, false, cfg, false))
+	global.SetLogger(newTestLoggerExt(target, nil, cfg, false))
 }
 
 func SetTestOutputWithStub(suppressLogError bool) (teardownFn func(pass bool)) {

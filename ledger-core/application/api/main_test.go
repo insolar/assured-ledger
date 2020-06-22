@@ -47,7 +47,7 @@ func (suite *MainAPISuite) TestNewApiRunnerNoRequiredParams() {
 }
 
 func TestMainTestSuite(t *testing.T) {
-	instestlogger.SetTestOutput(t, false)
+	instestlogger.SetTestOutput(t)
 
 	ctx, _ := inslogger.WithTraceField(context.Background(), "APItests")
 	http.DefaultServeMux = new(http.ServeMux)

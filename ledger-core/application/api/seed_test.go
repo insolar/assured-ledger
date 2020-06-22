@@ -28,7 +28,7 @@ func TestNodeService_GetSeed(t *testing.T) {
 	defer testutils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager.NewSpecified.func1"))
 
-	instestlogger.SetTestOutput(t, true)
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
 
 	availableFlag := false
 	mc := minimock.NewController(t)
