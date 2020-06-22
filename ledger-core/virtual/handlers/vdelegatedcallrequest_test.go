@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -56,18 +57,19 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		ActiveUnorderedPendingCount   uint8
 		callFlags                     payload.CallFlags
 		expectedResponse              *payload.VDelegatedCallResponse
-		PendingRequestTable           object.RequestTable
+		PendingRequestTable           object.PendingTable
 		expectedError                 bool
 	}{
 		{
 			name:                        "OK tolerable",
+			testRailCase:                "C5133",
 			PendingRequestTable:         object.NewRequestTable(),
 			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
 					Outgoing:          oneRandomOrderedRequest,
@@ -76,13 +78,14 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "OK intolerable",
+			testRailCase:                  "C5132",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
 					Outgoing:          oneRandomUnorderedRequest,
@@ -98,7 +101,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					ApproverSignature: deadBeef[:],
 					Outgoing:          retryOrderedRequestRef,
@@ -107,13 +110,14 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "retry intolerable",
+			testRailCase:                  "C5127",
 			PendingRequestTable:           retryUnorderedTable,
 			requestRef:                    retryUnorderedRequestRef,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
-				DelegationSpec: payload.CallDelegationToken{
+				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					PulseNumber:       pulse.OfNow(),
 					ApproverSignature: deadBeef[:],
@@ -123,6 +127,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "unexpected intolerable",
+			testRailCase:                  "C5131",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
@@ -152,6 +157,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "too old tolerable",
+			testRailCase:                  "C5130",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -161,6 +167,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "full table intolerable",
+			testRailCase:                  "C5129",
 			PendingRequestTable:           oneRandomUnorderedTable,
 			requestRef:                    reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -190,7 +197,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                        "wrong call interference flag: expected tolerable, get intolerable",
-			testRailCase:                "C4989",
+			testRailCase:                "C5128",
 			PendingRequestTable:         object.NewRequestTable(),
 			requestRef:                  reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow())),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -200,9 +207,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.testRailCase != "" {
-				t.Log(tc.testRailCase)
-			}
+			t.Log(tc.testRailCase)
 			var (
 				mc  = minimock.NewController(t)
 				ctx = inslogger.TestContext(t)
@@ -216,16 +221,16 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				unorderedBargeIn = smachine.BargeIn{}
 				sharedState      = &object.SharedState{
 					Info: object.Info{
-						PendingTable:                       tc.PendingRequestTable,
-						OrderedPendingEarliestPulse:        tc.OrderedPendingEarliestPulse,
-						UnorderedPendingEarliestPulse:      tc.UnorderedPendingEarliestPulse,
-						ActiveOrderedPendingCount:          tc.ActiveOrderedPendingCount,
-						ActiveUnorderedPendingCount:        tc.ActiveUnorderedPendingCount,
-						KnownRequests:                      object.NewRequestTable(),
-						ReadyToWork:                        smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-						OrderedExecute:                     smsync.NewConditional(1, "MutableExecution").SyncLink(),
-						OrderedPendingListFilledCallback:   orderedBargeIn,
-						UnorderedPendingListFilledCallback: unorderedBargeIn,
+						PendingTable:                          tc.PendingRequestTable,
+						OrderedPendingEarliestPulse:           tc.OrderedPendingEarliestPulse,
+						UnorderedPendingEarliestPulse:         tc.UnorderedPendingEarliestPulse,
+						PreviousExecutorOrderedPendingCount:   tc.ActiveOrderedPendingCount,
+						PreviousExecutorUnorderedPendingCount: tc.ActiveUnorderedPendingCount,
+						KnownRequests:                         object.NewWorkingTable(),
+						ReadyToWork:                           smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+						OrderedExecute:                        smsync.NewConditional(1, "MutableExecution").SyncLink(),
+						OrderedPendingListFilledCallback:      orderedBargeIn,
+						UnorderedPendingListFilledCallback:    unorderedBargeIn,
 					},
 				}
 				callFlags = tc.callFlags
@@ -240,7 +245,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 
-			var authenticationService = authentication.NewService(ctx, nodeRef, nil)
+			affinityHelper := jet.NewAffinityHelperMock(t).MeMock.Return(nodeRef)
+			var authenticationService = authentication.NewService(ctx, affinityHelper)
 
 			slotMachine.AddInterfaceDependency(&authenticationService)
 
@@ -281,11 +287,11 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			}
 
 			expectedResponse := tc.expectedResponse
-			expectedResponse.DelegationSpec.Approver = nodeRef
-			expectedResponse.DelegationSpec.DelegateTo = caller
-			expectedResponse.DelegationSpec.Caller = caller
-			expectedResponse.DelegationSpec.PulseNumber = pulse.OfNow()
-			expectedResponse.DelegationSpec.Callee = objectRef
+			expectedResponse.ResponseDelegationSpec.Approver = nodeRef
+			expectedResponse.ResponseDelegationSpec.DelegateTo = caller
+			expectedResponse.ResponseDelegationSpec.Caller = caller
+			expectedResponse.ResponseDelegationSpec.PulseNumber = pulse.OfNow()
+			expectedResponse.ResponseDelegationSpec.Callee = objectRef
 			expectedResponse.Callee = objectRef
 
 			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {

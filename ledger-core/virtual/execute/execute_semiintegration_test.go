@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -30,11 +31,10 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -54,10 +54,9 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
+			Caller:         caller,
+			Callee:         class,
+			CallSiteMethod: "New",
 		},
 		Meta: &payload.Meta{
 			Sender: caller,
@@ -66,7 +65,11 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -104,7 +107,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -124,10 +127,9 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
+			Caller:         class,
+			Callee:         callee,
+			CallSiteMethod: "New",
 		},
 		Meta: &payload.Meta{
 			Sender: caller,
@@ -136,7 +138,11 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -172,11 +178,10 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -196,10 +201,9 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
+			Caller:         caller,
+			Callee:         class,
+			CallSiteMethod: "New",
 		},
 		Meta: &payload.Meta{
 			Sender: caller,
@@ -208,7 +212,11 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -241,16 +249,21 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
+	)
 
+	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	var (
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
+		outgoing    = slotMachine.GenerateLocal()
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -259,20 +272,15 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 
 	sharedState.SetState(object.Missing)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
+			Caller:         caller,
+			Callee:         class,
+			CallSiteMethod: "New",
 		},
 		Meta: &payload.Meta{
 			Sender: caller,
@@ -281,7 +289,11 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -312,16 +324,21 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
+	)
 
+	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	var (
 		class       = gen.UniqueReference()
 		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
 		outgoing    = gen.UniqueID()
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -330,20 +347,15 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	sharedState.SetState(object.Inactive)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CTConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
-			Caller:              caller,
-			Callee:              callee,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
+			Caller:         caller,
+			Callee:         class,
+			CallSiteMethod: "New",
 		},
 		Meta: &payload.Meta{
 			Sender: caller,
@@ -352,7 +364,11 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -383,15 +399,20 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
+	)
 
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
+	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	var (
+		caller      = slotMachine.GenerateGlobal()
+		outgoing    = slotMachine.GenerateLocal()
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -400,20 +421,15 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	sharedState.SetState(object.Empty)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CTMethod,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
-			Caller:              caller,
-			Callee:              objectRef,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "New",
+			Caller:         caller,
+			Callee:         objectRef,
+			CallSiteMethod: "New",
 		},
 		Meta: &payload.Meta{
 			Sender: caller,
@@ -422,7 +438,11 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
 	{
-		var catalog object.Catalog = catalogWrapper.Mock()
+		var (
+			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog         = catalogWrapper.Mock()
+		)
+		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)

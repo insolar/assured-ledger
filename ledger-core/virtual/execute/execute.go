@@ -11,6 +11,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -57,9 +59,10 @@ type SMExecute struct {
 	methodIsolation contract.MethodIsolation
 
 	// dependencies
-	runner        runner.ServiceAdapter
-	messageSender messageSenderAdapter.MessageSender
-	pulseSlot     *conveyor.PulseSlot
+	runner                runner.ServiceAdapter
+	messageSender         messageSenderAdapter.MessageSender
+	pulseSlot             *conveyor.PulseSlot
+	authenticationService authentication.Service
 
 	outgoing        *payload.VCallRequest
 	outgoingObject  reference.Global
@@ -87,6 +90,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.authenticationService)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -273,11 +277,7 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	}
 	s.execution.Isolation = negotiatedIsolation
 
-	if s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
-		return ctx.Jump(s.stepDeduplicate)
-	}
-
-	return ctx.Jump(s.stepTakeLock)
+	return ctx.Jump(s.stepDeduplicate)
 }
 
 func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation) (contract.MethodIsolation, error) {
@@ -306,6 +306,51 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 }
 
 func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	duplicate := false
+
+	action := func(state *object.SharedState) {
+		req := s.execution.Outgoing
+
+		workingList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+
+		requestState := workingList.GetState(req)
+		switch requestState {
+		// processing started but not yet processing
+		case object.RequestStarted:
+			duplicate = true
+			return
+		case object.RequestProcessing:
+			duplicate = true
+			// TODO: we may have result already, should resend
+			return
+		}
+
+		workingList.Add(req)
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
+	if duplicate {
+		ctx.Log().Warn("duplicate found")
+		return ctx.Stop()
+	}
+
+	if !s.outgoingFromSlotPulse() {
+		return ctx.Jump(s.stepDeduplicateUsingPendingsTable)
+	}
+	return ctx.Jump(s.stepTakeLock)
+}
+
+func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		isDuplicate       bool
 		pendingListFilled smachine.SyncLink
@@ -321,6 +366,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 
 		if pendingList.Exist(s.execution.Outgoing) {
 			isDuplicate = true
+			// TODO: we may have result already, should resend
 			return
 		}
 	}
@@ -336,6 +382,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	}
 
 	if isDuplicate {
+		// TODO: do we have result? if we have result then we should resend result
 		ctx.Log().Warn("duplicate found as pending request")
 		return ctx.Stop()
 	}
@@ -366,14 +413,18 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		isDuplicate      bool
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		isDuplicate = !state.KnownRequests.GetList(s.execution.Isolation.Interference).Add(s.execution.Outgoing)
-		if isDuplicate {
-			return
+		reqRef := s.execution.Outgoing
+
+		reqList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+		if !reqList.SetActive(reqRef) {
+			// if we come here then request should be in RequestStarted
+			// if it is not it is either somehow lost or it is already processing
+			panic(throw.Impossible())
 		}
+
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -386,11 +437,6 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	case smachine.Passed:
 	default:
 		panic(throw.NotImplemented())
-	}
-
-	if isDuplicate {
-		ctx.Log().Warn("duplicate found as known request")
-		return ctx.Stop()
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
@@ -427,7 +473,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		if subroutineSM.response == nil {
 			panic(throw.IllegalState())
 		}
-		s.delegationTokenSpec = subroutineSM.response.DelegationSpec
+		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
 		if s.outgoingWasSent {
 			return ctx.Jump(s.stepSendOutgoing)
 		}
@@ -495,10 +541,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
+		s.outgoing.DelegationSpec = s.getToken()
 	case executionevent.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.outgoingObject = s.outgoing.Callee
+		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -517,9 +565,10 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			if !ok || res == nil {
 				panic(throw.IllegalValue())
 			}
-			s.outgoingResult = res.ReturnArguments
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				s.outgoingResult = res.ReturnArguments
+
 				return ctx.WakeUp()
 			}
 		})
@@ -650,7 +699,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		Callee:         s.execution.Object,
 		CallOutgoing:   s.execution.Outgoing,
 		CallIncoming:   s.execution.Incoming,
-		DelegationSpec: s.delegationTokenSpec,
+		DelegationSpec: s.getToken(),
 		LatestState:    lastState,
 	}
 
@@ -708,7 +757,9 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallIncomingResult: reference.Local{},
 		EntryHeadHash:      nil,
 		ReturnArguments:    executionResult,
+		DelegationSpec:     s.getToken(),
 	}
+
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -751,4 +802,11 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	hasher := platformpolicy.NewPlatformCryptographyScheme().ReferenceHasher()
 	hash := hasher.Hash(data)
 	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
+}
+
+func (s *SMExecute) getToken() payload.CallDelegationToken {
+	if s.authenticationService != nil && !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
+		return payload.CallDelegationToken{}
+	}
+	return s.delegationTokenSpec
 }

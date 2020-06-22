@@ -57,7 +57,6 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		CallOutgoing:   gen.UniqueIDWithPulse(pn),
 		Arguments:      plArguments,
 	}
-	msg := NewRequestWrapper(pn, &pl).SetSender(h.server.JetCoordinatorMock.Me()).Finalize()
 	objectReference := h.calculateOutgoing(pl)
 
 	{
@@ -81,7 +80,7 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 	typedChecker.VCallResult.SetResend(false)
 
 	messagesBefore := h.server.PublisherMock.GetCount()
-	h.server.SendMessage(ctx, msg)
+	h.server.SendPayload(ctx, &pl)
 	if !h.server.PublisherMock.WaitCount(messagesBefore+1, 10*time.Second) {
 		panic("failed to wait for VCallResult")
 	}

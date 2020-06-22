@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestSMObject_InitSetMigration(t *testing.T) {
@@ -33,7 +33,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 	)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
-		require.True(t, utils.CmpStateFuncs(smObject.migrate, fn))
+		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
 	}
 	initCtx := smachine.NewInitializationContextMock(mc).
 		ShareMock.Return(sharedStateData).
@@ -81,6 +81,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	migrationCtx := smachine.NewMigrationContextMock(mc).
 		JumpMock.Return(smachine.StateUpdate{}).UnpublishAllMock.Return().
+		LogMock.Return(smachine.Logger{}).
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
 		assert.Equal(t, finalizedstate.BuildReportKey(report.Object, smObject.pulseSlot.PulseData().PulseNumber), key)
@@ -127,6 +128,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 
 	migrationCtx := smachine.NewMigrationContextMock(mc).
 		JumpMock.Return(smachine.StateUpdate{}).UnpublishAllMock.Return().
+		LogMock.Return(smachine.Logger{}).
 		ShareMock.Return(smachine.NewUnboundSharedData(&report)).
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
 		assert.Equal(t, finalizedstate.BuildReportKey(report.Object, smObject.pulseSlot.PulseData().PulseNumber), key)

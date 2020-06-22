@@ -129,6 +129,8 @@ type SlotMachineLogger interface {
 	LogMachineInternal(data SlotMachineData, msg string)
 	// LogMachineCritical is invoked on critical events, that SlotMachine may not be able to handle properly.
 	LogMachineCritical(data SlotMachineData, msg string)
+	// LogStopping is invoked before SlotMachine will starts stopping operations. Can be cal
+	LogStopping(*SlotMachine)
 }
 
 type StepLoggerFactoryFunc func(context.Context, StateMachine, TracerID) StepLogger

@@ -52,12 +52,13 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
-	KnownRequests RequestTable
-	PendingTable  RequestTable
+	// KnownRequests holds requests that were seen on current pulse
+	KnownRequests WorkingTable
+	// PendingTable holds requests that are known to be processed by other executors
+	PendingTable PendingTable
 
-	// Active means pendings on other executors
-	ActiveUnorderedPendingCount uint8
-	ActiveOrderedPendingCount   uint8
+	PreviousExecutorUnorderedPendingCount uint8
+	PreviousExecutorOrderedPendingCount   uint8
 
 	// Potential means pendings on this executor
 	PotentialUnorderedPendingCount uint8
@@ -143,11 +144,13 @@ func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number
 }
 
 func (i *Info) BuildStateReport() payload.VStateReport {
+	previousExecutorUnorderedPendingCount := i.PendingTable.GetList(contract.CallIntolerable).CountActive()
+	previousExecutorOrderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
 	res := payload.VStateReport{
 		Object:                        i.Reference,
-		UnorderedPendingCount:         int32(i.ActiveUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
+		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
-		OrderedPendingCount:           int32(i.ActiveOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
+		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
@@ -203,7 +206,7 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 		SharedState: SharedState{
 			Info: Info{
 				Reference:     objectReference,
-				KnownRequests: NewRequestTable(),
+				KnownRequests: NewWorkingTable(),
 				PendingTable:  NewRequestTable(),
 			},
 		},
@@ -321,12 +324,12 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.ActiveOrderedPendingCount > 0 {
+	if sm.PreviousExecutorOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
 		sm.createWaitOrderedPendingTableSM(ctx)
 	}
 
-	if sm.ActiveUnorderedPendingCount > 0 {
+	if sm.PreviousExecutorUnorderedPendingCount > 0 {
 		sm.createWaitUnorderedPendingTableSM(ctx)
 	}
 
@@ -414,6 +417,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		Reference: sm.Reference,
 	}
 
+	sm.checkPendingCounters(ctx.Log())
 	smf.Report = sm.BuildStateReport()
 	if sm.Descriptor() != nil {
 		smf.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
@@ -433,4 +437,31 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		return ctx.ReplaceWith(&smf)
 	})
+}
+
+type pendingCountersWarnMsg struct {
+	*log.Msg     `txt:"Pending counter does not match active records count in table"`
+	CounterType  string
+	PendingCount uint8
+	CountActive  int
+}
+
+func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
+	unorderedPendingList := sm.PendingTable.GetList(contract.CallIntolerable)
+	if int(sm.PreviousExecutorUnorderedPendingCount) != unorderedPendingList.Count() {
+		logger.Warn(pendingCountersWarnMsg{
+			CounterType:  "Unordered",
+			PendingCount: sm.PreviousExecutorUnorderedPendingCount,
+			CountActive:  unorderedPendingList.Count(),
+		})
+	}
+
+	orderedPendingList := sm.PendingTable.GetList(contract.CallTolerable)
+	if int(sm.PreviousExecutorOrderedPendingCount) != orderedPendingList.Count() {
+		logger.Warn(pendingCountersWarnMsg{
+			CounterType:  "Ordered",
+			PendingCount: sm.PreviousExecutorOrderedPendingCount,
+			CountActive:  orderedPendingList.Count(),
+		})
+	}
 }

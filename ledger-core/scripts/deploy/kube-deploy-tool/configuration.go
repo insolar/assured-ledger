@@ -10,8 +10,9 @@ import (
 )
 
 type KubeDeployToolConfig struct {
-	NetParams  []NetParams
-	KubeParams KubeParams
+	NetParams    []NetParams
+	KubeParams   KubeParams
+	MetricParams MetricsConfig
 }
 
 type NetParams struct {

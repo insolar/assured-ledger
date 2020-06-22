@@ -60,6 +60,8 @@ func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg strin
 	global.Errorm(throw.W(data.Error, msg, data))
 }
 
+func (MachineLogger) LogStopping(*smachine.SlotMachine) {}
+
 func (l MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
 	ctxWithTrace, _ := inslogger.WithTraceField(ctx, tracer)
 	return conveyorStepLogger{ctxWithTrace, sm, tracer, l.EchoToGlobal}

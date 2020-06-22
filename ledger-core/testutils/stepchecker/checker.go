@@ -11,12 +11,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/utils"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 //go:generate stringer -type=StepDeclType
@@ -87,7 +86,7 @@ func (c *Checker) CheckJump(actualStep smachine.StateFunc) error {
 	if expectedStep.t != Jump {
 		return errors.Errorf("unexpected step type 'Jump', got '%s'", expectedStep.t.String())
 	}
-	if !utils.CmpStateFuncs(expectedStep.fn, actualStep) {
+	if !testutils.CmpStateFuncs(expectedStep.fn, actualStep) {
 		return errors.Errorf("step '%d' call wrong func (expected '%s', got '%s')", c.position, convlog.GetStepName(expectedStep.fn), convlog.GetStepName(actualStep))
 	}
 

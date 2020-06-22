@@ -125,7 +125,6 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		newObjectDescriptor := descriptor.NewObject(reference.Global{}, objectLocal, class, []byte(""), reference.Global{})
 
@@ -146,7 +145,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		}, nil)
 
 		beforeCount := server.PublisherMock.GetCount()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 		if !server.PublisherMock.WaitCount(beforeCount+5, 10*time.Second) {
 			require.Fail(t, "timeout waiting for message")
 		}
@@ -178,6 +177,8 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
+
+	delegateDone := server.Journal.WaitStopOf(&object.SMAwaitDelegate{}, 1)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
@@ -221,7 +222,6 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		key := calculateOutgoing(pl).String()
 		runnerMock.AddExecutionMock(key).
@@ -236,22 +236,21 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 			State:        contract.CallDirty,
 		}, nil)
 
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 	}
 
 	{
-		it := server.Journal.GetJournalIterator()
 		select {
-		case <-it.WaitStop(&object.SMAwaitDelegate{}, 1):
+		case <-delegateDone:
 		case <-time.After(10 * time.Second):
 			require.FailNow(t, "timeout")
 		}
+
 		select {
-		case <-it.WaitAllAsyncCallsFinished():
+		case <-server.Journal.WaitAllAsyncCallsDone():
 		case <-time.After(10 * time.Second):
 			require.FailNow(t, "timeout")
 		}
-		it.Stop()
 	}
 
 	{

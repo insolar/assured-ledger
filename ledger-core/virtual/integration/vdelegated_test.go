@@ -40,9 +40,9 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(pl *payload.VDelegatedCallResponse) bool {
-		require.NotEmpty(t, pl.DelegationSpec)
-		require.Equal(t, objectRef, pl.DelegationSpec.Callee)
-		require.Equal(t, sender, pl.DelegationSpec.DelegateTo)
+		require.NotEmpty(t, pl.ResponseDelegationSpec)
+		require.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee)
+		require.Equal(t, sender, pl.ResponseDelegationSpec.DelegateTo)
 
 		return false // no resend msg
 	})
@@ -110,7 +110,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-		require.Equal(t, objectRef, response.DelegationSpec.Callee)
+		require.Equal(t, objectRef, response.ResponseDelegationSpec.Callee)
 
 		delegatedRequest <- struct{}{}
 		return false // no resend msg

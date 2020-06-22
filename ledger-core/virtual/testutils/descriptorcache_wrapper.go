@@ -31,7 +31,7 @@ type DescriptorCacheMockWrapper struct {
 	IntenselyPanic bool
 }
 
-func NewDescriptorsCacheMockWrapper(mc *minimock.Controller) *DescriptorCacheMockWrapper {
+func NewDescriptorsCacheMockWrapper(mc minimock.Tester) *DescriptorCacheMockWrapper {
 	mock := DescriptorCacheMockWrapper{
 		childMock:      descriptor.NewCacheMock(mc),
 		Classes:        make(map[reference.Global]descriptorPair),
