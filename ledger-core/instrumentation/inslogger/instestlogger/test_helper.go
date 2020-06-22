@@ -66,6 +66,11 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 
 	out := l.GetOutput()
 
+	name := ""
+	if namer, ok := target.(interface{ Name() string }); ok {
+		name = namer.Name()
+	}
+
 	switch l.GetFormat() {
 	case logcommon.JSONFormat:
 		if prettyPrintJSON {
@@ -86,10 +91,8 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 		panic(throw.Unsupported())
 	}
 
-	if namer, ok := target.(interface{ Name() string }); ok {
-		if name := namer.Name(); name != "" {
-			l = l.WithField("testname", name)
-		}
+	if name != "" {
+		l = l.WithField("testname", name)
 	}
 
 	return l.WithMetrics(logcommon.LogMetricsResetMode | logcommon.LogMetricsTimestamp).
