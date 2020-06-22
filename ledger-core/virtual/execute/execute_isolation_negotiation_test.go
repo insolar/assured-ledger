@@ -185,7 +185,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 					return smachine.StateUpdate{}
 				})
 			} else {
-				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
 			}
 
 			smExecute.stepIsolationNegotiation(execCtx)

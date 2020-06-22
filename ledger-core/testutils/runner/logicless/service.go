@@ -16,21 +16,20 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type runState struct {
 	id     call.ID
-	result *executionupdate.ContractExecutionStateUpdate
+	result *execution.Update
 }
 
-func (r runState) GetResult() *executionupdate.ContractExecutionStateUpdate {
+func (r runState) GetResult() *execution.Update {
 	return r.result
 }
 
-func (r runState) GetID() call.ID {
+func (r runState) ID() call.ID {
 	return r.id
 }
 
@@ -43,12 +42,12 @@ func (m *executionMapping) add(key string, val *ExecutionMock) {
 	if _, ok := m.byKey[key]; ok {
 		panic("already exists by key")
 	}
-	if _, ok := m.byID[val.state.GetID()]; ok {
+	if _, ok := m.byID[val.state.ID()]; ok {
 		panic("already exists by value")
 	}
 
 	m.byKey[key] = val
-	m.byID[val.state.GetID()] = val
+	m.byID[val.state.ID()] = val
 }
 
 func (m *executionMapping) getByKey(key string) (*ExecutionMock, bool) {
@@ -159,7 +158,12 @@ func (s ServiceMock) ExecutionStart(execution execution.Context) runner.RunState
 }
 
 func (s ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byte) {
-	executionMock, ok := s.executionMapping.getByID(run.GetID())
+	r, ok := run.(*runState)
+	if !ok {
+		panic(throw.IllegalValue())
+	}
+
+	executionMock, ok := s.executionMapping.getByID(r.id)
 	if !ok {
 		panic(throw.NotImplemented())
 	}
@@ -186,7 +190,12 @@ func (s ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byt
 }
 
 func (s ServiceMock) ExecutionAbort(run runner.RunState) {
-	executionMock, ok := s.executionMapping.getByID(run.GetID())
+	r, ok := run.(*runState)
+	if !ok {
+		panic(throw.IllegalValue())
+	}
+
+	executionMock, ok := s.executionMapping.getByID(r.id)
 	if !ok {
 		panic(throw.NotImplemented())
 	}

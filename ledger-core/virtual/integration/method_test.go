@@ -23,13 +23,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 const initialBalance uint32 = 500
@@ -245,8 +244,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 			key := calculateOutgoing(pl).String()
 			runnerMock.AddExecutionMock(key).
-				AddStart(checkExecution, &executionupdate.ContractExecutionStateUpdate{
-					Type:   executionupdate.Done,
+				AddStart(checkExecution, &execution.Update{
+					Type:   execution.Done,
 					Result: result,
 				})
 			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
@@ -274,13 +273,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		}
 	}
 
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 	{
 		assert.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -358,15 +351,15 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
 
-	outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
 			require.Equal(t, objectAGlobal, ctx.Request.Callee)
 			t.Log("ExecutionStart [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:     executionupdate.OutgoingCall,
+		&execution.Update{
+			Type:     execution.OutgoingCall,
 			Error:    nil,
 			Outgoing: outgoingCall,
 		},
@@ -375,8 +368,8 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 		func(result []byte) {
 			t.Log("ExecutionContinue [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 		},
 	)
@@ -386,8 +379,8 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 			require.Equal(t, objectBGlobal, ctx.Request.Callee)
 			t.Log("ExecutionStart [B.Bar]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
 		},
 	)
@@ -455,15 +448,15 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
 
-	outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
 			require.Equal(t, objectAGlobal, ctx.Request.Callee)
 			t.Log("ExecutionStart [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:     executionupdate.OutgoingCall,
+		&execution.Update{
+			Type:     execution.OutgoingCall,
 			Error:    nil,
 			Outgoing: outgoingCall,
 		},
@@ -472,8 +465,8 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 		func(result []byte) {
 			t.Log("ExecutionContinue [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 		},
 	)
@@ -483,8 +476,8 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 			require.Equal(t, objectBGlobal, ctx.Request.Callee)
 			t.Log("ExecutionStart [B.Bar]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
 		},
 	)
@@ -549,14 +542,14 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
-	outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
 			t.Log("ExecutionStart [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:     executionupdate.OutgoingCall,
+		&execution.Update{
+			Type:     execution.OutgoingCall,
 			Error:    nil,
 			Outgoing: outgoingCall,
 		},
@@ -565,8 +558,8 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 		func(result []byte) {
 			t.Log("ExecutionContinue [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 		},
 	)
@@ -575,8 +568,8 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 		func(ctx execution.Context) {
 			t.Log("ExecutionStart [A.Bar]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Bar"), objectAGlobal),
 		},
 	)
@@ -642,14 +635,14 @@ func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
-	outgoingCall := executionevent.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
 			t.Log("ExecutionStart [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:     executionupdate.OutgoingCall,
+		&execution.Update{
+			Type:     execution.OutgoingCall,
 			Error:    nil,
 			Outgoing: outgoingCall,
 		},
@@ -658,8 +651,8 @@ func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
 		func(result []byte) {
 			t.Log("ExecutionContinue [A.Foo]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 		},
 	)
@@ -668,8 +661,8 @@ func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
 		func(ctx execution.Context) {
 			t.Log("ExecutionStart [A.Bar]")
 		},
-		&executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		&execution.Update{
+			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Bar"), objectAGlobal),
 		},
 	)
@@ -749,7 +742,7 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := executionevent.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
+		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
 		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock("New")
@@ -759,8 +752,8 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 				require.Equal(t, classA, ctx.Request.Callee)
 				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Error:    nil,
 				Outgoing: outgoingCall,
 			},
@@ -770,8 +763,8 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.New]")
 				require.Equal(t, []byte("finish B.Foo"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: objectAResult,
 			},
 		)
@@ -783,8 +776,8 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("123"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B.Foo"), objectBGlobal),
 			},
 		)
@@ -840,18 +833,8 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	// wait for all calls and SMs
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			t.Fatal("timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -897,7 +880,7 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := executionevent.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
+		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
 		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock("New")
@@ -907,8 +890,8 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 				require.Equal(t, classA, ctx.Request.Callee)
 				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Error:    nil,
 				Outgoing: outgoingCall,
 			},
@@ -918,8 +901,8 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.New]")
 				require.Equal(t, []byte("finish B.Foo"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: objectAResult,
 			},
 		)
@@ -931,8 +914,8 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("123"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B.Foo"), objectBGlobal),
 			},
 		)
@@ -988,18 +971,8 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	// wait for all calls and SMs
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(10 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(10 * time.Second):
-			t.Fatal("timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -1052,7 +1025,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		builder := executionevent.NewRPCBuilder(outgoingCallRef, objectAGlobal)
+		builder := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal)
 		objectAExecutionMock := runnerMock.AddExecutionMock(objectAGlobal.String())
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
@@ -1061,9 +1034,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Callee)
 				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
-				Error:    nil,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: builder.CallMethod(objectB1Global, classB, "Bar", []byte("B1")),
 			},
 		)
@@ -1073,9 +1045,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo]")
 				require.Equal(t, []byte("finish B1.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
-				Error:    nil,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: builder.CallMethod(objectB2Global, classB, "Bar", []byte("B2")),
 			},
 		)
@@ -1084,9 +1055,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo]")
 				require.Equal(t, []byte("finish B2.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
-				Error:    nil,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: builder.CallMethod(objectB3Global, classB, "Bar", []byte("B3")),
 			},
 		)
@@ -1095,9 +1065,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo]")
 				require.Equal(t, []byte("finish B3.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
-				Error:  nil,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 			},
 		)
@@ -1109,8 +1078,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("B1"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B1.Bar"), objectB1Global),
 			},
 		)
@@ -1122,8 +1091,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("B2"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B2.Bar"), objectB2Global),
 			},
 		)
@@ -1135,8 +1104,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, objectAGlobal, ctx.Request.Caller)
 				require.Equal(t, []byte("B3"), ctx.Request.Arguments)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish B3.Bar"), objectB3Global),
 			},
 		)
@@ -1213,18 +1182,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	// wait for all calls and SMs
-	{
-		select {
-		case <-executeDone:
-		case <-time.After(20 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-		select {
-		case <-server.Journal.WaitAllAsyncCallsDone():
-		case <-time.After(20 * time.Second):
-			require.FailNow(t, "timeout")
-		}
-	}
+	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 3, typedChecker.VCallRequest.Count())
 	require.Equal(t, 4, typedChecker.VCallResult.Count())

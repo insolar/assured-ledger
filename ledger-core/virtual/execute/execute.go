@@ -25,8 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -50,7 +48,7 @@ type SMExecute struct {
 	objectSharedState  object.SharedStateAccessor
 
 	// execution step
-	executionNewState   *executionupdate.ContractExecutionStateUpdate
+	executionNewState   *execution.Update
 	outgoingResult      []byte
 	deactivate          bool
 	run                 runner.RunState
@@ -277,11 +275,7 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	}
 	s.execution.Isolation = negotiatedIsolation
 
-	if s.execution.Outgoing.GetLocal().GetPulseNumber() < s.pulseSlot.CurrentPulseNumber() {
-		return ctx.Jump(s.stepDeduplicate)
-	}
-
-	return ctx.Jump(s.stepTakeLock)
+	return ctx.Jump(s.stepDeduplicate)
 }
 
 func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation) (contract.MethodIsolation, error) {
@@ -310,6 +304,51 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 }
 
 func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	duplicate := false
+
+	action := func(state *object.SharedState) {
+		req := s.execution.Outgoing
+
+		workingList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+
+		requestState := workingList.GetState(req)
+		switch requestState {
+		// processing started but not yet processing
+		case object.RequestStarted:
+			duplicate = true
+			return
+		case object.RequestProcessing:
+			duplicate = true
+			// TODO: we may have result already, should resend
+			return
+		}
+
+		workingList.Add(req)
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
+	if duplicate {
+		ctx.Log().Warn("duplicate found")
+		return ctx.Stop()
+	}
+
+	if !s.outgoingFromSlotPulse() {
+		return ctx.Jump(s.stepDeduplicateUsingPendingsTable)
+	}
+	return ctx.Jump(s.stepTakeLock)
+}
+
+func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		isDuplicate       bool
 		pendingListFilled smachine.SyncLink
@@ -325,6 +364,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 
 		if pendingList.Exist(s.execution.Outgoing) {
 			isDuplicate = true
+			// TODO: we may have result already, should resend
 			return
 		}
 	}
@@ -340,6 +380,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	}
 
 	if isDuplicate {
+		// TODO: do we have result? if we have result then we should resend result
 		ctx.Log().Warn("duplicate found as pending request")
 		return ctx.Stop()
 	}
@@ -370,14 +411,18 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		isDuplicate      bool
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		isDuplicate = !state.KnownRequests.GetList(s.execution.Isolation.Interference).Add(s.execution.Outgoing)
-		if isDuplicate {
-			return
+		reqRef := s.execution.Outgoing
+
+		reqList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
+		if !reqList.SetActive(reqRef) {
+			// if we come here then request should be in RequestStarted
+			// if it is not it is either somehow lost or it is already processing
+			panic(throw.Impossible())
 		}
+
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = state.Descriptor()
 	}
@@ -390,11 +435,6 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	case smachine.Passed:
 	default:
 		panic(throw.NotImplemented())
-	}
-
-	if isDuplicate {
-		ctx.Log().Warn("duplicate found as known request")
-		return ctx.Stop()
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
@@ -469,14 +509,14 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	newState := s.executionNewState
 
 	switch newState.Type {
-	case executionupdate.Done:
+	case execution.Done:
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
-	case executionupdate.Error:
+	case execution.Error:
 		panic(throw.W(newState.Error, "failed to execute request", nil))
-	case executionupdate.Aborted:
+	case execution.Abort:
 		return ctx.Jump(s.stepExecuteAborted)
-	case executionupdate.OutgoingCall:
+	case execution.OutgoingCall:
 		return ctx.Jump(s.stepExecuteOutgoing)
 	default:
 		panic(throw.IllegalValue())
@@ -491,18 +531,16 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	pulseNumber := s.pulseSlot.PulseData().PulseNumber
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
-	case executionevent.GetCode:
-		panic(throw.Unsupported())
-	case executionevent.Deactivate:
+	case execution.Deactivate:
 		s.deactivate = true
-	case executionevent.CallConstructor:
+	case execution.CallConstructor:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 		s.outgoing.DelegationSpec = s.getToken()
-	case executionevent.CallMethod:
+	case execution.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
 		s.execution.Sequence++

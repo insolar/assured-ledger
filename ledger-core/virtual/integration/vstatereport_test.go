@@ -21,11 +21,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 // 1. Send CallRequest
@@ -33,8 +33,8 @@ import (
 // 4. Since we changed pulse during execution, we expect that VStateReport will be sent
 // 5. Check that in VStateReport new object state is stored
 func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
-	t.Skip("skipped until PLAT-314")
 	t.Log("C4934")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-314")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -279,12 +279,12 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			}
 
 			suite.createPulseP5(ctx)
-			expectedPublished++ // expect StateReport
+			expectedPublished++                  // expect StateReport
 			expectedPublished += len(test.start) // expect request to get token for each pending
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			suite.releaseNewlyCreatedPendings()
-			expectedPublished += len(test.start)*2 // pending finished + result
+			expectedPublished += len(test.start) * 2 // pending finished + result
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			// request state again
@@ -398,9 +398,9 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finishActivePending(
 ) {
 	reqInfo := s.requests[reqName]
 	pl := payload.VDelegatedRequestFinished{
-		Callee:         s.getObject(),
-		CallOutgoing:   reqInfo.ref,
-		CallFlags:      reqInfo.flags,
+		Callee:       s.getObject(),
+		CallOutgoing: reqInfo.ref,
+		CallFlags:    reqInfo.flags,
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 }
@@ -429,8 +429,8 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	s.runnerMock.AddExecutionMock(key).
 		AddStart(
 			blockOnReleaser,
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("result"), s.getObject()),
 			},
 		)
@@ -454,11 +454,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 
-	select {
-	case <-inExecutor:
-	case <-time.After(10 * time.Second):
-		require.Fail(t, "didn't reach executor in time")
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, inExecutor)
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) releaseNewlyCreatedPendings() {

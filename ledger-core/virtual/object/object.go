@@ -52,8 +52,10 @@ type Info struct {
 
 	AwaitPendingOrdered smachine.BargeIn
 
-	KnownRequests RequestTable
-	PendingTable  RequestTable
+	// KnownRequests holds requests that were seen on current pulse
+	KnownRequests WorkingTable
+	// PendingTable holds requests that are known to be processed by other executors
+	PendingTable PendingTable
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
@@ -204,7 +206,7 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 		SharedState: SharedState{
 			Info: Info{
 				Reference:     objectReference,
-				KnownRequests: NewRequestTable(),
+				KnownRequests: NewWorkingTable(),
 				PendingTable:  NewRequestTable(),
 			},
 		},
