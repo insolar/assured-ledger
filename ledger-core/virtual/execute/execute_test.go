@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -404,4 +405,82 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 		})
 	}
+}
+
+func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
+	var (
+		ctx = inslogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+	)
+
+	ref := gen.UniqueReference()
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        smObjectID,
+		Callee:              ref,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Meta: &payload.Meta{
+			Sender: gen.UniqueReference(),
+		},
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+		executionNewState: &executionupdate.ContractExecutionStateUpdate{
+			Outgoing: executionevent.CallMethod{},
+			Result:   &requestresult.RequestResult{},
+		},
+		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
+			return smachine.NewAsyncCallRequesterMock(t).WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
+				return smachine.NewAsyncCallRequesterMock(t).StartMock.Set(func() {
+
+				})
+			})
+		}),
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepFinishRequest))
+
+		smExecute.stepSendCallResult(execCtx)
+	}
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			StopMock.Return(smachine.StateUpdate{})
+
+		smExecute.stepFinishRequest(execCtx)
+	}
+	require.Equal(t, 1, smObject.ResultTable.Len())
+
+	res := smObject.ResultTable.GetList(contract.CallTolerable)
+
+	require.Equal(t, 1, res.Count())
+
+	result, ok := res.Get(reference.NewRecordOf(request.Callee, request.CallOutgoing))
+
+	require.True(t, ok)
+	require.NotNil(t, result)
+
+	mc.Finish()
 }
