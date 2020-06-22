@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
-func TestRequestTable(t *testing.T) {
+func TestPendingTable(t *testing.T) {
 	rt := NewRequestTable()
 
 	require.Equal(t, 0, len(rt.GetList(contract.CallIntolerable).requests))
@@ -40,7 +40,7 @@ func TestRequestTable(t *testing.T) {
 	require.Equal(t, currentPulse, rt.GetList(contract.CallIntolerable).EarliestPulse())
 }
 
-func TestRequestList(t *testing.T) {
+func TestPendingList(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
@@ -102,7 +102,7 @@ func TestRequestList(t *testing.T) {
 	require.Equal(t, 2, rl.CountActive())
 }
 
-func TestRequestList_Finish(t *testing.T) {
+func TestPendingList_Finish(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 

@@ -23,8 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -138,10 +137,12 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
+	smObject.SharedState.Info.KnownRequests.GetList(callFlags.GetInterference()).Add(smExecute.execution.Outgoing)
+
 	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Zero(t, smObject.KnownRequests.Len())
+	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
 	{ // updateCounters after
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -155,22 +156,13 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
-	assert.Equal(t, smObject.KnownRequests.Len(), 1)
-	assert.True(t, smObject.KnownRequests.GetList(contract.CallTolerable).Exist(smExecute.execution.Outgoing))
-
-	{
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			LogMock.Return(smachine.Logger{}).
-			StopMock.Return(smachine.StateUpdate{})
-
-		smExecute.stepStartRequestProcessing(execCtx)
-	}
+	assert.Equal(t, 1, smObject.KnownRequests.Len())
+	assert.Equal(t, object.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
 
 	mc.Finish()
 }
 
-func TestSMExecute_Deduplication(t *testing.T) {
+func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	var (
 		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -214,7 +206,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 			LogMock.Return(smachine.Logger{}).
 			StopMock.Return(smachine.StateUpdate{})
 
-		smExecute.stepDeduplicate(execCtx)
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
 	{
@@ -230,7 +222,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 				ThenRepeatMock.Return(smachine.StateUpdate{}),
 		)
 
-		smExecute.stepDeduplicate(execCtx)
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
 	{
@@ -241,7 +233,7 @@ func TestSMExecute_Deduplication(t *testing.T) {
 			AcquireForThisStepMock.Return(true).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
-		smExecute.stepDeduplicate(execCtx)
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
 	mc.Finish()
@@ -385,8 +377,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				objectSharedState:     smObjectAccessor,
 				authenticationService: authService,
 				delegationTokenSpec:   test.token,
-				executionNewState: &executionupdate.ContractExecutionStateUpdate{
-					Outgoing: executionevent.CallMethod{},
+				executionNewState: &execution.Update{
+					Outgoing: execution.CallMethod{},
 					Result:   &requestresult.RequestResult{},
 				},
 				messageSender: messageSenderAdapter.Mock(),

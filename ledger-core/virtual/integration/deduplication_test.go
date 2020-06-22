@@ -9,17 +9,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -95,8 +97,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 		executionMock := runnerMock.AddExecutionMock(calculateOutgoing(pl).String())
 		executionMock.AddStart(func(ctx execution.Context) {
 			synchronizeExecution.Synchronize()
-		}, &executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		}, &execution.Update{
+			Type:   execution.Done,
 			Result: requestResult,
 		})
 	}
@@ -144,4 +146,108 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
 		assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	}
+}
+
+func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
+	t.Log("C5095")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	p1 := server.GetPulse().PulseNumber
+
+	outgoing := server.RandomLocalWithPulse()
+	class := gen.UniqueReference()
+	object := gen.UniqueReference()
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	report := &payload.VStateReport{
+		Status: payload.Ready,
+		AsOf:   p1,
+		Object: object,
+		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				State:       []byte("memory"),
+				Deactivated: false,
+			},
+		},
+	}
+	server.SendPayload(ctx, report)
+
+	releaseBlockedExecution := make(chan struct{}, 0)
+	numberOfExecutions := 0
+	{
+		isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+
+		newObjDescriptor := descriptor.NewObject(
+			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
+		)
+
+		requestResult := requestresult.New([]byte("call result"), gen.UniqueReference())
+		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+
+		executionMock := runnerMock.AddExecutionMock("SomeMethod")
+		executionMock.AddStart(func(ctx execution.Context) {
+			numberOfExecutions++
+			<-releaseBlockedExecution
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestResult,
+		})
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		return false
+	}).ExpectedCount(1)
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Callee:         object,
+		CallSiteMethod: "SomeMethod",
+		CallOutgoing:   outgoing,
+	}
+	server.SendPayload(ctx, &pl)
+	server.SendPayload(ctx, &pl)
+
+	select {
+	case <-oneExecutionEnded:
+	case <-time.After(10 * time.Second):
+		require.FailNow(t, "timeout")
+	}
+
+	close(releaseBlockedExecution)
+
+	select {
+	case <-executeDone:
+	case <-time.After(10 * time.Second):
+		require.FailNow(t, "timeout")
+	}
+
+	select {
+	case <-server.Journal.WaitAllAsyncCallsDone():
+	case <-time.After(10 * time.Second):
+		require.FailNow(t, "timeout")
+	}
+
+	{
+		assert.Equal(t, 1, numberOfExecutions)
+		assert.Equal(t, 1, typedChecker.VCallResult.Count())
+	}
+
+	mc.Finish()
 }

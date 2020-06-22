@@ -6,7 +6,6 @@
 package foundation
 
 import (
-	"encoding/binary"
 	"errors"
 	"math/rand"
 	"strings"
@@ -35,7 +34,7 @@ func GetRequestReference() (reference.Global, error) {
 
 // NewSource returns source initialized with entropy from pulse.
 func NewSource() rand.Source {
-	randNum := binary.LittleEndian.Uint64(GetLogicalContext().Pulse.Entropy[:])
+	randNum := GetLogicalContext().Pulse.GetPulseEntropy().CutOutUint64()
 	return rand.NewSource(int64(randNum))
 }
 

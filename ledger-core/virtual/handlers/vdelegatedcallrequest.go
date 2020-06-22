@@ -115,7 +115,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 	action := func(state *object.SharedState) {
 		var (
 			oldestPulse                  pulse.Number
-			pendingList                  *object.RequestList
+			pendingList                  *object.PendingList
 			previousExecutorPendingCount int
 		)
 
