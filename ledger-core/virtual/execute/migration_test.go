@@ -21,8 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
@@ -56,8 +55,8 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
 		pulseSlot: &pulseSlot,
-		executionNewState: &executionupdate.ContractExecutionStateUpdate{
-			Outgoing: executionevent.CallMethod{},
+		executionNewState: &execution.Update{
+			Outgoing: execution.CallMethod{},
 		},
 		authenticationService: authentication.NewService(ctx, jetCoordinatorMock),
 		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {

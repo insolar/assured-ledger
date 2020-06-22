@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -97,8 +96,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 		executionMock := runnerMock.AddExecutionMock(calculateOutgoing(pl).String())
 		executionMock.AddStart(func(ctx execution.Context) {
 			synchronizeExecution.Synchronize()
-		}, &executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		}, &execution.Update{
+			Type:   execution.Done,
 			Result: requestResult,
 		})
 	}
@@ -175,7 +174,6 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	}
 	server.SendPayload(ctx, report)
 
-
 	releaseBlockedExecution := make(chan struct{}, 0)
 	numberOfExecutions := 0
 	{
@@ -193,8 +191,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 		executionMock.AddStart(func(ctx execution.Context) {
 			numberOfExecutions++
 			<-releaseBlockedExecution
-		}, &executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		}, &execution.Update{
+			Type:   execution.Done,
 			Result: requestResult,
 		})
 	}
