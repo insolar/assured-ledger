@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 )
 
@@ -31,7 +32,11 @@ type suiteLogRedirect struct {
 }
 
 func (v suiteLogRedirect) logger() log.Logger {
-	return newTestLoggerExt(v.T(), false, false, v.adapter)
+	cfg := inslogger.DefaultTestLogConfig()
+	if v.adapter != "" {
+		cfg.Adapter = v.adapter
+	}
+	return newTestLoggerExt(v.T(), false, inslogger.DefaultTestLogConfig(), true)
 }
 
 func (v suiteLogRedirect) TestRedirectError() {

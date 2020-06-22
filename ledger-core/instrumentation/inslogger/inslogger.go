@@ -113,6 +113,14 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 		panic(err)
 	}
 
+	return initNodeLogger(ctx, inslog, nodeRef, nodeRole)
+}
+
+func InitNodeLoggerByGlobal(nodeRef, nodeRole string) (context.Context, log.Logger) {
+	return initNodeLogger(context.Background(), global.Logger(), nodeRef, nodeRole)
+}
+
+func initNodeLogger(ctx context.Context, inslog log.Logger, nodeRef, nodeRole string) (context.Context, log.Logger) {
 	fields := map[string]interface{}{"loginstance": "node"}
 	if nodeRef != "" {
 		fields["nodeid"] = nodeRef
@@ -127,6 +135,7 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 
 	return ctx, inslog
 }
+
 
 func TraceID(ctx context.Context) string {
 	return trace.ID(ctx)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -18,23 +19,20 @@ import (
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
-	return newTestLoggerExt(target, suppressTestError, false, "")
+	return newTestLoggerExt(target, suppressTestError, inslogger.DefaultTestLogConfig(), false)
 }
 
-func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll bool, adapterOverride string) log.Logger {
+func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, logCfg configuration.Log, ignoreCmd bool) log.Logger {
 	if target == nil {
 		panic("illegal value")
 	}
 
-	logCfg := inslogger.DefaultTestLogConfig()
-
-	echoAllCfg := false
+	echoAll := false
 	emuMarks := false
 	prettyPrintJSON := false
-	if adapterOverride != "" {
-		logCfg.Adapter = adapterOverride
-	} else {
-		readTestLogConfig(&logCfg, &echoAllCfg, &emuMarks, &prettyPrintJSON)
+
+	if !ignoreCmd {
+		readTestLogConfig(&logCfg, &echoAll, &emuMarks, &prettyPrintJSON)
 	}
 
 	outputType, err := inslogger.ParseOutput(logCfg.OutputType)
@@ -53,7 +51,7 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 	}
 
 	var echoTo io.Writer
-	if (echoAll || echoAllCfg) && !isConsoleOutput {
+	if echoAll && !isConsoleOutput {
 		echoTo = os.Stderr
 	}
 
@@ -92,4 +90,8 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 
 func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
 	global.SetLogger(NewTestLogger(target, suppressLogError))
+}
+
+func SetTestOutputWithCfg(target logcommon.TestingLogger, cfg configuration.Log) {
+	global.SetLogger(newTestLoggerExt(target, false, cfg, false))
 }

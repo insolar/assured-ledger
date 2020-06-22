@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 )
 
@@ -46,6 +47,8 @@ func (suite *MainAPISuite) TestNewApiRunnerNoRequiredParams() {
 }
 
 func TestMainTestSuite(t *testing.T) {
+	instestlogger.SetTestOutput(t, false)
+
 	ctx, _ := inslogger.WithTraceField(context.Background(), "APItests")
 	http.DefaultServeMux = new(http.ServeMux)
 	cfg := configuration.NewAPIRunner(false)
