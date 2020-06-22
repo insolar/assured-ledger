@@ -1233,14 +1233,14 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		firstBuilder := executionevent.NewRPCBuilder(outgoingReasonFirst, objectAGlobal)
+		firstBuilder := execution.NewRPCBuilder(outgoingReasonFirst, objectAGlobal)
 		objectAExecutionFirstMock := runnerMock.AddExecutionMock(outgoingFirstCall.String())
 		objectAExecutionFirstMock.AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [A.Foo] first call")
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: firstBuilder.CallMethod(objectBGlobal, classB, "Bar", []byte("first")),
 			},
 		)
@@ -1249,8 +1249,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo] first call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: firstBuilder.CallMethod(objectBGlobal, classB, "Bar", []byte("second")),
 			},
 		)
@@ -1259,20 +1259,20 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo] first call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 			},
 		)
 
-		secondBuilder := executionevent.NewRPCBuilder(outgoingReasonSecond, objectAGlobal)
+		secondBuilder := execution.NewRPCBuilder(outgoingReasonSecond, objectAGlobal)
 		objectAExecutionSecondMock := runnerMock.AddExecutionMock(outgoingSecondCall.String())
 		objectAExecutionSecondMock.AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [A.Foo] second call")
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: secondBuilder.CallMethod(objectBGlobal, classB, "Bar", []byte("first")),
 			},
 		)
@@ -1281,8 +1281,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo] second call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:     executionupdate.OutgoingCall,
+			&execution.Update{
+				Type:     execution.OutgoingCall,
 				Outgoing: secondBuilder.CallMethod(objectBGlobal, classB, "Bar", []byte("second")),
 			},
 		)
@@ -1291,8 +1291,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				t.Log("ExecutionContinue [A.Foo] second call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
-			&executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+			&execution.Update{
+				Type:   execution.Done,
 				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 			},
 		)
@@ -1380,12 +1380,11 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	// wait for all calls and SMs
 	{
-		select {
-		case <-executeDone:
-		case <-time.After(20 * time.Second):
-			require.FailNow(t, "timeout")
-		}
+		testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
+		testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
+
+	require.Equal(t, 6, server.PublisherMock.GetCount())
 
 	mc.Finish()
 }
