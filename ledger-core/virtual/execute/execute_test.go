@@ -442,8 +442,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
 		objectSharedState: smObjectAccessor,
-		executionNewState: &executionupdate.ContractExecutionStateUpdate{
-			Outgoing: executionevent.CallMethod{},
+		executionNewState: &execution.Update{
+			Outgoing: execution.CallMethod{},
 			Result:   &requestresult.RequestResult{},
 		},
 		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
