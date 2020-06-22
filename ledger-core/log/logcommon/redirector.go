@@ -20,13 +20,16 @@ type TestingLogger interface {
 }
 
 type TestingLoggerOutput struct {
-	Output            io.Writer
+	Output, EchoTo    io.Writer
 	Testing           TestingLogger
 	InterceptFatal    func([]byte) bool
 	SuppressTestError bool
 }
 
 func (r *TestingLoggerOutput) Close() error {
+	if closer, ok := r.EchoTo.(io.Closer); ok {
+		_ = closer.Close()
+	}
 	if closer, ok := r.Output.(io.Closer); ok {
 		return closer.Close()
 	}
@@ -34,6 +37,9 @@ func (r *TestingLoggerOutput) Close() error {
 }
 
 func (r *TestingLoggerOutput) Flush() error {
+	if flusher, ok := r.EchoTo.(interface{ Flush() error }); ok {
+		_ = flusher.Flush()
+	}
 	if flusher, ok := r.Output.(interface{ Flush() error }); ok {
 		return flusher.Flush()
 	}
@@ -41,11 +47,13 @@ func (r *TestingLoggerOutput) Flush() error {
 }
 
 func (r *TestingLoggerOutput) Write(b []byte) (int, error) {
+	if r.EchoTo != nil {
+		_, _ = r.EchoTo.Write(b)
+	}
 	if r.Output != nil {
 		return r.Output.Write(b)
 	}
 
-	r.Testing.Log(string(b))
 	return len(b), nil
 }
 
@@ -64,13 +72,11 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 		} else {
 			defer r.Testing.Log(msg)
 		}
-	default:
-		if r.Output == nil {
-			r.Testing.Log(msg)
-			return len(b), nil
-		}
 	}
 
+	if r.EchoTo != nil {
+		_, _ = r.EchoTo.Write(b)
+	}
 	if r.Output != nil {
 		return r.Output.Write(b)
 	}

@@ -17,9 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
-const defaultLogFormat = logcommon.TextFormat
-const defaultLogOutput = logoutput.StdErrOutput
-
 type ParsedLogConfig struct {
 	OutputType logoutput.LogOutput
 	LogLevel   log.Level
@@ -52,13 +49,13 @@ func ParseLogConfig(cfg configuration.Log) (plc ParsedLogConfig, err error) {
 func ParseLogConfigWithDefaults(cfg configuration.Log, defaults ParsedLogConfig) (plc ParsedLogConfig, err error) {
 	plc = defaults
 
-	plc.OutputType, err = ParseOutput(cfg.OutputType, defaultLogOutput)
+	plc.OutputType, err = ParseOutput(cfg.OutputType)
 	if err != nil {
 		return
 	}
 	plc.OutputParam = cfg.OutputParams
 
-	plc.Output.Format, err = ParseFormat(cfg.Formatter, defaultLogFormat)
+	plc.Output.Format, err = ParseFormat(cfg.Formatter)
 	if err != nil {
 		return
 	}
@@ -100,7 +97,11 @@ func ParseLogConfigWithDefaults(cfg configuration.Log, defaults ParsedLogConfig)
 	return plc, nil
 }
 
-func ParseFormat(formatStr string, defValue logcommon.LogFormat) (logcommon.LogFormat, error) {
+func ParseFormat(formatStr string) (logcommon.LogFormat, error) {
+	return ParseFormatDef(formatStr, logcommon.TextFormat)
+}
+
+func ParseFormatDef(formatStr string, defValue logcommon.LogFormat) (logcommon.LogFormat, error) {
 	switch strings.ToLower(formatStr) {
 	case "", "default":
 		return defValue, nil
@@ -112,7 +113,11 @@ func ParseFormat(formatStr string, defValue logcommon.LogFormat) (logcommon.LogF
 	return defValue, fmt.Errorf("unknown Format: '%s', replaced with '%s'", formatStr, defValue)
 }
 
-func ParseOutput(outputStr string, defValue logoutput.LogOutput) (logoutput.LogOutput, error) {
+func ParseOutput(outputStr string) (logoutput.LogOutput, error) {
+	return ParseOutputDef(outputStr, logoutput.StdErrOutput)
+}
+
+func ParseOutputDef(outputStr string, defValue logoutput.LogOutput) (logoutput.LogOutput, error) {
 	switch strings.ToLower(outputStr) {
 	case "", "default":
 		return defValue, nil
@@ -120,6 +125,8 @@ func ParseOutput(outputStr string, defValue logoutput.LogOutput) (logoutput.LogO
 		return logoutput.StdErrOutput, nil
 	case logoutput.SysLogOutput.String():
 		return logoutput.SysLogOutput, nil
+	case logoutput.FileOutput.String():
+		return logoutput.FileOutput, nil
 	}
 	return defValue, fmt.Errorf("unknown Output: '%s', replaced with '%s'", outputStr, defValue)
 }
