@@ -19,10 +19,18 @@ import (
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
-	return newTestLoggerExt(target, suppressTestError, inslogger.DefaultTestLogConfig(), false)
+	if !suppressTestError {
+		return NewTestLoggerWithErrorFilter(target, nil)
+	}
+
+	return NewTestLoggerWithErrorFilter(target, func(string) bool {	return false })
 }
 
-func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, logCfg configuration.Log, ignoreCmd bool) log.Logger {
+func NewTestLoggerWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) log.Logger {
+	return newTestLoggerExt(target, filterFn, inslogger.DefaultTestLogConfig(), false)
+}
+
+func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc, logCfg configuration.Log, ignoreCmd bool) log.Logger {
 	if target == nil {
 		panic("illegal value")
 	}
@@ -83,12 +91,16 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError bool, lo
 			Testing: target,
 			Output: out,
 			EchoTo: echoTo,
-			SuppressTestError: suppressTestError}).
+			ErrorFilterFn: filterFn}).
 		MustBuild()
 }
 
-func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
-	global.SetLogger(NewTestLogger(target, suppressLogError))
+func SetTestOutputWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) {
+	global.SetLogger(NewTestLoggerWithErrorFilter(target, filterFn))
+}
+
+func SetTestOutput(target logcommon.TestingLogger) {
+	global.SetLogger(NewTestLogger(target, false))
 }
 
 func SetTestOutputWithCfg(target logcommon.TestingLogger, cfg configuration.Log) {

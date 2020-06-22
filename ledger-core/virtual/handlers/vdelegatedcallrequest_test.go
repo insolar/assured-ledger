@@ -238,10 +238,12 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 			sharedState.SetState(object.HasState)
 
-			slotMachine := slotdebugger.New(ctx, t, tc.expectedError)
+			var slotMachine *slotdebugger.StepController
 			if tc.expectedError {
+				slotMachine = slotdebugger.NewWithIgnoreAllErrors(ctx, t)
 				slotMachine.InitEmptyMessageSender(mc)
 			} else {
+				slotMachine = slotdebugger.New(ctx, t)
 				slotMachine.PrepareMockedMessageSender(mc)
 			}
 

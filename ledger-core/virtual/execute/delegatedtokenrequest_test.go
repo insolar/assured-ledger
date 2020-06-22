@@ -35,7 +35,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.PrepareMockedRunner(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 

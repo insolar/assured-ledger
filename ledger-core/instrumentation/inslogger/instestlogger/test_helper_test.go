@@ -36,7 +36,8 @@ func (v suiteLogRedirect) logger() log.Logger {
 	if v.adapter != "" {
 		cfg.Adapter = v.adapter
 	}
-	return newTestLoggerExt(v.T(), false, inslogger.DefaultTestLogConfig(), true)
+
+	return newTestLoggerExt(v.T(), nil, cfg, true)
 }
 
 func (v suiteLogRedirect) TestRedirectError() {
