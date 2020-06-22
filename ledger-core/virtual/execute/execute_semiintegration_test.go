@@ -34,7 +34,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -107,7 +107,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -181,7 +181,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -263,7 +263,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -338,7 +338,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -412,7 +412,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
