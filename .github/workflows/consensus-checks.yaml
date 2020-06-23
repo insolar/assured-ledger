@@ -46,7 +46,7 @@ jobs:
       - name: Add workspace/bin to path
         run: echo "::add-path::$GITHUB_WORKSPACE/bin"
       - name: save kubeconfig
-        run: echo ${{secrets.CLOUD_KUBECONFIG}} >> aks.yaml
+        run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
