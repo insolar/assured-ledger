@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -40,7 +41,7 @@ func TestBasics(t *testing.T) {
 
 func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 	s.mc = minimock.NewController(s.T())
-	s.ctx = inslogger.TestContext(s.T())
+	s.ctx = instestlogger.TestContext(s.T())
 	s.leaver = testutils.NewLeaverMock(s.T())
 	s.pulseAccessor = mock.NewPulseAccessorMock(s.T())
 	s.handler = &Handler{Leaver: s.leaver, PulseAccessor: s.pulseAccessor}

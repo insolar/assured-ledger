@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 func TestFactory_Positive(t *testing.T) {
@@ -38,6 +39,8 @@ func TestFactory_Positive(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			instestlogger.SetTestOutput(t)
+
 			ctx := context.Background()
 			f := NewFactory(test.cfg)
 			require.NotNil(t, f)

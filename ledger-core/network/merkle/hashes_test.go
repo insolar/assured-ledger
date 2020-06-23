@@ -15,6 +15,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	network2 "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 
@@ -115,6 +117,8 @@ type calculatorHashesSuite struct {
 }
 
 func TestCalculatorHashes(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	calculator := &calculator{}
 
 	key, _ := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
@@ -143,6 +147,8 @@ func TestCalculatorHashes(t *testing.T) {
 	th := testutils.NewTerminationHandlerMock(t)
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
+
 	cm.Inject(th, op, &stater, calculator, service, scheme)
 
 	require.NotNil(t, calculator.Stater)

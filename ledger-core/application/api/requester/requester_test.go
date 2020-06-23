@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 
@@ -116,24 +117,27 @@ func startServer() error {
 	return nil
 }
 
-func setup() error {
+func setup() (teardownFn func(pass bool), err error) {
+
+	teardownFn = instestlogger.SetTestOutputWithStub(false)
+
 	fRPCh := FakeRPCHandler
 	http.HandleFunc(rpcLOCATION, fRPCh)
 	global.Info("Starting Test api server ...")
 
-	err := startServer()
+	err = startServer()
 	if err != nil {
 		global.Error("Problem with starting test server: ", err)
-		return errors.W(err, "[ setup ]")
+		return
 	}
 
 	err = waitForStart()
 	if err != nil {
 		global.Error("Can't start api: ", err)
-		return errors.W(err, "[ setup ]")
+		return
 	}
 
-	return nil
+	return
 }
 
 func teardown() {
@@ -148,13 +152,19 @@ func teardown() {
 }
 
 func testMainWrapper(m *testing.M) int {
-	err := setup()
-	defer teardown()
-	if err != nil {
+	teardownFn, err := setup()
+	code := 1 // error
+	defer func() {
+		defer teardownFn(code == 0)
+		teardown()
+	} ()
+
+	if err == nil {
+		code = m.Run()
+	} else {
 		fmt.Println("error while setup, skip tests: ", err)
-		return 1
 	}
-	code := m.Run()
+
 	return code
 }
 
@@ -163,22 +173,30 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetSeed(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	seed, err := GetSeed(URL)
 	require.NoError(t, err)
 	require.Equal(t, "Test", seed)
 }
 
 func TestGetResponseBodyEmpty(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	_, err := GetResponseBodyPlatform("test", "", nil)
 	require.EqualError(t, err, "problem with sending request;\tPost \"test\": unsupported protocol scheme \"\"")
 }
 
 func TestGetResponseBodyBadHttpStatus(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	_, err := GetResponseBodyPlatform(URL+"TEST", "", nil)
 	require.EqualError(t, err, "bad http response code: 404")
 }
 
 func TestGetResponseBody(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	data, err := GetResponseBodyContract(URL, ContractRequest{}, "")
 	response := RPCResponse{}
 	_ = json.Unmarshal(data, &response)
@@ -187,6 +205,8 @@ func TestGetResponseBody(t *testing.T) {
 }
 
 func TestSetVerbose(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	require.False(t, verbose)
 	SetVerbose(true)
 	require.True(t, verbose)
@@ -204,6 +224,8 @@ func readConfigs(t *testing.T) (*UserConfigJSON, *Params) {
 }
 
 func TestSend(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSend")
 	userConf, reqParams := readConfigs(t)
 	reqParams.CallSite = "member.create"
@@ -213,6 +235,8 @@ func TestSend(t *testing.T) {
 }
 
 func TestSendWithSeed(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed")
 	userConf, reqParams := readConfigs(t)
 	reqParams.CallSite = "member.create"
@@ -222,6 +246,8 @@ func TestSendWithSeed(t *testing.T) {
 }
 
 func TestSendWithSeed_WithBadUrl(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed_WithBadUrl")
 	userConf, reqConf := readConfigs(t)
 	_, err := SendWithSeed(ctx, URL+"TTT", userConf, reqConf, TESTSEED)
@@ -229,24 +255,32 @@ func TestSendWithSeed_WithBadUrl(t *testing.T) {
 }
 
 func TestSendWithSeed_NilConfigs(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := inslogger.ContextWithTrace(context.Background(), "TestSendWithSeed_NilConfigs")
 	_, err := SendWithSeed(ctx, URL, nil, nil, TESTSEED)
 	require.EqualError(t, err, "[ SendWithSeed ] Problem with creating target request;\tconfigs must be initialized")
 }
 
 func TestInfo(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	resp, err := Info(URL)
 	require.NoError(t, err)
 	require.Equal(t, resp, &testInfoResponse)
 }
 
 func TestStatus(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	resp, err := Status(URL)
 	require.NoError(t, err)
 	require.Equal(t, resp, &testStatusResponse)
 }
 
 func TestMarshalSig(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.NoError(t, err)
 	msg := "test"
