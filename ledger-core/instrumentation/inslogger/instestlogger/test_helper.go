@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logwriter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -52,7 +53,9 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 
 	isConsoleOutput := outputType.IsConsole()
 	if isConsoleOutput {
-		prettyPrintJSON = false // is only needed for file output
+		// only needed for file output
+		prettyPrintJSON = false
+		emuMarks = false
 	}
 
 	l, err := inslogger.NewLogBuilder(logCfg)
@@ -63,6 +66,21 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 	var echoTo io.Writer
 	if echoAll && !isConsoleOutput {
 		echoTo = os.Stderr
+	}
+
+	if emuMarks && global.IsInitialized() {
+		// check global to avoid multiple marks for the same testing.T
+		lOut := global.Logger().Embeddable().Copy().GetLoggerOutput()
+
+		if plo, ok := lOut.(*logwriter.ProxyLoggerOutput); ok {
+			lOut = plo.GetTarget()
+		}
+
+		if tlo, ok := lOut.(*logcommon.TestingLoggerOutput); ok {
+			if logcommon.IsBasedOn(tlo.Testing, target) {
+				emuMarks = false // avoid multiple marks
+			}
+		}
 	}
 
 	out := l.GetOutput()
