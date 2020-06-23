@@ -1,10 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: "placeholder"
+resources:
+  - 0-Namespace.yaml
 bases:
   - ../manifests
 patchesStrategicMerge:
   - nodes-patch.yaml
+  - patch-Ingress.yaml
 images:
   - name: insolar/assured-ledger
     newName: usciregistry.azurecr.io/assured-ledger
