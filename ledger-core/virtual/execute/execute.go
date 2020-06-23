@@ -535,14 +535,14 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.deactivate = true
 	case execution.CallConstructor:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoing.CallOutgoing = gen.UniqueLocalRefWithPulse(pulseNumber)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 		s.outgoing.DelegationSpec = s.getToken()
 	case execution.CallMethod:
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = gen.UniqueIDWithPulse(pulseNumber)
+		s.outgoing.CallOutgoing = gen.UniqueLocalRefWithPulse(pulseNumber)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee

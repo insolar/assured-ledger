@@ -35,7 +35,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		testBalance = uint32(500)
-		objectRef   = gen.UniqueReference()
+		objectRef   = gen.UniqueGlobalRef()
 		sender      = server.JetCoordinatorMock.Me()
 	)
 
@@ -52,7 +52,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	{
 		// send VStateReport: save wallet
-		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+		stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
@@ -76,7 +76,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
+			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() + 10)),
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
@@ -104,7 +104,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	var (
 		mc                 = minimock.NewController(t)
 		testBalance        = uint32(500)
-		objectRef          = gen.UniqueReference()
+		objectRef          = gen.UniqueGlobalRef()
 		delegatedRequest   = make(chan struct{}, 0)
 		getBalanceResponse = make(chan struct{}, 0)
 	)
@@ -126,7 +126,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 
 	{
 		// send VStateReport: save wallet
-		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+		stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
@@ -164,7 +164,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	{
 		// send VDelegatedCallRequest
 		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
+			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() + 100)),
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}

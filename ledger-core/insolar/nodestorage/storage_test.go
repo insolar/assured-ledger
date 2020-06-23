@@ -20,7 +20,7 @@ func TestNodeStorage_All(t *testing.T) {
 
 	var all []node.Node
 	f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-		e.ID = gen.UniqueReference()
+		e.ID = gen.UniqueGlobalRef()
 	})
 	f.NumElements(5, 10).NilChance(0).Fuzz(&all)
 	pulse := gen.PulseNumber()
@@ -59,14 +59,14 @@ func TestNodeStorage_InRole(t *testing.T) {
 	)
 	{
 		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueReference()
+			e.ID = gen.UniqueGlobalRef()
 			e.Role = node.StaticRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
 		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueReference()
+			e.ID = gen.UniqueGlobalRef()
 			e.Role = node.StaticRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
@@ -110,7 +110,7 @@ func TestStorage_Set(t *testing.T) {
 
 	var nodes []node.Node
 	f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-		e.ID = gen.UniqueReference()
+		e.ID = gen.UniqueGlobalRef()
 	})
 	f.NumElements(5, 10).NilChance(0).Fuzz(&nodes)
 	pulse := gen.PulseNumber()

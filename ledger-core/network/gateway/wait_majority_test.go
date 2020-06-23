@@ -66,7 +66,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 		assert.Equal(t, node2.WaitMinRoles, state)
 	})
 
-	ref := gen.UniqueReference()
+	ref := gen.UniqueGlobalRef()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 	accessor1 := mock.NewAccessorMock(mc)
 	accessor1.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {

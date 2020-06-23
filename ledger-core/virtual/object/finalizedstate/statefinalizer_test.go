@@ -27,7 +27,7 @@ import (
 func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.Object) payload.VStateReport {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 	)
 
@@ -54,7 +54,7 @@ func newSMReportWithPulse() *SMStateFinalizer {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smReport    = &SMStateFinalizer{
 			Reference: smGlobalRef,

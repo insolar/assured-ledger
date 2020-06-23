@@ -34,10 +34,10 @@ import (
 var id1, id2, id3, idunknown string
 
 func init() {
-	id1 = gen.UniqueReference().String()
-	id2 = gen.UniqueReference().String()
-	id3 = gen.UniqueReference().String()
-	idunknown = gen.UniqueReference().String()
+	id1 = gen.UniqueGlobalRef().String()
+	id2 = gen.UniqueGlobalRef().String()
+	id3 = gen.UniqueGlobalRef().String()
+	idunknown = gen.UniqueGlobalRef().String()
 }
 
 type MockResolver struct {

@@ -33,16 +33,16 @@ func TestSMTestAPICall_Migrate(t *testing.T) {
 
 	request := payload.VCallRequest{
 		CallType:            payload.CTMethod,
-		Callee:              gen.UniqueReference(),
+		Callee:              gen.UniqueGlobalRef(),
 		Caller:              APICaller,
 		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        gen.UniqueID(),
+		CallOutgoing:        gen.UniqueLocalRef(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllErrors(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	slotMachine.Start()

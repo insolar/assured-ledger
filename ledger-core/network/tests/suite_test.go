@@ -440,7 +440,7 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
 
 	n := &networkNode{
-		id:                  gen.UniqueReference(),
+		id:                  gen.UniqueGlobalRef(),
 		role:                role,
 		privateKey:          key,
 		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),

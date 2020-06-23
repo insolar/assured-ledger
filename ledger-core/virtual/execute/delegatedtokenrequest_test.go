@@ -35,14 +35,14 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.PrepareMockedRunner(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller         = gen.UniqueReference()
-		callee         = gen.UniqueReference()
-		outgoing       = gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller         = gen.UniqueGlobalRef()
+		callee         = gen.UniqueGlobalRef()
+		outgoing       = gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		objectGlobal   = reference.NewSelf(outgoing)
 		outgoingGlobal = reference.NewRecordOf(callee, outgoing)
 		tokenKey       = DelegationTokenAwaitKey{outgoingGlobal}

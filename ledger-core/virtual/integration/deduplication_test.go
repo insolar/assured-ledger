@@ -11,6 +11,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -76,7 +77,7 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	var (
 		isolation = contract.ConstructorIsolation()
 		outgoing  = server.RandomLocalWithPulse()
-		class     = gen.UniqueReference()
+		class     = gen.UniqueGlobalRef()
 	)
 
 	pl := payload.VCallRequest{
@@ -90,8 +91,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	synchronizeExecution := NewSynchronizationPoint(1)
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueReference())
-		requestResult.SetActivate(gen.UniqueReference(), class, []byte("234"))
+		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
+		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(calculateOutgoing(pl).String())
 		executionMock.AddStart(func(ctx execution.Context) {
@@ -156,8 +157,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	p1 := server.GetPulse().PulseNumber
 
 	outgoing := server.RandomLocalWithPulse()
-	class := gen.UniqueReference()
-	object := gen.UniqueReference()
+	class := gen.UniqueGlobalRef()
+	object := gen.UniqueGlobalRef()
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -184,7 +185,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
 		)
 
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueReference())
+		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 		executionMock := runnerMock.AddExecutionMock("SomeMethod")
@@ -223,6 +224,97 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 		assert.Equal(t, 1, numberOfExecutions)
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	}
+
+	mc.Finish()
+}
+
+func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
+	t.Log("C5096")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-551")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	p1 := server.GetPulse().PulseNumber
+
+	outgoing := server.RandomLocalWithPulse()
+	class := gen.UniqueGlobalRef()
+	object := gen.UniqueGlobalRef()
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	report := &payload.VStateReport{
+		Status: payload.Ready,
+		AsOf:   p1,
+		Object: object,
+		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				State:       []byte("memory"),
+				Deactivated: false,
+			},
+		},
+	}
+	server.SendPayload(ctx, report)
+
+	numberOfExecutions := 0
+	{
+		isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+
+		newObjDescriptor := descriptor.NewObject(
+			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
+		)
+
+		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+
+		executionMock := runnerMock.AddExecutionMock("SomeMethod")
+		executionMock.AddStart(func(ctx execution.Context) {
+			numberOfExecutions++
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestResult,
+		})
+	}
+
+	var firstResult *payload.VCallResult
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		if firstResult != nil {
+			require.Equal(t, firstResult, result)
+		} else {
+			firstResult = result
+		}
+
+		return false
+	}).ExpectedCount(2)
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Callee:         object,
+		CallSiteMethod: "SomeMethod",
+		CallOutgoing:   outgoing,
+	}
+
+	server.SendPayload(ctx, &pl)
+	server.PublisherMock.WaitCount(1, 10*time.Second)
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	server.SendPayload(ctx, &pl)
+	server.PublisherMock.WaitCount(2, 10*time.Second)
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	assert.Equal(t, 1, numberOfExecutions)
 
 	mc.Finish()
 }
