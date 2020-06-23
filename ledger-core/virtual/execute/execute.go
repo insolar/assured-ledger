@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -180,6 +181,10 @@ func (s *SMExecute) outgoingFromSlotPulse() bool {
 	outgoingPulse := s.Payload.CallOutgoing.GetPulseNumber()
 	slotPulse := s.pulseSlot.PulseData().GetPulseNumber()
 	return outgoingPulse == slotPulse
+}
+
+func (s *SMExecute) intolerableCall() bool {
+	return s.execution.Isolation.Interference == contract.CallIntolerable
 }
 
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -513,8 +518,14 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
 	case execution.Error:
-		panic(throw.W(newState.Error, "failed to execute request", nil))
+		err := throw.W(newState.Error, "failed to execute request")
+		ctx.Log().Warn(err)
+		s.prepareExecutionError(err)
+		return ctx.Jump(s.stepExecuteAborted)
 	case execution.Abort:
+		err := throw.E("execution aborted")
+		ctx.Log().Warn(err)
+		s.prepareExecutionError(err)
 		return ctx.Jump(s.stepExecuteAborted)
 	case execution.OutgoingCall:
 		return ctx.Jump(s.stepExecuteOutgoing)
@@ -523,8 +534,27 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	}
 }
 
-func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Error(throw.NotImplemented())
+func (s *SMExecute) prepareExecutionError(err error) {
+	resultWithErr, err := foundation.MarshalMethodErrorResult(err)
+	if err != nil {
+		panic(throw.W(err, "can't create error result"))
+	}
+
+	s.executionNewState = &execution.Update{
+		Type:     execution.Error,
+		Error:    err,
+		Result:   requestresult.New(resultWithErr, s.outgoingObject),
+		Outgoing: nil,
+	}
+}
+
+func (s *SMExecute) prepareOutgoingError(err error) {
+	resultWithErr, err := foundation.MarshalMethodErrorResult(err)
+	if err != nil {
+		panic(throw.W(err, "can't create error result"))
+	}
+
+	s.outgoingResult = resultWithErr
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -534,11 +564,25 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	case execution.Deactivate:
 		s.deactivate = true
 	case execution.CallConstructor:
+		if s.intolerableCall() {
+			err := throw.E("interference violation: constructor call from unordered call")
+			ctx.Log().Warn(err)
+			s.prepareOutgoingError(err)
+			return ctx.Jump(s.stepExecuteContinue)
+		}
+
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueLocalRefWithPulse(pulseNumber)
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
 		s.outgoing.DelegationSpec = s.getToken()
 	case execution.CallMethod:
+		if s.intolerableCall() && outgoing.Interference() == contract.CallTolerable {
+			err := throw.E("interference violation: ordered call from unordered call")
+			ctx.Log().Warn(err)
+			s.prepareOutgoingError(err)
+			return ctx.Jump(s.stepExecuteContinue)
+		}
+
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
 		s.outgoing.CallOutgoing = gen.UniqueLocalRefWithPulse(pulseNumber)
 		s.outgoingObject = s.outgoing.Callee
@@ -552,6 +596,11 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	}
 
 	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	ctx.Log().Warn("aborting execution")
+	return s.runner.PrepareExecutionAbort(ctx, s.run, func() {}).DelayedStart().ThenJump(s.stepSendCallResult)
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
