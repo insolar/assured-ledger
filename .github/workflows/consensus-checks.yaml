@@ -68,7 +68,7 @@ jobs:
       - name: template GIT_SHA to deployment manifests
         run: |
           sed -i "s/placeholder/$GIT_SHA/g" ledger-core/scripts/deploy/kube/aks/*
-          sed -i "s/placeholder/$GIT_SHA/g" ledger-core/scripts/deploy/kube/aks/eba/*
+          sed -i "s/placeholder/$GIT_SHA/g" ledger-core/scripts/deploy/kube/aks/configuration/*
       - name: Run headless network and generate performance report
         env:
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_HOST: https://reports.garage.insolar.io
