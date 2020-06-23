@@ -5,7 +5,7 @@
 
 // +build !convlogtxt,!copylogtxt
 
-package instestlogger
+package prettylog
 
 import (
 	"io"
