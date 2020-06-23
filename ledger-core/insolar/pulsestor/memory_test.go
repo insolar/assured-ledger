@@ -17,9 +17,8 @@ import (
 )
 
 func TestNodeStorage_ForPulseNumber(t *testing.T) {
-	t.Parallel()
-
 	ctx := instestlogger.TestContext(t)
+
 	pn := gen.PulseNumber()
 	pulse := Pulse{PulseNumber: pn}
 	storage := NewStorageMem()
@@ -40,8 +39,6 @@ func TestNodeStorage_ForPulseNumber(t *testing.T) {
 }
 
 func TestNodeStorage_Latest(t *testing.T) {
-	t.Parallel()
-
 	ctx := instestlogger.TestContext(t)
 
 	t.Run("returns error when no Pulse", func(t *testing.T) {
@@ -62,9 +59,8 @@ func TestNodeStorage_Latest(t *testing.T) {
 }
 
 func TestNodeStorage_Append(t *testing.T) {
-	t.Parallel()
-
 	ctx := instestlogger.TestContext(t)
+
 	pn := gen.PulseNumber()
 	puls := Pulse{PulseNumber: pn}
 
@@ -157,9 +153,8 @@ func TestNodeStorage_Append(t *testing.T) {
 }
 
 func TestMemoryStorage_Shift(t *testing.T) {
-	t.Parallel()
-
 	ctx := instestlogger.TestContext(t)
+
 	pn := gen.PulseNumber()
 	puls := Pulse{PulseNumber: pn}
 
@@ -227,9 +222,8 @@ func TestMemoryStorage_Shift(t *testing.T) {
 }
 
 func TestMemoryStorage_ForwardsBackwards(t *testing.T) {
-	t.Parallel()
-
 	ctx := instestlogger.TestContext(t)
+
 	storage := NewStorageMem()
 	tailPulse := Pulse{PulseNumber: gen.PulseNumber()}
 	headPulse := Pulse{PulseNumber: tailPulse.PulseNumber + 1}

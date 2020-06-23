@@ -75,8 +75,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestMetrics_NewMetrics(t *testing.T) {
-	t.Parallel()
 	ctx := instestlogger.TestContext(t)
+
 	testm := newTestMetrics(ctx, configuration.Metrics{
 		Namespace: "insolar",
 	})
@@ -170,8 +170,8 @@ func metricValue(s string) string {
 }
 
 func TestMetrics_ZPages(t *testing.T) {
-	t.Parallel()
 	ctx := instestlogger.TestContext(t)
+
 	testm := newTestMetrics(ctx, configuration.Metrics{
 		ZpagesEnabled: true,
 	})
@@ -191,8 +191,8 @@ func TestMetrics_ZPages(t *testing.T) {
 
 //
 func TestMetrics_Status(t *testing.T) {
-	t.Parallel()
 	ctx := instestlogger.TestContext(t)
+
 	testm := newTestMetrics(ctx, configuration.Metrics{})
 
 	req, err := http.NewRequest("GET", "/_status", nil)
