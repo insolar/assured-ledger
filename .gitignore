@@ -3,3 +3,4 @@
 *.iml
 out
 .gen
+ledger-core/scripts/deploy/kube/aks/dockerconfigjson

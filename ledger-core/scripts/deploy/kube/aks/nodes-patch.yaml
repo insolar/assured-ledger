@@ -15,6 +15,8 @@ spec:
                     values:
                       - virtual
               topologyKey: kubernetes.io/hostname
+      imagePullSecrets:
+        - name: azurecr
       containers:
         - name: insolar
           resources:
