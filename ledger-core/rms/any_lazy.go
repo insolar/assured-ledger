@@ -19,7 +19,11 @@ type AnyLazy struct {
 	value goGoMarshaler
 }
 
+<<<<<<< HEAD
 func (p *AnyLazy) TryGetLazy() LazyValue {
+=======
+func (p *AnyLazy) Get() LazyValue {
+>>>>>>> Any container for serialization
 	if vv, ok := p.value.(LazyValue); ok {
 		return vv
 	}
@@ -30,6 +34,7 @@ func (p *AnyLazy) Set(v GoGoSerializable) {
 	p.value = v
 }
 
+<<<<<<< HEAD
 func (p *AnyLazy) TryGet() (isLazy bool, r GoGoSerializable) {
 	switch p.value.(type) {
 	case nil:
@@ -40,6 +45,8 @@ func (p *AnyLazy) TryGet() (isLazy bool, r GoGoSerializable) {
 	return false, p.value.(GoGoSerializable)
 }
 
+=======
+>>>>>>> Any container for serialization
 func (p *AnyLazy) ProtoSize() int {
 	if p.value != nil {
 		return p.value.ProtoSize()
@@ -48,15 +55,24 @@ func (p *AnyLazy) ProtoSize() int {
 }
 
 func (p *AnyLazy) Unmarshal(b []byte) error {
+<<<<<<< HEAD
 	return p.UnmarshalCustom(b, false, GetRegistry().Get)
 }
 
 func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
 	v, err := p.unmarshalCustom(b, copyBytes, typeFn)
+=======
+	return p.UnmarshalCustom(b, true, GetRegistry().Get, nil)
+}
+
+func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) error {
+	_, t, err := UnmarshalType(b, typeFn)
+>>>>>>> Any container for serialization
 	if err != nil {
 		p.value = nil
 		return err
 	}
+<<<<<<< HEAD
 	p.value = v
 	return nil
 }
@@ -70,6 +86,13 @@ func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) 
 		b = append([]byte(nil), b...)
 	}
 	return LazyValue{ b, t }, nil
+=======
+	if copyBytes {
+		b = append([]byte(nil), b...)
+	}
+	p.value = LazyValue{ b, skipFn, t }
+	return nil
+>>>>>>> Any container for serialization
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
@@ -90,6 +113,7 @@ func (p *AnyLazy) MarshalText() ([]byte, error) {
 	if tm, ok := p.value.(encoding.TextMarshaler); ok {
 		return tm.MarshalText()
 	}
+<<<<<<< HEAD
 	return []byte(fmt.Sprintf("%T{%T}", p, p.value)), nil
 }
 
@@ -122,23 +146,36 @@ func (p *AnyLazy) Equal(that interface{}) bool {
 		return eq.Equal(p.value)
 	}
 	return false
+=======
+	return []byte(fmt.Sprintf("AnyLazy{%T}", p.value)), nil
+>>>>>>> Any container for serialization
 }
 
 /************************/
 
 type anyLazy = AnyLazy
+<<<<<<< HEAD
 type AnyLazyCopy struct {
 	anyLazy
 }
 
 func (p *AnyLazyCopy) Unmarshal(b []byte) error {
 	return p.UnmarshalCustom(b, true, GetRegistry().Get)
+=======
+type AnyLazyNoCopy struct {
+	anyLazy
+}
+
+func (p *AnyLazyNoCopy) Unmarshal(b []byte) error {
+	return p.UnmarshalCustom(b, false, GetRegistry().Get, nil)
+>>>>>>> Any container for serialization
 }
 
 /************************/
 
 var _ goGoMarshaler = LazyValue{}
 
+<<<<<<< HEAD
 type LazyValueReader interface {
 	Type() reflect.Type
 	UnmarshalAsAny(v interface{}, skipFn UnknownCallbackFunc) (bool, error)
@@ -146,6 +183,11 @@ type LazyValueReader interface {
 
 type LazyValue struct {
 	value []byte
+=======
+type LazyValue struct {
+	value []byte
+	skipFn UnknownCallbackFunc
+>>>>>>> Any container for serialization
 	vType  reflect.Type
 }
 
@@ -168,7 +210,11 @@ func (p LazyValue) Unmarshal() (GoGoSerializable, error) {
 	case p.vType == nil:
 		panic(throw.IllegalState())
 	}
+<<<<<<< HEAD
 	return p.UnmarshalAsType(p.vType, nil)
+=======
+	return p.UnmarshalAsType(p.vType, p.skipFn)
+>>>>>>> Any container for serialization
 }
 
 var typeGoGoSerializable = reflect.TypeOf((*GoGoSerializable)(nil)).Elem()
@@ -195,6 +241,7 @@ func (p LazyValue) UnmarshalAs(v GoGoSerializable, skipFn UnknownCallbackFunc) (
 	return true, UnmarshalAs(p.value, v, skipFn)
 }
 
+<<<<<<< HEAD
 func (p LazyValue) UnmarshalAsAny(v interface{}, skipFn UnknownCallbackFunc) (bool, error) {
 	if p.value == nil {
 		return false, nil
@@ -202,6 +249,8 @@ func (p LazyValue) UnmarshalAsAny(v interface{}, skipFn UnknownCallbackFunc) (bo
 	return true, UnmarshalAs(p.value, v, skipFn)
 }
 
+=======
+>>>>>>> Any container for serialization
 func (p LazyValue) ProtoSize() int {
 	return len(p.value)
 }
@@ -218,5 +267,11 @@ func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
 }
 
 func (p LazyValue) MarshalText() ([]byte, error) {
+<<<<<<< HEAD
 	return []byte(fmt.Sprintf("%T{[%d]byte, %v}", p, len(p.value), p.vType)), nil
 }
+=======
+	return []byte(fmt.Sprintf("LazyValue{[%d]byte, %v}", len(p.value), p.vType)), nil
+}
+
+>>>>>>> Any container for serialization

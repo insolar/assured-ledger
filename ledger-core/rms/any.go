@@ -72,6 +72,7 @@ func (p *Any) MarshalText() ([]byte, error) {
 	return []byte(fmt.Sprintf("Any{%T}", p.value)), nil
 }
 
+<<<<<<< HEAD
 func (p *Any) Equal(that interface{}) bool {
 	switch {
 	case that == nil:
@@ -102,3 +103,5 @@ func (p *Any) Equal(that interface{}) bool {
 	}
 	return false
 }
+=======
+>>>>>>> Any container for serialization
