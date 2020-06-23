@@ -56,8 +56,6 @@ type Info struct {
 	KnownRequests WorkingTable
 	// PendingTable holds requests that are known to be processed by other executors
 	PendingTable PendingTable
-	// ResultTable holds results that were executed
-	ResultTable ResultTable
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
@@ -125,8 +123,7 @@ func (i *Info) FinishRequest(
 	default:
 		panic(throw.Unsupported())
 	}
-	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef)
-	i.ResultTable.GetList(isolation.Interference).Add(requestRef, result)
+	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef, result)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
@@ -215,7 +212,6 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 				Reference:     objectReference,
 				KnownRequests: NewWorkingTable(),
 				PendingTable:  NewRequestTable(),
-				ResultTable:   NewResultTable(),
 			},
 		},
 	}
