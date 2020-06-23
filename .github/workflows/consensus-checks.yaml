@@ -1,13 +1,8 @@
 name: consensus-checks # consensus perfomance checks
 on:
-  push:
-    branches:
-      - master
   pull_request:
-  schedule:
-    - cron: '0 2,4,6 * * *'
 env:
-  KUBECONFIG: "${{ github.workspace }}/k3s.yaml"
+  KUBECONFIG: "${{ github.workspace }}/aks.yaml"
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
@@ -15,8 +10,8 @@ env:
   GOPATH: /home/runner/work/
   GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
-  USE_MANIFESTS: ci
-  KUBEVAL_VERSION: 0.15.0
+  USE_MANIFESTS: aks
+  ACR_HOST: usciregistry.azurecr.io
 jobs:
   consensus:
     name: consensus # don't change, this name is used in repository restricts!
@@ -48,37 +43,18 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Add bin to path
         run: echo "::add-path::${{ env.GOPATH }}/bin"
-      - name: Get kubeval
-        run: |
-          mkdir bin
-          curl -L -s --create-dirs https://github.com/instrumenta/kubeval/releases/download/$KUBEVAL_VERSION/kubeval-linux-amd64.tar.gz | tar xvz --exclude='LICENSE' --exclude='README.md' -C $GITHUB_WORKSPACE/bin
-          chmod +x $GITHUB_WORKSPACE/bin/kubeval
       - name: Add workspace/bin to path
         run: echo "::add-path::$GITHUB_WORKSPACE/bin"
-      - name: Check resources
-        run: |
-          sudo lscpu
-          free -h
-      - name: Install k3s
-        uses: insolar/k3s-gha@master
-        with:
-          custom_registry: true
-          registries_yaml_path: "ledger-core/scripts/deploy/kube/ci/registries.yaml"
-          kubectl_version: "v1.18.2"
-      - name: Deploy k3s-registry
-        run: kubectl apply -k ledger-core/scripts/deploy/kube/k3s-registry
-      - name: Wait for registry to be up and running
-        run: kubectl -n registry rollout status deploy/registry --timeout=80s
-      - name: Deploy ingress
-        run: make kube_apply_ingress
-        working-directory: ${{ env.CORE_PATH }}
+      - name: save kubeconfig
+        run: echo ${{secrets.CLOUD_KUBECONFIG}} >> aks.yaml
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
       - name: Push assured ledger image to local registry
         run: |
-          docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
-          docker push localhost/assured-ledger:latest
+          docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
+          docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:latest
+          docker push $ACR_HOST/assured-ledger:latest
       - name: Prepare environment
         run: |
           go mod download
@@ -87,13 +63,14 @@ jobs:
       - name: Build kube-deploy-tool
         run: go build -o ./bin/kube-deploy-tool ./scripts/deploy/kube-deploy-tool
         working-directory: ${{ env.CORE_PATH }}
+      - name: template GIT_SHA to deployment manifests
+        run:  sed -i "s/placeholder/$GIT_SHA/g" ledger-core/scripts/deploy/kube/aks/*
       - name: Run headless network and generate performance report
         env:
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_HOST: https://reports.garage.insolar.io
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_USERNAME: ${{ secrets.WEBDAV_USERNAME }}
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_DIRECTORY: consensus-checks
-          KUBEDEPLOYTOOL_KUBEPARAMS_ENV: ci
           KUBEDEPLOYTOOL_METRICPARAMS_GIT_COMMIT: ${{ fromJson(steps.set-vars.outputs.result).shortSha }}
           KUBEDEPLOYTOOL_METRICPARAMS_GIT_HEAD: ${{ fromJson(steps.set-vars.outputs.result).shortRef }}
         run: bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml

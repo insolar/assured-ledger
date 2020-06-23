@@ -1,19 +1,11 @@
 netparams:
-- nodescount: 5
-  waitinreadystate: 3m
-  waitbootstrap: 60s
-  waitready: 60s
-- nodescount: 10
-  waitinreadystate: 3m
-  waitbootstrap: 60s
-  waitready: 60s
-- nodescount: 15
+- nodescount: 8
   waitinreadystate: 3m
   waitbootstrap: 60s
   waitready: 60s
 
 kubeparams:
-  env: local
+  env: aks
   kuberootpath: /../scripts/deploy/kube/
   manifestsrelpath: manifests/
   bootstrapconfigrelpath: manifests/configuration/
