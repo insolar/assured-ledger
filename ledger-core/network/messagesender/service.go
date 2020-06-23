@@ -78,6 +78,10 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 		return throw.W(err, "failed to calculate role")
 	}
 
+	if nodes[0].Equal(dm.affinity.Me()) {
+		inslogger.FromContext(ctx).Debug("Send to myself")
+	}
+
 	return dm.sendTarget(ctx, waterMillMsg, nodes[0], pn)
 }
 
