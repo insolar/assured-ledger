@@ -1,0 +1,43 @@
+dumptransport: true
+goroutines_dump: false
+http_timeout: 20
+steps:
+- name: load
+  execution_mode: parallel
+  handles:
+  - name: create_contract_test
+    rps: 1
+    attack_time_sec: 30
+    ramp_up_sec: 1
+    ramp_up_strategy: linear
+    max_attackers: 1
+    verbose: true
+    do_timeout_sec: 40
+    stop_if:
+      - type: error
+        threshold: 0
+        interval: 1
+  - name: get_contract_test
+    rps: 1
+    attack_time_sec: 30
+    ramp_up_sec: 1
+    ramp_up_strategy: linear
+    max_attackers: 1
+    verbose: true
+    do_timeout_sec: 40
+    stop_if:
+      - type: error
+        threshold: 0
+        interval: 1
+  - name: set_contract_test
+    rps: 1
+    attack_time_sec: 30
+    ramp_up_sec: 1
+    ramp_up_strategy: linear
+    max_attackers: 1
+    verbose: true
+    do_timeout_sec: 40
+    stop_if:
+      - type: error
+        threshold: 0
+        interval: 1

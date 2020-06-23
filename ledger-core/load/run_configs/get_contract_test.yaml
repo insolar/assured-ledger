@@ -1,0 +1,21 @@
+dumptransport: true
+goroutines_dump: false
+http_timeout: 20
+steps:
+- name: load
+  execution_mode: sequence
+  handles:
+  - name: get_contract_test
+    rps: 30
+    attack_time_sec: 60
+    ramp_up_sec: 60
+    ramp_up_strategy: linear
+    max_attackers: 200
+    verbose: true
+    do_timeout_sec: 40
+    store_data: false
+    recycle_data: true
+    stop_if:
+      - type: error
+        threshold: 0
+        interval: 1
