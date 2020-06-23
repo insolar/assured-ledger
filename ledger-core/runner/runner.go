@@ -10,6 +10,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -340,8 +341,11 @@ func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (
 	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
 	}
+	return r.classifyCall(executionContext.Context, classReference, request.CallSiteMethod)
+}
 
-	_, codeDescriptor, err := r.Cache.ByClassRef(executionContext.Context, classReference)
+func (r *DefaultService) classifyCall(ctx context.Context, classReference reference.Global, method string) (contract.MethodIsolation, error) {
+	_, codeDescriptor, err := r.Cache.ByClassRef(ctx, classReference)
 	if err != nil {
 		return contract.MethodIsolation{}, throw.W(err, "couldn't get descriptors")
 	}
@@ -351,7 +355,7 @@ func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (
 		return contract.MethodIsolation{}, throw.W(err, "couldn't get executor")
 	}
 
-	return codeExecutor.ClassifyMethod(executionContext.Context, codeDescriptor.Ref(), request.CallSiteMethod)
+	return codeExecutor.ClassifyMethod(ctx, codeDescriptor.Ref(), method)
 }
 
 func NewService() *DefaultService {
