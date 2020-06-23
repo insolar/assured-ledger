@@ -7,6 +7,7 @@ package object
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -49,21 +50,33 @@ const (
 	RequestFinished
 )
 
+type workingRequest struct {
+	state  WorkingRequestState
+	result *payload.VCallResult
+}
+
 type WorkingList struct {
 	earliestActivePulse pulse.Number
 	countActive         int
 	countFinish         int
-	requests            map[reference.Global]WorkingRequestState
+	requests            map[reference.Global]workingRequest
 }
 
 func NewWorkingList() *WorkingList {
 	return &WorkingList{
-		requests: make(map[reference.Global]WorkingRequestState),
+		requests: make(map[reference.Global]workingRequest),
 	}
 }
 
 func (rl WorkingList) GetState(ref reference.Global) WorkingRequestState {
-	return rl.requests[ref]
+	return rl.requests[ref].state
+}
+
+func (rl WorkingList) GetResult(ref reference.Global) (*payload.VCallResult, bool) {
+	if res := rl.requests[ref].result; res != nil {
+		return res, true
+	}
+	return nil, false
 }
 
 // Add adds reference.Global and update EarliestPulse if needed
@@ -72,16 +85,16 @@ func (rl *WorkingList) Add(ref reference.Global) bool {
 	if _, exist := rl.requests[ref]; exist {
 		return false
 	}
-	rl.requests[ref] = RequestStarted
+	rl.requests[ref] = workingRequest{state: RequestStarted}
 	return true
 }
 
 func (rl *WorkingList) SetActive(ref reference.Global) bool {
-	if rl.requests[ref] != RequestStarted {
+	if rl.requests[ref].state != RequestStarted {
 		return false
 	}
 
-	rl.requests[ref] = RequestProcessing
+	rl.requests[ref] = workingRequest{state: RequestProcessing}
 
 	rl.countActive++
 
@@ -97,7 +110,7 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	min := pulse.Unknown
 
 	for ref := range rl.requests {
-		if rl.requests[ref] != RequestProcessing {
+		if rl.requests[ref].state != RequestProcessing {
 			continue // skip finished and not started
 		}
 
@@ -110,13 +123,13 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	rl.earliestActivePulse = min
 }
 
-func (rl *WorkingList) Finish(ref reference.Global) bool {
+func (rl *WorkingList) Finish(ref reference.Global, result *payload.VCallResult) bool {
 	state := rl.GetState(ref)
 	if state == RequestUnknown {
 		return false
 	}
 
-	rl.requests[ref] = RequestFinished
+	rl.requests[ref] = workingRequest{state: RequestFinished, result: result}
 	rl.countActive--
 	rl.countFinish++
 
