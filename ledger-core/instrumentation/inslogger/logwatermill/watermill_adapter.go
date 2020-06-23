@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewWatermillLogAdapter(log log.Logger) *WatermillLogAdapter {
@@ -35,7 +36,7 @@ func (w *WatermillLogAdapter) With(fields watermill.LogFields) watermill.LoggerA
 }
 
 func (w *WatermillLogAdapter) Error(msg string, err error, fields watermill.LogFields) {
-	w.event(fields, log.ErrorLevel, msg+" | Error: "+err.Error())
+	w.event(fields, log.ErrorLevel, msg+"; " + throw.ErrorWithStack(err))
 }
 
 func (w *WatermillLogAdapter) Info(msg string, fields watermill.LogFields) {
