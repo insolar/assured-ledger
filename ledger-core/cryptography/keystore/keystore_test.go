@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 const (
@@ -18,18 +20,24 @@ const (
 )
 
 func TestNewKeyStore(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ks, err := NewKeyStore(testKeys)
 	require.NoError(t, err)
 	require.NotNil(t, ks)
 }
 
 func TestNewKeyStore_Fails(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ks, err := NewKeyStore(testBadKeys)
 	require.Error(t, err)
 	require.Nil(t, ks)
 }
 
 func TestKeyStore_GetPrivateKey(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ks, err := NewKeyStore(testKeys)
 	require.NoError(t, err)
 
@@ -39,6 +47,8 @@ func TestKeyStore_GetPrivateKey(t *testing.T) {
 }
 
 func TestKeyStore_GetPrivateKeyReturnsECDSA(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ks, err := NewKeyStore(testKeys)
 	require.NoError(t, err)
 

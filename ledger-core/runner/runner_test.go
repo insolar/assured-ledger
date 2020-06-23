@@ -15,7 +15,7 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -27,7 +27,7 @@ func TestAbort(t *testing.T) {
 	_ = runner.Init()
 
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		object        = gen.UniqueGlobalRef()
 		remoteObject  = gen.UniqueGlobalRef()

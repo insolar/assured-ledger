@@ -15,11 +15,14 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func TestNewGatewayer(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	mc := minimock.NewController(t)
 	defer mc.Finish()
 	defer mc.Wait(time.Minute)

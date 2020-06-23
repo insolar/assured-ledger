@@ -40,12 +40,18 @@ const (
 	ftlLevel = 2
 )
 
+var _ logcommon.TestingLoggerWrapper = &testingConsoleWriter{}
+
 type testingConsoleWriter struct {
 	mutex sync.Mutex
 	level int
 
 	ConsoleWriter zerolog.ConsoleWriter
 	Testing logcommon.TestingLogger
+}
+
+func (p *testingConsoleWriter) UnwrapTesting() logcommon.TestingLogger {
+	return p.Testing
 }
 
 func (p *testingConsoleWriter) Helper() {

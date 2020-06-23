@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
@@ -38,9 +39,8 @@ func waitForStatus(t *testing.T, nc *api.NetworkChecker, expected bool) {
 }
 
 func TestAvailabilityChecker_UpdateStatus(t *testing.T) {
-	cfg := configuration.NewLog()
-	cfg.Level = "Debug"
-	ctx, _ := inslogger.InitNodeLogger(context.Background(), cfg, "", "")
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+	ctx, _ := inslogger.InitNodeLoggerByGlobal("", "")
 
 	defer testutils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager.NewSpecified.func1"))

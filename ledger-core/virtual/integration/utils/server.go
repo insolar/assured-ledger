@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -98,7 +97,7 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	}
 
 	s := Server{

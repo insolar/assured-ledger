@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -210,7 +210,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			t.Log(tc.testRailCase)
 			var (
 				mc  = minimock.NewController(t)
-				ctx = inslogger.TestContext(t)
+				ctx = instestlogger.TestContext(t)
 
 				nodeRef = gen.UniqueGlobalRef()
 
