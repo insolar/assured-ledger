@@ -56,7 +56,7 @@ func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.Stat
 
 	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	if link.IsZero() {
-		return ctx.Error(throw.E("no one is waiting", nil))
+		return ctx.Error(throw.E("no one is waiting"))
 	}
 	if bargeInCallback == nil {
 		return ctx.Error(throw.Impossible())
@@ -64,7 +64,7 @@ func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.Stat
 
 	done := bargeInCallback.CallWithParam(s.Payload)
 	if !done {
-		return ctx.Error(throw.E("no one is waiting anymore", nil))
+		return ctx.Error(throw.E("no one is waiting anymore"))
 	}
 
 	return ctx.Stop()

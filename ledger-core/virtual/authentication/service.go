@@ -55,7 +55,7 @@ func (s service) HasToSendToken(token payload.CallDelegationToken) bool {
 	return useToken
 }
 
-func (s service) checkDelegationToken(expectedVE reference.Global, token payload.CallDelegationToken) error {
+func (s service) checkDelegationToken(expectedVE reference.Global, token payload.CallDelegationToken, sender reference.Global) error {
 	// TODO: check signature
 
 	if !token.Approver.Equal(expectedVE) {
@@ -66,12 +66,11 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
 	}
 
-	if token.Approver.Equal(s.affinity.Me()) {
-		return throw.New("selfNode cannot be equal to token Approver",
+	if sender.Equal(s.affinity.Me()) {
+		return throw.New("current node cannot be equal to sender of message with token",
 			struct {
-				SelfNode string
-				Approver string
-			}{SelfNode: s.affinity.Me().String(), Approver: token.Approver.String()})
+				Sender string
+			}{Sender: sender.String()})
 	}
 	return nil
 }
@@ -124,7 +123,7 @@ func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj 
 	}
 
 	if token, ok := payload.GetSenderDelegationToken(payloadObj); ok && !token.IsZero() {
-		return false, s.checkDelegationToken(expectedVE, token)
+		return false, s.checkDelegationToken(expectedVE, token, sender)
 	}
 
 	if !sender.Equal(expectedVE) {
