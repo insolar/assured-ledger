@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type InputEvent = interface{}
@@ -139,6 +140,11 @@ func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event Inp
 	return p.AddInputExt(ctx, pn, event, smachine.CreateDefaultValues{})
 }
 
+type errMissingPN struct {
+	PN      pulse.Number
+	RemapPN pulse.Number `opt:""`
+}
+
 func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
 	createDefaults smachine.CreateDefaultValues,
 ) error {
@@ -147,10 +153,17 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 	case err != nil:
 		return err
 	case pulseSlotMachine == nil || pulseState == 0:
-		return fmt.Errorf("slotMachine is missing: pn=%v", pn)
+		return throw.E("slotMachine is missing", errMissingPN{PN: pn})
 	}
 
-	pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
+	var pr pulse.Range
+
+	if pulseState != Antique {
+		pr, _ = pulseSlotMachine.pulseSlot.PulseRange()
+	} else if pulseSlot := p.pdm.getCachedPulseSlot(targetPN); pulseSlot != nil {
+		pr, _ = pulseSlot.pulseData.PulseRange()
+	}
+
 	remapPN, createFn, err := p.factoryFn(targetPN, pr, event)
 	switch {
 	case createFn == nil || err != nil:
@@ -167,7 +180,7 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		}
 		fallthrough
 	default:
-		return fmt.Errorf("slotMachine is missing: remap pn=%v", remapPN)
+		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: remapPN})
 	}
 
 	switch {
@@ -196,11 +209,11 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		fallthrough
 
 	case !p.pdm.TouchPulseData(targetPN): // make sure - for PAST and PRESENT we must always have the data ...
-		return fmt.Errorf("unknown data for pulse: pn=%v event=%v", targetPN, event)
+		return throw.E("unknown data for pulse", errMissingPN{PN: targetPN})
 	}
 
 	if _, ok := pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults); !ok {
-		return fmt.Errorf("ignored event: pn=%v event=%v", targetPN, event)
+		return throw.E("ignored event", errMissingPN{PN: targetPN})
 	}
 
 	return nil

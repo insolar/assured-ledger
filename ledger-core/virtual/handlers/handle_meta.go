@@ -64,8 +64,8 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
 	})
 
-	currentPulse := pr.RightBoundData().PulseNumber
-	if currentPulse != payloadMeta.Pulse {
+	targetPulse := pr.RightBoundData().PulseNumber
+	if targetPulse != payloadMeta.Pulse {
 		panic(throw.Impossible())
 	}
 
@@ -75,12 +75,12 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 			messageTypeID uint64
 			messageType   reflect.Type
 			incomingPulse pulse.Number
-			currentPulse  pulse.Number
+			targetPulse   pulse.Number
 		}{
 			messageTypeID: payloadTypeID,
 			messageType:   payloadType,
 			incomingPulse: payloadMeta.Pulse,
-			currentPulse:  pr.RightBoundData().PulseNumber,
+			targetPulse:   targetPulse,
 		}))
 
 		return pulse.Unknown, nil, nil
@@ -94,19 +94,19 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 	if pn, sm := func() (pulse.Number, smachine.StateMachine) {
 		switch obj := payloadObj.(type) {
 		case *payload.VCallRequest:
-			return currentPulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}
+			return targetPulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VCallResult:
-			return currentPulse, &SMVCallResult{Meta: payloadMeta, Payload: obj}
+			return targetPulse, &SMVCallResult{Meta: payloadMeta, Payload: obj}
 		case *payload.VStateRequest:
 			return obj.AsOf, &SMVStateRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VStateReport:
-			return currentPulse, &SMVStateReport{Meta: payloadMeta, Payload: obj}
+			return targetPulse, &SMVStateReport{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedRequestFinished:
-			return currentPulse, &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
+			return targetPulse, &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedCallRequest:
-			return currentPulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
+			return targetPulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedCallResponse:
-			return currentPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
+			return targetPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
 		default:
 			logger.Warn(errNoHandler{messageTypeID: payloadTypeID, messageType: payloadType})
 			return 0, nil
