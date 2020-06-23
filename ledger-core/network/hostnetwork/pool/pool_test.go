@@ -8,6 +8,7 @@ package pool
 import (
 	"context"
 	"io"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,7 @@ type fakeConnection struct {
 }
 
 func (fakeConnection) Read(p []byte) (n int, err error) {
+	runtime.Goexit() // prevent watchRemoteClose from triggering and writing errors to log after test is finished
 	return 0, nil
 }
 
@@ -67,5 +69,6 @@ func TestNewConnectionPool(t *testing.T) {
 	assert.Equal(t, conn2, conn3)
 
 	pool.CloseConnection(ctx, h)
+	pool.CloseConnection(ctx, h2)
 	pool.Reset()
 }
