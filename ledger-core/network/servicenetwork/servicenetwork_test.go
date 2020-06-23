@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -46,6 +47,8 @@ func (p *PublisherMock) Close() error {
 }
 
 func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwork {
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 

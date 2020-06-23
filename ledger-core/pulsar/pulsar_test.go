@@ -16,12 +16,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 func TestPulsar_Send(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	distMock := testutils.NewPulseDistributorMock(t)
 	var pn pulse.Number = pulse.MinTimePulse
 

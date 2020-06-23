@@ -13,10 +13,13 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 )
 
 func TestComponents(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := inslogger.UpdateLogger(context.Background(), func(logger log.Logger) (log.Logger, error) {
 		return logger.Copy().WithBuffer(100, false).Build()
 	})

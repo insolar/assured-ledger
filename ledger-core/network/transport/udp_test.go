@@ -16,6 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 type testNode struct {
@@ -48,6 +49,8 @@ func newTestNode(port int) (*testNode, error) {
 }
 
 func TestUdpTransport_SendDatagram(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := context.Background()
 
 	node1, err := newTestNode(0)
@@ -80,6 +83,8 @@ func TestUdpTransport_SendDatagram(t *testing.T) {
 }
 
 func TestUdpTransport_SendDatagram_Error(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	cfg := configuration.NewHostNetwork().Transport
 	cfg.Address = fmt.Sprintf("127.0.0.1:%d", 0)
 
