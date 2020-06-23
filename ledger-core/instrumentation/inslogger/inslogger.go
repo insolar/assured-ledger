@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
@@ -31,7 +32,7 @@ func init() {
 
 	// NB! initialize adapters' globals before the next call
 	global.TrySetDefaultInitializer(func() (log.LoggerBuilder, error) {
-		return newLogger(defaultLogConfig())
+		return NewLogBuilder(defaultLogConfig())
 	})
 }
 
@@ -44,6 +45,12 @@ func defaultLogConfig() configuration.Log {
 	return logCfg
 }
 
+func DefaultTestLogConfig() configuration.Log {
+	logCfg := defaultLogConfig()
+	logCfg.Level = logcommon.DebugLevel.String()
+	return logCfg
+}
+
 func fileLineMarshaller(file string, line int) string {
 	var skip = 0
 	if idx := strings.Index(file, insolarPrefix); idx != -1 {
@@ -52,7 +59,7 @@ func fileLineMarshaller(file string, line int) string {
 	return file[skip:] + ":" + strconv.Itoa(line)
 }
 
-func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
+func NewLogBuilder(cfg configuration.Log) (log.LoggerBuilder, error) {
 	defaults := DefaultLoggerSettings()
 	pCfg, err := ParseLogConfigWithDefaults(cfg, defaults)
 	if err != nil {
@@ -88,7 +95,7 @@ func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
 // newLog creates a new logger with the given configuration
 func NewLog(cfg configuration.Log) (logger log.Logger, err error) {
 	var b log.LoggerBuilder
-	b, err = newLogger(cfg)
+	b, err = NewLogBuilder(cfg)
 	if err == nil {
 		logger, err = b.Build()
 		if err == nil {

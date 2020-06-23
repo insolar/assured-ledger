@@ -21,7 +21,7 @@ func TestGen_IDWithPulse(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		pulse := gen.PulseNumber()
 
-		idWithPulse := gen.UniqueIDWithPulse(pulse)
+		idWithPulse := gen.UniqueLocalRefWithPulse(pulse)
 
 		require.Equal(t,
 			idWithPulse.Pulse().Bytes(),

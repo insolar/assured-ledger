@@ -3,8 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-//TODO https://insolar.atlassian.net/browse/PLAT-442
-////go:generate sm-uml-gen -f $GOFILE
+//go:generate sm-uml-gen -f $GOFILE
 
 package conveyor
 
@@ -144,7 +143,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -182,7 +181,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -223,7 +222,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -266,7 +265,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		}, nil)
 
 		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, func() {})
+		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -312,7 +311,7 @@ func TestPulseConveyor_Cache(t *testing.T) {
 	}, nil)
 
 	emerChan := make(chan struct{})
-	conveyor.StartWorker(emerChan, func() {})
+	conveyor.StartWorker(emerChan, nil)
 	defer func() {
 		close(emerChan)
 		conveyor.Stop()

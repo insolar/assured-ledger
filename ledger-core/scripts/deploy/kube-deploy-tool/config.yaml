@@ -1,16 +1,17 @@
 netparams:
-- nodescount: 3
-  waitinreadystate: 1s
-  waitbootstrap: 30s
-  waitready: 60s
-- nodescount: 4
-  waitinreadystate: 1s
-  waitbootstrap: 30s
-  waitready: 60s
 - nodescount: 5
-  waitinreadystate: 1s
-  waitbootstrap: 30s
+  waitinreadystate: 3m
+  waitbootstrap: 60s
   waitready: 60s
+- nodescount: 10
+  waitinreadystate: 3m
+  waitbootstrap: 60s
+  waitready: 60s
+- nodescount: 15
+  waitinreadystate: 3m
+  waitbootstrap: 60s
+  waitready: 60s
+
 kubeparams:
   env: local
   kuberootpath: /../scripts/deploy/kube/
@@ -23,3 +24,17 @@ kubeparams:
   logcollector:
     enabled: true
     pathtosave: /tmp/insolar/logs/
+
+metricparams:
+  quantiles: ["0.5", "0.8", "0.95", "0.99"]
+  prometheus:
+    host: "http://localhost/prometheus"
+  webdav:
+    timeout: "1m"
+#    host: "https://example.com"
+#    username: "user"
+#    password: "pass"
+#    directory: "testrun"
+#  git:
+#    head: "master"
+#    commit: "deadbeef"

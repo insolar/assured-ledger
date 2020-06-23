@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -29,7 +28,7 @@ type Helper struct {
 func NewHelper(srv *Server) *Helper {
 	return &Helper{
 		server: srv,
-		class:  gen.UniqueReference(),
+		class:  gen.UniqueGlobalRef(),
 	}
 }
 
@@ -54,10 +53,9 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		Caller:         h.server.GlobalCaller(),
 		Callee:         h.class,
 		CallSiteMethod: "New",
-		CallOutgoing:   gen.UniqueIDWithPulse(pn),
+		CallOutgoing:   gen.UniqueLocalRefWithPulse(pn),
 		Arguments:      plArguments,
 	}
-	msg := NewRequestWrapper(pn, &pl).SetSender(h.server.JetCoordinatorMock.Me()).Finalize()
 	objectReference := h.calculateOutgoing(pl)
 
 	{
@@ -71,17 +69,17 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		result.SetActivate(reference.Global{}, h.class, CreateWallet(initialBalance))
 
 		executionMock := mockedRunner.AddExecutionMock(objectReference.String())
-		executionMock.AddStart(nil, &executionupdate.ContractExecutionStateUpdate{
-			Type:   executionupdate.Done,
+		executionMock.AddStart(nil, &execution.Update{
+			Type:   execution.Done,
 			Result: result,
 		})
 	}
 
 	typedChecker := h.server.PublisherMock.SetTypedChecker(ctx, t, h.server)
-	typedChecker.VCallResult.ExpectedCount(1)
+	typedChecker.VCallResult.SetResend(false)
 
 	messagesBefore := h.server.PublisherMock.GetCount()
-	h.server.SendMessage(ctx, msg)
+	h.server.SendPayload(ctx, &pl)
 	if !h.server.PublisherMock.WaitCount(messagesBefore+1, 10*time.Second) {
 		panic("failed to wait for VCallResult")
 	}

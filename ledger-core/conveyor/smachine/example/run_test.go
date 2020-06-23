@@ -8,10 +8,10 @@ package example
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 func TestExample(t *testing.T) {
-	inslogger.SetTestOutput(t, false)
+	instestlogger.SetTestOutput(t)
 	RunExample()
 }

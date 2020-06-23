@@ -49,7 +49,7 @@ const (
 		When SM will went further, the call or its result will be cancelled / ignored.
 		NB! This cancel functionality is PASSIVE, an adapter should check this status explicitly.
 	*/
-	CallBoundToStep AsyncCallFlags = iota << 1
+	CallBoundToStep AsyncCallFlags = 1 << iota
 
 	// When set, a wakeup from call's result will be valid for this step (where the call is made) and for a next step.
 	WakeUpBoundToStep

@@ -16,16 +16,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionevent"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 )
 
 func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
@@ -35,11 +36,14 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		pd         = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot  = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 	defer mc.Finish()
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+		MeMock.Return(gen.UniqueGlobalRef())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -51,9 +55,10 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
 		pulseSlot: &pulseSlot,
-		executionNewState: &executionupdate.ContractExecutionStateUpdate{
-			Outgoing: executionevent.CallMethod{},
+		executionNewState: &execution.Update{
+			Outgoing: execution.CallMethod{},
 		},
+		authenticationService: authentication.NewService(ctx, jetCoordinatorMock),
 		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
 			return smachine.NewAsyncCallRequesterMock(t).WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
 				return smachine.NewAsyncCallRequesterMock(t).StartMock.Set(func() {
@@ -123,5 +128,4 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		smExecute.stepSendOutgoing(execCtx)
 	}
-
 }

@@ -24,8 +24,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 
 	for _, tc := range []struct {
 		name                  string
-		getPendingTable       func() RequestTable
-		getKnownRequests      func() RequestTable
+		getPendingTable       func() PendingTable
+		getKnownRequests      func() WorkingTable
 		ExpectedEarliestPulse pulse.Number
 	}{
 		{
@@ -35,9 +35,9 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 		{
 			name: "only pending",
-			getPendingTable: func() RequestTable {
+			getPendingTable: func() PendingTable {
 				table := NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
@@ -45,26 +45,28 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 		{
 			name: "only known",
-			getKnownRequests: func() RequestTable {
-				table := NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
+			getKnownRequests: func() WorkingTable {
+				table := NewWorkingTable()
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
+				table.GetList(tolerance).SetActive(ref)
 				return table
 			},
 			ExpectedEarliestPulse: currentPulse,
 		},
 		{
 			name: "both",
-			getPendingTable: func() RequestTable {
+			getPendingTable: func() PendingTable {
 				table := NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(currentPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
-			getKnownRequests: func() RequestTable {
-				table := NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueIDWithPulse(prevPulse))
+			getKnownRequests: func() WorkingTable {
+				table := NewWorkingTable()
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse))
 				table.GetList(tolerance).Add(ref)
+				table.GetList(tolerance).SetActive(ref)
 				return table
 			},
 			ExpectedEarliestPulse: prevPulse,
@@ -73,7 +75,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			info := Info{
 				PendingTable:  NewRequestTable(),
-				KnownRequests: NewRequestTable(),
+				KnownRequests: NewWorkingTable(),
 			}
 			if tc.getPendingTable != nil {
 				info.PendingTable = tc.getPendingTable()

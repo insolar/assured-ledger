@@ -30,16 +30,17 @@ func (p PubVCallRequestMock) ExpectedCount(count int) PubVCallRequestMock {
 func (p PubVCallRequestMock) Set(handler VCallRequestHandler) PubVCallRequestMock {
 	p.parent.Handlers.VCallRequest.touched = true
 	p.parent.Handlers.VCallRequest.handler = handler
-	if p.parent.Handlers.VCallRequest.expectedCount == 0 {
-		p.parent.Handlers.VCallRequest.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVCallRequestMock) SetResend() PubVCallRequestMock {
+func (p PubVCallRequestMock) SetResend(resend bool) PubVCallRequestMock {
 	p.parent.Handlers.VCallRequest.touched = true
-	p.parent.Handlers.VCallRequest.handler = func(*payload.VCallRequest) bool { return true }
+	p.parent.Handlers.VCallRequest.handler = func(*payload.VCallRequest) bool { return resend }
 	return p
+}
+
+func (p PubVCallRequestMock) Count() int {
+	return p.parent.Handlers.VCallRequest.count.Load()
 }
 
 // ============================================================================
@@ -56,16 +57,17 @@ func (p PubVCallResultMock) ExpectedCount(count int) PubVCallResultMock {
 func (p PubVCallResultMock) Set(handler VCallResultHandler) PubVCallResultMock {
 	p.parent.Handlers.VCallResult.touched = true
 	p.parent.Handlers.VCallResult.handler = handler
-	if p.parent.Handlers.VCallResult.expectedCount == 0 {
-		p.parent.Handlers.VCallResult.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVCallResultMock) SetResend() PubVCallResultMock {
+func (p PubVCallResultMock) SetResend(resend bool) PubVCallResultMock {
 	p.parent.Handlers.VCallResult.touched = true
-	p.parent.Handlers.VCallResult.handler = func(*payload.VCallResult) bool { return true }
+	p.parent.Handlers.VCallResult.handler = func(*payload.VCallResult) bool { return resend }
 	return p
+}
+
+func (p PubVCallResultMock) Count() int {
+	return p.parent.Handlers.VCallResult.count.Load()
 }
 
 // ============================================================================
@@ -82,16 +84,17 @@ func (p PubVDelegatedCallRequestMock) ExpectedCount(count int) PubVDelegatedCall
 func (p PubVDelegatedCallRequestMock) Set(handler VDelegatedCallRequestHandler) PubVDelegatedCallRequestMock {
 	p.parent.Handlers.VDelegatedCallRequest.touched = true
 	p.parent.Handlers.VDelegatedCallRequest.handler = handler
-	if p.parent.Handlers.VDelegatedCallRequest.expectedCount == 0 {
-		p.parent.Handlers.VDelegatedCallRequest.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVDelegatedCallRequestMock) SetResend() PubVDelegatedCallRequestMock {
+func (p PubVDelegatedCallRequestMock) SetResend(resend bool) PubVDelegatedCallRequestMock {
 	p.parent.Handlers.VDelegatedCallRequest.touched = true
-	p.parent.Handlers.VDelegatedCallRequest.handler = func(*payload.VDelegatedCallRequest) bool { return true }
+	p.parent.Handlers.VDelegatedCallRequest.handler = func(*payload.VDelegatedCallRequest) bool { return resend }
 	return p
+}
+
+func (p PubVDelegatedCallRequestMock) Count() int {
+	return p.parent.Handlers.VDelegatedCallRequest.count.Load()
 }
 
 // ============================================================================
@@ -108,16 +111,17 @@ func (p PubVDelegatedCallResponseMock) ExpectedCount(count int) PubVDelegatedCal
 func (p PubVDelegatedCallResponseMock) Set(handler VDelegatedCallResponseHandler) PubVDelegatedCallResponseMock {
 	p.parent.Handlers.VDelegatedCallResponse.touched = true
 	p.parent.Handlers.VDelegatedCallResponse.handler = handler
-	if p.parent.Handlers.VDelegatedCallResponse.expectedCount == 0 {
-		p.parent.Handlers.VDelegatedCallResponse.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVDelegatedCallResponseMock) SetResend() PubVDelegatedCallResponseMock {
+func (p PubVDelegatedCallResponseMock) SetResend(resend bool) PubVDelegatedCallResponseMock {
 	p.parent.Handlers.VDelegatedCallResponse.touched = true
-	p.parent.Handlers.VDelegatedCallResponse.handler = func(*payload.VDelegatedCallResponse) bool { return true }
+	p.parent.Handlers.VDelegatedCallResponse.handler = func(*payload.VDelegatedCallResponse) bool { return resend }
 	return p
+}
+
+func (p PubVDelegatedCallResponseMock) Count() int {
+	return p.parent.Handlers.VDelegatedCallResponse.count.Load()
 }
 
 // ============================================================================
@@ -134,16 +138,17 @@ func (p PubVDelegatedRequestFinishedMock) ExpectedCount(count int) PubVDelegated
 func (p PubVDelegatedRequestFinishedMock) Set(handler VDelegatedRequestFinishedHandler) PubVDelegatedRequestFinishedMock {
 	p.parent.Handlers.VDelegatedRequestFinished.touched = true
 	p.parent.Handlers.VDelegatedRequestFinished.handler = handler
-	if p.parent.Handlers.VDelegatedRequestFinished.expectedCount == 0 {
-		p.parent.Handlers.VDelegatedRequestFinished.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVDelegatedRequestFinishedMock) SetResend() PubVDelegatedRequestFinishedMock {
+func (p PubVDelegatedRequestFinishedMock) SetResend(resend bool) PubVDelegatedRequestFinishedMock {
 	p.parent.Handlers.VDelegatedRequestFinished.touched = true
-	p.parent.Handlers.VDelegatedRequestFinished.handler = func(*payload.VDelegatedRequestFinished) bool { return true }
+	p.parent.Handlers.VDelegatedRequestFinished.handler = func(*payload.VDelegatedRequestFinished) bool { return resend }
 	return p
+}
+
+func (p PubVDelegatedRequestFinishedMock) Count() int {
+	return p.parent.Handlers.VDelegatedRequestFinished.count.Load()
 }
 
 // ============================================================================
@@ -160,16 +165,17 @@ func (p PubVStateRequestMock) ExpectedCount(count int) PubVStateRequestMock {
 func (p PubVStateRequestMock) Set(handler VStateRequestHandler) PubVStateRequestMock {
 	p.parent.Handlers.VStateRequest.touched = true
 	p.parent.Handlers.VStateRequest.handler = handler
-	if p.parent.Handlers.VStateRequest.expectedCount == 0 {
-		p.parent.Handlers.VStateRequest.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVStateRequestMock) SetResend() PubVStateRequestMock {
+func (p PubVStateRequestMock) SetResend(resend bool) PubVStateRequestMock {
 	p.parent.Handlers.VStateRequest.touched = true
-	p.parent.Handlers.VStateRequest.handler = func(*payload.VStateRequest) bool { return true }
+	p.parent.Handlers.VStateRequest.handler = func(*payload.VStateRequest) bool { return resend }
 	return p
+}
+
+func (p PubVStateRequestMock) Count() int {
+	return p.parent.Handlers.VStateRequest.count.Load()
 }
 
 // ============================================================================
@@ -186,16 +192,71 @@ func (p PubVStateReportMock) ExpectedCount(count int) PubVStateReportMock {
 func (p PubVStateReportMock) Set(handler VStateReportHandler) PubVStateReportMock {
 	p.parent.Handlers.VStateReport.touched = true
 	p.parent.Handlers.VStateReport.handler = handler
-	if p.parent.Handlers.VStateReport.expectedCount == 0 {
-		p.parent.Handlers.VStateReport.expectedCount = -1
-	}
 	return p
 }
 
-func (p PubVStateReportMock) SetResend() PubVStateReportMock {
+func (p PubVStateReportMock) SetResend(resend bool) PubVStateReportMock {
 	p.parent.Handlers.VStateReport.touched = true
-	p.parent.Handlers.VStateReport.handler = func(*payload.VStateReport) bool { return true }
+	p.parent.Handlers.VStateReport.handler = func(*payload.VStateReport) bool { return resend }
 	return p
+}
+
+func (p PubVStateReportMock) Count() int {
+	return p.parent.Handlers.VStateReport.count.Load()
+}
+
+// ============================================================================
+
+type VFindCallRequestHandler func(*payload.VFindCallRequest) bool
+type PubVFindCallRequestMock struct{ parent *TypePublishChecker }
+
+func (p PubVFindCallRequestMock) ExpectedCount(count int) PubVFindCallRequestMock {
+	p.parent.Handlers.VFindCallRequest.touched = true
+	p.parent.Handlers.VFindCallRequest.expectedCount = count
+	return p
+}
+
+func (p PubVFindCallRequestMock) Set(handler VFindCallRequestHandler) PubVFindCallRequestMock {
+	p.parent.Handlers.VFindCallRequest.touched = true
+	p.parent.Handlers.VFindCallRequest.handler = handler
+	return p
+}
+
+func (p PubVFindCallRequestMock) SetResend(resend bool) PubVFindCallRequestMock {
+	p.parent.Handlers.VFindCallRequest.touched = true
+	p.parent.Handlers.VFindCallRequest.handler = func(*payload.VFindCallRequest) bool { return resend }
+	return p
+}
+
+func (p PubVFindCallRequestMock) Count() int {
+	return p.parent.Handlers.VFindCallRequest.count.Load()
+}
+
+// ============================================================================
+
+type VFindCallResponseHandler func(*payload.VFindCallResponse) bool
+type PubVFindCallResponseMock struct{ parent *TypePublishChecker }
+
+func (p PubVFindCallResponseMock) ExpectedCount(count int) PubVFindCallResponseMock {
+	p.parent.Handlers.VFindCallResponse.touched = true
+	p.parent.Handlers.VFindCallResponse.expectedCount = count
+	return p
+}
+
+func (p PubVFindCallResponseMock) Set(handler VFindCallResponseHandler) PubVFindCallResponseMock {
+	p.parent.Handlers.VFindCallResponse.touched = true
+	p.parent.Handlers.VFindCallResponse.handler = handler
+	return p
+}
+
+func (p PubVFindCallResponseMock) SetResend(resend bool) PubVFindCallResponseMock {
+	p.parent.Handlers.VFindCallResponse.touched = true
+	p.parent.Handlers.VFindCallResponse.handler = func(*payload.VFindCallResponse) bool { return resend }
+	return p
+}
+
+func (p PubVFindCallResponseMock) Count() int {
+	return p.parent.Handlers.VFindCallResponse.count.Load()
 }
 
 // ============================================================================
@@ -243,6 +304,18 @@ type TypePublishCheckerHandlers struct {
 		expectedCount int
 		handler       VStateReportHandler
 	}
+	VFindCallRequest struct {
+		touched       bool
+		count         atomickit.Int
+		expectedCount int
+		handler       VFindCallRequestHandler
+	}
+	VFindCallResponse struct {
+		touched       bool
+		count         atomickit.Int
+		expectedCount int
+		handler       VFindCallResponseHandler
+	}
 
 	BaseMessage struct {
 		handler func(message *message.Message)
@@ -264,6 +337,8 @@ type TypePublishChecker struct {
 	VDelegatedRequestFinished PubVDelegatedRequestFinishedMock
 	VStateRequest             PubVStateRequestMock
 	VStateReport              PubVStateReportMock
+	VFindCallRequest          PubVFindCallRequestMock
+	VFindCallResponse         PubVFindCallResponseMock
 }
 
 func NewTypePublishChecker(ctx context.Context, t minimock.Tester, sender Sender) *TypePublishChecker {
@@ -272,6 +347,63 @@ func NewTypePublishChecker(ctx context.Context, t minimock.Tester, sender Sender
 		ctx:           ctx,
 		defaultResend: false,
 		resend:        sender.SendMessage,
+
+		Handlers: TypePublishCheckerHandlers{
+			VCallRequest: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VCallRequestHandler
+			}{expectedCount: -1},
+			VCallResult: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VCallResultHandler
+			}{expectedCount: -1},
+			VDelegatedCallRequest: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VDelegatedCallRequestHandler
+			}{expectedCount: -1},
+			VDelegatedCallResponse: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VDelegatedCallResponseHandler
+			}{expectedCount: -1},
+			VDelegatedRequestFinished: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VDelegatedRequestFinishedHandler
+			}{expectedCount: -1},
+			VStateRequest: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VStateRequestHandler
+			}{expectedCount: -1},
+			VStateReport: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VStateReportHandler
+			}{expectedCount: -1},
+			VFindCallRequest: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VFindCallRequestHandler
+			}{expectedCount: -1},
+			VFindCallResponse: struct {
+				touched       bool
+				count         atomickit.Int
+				expectedCount int
+				handler       VFindCallResponseHandler
+			}{expectedCount: -1},
+		},
 	}
 
 	checker.VCallRequest = PubVCallRequestMock{parent: checker}
@@ -281,6 +413,8 @@ func NewTypePublishChecker(ctx context.Context, t minimock.Tester, sender Sender
 	checker.VDelegatedRequestFinished = PubVDelegatedRequestFinishedMock{parent: checker}
 	checker.VStateRequest = PubVStateRequestMock{parent: checker}
 	checker.VStateReport = PubVStateReportMock{parent: checker}
+	checker.VFindCallRequest = PubVFindCallRequestMock{parent: checker}
+	checker.VFindCallResponse = PubVFindCallResponseMock{parent: checker}
 
 	if controller, ok := t.(minimock.MockController); ok {
 		controller.RegisterMocker(checker)
@@ -404,6 +538,34 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 
 		hdlStruct.count.Add(1)
 
+	case *payload.VFindCallRequest:
+		hdlStruct := &p.Handlers.VFindCallRequest
+
+		resend = p.defaultResend
+
+		if hdlStruct.handler != nil {
+			resend = hdlStruct.handler(payload)
+		} else if !p.defaultResend && !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T payload", payload)
+			return
+		}
+
+		hdlStruct.count.Add(1)
+
+	case *payload.VFindCallResponse:
+		hdlStruct := &p.Handlers.VFindCallResponse
+
+		resend = p.defaultResend
+
+		if hdlStruct.handler != nil {
+			resend = hdlStruct.handler(payload)
+		} else if !p.defaultResend && !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T payload", payload)
+			return
+		}
+
+		hdlStruct.count.Add(1)
+
 	default:
 		p.t.Fatalf("unexpected %T payload", basePayload)
 		return
@@ -439,6 +601,12 @@ func (p *TypePublishChecker) minimockDone() bool {
 		return hdl.count.Load() == hdl.expectedCount
 	}
 	if hdl := p.Handlers.VStateReport; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
+		return hdl.count.Load() == hdl.expectedCount
+	}
+	if hdl := p.Handlers.VFindCallRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
+		return hdl.count.Load() == hdl.expectedCount
+	}
+	if hdl := p.Handlers.VFindCallResponse; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
 		return hdl.count.Load() == hdl.expectedCount
 	}
 	return true

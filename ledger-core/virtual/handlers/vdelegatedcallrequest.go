@@ -9,7 +9,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -21,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	authentication "github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -115,9 +114,9 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 
 	action := func(state *object.SharedState) {
 		var (
-			oldestPulse  pulse.Number
-			pendingList  *object.RequestList
-			pendingCount uint8
+			oldestPulse                  pulse.Number
+			pendingList                  *object.PendingList
+			previousExecutorPendingCount int
 		)
 
 		callTolerance := s.Payload.CallFlags.GetInterference()
@@ -126,11 +125,11 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 		case contract.CallTolerable:
 			pendingList = state.PendingTable.GetList(contract.CallTolerable)
 			oldestPulse = state.OrderedPendingEarliestPulse
-			pendingCount = state.ActiveOrderedPendingCount
+			previousExecutorPendingCount = int(state.PreviousExecutorOrderedPendingCount)
 		case contract.CallIntolerable:
 			pendingList = state.PendingTable.GetList(contract.CallIntolerable)
 			oldestPulse = state.UnorderedPendingEarliestPulse
-			pendingCount = state.ActiveUnorderedPendingCount
+			previousExecutorPendingCount = int(state.PreviousExecutorUnorderedPendingCount)
 		default:
 			panic(throw.Unsupported())
 		}
@@ -141,8 +140,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 		}
 
 		// pendingList already full
-		if pendingList.Count() == int(pendingCount) && !pendingList.Exist(s.Payload.CallOutgoing) {
-			fmt.Println(pendingList.Count(), int(pendingCount), pendingList.Exist(s.Payload.CallOutgoing))
+		if pendingList.Count() == previousExecutorPendingCount && !pendingList.Exist(s.Payload.CallOutgoing) {
 			resultCheck = delegationFullTable
 			return
 		}
@@ -156,7 +154,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 			return
 		}
 
-		if pendingList.Count() == int(pendingCount) {
+		if pendingList.Count() == previousExecutorPendingCount {
 			state.SetPendingListFilled(ctx, callTolerance)
 		}
 	}
@@ -191,9 +189,9 @@ func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContex
 	token := s.authenticationService.GetCallDelegationToken(s.Payload.CallOutgoing, s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
 
 	response := payload.VDelegatedCallResponse{
-		Callee:         s.Payload.Callee,
-		CallIncoming:   s.Payload.CallIncoming,
-		DelegationSpec: token,
+		Callee:                 s.Payload.Callee,
+		CallIncoming:           s.Payload.CallIncoming,
+		ResponseDelegationSpec: token,
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

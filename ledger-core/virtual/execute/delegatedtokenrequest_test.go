@@ -21,26 +21,32 @@ import (
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
 
-func TestVirtual_CDelegatedCallRequest(t *testing.T) {
+func TestVDelegatedCallRequest(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
-	slotMachine.PrepareRunner(ctx, mc)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine.PrepareMockedRunner(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller         = gen.UniqueReference()
-		callee         = gen.UniqueReference()
-		outgoing       = gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		objectRef      = reference.NewSelf(outgoing)
+		caller         = gen.UniqueGlobalRef()
+		callee         = gen.UniqueGlobalRef()
+		outgoing       = gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		objectGlobal   = reference.NewSelf(outgoing)
+		outgoingGlobal = reference.NewRecordOf(callee, outgoing)
+		tokenKey       = DelegationTokenAwaitKey{outgoingGlobal}
+
 		migrationPulse pulse.Number
 
 		smExecute = SMExecute{
@@ -55,27 +61,28 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 		}
 	)
 
-	catalogWrapper := object.NewCatalogMockWrapper(mc)
-
 	{
+		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var (
-			catalog     object.Catalog = catalogWrapper.Mock()
-			sharedState                = &object.SharedState{
-				Info: object.Info{
-					Reference:      objectRef,
-					PendingTable:   object.NewRequestTable(),
-					KnownRequests:  object.NewRequestTable(),
-					ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-					OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
-				},
-			}
+			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service = authentication.NewServiceMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&authService)
 
-		sharedStateData := smachine.NewUnboundSharedData(sharedState)
+		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
+			Info: object.Info{
+				Reference:      objectGlobal,
+				PendingTable:   object.NewRequestTable(),
+				KnownRequests:  object.NewWorkingTable(),
+				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+			},
+		})
+
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AddObject(objectGlobal, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -84,36 +91,59 @@ func TestVirtual_CDelegatedCallRequest(t *testing.T) {
 			res, ok := msg.(*payload.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)
-			require.Equal(t, objectRef, object)
+			require.Equal(t, objectGlobal, object)
 			require.Equal(t, migrationPulse, pn)
 			return nil
 		})
 
+	{
+		slotMachine.RunnerMock.AddExecutionClassify(outgoingGlobal.String(), contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		}, nil)
+		slotMachine.RunnerMock.AddExecutionMock(outgoingGlobal.String()).AddStart(
+			nil,
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("123"), objectGlobal),
+			})
+	}
+
 	slotMachine.Start()
 	defer slotMachine.Stop()
+
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 	{
 
 		slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 		slotMachine.Migrate()
 		migrationPulse = slotMachine.PulseSlot.CurrentPulseNumber()
-		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepGetDelegationToken))
+
 		var smDelegatedTokenRequest SMDelegatedTokenRequest
 		slotMachine.RunTil(smWrapper.AfterStep(smDelegatedTokenRequest.stepSendRequest))
-		slotLink, bargeInHolder := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(DelegationTokenAwaitKey{smExecute.execution.Outgoing})
 
+		slotLink, bargeInHolder := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(tokenKey)
 		require.False(t, slotLink.IsZero())
-		require.True(t, bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			DelegationSpec: payload.CallDelegationToken{Outgoing: smExecute.execution.Outgoing},
-		}))
+
+		ok := bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
+			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: outgoingGlobal},
+		})
+		require.True(t, ok)
 	}
+
 	{
-		slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepAfterTokenGet.Transition))
+		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepAfterTokenGet.Transition))
 
 		require.NotNil(t, smExecute.delegationTokenSpec)
-		require.Equal(t, smExecute.execution.Outgoing, smExecute.delegationTokenSpec.Outgoing)
+		require.Equal(t, outgoingGlobal, smExecute.delegationTokenSpec.Outgoing)
 	}
-	require.NoError(t, catalogWrapper.CheckDone())
+
+	{
+		// global alias should be cleanup'd here
+		slotLink, _ := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(tokenKey)
+		require.True(t, slotLink.IsZero())
+	}
+
 	mc.Finish()
 
 }

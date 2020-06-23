@@ -3,8 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-//TODO https://insolar.atlassian.net/browse/PLAT-442
-////go:generate sm-uml-gen -f $GOFILE
+//go:generate sm-uml-gen -f $GOFILE
 
 package conveyor
 
@@ -50,7 +49,9 @@ func (sm *antiqueEventSM) stepRequestOldPulseData(ctx smachine.ExecutionContext)
 
 func (sm *antiqueEventSM) stepGotAnswer(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if cps := sm.ps.pulseManager.getCachedPulseSlot(sm.pn); cps != nil {
-		var createDefaults smachine.CreateDefaultValues
+		createDefaults := smachine.CreateDefaultValues{
+			InheritAllDependencies: true,
+		}
 		createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
 		return ctx.ReplaceExt(sm.createFn, createDefaults)
 	}

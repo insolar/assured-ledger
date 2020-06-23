@@ -30,12 +30,12 @@ type SMVDelegatedRequestFinished struct {
 	objectCatalog object.Catalog
 }
 
-type stateIsNotReadyErrorMsg struct {
+type stateIsNotReady struct {
 	*log.Msg `txt:"State is not ready"`
 	Object   string
 }
 
-type unExpectedVDelegateRequestFinished struct {
+type unexpectedVDelegateRequestFinished struct {
 	*log.Msg `txt:"Unexpected VDelegateRequestFinished"`
 	Object   string
 	Request  string
@@ -102,7 +102,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
-			ctx.Log().Trace(stateIsNotReadyErrorMsg{
+			ctx.Log().Trace(stateIsNotReady{
 				Object: s.Payload.Callee.String(),
 			})
 			return false
@@ -149,31 +149,26 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 
 	switch s.Payload.CallFlags.GetInterference() {
 	case contract.CallIntolerable:
-		if state.ActiveUnorderedPendingCount > 0 {
-			state.ActiveUnorderedPendingCount--
-		} else {
-			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+		if state.PreviousExecutorUnorderedPendingCount == 0 {
+			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef.String(),
 				Request: requestRef.String(),
 				Ordered: false,
 			})
 		}
 	case contract.CallTolerable:
-		if state.ActiveOrderedPendingCount > 0 {
-			state.ActiveOrderedPendingCount--
-
-			if state.ActiveOrderedPendingCount == 0 {
-				// If we do not have pending ordered, release sync object.
-				if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-					ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")
-				}
-			}
-		} else {
-			ctx.Log().Warn(unExpectedVDelegateRequestFinished{
+		if state.PreviousExecutorOrderedPendingCount == 0 {
+			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef.String(),
 				Request: requestRef.String(),
 				Ordered: true,
 			})
+		}
+		if pendingList.CountActive() == 0 {
+			// If we do not have pending ordered, release sync object.
+			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
+				ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")
+			}
 		}
 	}
 }

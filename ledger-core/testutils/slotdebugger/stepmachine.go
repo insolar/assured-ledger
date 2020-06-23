@@ -14,10 +14,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -38,7 +40,7 @@ type StepController struct {
 
 	SlotMachine   *smachine.SlotMachine
 	PulseSlot     conveyor.PulseSlot
-	debugLogger   *testUtilsCommon.DebugMachineLogger
+	debugLogger   *debuglogger.DebugMachineLogger
 	stepIsWaiting bool
 	watchdog      *watchdog
 
@@ -46,22 +48,31 @@ type StepController struct {
 	MessageSender *messagesender.ServiceMockWrapper
 }
 
-func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	controller := new(ctx, t, suppressLogError)
+func NewWithErrorFilter(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *StepController {
+	controller := newController(ctx, t, filterFn)
 	controller.preparePresentPulseSlot()
 	return controller
 }
 
-func NewPast(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	controller := new(ctx, t, suppressLogError)
+// deprecated
+func NewWithIgnoreAllErrors(ctx context.Context, t *testing.T) *StepController {
+	return NewWithErrorFilter(ctx, t, func(string) bool { return false })
+}
+
+func New(ctx context.Context, t *testing.T) *StepController {
+	return NewWithErrorFilter(ctx, t, nil)
+}
+
+func NewPast(ctx context.Context, t *testing.T) *StepController {
+	controller := newController(ctx, t, nil)
 	controller.preparePastPulseSlot()
 	return controller
 }
 
-func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	inslogger.SetTestOutput(t, suppressLogError)
+func newController(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *StepController {
+	instestlogger.SetTestOutputWithErrorFilter(t, filterFn)
 
-	debugLogger := testUtilsCommon.NewDebugMachineLogger(convlog.MachineLogger{})
+	debugLogger := debuglogger.NewDebugMachineLogger(convlog.MachineLogger{})
 	machineConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -75,7 +86,7 @@ func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepControll
 	w := &StepController{
 		t:           t,
 		ctx:         ctx,
-		debugLogger: debugLogger,
+		debugLogger: &debugLogger,
 	}
 	w.SlotMachine = smachine.NewSlotMachine(machineConfig,
 		w.internalSignal.NextBroadcast,
@@ -128,7 +139,7 @@ func (c *StepController) Start() {
 	c.worker.Start()
 }
 
-func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
+func (c *StepController) NextStep() debuglogger.UpdateEvent {
 	if c.stepIsWaiting {
 		c.debugLogger.Continue()
 	}
@@ -137,7 +148,7 @@ func (c *StepController) NextStep() testUtilsCommon.UpdateEvent {
 	return rv
 }
 
-func (c *StepController) RunTil(predicate func(event testUtilsCommon.UpdateEvent) bool) {
+func (c *StepController) RunTil(predicate func(event debuglogger.UpdateEvent) bool) {
 	for {
 		switch event := c.NextStep(); {
 		case event.IsEmpty():
@@ -152,10 +163,8 @@ func (c *StepController) Stop() {
 	c.watchdog.Stop()
 
 	c.SlotMachine.Stop()
-	c.externalSignal.NextBroadcast()
-	c.debugLogger.Stop()
 
-	c.debugLogger.FlushEvents(c.worker.finishedSignal())
+	c.debugLogger.FlushEvents(c.worker.finishedSignal(), true)
 }
 
 func (c *StepController) Migrate() {
