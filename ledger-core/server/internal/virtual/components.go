@@ -35,6 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 )
 
@@ -133,6 +134,7 @@ func initComponents(
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = jc
+	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, jc)
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
