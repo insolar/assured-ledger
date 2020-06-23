@@ -414,7 +414,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -422,7 +422,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
-	ref := gen.UniqueReference()
+	ref := gen.UniqueGlobalRef()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
@@ -437,7 +437,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smExecute := SMExecute{
 		Meta: &payload.Meta{
-			Sender: gen.UniqueReference(),
+			Sender: gen.UniqueGlobalRef(),
 		},
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
@@ -455,7 +455,11 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		}),
 	}
 
+	ref = reference.NewRecordOf(request.Callee, request.CallOutgoing)
+
 	smExecute = expectedInitState(ctx, smExecute)
+
+	smObject.KnownRequests.GetList(contract.CallTolerable).Add(ref)
 
 	{
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -471,13 +475,13 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 		smExecute.stepFinishRequest(execCtx)
 	}
-	require.Equal(t, 1, smObject.ResultTable.Len())
+	require.Equal(t, 1, smObject.KnownRequests.Len())
 
-	res := smObject.ResultTable.GetList(contract.CallTolerable)
+	res := smObject.KnownRequests.GetList(contract.CallTolerable)
 
 	require.Equal(t, 1, res.Count())
 
-	result, ok := res.Get(reference.NewRecordOf(request.Callee, request.CallOutgoing))
+	result, ok := res.GetResult(ref)
 
 	require.True(t, ok)
 	require.NotNil(t, result)
