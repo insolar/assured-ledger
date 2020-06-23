@@ -25,6 +25,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
+type ErrorDetail struct {
+	Type int
+}
+
+const (
+	DetailEmptyClassRef = iota
+	DetailBadClassRef
+)
+
 type UnmanagedService interface {
 	ExecutionStart(execution execution.Context) RunState
 	ExecutionContinue(run RunState, outgoingResult []byte)
@@ -173,7 +182,7 @@ func (r *DefaultService) executeMethod(
 
 	classReference, err := objectDescriptor.Class()
 	if err != nil {
-		return nil, errors.W(err, "couldn't get class reference")
+		return nil, errors.W(err, "couldn't get class reference", ErrorDetail{DetailEmptyClassRef})
 	}
 	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
@@ -181,7 +190,7 @@ func (r *DefaultService) executeMethod(
 
 	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, classReference)
 	if err != nil {
-		return nil, errors.W(err, "couldn't get descriptors")
+		return nil, errors.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
@@ -228,7 +237,7 @@ func (r *DefaultService) executeConstructor(
 
 	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.Callee)
 	if err != nil {
-		return nil, errors.W(err, "couldn't get descriptors")
+		return nil, errors.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
@@ -336,7 +345,7 @@ func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (
 
 	classReference, err := objectDescriptor.Class()
 	if err != nil {
-		return contract.MethodIsolation{}, throw.W(err, "couldn't get class reference")
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get class reference", ErrorDetail{DetailEmptyClassRef})
 	}
 	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
@@ -347,7 +356,7 @@ func (r *DefaultService) ExecutionClassify(executionContext execution.Context) (
 func (r *DefaultService) classifyCall(ctx context.Context, classReference reference.Global, method string) (contract.MethodIsolation, error) {
 	_, codeDescriptor, err := r.Cache.ByClassRef(ctx, classReference)
 	if err != nil {
-		return contract.MethodIsolation{}, throw.W(err, "couldn't get descriptors")
+		return contract.MethodIsolation{}, throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())

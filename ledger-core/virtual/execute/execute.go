@@ -11,8 +11,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -30,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -518,9 +517,19 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
 	case execution.Error:
-		err := throw.W(newState.Error, "failed to execute request")
-		ctx.Log().Warn(err)
-		s.prepareExecutionError(err)
+		var detail runner.ErrorDetail
+		if throw.FindDetail(newState.Error, &detail) {
+			switch detail.Type {
+			case runner.DetailBadClassRef, runner.DetailEmptyClassRef:
+				s.prepareExecutionError(errors.New("bad class reference"))
+			}
+		} else {
+			s.prepareExecutionError(throw.W(newState.Error, "failed to execute request"))
+		}
+		ctx.Log().Warn(struct {
+			string
+			err error
+		}{"Failed to execute request", newState.Error})
 		return ctx.Jump(s.stepExecuteAborted)
 	case execution.Abort:
 		err := throw.E("execution aborted")
