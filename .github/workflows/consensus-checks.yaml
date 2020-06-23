@@ -50,7 +50,7 @@ jobs:
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
-      - name: Push assured ledger image to local registry
+      - name: Push assured ledger image to Azure container registry registry
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
           docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:latest

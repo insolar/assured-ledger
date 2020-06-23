@@ -14,6 +14,7 @@ spec:
                     operator: In
                     values:
                       - virtual
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: insolar
           resources:
