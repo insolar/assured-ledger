@@ -398,21 +398,10 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}
 }
 
-func (sm *SMObject) hasPendingExecution() bool {
-	return sm.PotentialUnorderedPendingCount > 0 ||
-		sm.PotentialOrderedPendingCount > 0
-}
-
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	switch sm.GetState() {
-	case Unknown:
+	if sm.GetState() == Unknown {
 		ctx.Log().Trace("SMObject migration happened when object is not ready yet")
 		return ctx.Stop()
-	case Empty:
-		if !sm.hasPendingExecution() {
-			ctx.Log().Trace("SMObject migration happened when object is not ready yet")
-			return ctx.Stop()
-		}
 	}
 
 	ctx.UnpublishAll()
