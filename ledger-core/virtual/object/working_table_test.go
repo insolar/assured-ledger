@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -100,13 +101,21 @@ func TestWorkingList(t *testing.T) {
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 3, rl.CountActive())
 
-	rl.Finish(RefOne)
+	expResult := payload.VCallResult{
+		Caller: gen.UniqueGlobalRef(),
+		Callee: gen.UniqueGlobalRef(),
+	}
+
+	rl.Finish(RefOne, &expResult)
 	assert.Equal(t, pd.PulseNumber, rl.EarliestPulse()) // doesn't change
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
+	actResult, ok := rl.GetResult(RefOne)
+	assert.True(t, ok)
+	assert.Equal(t, &expResult, actResult)
 
 	// try to finish ref that not in list
-	successFinish := rl.Finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)))
+	successFinish := rl.Finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)), nil)
 	assert.Equal(t, false, successFinish)
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
@@ -142,8 +151,17 @@ func TestWorkingList_Finish(t *testing.T) {
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
 
-	rl.Finish(RefOne)
+	result := payload.VCallResult{
+		Caller: gen.UniqueGlobalRef(),
+		Callee: gen.UniqueGlobalRef(),
+	}
+
+	rl.Finish(RefOne, &result)
+
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 1, rl.CountActive())
 	assert.Equal(t, nextPulseNumber, rl.earliestActivePulse)
+	actResult, ok := rl.GetResult(RefOne)
+	assert.True(t, ok)
+	assert.Equal(t, &result, actResult)
 }

@@ -20,6 +20,7 @@ type Context struct {
 	ObjectDescriptor descriptor.Object
 	Context          context.Context
 	Request          *payload.VCallRequest
+	Result           *payload.VCallResult
 	Sequence         uint32
 	Pulse            pulse.Data
 

@@ -805,6 +805,9 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		DelegationSpec:     s.getToken(),
 	}
 
+	// save result for future pass to SMObject
+	s.execution.Result = &msg
+
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -820,13 +823,12 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
 	if s.migrationHappened {
 		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
 
 	action := func(state *object.SharedState) {
-		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing)
+		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing, s.execution.Result)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
