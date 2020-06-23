@@ -20,7 +20,7 @@ import (
 )
 
 func TestComponents(t *testing.T) {
-	instestlogger.SetTestOutput(t)
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
 
 	ctx := inslogger.UpdateLogger(context.Background(), func(logger log.Logger) (log.Logger, error) {
 		return logger.Copy().WithBuffer(100, false).Build()
