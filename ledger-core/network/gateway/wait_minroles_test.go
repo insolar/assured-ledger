@@ -67,7 +67,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 		assert.Equal(t, node2.WaitPulsar, state)
 	})
 
-	ref := gen.UniqueReference()
+	ref := gen.UniqueGlobalRef()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 
 	accessor1 := mock.NewAccessorMock(mc)

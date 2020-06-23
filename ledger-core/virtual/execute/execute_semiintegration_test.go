@@ -29,8 +29,8 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
+		class       = gen.UniqueGlobalRef()
+		caller      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
@@ -41,11 +41,11 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	outgoing := gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+	outgoing := gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 	objectRef := reference.NewSelf(outgoing)
 
 	smExecute := SMExecute{
@@ -101,9 +101,9 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
-		callee      = gen.UniqueReference()
+		class       = gen.UniqueGlobalRef()
+		caller      = gen.UniqueGlobalRef()
+		callee      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
@@ -114,11 +114,11 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	outgoing := gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+	outgoing := gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 	objectRef := reference.NewSelf(outgoing)
 
 	smExecute := SMExecute{
@@ -176,8 +176,8 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
+		class       = gen.UniqueGlobalRef()
+		caller      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   object.NewRequestTable(),
@@ -188,11 +188,11 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	outgoing := gen.UniqueIDWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+	outgoing := gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 	objectRef := reference.NewSelf(outgoing)
 
 	smExecute := SMExecute{
@@ -251,13 +251,13 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	var (
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
+		class       = gen.UniqueGlobalRef()
+		caller      = gen.UniqueGlobalRef()
 		outgoing    = slotMachine.GenerateLocal()
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
@@ -326,14 +326,14 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	var (
-		class       = gen.UniqueReference()
-		caller      = gen.UniqueReference()
-		outgoing    = gen.UniqueID()
+		class       = gen.UniqueGlobalRef()
+		caller      = gen.UniqueGlobalRef()
+		outgoing    = gen.UniqueLocalRef()
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -401,7 +401,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		ctx = inslogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 

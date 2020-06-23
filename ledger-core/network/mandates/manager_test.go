@@ -36,7 +36,7 @@ func newDiscovery() (*BootstrapNode, cryptography.Service) {
 	cs := platformpolicy.NewKeyBoundCryptographyService(key)
 	pk, _ := cs.GetPublicKey()
 	pubKeyBuf, _ := kp.ExportPublicKeyPEM(pk)
-	ref := gen.UniqueReference().String()
+	ref := gen.UniqueGlobalRef().String()
 	n := NewBootstrapNode(pk, string(pubKeyBuf), " ", ref, node.StaticRoleVirtual.String())
 	return n, cs
 }
@@ -53,7 +53,7 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 
 	cert := &Certificate{}
 	cert.PublicKey = string(publicKey[:])
-	cert.Reference = gen.UniqueReference().String()
+	cert.Reference = gen.UniqueGlobalRef().String()
 	cert.Role = node.StaticRoleHeavyMaterial.String()
 	cert.MinRoles.HeavyMaterial = 1
 	cert.MinRoles.Virtual = 4

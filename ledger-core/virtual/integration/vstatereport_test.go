@@ -41,8 +41,8 @@ func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
 
 	testBalance := uint32(555)
 	additionalBalance := uint(133)
-	objectRef := gen.UniqueReference()
-	stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+	objectRef := gen.UniqueGlobalRef()
+	stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
 	{
 		// send VStateReport: save wallet
 
@@ -223,7 +223,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 		},
 	}
 
-	class := gen.UniqueReference()
+	class := gen.UniqueGlobalRef()
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
@@ -254,7 +254,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 				ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 					LatestDirtyState: &payload.ObjectState{
-						Reference: gen.UniqueIDWithPulse(suite.getPulse(1)),
+						Reference: gen.UniqueLocalRefWithPulse(suite.getPulse(1)),
 						Class:     class,
 						State:     []byte("object memory"),
 					},
@@ -352,7 +352,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) generateCaller(ctx contex
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.caller = reference.NewSelf(gen.UniqueIDWithPulse(p))
+	s.caller = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) generateObjectRef(ctx context.Context) {
@@ -361,21 +361,21 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) generateObjectRef(ctx con
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.object = reference.NewSelf(gen.UniqueIDWithPulse(p))
+	s.object = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) generateRequests(ctx context.Context) {
 	s.requests = map[string]*stateReportCheckPendingCountersAndPulsesTestRequestInfo{
 		"Ordered1": {
-			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueIDWithPulse(s.getPulse(2))),
+			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(2))),
 			flags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		},
 		"Unordered1": {
-			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueIDWithPulse(s.getPulse(2))),
+			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(2))),
 			flags: payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		},
 		"Unordered2": {
-			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueIDWithPulse(s.getPulse(3))),
+			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(3))),
 			flags: payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		},
 	}
@@ -411,7 +411,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	intFlag contract.InterferenceFlag,
 ) {
 	pulseNumber := s.getPulse(1)
-	outgoingLocal := gen.UniqueIDWithPulse(pulseNumber)
+	outgoingLocal := gen.UniqueLocalRefWithPulse(pulseNumber)
 	outgoing := reference.NewRecordOf(s.getObject(), outgoingLocal)
 	key := outgoing.String()
 

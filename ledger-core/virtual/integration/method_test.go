@@ -336,7 +336,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class = gen.UniqueReference()
+		class = gen.UniqueGlobalRef()
 
 		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -350,7 +350,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
 
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
@@ -438,7 +438,7 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class = gen.UniqueReference()
+		class = gen.UniqueGlobalRef()
 
 		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -447,7 +447,7 @@ func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
 
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
@@ -535,13 +535,13 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class         = gen.UniqueReference()
+		class         = gen.UniqueGlobalRef()
 		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
@@ -628,13 +628,13 @@ func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
 
 	var (
 		flags         = contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
-		class         = gen.UniqueReference()
+		class         = gen.UniqueGlobalRef()
 		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueReference(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
+	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
 	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 	objectAExecutionMock.AddStart(
 		func(ctx execution.Context) {
@@ -727,14 +727,14 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 		isolation = contract.ConstructorIsolation()
 		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 
-		classA        = gen.UniqueReference()
+		classA        = gen.UniqueGlobalRef()
 		outgoingA     = server.RandomLocalWithPulse()
 		objectAGlobal = reference.NewSelf(outgoingA)
 
-		classB        = gen.UniqueReference()
+		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingCallRef = gen.UniqueReference()
+		outgoingCallRef = gen.UniqueGlobalRef()
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
@@ -865,14 +865,14 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 		isolation = contract.ConstructorIsolation()
 		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 
-		classA        = gen.UniqueReference()
+		classA        = gen.UniqueGlobalRef()
 		outgoingA     = server.RandomLocalWithPulse()
 		objectAGlobal = reference.NewSelf(outgoingA)
 
-		classB        = gen.UniqueReference()
+		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingCallRef = gen.UniqueReference()
+		outgoingCallRef = gen.UniqueGlobalRef()
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
@@ -1006,12 +1006,12 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 		outgoingA     = server.RandomLocalWithPulse()
 		objectAGlobal = reference.NewSelf(outgoingA)
 
-		classB         = gen.UniqueReference()
+		classB         = gen.UniqueGlobalRef()
 		objectB1Global = reference.NewSelf(server.RandomLocalWithPulse())
 		objectB2Global = reference.NewSelf(server.RandomLocalWithPulse())
 		objectB3Global = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingCallRef = gen.UniqueReference()
+		outgoingCallRef = gen.UniqueGlobalRef()
 	)
 
 	// create objects

@@ -173,7 +173,7 @@ func TestTestingLoggerOutputErrorOrPanic(t *testing.T) {
 		m1.written = nil
 		mt.err = ""
 
-		to.SuppressTestError = true
+		to.ErrorFilterFn = func(string) bool { return false }
 		n, err = to.LogLevelWrite(level, sample)
 		require.Equal(t, len(sample), n)
 		require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestTestingLoggerOutputFatal(t *testing.T) {
 	m1.written = nil
 	mt.ftl = ""
 
-	to.SuppressTestError = true
+	to.ErrorFilterFn = func(string) bool { return false }
 	n, err = to.LogLevelWrite(FatalLevel, sample)
 	require.Equal(t, len(sample), n)
 	require.NoError(t, err)
@@ -234,7 +234,7 @@ func TestTestingLoggerOutputFatal(t *testing.T) {
 	m1.written = nil
 	mt.ftl = ""
 
-	to.SuppressTestError = true // to.SuppressTestError = true does NOT apply to intercepted panics
+	to.ErrorFilterFn = func(string) bool { return false } // to.SuppressTestError = true does NOT apply to intercepted panics
 	n, err = to.LogLevelWrite(FatalLevel, sample)
 	require.Equal(t, len(sample), n)
 	require.NoError(t, err)

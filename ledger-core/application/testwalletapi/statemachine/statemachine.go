@@ -71,7 +71,7 @@ func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateU
 	ctx.SetDefaultMigration(s.migrationDefault)
 
 	s.requestPayload.Caller = APICaller
-	s.requestPayload.CallOutgoing = gen.UniqueIDWithPulse(s.pulseSlot.PulseData().PulseNumber)
+	s.requestPayload.CallOutgoing = gen.UniqueLocalRefWithPulse(s.pulseSlot.PulseData().PulseNumber)
 
 	return ctx.Jump(s.stepRegisterBargeIn)
 }

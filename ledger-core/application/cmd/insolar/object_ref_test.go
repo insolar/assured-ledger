@@ -18,13 +18,13 @@ import (
 // ID and Reference serialization tests
 
 func TestRecordID_String(t *testing.T) {
-	id := gen.UniqueID()
+	id := gen.UniqueLocalRef()
 	idStr := "insolar:1" + base64.RawURLEncoding.EncodeToString(id.AsBytes()) + ".record"
 
 	assert.Equal(t, idStr, reference.EncodeLocal(id))
 }
 func TestRecordRef_String(t *testing.T) {
-	ref := gen.UniqueReference()
+	ref := gen.UniqueGlobalRef()
 	expectedRefStr := "insolar:1" + base64.RawURLEncoding.EncodeToString(ref.GetLocal().AsBytes())
 
 	assert.Equal(t, expectedRefStr, reference.Encode(ref))

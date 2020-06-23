@@ -19,7 +19,7 @@ import (
 )
 
 func newTestNode() node2.NetworkNode {
-	return node.NewNode(gen.UniqueReference(), node2.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
+	return node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
 }
 
 func newTestNodeWithShortID(id node2.ShortNodeID) node2.NetworkNode {
@@ -91,10 +91,10 @@ func (t testNode) GetRole() node2.StaticRole {
 }
 
 func TestExcludeOrigin(t *testing.T) {
-	origin := gen.UniqueReference()
+	origin := gen.UniqueGlobalRef()
 	originNode := testNode{origin}
-	first := testNode{gen.UniqueReference()}
-	second := testNode{gen.UniqueReference()}
+	first := testNode{gen.UniqueGlobalRef()}
+	second := testNode{gen.UniqueGlobalRef()}
 
 	discoveryNodes := []node2.DiscoveryNode{first, originNode, second}
 	result := ExcludeOrigin(discoveryNodes, origin)

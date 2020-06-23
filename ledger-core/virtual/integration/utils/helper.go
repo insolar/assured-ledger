@@ -28,7 +28,7 @@ type Helper struct {
 func NewHelper(srv *Server) *Helper {
 	return &Helper{
 		server: srv,
-		class:  gen.UniqueReference(),
+		class:  gen.UniqueGlobalRef(),
 	}
 }
 
@@ -53,7 +53,7 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		Caller:         h.server.GlobalCaller(),
 		Callee:         h.class,
 		CallSiteMethod: "New",
-		CallOutgoing:   gen.UniqueIDWithPulse(pn),
+		CallOutgoing:   gen.UniqueLocalRefWithPulse(pn),
 		Arguments:      plArguments,
 	}
 	objectReference := h.calculateOutgoing(pl)

@@ -12,6 +12,6 @@ import (
 )
 
 func TestExample(t *testing.T) {
-	instestlogger.SetTestOutput(t, false)
+	instestlogger.SetTestOutput(t)
 	RunExample()
 }

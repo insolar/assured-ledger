@@ -37,7 +37,7 @@ func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
 
 func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *testing.T) {
 	ctx := context.Background()
-	selfRef := gen.UniqueReference()
+	selfRef := gen.UniqueGlobalRef()
 	sender := statemachine.APICaller
 
 	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
@@ -97,7 +97,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 		t.Run("HappyPath:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			refs := gen.UniqueReferences(3)
+			refs := gen.UniqueGlobalRefs(3)
 			sender := refs[0]
 			selfRef := refs[1]
 			approver := refs[2]
@@ -126,7 +126,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 		t.Run("Sender_equals_to_current_node:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			refs := gen.UniqueReferences(2)
+			refs := gen.UniqueGlobalRefs(2)
 			sender := refs[0]
 			selfRef := refs[1]
 
@@ -152,9 +152,9 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 		t.Run("ExpectedVE_not_equals_to_Approver:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			selfRef := gen.UniqueReference()
+			selfRef := gen.UniqueGlobalRef()
 
-			refs := gen.UniqueReferences(2)
+			refs := gen.UniqueGlobalRefs(2)
 			expectedVE := refs[0]
 			approver := refs[1]
 
@@ -228,7 +228,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			refs := gen.UniqueReferences(2)
+			refs := gen.UniqueGlobalRefs(2)
 			selfRef := refs[0]
 			sender := refs[0]
 
@@ -246,7 +246,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 		t.Run("BadSender:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			refs := gen.UniqueReferences(3)
+			refs := gen.UniqueGlobalRefs(3)
 			selfRef := refs[0]
 			sender := refs[1]
 			badSender := refs[2]
@@ -263,7 +263,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 		t.Run("MustReject_if_message_requires_prev_pulse_for_check:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			refs := gen.UniqueReferences(3)
+			refs := gen.UniqueGlobalRefs(3)
 			selfRef := refs[0]
 			sender := refs[1]
 
@@ -286,7 +286,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 		t.Run("More then one possible VE:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			refs := gen.UniqueReferences(2)
+			refs := gen.UniqueGlobalRefs(2)
 			selfRef := refs[0]
 			sender := refs[0]
 
@@ -305,7 +305,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 		t.Run("Cannot_calculate_role:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
-			refs := gen.UniqueReferences(2)
+			refs := gen.UniqueGlobalRefs(2)
 			selfRef := refs[0]
 			sender := refs[0]
 
@@ -328,8 +328,8 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 func TestService_HasToSendToken(t *testing.T) {
 	var (
-		selfRef  = gen.UniqueReference()
-		otherRef = gen.UniqueReference()
+		selfRef  = gen.UniqueGlobalRef()
+		otherRef = gen.UniqueGlobalRef()
 	)
 	tests := []struct {
 		name     string

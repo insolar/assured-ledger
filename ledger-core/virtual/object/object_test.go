@@ -31,7 +31,7 @@ func Test_Delay(t *testing.T) {
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 	)
 
@@ -85,7 +85,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 	)
 
@@ -163,14 +163,14 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = inslogger.TestContext(t)
 
-		objectReference = gen.UniqueReference()
+		objectReference = gen.UniqueGlobalRef()
 		smObject        = NewStateMachineObject(objectReference)
 	)
 
 	smObject.SetState(HasState)
 	smObject.PreviousExecutorOrderedPendingCount = 1
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 
 	smWrapper := slotMachine.AddStateMachine(ctx, smObject)
@@ -192,7 +192,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 	)
 
@@ -232,15 +232,15 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 	)
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.PreviousExecutorUnorderedPendingCount = 2
 	smObject.PreviousExecutorOrderedPendingCount = 2
-	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueReference())
-	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueReference())
+	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueGlobalRef())
+	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueGlobalRef())
 	smObject.checkPendingCounters(smachine.Logger{})
 	require.Equal(t, uint8(2), smObject.PreviousExecutorUnorderedPendingCount)
 	require.Equal(t, uint8(2), smObject.PreviousExecutorOrderedPendingCount)

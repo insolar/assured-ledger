@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
@@ -45,10 +46,10 @@ import (
 type Server struct {
 	pulseLock sync.Mutex
 
-	debugLock   sync.Mutex
-	debugFlags  atomickit.Uint32
-	suspend     synckit.ClosableSignalChannel
-	cycleFn     ConveyorCycleFunc
+	debugLock  sync.Mutex
+	debugFlags atomickit.Uint32
+	suspend    synckit.ClosableSignalChannel
+	cycleFn    ConveyorCycleFunc
 
 	// real components
 	virtual       *virtual.Dispatcher
@@ -78,30 +79,30 @@ type Server struct {
 type ConveyorCycleFunc func(c *conveyor.PulseConveyor, hasActive, isIdle bool)
 
 func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, false, true)
+	return newServerExt(ctx, t, nil, true)
 }
 
-func NewServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, true, true)
+func NewServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+	return newServerExt(ctx, t, errorFilterFn, true)
 }
 
 func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, false, false)
+	return newServerExt(ctx, t, nil, false)
 }
 
-func NewUninitializedServerIgnoreLogErrors(ctx context.Context, t *testing.T) (*Server, context.Context) {
-	return newServerExt(ctx, t, true, false)
+func NewUninitializedServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
-func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init bool) (*Server, context.Context) {
-	instestlogger.SetTestOutput(t, suppressLogError)
+func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
+	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
 		ctx = inslogger.TestContext(t)
 	}
 
 	s := Server{
-		caller:   gen.UniqueReference(),
+		caller:   gen.UniqueGlobalRef(),
 		fullStop: make(synckit.ClosableSignalChannel),
 	}
 
@@ -112,7 +113,7 @@ func newServerExt(ctx context.Context, t *testing.T, suppressLogError bool, init
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.UniqueReference()).
+			IDMock.Return(gen.UniqueGlobalRef()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
 			RoleMock.Return(node.StaticRoleVirtual).
 			AddressMock.Return("").
@@ -256,7 +257,7 @@ func (s *Server) GlobalCaller() reference.Global {
 }
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
-	return gen.UniqueIDWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
 func (s *Server) Stop() {
@@ -312,7 +313,7 @@ func (s *Server) _suspendConveyorAndWait(wg *sync.WaitGroup) {
 	}
 
 	flags := s.debugFlags.Load()
-	if flags & isNotScanning != 0 {
+	if flags&isNotScanning != 0 {
 		wg.Done()
 		return
 	}
@@ -357,10 +358,10 @@ func (s *Server) ResetActiveConveyorFlag() {
 }
 
 const (
-	hasActive = 1
-	isIdle = 2
+	hasActive     = 1
+	isIdle        = 2
 	isNotScanning = 4
-	callOnce = 8
+	callOnce      = 8
 )
 
 func (s *Server) onCycleUpdate(fn func() uint32) synckit.SignalChannel {
@@ -376,18 +377,18 @@ func (s *Server) _onCycleUpdate(fn func() uint32) (func(), synckit.SignalChannel
 	defer s.debugLock.Unlock()
 
 	// makes sure that calling Wait in a parallel thread will not lock up caller of Suspend
-	if cs := s.debugFlags.Load(); cs & callOnce != 0 {
+	if cs := s.debugFlags.Load(); cs&callOnce != 0 {
 		s.debugFlags.UnsetBits(callOnce)
 		if cycleFn := s.cycleFn; cycleFn != nil {
 			s.cycleFn = nil
-			go cycleFn(s.virtual.Conveyor, cs & hasActive != 0, cs & isIdle != 0)
+			go cycleFn(s.virtual.Conveyor, cs&hasActive != 0, cs&isIdle != 0)
 		}
 	}
 
 	cs := fn()
 	if cycleFn := s.cycleFn; cycleFn != nil {
 		return func() {
-			cycleFn(s.virtual.Conveyor, cs & hasActive != 0, cs & isIdle != 0)
+			cycleFn(s.virtual.Conveyor, cs&hasActive != 0, cs&isIdle != 0)
 		}, s.suspend
 	}
 
@@ -398,17 +399,17 @@ func (s *Server) onConveyorCycle(state conveyor.CycleState) {
 	ch := s.onCycleUpdate(func() uint32 {
 		switch state {
 		case conveyor.ScanActive:
-			return s.debugFlags.SetBits(hasActive|isNotScanning)
+			return s.debugFlags.SetBits(hasActive | isNotScanning)
 		case conveyor.ScanIdle:
-			return s.debugFlags.SetBits(isIdle|isNotScanning)
+			return s.debugFlags.SetBits(isIdle | isNotScanning)
 		case conveyor.Scanning:
-			return s.debugFlags.UnsetBits(isIdle|isNotScanning)
+			return s.debugFlags.UnsetBits(isIdle | isNotScanning)
 		default:
 			panic(throw.Impossible())
 		}
 	})
 	if ch != nil && state == conveyor.Scanning {
-		<- ch
+		<-ch
 	}
 }
 

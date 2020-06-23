@@ -37,7 +37,7 @@ func createHostNetwork(t *testing.T) (network.HostNetwork, error) {
 
 	cm1 := component.NewManager(nil)
 	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
-	n1, err := hostnetwork.NewHostNetwork(gen.UniqueReference().String())
+	n1, err := hostnetwork.NewHostNetwork(gen.UniqueGlobalRef().String())
 	if err != nil {
 		return nil, err
 	}

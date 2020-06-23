@@ -21,8 +21,8 @@ func getUnique() uint32 {
 	return atomic.AddUint32(&uniqueSeq, 1)
 }
 
-func generateUniqueID(pn pulse.Number) reference.Local {
-	var id reference.Local
+func generateUniqueLocalRef(pn pulse.Number) reference.Local {
+	var local reference.Local
 
 	f := fuzz.New().NilChance(0).Funcs(func(id *reference.Local, c fuzz.Continue) {
 		var hash [reference.LocalBinaryHashSize]byte
@@ -31,32 +31,39 @@ func generateUniqueID(pn pulse.Number) reference.Local {
 
 		*id = reference.NewRecordID(pn, reference.BytesToLocalHash(hash[:]))
 	})
-	f.Fuzz(&id)
+	f.Fuzz(&local)
 
-	return id
+	return local
 }
 
-// UniqueID generates random unique id.
-func UniqueID() reference.Local {
-	return generateUniqueID(PulseNumber())
+// UniqueLocalRef generates a random unique reference.Local.
+func UniqueLocalRef() reference.Local {
+	return generateUniqueLocalRef(PulseNumber())
 }
 
-func UniqueIDWithPulse(pn pulse.Number) reference.Local {
-	return generateUniqueID(pn)
+// UniqueLocalRefWithPulse generates a random unique reference.Local with a given pulse.Number.
+func UniqueLocalRefWithPulse(pn pulse.Number) reference.Local {
+	return generateUniqueLocalRef(pn)
 }
 
-// UniqueReference generates random reference.
-func UniqueReference() reference.Global {
-	id := UniqueID()
-	return reference.NewSelf(id)
+// UniqueGlobalRef generates a random unique reference.Global.
+func UniqueGlobalRef() reference.Global {
+	local := UniqueLocalRef()
+	return reference.NewSelf(local)
 }
 
-// UniqueReferences generates multiple random unique References.
-func UniqueReferences(n int) []reference.Global {
+// UniqueGlobalRefWithPulse generates a random unique reference.Global with a given pulse.Number.
+func UniqueGlobalRefWithPulse(pn pulse.Number) reference.Global {
+	local := UniqueLocalRefWithPulse(pn)
+	return reference.NewSelf(local)
+}
+
+// UniqueGlobalRefs generates multiple random unique reference.Global values.
+func UniqueGlobalRefs(n int) []reference.Global {
 	refs := make([]reference.Global, n)
 
 	for i := 0; i < n; i++ {
-		refs[i] = UniqueReference()
+		refs[i] = UniqueGlobalRef()
 	}
 	return refs
 }
