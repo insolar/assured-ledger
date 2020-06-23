@@ -15,4 +15,3 @@ func GetSenderDelegationToken(msg interface{}) (CallDelegationToken, bool) {
 	}
 	return CallDelegationToken{}, false
 }
-
