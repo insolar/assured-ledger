@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
 
 const (
@@ -32,7 +33,6 @@ const (
 )
 
 type StepController struct {
-	t   *testing.T
 	ctx context.Context
 
 	externalSignal synckit.VersionedSignal
@@ -72,7 +72,14 @@ func NewPast(ctx context.Context, t *testing.T) *StepController {
 func newController(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *StepController {
 	instestlogger.SetTestOutputWithErrorFilter(t, filterFn)
 
-	debugLogger := debuglogger.NewDebugMachineLogger(convlog.MachineLogger{})
+	var machineLogger smachine.SlotMachineLogger
+	if convlog.UseTextConvLog {
+		machineLogger = convlog.MachineLogger{}
+	} else {
+		machineLogger = statemachine.ConveyorLoggerFactory{}
+	}
+
+	debugLogger := debuglogger.NewDebugMachineLogger(machineLogger)
 	machineConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -84,7 +91,6 @@ func newController(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFi
 	}
 
 	w := &StepController{
-		t:           t,
 		ctx:         ctx,
 		debugLogger: &debugLogger,
 	}

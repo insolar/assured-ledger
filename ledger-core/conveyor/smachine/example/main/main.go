@@ -5,8 +5,11 @@
 
 package main
 
-import "github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/example"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/example"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+)
 
 func main() {
-	example.RunExample()
+	example.RunExample(convlog.MachineLogger{})
 }

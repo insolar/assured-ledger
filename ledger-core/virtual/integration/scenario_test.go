@@ -18,8 +18,6 @@ import (
 
 // 10 parallel executions
 func TestVirtual_Scenario1(t *testing.T) {
-	t.Parallel()
-
 	t.Log("C4932")
 
 	server, ctx := utils.NewServer(nil, t)
@@ -90,8 +88,6 @@ func TestVirtual_Scenario1(t *testing.T) {
 
 // 10 sequential executions
 func TestVirtual_Scenario2(t *testing.T) {
-	t.Parallel()
-
 	t.Log("C4933")
 
 	server, ctx := utils.NewServer(nil, t)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
@@ -26,6 +27,8 @@ import (
 )
 
 func TestNewNodeNetwork(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	cfg := configuration.Transport{Address: "invalid"}
 	certMock := testutils.NewCertificateMock(t)
 	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
@@ -61,6 +64,8 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 }
 
 func TestNewNodeKeeper(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	nk := newNodeKeeper(t, nil)
 	origin := nk.GetOrigin()
 	assert.NotNil(t, origin)
