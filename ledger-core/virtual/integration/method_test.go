@@ -1217,7 +1217,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-		classB        = gen.UniqueReference()
+		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
 		outgoingFirstCall  = server.RandomLocalWithPulse()
