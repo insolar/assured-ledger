@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/prettylog"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -77,12 +78,12 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 			if emuMarks {
 				emulateTestText(out, target, time.Now)
 			}
-			out = ConvertJSONConsoleOutput(out)
+			out = prettylog.ConvertJSONConsoleOutput(out)
 		} else if emuMarks {
 			emulateTestJSON(out, target, time.Now)
 		}
-		target = ConvertJSONTestingOutput(target)
-		echoTo = ConvertJSONConsoleOutput(echoTo)
+		target = prettylog.ConvertJSONTestingOutput(target)
+		echoTo = prettylog.ConvertJSONConsoleOutput(echoTo)
 	case logcommon.TextFormat:
 		if emuMarks {
 			emulateTestText(out, target, time.Now)

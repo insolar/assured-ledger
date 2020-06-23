@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/prettylog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -20,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
-const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
+const TimestampFormat = prettylog.TimestampFormat
 
 const insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/"
 const skipFrameBaselineAdjustment = 0
