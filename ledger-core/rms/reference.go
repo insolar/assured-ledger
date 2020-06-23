@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ GoGoSerializable = &Reference{}
+var _ GoGoSerializableWithText = &Reference{}
 
 type Reference struct {
 	value reference.Holder
