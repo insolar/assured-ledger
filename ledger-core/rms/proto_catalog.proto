@@ -21,11 +21,18 @@ message RecordExcerptForCatalogEntry {
     Reference RootRef = 25;
     Reference ReasonRef = 26;
     Reference RedirectRef = 27;
+<<<<<<< HEAD
     Reference RejoinRef = 28;
 }
 
 message CatalogEntry {
     reserved 1 to 15, 29 to 39;
+=======
+}
+
+message CatalogEntry {
+    reserved 1 to 15, 28 to 39;
+>>>>>>> Improve Any containers
     // Start of fixed-size portion.
     // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
     fixed32 RecordType = 16;
@@ -44,7 +51,10 @@ message CatalogEntry {
     Reference RootRef = 25;
     Reference ReasonRef = 26;
     Reference RedirectRef = 27;
+<<<<<<< HEAD
     Reference RejoinRef = 28;
+=======
+>>>>>>> Improve Any containers
     // End of Excerpt field portion
 
     Reference RecapRef = 40;
