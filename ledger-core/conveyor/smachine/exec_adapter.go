@@ -6,10 +6,10 @@
 package smachine
 
 func NewExecutionAdapter(adapterID AdapterID, executor AdapterExecutor) ExecutionAdapter {
-	if adapterID.IsEmpty() {
+	switch {
+	case adapterID.IsEmpty():
 		panic("illegal value")
-	}
-	if executor == nil {
+	case executor == nil:
 		panic("illegal value")
 	}
 	return ExecutionAdapter{adapterID, executor}
