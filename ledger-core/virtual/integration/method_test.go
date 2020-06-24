@@ -71,10 +71,12 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 
 func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	t.Log("C4976")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-397")
+
+	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		class        = testwallet.GetClass()
@@ -84,6 +86,22 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError, err := foundation.MarshalMethodErrorResult(
+		throw.W(throw.E("failed to find contracts method"), "failed to classify method"))
+
+	require.NoError(t, err)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, objectLocal)
+		assert.Equal(t, expectedError, res.ReturnArguments)
+
+		return false // no resend msg
+	})
+
 	{
 		pl := payload.VCallRequest{
 			CallType:            payload.CTMethod,
@@ -92,14 +110,19 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "random",
-			CallOutgoing:        server.RandomLocalWithPulse(),
+			CallOutgoing:        objectLocal,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
 		server.SendPayload(ctx, &pl)
-
-		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-397
 	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
 }
 
 func TestVirtual_Method_WithExecutor(t *testing.T) {
