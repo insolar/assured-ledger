@@ -10,8 +10,7 @@ T00_S002 --> [*] : [!ctx.Publish()]
 T00_S002 --> T00_S005 : Migrate: sm.migrate
 state "migrate" as T00_S010
 T00_S010 : SMObject
-T00_S010 --> [*] : [Unknown]
-T00_S010 --> [*] : [!sm.hasPendingExecution()]
+T00_S010 --> [*] : [sm.GetState()==Unknown]
 T00_S010 --[dashed]> [*] : [!ctx.Publish()]\nError
 T00_S010 --> T00_S011
 state "migrate.1" as T00_S011

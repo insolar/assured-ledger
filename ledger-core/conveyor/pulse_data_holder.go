@@ -71,7 +71,7 @@ func (p *futurePulseDataHolder) _pulseRange() (pulse.Range, PulseSlotState) {
 		case p.isPast:
 			panic(throw.IllegalState())
 		}
-		return p.pr, Future
+		return p.expected.AsRange(), Future
 	case p.isPast:
 		return p.pr, Past
 	default:

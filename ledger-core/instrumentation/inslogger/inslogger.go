@@ -11,7 +11,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/prettylog"
@@ -114,6 +113,14 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 		panic(err)
 	}
 
+	return initNodeLogger(ctx, inslog, nodeRef, nodeRole)
+}
+
+func InitNodeLoggerByGlobal(nodeRef, nodeRole string) (context.Context, log.Logger) {
+	return initNodeLogger(context.Background(), global.Logger(), nodeRef, nodeRole)
+}
+
+func initNodeLogger(ctx context.Context, inslog log.Logger, nodeRef, nodeRole string) (context.Context, log.Logger) {
 	fields := map[string]interface{}{"loginstance": "node"}
 	if nodeRef != "" {
 		fields["nodeid"] = nodeRef
@@ -128,6 +135,7 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 
 	return ctx, inslog
 }
+
 
 func TraceID(ctx context.Context) string {
 	return trace.ID(ctx)
@@ -223,12 +231,6 @@ func _getLogger(ctx context.Context) (log.Logger, bool) {
 		return global.CopyForContext(), false
 	}
 	return val.(log.Logger), true
-}
-
-// TestContext returns context with initalized log field "testname" equal t.Name() value.
-func TestContext(t *testing.T) context.Context {
-	ctx, _ := WithField(context.Background(), "testname", t.Name())
-	return ctx
 }
 
 func GetLoggerLevel(ctx context.Context) log.Level {

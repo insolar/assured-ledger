@@ -11,6 +11,7 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -83,6 +84,7 @@ func NewKeyStore(path string) (cryptography.KeyStore, error) {
 	}
 
 	manager := component.NewManager(nil)
+	manager.SetLogger(global.Logger())
 	manager.Inject(
 		cachedKeyStore,
 		keyStore,

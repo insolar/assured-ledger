@@ -10,6 +10,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -56,7 +57,11 @@ type ServiceNetwork struct {
 
 // NewServiceNetwork returns a new ServiceNetwork.
 func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manager) (*ServiceNetwork, error) {
+	if rootCm != nil {
+		rootCm.SetLogger(global.Logger())
+	}
 	serviceNetwork := &ServiceNetwork{cm: component.NewManager(rootCm), cfg: conf}
+	serviceNetwork.cm.SetLogger(global.Logger())
 	return serviceNetwork, nil
 }
 

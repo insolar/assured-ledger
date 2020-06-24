@@ -20,7 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -59,7 +60,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 
 func TestSMExecute_Init(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -106,7 +107,7 @@ func TestSMExecute_Init(t *testing.T) {
 
 func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -164,7 +165,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -241,7 +242,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -320,7 +321,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var (
-				ctx = inslogger.TestContext(t)
+				ctx = instestlogger.TestContext(t)
 				mc  = minimock.NewController(t)
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -404,4 +405,86 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 		})
 	}
+}
+
+func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
+		smGlobalRef     = reference.NewSelf(smObjectID)
+		smObject        = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+	)
+
+	ref := gen.UniqueGlobalRef()
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        smObjectID,
+		Callee:              ref,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Meta: &payload.Meta{
+			Sender: gen.UniqueGlobalRef(),
+		},
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+		executionNewState: &execution.Update{
+			Outgoing: execution.CallMethod{},
+			Result:   &requestresult.RequestResult{},
+		},
+		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
+			return smachine.NewAsyncCallRequesterMock(t).WithoutAutoWakeUpMock.Set(func() (a1 smachine.AsyncCallRequester) {
+				return smachine.NewAsyncCallRequesterMock(t).StartMock.Set(func() {
+
+				})
+			})
+		}),
+	}
+
+	ref = reference.NewRecordOf(request.Callee, request.CallOutgoing)
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	smObject.KnownRequests.GetList(contract.CallTolerable).Add(ref)
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepFinishRequest))
+
+		smExecute.stepSendCallResult(execCtx)
+	}
+
+	{
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			StopMock.Return(smachine.StateUpdate{})
+
+		smExecute.stepFinishRequest(execCtx)
+	}
+	require.Equal(t, 1, smObject.KnownRequests.Len())
+
+	res := smObject.KnownRequests.GetList(contract.CallTolerable)
+
+	require.Equal(t, 1, res.Count())
+
+	result, ok := res.GetResult(ref)
+
+	require.True(t, ok)
+	require.NotNil(t, result)
+
+	mc.Finish()
 }

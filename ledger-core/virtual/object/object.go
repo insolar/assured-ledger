@@ -110,7 +110,11 @@ func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolati
 	}
 }
 
-func (i *Info) FinishRequest(isolation contract.MethodIsolation, requestRef reference.Global) {
+func (i *Info) FinishRequest(
+	isolation contract.MethodIsolation,
+	requestRef reference.Global,
+	result *payload.VCallResult,
+) {
 	switch isolation.Interference {
 	case contract.CallIntolerable:
 		i.PotentialUnorderedPendingCount--
@@ -119,7 +123,7 @@ func (i *Info) FinishRequest(isolation contract.MethodIsolation, requestRef refe
 	default:
 		panic(throw.Unsupported())
 	}
-	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef)
+	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef, result)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
@@ -394,21 +398,10 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}
 }
 
-func (sm *SMObject) hasPendingExecution() bool {
-	return sm.PotentialUnorderedPendingCount > 0 ||
-		sm.PotentialOrderedPendingCount > 0
-}
-
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	switch sm.GetState() {
-	case Unknown:
+	if sm.GetState() == Unknown {
 		ctx.Log().Trace("SMObject migration happened when object is not ready yet")
 		return ctx.Stop()
-	case Empty:
-		if !sm.hasPendingExecution() {
-			ctx.Log().Trace("SMObject migration happened when object is not ready yet")
-			return ctx.Stop()
-		}
 	}
 
 	ctx.UnpublishAll()
