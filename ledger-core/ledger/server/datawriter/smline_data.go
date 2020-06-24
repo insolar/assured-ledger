@@ -9,6 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
@@ -21,6 +22,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 >>>>>>> Ledger SMs
+=======
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+>>>>>>> Ledger SMs
 )
 
 type LineKey reference.Global
@@ -28,6 +33,7 @@ type LineKey reference.Global
 type LineSharedData struct {
 	lineRef reference.Global
 	limiter smsync.SemaphoreLink
+<<<<<<< HEAD
 <<<<<<< HEAD
 	ready   bool
 	valid   bool
@@ -39,6 +45,8 @@ type LineSharedData struct {
 	deps DependencyTracker
 =======
 >>>>>>> Ledger SMs
+=======
+>>>>>>> Ledger SMs
 }
 
 func (p *LineSharedData) LineRef() reference.Global {
@@ -46,6 +54,7 @@ func (p *LineSharedData) LineRef() reference.Global {
 }
 
 func (p *LineSharedData) GetLimiter() smachine.SyncLink {
+<<<<<<< HEAD
 <<<<<<< HEAD
 	return p.limiter.SyncLink()
 }
@@ -188,6 +197,8 @@ func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	p.ensureAccess()
 	return p.deps.GetPendingUnresolved()
 =======
+=======
+>>>>>>> Ledger SMs
 
 }
 
@@ -201,5 +212,8 @@ func (p *LineSharedData) RequestMissings(missings interface{}, wakeup smachine.B
 
 func (p *LineSharedData) IsValid() bool {
 
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }

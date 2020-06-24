@@ -7,6 +7,7 @@ package datawriter
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -22,6 +23,8 @@ type DropCataloger interface {
 	Create(ctx smachine.ExecutionContext, dropID jet.LegID, updater buildersvc.JetDropAssistant) DropDataLink
 	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 =======
+=======
+>>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -39,12 +42,16 @@ type JetDropKey JetDropID
 
 type DropCataloger interface {
 	GetOrCreate(ctx smachine.ExecutionContext, dropID JetDropID) DropDataLink
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
 var _ DropCataloger = &DropCatalog{}
 type DropCatalog struct {}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 func (*DropCatalog) Create(ctx smachine.ExecutionContext, legID jet.LegID, updater buildersvc.JetDropAssistant) DropDataLink {
 	dropID := legID.AsDrop()
@@ -99,6 +106,8 @@ func RegisterJetDrop(ctx smachine.SharedStateContext, sd *DropSharedData) bool {
 	}
 	return true
 =======
+=======
+>>>>>>> Ledger SMs
 func (*DropCatalog) GetOrCreate(ctx smachine.ExecutionContext, dropID JetDropID) DropDataLink {
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
@@ -123,6 +132,9 @@ func (*DropCatalog) GetOrCreate(ctx smachine.ExecutionContext, dropID JetDropID)
 
 func DropCreate(dropID JetDropID) smachine.CreateFunc {
 
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
@@ -131,7 +143,11 @@ type DropDataLink struct {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 func (v DropDataLink) TryAccess(fn func(sd *DropSharedData)) smachine.BoolDecision {
+=======
+func (v DropDataLink) PrepareAccess(fn func(sd *DropSharedData) (wakeup bool)) smachine.SharedDataAccessor {
+>>>>>>> Ledger SMs
 =======
 func (v DropDataLink) PrepareAccess(fn func(sd *DropSharedData) (wakeup bool)) smachine.SharedDataAccessor {
 >>>>>>> Ledger SMs
@@ -139,6 +155,7 @@ func (v DropDataLink) PrepareAccess(fn func(sd *DropSharedData) (wakeup bool)) s
 		panic(throw.IllegalValue())
 	}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 	if i := v.SharedDataLink.TryDirectAccess(); i != nil {
 		fn(i.(*DropSharedData))
@@ -152,6 +169,8 @@ func (v DropDataLink) MustAccess(fn func(sd *DropSharedData)) {
 		panic(throw.IllegalState())
 	}
 =======
+=======
+>>>>>>> Ledger SMs
 	return v.SharedDataLink.PrepareAccess(func(i interface{}) (wakeup bool) {
 		return fn(i.(*DropSharedData))
 	})
@@ -164,5 +183,8 @@ func (v DropDataLink) TryAccess(ctx smachine.ExecutionContext, fn func(sd *DropS
 	return v.SharedDataLink.PrepareAccess(func(i interface{}) (wakeup bool) {
 		return fn(i.(*DropSharedData))
 	}).TryUse(ctx).GetDecision()
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }

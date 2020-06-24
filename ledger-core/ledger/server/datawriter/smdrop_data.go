@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
@@ -53,6 +54,15 @@ func (p *DropSharedData) GetDropAssistant() buildersvc.JetDropAssistant {
 }
 
 func (p *DropSharedData) addPrevReport(report datareader.PrevDropReport) {
+=======
+)
+
+type DropSharedData struct {
+
+}
+
+func (p *DropSharedData) GetReadySync() smachine.SyncLink {
+>>>>>>> Ledger SMs
 =======
 )
 

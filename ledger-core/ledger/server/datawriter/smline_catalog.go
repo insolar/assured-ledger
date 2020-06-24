@@ -7,10 +7,14 @@ package datawriter
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+=======
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+>>>>>>> Ledger SMs
 =======
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 >>>>>>> Ledger SMs
@@ -56,6 +60,7 @@ func LineCreate(lineRef reference.Global) smachine.CreateFunc {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 func RegisterLine(ctx smachine.SharedStateContext, sd *LineSharedData) bool {
 	switch {
 	case sd.lineRef.IsZero():
@@ -74,6 +79,8 @@ func RegisterLine(ctx smachine.SharedStateContext, sd *LineSharedData) bool {
 	return true
 }
 
+=======
+>>>>>>> Ledger SMs
 =======
 >>>>>>> Ledger SMs
 type LineDataLink struct {

@@ -7,15 +7,21 @@ package datawriter
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 =======
+=======
+>>>>>>> Ledger SMs
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -33,17 +39,23 @@ type SMStreamDropBuilder struct {
 	cataloger  DropCataloger
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	// shared unbound
 	sd *StreamSharedData
 
 	// runtime
 	jets      []jet.PrefixedID
 =======
+=======
+>>>>>>> Ledger SMs
 	// input & shared
 	sd   *StreamSharedData
 
 	// runtime
 	jets []buildersvc.JetID
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
@@ -66,6 +78,7 @@ func (p *SMStreamDropBuilder) stepInit(ctx smachine.InitializationContext) smach
 		return ctx.Error(throw.E("not a present pulse"))
 	}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 	pr, _ := p.pulseSlot.PulseRange()
 	p.sd = RegisterStreamDrop(ctx, pr)
@@ -125,6 +138,8 @@ func (p *SMStreamDropBuilder) stepCreateStreamDrop(ctx smachine.ExecutionContext
 func (p *SMStreamDropBuilder) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sd.jetAssist == nil {
 =======
+=======
+>>>>>>> Ledger SMs
 	sd := &StreamSharedData{
 		ready: smsync.NewConditionalBool(false, fmt.Sprintf("SMStreamDropBuilder{%d}.ready", ctx.SlotLink().SlotID())),
 	}
@@ -162,12 +177,16 @@ func (p *SMStreamDropBuilder) stepCreateStreamDrop(ctx smachine.ExecutionContext
 
 func (p *SMStreamDropBuilder) stepCreateJets(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.jets == nil {
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 		return ctx.Sleep().ThenRepeat()
 	}
 
 	pn := p.pulseSlot.PulseNumber()
 	for _, jetID := range p.jets {
+<<<<<<< HEAD
 <<<<<<< HEAD
 		legID := jetID.AsLeg(pn)
 		updater := p.sd.jetAssist.CreateJetDropAssistant(jetID.ID())
@@ -182,6 +201,8 @@ func (p *SMStreamDropBuilder) migratePresent(ctx smachine.MigrationContext) smac
 	// should NOT happen
 	panic(throw.IllegalState())
 =======
+=======
+>>>>>>> Ledger SMs
 		p.cataloger.GetOrCreate(ctx, NewJetDropID(pn, jetID))
 	}
 
@@ -193,6 +214,9 @@ func (p *SMStreamDropBuilder) migratePresent(ctx smachine.MigrationContext) smac
 
 func (p *SMStreamDropBuilder) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 

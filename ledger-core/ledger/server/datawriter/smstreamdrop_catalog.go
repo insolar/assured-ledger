@@ -7,10 +7,14 @@ package datawriter
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+=======
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+>>>>>>> Ledger SMs
 =======
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 >>>>>>> Ledger SMs
@@ -22,7 +26,11 @@ type StreamDropKey pulse.Number
 
 type StreamDropCataloger interface {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) *StreamSharedData
+=======
+	GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) StreamDropDataLink
+>>>>>>> Ledger SMs
 =======
 	GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) StreamDropDataLink
 >>>>>>> Ledger SMs
@@ -32,11 +40,14 @@ var _ StreamDropCataloger = &StreamDropCatalog{}
 type StreamDropCatalog struct {}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 func (*StreamDropCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) *StreamSharedData {
 	sdl := ctx.GetPublishedLink(StreamDropKey(pn))
 	if !sdl.IsZero() {
 		return sdl.TryDirectAccess().(*StreamSharedData)
 =======
+=======
+>>>>>>> Ledger SMs
 func (*StreamDropCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) StreamDropDataLink {
 	switch sdl := ctx.GetPublishedLink(StreamDropKey(pn)); {
 	case sdl.IsZero():
@@ -45,11 +56,15 @@ func (*StreamDropCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Nu
 		return StreamDropDataLink{sdl}
 	default:
 		return StreamDropDataLink{}
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 	}
 
 	ctx.InitChild(StreamDropCreate())
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 	sdl = ctx.GetPublishedLink(StreamDropKey(pn))
 	if sdl.IsZero() {
@@ -57,6 +72,8 @@ func (*StreamDropCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Nu
 	}
 	return sdl.TryDirectAccess().(*StreamSharedData)
 =======
+=======
+>>>>>>> Ledger SMs
 	switch sdl := ctx.GetPublishedLink(StreamDropKey(pn)); {
 	case sdl.IsZero():
 		panic(throw.IllegalState())
@@ -65,6 +82,9 @@ func (*StreamDropCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Nu
 	default:
 		panic(throw.IllegalState())
 	}
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
@@ -74,6 +94,7 @@ func StreamDropCreate() smachine.CreateFunc {
 	}
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 func RegisterStreamDrop(ctx smachine.SharedStateContext, pr pulse.Range) *StreamSharedData {
 	if pr == nil {
@@ -94,6 +115,8 @@ func RegisterStreamDrop(ctx smachine.SharedStateContext, pr pulse.Range) *Stream
 }
 
 =======
+=======
+>>>>>>> Ledger SMs
 type StreamDropDataLink struct {
 	smachine.SharedDataLink
 }
@@ -112,4 +135,7 @@ func (v StreamDropDataLink) GetSharedData(ctx smachine.ExecutionContext) (sd *St
 
 	return
 }
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs

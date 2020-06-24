@@ -8,6 +8,7 @@ package inspectsvc
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
@@ -36,10 +37,13 @@ func (v InspectedRecordSet) Count() int {
 func (v InspectedRecordSet) IsEmpty() bool {
 	return len(v.Requests) == 0
 =======
+=======
+>>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
+<<<<<<< HEAD
 type RegisterRequestSet struct {
 	Requests []*rms.LRegisterRequest
 	Excerpts []catalog.Excerpt
@@ -49,6 +53,9 @@ func (v RegisterRequestSet) IsEmpty() bool {
 	return len(v.Requests) == 0
 }
 
+=======
+type RegisterRequestSet = []*rms.LRegisterRequest
+>>>>>>> Ledger SMs
 
 type InspectedRecordSet struct {
 
@@ -59,5 +66,8 @@ type InspectedRecord struct {
 	Record  *rms.LRegisterRequest
 
 	RegistrarSignature cryptkit.SignedDigest
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }

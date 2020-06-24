@@ -7,6 +7,7 @@ package buildersvc
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -26,6 +27,8 @@ type JetDropAssistant interface {
 type Service interface {
 	CreateStreamDrop(pulse.Range, /* jetTree, population */) (StreamDropAssistant, []jet.PrefixedID)
 =======
+=======
+>>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -33,6 +36,9 @@ type JetID uint32
 
 type Service interface {
 	CreateStreamDrop(pulse.Range, /* jetTree, population */) []JetID
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
@@ -45,7 +51,11 @@ func NewService() Service {
 type serviceImpl struct {}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 func (p *serviceImpl) CreateStreamDrop(pulse.Range) (StreamDropAssistant, []jet.PrefixedID) {
+=======
+func (p *serviceImpl) CreateStreamDrop(pulse.Range) []JetID {
+>>>>>>> Ledger SMs
 =======
 func (p *serviceImpl) CreateStreamDrop(pulse.Range) []JetID {
 >>>>>>> Ledger SMs

@@ -7,17 +7,23 @@ package datawriter
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
 =======
+=======
+>>>>>>> Ledger SMs
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -32,7 +38,10 @@ type SMJetDropBuilder struct {
 
 	sd DropSharedData
 <<<<<<< HEAD
+<<<<<<< HEAD
 	prevReport datareader.PrevDropReport
+=======
+>>>>>>> Ledger SMs
 =======
 >>>>>>> Ledger SMs
 }
@@ -50,6 +59,7 @@ func (p *SMJetDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachin
 }
 
 func (p *SMJetDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+<<<<<<< HEAD
 <<<<<<< HEAD
 	if p.pulseSlot.State() != conveyor.Present {
 		return ctx.Error(throw.E("not a present pulse"))
@@ -163,6 +173,8 @@ func (p *SMJetDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bo
 }
 
 =======
+=======
+>>>>>>> Ledger SMs
 	switch {
 	case p.pulseSlot.State() != conveyor.Present:
 		return ctx.Error(throw.E("not a present pulse"))
@@ -179,4 +191,7 @@ func (p *SMJetDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bo
 
 	return ctx.Jump(p.stepFindLine)
 }
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs

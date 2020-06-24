@@ -7,11 +7,16 @@ package requests
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"runtime"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+=======
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+>>>>>>> Ledger SMs
 =======
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -41,15 +46,21 @@ type SMRegisterRecordSet struct {
 	sdl          datawriter.LineDataLink
 	inspectedSet *inspectsvc.InspectedRecordSet
 <<<<<<< HEAD
+<<<<<<< HEAD
 	hasRequested bool
 
 	// results
 	updated     *buildersvc.Future
 =======
+=======
+>>>>>>> Ledger SMs
 	hasMissings  bool
 
 	// results
 	updated     *datawriter.Future
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
@@ -72,17 +83,23 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 	case p.pulseSlot.State() != conveyor.Present:
 		return ctx.Error(throw.E("not a present pulse"))
 <<<<<<< HEAD
+<<<<<<< HEAD
 	case p.recordSet.IsEmpty():
 		return ctx.Error(throw.E("empty record set"))
 	}
 
 	ctx.SetDefaultMigration(p.migratePresent)
 =======
+=======
+>>>>>>> Ledger SMs
 	case len(p.recordSet) == 0:
 		return ctx.Error(throw.E("empty record set"))
 	}
 
 	ctx.SetDefaultMigration(p.migrate)
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 	ctx.SetDefaultErrorHandler(p.handleError)
 	return ctx.Jump(p.stepFindLine)
@@ -157,6 +174,7 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 		switch future, bundle := sd.TryApplyRecordSet(*p.inspectedSet); {
 		case bundle == nil:
 			p.updated = future
@@ -168,6 +186,8 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 			p.hasRequested = true
 			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
 =======
+=======
+>>>>>>> Ledger SMs
 		switch future, missings := sd.TryApplyRecordSet(*p.inspectedSet); {
 		case missings == nil:
 			p.updated = future
@@ -177,6 +197,9 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		default:
 			p.hasMissings = true
 			sd.RequestMissings(missings, ctx.NewBargeIn().WithWakeUp())
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 			return true
 		}
@@ -210,6 +233,7 @@ func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) sma
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 func (p *SMRegisterRecordSet) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
 	return ctx.Stay()
@@ -230,6 +254,8 @@ func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) sm
 	}
 	p.sendResponse(true, committed)
 =======
+=======
+>>>>>>> Ledger SMs
 func (p *SMRegisterRecordSet) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(nil)
 	return ctx.Jump(p.stepSendResponse)
@@ -237,11 +263,15 @@ func (p *SMRegisterRecordSet) migrate(ctx smachine.MigrationContext) smachine.St
 
 func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	p.sendResponse(true, p.updated != nil && p.updated.IsCommitted())
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 	return ctx.Stop()
 }
 
 func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
+<<<<<<< HEAD
 <<<<<<< HEAD
 	// TODO
 	if safe == ok {
@@ -257,6 +287,8 @@ func (p *SMRegisterRecordSet) getRootRef() reference.Global {
 func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
 	return p.recordSet.Requests[0].Flags
 =======
+=======
+>>>>>>> Ledger SMs
 
 }
 
@@ -266,6 +298,9 @@ func (p *SMRegisterRecordSet) getRootRef() reference.Global {
 
 func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
 	return p.recordSet[0].Flags
+<<<<<<< HEAD
+>>>>>>> Ledger SMs
+=======
 >>>>>>> Ledger SMs
 }
 
