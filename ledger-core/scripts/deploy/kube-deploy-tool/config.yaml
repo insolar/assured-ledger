@@ -3,7 +3,6 @@ netparams:
   waitinreadystate: 3m
   waitbootstrap: 60s
   waitready: 60s
-  namespace: insolar
 
 kubeparams:
   env: aks

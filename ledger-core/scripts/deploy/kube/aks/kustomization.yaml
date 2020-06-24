@@ -16,7 +16,7 @@ patchesStrategicMerge:
 images:
   - name: insolar/assured-ledger
     newName: usciregistry.azurecr.io/assured-ledger
-    digest: placeholder
+    newTag: placeholder
 secretGenerator:
   - name: azurecr
     files:
