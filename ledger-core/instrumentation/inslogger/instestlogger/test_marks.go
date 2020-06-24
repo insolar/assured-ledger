@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type tb interface {
+type markerT interface {
 	Name() string
 	Cleanup(func())
 	Failed() bool
@@ -20,7 +20,7 @@ type tb interface {
 }
 
 func emulateTestText(out io.Writer, tLog interface{}, nowFn func() time.Time) {
-	t, ok := tLog.(tb)
+	t, ok := tLog.(markerT)
 	if !ok {
 		return
 	}
@@ -31,7 +31,7 @@ func emulateTestText(out io.Writer, tLog interface{}, nowFn func() time.Time) {
 }
 
 func emulateTestJSON(out io.Writer, tLog interface{}, nowFn func() time.Time) {
-	t, ok := tLog.(tb)
+	t, ok := tLog.(markerT)
 	if !ok {
 		return
 	}
@@ -62,7 +62,7 @@ func emulateTestJSON(out io.Writer, tLog interface{}, nowFn func() time.Time) {
 	})
 }
 
-func _emulateTestFinish(out io.Writer, t tb, startedAt time.Time, nowFn func() time.Time, fn func(d time.Duration, resName, msg string)) {
+func _emulateTestFinish(out io.Writer, t markerT, startedAt time.Time, nowFn func() time.Time, fn func(d time.Duration, resName, msg string)) {
 	t.Cleanup(func() {
 		d := nowFn().Sub(startedAt)
 		resName := ""

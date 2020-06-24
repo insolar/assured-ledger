@@ -15,8 +15,6 @@ import (
 )
 
 func TestDecoder_Decode_legacy(t *testing.T) {
-	t.Parallel()
-
 	legacyReference_ok := "1tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs.11111111111111111111111111111111"
 	{ // good old reference, ok to parse
 		dec := NewDefaultDecoder(AllowLegacy)
@@ -70,8 +68,6 @@ func TestDecoder_Decode_legacy(t *testing.T) {
 }
 
 func TestDecoder_Decode_new(t *testing.T) {
-	t.Parallel()
-
 	newReference_fixed := "base58+insolar:11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs.record"
 	{ //
 		dec := NewDefaultDecoder(AllowRecords)
@@ -259,8 +255,6 @@ func TestDecoder_Decode_new(t *testing.T) {
 }
 
 func TestDecoder_Decode_parity(t *testing.T) {
-	t.Parallel()
-
 	newReference_with_parity := "base58+insolar:11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs.11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs/22FwFmj"
 	newReference_with_badParity := "base58+insolar:11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs.11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs/2ololo"
 	newReference_with_badParityPrefix := "base58+insolar:11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs.11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs/FwFmj"
@@ -290,8 +284,6 @@ func TestDecoder_Decode_parity(t *testing.T) {
 }
 
 func TestDecoder_Decode_aliases(t *testing.T) {
-	t.Parallel()
-
 	newReference_withDomainNameDecoder := "base58+insolar:11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs.help.somebody"
 	newReference_withRecordNameDecoder := "base58+insolar:help.11tJEBzbVurpgUrtyAM3hCsSAxKLJ5U8LTb1EaerkZs"
 	{

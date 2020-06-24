@@ -136,9 +136,14 @@ func fixedPulseEntropy(v *longbits.Bits256, pn Number) {
 }
 
 func (r Data) EnsurePulseData() {
-	switch {
-	case r.isExpected():
+	if r.isExpected() {
 		panic("next delta can't be zero")
+	}
+	r.ensureRangeData()
+}
+
+func (r Data) ensureRangeData() {
+	switch {
 	case !r.PulseNumber.IsTimePulse():
 		panic("incorrect pulse number")
 	case !r.HasValidEpoch():

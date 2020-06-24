@@ -9,19 +9,27 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 func TestReadFile_BadFile(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	err := readFile("zzz", nil)
 	require.Contains(t, err.Error(), "[ readFile ] Problem with reading config;\topen zzz:")
 }
 
 func TestReadFile_NotJson(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	err := readFile("testdata/bad_json.json", nil)
 	require.EqualError(t, err, "[ readFile ] Problem with unmarshaling config;\tinvalid character ']' after object key")
 }
 
 func TestReadRequestConfigFromFile(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	params, err := ReadRequestParamsFromFile("testdata/requestConfig.json")
 	require.NoError(t, err)
 
@@ -29,6 +37,8 @@ func TestReadRequestConfigFromFile(t *testing.T) {
 }
 
 func TestReadUserConfigFromFile(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	conf, err := ReadUserConfigFromFile("testdata/userConfig.json")
 	require.NoError(t, err)
 	require.Contains(t, conf.PrivateKey, "MHcCAQEEIPOsF3ujjM7jnb7V")

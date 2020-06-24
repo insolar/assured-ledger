@@ -145,8 +145,6 @@ func fixedSelfReferenceWithSpecialPulseZeroed() *Global {
 }
 
 func TestEncoder_Encode(t *testing.T) {
-	t.Parallel()
-
 	{
 		enc := NewBase58Encoder(0)
 		result, _ := enc.Encode(nil)
@@ -203,8 +201,6 @@ func TestEncoder_Encode(t *testing.T) {
 }
 
 func TestEncoder_EncodeRecord(t *testing.T) {
-	t.Parallel()
-
 	{
 		enc := NewBase58Encoder(0)
 		result, _ := enc.EncodeRecord(nil)
@@ -275,8 +271,6 @@ func TestEncoder_EncodeRecord(t *testing.T) {
 }
 
 func TestEncoder_FixedEncode(t *testing.T) {
-	t.Parallel()
-
 	{
 		g := fixedSelfReference()
 		enc := NewBase58Encoder(0)
@@ -353,8 +347,6 @@ func TestEncoder_FixedEncode(t *testing.T) {
 }
 
 func TestNewBase64Encoder(t *testing.T) {
-	t.Parallel()
-
 	{
 		g := createRandomSelfReference()
 		enc := NewBase64Encoder(FormatSchema)

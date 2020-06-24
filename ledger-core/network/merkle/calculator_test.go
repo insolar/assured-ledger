@@ -12,6 +12,7 @@ import (
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -146,6 +147,7 @@ func TestCalculator(t *testing.T) {
 	}
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
 	cm.Inject(th, op, &am, calculator, service, scheme)
 
 	require.NotNil(t, calculator.Stater)

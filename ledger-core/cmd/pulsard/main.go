@@ -164,6 +164,8 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) (*co
 	}
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
+
 	cm.Register(cryptographyScheme, keyStore, keyProcessor, transport.NewFactory(cfg.Pulsar.DistributionTransport))
 	cm.Inject(cryptographyService, pulseDistributor)
 
