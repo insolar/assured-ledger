@@ -52,7 +52,7 @@ func (a *CreateContractTestAttack) Clone(r *loadgen.Runner) loadgen.Attack {
 
 func (a *CreateContractTestAttack) PutData(mo interface{}) error {
 	if mo != nil && a.R.Config.StoreData {
-		data := []string{mo.(*util.WalletCreateResponse).Ref}
+		data := []string{mo.(util.WalletCreateResponse).Ref}
 		loadgen.DefaultWriteCSV(a, data)
 	}
 	return nil
