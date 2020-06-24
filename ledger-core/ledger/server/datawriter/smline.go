@@ -6,9 +6,17 @@
 package datawriter
 
 import (
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
+=======
+	"fmt"
+
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+>>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -24,8 +32,16 @@ type SMLine struct {
 	streamer  StreamDropCatalog
 
 	// input & shared
+<<<<<<< HEAD
 	sd     LineSharedData
 	onFind smachine.BargeInWithParam
+=======
+	sd LineSharedData
+
+	// runtime
+	sdl DropDataLink
+	ssd *StreamSharedData
+>>>>>>> Ledger SMs
 }
 
 func (p *SMLine) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -47,6 +63,7 @@ func (p *SMLine) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 	case p.pulseSlot.State() != conveyor.Present:
 		return ctx.Error(throw.E("not a present pulse"))
 	case !p.sd.lineRef.IsSelfScope():
+<<<<<<< HEAD
 		return ctx.Error(throw.E("wrong root - must be self"))
 	case !p.sd.lineRef.IsObjectReference():
 		return ctx.Error(throw.E("wrong root - must be object"))
@@ -58,10 +75,25 @@ func (p *SMLine) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 
 	ctx.SetDefaultMigration(p.migratePresentNotReady)
 	ctx.SetDefaultErrorHandler(p.handleError)
+=======
+		return ctx.Error(throw.E("wrong root"))
+	}
+
+	p.sd.limiter = smsync.NewSemaphore(0, fmt.Sprintf("SMLine{%d}.limiter", ctx.SlotLink().SlotID()))
+
+	sdl := ctx.Share(&p.sd, 0)
+	if !ctx.Publish(LineKey(p.sd.lineRef), sdl) {
+		panic(throw.IllegalState())
+	}
+
+	// ctx.SetDefaultMigration(p.migrate)
+	// ctx.SetDefaultErrorHandler(p.handleError)
+>>>>>>> Ledger SMs
 	return ctx.Jump(p.stepFindDrop)
 }
 
 func (p *SMLine) stepFindDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+<<<<<<< HEAD
 	ssd := p.streamer.GetOrCreate(ctx, p.pulseSlot.PulseNumber())
 	if ssd == nil {
 		panic(throw.IllegalState())
@@ -84,10 +116,14 @@ func (p *SMLine) stepFindDrop(ctx smachine.ExecutionContext) smachine.StateUpdat
 
 func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	sdl := p.cataloger.Get(ctx, p.sd.jetDropID)
+=======
+	sdl := p.streamer.GetOrCreate(ctx, p.pulseSlot.PulseNumber())
+>>>>>>> Ledger SMs
 	if sdl.IsZero() {
 		panic(throw.IllegalState())
 	}
 
+<<<<<<< HEAD
 	var readySync smachine.SyncLink
 	sdl.MustAccess(func(sd *DropSharedData) {
 		readySync = sd.GetReadySync()
@@ -98,19 +134,32 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 			p.sd.dropUpdater = sd.GetDropAssistant()
 		})
 		return ctx.Jump(p.stepDropIsReady)
+=======
+	p.ssd = sdl.GetSharedData(ctx)
+
+	readySync := p.ssd.GetReadySync()
+
+	if ctx.AcquireForThisStep(readySync) {
+		return ctx.Jump(p.stepStreamIsReady)
+>>>>>>> Ledger SMs
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if ctx.AcquireForThisStep(readySync) {
+<<<<<<< HEAD
 			sdl.MustAccess(func(sd *DropSharedData) {
 				p.sd.dropUpdater = sd.GetDropAssistant()
 			})
 			return ctx.Jump(p.stepDropIsReady)
+=======
+			return ctx.Jump(p.stepStreamIsReady)
+>>>>>>> Ledger SMs
 		}
 		return ctx.Sleep().ThenRepeat()
 	})
 }
 
+<<<<<<< HEAD
 func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	pn := p.pulseSlot.PulseNumber()
 	refPN := p.sd.lineRef.GetBase().GetPulseNumber()
@@ -188,5 +237,23 @@ func (p *SMLine) migratePresent(ctx smachine.MigrationContext) smachine.StateUpd
 func (p *SMLine) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// TODO some finalization for lines?
 	return ctx.Stop()
+=======
+func (p *SMLine) stepStreamIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	jetDropID := p.ssd.GetJetDrop(p.sd.lineRef)
+
+	p.sdl = p.cataloger.GetOrCreate(ctx, jetDropID)
+	if p.sdl.IsZero() {
+		panic(throw.IllegalState())
+	}
+}
+
+
+func (p *SMLine) getDropID() JetDropID {
+
+}
+
+func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+>>>>>>> Ledger SMs
 }
 

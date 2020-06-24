@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
@@ -16,6 +17,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+=======
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+>>>>>>> Ledger SMs
 )
 
 type LineKey reference.Global
@@ -23,6 +28,7 @@ type LineKey reference.Global
 type LineSharedData struct {
 	lineRef reference.Global
 	limiter smsync.SemaphoreLink
+<<<<<<< HEAD
 	ready   bool
 	valid   bool
 
@@ -31,6 +37,8 @@ type LineSharedData struct {
 
 	data *lineage.LineStages
 	deps DependencyTracker
+=======
+>>>>>>> Ledger SMs
 }
 
 func (p *LineSharedData) LineRef() reference.Global {
@@ -38,6 +46,7 @@ func (p *LineSharedData) LineRef() reference.Global {
 }
 
 func (p *LineSharedData) GetLimiter() smachine.SyncLink {
+<<<<<<< HEAD
 	return p.limiter.SyncLink()
 }
 
@@ -178,4 +187,19 @@ func (p *LineSharedData) addSoloRecord(rec lineage.Record) *buildersvc.Future {
 func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	p.ensureAccess()
 	return p.deps.GetPendingUnresolved()
+=======
+
+}
+
+func (p *LineSharedData) TryApplyRecordSet(set inspectsvc.InspectedRecordSet) (*Future, interface{}) {
+
+}
+
+func (p *LineSharedData) RequestMissings(missings interface{}, wakeup smachine.BargeInHolder) {
+
+}
+
+func (p *LineSharedData) IsValid() bool {
+
+>>>>>>> Ledger SMs
 }

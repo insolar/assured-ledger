@@ -8,8 +8,11 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+=======
+>>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -22,7 +25,10 @@ type StreamSharedData struct {
 
 	state atomickit.Uint32
 	pr    pulse.Range
+<<<<<<< HEAD
 	jetAssist buildersvc.StreamDropAssistant
+=======
+>>>>>>> Ledger SMs
 	// jetTree
 	// population
 }
@@ -31,9 +37,14 @@ func (p *StreamSharedData) GetReadySync() smachine.SyncLink {
 	return p.ready.SyncLink()
 }
 
+<<<<<<< HEAD
 func (p *StreamSharedData) enableAccess() smachine.SyncAdjustment {
 	p.state.Store(1)
 	return p.ready.NewValue(true)
+=======
+func (p *StreamSharedData) enableAccess() {
+	p.state.Store(1)
+>>>>>>> Ledger SMs
 }
 
 func (p *StreamSharedData) ensureAccess() {
@@ -50,7 +61,12 @@ func (p *StreamSharedData) GetPulseRange() pulse.Range {
 	return p.pr
 }
 
+<<<<<<< HEAD
 func (p *StreamSharedData) GetJetDrop(ref reference.Holder) jet.DropID {
 	p.ensureAccess()
 	return p.jetAssist.CalculateJetDrop(ref)
+=======
+func (p *StreamSharedData) GetJetDrop(ref reference.Global) JetDropID {
+	p.ensureAccess()
+>>>>>>> Ledger SMs
 }

@@ -36,7 +36,11 @@ func TestExcerptReadFromLazy(t *testing.T) {
 	require.IsType(t, &rms.LRegisterRequest{}, msgU)
 
 	msg2 := msgU.(*rms.LRegisterRequest)
+<<<<<<< HEAD
 	lazyRec := msg2.TryGetLazy()
+=======
+	lazyRec := msg2.Get()
+>>>>>>> Ledger SMs
 	require.False(t, lazyRec.IsZero())
 	require.False(t, lazyRec.IsEmpty())
 

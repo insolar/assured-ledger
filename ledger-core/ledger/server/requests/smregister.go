@@ -6,11 +6,16 @@
 package requests
 
 import (
+<<<<<<< HEAD
 	"runtime"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+=======
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+>>>>>>> Ledger SMs
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -35,10 +40,17 @@ type SMRegisterRecordSet struct {
 	// runtime
 	sdl          datawriter.LineDataLink
 	inspectedSet *inspectsvc.InspectedRecordSet
+<<<<<<< HEAD
 	hasRequested bool
 
 	// results
 	updated     *buildersvc.Future
+=======
+	hasMissings  bool
+
+	// results
+	updated     *datawriter.Future
+>>>>>>> Ledger SMs
 }
 
 func (p *SMRegisterRecordSet) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -59,11 +71,19 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 	switch {
 	case p.pulseSlot.State() != conveyor.Present:
 		return ctx.Error(throw.E("not a present pulse"))
+<<<<<<< HEAD
 	case p.recordSet.IsEmpty():
 		return ctx.Error(throw.E("empty record set"))
 	}
 
 	ctx.SetDefaultMigration(p.migratePresent)
+=======
+	case len(p.recordSet) == 0:
+		return ctx.Error(throw.E("empty record set"))
+	}
+
+	ctx.SetDefaultMigration(p.migrate)
+>>>>>>> Ledger SMs
 	ctx.SetDefaultErrorHandler(p.handleError)
 	return ctx.Jump(p.stepFindLine)
 }
@@ -136,6 +156,7 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 	}
 
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
+<<<<<<< HEAD
 		switch future, bundle := sd.TryApplyRecordSet(*p.inspectedSet); {
 		case bundle == nil:
 			p.updated = future
@@ -146,6 +167,17 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		default:
 			p.hasRequested = true
 			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
+=======
+		switch future, missings := sd.TryApplyRecordSet(*p.inspectedSet); {
+		case missings == nil:
+			p.updated = future
+			return false
+		case p.hasMissings:
+			return false
+		default:
+			p.hasMissings = true
+			sd.RequestMissings(missings, ctx.NewBargeIn().WithWakeUp())
+>>>>>>> Ledger SMs
 			return true
 		}
 	}) {
@@ -177,6 +209,7 @@ func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) sma
 	return ctx.Jump(p.stepSendResponse)
 }
 
+<<<<<<< HEAD
 func (p *SMRegisterRecordSet) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
 	return ctx.Stay()
@@ -196,10 +229,20 @@ func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) sm
 		}
 	}
 	p.sendResponse(true, committed)
+=======
+func (p *SMRegisterRecordSet) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(nil)
+	return ctx.Jump(p.stepSendResponse)
+}
+
+func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	p.sendResponse(true, p.updated != nil && p.updated.IsCommitted())
+>>>>>>> Ledger SMs
 	return ctx.Stop()
 }
 
 func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
+<<<<<<< HEAD
 	// TODO
 	if safe == ok {
 		runtime.KeepAlive(ok)
@@ -213,6 +256,17 @@ func (p *SMRegisterRecordSet) getRootRef() reference.Global {
 
 func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
 	return p.recordSet.Requests[0].Flags
+=======
+
+}
+
+func (p *SMRegisterRecordSet) getRootRef() reference.Global {
+
+}
+
+func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
+	return p.recordSet[0].Flags
+>>>>>>> Ledger SMs
 }
 
 func (p *SMRegisterRecordSet) handleError(smachine.FailureContext) {
