@@ -42,16 +42,24 @@ func (p *AnyLazy) Unmarshal(b []byte) error {
 }
 
 func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) error {
-	_, t, err := UnmarshalType(b, typeFn)
+	v, err := p.unmarshalCustom(b, copyBytes, typeFn, skipFn)
 	if err != nil {
 		p.value = nil
 		return err
 	}
+	p.value = v
+	return nil
+}
+
+func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) (LazyValue, error) {
+	_, t, err := UnmarshalType(b, typeFn)
+	if err != nil {
+		return LazyValue{}, err
+	}
 	if copyBytes {
 		b = append([]byte(nil), b...)
 	}
-	p.value = LazyValue{ b, skipFn, t }
-	return nil
+	return LazyValue{ b, skipFn, t }, nil
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
@@ -72,7 +80,38 @@ func (p *AnyLazy) MarshalText() ([]byte, error) {
 	if tm, ok := p.value.(encoding.TextMarshaler); ok {
 		return tm.MarshalText()
 	}
-	return []byte(fmt.Sprintf("AnyLazy{%T}", p.value)), nil
+	return []byte(fmt.Sprintf("%T{%T}", p, p.value)), nil
+}
+
+func (p *AnyLazy) Equal(that interface{}) bool {
+	switch {
+	case that == nil:
+		return p == nil
+	case p == nil:
+		return false
+	}
+
+	var thatValue goGoMarshaler
+	switch tt := that.(type) {
+	case *AnyLazy:
+		thatValue = tt.value
+	case AnyLazy:
+		thatValue = tt.value
+	default:
+		return false
+	}
+
+	switch {
+	case thatValue == nil:
+		return p.value == nil
+	case p.value == nil:
+		return false
+	}
+
+	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool}); ok {
+		return eq.Equal(p.value)
+	}
+	return false
 }
 
 /************************/
@@ -89,6 +128,11 @@ func (p *AnyLazyNoCopy) Unmarshal(b []byte) error {
 /************************/
 
 var _ goGoMarshaler = LazyValue{}
+
+type LazyValueReader interface {
+	Type() reflect.Type
+	UnmarshalAsAny(v interface{}, skipFn UnknownCallbackFunc) (bool, error)
+}
 
 type LazyValue struct {
 	value []byte
@@ -142,6 +186,13 @@ func (p LazyValue) UnmarshalAs(v GoGoSerializable, skipFn UnknownCallbackFunc) (
 	return true, UnmarshalAs(p.value, v, skipFn)
 }
 
+func (p LazyValue) UnmarshalAsAny(v interface{}, skipFn UnknownCallbackFunc) (bool, error) {
+	if p.value == nil {
+		return false, nil
+	}
+	return true, UnmarshalAs(p.value, v, skipFn)
+}
+
 func (p LazyValue) ProtoSize() int {
 	return len(p.value)
 }
@@ -158,6 +209,6 @@ func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
 }
 
 func (p LazyValue) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("LazyValue{[%d]byte, %v}", len(p.value), p.vType)), nil
+	return []byte(fmt.Sprintf("%T{[%d]byte, %v}", p, len(p.value), p.vType)), nil
 }
 

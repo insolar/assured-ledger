@@ -15,6 +15,24 @@ import (
 
 var _ GoGoSerializableWithText = &Reference{}
 
+func NewReference(v reference.Holder) Reference {
+	r := Reference{}
+	r.Set(v)
+	return r
+}
+
+func NewReferenceLazy(v ReferenceProvider) Reference {
+	r := Reference{}
+	r.SetLazy(v)
+	return r
+}
+
+func NewReferenceLocal(v reference.LocalHolder) Reference {
+	r := Reference{}
+	r.SetLocal(v)
+	return r
+}
+
 type Reference struct {
 	value reference.Holder
 	lazy  ReferenceProvider
@@ -131,5 +149,13 @@ func (p *Reference) MarshalText() ([]byte, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func (p *Reference) IsZero() bool {
+	return p.value == nil
+}
+
+func (p *Reference) IsEmpty() bool {
+	return p.value == nil || p.value.IsEmpty()
 }
 

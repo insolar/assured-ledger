@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "rms.proto";
+
+option (insproto.notation_all) = true;
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
+
+message RecordExcerptForCatalogEntry {
+    reserved 1 to 15, 17 to 18, 40 to max;
+
+    uint32 RecordType = 16;
+    Binary RecordBodyHash = 19;
+
+    // MUST match with Excerpt portion of CatalogEntry
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+    Reference ReasonRef = 26;
+    Reference RedirectRef = 27;
+}
+
+message CatalogEntry {
+    reserved 1 to 15, 28 to 39;
+    // Start of fixed-size portion.
+    // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
+    fixed32 RecordType = 16;
+    fixed64 BodyLoc = 17; // [(gogoproto.casttype)="DataLocator"];
+    fixed64 PayloadLoc = 18; // [(gogoproto.casttype)="DataLocator"];
+
+    Binary RecordBodyHash = 19;
+    fixed32 InDropOrdinal = 20;
+    // End of fixed-size portion.
+
+    ExtLocators ExtensionLoc = 21;
+
+    // Start of Excerpt portion
+    // MUST match with RecordExcerpt
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+    Reference ReasonRef = 26;
+    Reference RedirectRef = 27;
+    // End of Excerpt field portion
+
+    Reference RecapRef = 40;
+
+    Binary ProducerSignature = 41;
+    Reference ProducedBy = 42;
+    // Token ProducerToken = 43;
+    Binary RegistrarSignature = 44;
+    // Token RegistrarToken = 45;
+}
+
+message ExtLocators {
+    option (insproto.id) = 0;
+    // map[ExtensionID] DataLocator
+}

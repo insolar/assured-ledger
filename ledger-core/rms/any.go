@@ -72,3 +72,33 @@ func (p *Any) MarshalText() ([]byte, error) {
 	return []byte(fmt.Sprintf("Any{%T}", p.value)), nil
 }
 
+func (p *Any) Equal(that interface{}) bool {
+	switch {
+	case that == nil:
+		return p == nil
+	case p == nil:
+		return false
+	}
+
+	var thatValue goGoMarshaler
+	switch tt := that.(type) {
+	case *Any:
+		thatValue = tt.value
+	case Any:
+		thatValue = tt.value
+	default:
+		return false
+	}
+
+	switch {
+	case thatValue == nil:
+		return p.value == nil
+	case p.value == nil:
+		return false
+	}
+
+	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool}); ok {
+		return eq.Equal(p.value)
+	}
+	return false
+}
