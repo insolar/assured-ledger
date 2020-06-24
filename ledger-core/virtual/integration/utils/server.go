@@ -259,6 +259,10 @@ func (s *Server) RandomLocalWithPulse() reference.Local {
 	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
+func (s *Server) RandomGlobalWithPulse() reference.Global {
+	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
+}
+
 func (s *Server) Stop() {
 	defer close(s.fullStop)
 

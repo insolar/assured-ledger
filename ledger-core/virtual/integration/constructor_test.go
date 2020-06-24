@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -128,6 +130,55 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func TestVirtual_Constructor_BadClassRef(t *testing.T) {
+	t.Log("C5030")
+
+	var (
+		mc = minimock.NewController(t)
+	)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	isolation := contract.ConstructorIsolation()
+	outgoing := server.RandomLocalWithPulse()
+	objectRef := reference.NewSelf(outgoing)
+	expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
+	require.NoError(t, err)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectRef)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+		assert.Equal(t, expectedError, res.ReturnArguments)
+
+		return false // no resend msg
+	})
+
+	// Call constructor on an empty class ref
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoing,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+	server.SendPayload(ctx, &pl)
+
+	// Call constructor on a bad class ref
+	pl.Callee = server.RandomGlobalWithPulse()
+	server.SendPayload(ctx, &pl)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
