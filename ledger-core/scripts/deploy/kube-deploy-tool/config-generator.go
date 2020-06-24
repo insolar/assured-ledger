@@ -17,7 +17,7 @@ import (
 
 var transportPort = 13831
 var adminAPIPort = 19001
-var hostTemplate = "virtual-%d.platform-network.insolar:%d"
+var hostTemplate = "virtual-%d.platform-network:%d"
 var certNameTemplate = "virtual-%d.json"
 
 type ConfigGenerator struct {
