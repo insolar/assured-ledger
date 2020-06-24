@@ -26,6 +26,7 @@ type logProcessing struct {
 	*log.Msg `txt:"processing message"`
 
 	messageType string
+	pulseData   pulse.Range
 }
 
 type errNoHandler struct {
@@ -37,6 +38,13 @@ type errNoHandler struct {
 
 type FactoryMeta struct {
 	AuthService authentication.Service
+}
+
+type skippedMessage struct {
+	messageTypeID uint64
+	messageType   reflect.Type
+	incomingPulse pulse.Number
+	targetPulse   pulse.Number
 }
 
 func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
@@ -62,6 +70,7 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 
 	logger.Info(logProcessing{
 		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
+		pulseData:   pr,
 	})
 
 	targetPulse := pr.RightBoundData().PulseNumber
@@ -71,12 +80,7 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 
 	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender, pr)
 	if err != nil {
-		logger.Warn(throw.W(err, "illegitimate msg", struct {
-			messageTypeID uint64
-			messageType   reflect.Type
-			incomingPulse pulse.Number
-			targetPulse   pulse.Number
-		}{
+		logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
 			messageTypeID: payloadTypeID,
 			messageType:   payloadType,
 			incomingPulse: payloadMeta.Pulse,
@@ -87,6 +91,12 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 	}
 
 	if mustReject {
+		logger.Warn(throw.W(err, "rejected msg", skippedMessage{
+			messageTypeID: payloadTypeID,
+			messageType:   payloadType,
+			incomingPulse: payloadMeta.Pulse,
+			targetPulse:   targetPulse,
+		}))
 		// when this flag is set, then the relevant SM has to stop asap and send negative answer
 		return pulse.Unknown, nil, throw.NotImplemented()
 	}

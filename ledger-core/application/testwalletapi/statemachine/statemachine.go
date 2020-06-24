@@ -94,6 +94,7 @@ func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smach
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
+
 	return ctx.Jump(s.stepSendRequest)
 }
 

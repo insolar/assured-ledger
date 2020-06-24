@@ -153,6 +153,9 @@ func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.Sta
 }
 
 func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Error("EROROROROROROROROR", throw.New("execution in past slot: "+string(s.pulseSlot.State())))
+	}
 	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.execution.Object)
 
 	if s.isConstructor && s.outgoingFromSlotPulse() {
