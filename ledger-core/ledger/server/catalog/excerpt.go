@@ -16,7 +16,7 @@ const excerptTagSize = 2 // protokit.WireVarint.Tag(MaxExcerptFieldID).TagSize()
 
 func stopAfterExcerpt(b []byte) (int, error) {
 	u, n := protokit.DecodeVarintFromBytes(b)
-	if n != excerptTagSize {
+	if n != 2 {
 		return 0, nil // it is something else
 	}
 	wt, err := protokit.SafeWireTag(u)
