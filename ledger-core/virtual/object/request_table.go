@@ -60,6 +60,13 @@ func (rl PendingList) Exist(ref reference.Global) bool {
 	return exist
 }
 
+func (rl PendingList) MustGetIsActive(ref reference.Global) bool {
+	if !rl.Exist(ref) {
+		panic("ref doesn't exist in PendingList")
+	}
+	return bool(rl.requests[ref])
+}
+
 // Add adds reference.Global and update EarliestPulse if needed
 // returns true if added and false if already exists
 func (rl *PendingList) Add(ref reference.Global) bool {

@@ -133,3 +133,17 @@ func TestPendingList_Finish(t *testing.T) {
 	require.Equal(t, 1, rl.CountActive())
 	require.Equal(t, nextPulseNumber, rl.earliestPulse)
 }
+
+func TestPendingList_MustGetIsActive(t *testing.T) {
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+	currentPulse := pd.PulseNumber
+
+	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
+	RefOne := reference.NewSelf(objectOne)
+
+	rl := NewRequestList()
+	require.Panics(t, func() { rl.MustGetIsActive(RefOne) })
+
+	rl.Add(RefOne)
+	require.Equal(t, true, rl.MustGetIsActive(RefOne))
+}

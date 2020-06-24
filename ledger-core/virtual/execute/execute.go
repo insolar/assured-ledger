@@ -71,6 +71,8 @@ type SMExecute struct {
 
 	delegationTokenSpec payload.CallDelegationToken
 	stepAfterTokenGet   smachine.SlotStep
+
+	VFindCallResponse *payload.VFindCallResponse
 }
 
 /* -------- Declaration ------------- */
@@ -351,6 +353,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		isDuplicate       bool
+		isActive          bool
 		pendingListFilled smachine.SyncLink
 	)
 	action := func(state *object.SharedState) {
@@ -364,7 +367,7 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 
 		if pendingList.Exist(s.execution.Outgoing) {
 			isDuplicate = true
-			// TODO: we may have result already, should resend
+			isActive = pendingList.MustGetIsActive(s.execution.Outgoing)
 			return
 		}
 	}
@@ -380,13 +383,95 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 	}
 
 	if isDuplicate {
-		// TODO: do we have result? if we have result then we should resend result
-		ctx.Log().Warn("duplicate found as pending request")
-		return ctx.Stop()
+		if isActive {
+			ctx.Log().Warn("duplicate found as pending request")
+			return ctx.Stop()
+		}
 	}
 
 	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {
 		return ctx.Sleep().ThenRepeat()
+	}
+
+	return ctx.Jump(s.stepDeduplicateThroughPreviousExecutor)
+}
+
+type deduplicationBargeIn struct {
+	lookAt   pulse.Number
+	callee   reference.Global
+	outgoing reference.Global
+}
+
+func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	msg := payload.VFindCallRequest{
+		LookAt:   s.Payload.CallOutgoing.GetPulseNumber(),
+		Callee:   s.execution.Object,
+		Outgoing: s.execution.Outgoing,
+	}
+
+	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+		res, ok := param.(*payload.VFindCallResponse)
+		if !ok || res == nil {
+			panic(throw.IllegalValue())
+		}
+
+		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			s.VFindCallResponse = res
+			return ctx.WakeUp()
+		}
+	})
+
+	bargeInKey := deduplicationBargeIn{
+		lookAt:   msg.LookAt,
+		callee:   msg.Callee,
+		outgoing: msg.Outgoing,
+	}
+
+	if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeInCallback) {
+		return ctx.Error(errors.New("failed to publish bargeInCallback"))
+	}
+
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.PulseData().PrevPulseNumber())
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
+
+	return ctx.Sleep().ThenJump(s.stepProcessFindCallResponse)
+}
+
+func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	switch s.VFindCallResponse.Status {
+	case payload.FoundCall:
+		if s.VFindCallResponse.CallResult == nil {
+			ctx.Log().Warn("request found on previous executor, but there was no result")
+			return ctx.Stop()
+		}
+
+		ctx.Log().Warn("request found on previous executor, resend result")
+
+		target := s.Meta.Sender
+		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+			err := svc.SendTarget(goCtx, s.VFindCallResponse.CallResult, target)
+			return func(ctx smachine.AsyncResultContext) {
+				if err != nil {
+					ctx.Log().Error("failed to send message", err)
+				}
+			}
+		}).WithoutAutoWakeUp().Start()
+
+		return ctx.Jump(s.stepFinishRequest)
+
+	case payload.MissingCall:
+	case payload.UnknownCall:
+		// execute it
+		break
+
+	default:
+		panic(throw.Impossible())
 	}
 
 	return ctx.Jump(s.stepTakeLock)
