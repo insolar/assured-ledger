@@ -14,11 +14,11 @@ pulsar:
   #    fixedpublicaddress: ""
   pulsedistributor:
     bootstraphosts:
-      - virtual-0.platform-network.insolar:13831
-      - virtual-1.platform-network.insolar:13831
-      - virtual-2.platform-network.insolar:13831
-      - virtual-3.platform-network.insolar:13831
-      - virtual-4.platform-network.insolar:13831
+      - virtual-0.platform-network:13831
+      - virtual-1.platform-network:13831
+      - virtual-2.platform-network:13831
+      - virtual-3.platform-network:13831
+      - virtual-4.platform-network:13831
     pingrequesttimeout: 1000
     randomhostsrequesttimeout: 1000
     pulserequesttimeout: 1000

@@ -27,14 +27,6 @@ configMapGenerator:
     behavior: replace
     files:
       - run.sh=configuration/bootstrap.sh
-  - name: bootstrap-yaml
-    behavior: replace
-    files:
-      - bootstrap.yaml=configuration/bootstrap-config.yaml
-  - name: pulsar-config
-    behavior: replace
-    files:
-      - pulsard.yaml=configuration/pulsar-config.yaml
   - name: wait-script
     behavior: replace
     files:
