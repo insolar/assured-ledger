@@ -9,9 +9,6 @@ package execute
 
 import (
 	"context"
-	"errors"
-
-	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -30,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -518,9 +516,18 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
 	case execution.Error:
-		err := throw.W(newState.Error, "failed to execute request")
-		ctx.Log().Warn(err)
-		s.prepareExecutionError(err)
+		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
+			switch d.Type {
+			case runner.DetailBadClassRef, runner.DetailEmptyClassRef:
+				s.prepareExecutionError(throw.E("bad class reference"))
+			}
+		} else {
+			s.prepareExecutionError(throw.W(newState.Error, "failed to execute request"))
+		}
+		ctx.Log().Warn(struct {
+			string
+			err error
+		}{"Failed to execute request", newState.Error})
 		return ctx.Jump(s.stepExecuteAborted)
 	case execution.Abort:
 		err := throw.E("execution aborted")
@@ -625,7 +632,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
 
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-			return ctx.Error(errors.New("failed to publish bargeInCallback"))
+			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
