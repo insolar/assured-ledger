@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1322,12 +1321,10 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				require.Equal(t, uint32(1), request.CallSequence)
 			case objectB2Global:
 				require.Equal(t, []byte("B2"), request.Arguments)
-				// TODO: unskip after fix https://insolar.atlassian.net/browse/PLAT-435
-				// require.Equal(t, uint32(2), request.CallSequence)
+				require.Equal(t, uint32(2), request.CallSequence)
 			case objectB3Global:
 				require.Equal(t, []byte("B3"), request.Arguments)
-				// TODO: unskip after fix https://insolar.atlassian.net/browse/PLAT-435
-				// require.Equal(t, uint32(3), request.CallSequence)
+				require.Equal(t, uint32(3), request.CallSequence)
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -1549,6 +1546,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
 	var (
 		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
@@ -1643,31 +1642,13 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	// add publish checker
 	{
-		server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-			require.Len(t, messages, 1)
-
-			pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-			require.NoError(t, err)
-
-			switch pl.(type) {
-			case *payload.VCallRequest:
-			case *payload.VCallResult:
-				resp, ok := pl.(*payload.VCallResult)
-				require.True(t, ok)
-
-				require.Equal(t, []byte("finish A.Foo"), resp.ReturnArguments)
-				return nil
-			default:
-				t.Fatalf("wrong payload type: %T", pl)
-			}
-
-			request, ok := pl.(*payload.VCallRequest)
-			require.True(t, ok)
-
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 			switch string(request.Arguments[0]) {
 			case "f":
+				require.Equal(t, []byte("first"), request.Arguments)
 				require.Equal(t, uint32(1), request.CallSequence)
 			case "s":
+				require.Equal(t, []byte("second"), request.Arguments)
 				require.Equal(t, uint32(2), request.CallSequence)
 			default:
 				t.Fatal("wrong call args")
@@ -1684,7 +1665,11 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 			msg := server.WrapPayload(&result).Finalize()
 			server.SendMessage(ctx, msg)
 
-			return nil
+			return false
+		})
+		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+			require.Equal(t, []byte("finish A.Foo"), result.ReturnArguments)
+			return false
 		})
 	}
 
@@ -1724,7 +1709,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
-	require.Equal(t, 6, server.PublisherMock.GetCount())
+	require.Equal(t, 4, typedChecker.VCallRequest.Count())
+	require.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
