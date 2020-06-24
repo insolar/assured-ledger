@@ -1574,10 +1574,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	{
 		firstBuilder := execution.NewRPCBuilder(outgoingReasonFirst, objectAGlobal)
 		objectAExecutionFirstMock := runnerMock.AddExecutionMock(outgoingFirstCall.String())
-		objectAExecutionFirstMock.AddStart(
-			func(ctx execution.Context) {
-				t.Log("ExecutionStart [A.Foo] first call")
-			},
+		objectAExecutionFirstMock.AddStart(nil,
 			&execution.Update{
 				Type:     execution.OutgoingCall,
 				Outgoing: firstBuilder.CallMethod(objectBGlobal, classB, "Bar", []byte("first")),
@@ -1585,7 +1582,6 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionFirstMock.AddContinue(
 			func(result []byte) {
-				t.Log("ExecutionContinue [A.Foo] first call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
@@ -1595,7 +1591,6 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionFirstMock.AddContinue(
 			func(result []byte) {
-				t.Log("ExecutionContinue [A.Foo] first call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
@@ -1606,10 +1601,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 		secondBuilder := execution.NewRPCBuilder(outgoingReasonSecond, objectAGlobal)
 		objectAExecutionSecondMock := runnerMock.AddExecutionMock(outgoingSecondCall.String())
-		objectAExecutionSecondMock.AddStart(
-			func(ctx execution.Context) {
-				t.Log("ExecutionStart [A.Foo] second call")
-			},
+		objectAExecutionSecondMock.AddStart(nil,
 			&execution.Update{
 				Type:     execution.OutgoingCall,
 				Outgoing: secondBuilder.CallMethod(objectBGlobal, classB, "Bar", []byte("first")),
@@ -1617,7 +1609,6 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionSecondMock.AddContinue(
 			func(result []byte) {
-				t.Log("ExecutionContinue [A.Foo] second call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
@@ -1627,7 +1618,6 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionSecondMock.AddContinue(
 			func(result []byte) {
-				t.Log("ExecutionContinue [A.Foo] second call")
 				require.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
