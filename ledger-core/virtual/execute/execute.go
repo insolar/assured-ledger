@@ -9,7 +9,6 @@ package execute
 
 import (
 	"context"
-	"errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -517,11 +516,10 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
 	case execution.Error:
-		var detail runner.ErrorDetail
-		if throw.FindDetail(newState.Error, &detail) {
-			switch detail.Type {
+		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
+			switch d.Type {
 			case runner.DetailBadClassRef, runner.DetailEmptyClassRef:
-				s.prepareExecutionError(errors.New("bad class reference"))
+				s.prepareExecutionError(throw.E("bad class reference"))
 			}
 		} else {
 			s.prepareExecutionError(throw.W(newState.Error, "failed to execute request"))
@@ -634,7 +632,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
 
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-			return ctx.Error(errors.New("failed to publish bargeInCallback"))
+			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)

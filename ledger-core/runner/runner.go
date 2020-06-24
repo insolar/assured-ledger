@@ -10,12 +10,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/builtin"
@@ -182,7 +180,7 @@ func (r *DefaultService) executeMethod(
 
 	classReference, err := objectDescriptor.Class()
 	if err != nil {
-		return nil, errors.W(err, "couldn't get class reference", ErrorDetail{DetailEmptyClassRef})
+		return nil, throw.W(err, "couldn't get class reference", ErrorDetail{DetailEmptyClassRef})
 	}
 	if classReference.IsEmpty() {
 		panic(throw.IllegalState())
@@ -190,12 +188,12 @@ func (r *DefaultService) executeMethod(
 
 	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, classReference)
 	if err != nil {
-		return nil, errors.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
+		return nil, throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, errors.W(err, "couldn't get executor")
+		return nil, throw.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
@@ -204,13 +202,13 @@ func (r *DefaultService) executeMethod(
 		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
 	)
 	if err != nil {
-		return nil, errors.W(err, "execution error")
+		return nil, throw.W(err, "execution error")
 	}
 	if len(result) == 0 {
-		return nil, errors.New("return of method is empty")
+		return nil, throw.E("return of method is empty")
 	}
 	if len(newData) == 0 {
-		return nil, errors.New("object state is empty")
+		return nil, throw.E("object state is empty")
 	}
 
 	// form and return result
@@ -237,22 +235,22 @@ func (r *DefaultService) executeConstructor(
 
 	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.Callee)
 	if err != nil {
-		return nil, errors.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
+		return nil, throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
 
 	codeExecutor, err := r.Manager.GetExecutor(codeDescriptor.MachineType())
 	if err != nil {
-		return nil, errors.W(err, "couldn't get executor")
+		return nil, throw.W(err, "couldn't get executor")
 	}
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
 
 	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
 	if err != nil {
-		return nil, errors.W(err, "execution error")
+		return nil, throw.W(err, "execution error")
 	}
 	if len(executionResult) == 0 {
-		return nil, errors.New("return of constructor is empty")
+		return nil, throw.E("return of constructor is empty")
 	}
 
 	// form and return executionResult
