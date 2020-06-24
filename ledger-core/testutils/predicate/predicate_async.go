@@ -9,6 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewAsyncCounter(adapter smachine.AdapterID) *AsyncCounter {
@@ -21,7 +22,7 @@ func NewAnyAsyncCounter() *AsyncCounter {
 
 type AsyncCounter struct {
 	adapter smachine.AdapterID
-	count atomickit.Int
+	count   atomickit.Int
 }
 
 func (p *AsyncCounter) Count() int {
@@ -53,4 +54,46 @@ func (p *AsyncCounter) AfterPositiveToZero(event debuglogger.UpdateEvent) bool {
 	x := p.Count()
 	p.EventInput(event)
 	return x > 0 && p.Count() == 0
+}
+
+func AfterAsyncCall(id smachine.AdapterID) func(debuglogger.UpdateEvent) bool {
+	return func(event debuglogger.UpdateEvent) bool {
+		switch {
+		case event.Data.EventType != smachine.StepLoggerAdapterCall:
+		case event.AdapterID != id:
+		case event.Data.Flags.AdapterFlags() != smachine.StepLoggerAdapterAsyncCall:
+		default:
+			return true
+		}
+		return false
+	}
+}
+
+func AfterResultOfFirstAsyncCall(id smachine.AdapterID) func(debuglogger.UpdateEvent) bool {
+	hasCall := false
+	callID := uint64(0)
+	return func(event debuglogger.UpdateEvent) bool {
+		switch {
+		case event.Data.EventType != smachine.StepLoggerAdapterCall:
+		case event.AdapterID != id:
+		case !hasCall:
+			if event.Data.Flags.AdapterFlags() == smachine.StepLoggerAdapterAsyncCall {
+				hasCall = true
+				callID = event.CallID
+			}
+		case callID != event.CallID:
+		default:
+			switch event.Data.Flags.AdapterFlags() {
+			case smachine.StepLoggerAdapterAsyncCall:
+				panic(throw.FailHere("duplicate async call id"))
+			case smachine.StepLoggerAdapterAsyncCancel:
+				panic(throw.FailHere("async call was cancelled"))
+			case smachine.StepLoggerAdapterAsyncExpiredCancel, smachine.StepLoggerAdapterAsyncExpiredResult:
+				panic(throw.FailHere("async callback has expired"))
+			case smachine.StepLoggerAdapterAsyncResult:
+				return true
+			}
+		}
+		return false
+	}
 }
