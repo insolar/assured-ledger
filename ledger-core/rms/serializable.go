@@ -26,10 +26,19 @@ type Serializable interface {
 	Marshal() ([]byte, error)
 }
 
-type GoGoSerializable interface {
+type goGoMarshaler interface {
 	proto.ProtoSizer
-	unmarshaler
-	encoding.TextMarshaler
 	MarshalTo([]byte) (int, error)
 	MarshalToSizedBuffer([]byte) (int, error)
+}
+
+type GoGoSerializable interface {
+	goGoMarshaler
+	unmarshaler
+	encoding.TextMarshaler
+}
+
+type GoGoSerializableWithText interface {
+	GoGoSerializable
+	encoding.TextMarshaler
 }

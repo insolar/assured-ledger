@@ -119,9 +119,8 @@ func (p *TypeRegistry) GetSpecial(id uint64, special string) reflect.Type {
 	return p.getMap(special)[id]
 }
 
-func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) (uint64, interface{}, error) {
-	ct, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b)
-	switch {
+func UnmarshalType(b []byte, typeFn func(uint64) reflect.Type) (uint64, reflect.Type, error) {
+	switch ct, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b); {
 	case err != nil:
 		return 0, nil, err
 	case ct != protokit.ContentPolymorph:
@@ -133,18 +132,40 @@ func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownC
 		if t == nil {
 			return 0, nil, throw.E("unknown object", struct{ ID uint64 }{id})
 		}
-		obj := reflect.New(t).Interface()
+		return id, t, nil
+	}
+}
 
-		var err error
-		if skipFn == nil {
-			err = obj.(unmarshaler).Unmarshal(b)
-		} else if un, ok := obj.(unmarshalerWithUnknownCallback); ok {
-			err = un.UnmarshalWithUnknownCallback(b, skipFn)
-		} else {
-			return id, nil, throw.E("wrong type", struct{ ID uint64 }{id})
-		}
+func UnmarshalAs(b []byte, obj interface{}, skipFn UnknownCallbackFunc) error {
+	var err error
+	if skipFn == nil {
+		err = obj.(unmarshaler).Unmarshal(b)
+	} else if un, ok := obj.(unmarshalerWithUnknownCallback); ok {
+		err = un.UnmarshalWithUnknownCallback(b, skipFn)
+	} else {
+		return throw.E("wrong type")
+	}
 
+	return err
+}
+
+func UnmarshalAsType(b []byte, vType reflect.Type, skipFn UnknownCallbackFunc) (interface{}, error) {
+	obj := reflect.New(vType).Interface()
+	if err := UnmarshalAs(b, obj, skipFn); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) (uint64, interface{}, error) {
+	switch id, t, err := UnmarshalType(b, typeFn); {
+	case err == nil:
+		obj, err := UnmarshalAsType(b, t, skipFn)
 		return id, obj, err
+	case id != 0:
+		return id, nil, throw.WithDetails(err, struct { ID uint64 }{ id })
+	default:
+		return id, nil, err
 	}
 }
 

@@ -16,24 +16,24 @@ import (
 
 type PulseNumber = pulse.Number
 
-type RecordContext interface {
+type RecordVisitor interface {
 	Record(BasicRecord, uint64) error
 	RecReference(BasicRecord, uint64, *Reference) error
 }
 
 type BasicRecord interface {
-	SetupContext(RecordContext) error
+	Visit(RecordVisitor) error
 	GetRecordPayloads() RecordPayloads
 	SetRecordPayloads(RecordPayloads, cryptkit.DataDigester) error
 }
 
-type MessageContext interface {
+type MessageVisitor interface {
 	Message(BasicMessage, uint64) error
 	MsgRecord(BasicMessage, int, BasicRecord) error
 }
 
 type BasicMessage interface {
-	SetupContext(MessageContext) error
+	Visit(MessageVisitor) error
 }
 
 func RegisterRecordType(id uint64, special string, t BasicRecord) {
