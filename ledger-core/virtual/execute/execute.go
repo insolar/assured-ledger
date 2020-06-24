@@ -431,7 +431,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 	}
 
 	if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeInCallback) {
-		return ctx.Error(errors.New("failed to publish bargeInCallback"))
+		return ctx.Error(throw.E("failed to publish bargeInCallback"))
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

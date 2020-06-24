@@ -257,7 +257,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -343,7 +343,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 
 func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
