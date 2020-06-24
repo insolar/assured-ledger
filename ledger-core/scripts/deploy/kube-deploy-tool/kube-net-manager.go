@@ -86,7 +86,7 @@ func (m *InsolarNetManager) start(netParams NetParams) error {
 	return nil
 }
 
-func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
+func (m *InsolarNetManager) waitForReady(netParams NetParams, kubeParams KubeParams) error {
 	startedAt := time.Now()
 
 	bootstrapFinished := make(chan bool, 1)
@@ -102,7 +102,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 			case <-time.After(time.Second):
 				args := []string{
 					"-n",
-					netParams.Namespace,
+					kubeParams.Namespace,
 					"get",
 					"po",
 					"bootstrap",
@@ -140,7 +140,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 			case <-stopWaitingReady:
 				break loop
 			case <-time.After(time.Second):
-				ready, err := m.checkReady(netParams)
+				ready, err := m.checkReady(kubeParams)
 				if err != nil {
 					fmt.Printf("insolar ready check failed: %s\n", err.Error())
 				}
@@ -181,14 +181,14 @@ func (m *InsolarNetManager) stop(netParams NetParams) error {
 	return nil
 }
 
-func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
+func (m *InsolarNetManager) collectLogs(netParams NetParams, kubeParams KubeParams) error {
 	fmt.Println("start collecting pod logs")
 	for i := 0; i < int(netParams.NodesCount); i++ {
 		podName := "virtual-" + strconv.Itoa(i)
 		out, err := exec.Command(
 			Kubectl,
 			"-n",
-			netParams.Namespace,
+			kubeParams.Namespace,
 			"logs",
 			podName,
 		).CombinedOutput()
@@ -218,10 +218,10 @@ func (m *InsolarNetManager) cleanLogDir() error {
 	return nil
 }
 
-func (m *InsolarNetManager) checkReady(netParams NetParams) (bool, error) {
+func (m *InsolarNetManager) checkReady(kubeParams KubeParams) (bool, error) {
 	args := []string{
 		"-n",
-		netParams.Namespace,
+		kubeParams.Namespace,
 		"exec",
 		"-i",
 		"deploy/pulsewatcher",

@@ -26,13 +26,13 @@ type NetParams struct {
 	WaitBootstrap time.Duration
 	// timeout get "ready" state
 	WaitReady time.Duration
-	// namespace
-	Namespace string
 }
 
 type KubeParams struct {
 	// local/ci to manage kustomizing for local an ci environment
 	Env string
+        // namespace
+        Namespace string
 	// path to kube dir
 	KubeRootPath string
 	// relative path to pure manifests
