@@ -102,7 +102,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 			case <-time.After(time.Second):
 				args := []string{
 					"-n",
-					"insolar",
+					Namespace,
 					"get",
 					"po",
 					"bootstrap",
@@ -188,7 +188,7 @@ func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
 		out, err := exec.Command(
 			Kubectl,
 			"-n",
-			"insolar",
+			Namespace,
 			"logs",
 			podName,
 		).CombinedOutput()
@@ -221,7 +221,7 @@ func (m *InsolarNetManager) cleanLogDir() error {
 func (m *InsolarNetManager) checkReady() (bool, error) {
 	args := []string{
 		"-n",
-		"insolar",
+		Namespace,
 		"exec",
 		"-i",
 		"deploy/pulsewatcher",

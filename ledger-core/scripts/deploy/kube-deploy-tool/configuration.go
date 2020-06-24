@@ -26,6 +26,8 @@ type NetParams struct {
 	WaitBootstrap time.Duration
 	// timeout get "ready" state
 	WaitReady time.Duration
+	// namespace
+	Namespace string
 }
 
 type KubeParams struct {
