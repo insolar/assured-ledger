@@ -30,3 +30,6 @@ configMapGenerator:
   - name: pulsewatcher-config
     files:
       - pulsewatcher.yaml=configuration/pulsewatcher-config.yaml
+  - name: wait-script
+    files:
+      - wait-for-bootstrap.sh=configuration/wait-for-bootstrap.sh

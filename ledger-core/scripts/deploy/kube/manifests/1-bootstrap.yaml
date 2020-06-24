@@ -33,20 +33,6 @@ subjects:
 
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: wait-script
-data:
-  wait-for-bootstrap.sh: |-
-    #!/bin/sh
-    while true; do
-      if [ "$(kubectl -n insolar get po bootstrap -o jsonpath="{.status.phase}")" = "Succeeded" ]; then
-        break
-      fi
-      sleep 1s
-    done
----
-apiVersion: v1
 kind: Pod
 metadata:
   name: bootstrap

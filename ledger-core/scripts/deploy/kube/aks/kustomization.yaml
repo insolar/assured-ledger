@@ -5,16 +5,18 @@ generatorOptions:
   disableNameSuffixHash: true
 resources:
   - 0-Namespace.yaml
+  - 0-StorageClass-AKS.yaml
 bases:
   - ../manifests
 patchesStrategicMerge:
   - nodes-patch.yaml
   - patch-Ingress.yaml
   - patch-wait-script.yaml
+  - patch-certs-pvc.yaml
 images:
   - name: insolar/assured-ledger
     newName: usciregistry.azurecr.io/assured-ledger
-    newTag: latest
+    digest: sha256:937e320a26dd825f7039e48817e79561fed6ac180afd21743f44026e209a42c8
 secretGenerator:
   - name: azurecr
     files:
@@ -25,3 +27,15 @@ configMapGenerator:
     behavior: replace
     files:
       - run.sh=configuration/bootstrap.sh
+  - name: bootstrap-yaml
+    behavior: replace
+    files:
+      - bootstrap.yaml=configuration/bootstrap-config.yaml
+  - name: pulsar-config
+    behavior: replace
+    files:
+      - pulsard.yaml=configuration/pulsar-config.yaml
+  - name: wait-script
+    behavior: replace
+    files:
+      - wait-for-bootstrap.sh=configuration/wait-for-bootstrap.sh
