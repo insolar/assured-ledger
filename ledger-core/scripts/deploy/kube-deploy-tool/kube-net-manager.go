@@ -86,7 +86,7 @@ func (m *InsolarNetManager) start(netParams NetParams) error {
 	return nil
 }
 
-func (m *InsolarNetManager) waitForReady(netParams NetParams, kubeParams KubeParams) error {
+func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 	startedAt := time.Now()
 
 	bootstrapFinished := make(chan bool, 1)
@@ -102,7 +102,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams, kubeParams KubePar
 			case <-time.After(time.Second):
 				args := []string{
 					"-n",
-					kubeParams.Namespace,
+					m.kubeParams.Namespace,
 					"get",
 					"po",
 					"bootstrap",
@@ -140,7 +140,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams, kubeParams KubePar
 			case <-stopWaitingReady:
 				break loop
 			case <-time.After(time.Second):
-				ready, err := m.checkReady(kubeParams)
+				ready, err := m.checkReady()
 				if err != nil {
 					fmt.Printf("insolar ready check failed: %s\n", err.Error())
 				}
@@ -181,14 +181,14 @@ func (m *InsolarNetManager) stop(netParams NetParams) error {
 	return nil
 }
 
-func (m *InsolarNetManager) collectLogs(netParams NetParams, kubeParams KubeParams) error {
+func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
 	fmt.Println("start collecting pod logs")
 	for i := 0; i < int(netParams.NodesCount); i++ {
 		podName := "virtual-" + strconv.Itoa(i)
 		out, err := exec.Command(
 			Kubectl,
 			"-n",
-			kubeParams.Namespace,
+			m.kubeParams.Namespace,
 			"logs",
 			podName,
 		).CombinedOutput()
@@ -218,10 +218,10 @@ func (m *InsolarNetManager) cleanLogDir() error {
 	return nil
 }
 
-func (m *InsolarNetManager) checkReady(kubeParams KubeParams) (bool, error) {
+func (m *InsolarNetManager) checkReady() (bool, error) {
 	args := []string{
 		"-n",
-		kubeParams.Namespace,
+		m.kubeParams.Namespace,
 		"exec",
 		"-i",
 		"deploy/pulsewatcher",
@@ -242,15 +242,15 @@ func (m *InsolarNetManager) checkReady(kubeParams KubeParams) (bool, error) {
 	return false, nil
 }
 
-func (m *InsolarNetManager) waitInReady(netParams NetParams) error {
-	fmt.Printf("waiting in ready state for %s\n", netParams.WaitInReadyState)
-	waitTimeout := time.After(netParams.WaitInReadyState)
+func (m *InsolarNetManager) waitInReady(net NetParams) error {
+	fmt.Printf("waiting in ready state for %s\n", net.WaitInReadyState)
+	waitTimeout := time.After(net.WaitInReadyState)
 	for {
 		select {
 		case <-waitTimeout:
 			return nil
 		default:
-			ready, err := m.checkReady(netParams)
+			ready, err := m.checkReady()
 			if err != nil {
 				fmt.Printf("insolar ready check failed: %s\n", err.Error())
 			}

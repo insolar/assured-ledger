@@ -31,8 +31,8 @@ type NetParams struct {
 type KubeParams struct {
 	// local/ci to manage kustomizing for local an ci environment
 	Env string
-        // namespace
-        Namespace string
+	// Namespace to work in
+	Namespace string
 	// path to kube dir
 	KubeRootPath string
 	// relative path to pure manifests
