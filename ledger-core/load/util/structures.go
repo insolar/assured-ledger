@@ -10,7 +10,7 @@ import (
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-const startBalance uint = 1000000000 // nolint:unused,deadcode,varcheck
+const StartBalance uint = 1000000000 // nolint:unused,deadcode,varcheck
 
 // nolint:unused
 type WalletCreateResponse struct {

@@ -2,10 +2,8 @@ package load
 
 import (
 	"context"
-	"errors"
 	"github.com/insolar/assured-ledger/ledger-core/load/util"
 	"github.com/skudasov/loadgen"
-	"time"
 )
 
 type CreateContractTestAttack struct {
@@ -17,15 +15,14 @@ func (a *CreateContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
 	return nil
 }
 func (a *CreateContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
-	time.Sleep(400 * time.Millisecond)
-	var getBalanceURL string
+	var walletCreateURL string
 	if len(a.GetManager().GeneratorConfig.Generator.Target) == 0 {
 		// set default
-		getBalanceURL = util.GetURL(util.WalletCreatePath, "", "")
+		walletCreateURL = util.GetURL(util.WalletCreatePath, "", "")
 	} else {
-		getBalanceURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletCreatePath
+		walletCreateURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletCreatePath
 	}
-	rawResp, err := util.SendAPIRequest(getBalanceURL, nil)
+	rawResp, err := util.SendAPIRequest(walletCreateURL, nil)
 	if err != nil {
 		a.GetRunner().L.Error(err)
 		return loadgen.DoResult{
@@ -44,7 +41,7 @@ func (a *CreateContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 	// store result
 	_ = a.PutData(resp)
 	return loadgen.DoResult{
-		Error:        errors.New(""),
+		Error:        nil,
 		RequestLabel: CreateContractTestLabel,
 	}
 }
