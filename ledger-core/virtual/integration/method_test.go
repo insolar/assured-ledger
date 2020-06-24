@@ -19,6 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -978,6 +980,8 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
 }
 
 // unordered A.Foo sends ordered outgoing and receives error
@@ -1701,6 +1705,193 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	require.Equal(t, 4, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+// A.Foo calls B.Bar, increment pulse before VCallRequest [B.Bar]
+func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *testing.T) {
+	t.Log("C5143")
+
+	instestlogger.SetTestOutput(t)
+	logger := global.CopyForContext()
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		flags     = contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
+		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
+
+		outgoingRef   = server.RandomLocalWithPulse()
+		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+
+		classB        = gen.UniqueGlobalRef()
+		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+
+		outgoingCallReason = gen.UniqueGlobalRef()
+
+		startPulse = server.GetPulse().PulseNumber.AsUint32()
+		endPulse   uint32
+	)
+
+	// create objects
+	{
+		Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+	}
+
+	// add ExecutionMocks to runnerMock
+	{
+		builder := execution.NewRPCBuilder(outgoingCallReason, objectAGlobal)
+		objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
+		objectAExecutionMock.AddStart(
+			func(_ execution.Context) {
+				logger.Info("ExecutionStart [A.Foo]")
+				server.IncrementPulseAndWaitIdle(ctx)
+				endPulse = server.GetPulse().PulseNumber.AsUint32()
+				require.Greater(t, endPulse, startPulse)
+			},
+			&execution.Update{
+				Type:     execution.OutgoingCall,
+				Outgoing: builder.CallMethod(objectBGlobal, classB, "Bar", []byte("call B.Bar")),
+			},
+		)
+		objectAExecutionMock.AddContinue(
+			func(result []byte) {
+				logger.Info("ExecutionContinue [A.Foo]")
+				require.Equal(t, []byte("finish B.Bar"), result)
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionClassify("Foo", flags, nil)
+	}
+
+	// add checks to typedChecker
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			assert.True(t, report.DelegationSpec.IsZero())
+
+			switch report.Object {
+			case objectAGlobal:
+				require.Equal(t, int32(0), report.OrderedPendingCount)
+				require.Equal(t, int32(1), report.UnorderedPendingCount)
+			case objectBGlobal:
+				require.Equal(t, int32(0), report.OrderedPendingCount)
+				require.Equal(t, int32(0), report.UnorderedPendingCount)
+			default:
+				t.Fatal("unknown object")
+			}
+
+			return false
+		})
+		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			assert.Equal(t, objectAGlobal, request.Callee)
+			assert.Equal(t, startPulse, request.CallOutgoing.GetLocal().Pulse().AsUint32())
+			assert.True(t, request.DelegationSpec.IsZero())
+
+			result := payload.VDelegatedCallResponse{
+				Callee:       request.Callee,
+				CallIncoming: request.CallIncoming,
+				ResponseDelegationSpec: payload.CallDelegationToken{
+					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					PulseNumber:       server.GetPulse().PulseNumber,
+					Callee:            request.Callee,
+					Outgoing:          request.CallOutgoing,
+					DelegateTo:        server.JetCoordinatorMock.Me(),
+				},
+			}
+			server.SendPayload(ctx, &result)
+
+			return false
+		})
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+			assert.Equal(t, objectBGlobal, request.Callee)
+			assert.Equal(t, outgoingCallReason, request.CallReason)
+			assert.Equal(t, []byte("call B.Bar"), request.Arguments)
+			assert.Equal(t, startPulse, request.CallOutgoing.Pulse().AsUint32())
+
+			assert.False(t, request.DelegationSpec.IsZero())
+			assert.Equal(t, objectAGlobal, request.DelegationSpec.Callee)
+			assert.Equal(t, endPulse, request.DelegationSpec.PulseNumber.AsUint32())
+			assert.Equal(t, startPulse, request.DelegationSpec.Outgoing.GetLocal().Pulse().AsUint32())
+
+			result := payload.VCallResult{
+				CallType:        request.CallType,
+				CallFlags:       request.CallFlags,
+				Caller:          request.Caller,
+				Callee:          request.Callee,
+				CallOutgoing:    request.CallOutgoing,
+				ReturnArguments: []byte("finish B.Bar"),
+			}
+			server.SendPayload(ctx, &result)
+
+			return false
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, objectAGlobal, res.Callee)
+			assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
+			assert.Equal(t, startPulse, res.CallOutgoing.Pulse().AsUint32())
+
+			assert.False(t, res.DelegationSpec.IsZero())
+			assert.Equal(t, objectAGlobal, res.DelegationSpec.Callee)
+			assert.Equal(t, endPulse, res.DelegationSpec.PulseNumber.AsUint32())
+			assert.Equal(t, startPulse, res.DelegationSpec.Outgoing.GetLocal().Pulse().AsUint32())
+
+			return false
+		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			assert.Equal(t, objectAGlobal, finished.Callee)
+			assert.Equal(t, startPulse, finished.CallOutgoing.GetLocal().Pulse().AsUint32())
+
+			assert.False(t, finished.DelegationSpec.IsZero())
+			assert.Equal(t, objectAGlobal, finished.DelegationSpec.Callee)
+			assert.Equal(t, endPulse, finished.DelegationSpec.PulseNumber.AsUint32())
+			assert.Equal(t, startPulse, finished.DelegationSpec.Outgoing.GetLocal().Pulse().AsUint32())
+
+			return false
+		})
+	}
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      callFlags,
+		Caller:         server.GlobalCaller(),
+		Callee:         objectAGlobal,
+		CallSiteMethod: "Foo",
+		CallOutgoing:   outgoingRef,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+	server.SendPayload(ctx, &pl)
+
+	// wait for all calls and SMs
+	{
+		testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	}
+
+	require.Equal(t, 2, typedChecker.VStateReport.Count())
+	require.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
+	require.Equal(t, 1, typedChecker.VCallRequest.Count())
+	require.Equal(t, 1, typedChecker.VCallResult.Count())
+	require.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 
 	mc.Finish()
 }
