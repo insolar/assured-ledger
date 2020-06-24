@@ -82,6 +82,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.RandomLocalWithPulse()
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
@@ -96,7 +97,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		assert.Equal(t, res.Callee, objectGlobal)
-		assert.Equal(t, res.CallOutgoing, objectLocal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
 		assert.Equal(t, expectedError, res.ReturnArguments)
 
 		return false // no resend msg
@@ -110,7 +111,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "random",
-			CallOutgoing:        objectLocal,
+			CallOutgoing:        outgoing,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
