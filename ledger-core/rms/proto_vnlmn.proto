@@ -21,10 +21,10 @@ option (gogoproto.equal_all) = true;
 // LRegisterDedupRequest
 
 enum RegistrationFlags {
-    RFUndefined = 0;
-    RFFast = 1;
-    RFSafe = 2;
-    RFFastSafe = 3;
+    Undefined = 0;
+    Fast = 1;
+    Safe = 2;
+    FastSafe = 3;
 }
 
 message LRegisterRequest {

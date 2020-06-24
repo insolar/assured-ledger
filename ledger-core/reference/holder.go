@@ -39,15 +39,24 @@ func AsRecordID(v Holder) Local {
 }
 
 func IsRecordScope(ref Holder) bool {
-	return ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
+	if !ref.GetBase().IsEmpty() {
+		return false
+	}
+	local := ref.GetLocal()
+	return !local.IsEmpty() && local.SubScope() == baseScopeLifeline
 }
 
 func IsObjectReference(ref Holder) bool {
-	return !ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
+	if ref.GetBase().IsEmpty() {
+		return false
+	}
+	local := ref.GetLocal()
+	return !local.IsEmpty() && local.SubScope() == baseScopeLifeline
 }
 
 func IsSelfScope(ref Holder) bool {
-	return ref.GetBase() == ref.GetLocal()
+	local := ref.GetLocal()
+	return !local.IsEmpty() && ref.GetBase() == local
 }
 
 func IsLifelineScope(ref Holder) bool {
