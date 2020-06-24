@@ -242,9 +242,9 @@ func (m *InsolarNetManager) checkReady(netParams NetParams) (bool, error) {
 	return false, nil
 }
 
-func (m *InsolarNetManager) waitInReady(net NetParams) error {
-	fmt.Printf("waiting in ready state for %s\n", net.WaitInReadyState)
-	waitTimeout := time.After(net.WaitInReadyState)
+func (m *InsolarNetManager) waitInReady(netParams NetParams) error {
+	fmt.Printf("waiting in ready state for %s\n", netParams.WaitInReadyState)
+	waitTimeout := time.After(netParams.WaitInReadyState)
 	for {
 		select {
 		case <-waitTimeout:
