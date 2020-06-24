@@ -140,7 +140,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 			case <-stopWaitingReady:
 				break loop
 			case <-time.After(time.Second):
-				ready, err := m.checkReady()
+				ready, err := m.checkReady(netParams)
 				if err != nil {
 					fmt.Printf("insolar ready check failed: %s\n", err.Error())
 				}
@@ -250,7 +250,7 @@ func (m *InsolarNetManager) waitInReady(net NetParams) error {
 		case <-waitTimeout:
 			return nil
 		default:
-			ready, err := m.checkReady()
+			ready, err := m.checkReady(netParams)
 			if err != nil {
 				fmt.Printf("insolar ready check failed: %s\n", err.Error())
 			}
