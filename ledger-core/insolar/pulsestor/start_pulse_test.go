@@ -8,7 +8,7 @@ package pulsestor
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
@@ -19,7 +19,7 @@ func ReadPulses(pulser StartPulse) func() {
 }
 
 func TestStartPulseRace(t *testing.T) {
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	startPulse := NewStartPulse()
 	for i := 0; i < 10; i++ {
 		go ReadPulses(startPulse)()

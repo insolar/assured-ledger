@@ -16,6 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
@@ -55,6 +56,8 @@ func createFixture(t *testing.T) fixture {
 var ErrUnknown = errors.New("unknown error")
 
 func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	f := createFixture(t)
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
@@ -72,6 +75,8 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 }
 
 func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	f := createFixture(t)
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
@@ -92,6 +97,8 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 }
 
 func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	f := createFixture(t)
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)

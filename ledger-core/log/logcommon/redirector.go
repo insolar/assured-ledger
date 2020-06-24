@@ -19,11 +19,31 @@ type TestingLogger interface {
 	Fatal(...interface{})
 }
 
+type TestingLoggerWrapper interface {
+	UnwrapTesting() TestingLogger
+}
+
+func IsBasedOn(t, lookFor TestingLogger) bool {
+	for t != nil {
+		if t == lookFor {
+			return true
+		}
+		if w, ok := t.(TestingLoggerWrapper); ok {
+			t = w.UnwrapTesting()
+			continue
+		}
+		break
+	}
+	return false
+}
+
+type ErrorFilterFunc = func(string) bool
+
 type TestingLoggerOutput struct {
 	Output, EchoTo    io.Writer
-	Testing           TestingLogger
-	InterceptFatal    func([]byte) bool
-	SuppressTestError bool
+	Testing        TestingLogger
+	InterceptFatal func([]byte) bool
+	ErrorFilterFn  ErrorFilterFunc
 }
 
 func (r *TestingLoggerOutput) Close() error {
@@ -67,7 +87,7 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 			defer r.Testing.Error(msg)
 		}
 	case PanicLevel, ErrorLevel:
-		if !r.SuppressTestError {
+		if r.ErrorFilterFn == nil || r.ErrorFilterFn(msg) {
 			defer r.Testing.Error(msg)
 		} else {
 			defer r.Testing.Log(msg)

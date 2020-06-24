@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -27,7 +27,7 @@ import (
 func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
@@ -41,7 +41,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -99,7 +99,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
@@ -114,7 +114,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -174,7 +174,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
@@ -188,7 +188,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -248,10 +248,10 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -323,10 +323,10 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -398,10 +398,10 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 

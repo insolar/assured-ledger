@@ -8,10 +8,21 @@ package example
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
 
 func TestExample(t *testing.T) {
-	instestlogger.SetTestOutput(t, false)
-	RunExample()
+	instestlogger.SetTestOutput(t)
+
+	var machineLogger smachine.SlotMachineLogger
+	if convlog.UseTextConvLog {
+		machineLogger = convlog.MachineLogger{}
+	} else {
+		machineLogger = statemachine.ConveyorLoggerFactory{}
+	}
+
+	RunExample(machineLogger)
 }

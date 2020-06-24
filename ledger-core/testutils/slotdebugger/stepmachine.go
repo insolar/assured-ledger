@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	testUtilsCommon "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -24,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
 
 const (
@@ -31,7 +33,6 @@ const (
 )
 
 type StepController struct {
-	t   *testing.T
 	ctx context.Context
 
 	externalSignal synckit.VersionedSignal
@@ -47,22 +48,38 @@ type StepController struct {
 	MessageSender *messagesender.ServiceMockWrapper
 }
 
-func New(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	controller := new(ctx, t, suppressLogError)
+func NewWithErrorFilter(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *StepController {
+	controller := newController(ctx, t, filterFn)
 	controller.preparePresentPulseSlot()
 	return controller
 }
 
-func NewPast(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	controller := new(ctx, t, suppressLogError)
+// deprecated
+func NewWithIgnoreAllErrors(ctx context.Context, t *testing.T) *StepController {
+	return NewWithErrorFilter(ctx, t, func(string) bool { return false })
+}
+
+func New(ctx context.Context, t *testing.T) *StepController {
+	return NewWithErrorFilter(ctx, t, nil)
+}
+
+func NewPast(ctx context.Context, t *testing.T) *StepController {
+	controller := newController(ctx, t, nil)
 	controller.preparePastPulseSlot()
 	return controller
 }
 
-func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepController {
-	instestlogger.SetTestOutput(t, suppressLogError)
+func newController(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *StepController {
+	instestlogger.SetTestOutputWithErrorFilter(t, filterFn)
 
-	debugLogger := debuglogger.NewDebugMachineLogger(convlog.MachineLogger{})
+	var machineLogger smachine.SlotMachineLogger
+	if convlog.UseTextConvLog {
+		machineLogger = convlog.MachineLogger{}
+	} else {
+		machineLogger = statemachine.ConveyorLoggerFactory{}
+	}
+
+	debugLogger := debuglogger.NewDebugMachineLogger(machineLogger)
 	machineConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -74,7 +91,6 @@ func new(ctx context.Context, t *testing.T, suppressLogError bool) *StepControll
 	}
 
 	w := &StepController{
-		t:           t,
 		ctx:         ctx,
 		debugLogger: &debugLogger,
 	}

@@ -80,7 +80,12 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		TraceID:   traceID,
 		Error:     "",
 	}
-	defer func() { s.mustWriteResult(w, result) }()
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTConstructor,

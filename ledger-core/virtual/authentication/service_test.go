@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -24,7 +24,7 @@ import (
 )
 
 func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	authService := NewService(ctx, nil)
 
 	pdLeft := pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 10, longbits.Bits256{})
@@ -123,7 +123,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			require.False(t, mustReject)
 		})
 
-		t.Run("SelfNode Equals to Approver:"+testCase.name, func(t *testing.T) {
+		t.Run("Sender_equals_to_current_node:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 
 			refs := gen.UniqueGlobalRefs(2)
@@ -132,7 +132,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{selfRef}, nil).
-				MeMock.Return(selfRef)
+				MeMock.Return(sender)
 
 			authService := NewService(ctx, jetCoordinatorMock)
 
@@ -147,10 +147,10 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			insertToken(token, testCase.msg)
 
 			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
-			require.Contains(t, err.Error(), "selfNode cannot be equal to token Approver")
+			require.Contains(t, err.Error(), "current node cannot be equal to sender of message with token")
 		})
 
-		t.Run("ExpectedVE not equals to Approver:"+testCase.name, func(t *testing.T) {
+		t.Run("ExpectedVE_not_equals_to_Approver:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 			selfRef := gen.UniqueGlobalRef()
 
@@ -261,7 +261,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			require.Contains(t, err.Error(), "unexpected sender")
 		})
 
-		t.Run("MustReject if message requires prev pulse for check:"+testCase.name, func(t *testing.T) {
+		t.Run("MustReject_if_message_requires_prev_pulse_for_check:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 			refs := gen.UniqueGlobalRefs(3)
 			selfRef := refs[0]
@@ -303,7 +303,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			})
 		})
 
-		t.Run("Cannot calculate role:"+testCase.name, func(t *testing.T) {
+		t.Run("Cannot_calculate_role:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 			refs := gen.UniqueGlobalRefs(2)
 			selfRef := refs[0]
@@ -350,7 +350,7 @@ func TestService_HasToSendToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var (
-				ctx     = inslogger.TestContext(t)
+				ctx     = instestlogger.TestContext(t)
 				affMock = jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
 			)
 

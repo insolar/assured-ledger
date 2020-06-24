@@ -20,12 +20,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 func TestNodeService_GetSeed(t *testing.T) {
 	defer testutils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager.NewSpecified.func1"))
+
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
 
 	availableFlag := false
 	mc := minimock.NewController(t)

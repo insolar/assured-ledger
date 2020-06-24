@@ -16,8 +16,6 @@ import (
 )
 
 func TestNodeStorage_All(t *testing.T) {
-	t.Parallel()
-
 	var all []node.Node
 	f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
 		e.ID = gen.UniqueGlobalRef()
@@ -50,8 +48,6 @@ func TestNodeStorage_All(t *testing.T) {
 }
 
 func TestNodeStorage_InRole(t *testing.T) {
-	t.Parallel()
-
 	var (
 		virtuals  []node.Node
 		materials []node.Node
@@ -106,8 +102,6 @@ func TestNodeStorage_InRole(t *testing.T) {
 }
 
 func TestStorage_Set(t *testing.T) {
-	t.Parallel()
-
 	var nodes []node.Node
 	f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
 		e.ID = gen.UniqueGlobalRef()

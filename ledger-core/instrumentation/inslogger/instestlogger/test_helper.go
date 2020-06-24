@@ -6,35 +6,44 @@
 package instestlogger
 
 import (
+	"context"
 	"io"
 	"os"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/prettylog"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/log/logwriter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
-	return newTestLoggerExt(target, suppressTestError, false, "")
+	if !suppressTestError {
+		return NewTestLoggerWithErrorFilter(target, nil)
+	}
+
+	return NewTestLoggerWithErrorFilter(target, func(string) bool {	return false })
 }
 
-func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll bool, adapterOverride string) log.Logger {
+func NewTestLoggerWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) log.Logger {
+	return newTestLoggerExt(target, filterFn, inslogger.DefaultTestLogConfig(), false)
+}
+
+func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc, logCfg configuration.Log, ignoreCmd bool) log.Logger {
 	if target == nil {
 		panic("illegal value")
 	}
 
-	logCfg := inslogger.DefaultTestLogConfig()
-
-	echoAllCfg := false
+	echoAll := false
 	emuMarks := false
 	prettyPrintJSON := false
-	if adapterOverride != "" {
-		logCfg.Adapter = adapterOverride
-	} else {
-		readTestLogConfig(&logCfg, &echoAllCfg, &emuMarks, &prettyPrintJSON)
+
+	if !ignoreCmd {
+		readTestLogConfig(&logCfg, &echoAll, &emuMarks, &prettyPrintJSON)
 	}
 
 	outputType, err := inslogger.ParseOutput(logCfg.OutputType)
@@ -44,7 +53,9 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 
 	isConsoleOutput := outputType.IsConsole()
 	if isConsoleOutput {
-		prettyPrintJSON = false // is only needed for file output
+		// only needed for file output
+		prettyPrintJSON = false
+		emuMarks = false
 	}
 
 	l, err := inslogger.NewLogBuilder(logCfg)
@@ -53,11 +64,31 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 	}
 
 	var echoTo io.Writer
-	if (echoAll || echoAllCfg) && !isConsoleOutput {
+	if echoAll && !isConsoleOutput {
 		echoTo = os.Stderr
 	}
 
+	if emuMarks && global.IsInitialized() {
+		// check global to avoid multiple marks for the same testing.T
+		lOut := global.Logger().Embeddable().Copy().GetLoggerOutput()
+
+		if plo, ok := lOut.(*logwriter.ProxyLoggerOutput); ok {
+			lOut = plo.GetTarget()
+		}
+
+		if tlo, ok := lOut.(*logcommon.TestingLoggerOutput); ok {
+			if logcommon.IsBasedOn(tlo.Testing, target) {
+				emuMarks = false // avoid multiple marks
+			}
+		}
+	}
+
 	out := l.GetOutput()
+
+	name := ""
+	if namer, ok := target.(interface{ Name() string }); ok {
+		name = namer.Name()
+	}
 
 	switch l.GetFormat() {
 	case logcommon.JSONFormat:
@@ -65,12 +96,12 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 			if emuMarks {
 				emulateTestText(out, target, time.Now)
 			}
-			out = ConvertJSONConsoleOutput(out)
+			out = prettylog.ConvertJSONConsoleOutput(out)
 		} else if emuMarks {
 			emulateTestJSON(out, target, time.Now)
 		}
-		target = ConvertJSONTestingOutput(target)
-		echoTo = ConvertJSONConsoleOutput(echoTo)
+		target = prettylog.ConvertJSONTestingOutput(target)
+		echoTo = prettylog.ConvertJSONConsoleOutput(echoTo)
 	case logcommon.TextFormat:
 		if emuMarks {
 			emulateTestText(out, target, time.Now)
@@ -79,17 +110,49 @@ func newTestLoggerExt(target logcommon.TestingLogger, suppressTestError, echoAll
 		panic(throw.Unsupported())
 	}
 
+	if name != "" {
+		l = l.WithField("testname", name)
+	}
+
 	return l.WithMetrics(logcommon.LogMetricsResetMode | logcommon.LogMetricsTimestamp).
 		WithCaller(logcommon.CallerField).
 		WithOutput(&logcommon.TestingLoggerOutput{
 			Testing: target,
 			Output: out,
 			EchoTo: echoTo,
-			SuppressTestError: suppressTestError}).
+			ErrorFilterFn: filterFn}).
 		MustBuild()
 }
 
-
-func SetTestOutput(target logcommon.TestingLogger, suppressLogError bool) {
-	global.SetLogger(NewTestLogger(target, suppressLogError))
+func SetTestOutputWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) {
+	global.SetLogger(NewTestLoggerWithErrorFilter(target, filterFn))
 }
+
+// deprecated
+func SetTestOutputWithIgnoreAllErrors(target logcommon.TestingLogger) {
+	global.SetLogger(NewTestLogger(target, true))
+}
+
+func SetTestOutput(target logcommon.TestingLogger) {
+	global.SetLogger(NewTestLogger(target, false))
+}
+
+func SetTestOutputWithCfg(target logcommon.TestingLogger, cfg configuration.Log) {
+	global.SetLogger(newTestLoggerExt(target, nil, cfg, false))
+}
+
+func SetTestOutputWithStub(suppressLogError bool) (teardownFn func(pass bool)) {
+	emu := &stubT{}
+	global.SetLogger(NewTestLogger(emu, suppressLogError))
+	return emu.cleanup
+}
+
+// TestContext returns context with initalized log field "testname" equal t.Name() value.
+func TestContext(target logcommon.TestingLogger) context.Context {
+	if !global.IsInitialized() {
+		SetTestOutput(target)
+	}
+	// ctx, _ := inslogger.WithField(context.Background(), "testname", t.Name())
+	return context.Background()
+}
+

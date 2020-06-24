@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -32,10 +32,10 @@ import (
 func TestVDelegatedCallRequest(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.PrepareMockedRunner(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 

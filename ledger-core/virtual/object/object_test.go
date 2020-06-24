@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -161,7 +161,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		objectReference = gen.UniqueGlobalRef()
 		smObject        = NewStateMachineObject(objectReference)
@@ -170,7 +170,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 	smObject.SetState(HasState)
 	smObject.PreviousExecutorOrderedPendingCount = 1
 
-	slotMachine := slotdebugger.New(ctx, t, true)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 
 	smWrapper := slotMachine.AddStateMachine(ctx, smObject)
