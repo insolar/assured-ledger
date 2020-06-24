@@ -53,8 +53,8 @@ jobs:
       - name: Push assured ledger image to Azure container registry registry
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
-          docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:$GIT_SHA
-          docker push $ACR_HOST/assured-ledger:$GIT_SHA
+          docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:"${{env.GIT_SHA}}"
+          docker push $ACR_HOST/assured-ledger:"${{env.GIT_SHA}}"
       - name: copy docker auth secret
         run:  cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
       - name: Prepare environment
@@ -67,8 +67,8 @@ jobs:
         working-directory: ${{ env.CORE_PATH }}
       - name: template GIT_SHA to deployment manifests
         run: |
-          sed -i "s/placeholder/$GIT_SHA/g" ledger-core/scripts/deploy/kube/aks/*.*
-          sed -i "s/placeholder/$GIT_SHA/g" ledger-core/scripts/deploy/kube/aks/configuration/*.*
+          sed -i "s/placeholder/${{env.GIT_SHA}}/g" ledger-core/scripts/deploy/kube/aks/*.*
+          sed -i "s/placeholder/${{env.GIT_SHA}}/g" ledger-core/scripts/deploy/kube/aks/configuration/*.*
       - name: Run headless network and generate performance report
         env:
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_HOST: https://reports.garage.insolar.io
