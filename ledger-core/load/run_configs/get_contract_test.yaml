@@ -13,8 +13,8 @@ steps:
     max_attackers: 200
     verbose: true
     do_timeout_sec: 40
-    store_data: false
     recycle_data: true
+    csv_read: users.csv
     stop_if:
       - type: error
         threshold: 0
