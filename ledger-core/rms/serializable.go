@@ -35,7 +35,6 @@ type goGoMarshaler interface {
 type GoGoSerializable interface {
 	goGoMarshaler
 	unmarshaler
-	encoding.TextMarshaler
 }
 
 type GoGoSerializableWithText interface {
