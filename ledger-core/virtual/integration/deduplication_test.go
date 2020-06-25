@@ -742,8 +742,8 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 		}
 
 		if testInfo.pending {
-			report.OrderedPendingCount = 1
-			report.OrderedPendingEarliestPulse = s.getP1()
+			report.UnorderedPendingCount = 1
+			report.UnorderedPendingEarliestPulse = s.getP1()
 		}
 
 		s.server.SendPayload(ctx, &report)
