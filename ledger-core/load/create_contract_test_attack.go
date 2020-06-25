@@ -22,26 +22,17 @@ func (a *CreateContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 	} else {
 		walletCreateURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletCreatePath
 	}
-	rawResp, err := util.SendAPIRequest(walletCreateURL, nil)
+	walletRef, err := util.CreateSimpleWallet(walletCreateURL)
 	if err != nil {
-		a.GetRunner().L.Error(err)
 		return loadgen.DoResult{
 			Error:        err,
-			RequestLabel: CreateContractTestLabel,
-		}
-	}
-	resp, err := util.UnmarshalWalletCreateResponse(rawResp)
-	if err != nil {
-		a.GetRunner().L.Error(err)
-		return loadgen.DoResult{
-			Error:        err,
-			RequestLabel: CreateContractTestLabel,
+			RequestLabel: GetContractTestLabel,
 		}
 	}
 	// store result
-	_ = a.PutData(resp)
+	err = a.PutData(walletRef)
 	return loadgen.DoResult{
-		Error:        nil,
+		Error:        err,
 		RequestLabel: CreateContractTestLabel,
 	}
 }
@@ -49,9 +40,9 @@ func (a *CreateContractTestAttack) Clone(r *loadgen.Runner) loadgen.Attack {
 	return &CreateContractTestAttack{WithRunner: loadgen.WithRunner{R: r}}
 }
 
-func (a *CreateContractTestAttack) PutData(mo util.WalletCreateResponse) error {
+func (a *CreateContractTestAttack) PutData(reference string) error {
 	if a.R.Config.StoreData {
-		data := []string{mo.Ref}
+		data := []string{reference}
 		loadgen.DefaultWriteCSV(a, data)
 	}
 	return nil
