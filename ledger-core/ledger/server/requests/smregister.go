@@ -57,7 +57,7 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 	switch {
 	case p.pulseSlot.State() != conveyor.Present:
 		return ctx.Error(throw.E("not a present pulse"))
-	case len(p.recordSet) == 0:
+	case p.recordSet.IsEmpty():
 		return ctx.Error(throw.E("empty record set"))
 	}
 
@@ -185,15 +185,16 @@ func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) sm
 }
 
 func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
-
+	// TODO
+	panic(throw.NotImplemented())
 }
 
 func (p *SMRegisterRecordSet) getRootRef() reference.Global {
-
+	return p.recordSet.Excerpts[0].RootRef.GetGlobal()
 }
 
 func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
-	return p.recordSet[0].Flags
+	return p.recordSet.Requests[0].Flags
 }
 
 func (p *SMRegisterRecordSet) handleError(smachine.FailureContext) {

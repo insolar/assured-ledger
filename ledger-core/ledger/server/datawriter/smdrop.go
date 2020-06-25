@@ -23,7 +23,7 @@ type SMJetDropBuilder struct {
 	pulseSlot *conveyor.PulseSlot
 
 	sd DropSharedData
-	prevReport *datareader.PrevDropReport
+	prevReport datareader.PrevDropReport
 }
 
 func (p *SMJetDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -46,7 +46,7 @@ func (p *SMJetDropBuilder) stepInit(ctx smachine.InitializationContext) smachine
 	p.sd.prevReport = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
 		report := v.(datareader.PrevDropReport)
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			if p.receivePrevReport(report) {
+			if p.receivePrevReport(report, ctx) {
 				return ctx.WakeUp()
 			}
 			return ctx.Stay()
@@ -77,7 +77,7 @@ func (p *SMJetDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smach
 
 	passiveUntil := p.getPassiveDeadline(p.pulseSlot.PulseStartedAt(), p.pulseSlot.PulseData().NextPulseDelta)
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if p.prevReport != nil {
+		if !p.prevReport.IsZero() {
 			return ctx.Jump(p.stepDropStart)
 		}
 		return ctx.WaitAnyUntil(passiveUntil).ThenRepeatOrJump(p.stepFindPrevDrop)
@@ -99,7 +99,7 @@ func (p *SMJetDropBuilder) stepFindPrevDrop(ctx smachine.ExecutionContext) smach
 }
 
 func (p *SMJetDropBuilder) stepDropStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if p.prevReport == nil {
+	if p.prevReport.IsZero() {
 		return ctx.Sleep().ThenRepeat()
 	}
 
@@ -125,16 +125,28 @@ func (p *SMJetDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.
 	return ctx.Stop()
 }
 
-func (p *SMJetDropBuilder) receivePrevReport(report datareader.PrevDropReport) (wakeup bool) {
-	if p.prevReport != nil {
+func (p *SMJetDropBuilder) receivePrevReport(report datareader.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
+	switch {
+	case !p.prevReport.IsZero():
 		if p.prevReport.Equal(report) {
 			// all the same - no worries
 			return false
 		}
 		// TODO report error
 		panic(throw.NotImplemented())
+
+	case !p.verifyPrevReport(report):
+		ctx.Log().Error("invalid drop report", nil)
+		return false
 	}
 
+	p.prevReport = report
+	p.sd.addPrevReport(report)
+	return true
+}
 
+func (p *SMJetDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bool {
+	// TODO verification vs jet tree etc
+	return true
 }
 

@@ -11,7 +11,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
-type RegisterRequestSet = []*rms.LRegisterRequest
+type RegisterRequestSet struct {
+	Requests []*rms.LRegisterRequest
+	Excerpts []catalog.Excerpt
+}
+
+func (v RegisterRequestSet) IsEmpty() bool {
+	return len(v.Requests) == 0
+}
+
 
 type InspectedRecordSet struct {
 

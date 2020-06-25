@@ -49,3 +49,7 @@ func (p *DropSharedData) GetDropAssistant() buildersvc.JetDropAssistant {
 	}
 	return p.updater
 }
+
+func (p *DropSharedData) addPrevReport(report datareader.PrevDropReport) {
+
+}
