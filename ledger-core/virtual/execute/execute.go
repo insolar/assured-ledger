@@ -565,7 +565,7 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pulseNumber := s.pulseSlot.PulseData().PulseNumber
+	pulseNumber := s.pulseSlot.CurrentPulseNumber()
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:

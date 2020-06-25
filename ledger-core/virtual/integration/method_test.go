@@ -1736,16 +1736,17 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 		flags     = contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		outgoingRef   = server.RandomLocalWithPulse()
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectAGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
+		outgoingRef       = server.RandomLocalWithPulse()
+		outgoingRefGlobal = reference.NewRecordOf(objectAGlobal, outgoingRef)
 
 		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
 		outgoingCallReason = gen.UniqueGlobalRef()
 
-		startPulse = server.GetPulse().PulseNumber.AsUint32()
-		endPulse   uint32
+		startPulse = server.GetPulse().PulseNumber
+		endPulse   pulse.Number
 	)
 
 	// create objects
@@ -1762,8 +1763,8 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 			func(_ execution.Context) {
 				logger.Info("ExecutionStart [A.Foo]")
 				server.IncrementPulseAndWaitIdle(ctx)
-				endPulse = server.GetPulse().PulseNumber.AsUint32()
-				require.Greater(t, endPulse, startPulse)
+				endPulse = server.GetPulse().PulseNumber
+				require.Greater(t, endPulse.AsUint32(), startPulse.AsUint32())
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
@@ -1804,7 +1805,7 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			assert.Equal(t, objectAGlobal, request.Callee)
-			assert.Equal(t, startPulse, request.CallOutgoing.GetLocal().Pulse().AsUint32())
+			assert.Equal(t, outgoingRefGlobal, request.CallOutgoing)
 			assert.True(t, request.DelegationSpec.IsZero())
 
 			result := payload.VDelegatedCallResponse{
@@ -1826,12 +1827,12 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 			assert.Equal(t, objectBGlobal, request.Callee)
 			assert.Equal(t, outgoingCallReason, request.CallReason)
 			assert.Equal(t, []byte("call B.Bar"), request.Arguments)
-			assert.Equal(t, startPulse, request.CallOutgoing.Pulse().AsUint32())
+			assert.Equal(t, endPulse, request.CallOutgoing.Pulse())
 
 			assert.False(t, request.DelegationSpec.IsZero())
 			assert.Equal(t, objectAGlobal, request.DelegationSpec.Callee)
-			assert.Equal(t, endPulse, request.DelegationSpec.PulseNumber.AsUint32())
-			assert.Equal(t, startPulse, request.DelegationSpec.Outgoing.GetLocal().Pulse().AsUint32())
+			assert.Equal(t, endPulse, request.DelegationSpec.PulseNumber)
+			assert.Equal(t, outgoingRefGlobal, request.DelegationSpec.Outgoing)
 
 			result := payload.VCallResult{
 				CallType:        request.CallType,
@@ -1848,23 +1849,23 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			assert.Equal(t, objectAGlobal, res.Callee)
 			assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-			assert.Equal(t, startPulse, res.CallOutgoing.Pulse().AsUint32())
+			assert.Equal(t, outgoingRef, res.CallOutgoing)
 
 			assert.False(t, res.DelegationSpec.IsZero())
 			assert.Equal(t, objectAGlobal, res.DelegationSpec.Callee)
-			assert.Equal(t, endPulse, res.DelegationSpec.PulseNumber.AsUint32())
-			assert.Equal(t, startPulse, res.DelegationSpec.Outgoing.GetLocal().Pulse().AsUint32())
+			assert.Equal(t, endPulse, res.DelegationSpec.PulseNumber)
+			assert.Equal(t, outgoingRefGlobal, res.DelegationSpec.Outgoing)
 
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, objectAGlobal, finished.Callee)
-			assert.Equal(t, startPulse, finished.CallOutgoing.GetLocal().Pulse().AsUint32())
+			assert.Equal(t, outgoingRefGlobal, finished.CallOutgoing)
 
 			assert.False(t, finished.DelegationSpec.IsZero())
 			assert.Equal(t, objectAGlobal, finished.DelegationSpec.Callee)
-			assert.Equal(t, endPulse, finished.DelegationSpec.PulseNumber.AsUint32())
-			assert.Equal(t, startPulse, finished.DelegationSpec.Outgoing.GetLocal().Pulse().AsUint32())
+			assert.Equal(t, endPulse, finished.DelegationSpec.PulseNumber)
+			assert.Equal(t, outgoingRefGlobal, finished.DelegationSpec.Outgoing)
 
 			return false
 		})
