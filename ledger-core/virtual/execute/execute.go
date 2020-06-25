@@ -257,10 +257,15 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// if ExecutionError was prepared
+	if s.executionNewState != nil {
+		return ctx.Jump(s.stepSendCallResult)
+	}
+
 	if s.methodIsolation.IsZero() {
 		return s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
 			if err != nil {
-				panic(throw.W(err, "failed to classify method"))
+				s.prepareExecutionError(throw.W(err, "failed to classify method"))
 			}
 			s.methodIsolation = isolation
 		}).DelayedStart().Sleep().ThenRepeat()
