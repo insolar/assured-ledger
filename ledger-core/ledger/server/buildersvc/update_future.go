@@ -6,6 +6,7 @@
 package buildersvc
 
 import (
+<<<<<<< HEAD
 	"math"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -72,4 +73,19 @@ func (p *Future) TrySetCommitted(committed bool, allocatedBase uint32) bool {
 
 	smachine.ApplyAdjustmentAsync(p.ready.NewValue(true))
 	return true
+=======
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+)
+
+type Future struct {
+
+}
+
+func (p *Future) GetReadySync() smachine.SyncLink {
+
+}
+
+func (p *Future) IsCommitted() bool {
+
+>>>>>>> SMs
 }
