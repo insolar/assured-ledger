@@ -63,6 +63,7 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 }
 
 func (s *SMTestAPICall) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("Resend message")
 	return ctx.Jump(s.stepSendRequest)
 }
 
@@ -70,7 +71,7 @@ func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateU
 	ctx.SetDefaultMigration(s.migrationDefault)
 
 	s.requestPayload.Caller = APICaller
-	s.requestPayload.CallOutgoing = gen.UniqueIDWithPulse(s.pulseSlot.PulseData().PulseNumber)
+	s.requestPayload.CallOutgoing = gen.UniqueLocalRefWithPulse(s.pulseSlot.PulseData().PulseNumber)
 
 	return ctx.Jump(s.stepRegisterBargeIn)
 }
@@ -81,9 +82,10 @@ func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smach
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
-		s.responsePayload = *res
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			s.responsePayload = *res
+
 			return ctx.WakeUp()
 		}
 	})

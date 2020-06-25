@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
@@ -20,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
@@ -33,24 +35,24 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		testBalance = uint32(500)
-		objectRef   = gen.UniqueReference()
+		objectRef   = gen.UniqueGlobalRef()
 		sender      = server.JetCoordinatorMock.Me()
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(pl *payload.VDelegatedCallResponse) bool {
-		require.NotEmpty(t, pl.DelegationSpec)
-		require.Equal(t, objectRef, pl.DelegationSpec.Callee)
-		require.Equal(t, sender, pl.DelegationSpec.DelegateTo)
+		require.NotEmpty(t, pl.ResponseDelegationSpec)
+		require.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee)
+		require.Equal(t, sender, pl.ResponseDelegationSpec.DelegateTo)
 
 		return false // no resend msg
-	}).ExpectedCount(1)
+	})
 
 	server.WaitIdleConveyor()
 
 	{
 		// send VStateReport: save wallet
-		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+		stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
@@ -74,7 +76,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 10)),
+			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() + 10)),
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
@@ -85,6 +87,10 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	server.PublisherMock.WaitCount(1, 10*time.Second)
 	mc.Finish()
+
+	{
+		assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
+	}
 }
 
 func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
@@ -98,14 +104,14 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	var (
 		mc                 = minimock.NewController(t)
 		testBalance        = uint32(500)
-		objectRef          = gen.UniqueReference()
+		objectRef          = gen.UniqueGlobalRef()
 		delegatedRequest   = make(chan struct{}, 0)
 		getBalanceResponse = make(chan struct{}, 0)
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-		require.Equal(t, objectRef, response.DelegationSpec.Callee)
+		require.Equal(t, objectRef, response.ResponseDelegationSpec.Callee)
 
 		delegatedRequest <- struct{}{}
 		return false // no resend msg
@@ -113,14 +119,14 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 		require.Equal(t, objectRef, result.Callee)
 
-		getBalanceResponse <- struct{}{}
+		close(getBalanceResponse)
 		return false // no resend msg
 	})
 	server.WaitIdleConveyor()
 
 	{
 		// send VStateReport: save wallet
-		stateID := gen.UniqueIDWithPulse(server.GetPulse().PulseNumber)
+		stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
@@ -158,7 +164,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	{
 		// send VDelegatedCallRequest
 		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueIDWithPulse(pulse.OfNow() + 100)),
+			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() + 100)),
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
@@ -174,11 +180,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		require.FailNow(t, "timeout")
 	}
 
-	select {
-	case <-getBalanceResponse:
-	case <-time.After(10 * time.Second):
-		require.FailNow(t, "timeout")
-	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, getBalanceResponse)
 
 	server.WaitIdleConveyor()
 	mc.Finish()

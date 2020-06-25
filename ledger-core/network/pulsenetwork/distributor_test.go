@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
@@ -36,8 +37,10 @@ func createHostNetwork(t *testing.T) (network.HostNetwork, error) {
 	m := mock.NewRoutingTableMock(t)
 
 	cm1 := component.NewManager(nil)
+	cm1.SetLogger(global.Logger())
+
 	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
-	n1, err := hostnetwork.NewHostNetwork(gen.UniqueReference().String())
+	n1, err := hostnetwork.NewHostNetwork(gen.UniqueGlobalRef().String())
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +57,8 @@ func createHostNetwork(t *testing.T) (network.HostNetwork, error) {
 }
 
 func TestDistributor_Distribute(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	n1, err := createHostNetwork(t)
 	require.NoError(t, err)
 	ctx := context.Background()
@@ -82,6 +87,7 @@ func TestDistributor_Distribute(t *testing.T) {
 	assert.NotNil(t, d)
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
 
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(t, err)

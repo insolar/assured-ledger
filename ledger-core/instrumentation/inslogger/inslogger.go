@@ -11,16 +11,17 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/prettylog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
-const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
+const TimestampFormat = prettylog.TimestampFormat
 
 const insolarPrefix = "github.com/insolar/assured-ledger/ledger-core/"
 const skipFrameBaselineAdjustment = 0
@@ -31,7 +32,7 @@ func init() {
 
 	// NB! initialize adapters' globals before the next call
 	global.TrySetDefaultInitializer(func() (log.LoggerBuilder, error) {
-		return newLogger(defaultLogConfig())
+		return NewLogBuilder(defaultLogConfig())
 	})
 }
 
@@ -44,6 +45,12 @@ func defaultLogConfig() configuration.Log {
 	return logCfg
 }
 
+func DefaultTestLogConfig() configuration.Log {
+	logCfg := defaultLogConfig()
+	logCfg.Level = logcommon.DebugLevel.String()
+	return logCfg
+}
+
 func fileLineMarshaller(file string, line int) string {
 	var skip = 0
 	if idx := strings.Index(file, insolarPrefix); idx != -1 {
@@ -52,7 +59,7 @@ func fileLineMarshaller(file string, line int) string {
 	return file[skip:] + ":" + strconv.Itoa(line)
 }
 
-func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
+func NewLogBuilder(cfg configuration.Log) (log.LoggerBuilder, error) {
 	defaults := DefaultLoggerSettings()
 	pCfg, err := ParseLogConfigWithDefaults(cfg, defaults)
 	if err != nil {
@@ -88,7 +95,7 @@ func newLogger(cfg configuration.Log) (log.LoggerBuilder, error) {
 // newLog creates a new logger with the given configuration
 func NewLog(cfg configuration.Log) (logger log.Logger, err error) {
 	var b log.LoggerBuilder
-	b, err = newLogger(cfg)
+	b, err = NewLogBuilder(cfg)
 	if err == nil {
 		logger, err = b.Build()
 		if err == nil {
@@ -106,6 +113,14 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 		panic(err)
 	}
 
+	return initNodeLogger(ctx, inslog, nodeRef, nodeRole)
+}
+
+func InitNodeLoggerByGlobal(nodeRef, nodeRole string) (context.Context, log.Logger) {
+	return initNodeLogger(context.Background(), global.Logger(), nodeRef, nodeRole)
+}
+
+func initNodeLogger(ctx context.Context, inslog log.Logger, nodeRef, nodeRole string) (context.Context, log.Logger) {
 	fields := map[string]interface{}{"loginstance": "node"}
 	if nodeRef != "" {
 		fields["nodeid"] = nodeRef
@@ -120,6 +135,7 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 
 	return ctx, inslog
 }
+
 
 func TraceID(ctx context.Context) string {
 	return trace.ID(ctx)
@@ -215,12 +231,6 @@ func _getLogger(ctx context.Context) (log.Logger, bool) {
 		return global.CopyForContext(), false
 	}
 	return val.(log.Logger), true
-}
-
-// TestContext returns context with initalized log field "testname" equal t.Name() value.
-func TestContext(t *testing.T) context.Context {
-	ctx, _ := WithField(context.Background(), "testname", t.Name())
-	return ctx
 }
 
 func GetLoggerLevel(ctx context.Context) log.Level {

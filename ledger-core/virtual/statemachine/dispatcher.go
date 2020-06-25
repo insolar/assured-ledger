@@ -120,6 +120,7 @@ type errUnknownPayload struct {
 }
 
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
+	msg.Ack()
 	_, pl, err := rms.Unmarshal(msg.Payload)
 	if err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")

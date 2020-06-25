@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -45,12 +47,14 @@ func (p *PublisherMock) Close() error {
 }
 
 func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwork {
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
 	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
 	nodeMock := networkUtils.NewNetworkNodeMock(t)
-	nodeMock.IDMock.Return(gen.UniqueReference())
+	nodeMock.IDMock.Return(gen.UniqueGlobalRef())
 	nodeKeeper.GetOriginMock.Return(nodeMock)
 	serviceNetwork.NodeKeeper = nodeKeeper
 
@@ -78,7 +82,7 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 func TestSendMessageHandler_SameNode(t *testing.T) {
 	cfg := configuration.NewConfiguration()
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	nodeRef := gen.UniqueReference()
+	nodeRef := gen.UniqueGlobalRef()
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
@@ -117,7 +121,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
-			return gen.UniqueReference()
+			return gen.UniqueGlobalRef()
 		})
 		return n
 	})
@@ -134,7 +138,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
 		Payload:  p,
-		Receiver: gen.UniqueReference(),
+		Receiver: gen.UniqueGlobalRef(),
 	}
 	data, err := meta.Marshal()
 	require.NoError(t, err)
@@ -154,7 +158,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
-			return gen.UniqueReference()
+			return gen.UniqueGlobalRef()
 		})
 		return n
 	})
@@ -171,7 +175,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
 		Payload:  p,
-		Receiver: gen.UniqueReference(),
+		Receiver: gen.UniqueGlobalRef(),
 	}
 	data, err := meta.Marshal()
 	require.NoError(t, err)
@@ -189,7 +193,7 @@ func TestSendMessageHandler(t *testing.T) {
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
-			return gen.UniqueReference()
+			return gen.UniqueGlobalRef()
 		})
 		return n
 	})
@@ -206,7 +210,7 @@ func TestSendMessageHandler(t *testing.T) {
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
 		Payload:  p,
-		Receiver: gen.UniqueReference(),
+		Receiver: gen.UniqueGlobalRef(),
 	}
 	data, err := meta.Marshal()
 	require.NoError(t, err)
@@ -226,7 +230,9 @@ func (s *stater) State() []byte {
 func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")
 	cm := component.NewManager(nil)
-	origin := gen.UniqueReference()
+	cm.SetLogger(global.Logger())
+
+	origin := gen.UniqueGlobalRef()
 	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
 	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()

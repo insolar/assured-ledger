@@ -51,7 +51,6 @@ func (c ConveyorLogger) LogInternal(data smachine.StepLoggerData, updateType str
 	msgText := data.FormatForLog("internal " + updateType)
 
 	if err := data.Error; err != nil {
-		data.Error = nil
 		c.logger.Eventm(level, throw.W(err, msgText, logMsg))
 	} else {
 		logMsg.Message = msgText
@@ -75,7 +74,6 @@ func (c ConveyorLogger) LogEvent(data smachine.StepLoggerData, customEvent inter
 	if err, ok := customEvent.(error); ok && err == nil {
 		c.logger.Eventm(level, throw.W(err, msgText, logMsg), fields...)
 	} else if err = data.Error; err != nil {
-		data.Error = nil
 		c.logger.Eventm(level, throw.W(err, msgText, logMsg), fields...)
 	} else {
 		dm := global.Logger().FieldsOf(logMsg)
@@ -97,7 +95,6 @@ func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smach
 	}{adapterID, callID}
 
 	if err := data.Error; err != nil {
-		data.Error = nil
 		c.logger.Eventm(level, throw.WithDetails(err, logMsg, extra), fields...)
 	} else {
 		em := global.Logger().FieldsOf(extra)
@@ -126,7 +123,11 @@ func (c ConveyorLogger) LogUpdate(data smachine.StepLoggerData, updateData smach
 		logMsg.InactivityTime = updateData.InactivityNano.Nanoseconds()
 	}
 
-	c.logger.Eventm(level, logMsg)
+	if err := data.Error; err != nil {
+		c.logger.Eventm(level, throw.WithDetails(err, logMsg))
+	} else {
+		c.logger.Eventm(level, logMsg)
+	}
 }
 
 func (c ConveyorLogger) logPrepare(data smachine.StepLoggerData) LogStepInfo {

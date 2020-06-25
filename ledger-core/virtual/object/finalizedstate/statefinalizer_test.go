@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -27,7 +27,7 @@ import (
 func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.Object) payload.VStateReport {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 	)
 
@@ -54,7 +54,7 @@ func newSMReportWithPulse() *SMStateFinalizer {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smReport    = &SMStateFinalizer{
 			Reference: smGlobalRef,
@@ -84,7 +84,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 		msgVStateReportCount++
 	}
 	messageService.SendRole.SetCheckMessage(checkMessageFn)
-	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(instestlogger.TestContext(t))
 
 	smReport.messageSender = messageSender.Mock()
 
@@ -118,7 +118,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 		msgVStateReportCount++
 	}
 	messageService.SendRole.SetCheckMessage(checkMessageFn)
-	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(instestlogger.TestContext(t))
 
 	smReport.messageSender = messageSender.Mock()
 

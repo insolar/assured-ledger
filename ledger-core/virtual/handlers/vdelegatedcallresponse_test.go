@@ -24,12 +24,12 @@ func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		globalRef = reference.NewSelf(bargeInID)
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{DelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &payload.VDelegatedCallResponse{ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
@@ -45,12 +45,12 @@ func TestSMVDelegatedCallResponse_ErrorIfCallBargeInFailed(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		globalRef = reference.NewSelf(bargeInID)
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{DelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &payload.VDelegatedCallResponse{ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
 	}
 
 	slotLink := smachine.DeadSlotLink()
@@ -68,12 +68,12 @@ func TestSMVDelegatedCallResponse_SuccessCallBargeIn(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueIDWithPulse(pd.PulseNumber)
+		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		globalRef = reference.NewSelf(bargeInID)
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{DelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &payload.VDelegatedCallResponse{ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
 	}
 
 	slotLink := smachine.DeadSlotLink()

@@ -15,6 +15,10 @@ import (
 )
 
 func main() {
+	os.Exit(runSuite())
+}
+
+func runSuite() int {
 	cfg := readConfig()
 	callbacks := NewConsensusTestCallbacks()
 	insolarManager := NewInsolarNetManager(
@@ -41,7 +45,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	startTest(cfg, insolarManager)
+
+	err = callbacks.suiteFinished(cfg)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return 1
+	}
+	return 0
 }
 
 func startTest(cfg *KubeDeployToolConfig, insolarManager *InsolarNetManager) {
@@ -127,7 +139,7 @@ func rewriteBootstrapConfigs(cfg KubeParams, generator *ConfigGenerator) error {
 func readConfig() *KubeDeployToolConfig {
 	cfg := KubeDeployToolConfig{}
 	params := insconfig.Params{
-		EnvPrefix:        "kube-deploy-tool",
+		EnvPrefix:        "kubedeploytool",
 		ConfigPathGetter: &insconfig.DefaultPathGetter{},
 	}
 	insConfigurator := insconfig.New(params)

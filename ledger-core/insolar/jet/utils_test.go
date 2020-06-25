@@ -102,7 +102,7 @@ func benchSelectByEntropyWrapped(b *testing.B, valuescount int, count int) {
 
 	values := make([]node.Node, 0, valuescount)
 	for i := 0; i < valuescount; i++ {
-		values = append(values, node.Node{ID: gen.UniqueReference()})
+		values = append(values, node.Node{ID: gen.UniqueGlobalRef()})
 	}
 
 	b.ResetTimer()

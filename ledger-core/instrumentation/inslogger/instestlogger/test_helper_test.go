@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package inslogger
+package instestlogger
 
 import (
 	"testing"
@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 )
 
@@ -31,7 +32,12 @@ type suiteLogRedirect struct {
 }
 
 func (v suiteLogRedirect) logger() log.Logger {
-	return NewTestLoggerExt(v.T(), false, v.adapter)
+	cfg := inslogger.DefaultTestLogConfig()
+	if v.adapter != "" {
+		cfg.Adapter = v.adapter
+	}
+
+	return newTestLoggerExt(v.T(), nil, cfg, true)
 }
 
 func (v suiteLogRedirect) TestRedirectError() {

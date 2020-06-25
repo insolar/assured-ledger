@@ -7,15 +7,14 @@ package logicless
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type ExecutionChunk struct {
-	tp ExecutionChunkType
+	eventType ExecutionChunkType
 
 	check  interface{}
-	update *executionupdate.ContractExecutionStateUpdate
+	update *execution.Update
 }
 
 type ExecutionChunkType int
@@ -51,38 +50,38 @@ type ExecutionMockStartCheckFunc func(ctx execution.Context)
 type ExecutionMockContinueCheckFunc func(result []byte)
 type ExecutionMockAbortCheckFunc func()
 
-func (m *ExecutionMock) AddStart(fn ExecutionMockStartCheckFunc, returnValue *executionupdate.ContractExecutionStateUpdate) *ExecutionMock {
+func (m *ExecutionMock) AddStart(fn ExecutionMockStartCheckFunc, returnValue *execution.Update) *ExecutionMock {
 	if len(m.checks) > 0 {
 		panic(throw.IllegalValue())
 	}
 	m.checks = append(m.checks, ExecutionChunk{
-		tp:     Start,
-		check:  fn,
-		update: returnValue,
+		eventType: Start,
+		check:     fn,
+		update:    returnValue,
 	})
 	return m
 }
 
-func (m *ExecutionMock) AddContinue(fn ExecutionMockContinueCheckFunc, returnValue *executionupdate.ContractExecutionStateUpdate) *ExecutionMock {
-	if len(m.checks) == 0 || m.checks[len(m.checks)-1].tp >= Abort {
+func (m *ExecutionMock) AddContinue(fn ExecutionMockContinueCheckFunc, returnValue *execution.Update) *ExecutionMock {
+	if len(m.checks) == 0 || m.checks[len(m.checks)-1].eventType >= Abort {
 		panic(throw.IllegalValue())
 	}
 	m.checks = append(m.checks, ExecutionChunk{
-		tp:     Continue,
-		check:  fn,
-		update: returnValue,
+		eventType: Continue,
+		check:     fn,
+		update:    returnValue,
 	})
 	return m
 }
 
 func (m *ExecutionMock) AddAbort(fn ExecutionMockAbortCheckFunc) *ExecutionMock {
-	if len(m.checks) == 0 || m.checks[len(m.checks)-1].tp >= Abort {
+	if len(m.checks) == 0 || m.checks[len(m.checks)-1].eventType >= Abort {
 		panic(throw.IllegalValue())
 	}
 	m.checks = append(m.checks, ExecutionChunk{
-		tp:     Abort,
-		check:  fn,
-		update: nil,
+		eventType: Abort,
+		check:     fn,
+		update:    nil,
 	})
 	return m
 }
@@ -92,12 +91,12 @@ func (m *ExecutionMock) next(expectedTp ExecutionChunkType) (*ExecutionChunk, er
 		currentCheckPosition = m.pos
 	)
 
-	if len(m.checks) < currentCheckPosition {
-		return nil, throw.E("unexpected next step 1")
+	if len(m.checks) <= currentCheckPosition {
+		return nil, throw.E("unexpected next step")
 	}
 
-	if m.checks[currentCheckPosition].tp != expectedTp {
-		return nil, throw.E("unexpected next step 2")
+	if m.checks[currentCheckPosition].eventType != expectedTp {
+		return nil, throw.E("unexpected next step type")
 	}
 
 	m.pos++

@@ -39,7 +39,7 @@ type MachineLogger struct {
 
 func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg string) {
 	if data.Error != nil {
-		l.LogMachineCritical(data, msg)
+		l.logMachineCritical(data, msg)
 		return
 	}
 
@@ -50,7 +50,11 @@ func (l MachineLogger) LogMachineInternal(data smachine.SlotMachineData, msg str
 	}
 }
 
-func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
+func (l MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg string) {
+	l.logMachineCritical(data, msg)
+}
+
+func (MachineLogger) logMachineCritical(data smachine.SlotMachineData, msg string) {
 	printMachineData(data, mError, msg)
 
 	if data.Error == nil {
@@ -59,6 +63,8 @@ func (MachineLogger) LogMachineCritical(data smachine.SlotMachineData, msg strin
 
 	global.Errorm(throw.W(data.Error, msg, data))
 }
+
+func (MachineLogger) LogStopping(*smachine.SlotMachine) {}
 
 func (l MachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, tracer smachine.TracerID) smachine.StepLogger {
 	ctxWithTrace, _ := inslogger.WithTraceField(ctx, tracer)
@@ -136,11 +142,18 @@ func (v conveyorStepLogger) LogInternal(data smachine.StepLoggerData, updateType
 	}
 }
 
-func (conveyorStepLogger) CanLogTestEvent() bool {
-	return false
+func (v conveyorStepLogger) CanLogTestEvent() bool {
+	return true
 }
 
-func (conveyorStepLogger) LogTestEvent(smachine.StepLoggerData, interface{}) {}
+func (v conveyorStepLogger) LogTestEvent(data smachine.StepLoggerData, customEvent interface{}) {
+	_, levelName := MapCustomLogLevel(data)
+
+	PrepareStepName(&data.CurrentStep)
+
+	printStepData(data, levelName, fmt.Sprintf("custom_test  %+v", customEvent),
+		fmt.Sprintf("payload=%T tracer=%v", v.sm, v.tracer))
+}
 
 func (v conveyorStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
 	level, levelName := MapCustomLogLevel(data)

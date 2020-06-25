@@ -22,10 +22,13 @@ import (
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 
@@ -54,10 +57,6 @@ var (
 	testNetworkPort uint32 = 10000
 )
 
-var (
-	suiteLogger = inslogger.FromContext(initLogger(context.Background(), log.ErrorLevel))
-)
-
 const (
 	UseFakeTransport = false
 	UseFakeBootstrap = true
@@ -70,11 +69,13 @@ const (
 
 const cacheDir = "network_cache/"
 
-func initLogger(ctx context.Context, level log.Level) context.Context {
+func initLogger(ctx context.Context, t *testing.T, level log.Level) context.Context {
 	cfg := configuration.NewLog()
 	cfg.LLBufferSize = 0
 	cfg.Level = level.String()
 	cfg.Formatter = logcommon.TextFormat.String()
+
+	instestlogger.SetTestOutputWithCfg()
 
 	ctx, _ = inslogger.InitNodeLogger(ctx, cfg, "", "")
 	return ctx
@@ -100,7 +101,7 @@ func newTestSuite(t *testing.T, bootstrapCount, nodesCount int) testSuite {
 		bootstrapCount: bootstrapCount,
 		nodesCount:     nodesCount,
 		t:              t,
-		ctx:            initLogger(inslogger.TestContext(t), log.DebugLevel),
+		ctx:            initLogger(instestlogger.TestContext(t), t, log.DebugLevel),
 		bootstrapNodes: make([]*networkNode, 0),
 		//networkNodes:   make([]*networkNode, 0),
 	}
@@ -118,11 +119,13 @@ func newConsensusSuite(t *testing.T, bootstrapCount, nodesCount int) *consensusS
 
 // Setup creates and run network with bootstrap and common nodes once before run all tests in the suite
 func (s *consensusSuite) Setup() {
+	instestlogger.SetTestOutput(s.t)
+	
 	var err error
 	s.pulsar, err = NewTestPulsar(reqTimeoutMs, pulseDelta)
 	require.NoError(s.t, err)
 
-	suiteLogger.Info("SetupTest")
+	global.Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
 		role := node2.StaticRoleVirtual
@@ -141,7 +144,7 @@ func (s *consensusSuite) Setup() {
 		pulseReceivers = append(pulseReceivers, n.host)
 	}
 
-	suiteLogger.Info("Setup bootstrap nodes")
+	global.Info("Setup bootstrap nodes")
 	s.SetupNodesNetwork(s.bootstrapNodes)
 	if UseFakeBootstrap {
 		bnodes := make([]node2.NetworkNode, 0)
@@ -187,7 +190,7 @@ func (s *consensusSuite) Setup() {
 	require.Equal(s.t, len(s.bootstrapNodes), len(activeNodes))
 
 	//if len(s.networkNodes) > 0 {
-	//	suiteLogger.Info("Setup network nodes")
+	//	global.Info("Setup network nodes")
 	//	s.SetupNodesNetwork(s.networkNodes)
 	//	s.StartNodesNetwork(s.networkNodes)
 	//
@@ -200,8 +203,8 @@ func (s *consensusSuite) Setup() {
 	//	require.Equal(s.t, s.getNodesCount(), len(activeNodes1))
 	//	require.Equal(s.t, s.getNodesCount(), len(activeNodes2))
 	//}
-	suiteLogger.Info("Start test pulsar")
-	err = s.pulsar.Start(initLogger(s.ctx, log.ErrorLevel), pulseReceivers)
+	global.Info("Start test pulsar")
+	err = s.pulsar.Start(initLogger(s.ctx, s.t, log.ErrorLevel), pulseReceivers)
 	require.NoError(s.t, err)
 }
 
@@ -225,7 +228,7 @@ func (s *testSuite) SetupNodesNetwork(nodes []*networkNode) {
 		results <- err
 	}
 
-	suiteLogger.Info("Init nodes")
+	global.Info("Init nodes")
 	for _, n := range nodes {
 		go initNode(n)
 	}
@@ -263,18 +266,18 @@ func startNetworkSuite(t *testing.T) *consensusSuite {
 
 // stopNetworkSuite shutdowns all nodes in network
 func (s *consensusSuite) stopNetworkSuite() {
-	suiteLogger.Info("=================== stopNetworkSuite()")
-	suiteLogger.Info("Stop network nodes")
+	global.Info("=================== stopNetworkSuite()")
+	global.Info("Stop network nodes")
 	//for _, n := range s.networkNodes {
 	//	err := n.componentManager.Stop(n.ctx)
 	//	require.NoError(s.t, err)
 	//}
-	suiteLogger.Info("Stop bootstrap nodes")
+	global.Info("Stop bootstrap nodes")
 	for _, n := range s.bootstrapNodes {
 		err := n.componentManager.Stop(n.ctx)
 		require.NoError(s.t, err)
 	}
-	suiteLogger.Info("Stop test pulsar")
+	global.Info("Stop test pulsar")
 	err := s.pulsar.Stop(s.ctx)
 	require.NoError(s.t, err)
 }
@@ -301,8 +304,8 @@ func (s *consensusSuite) waitForNodeLeave(ref reference.Global, pulsesCount int)
 	return false
 }
 
-func (s *consensusSuite) waitForConsensus(consensusCount int) pulsestor.Number {
-	var p pulsestor.Number
+func (s *consensusSuite) waitForConsensus(consensusCount int) pulse.Number {
+	var p pulse.Number
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
 			select {
@@ -321,7 +324,7 @@ func (s *consensusSuite) waitForConsensus(consensusCount int) pulsestor.Number {
 	return p
 }
 
-func (s *consensusSuite) assertNetworkInConsistentState(p pulsestor.Number) {
+func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 	var nodes []node2.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
@@ -340,8 +343,8 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulsestor.Number) {
 	}
 }
 
-func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) pulsestor.Number {
-	var p pulsestor.Number
+func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) pulse.Number {
+	var p pulse.Number
 	for i := 0; i < consensusCount; i++ {
 		for _, n := range s.bootstrapNodes {
 			if n.id.Equal(exception) {
@@ -366,7 +369,7 @@ func (s *testSuite) getNodesCount() int {
 	return len(s.bootstrapNodes) // + len(s.networkNodes)
 }
 
-func (s *testSuite) isNodeInActiveLists(ref reference.Global, p pulsestor.Number) bool {
+func (s *testSuite) isNodeInActiveLists(ref reference.Global, p pulse.Number) bool {
 	for _, n := range s.bootstrapNodes {
 		a := n.serviceNetwork.NodeKeeper.GetAccessor(p)
 		if a.GetActiveNode(ref) == nil {
@@ -419,7 +422,7 @@ type networkNode struct {
 	componentManager   *component.Manager
 	serviceNetwork     *servicenetwork.ServiceNetwork
 	terminationHandler *testutils.TerminationHandlerMock
-	consensusResult    chan pulsestor.Number
+	consensusResult    chan pulse.Number
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
@@ -440,12 +443,12 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
 
 	n := &networkNode{
-		id:                  gen.UniqueReference(),
+		id:                  gen.UniqueGlobalRef(),
 		role:                role,
 		privateKey:          key,
 		cryptographyService: platformpolicy.NewKeyBoundCryptographyService(key),
 		host:                address,
-		consensusResult:     make(chan pulsestor.Number, 1),
+		consensusResult:     make(chan pulse.Number, 1),
 	}
 
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
@@ -541,6 +544,8 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	cfg.Service.CacheDirectory = cacheDir + node.host
 
 	node.componentManager = component.NewManager(nil)
+	node.componentManager.SetLogger(global.Logger())
+
 	node.componentManager.Register(platformpolicy.NewPlatformCryptographyScheme())
 	serviceNetwork, err := servicenetwork.NewServiceNetwork(cfg, node.componentManager)
 	require.NoError(s.t, err)

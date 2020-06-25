@@ -73,6 +73,10 @@ func (v StepLoggerFlags) AdapterFlags() StepLoggerFlags {
 	return v & StepLoggerAdapterMask
 }
 
+func (v StepLoggerFlags) WithAdapterFlags(flags StepLoggerFlags) StepLoggerFlags {
+	return (v & ^StepLoggerAdapterMask) | (flags & StepLoggerAdapterMask)
+}
+
 // SlotMachineData describes an event that is not connected to a specific SM, or when the related SM is already dead.
 type SlotMachineData struct {
 	// CycleNo is a cycle number of a SlotMachine when this event has happened
@@ -125,6 +129,8 @@ type SlotMachineLogger interface {
 	LogMachineInternal(data SlotMachineData, msg string)
 	// LogMachineCritical is invoked on critical events, that SlotMachine may not be able to handle properly.
 	LogMachineCritical(data SlotMachineData, msg string)
+	// LogStopping is invoked before SlotMachine will starts stopping operations. Can be cal
+	LogStopping(*SlotMachine)
 }
 
 type StepLoggerFactoryFunc func(context.Context, StateMachine, TracerID) StepLogger
@@ -226,6 +232,7 @@ func (p Logger) getStepLoggerData(eventType StepLoggerEvent, stepUpdate uint32, 
 	stepData := p.logger.getStepLoggerData()
 	stepData.EventType = eventType
 	stepData.Error = err
+
 	if stepUpdate != 0 {
 		stepData.StepNo.step = stepUpdate
 	}
@@ -247,6 +254,17 @@ func (p Logger) _doAdapterLog(stepLogger StepLogger, stepUpdate uint32, extraFla
 ) {
 	stepData := p.getStepLoggerData(StepLoggerAdapterCall, stepUpdate, err)
 	stepData.Flags |= extraFlags
+
+	if stepUpdate == 0 {
+		stepData.StepNo.step = 0
+		switch stepData.Flags.AdapterFlags() {
+		case StepLoggerAdapterAsyncResult:
+			stepData.Flags = stepData.Flags.WithAdapterFlags(StepLoggerAdapterAsyncExpiredResult)
+		case StepLoggerAdapterAsyncCancel:
+			stepData.Flags = stepData.Flags.WithAdapterFlags(StepLoggerAdapterAsyncExpiredCancel)
+		}
+	}
+
 	stepLogger.LogAdapter(stepData, adapterID, callID, fields)
 }
 

@@ -21,8 +21,8 @@ import (
 )
 
 func testRPCPacket() *Packet {
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueReference())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueReference())
+	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
+	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
 
 	result := NewPacket(sender, receiver, types.RPC, 123)
 	result.TraceID = "d6b44f62-7b5e-4249-90c7-ccae194a5baa"

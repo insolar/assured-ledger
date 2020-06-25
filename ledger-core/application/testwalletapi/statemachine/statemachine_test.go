@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -28,21 +28,22 @@ import (
 func TestSMTestAPICall_Migrate(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
+
+	slotMachine := slotdebugger.NewWithIgnoreAllErrors(ctx, t)
 
 	request := payload.VCallRequest{
 		CallType:            payload.CTMethod,
-		Callee:              gen.UniqueReference(),
+		Callee:              gen.UniqueGlobalRef(),
 		Caller:              APICaller,
 		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        gen.UniqueID(),
+		CallOutgoing:        gen.UniqueLocalRef(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	slotMachine := slotdebugger.New(ctx, t, true)
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	slotMachine.Start()

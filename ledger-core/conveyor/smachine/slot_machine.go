@@ -133,6 +133,7 @@ func (m *SlotMachine) IsActive() bool {
 }
 
 func (m *SlotMachine) Stop() bool {
+	m.logStop()
 	return m.syncQueue.SetStopping()
 }
 
@@ -764,7 +765,6 @@ func (m *SlotMachine) applyStateUpdate(slot *Slot, stateUpdate StateUpdate, w Fi
 }
 
 func (m *SlotMachine) handleSlotUpdateError(slot *Slot, worker FixedSlotWorker, stateUpdate StateUpdate, isPanic bool, err error) bool {
-
 	canRecover := false
 	area := StateArea
 	var slotError SlotPanicError
@@ -837,6 +837,12 @@ func (m *SlotMachine) logCritical(link StepLink, msg string, err error) {
 func (m *SlotMachine) logInternal(link StepLink, msg string, err error) {
 	if sml := m.config.SlotMachineLogger; sml != nil {
 		sml.LogMachineInternal(SlotMachineData{m.getScanCount(), link, err}, msg)
+	}
+}
+
+func (m *SlotMachine) logStop() {
+	if sml := m.config.SlotMachineLogger; sml != nil {
+		sml.LogStopping(m)
 	}
 }
 

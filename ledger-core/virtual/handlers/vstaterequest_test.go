@@ -13,7 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -28,7 +28,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	var (
 		mc              = minimock.NewController(t)
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
 			Status:              payload.Empty,
@@ -65,16 +65,16 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
-		objectRef = gen.UniqueReference()
-		caller    = gen.UniqueReference()
+		objectRef = gen.UniqueGlobalRef()
+		caller    = gen.UniqueGlobalRef()
 
 		catalogWrapper                = object.NewCatalogMockWrapper(mc)
 		catalog        object.Catalog = catalogWrapper.Mock()
 	)
 
-	slotMachine := slotdebugger.New(ctx, t, false)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 
@@ -104,16 +104,16 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 func TestDSMVStateRequest_PastPulse(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
-		objectRef = gen.UniqueReference()
-		caller    = gen.UniqueReference()
+		objectRef = gen.UniqueGlobalRef()
+		caller    = gen.UniqueGlobalRef()
 
 		catalogWrapper                = object.NewCatalogMockWrapper(mc)
 		catalog        object.Catalog = catalogWrapper.Mock()
 	)
 
-	slotMachine := slotdebugger.NewPast(ctx, t, false)
+	slotMachine := slotdebugger.NewPast(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 

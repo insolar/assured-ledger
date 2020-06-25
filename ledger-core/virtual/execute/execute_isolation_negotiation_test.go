@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -94,7 +94,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				State:        contract.CallDirty,
 			},
 			expectedIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
+				Interference: contract.CallIntolerable,
 				State:        contract.CallDirty,
 			},
 		},
@@ -121,7 +121,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				State:        contract.CallValidated,
 			},
 			expectedIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
+				Interference: contract.CallIntolerable,
 				State:        contract.CallDirty,
 			},
 		},
@@ -140,12 +140,12 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var (
-				ctx = inslogger.TestContext(t)
+				ctx = instestlogger.TestContext(t)
 				mc  = minimock.NewController(t)
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueIDWithPulse(pd.PulseNumber)
+				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 				smGlobalRef     = reference.NewSelf(smObjectID)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -185,7 +185,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 					return smachine.StateUpdate{}
 				})
 			} else {
-				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
 			}
 
 			smExecute.stepIsolationNegotiation(execCtx)

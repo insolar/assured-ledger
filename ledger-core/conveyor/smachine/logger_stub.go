@@ -51,7 +51,7 @@ func (v fixedSlotLogger) getStepLogger() (StepLogger, StepLogLevel, uint32) {
 	if step, ok := v.data.StepNo.SlotLink.GetStepLink(); ok {
 		return v.logger, v.level, step.StepNo()
 	}
-	return nil, 0, 0
+	return v.logger, v.level, 0
 }
 
 func (v fixedSlotLogger) getStepLoggerData() StepLoggerData {

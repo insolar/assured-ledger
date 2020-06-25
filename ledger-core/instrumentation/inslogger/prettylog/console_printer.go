@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package inslogger
+package prettylog
 
 import (
 	"fmt"
@@ -13,7 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 )
 
-var ConsoleWriterDefaults = ConsoleWriterConfig{
+const TimestampFormat = "2006-01-02T15:04:05.000000000Z07:00"
+
+var Defaults = Config{
 	NoColor:      true,
 	TimeFormat:   TimestampFormat,
 	FormatCaller: formatCaller,
@@ -27,7 +29,7 @@ var ConsoleWriterDefaults = ConsoleWriterConfig{
 
 type Formatter = func(interface{}) string
 
-type ConsoleWriterConfig struct {
+type Config struct {
 	Enable bool
 
 	// NoColor disables the colorized output.

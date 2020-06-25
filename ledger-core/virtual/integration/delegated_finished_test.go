@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executionupdate"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -29,6 +28,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func makeEmptyResult() []byte {
@@ -67,7 +68,7 @@ func mockExecutor(t *testing.T, server *utils.Server, callMethod callMethodFunc,
 	cacheMock := descriptor.NewCacheMock(t)
 	server.ReplaceCache(cacheMock)
 	cacheMock.ByClassRefMock.Return(
-		descriptor.NewClass(gen.UniqueReference(), gen.UniqueID(), testwallet.GetClass()),
+		descriptor.NewClass(gen.UniqueGlobalRef(), gen.UniqueLocalRef(), testwallet.GetClass()),
 		descriptor.NewCode(nil, machine.Builtin, walletCodeRef.Ref()),
 		nil,
 	)
@@ -124,7 +125,6 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 		newObjectDescriptor := descriptor.NewObject(reference.Global{}, objectLocal, class, []byte(""), reference.Global{})
 
@@ -134,9 +134,9 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		key := calculateOutgoing(pl).String()
 		runnerMock.AddExecutionMock(key).
 			AddStart(func(execution execution.Context) {
-				server.IncrementPulseAndWaitIdle(ctx)
-			}, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
+				server.IncrementPulse(ctx)
+			}, &execution.Update{
+				Type:   execution.Done,
 				Result: result,
 			})
 		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
@@ -145,7 +145,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		}, nil)
 
 		beforeCount := server.PublisherMock.GetCount()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 		if !server.PublisherMock.WaitCount(beforeCount+5, 10*time.Second) {
 			require.Fail(t, "timeout waiting for message")
 		}
@@ -178,28 +178,36 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	delegateDone := server.Journal.WaitStopOf(&object.SMAwaitDelegate{}, 1)
+
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	gotDelegatedRequestFinished := make(chan *payload.VDelegatedRequestFinished, 1)
-
-	{
-		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-		typedChecker.SetDefaultResend(true)
-		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-			gotDelegatedRequestFinished <- finished
-			return false
-		})
-		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
-	}
-
 	var (
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
+
+		typedChecker = server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	)
+
+	{
+		typedChecker.VCallResult.SetResend(false)
+		typedChecker.VDelegatedCallResponse.SetResend(true)
+		typedChecker.VDelegatedCallRequest.SetResend(true)
+		typedChecker.VStateReport.SetResend(true)
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			require.Equal(t, objectGlobal, finished.Callee)
+			require.Equal(t, payload.CTMethod, finished.CallType)
+			require.Equal(t, payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty), finished.CallFlags)
+
+			require.Nil(t, finished.LatestState)
+
+			return true
+		})
+	}
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
@@ -214,44 +222,32 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 			CallOutgoing:        server.RandomLocalWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-
-		// if object wasn't changed == absence of side-effect
-		result := requestresult.New(makeEmptyResult(), objectGlobal)
 
 		key := calculateOutgoing(pl).String()
 		runnerMock.AddExecutionMock(key).
 			AddStart(func(execution execution.Context) {
-				server.IncrementPulseAndWaitIdle(ctx)
-			}, &executionupdate.ContractExecutionStateUpdate{
-				Type:   executionupdate.Done,
-				Result: result,
+				server.IncrementPulse(ctx)
+			}, &execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New(makeEmptyResult(), objectGlobal),
 			})
 		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 			Interference: contract.CallTolerable,
 			State:        contract.CallDirty,
 		}, nil)
 
-		beforeCount := server.PublisherMock.GetCount()
-		server.SendMessage(ctx, msg)
-		if !server.PublisherMock.WaitCount(beforeCount+5, 10*time.Second) {
-			require.Fail(t, "timeout waiting for message")
-		}
+		server.SendPayload(ctx, &pl)
 	}
 
-	server.WaitActiveThenIdleConveyor()
+	testutils.WaitSignalsTimed(t, 10*time.Second, delegateDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	select {
-	case delegateFinishedMsg := <-gotDelegatedRequestFinished:
-		callFlags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
-
-		require.Equal(t, objectGlobal, delegateFinishedMsg.Callee)
-		require.Equal(t, payload.CTMethod, delegateFinishedMsg.CallType)
-		require.Equal(t, callFlags, delegateFinishedMsg.CallFlags)
-
-		require.Nil(t, delegateFinishedMsg.LatestState)
-	default:
-		require.Fail(t, "unexpected situation")
+	{
+		require.Equal(t, typedChecker.VCallResult.Count(), 1)
+		require.Equal(t, typedChecker.VDelegatedCallResponse.Count(), 1)
+		require.Equal(t, typedChecker.VDelegatedCallRequest.Count(), 1)
+		require.Equal(t, typedChecker.VStateReport.Count(), 1)
+		require.Equal(t, typedChecker.VDelegatedRequestFinished.Count(), 1)
 	}
 }
 

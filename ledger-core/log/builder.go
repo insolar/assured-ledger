@@ -65,6 +65,10 @@ func (z LoggerBuilder) GetOutput() io.Writer {
 	return z.cfg.BareOutput.Writer
 }
 
+func (z LoggerBuilder) GetFormat() logcommon.LogFormat {
+	return z.cfg.Output.Format
+}
+
 // GetLogLevel returns the current log level
 func (z LoggerBuilder) GetLogLevel() Level {
 	return z.level
