@@ -390,6 +390,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 		},
 	}
 	for _, test := range table {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Log(test.caseId)
 
@@ -397,6 +398,8 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
 			defer server.Stop()
+
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 				return execution.Request.CallSiteMethod
@@ -415,6 +418,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
 
+			// add mock
 			outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
 			objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
 			objectAExecutionMock.AddStart(
@@ -452,14 +456,33 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 			runnerMock.AddExecutionClassify("Foo", test.flagsA, nil)
 			runnerMock.AddExecutionClassify("Bar", test.flagsB, nil)
 
+			// checks
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
+			typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+				assert.Equal(t, objectBGlobal, request.Callee)
+				assert.Equal(t, objectAGlobal, request.Caller)
+				assert.Equal(t, payload.CTMethod, request.CallType)
+				assert.Equal(t, uint32(1), request.CallSequence)
+				assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+				return true // resend
+			})
+
 			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 				switch res.Callee {
 				case objectAGlobal:
 					require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
+					require.Equal(t, payload.CTMethod, res.CallType)
+					require.Equal(t, server.GlobalCaller(), res.Caller)
+					assert.Equal(t, test.flagsA.Interference, res.CallFlags.GetInterference())
+					assert.Equal(t, test.flagsA.State, res.CallFlags.GetState())
 				case objectBGlobal:
 					require.Equal(t, []byte("finish B.Bar"), res.ReturnArguments)
+					require.Equal(t, payload.CTMethod, res.CallType)
+					require.Equal(t, objectAGlobal, res.Caller)
+					assert.Equal(t, test.flagsB.Interference, res.CallFlags.GetInterference())
+					assert.Equal(t, test.flagsB.State, res.CallFlags.GetState())
+				default:
+					t.Fatalf("wrong Callee")
 				}
 				// we should resend that message only if it's CallResult from B to A
 				return res.Caller == objectAGlobal
@@ -482,7 +505,9 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 				t.Fatal("failed to wait until all messages returned")
 			}
 
-			server.WaitActiveThenIdleConveyor()
+			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
 			mc.Finish()
 		})
 	}
@@ -761,6 +786,7 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 // unordered A.Foo sends ordered outgoing and receives error, call method
 // unordered A.Foo sends ordered outgoing and receives error, call constructor
 func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
+	t.Log("C4980")
 	table := []struct {
 		name         string
 		caseId       string
@@ -768,17 +794,14 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 	}{
 		{
 			name:         "unordered A.Foo sends ordered outgoing and receives error, call method",
-			caseId:       "C4980",
 			outgoingCall: "method",
 		}, {
 			name:         "unordered A.Foo sends ordered outgoing and receives error, call constructor",
-			caseId:       "C5203",
 			outgoingCall: "constructor",
 		},
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.caseId)
 
 			mc := minimock.NewController(t)
 
