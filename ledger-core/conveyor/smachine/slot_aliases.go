@@ -218,13 +218,7 @@ func (m *SlotMachine) _unregisterSlotBoundAlias(slotID SlotID, k interface{}) bo
 	if isa, loaded := m.localRegistry.Load(key); loaded {
 		sa := isa.(*slotAliases)
 
-		// reversed search as aliases are more likely to be LIFO
-		for i := len(sa.keys) - 1; i > 0; i-- {
-			kk := sa.keys[i]
-			if k != kk {
-				continue
-			}
-
+		return sa.FindAndRemove(k, func(_ interface{}, last bool) (remove bool) {
 			m.localRegistry.Delete(k)
 			if sar := m.config.SlotAliasRegistry; sar != nil {
 				if ga, ok := k.(globalAliasKey); ok {
@@ -232,21 +226,34 @@ func (m *SlotMachine) _unregisterSlotBoundAlias(slotID SlotID, k interface{}) bo
 				}
 			}
 
-			if i == 0 && len(sa.keys) == 1 {
+			if last {
 				m.localRegistry.Delete(key)
-				// slot.slotFlags &^= slotHadAliases
-			} else {
-				switch last := len(sa.keys) - 1; {
-				case i < last:
-					copy(sa.keys[i:], sa.keys[i+1:])
-					fallthrough
-				default:
-					sa.keys[last] = nil
-					sa.keys = sa.keys[:last]
-				}
+				return false
 			}
 			return true
+		})
+	}
+	return false
+}
+
+func (a *slotAliases) FindAndRemove(k interface{}, fn func(k interface{}, last bool) (remove bool)) bool {
+	// reversed search as aliases are more likely to be LIFO
+	last := len(a.keys) - 1
+	for i := last; i >= 0; i-- {
+		kk := a.keys[i]
+		if k != kk {
+			continue
 		}
+
+		if fn(k, last == 0) {
+			if i < last {
+				copy(a.keys[i:], a.keys[i+1:])
+			}
+			a.keys[last] = nil
+			a.keys = a.keys[:last]
+		}
+
+		return true
 	}
 	return false
 }
