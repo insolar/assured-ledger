@@ -45,7 +45,12 @@ func (p *Point) Wait() <-chan struct{} {
 		for i := 0; i < p.count; i++ {
 			_, ok := <-p.input
 			if !ok {
-				close(doneChan)
+				// that means we've got timeout, stop waiting
+				//
+				// we shouldn't throw any error here because
+				// Done should be called from testing goroutine
+				// only and that too
+				break
 			}
 		}
 		close(doneChan)
@@ -61,6 +66,7 @@ func (p *Point) WakeUp() {
 	}
 }
 
+// Done should be called only from testing goroutine
 func (p *Point) Done() {
 	close(p.input)
 	close(p.output)
