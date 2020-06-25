@@ -362,15 +362,8 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 	var (
 		isDuplicate       bool
 		isActive          bool
-		pendingListFilled smachine.SyncLink
 	)
 	action := func(state *object.SharedState) {
-		if s.execution.Isolation.Interference == contract.CallIntolerable {
-			pendingListFilled = state.UnorderedPendingListFilled
-		} else {
-			pendingListFilled = state.OrderedPendingListFilled
-		}
-
 		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
 
 		if pendingList.Exist(s.execution.Outgoing) {
@@ -395,10 +388,6 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 			ctx.Log().Warn("duplicate found as pending request")
 			return ctx.Stop()
 		}
-	}
-
-	if ctx.AcquireForThisStep(pendingListFilled).IsNotPassed() {
-		return ctx.Sleep().ThenRepeat()
 	}
 
 	return ctx.Jump(s.stepDeduplicateThroughPreviousExecutor)
