@@ -753,6 +753,10 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 		return false // no resend msg
 	}).ExpectedCount(1)
 
+	if testInfo.confirmPending {
+		s.typedChecker.VDelegatedCallResponse.SetResend(false)
+	}
+
 	if testInfo.expectFindRequestMessage {
 		s.typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
 			require.Equal(t, s.getP1(), req.LookAt)
