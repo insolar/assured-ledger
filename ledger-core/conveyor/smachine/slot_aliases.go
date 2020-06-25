@@ -114,6 +114,45 @@ func (s *Slot) registerBoundAlias(k, v interface{}) bool {
 }
 
 // ONLY to be used by a holder of a slot
+func (s *Slot) replaceBoundAlias(k, v interface{}) bool {
+	if k == nil {
+		panic(throw.IllegalValue())
+	}
+
+	m := &s.machine.localRegistry
+	if _, loaded := m.Load(k); !loaded {
+		return false
+	}
+
+	var key interface{} = slotIDKey(s.GetSlotID())
+
+	isa, ok := m.Load(key)
+	if !ok {
+		return false
+	}
+	sa := isa.(*slotAliases)
+
+	return sa.FindAndRemove(k, func(_ interface{}, last bool) (remove bool) {
+		m.Store(k, v) // replace value
+
+		if sar := s.machine.config.SlotAliasRegistry; sar != nil {
+			if ga, ok := k.(globalAliasKey); ok {
+				sar.ReplaceAlias(ga.key, v.(SlotAliasValue))
+			}
+		}
+
+		if sdl, ok := v.(SharedDataLink); ok && sdl.IsUnbound() {
+			if last {
+				m.Delete(key)
+				return false
+			}
+			return true
+		}
+		return false
+	})
+}
+
+// ONLY to be used by a holder of a slot
 func (s *Slot) unregisterAlias(k interface{}) bool {
 	if k == nil {
 		panic(throw.IllegalValue())
@@ -252,7 +291,6 @@ func (a *slotAliases) FindAndRemove(k interface{}, fn func(k interface{}, last b
 			a.keys[last] = nil
 			a.keys = a.keys[:last]
 		}
-
 		return true
 	}
 	return false

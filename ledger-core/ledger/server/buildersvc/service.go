@@ -7,12 +7,33 @@ package buildersvc
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 type JetID uint32
 
+type JetDropID uint64
+
+func NewJetDropID(pn pulse.Number, id JetID) JetDropID {
+
+}
+
+func (v JetDropID) IsValid() bool {
+
+}
+
+type StreamDropAssistant interface {
+	CalculateJetDrop(reference.Holder) JetDropID
+	CreateJetDropAssistant(id JetID) JetDropAssistant
+}
+
+type JetDropAssistant interface {
+	JetDropAssistant()
+}
+
+
 type Service interface {
-	CreateStreamDrop(pulse.Range, /* jetTree, population */) []JetID
+	CreateStreamDrop(pulse.Range, /* jetTree, population */) (StreamDropAssistant, []JetID)
 }
 
 var _ Service = &serviceImpl{}
@@ -23,7 +44,7 @@ func NewService() Service {
 
 type serviceImpl struct {}
 
-func (p *serviceImpl) CreateStreamDrop(pulse.Range) []JetID {
+func (p *serviceImpl) CreateStreamDrop(pulse.Range) (StreamDropAssistant, []JetID) {
 	panic("implement me")
 }
 
