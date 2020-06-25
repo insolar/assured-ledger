@@ -1773,11 +1773,7 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 		endPulse   pulse.Number
 	)
 
-	// create objects
-	{
-		Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-	}
+	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
 	// add ExecutionMocks to runnerMock
 	{
@@ -1812,18 +1808,10 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 	// add checks to typedChecker
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			assert.Equal(t, objectAGlobal, report.Object)
+			assert.Equal(t, int32(0), report.OrderedPendingCount)
+			assert.Equal(t, int32(1), report.UnorderedPendingCount)
 			assert.True(t, report.DelegationSpec.IsZero())
-
-			switch report.Object {
-			case objectAGlobal:
-				require.Equal(t, int32(0), report.OrderedPendingCount)
-				require.Equal(t, int32(1), report.UnorderedPendingCount)
-			case objectBGlobal:
-				require.Equal(t, int32(0), report.OrderedPendingCount)
-				require.Equal(t, int32(0), report.UnorderedPendingCount)
-			default:
-				t.Fatal("unknown object")
-			}
 
 			return false
 		})
@@ -1912,7 +1900,7 @@ func TestVirtual_CallContractFromContract_PulseChange_BeforeVCallRequest(t *test
 		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
-	require.Equal(t, 2, typedChecker.VStateReport.Count())
+	require.Equal(t, 1, typedChecker.VStateReport.Count())
 	require.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
