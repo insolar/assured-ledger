@@ -116,9 +116,8 @@ func SendAPIRequest(url string, body interface{}) ([]byte, error) {
 }
 
 // Creates wallet and returns it's reference.
-func CreateSimpleWallet() (string, error) {
-	createURL := GetURL(WalletCreatePath, "", "")
-	rawResp, err := SendAPIRequest(createURL, nil)
+func CreateSimpleWallet(url string) (string, error) {
+	rawResp, err := SendAPIRequest(url, nil)
 	if err != nil {
 		return "", errors.W(err, "failed to send request or get response body")
 	}
